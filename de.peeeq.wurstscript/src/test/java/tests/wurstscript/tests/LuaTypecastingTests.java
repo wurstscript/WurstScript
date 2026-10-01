@@ -246,19 +246,19 @@ public class LuaTypecastingTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTypecastingTests_luaFramehandleFromIndexDoesNotUseFogstateHashtablePath.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("__wurst_objectFromIndex("));
         Pattern framehandleFromIndexUsesLuaHelper = Pattern.compile(
-            "function\\s+framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            "function\\s+(?:\\w+__)?framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
             Pattern.MULTILINE
         );
         assertTrue(framehandleFromIndexUsesLuaHelper.matcher(compiled).find());
         Pattern unitFromIndexUsesLuaHelper = Pattern.compile(
-            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            "function\\s+(?:\\w+__)?unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
             Pattern.MULTILINE
         );
         assertTrue(unitFromIndexUsesLuaHelper.matcher(compiled).find());
         // constrain to the function body (up to the first closing 'end'),
         // otherwise the match can leak into later functions
         Pattern unitFromIndexBody = Pattern.compile(
-            "function\\s+unitFromIndex\\([^)]*\\)\\s*\\n([\\s\\S]*?)\\nend",
+            "function\\s+(?:\\w+__)?unitFromIndex\\([^)]*\\)\\s*\\n([\\s\\S]*?)\\nend",
             Pattern.MULTILINE
         );
         java.util.regex.Matcher bodyMatcher = unitFromIndexBody.matcher(compiled);
@@ -287,43 +287,43 @@ public class LuaTypecastingTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTypecastingTests_luaTypeCastingCompatWrappersUseLuaHelpers.lua"), Charsets.UTF_8);
 
         assertTrue(Pattern.compile(
-            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            "function\\s+(?:\\w+__)?unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+unitToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            "function\\s+(?:\\w+__)?unitToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+widgetFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            "function\\s+(?:\\w+__)?widgetFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+widgetToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            "function\\s+(?:\\w+__)?widgetToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            "function\\s+(?:\\w+__)?framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+framehandleToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            "function\\s+(?:\\w+__)?framehandleToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+oskeytypeFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            "function\\s+(?:\\w+__)?oskeytypeFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+oskeytypeToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            "function\\s+(?:\\w+__)?oskeytypeToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+stringToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringToIndex\\(",
+            "function\\s+(?:\\w+__)?stringToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringToIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
         assertTrue(Pattern.compile(
-            "function\\s+stringFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringFromIndex\\(",
+            "function\\s+(?:\\w+__)?stringFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringFromIndex\\(",
             Pattern.MULTILINE
         ).matcher(compiled).find());
     }

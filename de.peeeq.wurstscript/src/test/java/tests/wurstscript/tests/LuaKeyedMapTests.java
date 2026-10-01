@@ -400,7 +400,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub");
         String init = getFunctionBody(lua, "init_Test");
         assertTrue("the generic wrapper result is normalized to Wurst's int default: " + init,
-            init.contains("__wurst_ensureInt(readNative(map, u))"));
+            Pattern.compile("__wurst_ensureInt\\((?:\\w+__)?readNative\\(map, u\\)\\)").matcher(init).find());
         assertTrue("the generic getter still reaches the raw table stub", lua.contains("return t[k]"));
         assertFalse("integer get must not leave the failing source fallback body",
             lua.contains("function keyedMapGetNative_unit_int") && lua.contains("return nil"));

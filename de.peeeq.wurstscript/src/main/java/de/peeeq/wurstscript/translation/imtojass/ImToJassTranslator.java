@@ -111,8 +111,12 @@ public class ImToJassTranslator {
     }
 
     private void collectGlobalVars() {
+        // An initializer can name a global later in this list (bj_DEGTORAD reads bj_PI).
+        // getJassVarFor emits a variable only once it is known to be global, and caches that
+        // result: translating the initializer first would cache bj_PI as a non-global and the
+        // later declaration would never be added.
+        globalImVars.addAll(imProg.getGlobals());
         for (ImVar v : imProg.getGlobals()) {
-            globalImVars.add(v);
             getJassVarFor(v);
         }
     }
