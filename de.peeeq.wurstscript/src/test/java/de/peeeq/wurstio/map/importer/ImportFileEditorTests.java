@@ -107,6 +107,66 @@ public class ImportFileEditorTests {
     }
 
     @Test
+    public void dependencyImportIsRestoredWhenTheProjectOverrideIsRemoved() throws Exception {
+        write("_build/dependencies/dep/imports/Textures/x.blp", "dependency", 1_000_000L);
+        Path override = write("imports/Textures/x.blp", "project", 1_000_000L);
+        importFiles();
+        assertEquals(contentInMpq("Textures\\x.blp"), "project");
+
+        // The file that wins the path changes, but both have the same timestamp.
+        Files.delete(override);
+        importFiles();
+        assertEquals(contentInMpq("Textures\\x.blp"), "dependency");
+    }
+
+    @Test
+    public void projectOverrideAddedLaterReplacesTheCachedDependencyImport() throws Exception {
+        write("_build/dependencies/dep/imports/Textures/x.blp", "dependency", 1_000_000L);
+        importFiles();
+        assertEquals(contentInMpq("Textures\\x.blp"), "dependency");
+
+        write("imports/Textures/x.blp", "project", 1_000_000L);
+        importFiles();
+        assertEquals(contentInMpq("Textures\\x.blp"), "project");
+    }
+
+    @Test
+    public void importReplacedByAFileOfAnotherSizeIsImportedEvenWithTheOldTimestamp() throws Exception {
+        write("imports/war3mapImported/a.blp", "v1", 1_000_000L);
+        importFiles();
+
+        write("imports/war3mapImported/a.blp", "version two", 1_000_000L);
+        importFiles();
+        assertEquals(contentInMpq("war3mapImported\\a.blp"), "version two");
+    }
+
+    @Test
+    public void importMissingFromTheMapIsAddedBackWhenOnlyItsTimestampChanged() throws Exception {
+        Path file = write("imports/war3mapImported/a.blp", "v1", 1_000_000L);
+        importFiles();
+        try (MpqEditor editor = MpqEditorFactory.getEditor(Optional.of(mpq))) {
+            editor.deleteFile("war3mapImported\\a.blp");
+        }
+        assertEquals(contentInMpq("war3mapImported\\a.blp"), null);
+
+        Files.setLastModifiedTime(file, java.nio.file.attribute.FileTime.fromMillis(2_000_000L));
+        importFiles();
+        assertEquals(contentInMpq("war3mapImported\\a.blp"), "v1");
+    }
+
+    @Test
+    public void cacheManifestDoesNotRecordWhereTheProjectLives() throws Exception {
+        write("imports/war3mapImported/a.blp", "v1", 1_000_000L);
+        write("_build/dependencies/dep/imports/war3mapImported/b.dds", "dep", 1_000_000L);
+        importFiles();
+
+        String manifest = contentInMpq("wurst_cache_manifest.txt");
+        assertTrue(manifest.contains("imports/war3mapImported/a.blp"), manifest);
+        assertTrue(manifest.contains("_build/dependencies/dep/imports/war3mapImported/b.dds"), manifest);
+        assertFalse(manifest.contains(project.getFileName().toString()), manifest);
+    }
+
+    @Test
     public void importedFilesAreKeptAcrossRepeatedUnchangedImports() throws Exception {
         write("imports/war3mapImported/a.blp", "v1", 1_000_000L);
         write("_build/dependencies/dep/imports/war3mapImported/b.dds", "dep", 1_000_000L);
