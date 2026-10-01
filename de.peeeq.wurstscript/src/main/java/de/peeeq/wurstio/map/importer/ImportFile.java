@@ -67,10 +67,32 @@ public class ImportFile {
         static class FileEntry {
             String hash;
             long lastModified;
+            /** Size and project-relative path of the file the entry was taken from; absent in older manifests. */
+            long size = -1;
+            String source;
 
             FileEntry(String hash, long lastModified) {
                 this.hash = hash;
                 this.lastModified = lastModified;
+            }
+
+            FileEntry(String hash, long lastModified, long size, String source) {
+                this(hash, lastModified);
+                this.size = size;
+                this.source = source;
+            }
+
+            /**
+             * Whether this entry was taken from exactly this file as it is now. The timestamp alone is not
+             * enough: a different file can win the same path (project over dependency), and a file can be
+             * replaced by one of another size that keeps the old timestamp.
+             */
+            boolean isSameFile(String currentSource, File file) {
+                return source != null
+                    && size >= 0
+                    && source.equals(currentSource)
+                    && lastModified == file.lastModified()
+                    && size == file.length();
             }
         }
 
@@ -87,7 +109,7 @@ public class ImportFile {
         String serialize() {
             StringBuilder sb = new StringBuilder();
             sb.append("# Wurst Cache Manifest v2\n");
-            sb.append("# Format: TYPE|path|hash|lastModified\n");
+            sb.append("# Format: TYPE|path|hash|lastModified[|size|source file]\n");
 
             // Serialize w3i config
             if (w3iConfig != null) {
@@ -109,13 +131,17 @@ public class ImportFile {
 
             // Serialize import files
             for (Map.Entry<String, FileEntry> entry : importFiles.entrySet()) {
+                FileEntry value = entry.getValue();
                 sb.append("IMPORT|")
                     .append(entry.getKey())
                     .append("|")
-                    .append(entry.getValue().hash)
+                    .append(value.hash)
                     .append("|")
-                    .append(entry.getValue().lastModified)
-                    .append("\n");
+                    .append(value.lastModified);
+                if (value.source != null) {
+                    sb.append("|").append(value.size).append("|").append(value.source);
+                }
+                sb.append("\n");
             }
             return sb.toString();
         }
@@ -131,7 +157,8 @@ public class ImportFile {
                 if (line.startsWith("#") || line.trim().isEmpty()) {
                     continue;
                 }
-                String[] parts = line.split("\\|");
+                // at most six parts, so a source path is kept whole
+                String[] parts = line.split("\\|", 6);
                 if (parts.length < 4) {
                     continue;
                 }
@@ -150,7 +177,12 @@ public class ImportFile {
                             manifest.mapConfig = new ConfigEntry(hash, timestamp);
                             break;
                         case "IMPORT":
-                            manifest.importFiles.put(path, new FileEntry(hash, timestamp));
+                            FileEntry fileEntry = new FileEntry(hash, timestamp);
+                            if (parts.length >= 6) {
+                                fileEntry.size = Long.parseLong(parts[4]);
+                                fileEntry.source = parts[5];
+                            }
+                            manifest.importFiles.put(path, fileEntry);
                             break;
                     }
                 } catch (NumberFormatException e) {
@@ -269,14 +301,15 @@ public class ImportFile {
      * PUBLIC API: Main entry point for importing files with intelligent caching
      */
     public static ImportResult importFilesFromImports(File projectFolder, MpqEditor ed) {
-        LinkedList<File> folders = new LinkedList<>();
+        // A later folder replaces a file of the same path from an earlier one, so the project's own imports
+        // come last and win over what its dependencies ship.
+        LinkedList<File> folders = new LinkedList<>(Arrays.asList(getTransientImportDirectories(projectFolder)));
         folders.add(getImportDirectory(projectFolder));
-        folders.addAll(Arrays.asList(getTransientImportDirectories(projectFolder)));
 
         folders.removeIf(folder -> !folder.exists());
 
         try {
-            return insertImportedFiles_Cached(ed, folders);
+            return insertImportedFiles_Cached(ed, projectFolder, folders);
         } catch (Exception e) {
             WLogger.severe(e);
             throw new RuntimeException("Failed to import resources: " + e.getMessage(), e);
@@ -426,7 +459,7 @@ public class ImportFile {
     /**
      * Cached version that only updates changed files
      */
-    private static ImportResult insertImportedFiles_Cached(MpqEditor mpq, List<File> directories) throws Exception {
+    private static ImportResult insertImportedFiles_Cached(MpqEditor mpq, File projectFolder, List<File> directories) throws Exception {
         long startTime = System.currentTimeMillis();
 
         // Load the old manifest from the MPQ
@@ -443,7 +476,9 @@ public class ImportFile {
         int filesDeleted = 0;
 
         // 1. Gather all current files and their info
-        Map<String, File> allFiles = new HashMap<>();
+        Map<String, File> allFiles = new LinkedHashMap<>();
+        // MPQ names are case insensitive, so two spellings of one path are one file in the map
+        Map<String, String> spellingByMpqName = new HashMap<>();
         for (File directory : directories) {
             LinkedList<File> filesInDir = new LinkedList<>();
             getFilesOfDirectory(directory, filesInDir);
@@ -451,6 +486,10 @@ public class ImportFile {
             for (File f : filesInDir) {
                 Path relativePath = directory.toPath().relativize(f.toPath());
                 String normalizedWc3Path = relativePath.toString().replace("/", "\\");
+                String earlierSpelling = spellingByMpqName.put(mpqName(normalizedWc3Path), normalizedWc3Path);
+                if (earlierSpelling != null) {
+                    allFiles.remove(earlierSpelling);
+                }
                 allFiles.put(normalizedWc3Path, f);
             }
         }
@@ -465,9 +504,13 @@ public class ImportFile {
 
             long lastModified = file.lastModified();
 
-            // Quick check: if file hasn't been modified, assume it's the same
+            // Which file supplies this path, relative to the project so the manifest does not record where
+            // the project lives
+            String source = projectFolder.toPath().relativize(file.toPath()).toString().replace('\\', '/');
+
+            // Quick check: if this is the same file as last time, assume it's unchanged
             CacheManifest.FileEntry oldEntry = oldManifest.importFiles.get(path);
-            if (oldEntry != null && oldEntry.lastModified == lastModified) {
+            if (oldEntry != null && oldEntry.isSameFile(source, file)) {
                 // File hasn't changed, but verify it exists in MPQ
                 if (!mpq.hasFile(path)) {
                     WLogger.info("File in manifest but missing from MPQ, re-adding: " + path);
@@ -479,9 +522,10 @@ public class ImportFile {
                 continue;
             }
 
-            // File is new or modified, calculate hash
+            // File is new or may have changed, calculate hash
             String newHash = calculateFileHash(file);
-            newManifest.importFiles.put(path, new CacheManifest.FileEntry(newHash, lastModified));
+            newManifest.importFiles.put(path,
+                new CacheManifest.FileEntry(newHash, lastModified, file.length(), source));
 
             if (oldEntry == null) {
                 WLogger.info("New import: " + path);
@@ -497,12 +541,19 @@ public class ImportFile {
                     mpq.deleteFile(path);
                 }
                 mpq.insertFile(path, file);
+            } else if (!mpq.hasFile(path)) {
+                WLogger.info("File in manifest but missing from MPQ, re-adding: " + path);
+                mpq.insertFile(path, file);
+                importsChanged = true;
+                filesUpdated++;
             }
         }
 
         // 3. Process deletions (files in old manifest but not in current file list)
         Set<String> deletedFiles = new HashSet<>(oldManifest.importFiles.keySet());
-        deletedFiles.removeAll(allFiles.keySet());
+        // A file that only changed its capitalisation is still imported, and deleting its old spelling
+        // would delete the copy that was just inserted.
+        deletedFiles.removeIf(old -> spellingByMpqName.containsKey(mpqName(old)));
 
         for (String deletedPath : deletedFiles) {
             WLogger.info("Deleting import: " + deletedPath);
@@ -548,6 +599,10 @@ public class ImportFile {
         return new ImportResult(filesProcessed, filesUpdated, filesDeleted, duration, !importsChanged);
     }
 
+    private static String mpqName(String path) {
+        return path.toLowerCase(Locale.ROOT);
+    }
+
     private static File getImportDirectory(File projectFolder) {
         return new File(projectFolder, "imports");
     }
@@ -556,7 +611,8 @@ public class ImportFile {
         ArrayList<Path> paths = new ArrayList<>();
         Path dependencies = projectFolder.toPath().resolve("_build").resolve("dependencies");
         try (Stream<Path> spaths = java.nio.file.Files.list(dependencies)) {
-            spaths.forEach(dependency -> {
+            // listing order is unspecified; a fixed order keeps it deterministic which dependency wins a clash
+            spaths.sorted().forEach(dependency -> {
                 if (java.nio.file.Files.exists(dependency.resolve("imports"))) {
                     paths.add(dependency.resolve("imports"));
                 }

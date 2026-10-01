@@ -59,6 +59,36 @@ public class ImportFileTests {
     }
 
     @Test
+    public void manifestRoundTripKeepsTheSourceOfAnImport() {
+        ImportFile.CacheManifest manifest = new ImportFile.CacheManifest();
+        manifest.importFiles.put("models\\unit.mdx",
+            new ImportFile.CacheManifest.FileEntry("file-hash", 123L, 456L, "imports/my models/unit.mdx"));
+
+        ImportFile.CacheManifest.FileEntry restored =
+            ImportFile.CacheManifest.deserialize(manifest.serialize()).importFiles.get("models\\unit.mdx");
+
+        assertEquals(restored.hash, "file-hash");
+        assertEquals(restored.lastModified, 123L);
+        assertEquals(restored.size, 456L);
+        assertEquals(restored.source, "imports/my models/unit.mdx");
+    }
+
+    @Test
+    public void importEntryFromAnOlderManifestIsNeverTrustedAsTheSameFile() throws Exception {
+        ImportFile.CacheManifest restored = ImportFile.CacheManifest.deserialize(
+            "IMPORT|models\\unit.mdx|file-hash|123\n");
+        ImportFile.CacheManifest.FileEntry entry = restored.importFiles.get("models\\unit.mdx");
+        assertEquals(entry.hash, "file-hash");
+        assertEquals(entry.lastModified, 123L);
+
+        tempDir = Files.createTempDirectory("wurst-import-legacy");
+        Path file = Files.write(tempDir.resolve("unit.mdx"), new byte[3]);
+        Files.setLastModifiedTime(file, java.nio.file.attribute.FileTime.fromMillis(123L));
+        assertFalse(entry.isSameFile("imports/unit.mdx", file.toFile()),
+            "an entry without a recorded source must be hashed again");
+    }
+
+    @Test
     public void malformedManifestLinesAreIgnored() {
         ImportFile.CacheManifest restored = ImportFile.CacheManifest.deserialize(
             "# comment\ninvalid\nIMPORT|bad|hash|not-a-number\nUNKNOWN|path|hash|1\n");
