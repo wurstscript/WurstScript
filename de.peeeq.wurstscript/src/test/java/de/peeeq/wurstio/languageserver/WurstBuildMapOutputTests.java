@@ -1,9 +1,12 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.dataTypes.app.Coords2DF;
@@ -12,6 +15,8 @@ import org.testng.annotations.Test;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
 
+import java.io.File;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,11 +53,10 @@ public class WurstBuildMapOutputTests {
             Path mapPath = projectRoot.resolve("input.w3x");
             createInputMap(mapPath);
             Path buildDir = Files.createDirectories(projectRoot.resolve("_build"));
-            Path sourceScript = projectRoot.resolve(lua ? "war3map.lua" : "war3map.j");
-            Files.writeString(sourceScript, lua ? luaScriptWithOldConfig() : SCRIPT_WITH_OLD_CONFIG,
-                StandardCharsets.UTF_8);
+            Path sourceScript = projectRoot.resolve("war3map.j");
+            Files.writeString(sourceScript, SCRIPT_WITH_OLD_CONFIG, StandardCharsets.UTF_8);
 
-            String outputScriptName = lua ? "war3map.lua" : "war3map.j";
+            String outputScriptName = "configured-war3map.j";
             var result = ProjectConfigBuilder.apply(
                 projectConfig,
                 mapPath.toFile(),
@@ -64,9 +68,16 @@ public class WurstBuildMapOutputTests {
                 outputScriptName
             );
 
-            // Match MapRequest.injectMapData: put the generated script and binary W3I into the output MPQ.
+            String mapScriptName = lua ? "war3map.lua" : "war3map.j";
+            byte[] compiledScript = lua ? compileConfiguredJassToLua(result.script.toPath())
+                : Files.readAllBytes(result.script.toPath());
+
+            // Match MapRequest.injectMapData: put the compiled script and binary W3I into the output MPQ.
             try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(mapPath.toFile()))) {
-                mpq.insertFile(outputScriptName, result.script);
+                if (lua && mpq.hasFile("war3map.j")) {
+                    mpq.deleteFile("war3map.j");
+                }
+                mpq.insertFile(mapScriptName, compiledScript);
                 mpq.insertFile("war3map.w3i", result.w3i);
             }
 
@@ -74,7 +85,7 @@ public class WurstBuildMapOutputTests {
             byte[] outputScriptBytes;
             try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(mapPath.toFile()), true)) {
                 outputW3iBytes = mpq.extractFile("war3map.w3i");
-                outputScriptBytes = mpq.extractFile(outputScriptName);
+                outputScriptBytes = mpq.extractFile(mapScriptName);
             }
 
             W3I outputW3i = new W3I(outputW3iBytes);
@@ -184,8 +195,23 @@ public class WurstBuildMapOutputTests {
         return yaml.toString();
     }
 
-    private static String luaScriptWithOldConfig() {
-        return "function config()\n    SetTeams(99)\nend\nfunction main()\nend\n";
+    private static byte[] compileConfiguredJassToLua(Path configuredJass) throws Exception {
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs("-lua"));
+        compiler.loadFiles(
+            new File(WurstBuildMapOutputTests.class.getClassLoader().getResource("common.j").toURI()),
+            new File(WurstBuildMapOutputTests.class.getClassLoader().getResource("blizzard.j").toURI())
+        );
+        compiler.loadReader("war3map.j", new StringReader(Files.readString(configuredJass)));
+        WurstModel model = compiler.parseFiles();
+        assertTrue(model != null, "JASS config prelude must parse: " + gui.getErrorList());
+        compiler.checkProg(model);
+        assertTrue(gui.getErrorList().isEmpty(), "JASS config prelude must typecheck: " + gui.getErrorList());
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+        StringBuilder output = new StringBuilder();
+        compiler.transformProgToLua().print(output, 0);
+        return output.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     private static void assertW3i(W3I w3i) {

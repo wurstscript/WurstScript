@@ -104,7 +104,7 @@ public class ProjectConfigBuilder {
 
         if (configNeedsApplying && hasW3IOverrides) {
             WLogger.info("Applying buildMapData config");
-            applyBuildMapData(mapScript, buildDir, w3data, w3I, result, outputScriptName, runArgs.isLua());
+            applyBuildMapData(mapScript, buildDir, w3data, w3I, result, outputScriptName);
         } else if (!configNeedsApplying) {
             WLogger.info("Using cached w3i configuration");
             // Prefer the previously-injected script (with correct config() body) over the
@@ -118,7 +118,7 @@ public class ProjectConfigBuilder {
                 result.script = cachedInjectedScript;
             } else if (hasW3IOverrides) {
                 WLogger.info("war3map.j changed or cached script missing, re-injecting config");
-                applyBuildMapData(mapScript, buildDir, w3data, w3I, result, outputScriptName, runArgs.isLua());
+                applyBuildMapData(mapScript, buildDir, w3data, w3I, result, outputScriptName);
             }
             // else result.script stays as mapScript (no configured W3I overrides)
         }
@@ -229,8 +229,7 @@ public class ProjectConfigBuilder {
     }
 
     private static void applyBuildMapData(File mapScript, File buildDir, W3InstallationData w3data, W3I w3I,
-                                          MapRequest.CompilationResult result, String outputScriptName,
-                                          boolean isLua) throws IOException {
+                                          MapRequest.CompilationResult result, String outputScriptName) throws IOException {
         result.script = new File(buildDir, outputScriptName);
 
         try (FileInputStream inputStream = new FileInputStream(mapScript)) {
@@ -245,11 +244,9 @@ public class ProjectConfigBuilder {
             } else {
                 WLogger.info("Failed to determine installed game version. Falling back to default patch target: " + version);
             }
-            if (isLua) {
-                w3I.injectConfigsInLuaScript(inputStream, sw);
-            } else {
-                w3I.injectConfigsInJassScript(inputStream, sw, version);
-            }
+            // Config injection runs before the compiler translates war3map.j to the selected
+            // output language. Keep this source valid JASS for both JASS and Lua builds.
+            w3I.injectConfigsInJassScript(inputStream, sw, version);
 
             byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
             Files.write(scriptBytes, result.script);
