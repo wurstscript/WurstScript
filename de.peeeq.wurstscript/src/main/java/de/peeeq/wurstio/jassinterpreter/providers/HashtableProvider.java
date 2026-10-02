@@ -43,11 +43,11 @@ public class HashtableProvider extends Provider {
     }
 
     public static class WurstHashtable {
-        private final Map<Integer, Map<Integer, Map<Class<?>, Object>>> data = new HashMap<>();
+        private final Map<Integer, Map<Integer, Map<Class<?>, Object>>> data = new LinkedHashMap<>();
 
         public void save(int parentKey, int childKey, Object value) {
-            data.computeIfAbsent(parentKey, k -> new HashMap<>(8))
-                .computeIfAbsent(childKey, k -> new HashMap<>(2))
+            data.computeIfAbsent(parentKey, k -> new LinkedHashMap<>(8))
+                .computeIfAbsent(childKey, k -> new LinkedHashMap<>(2))
                 .put(value.getClass(), value);
         }
 
