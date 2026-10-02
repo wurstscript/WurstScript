@@ -84,6 +84,54 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
+    /**
+     * Scan up to the LSP cursor (UTF-16), including comments which have no closing delimiter yet.
+     * The nearest AST element does not reliably identify comment text, especially unfinished comments.
+     */
+    private boolean isInsideComment() {
+        int lineStart = 0;
+        for (int l = 1; l < line; l++) {
+            int newline = buffer.indexOf('\n', lineStart);
+            if (newline < 0) {
+                return false;
+            }
+            lineStart = newline + 1;
+        }
+        int cursor = Math.min(buffer.length(), lineStart + column);
+        boolean lineComment = false;
+        boolean blockComment = false;
+        char quote = 0;
+        for (int i = 0; i < cursor; i++) {
+            char c = buffer.charAt(i);
+            char next = i + 1 < cursor ? buffer.charAt(i + 1) : 0;
+            if (lineComment) {
+                if (c == '\n' || c == '\r') {
+                    lineComment = false;
+                }
+            } else if (blockComment) {
+                if (c == '*' && next == '/') {
+                    blockComment = false;
+                    i++;
+                }
+            } else if (quote != 0) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == quote) {
+                    quote = 0;
+                }
+            } else if (c == '"' || c == '\'') {
+                quote = c;
+            } else if (c == '/' && next == '/') {
+                lineComment = true;
+                i++;
+            } else if (c == '/' && next == '*') {
+                blockComment = true;
+                i++;
+            }
+        }
+        return lineComment || blockComment;
+    }
+
     private Comparator<CompletionItem> completionItemComparator() {
         return Comparator
                 .comparing(CompletionItem::getSortText)
@@ -94,7 +142,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
      * computes completions at the current position
      */
     public List<CompletionItem> computeCompletionProposals(CompilationUnit cu) {
-        if (isEnteringRealNumber()) {
+        if (isInsideComment() || isEnteringRealNumber()) {
             return null;
         }
 

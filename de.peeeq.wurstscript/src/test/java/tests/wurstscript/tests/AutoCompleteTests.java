@@ -6,6 +6,7 @@ import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
 import org.eclipse.lsp4j.*;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -23,6 +24,58 @@ import static org.testng.Assert.*;
  */
 public class AutoCompleteTests extends WurstLanguageServerTest {
 
+    @DataProvider
+    public Object[][] commentCompletionPositions() {
+        return new Object[][] {
+                {"    /** CreateG| */", "\n"},
+                {"    /**\n     * CreateG|\n     */", "\n"},
+                {"    /**\n     * CreateG|\n     */", "\r\n"},
+                {"    /* CreateG| */", "\n"},
+                {"    /*\n     CreateG|\n     */", "\n"},
+                {"    // CreateG|", "\n"},
+                {"    /** CreateG|", "\n"},
+                {"    /* CreateG|", "\n"}
+        };
+    }
+
+    @Test(dataProvider = "commentCompletionPositions")
+    public void noCompletionsInsideComments(String comment, String newline) {
+        String source = comment.startsWith("    /**")
+                ? "package test\nclass Documented\n" + comment + "\n    function sample()"
+                : "package test\n    init\n    " + comment.replace("\n", "\n    ") + "\n        CreateGroup()";
+        CompletionTestData testData = input(false, source.split("\n"));
+        testData.buffer = testData.buffer.replace("\n", newline);
+        testCompletions(testData);
+    }
+
+    @DataProvider
+    public Object[][] codeAfterCommentPositions() {
+        return new Object[][] {
+                {"        /* ignored */ CreateG|"},
+                {"        /* ignored */|"},
+                {"        string text = \"/* not a comment\""},
+                {"        string text = \"// not a comment\""},
+                {"        string text = \"escaped \\\" /* not a comment\""},
+                {"        int rawcode = '/*ab'"},
+                {"        // previous line comment"},
+                {"        /* previous\n           multiline comment */"}
+        };
+    }
+
+    @Test(dataProvider = "codeAfterCommentPositions")
+    public void completionsResumeOutsideComments(String precedingLine) {
+        String source = "package test\n    init\n" + precedingLine;
+        if (!precedingLine.contains("|")) {
+            source += "\n        CreateG|";
+        }
+        CompletionTestData testData = input(source.split("\n"));
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        if (precedingLine.endsWith("*/|")) {
+            assertFalse(labels.isEmpty(), "Completion must resume immediately after the closing delimiter");
+        } else {
+            assertTrue(labels.contains("CreateGroup"), "labels = " + labels);
+        }
+    }
 
     @Test
     public void simpleExample1() {

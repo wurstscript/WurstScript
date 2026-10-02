@@ -1,5 +1,7 @@
 ## 1.9 (in progress)
 
+- Code completion no longer suggests code while writing documentation, block, or line comments.
+
 - Added type class bounds for `T:` generics. A bound requires operations of the type it is bound to, so a
   generic can do more than store and return values, without giving up static dispatch:
 
