@@ -50,21 +50,51 @@ public class PackageChunkCache {
         }
     }
 
+    private static class FileEntry {
+        final long lastModified;
+        final long length;
+        final String content;
+
+        FileEntry(long lastModified, long length, String content) {
+            this.lastModified = lastModified;
+            this.length = length;
+            this.content = content;
+        }
+    }
+
+    private static final java.util.concurrent.ConcurrentHashMap<String, FileEntry> fileCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> packageHashCache = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static String computePackageHash(WPackage p) {
         String name = p.getName();
-        String sourceContent = "";
         try {
             String filePath = p.attrSource().getFile();
             File f = new File(filePath);
             if (f.exists() && f.isFile()) {
-                sourceContent = Files.asCharSource(f, Charsets.UTF_8).read();
-            } else {
-                sourceContent = p.toString();
+                long lm = f.lastModified();
+                long len = f.length();
+                String cacheKey = name + "@" + filePath + "@" + lm + "@" + len;
+                String cachedHash = packageHashCache.get(cacheKey);
+                if (cachedHash != null) {
+                    return cachedHash;
+                }
+
+                FileEntry entry = fileCache.get(filePath);
+                String sourceContent;
+                if (entry != null && entry.lastModified == lm && entry.length == len) {
+                    sourceContent = entry.content;
+                } else {
+                    sourceContent = Files.asCharSource(f, Charsets.UTF_8).read();
+                    fileCache.put(filePath, new FileEntry(lm, len, sourceContent));
+                }
+                String toHash = "v1:" + name + ":" + sourceContent;
+                String hash = Hashing.sha256().hashString(toHash, Charsets.UTF_8).toString().substring(0, 16);
+                packageHashCache.put(cacheKey, hash);
+                return hash;
             }
-        } catch (Exception e) {
-            sourceContent = p.toString();
+        } catch (Exception ignored) {
         }
-        String toHash = "v1:" + name + ":" + sourceContent;
+        String toHash = "v1:" + name + ":" + p.toString();
         return Hashing.sha256().hashString(toHash, Charsets.UTF_8).toString().substring(0, 16);
     }
 }

@@ -117,6 +117,10 @@ public final class LocalPlayerContextAnalyzer {
         analyze(prog);
     }
 
+    public LocalPlayerContextAnalyzer(ImProg prog, java.util.Collection<ImFunction> roots) {
+        analyze(prog, roots);
+    }
+
     public boolean isLocalPlayerDependent(Element element) {
         if (element == null) {
             return false;
@@ -201,6 +205,60 @@ public final class LocalPlayerContextAnalyzer {
         propagateFacts();
         propagateDataFacts();
     }
+
+    private void analyze(ImProg prog, java.util.Collection<ImFunction> roots) {
+        sourceFacts.add(unknownDispatchSource);
+        Set<ImFunction> reachable = Collections.newSetFromMap(new IdentityHashMap<>());
+        Deque<ImFunction> queue = new ArrayDeque<>(roots);
+        while (!queue.isEmpty()) {
+            ImFunction f = queue.removeFirst();
+            if (f != null && reachable.add(f)) {
+                if (isClientLocalValueSource(f)) {
+                    addLocalPlayerSource(f);
+                } else if (!f.isNative()) {
+                    f.getBody().accept(new Element.DefaultVisitor() {
+                        @Override
+                        public void visit(ImFunctionCall call) {
+                            super.visit(call);
+                            ImFunction target = call.getFunc();
+                            if (target != null && !reachable.contains(target)) {
+                                queue.addLast(target);
+                            }
+                        }
+
+                        @Override
+                        public void visit(ImMethodCall call) {
+                            super.visit(call);
+                            Set<ImFunction> implementations =
+                                Collections.newSetFromMap(new IdentityHashMap<>());
+                            collectMethodImplementations(
+                                call.getMethod(),
+                                implementations,
+                                Collections.newSetFromMap(new IdentityHashMap<>()));
+                            for (ImFunction impl : implementations) {
+                                if (!reachable.contains(impl)) {
+                                    queue.addLast(impl);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        for (ImFunction function : reachable) {
+            returnFact(function);
+            useFact(function);
+            if (isClientLocalValueSource(function)) {
+                addLocalPlayerSource(function);
+            } else if (!function.isNative()) {
+                indexElement(function.getBody(), function, entryControlFact(function));
+                addDependency(function.getBody(), useFact(function));
+            }
+        }
+        propagateFacts();
+        propagateDataFacts();
+    }
+
 
     private void analyzeFunctions(List<ImFunction> functions) {
         for (int i = 0; i < functions.size(); i++) {

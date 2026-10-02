@@ -129,7 +129,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         } else {
             this.w3data = getBestW3InstallationData();
         }
-        if (runArgs.isMeasureTimes()) {
+        if (runArgs.isMeasureTimes() || runArgs.isIncremental()) {
             this.timeTaker = new TimeTaker.Recording();
         } else {
             this.timeTaker = new TimeTaker.Default();
@@ -166,7 +166,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             purgeUnimportedFiles(model);
 
             gui.sendProgress("Check program");
-            compiler.checkProg(model);
+            timeTaker.measure("Check program", () -> compiler.checkProg(model));
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
@@ -255,6 +255,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new RuntimeException(e);
         }
     }
+
+
 
     protected File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
         File buildDir = getBuildDir();
@@ -388,11 +390,11 @@ public abstract class MapRequest extends UserRequest<Object> {
             gui.sendProgress("Cleaning project");
             modelManager.clean();
             gui.sendProgress("Building project");
-            modelManager.buildProject();
+            modelManager.buildProject(false);
         } else if (runArgs.isIncremental()) {
             if (modelManager.getModel() == null) {
                 gui.sendProgress("Building project");
-                modelManager.buildProject();
+                modelManager.buildProject(false);
             } else {
                 gui.sendProgress("Syncing project files");
                 modelManager.syncProjectFiles();
@@ -803,18 +805,25 @@ public abstract class MapRequest extends UserRequest<Object> {
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
         java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        gui.sendProgress("Finalizing map");
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
-            if (mpq != null) {
-                // Strip internal Wurst cache files — they are dev-only metadata and should
-                // not be present in the distributed map.
-                if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
-                if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
-                mpq.closeWithCompression();
+        if (isProductionBuild() && !runArgs.isIncremental()) {
+            gui.sendProgress("Finalizing map");
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
+                if (mpq != null) {
+                    if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
+                    if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    timeTaker.measure("MPQ finalize", () -> {
+                        try {
+                            mpq.closeWithCompression();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
             }
         }
 
         gui.sendProgress("Done.");
+        timeTaker.printReport();
         return targetMapFile;
     }
 

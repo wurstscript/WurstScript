@@ -126,7 +126,7 @@ class Jmpq3BasedEditor implements MpqEditor {
             closed = true;
             return;
         }
-        save(MpqWriteOptions.defaults());
+        save(MpqWriteOptions.fast());
     }
 
     @Override

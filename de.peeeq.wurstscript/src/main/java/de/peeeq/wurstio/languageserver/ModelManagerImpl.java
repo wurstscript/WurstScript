@@ -144,6 +144,11 @@ public class ModelManagerImpl implements ModelManager {
      */
     @Override
     public void buildProject() {
+        buildProject(true);
+    }
+
+    @Override
+    public void buildProject(boolean doTypeCheck) {
         try {
             WurstGui gui = new WurstGuiLogger();
             readDependencies();
@@ -161,7 +166,9 @@ public class ModelManagerImpl implements ModelManager {
 
             resolveImports(gui);
 
-            doTypeCheck(gui);
+            if (doTypeCheck) {
+                doTypeCheck(gui);
+            }
         } catch (Exception e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);

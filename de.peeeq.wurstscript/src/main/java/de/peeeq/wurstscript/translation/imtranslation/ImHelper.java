@@ -39,7 +39,7 @@ public class ImHelper {
         for (int i = 0; i < classes.size(); i++) {
             functionCount += classes.get(i).getFunctions().size();
         }
-        Set<ImFunction> allFunctions = HashSet.newHashSet(functionCount);
+        Set<ImFunction> allFunctions = new LinkedHashSet<>(functionCount);
         for (int i = 0; i < functions.size(); i++) {
             allFunctions.add(functions.get(i));
         }

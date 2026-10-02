@@ -29,6 +29,10 @@ public interface ModelManager {
 
     void buildProject();
 
+    default void buildProject(boolean doTypeCheck) {
+        buildProject();
+    }
+
     /**
      * refresh discovered dependency roots (e.g. _build/dependencies after grill install)
      */

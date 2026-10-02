@@ -235,6 +235,14 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
             // Defense-in-depth: explicitly disable extension loading regardless of the path.
             SQLiteConfig config = new SQLiteConfig();
             config.enableLoadExtension(false);
+            if (!dbPath.equals(":memory:") && !dbPath.contains("mode=memory")) {
+                config.setReadOnly(true);
+            }
+            config.setJournalMode(SQLiteConfig.JournalMode.OFF);
+            config.setSynchronous(SQLiteConfig.SynchronousMode.OFF);
+            config.setCacheSize(10000);
+            config.setPragma(SQLiteConfig.Pragma.MMAP_SIZE, "67108864");
+            config.setLockingMode(SQLiteConfig.LockingMode.NORMAL);
             Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath, config.toProperties());
             int handle = ++sqliteHandleCounter;
             sqliteConnections.put(handle, conn);

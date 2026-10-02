@@ -472,15 +472,32 @@ public class LuaTranslator {
         createObjectIndexFunctions();
         createStringIndexFunctions();
 
+        Map<WPackage, List<ImVar>> globalsByPackage = new IdentityHashMap<>();
         for (ImVar v : prog.getGlobals()) {
-            if (v.getTrace() == null || !(v.getTrace().attrNearestPackage() instanceof WPackage)) {
+            WPackage pkg = getNearestPackage(v.getTrace());
+            if (pkg == null) {
                 translateGlobal(v);
+            } else {
+                globalsByPackage.computeIfAbsent(pkg, k -> new ArrayList<>()).add(v);
             }
         }
 
+        Map<WPackage, List<ImFunction>> funcsByPackage = new IdentityHashMap<>();
         for (ImFunction f : prog.getFunctions()) {
-            if (!isFixedEntryPoint(f) && (f.getTrace() == null || !(f.getTrace().attrNearestPackage() instanceof WPackage))) {
+            if (isFixedEntryPoint(f)) continue;
+            WPackage pkg = getNearestPackage(f.getTrace());
+            if (pkg == null) {
                 translateFunc(f);
+            } else {
+                funcsByPackage.computeIfAbsent(pkg, k -> new ArrayList<>()).add(f);
+            }
+        }
+
+        Map<WPackage, List<ImClass>> classesByPackage = new IdentityHashMap<>();
+        for (ImClass c : prog.getClasses()) {
+            WPackage pkg = getNearestPackage(c.getTrace());
+            if (pkg != null) {
+                classesByPackage.computeIfAbsent(pkg, k -> new ArrayList<>()).add(c);
             }
         }
 
@@ -518,16 +535,18 @@ public class LuaTranslator {
                 currentPackage = p.getName();
 
                 // Globals in p
-                for (ImVar v : prog.getGlobals()) {
-                    if (belongsToPackage(v.getTrace(), p)) {
+                List<ImVar> pkgGlobals = globalsByPackage.get(p);
+                if (pkgGlobals != null) {
+                    for (ImVar v : pkgGlobals) {
                         translateGlobal(v);
                     }
                 }
 
                 // Classes in p
-                Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
-                for (ImClass c : prog.getClasses()) {
-                    if (belongsToPackage(c.getTrace(), p)) {
+                List<ImClass> pkgClasses = classesByPackage.get(p);
+                if (pkgClasses != null) {
+                    Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
+                    for (ImClass c : pkgClasses) {
                         for (ImVar field : c.getFields()) {
                             LuaVariable storage = fieldStorage(field);
                             if (emittedFieldStorage.add(storage)) {
@@ -540,8 +559,9 @@ public class LuaTranslator {
                 }
 
                 // Functions in p
-                for (ImFunction f : prog.getFunctions()) {
-                    if (!isFixedEntryPoint(f) && belongsToPackage(f.getTrace(), p)) {
+                List<ImFunction> pkgFuncs = funcsByPackage.get(p);
+                if (pkgFuncs != null) {
+                    for (ImFunction f : pkgFuncs) {
                         translateFunc(f);
                     }
                 }
@@ -664,20 +684,30 @@ public class LuaTranslator {
         return new PackageChunkResult(preambleCode, orderedChunks, postambleCode, fullScript, assembledCu, assembleTime);
     }
 
-    private static boolean belongsToPackage(de.peeeq.wurstscript.ast.@Nullable Element trace, WPackage p) {
-        if (trace == null) {
-            return false;
-        }
-        PackageOrGlobal nearest = trace.attrNearestPackage();
-        return nearest == p;
-    }
+    private final Map<de.peeeq.wurstscript.ast.Element, WPackage> nearestPackageCache = new IdentityHashMap<>();
 
-    private static @Nullable WPackage getPackageOf(ImClass c) {
-        if (c.getTrace() == null) {
+    private @Nullable WPackage getNearestPackage(de.peeeq.wurstscript.ast.@Nullable Element trace) {
+        if (trace == null) {
             return null;
         }
-        PackageOrGlobal nearest = c.getTrace().attrNearestPackage();
-        return nearest instanceof WPackage ? (WPackage) nearest : null;
+        WPackage cached = nearestPackageCache.get(trace);
+        if (cached != null) {
+            return cached;
+        }
+        PackageOrGlobal nearest = trace.attrNearestPackage();
+        if (nearest instanceof WPackage p) {
+            nearestPackageCache.put(trace, p);
+            return p;
+        }
+        return null;
+    }
+
+    private boolean belongsToPackage(de.peeeq.wurstscript.ast.@Nullable Element trace, WPackage p) {
+        return getNearestPackage(trace) == p;
+    }
+
+    private @Nullable WPackage getPackageOf(ImClass c) {
+        return getNearestPackage(c.getTrace());
     }
 
     private List<WPackage> determineTopologicalPackageOrder() {
@@ -2782,8 +2812,9 @@ public class LuaTranslator {
 
     public String getTypeCastingFunctionName(ImFunction f) {
         de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
-        if (trace instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p) {
-            if ("TypeCasting".equals(p.getName())) {
+        if (trace instanceof FuncDef fd) {
+            WPackage p = getNearestPackage(trace);
+            if (p != null && "TypeCasting".equals(p.getName())) {
                 return fd.getName();
             }
         }
