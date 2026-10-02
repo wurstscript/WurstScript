@@ -4,13 +4,16 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 
 public class ILconstObject extends ILconstAbstract {
     private final ImClassType classType;
     private final int objectId;
-    private final Table<ImVar, List<Integer>, ILconst> attributes = HashBasedTable.create();
+    private @Nullable Object2ObjectLinkedOpenHashMap<ImVar, ILconst> scalarAttributes;
+    private @Nullable Table<ImVar, List<Integer>, ILconst> indexedAttributes;
     private boolean destroyed = false;
     private final Element trace;
     private Map<ImTypeVar, ImType> capturedTypeSubstitutions = Collections.emptyMap();
@@ -50,11 +53,26 @@ public class ILconstObject extends ILconstAbstract {
     }
 
     public void set(ImVar attr, List<Integer> indexes, ILconst value) {
-        attributes.put(attr, indexes, value);
+        Objects.requireNonNull(attr);
+        Objects.requireNonNull(value);
+        if (indexes.isEmpty()) {
+            if (scalarAttributes == null) {
+                scalarAttributes = new Object2ObjectLinkedOpenHashMap<>(4);
+            }
+            scalarAttributes.put(attr, value);
+        } else {
+            if (indexedAttributes == null) {
+                indexedAttributes = HashBasedTable.create();
+            }
+            indexedAttributes.put(attr, indexes, value);
+        }
     }
 
     public Optional<ILconst> get(ImVar attr, List<Integer> indexes) {
-        return Optional.ofNullable(attributes.get(attr, indexes));
+        if (indexes.isEmpty()) {
+            return Optional.ofNullable(scalarAttributes == null ? null : scalarAttributes.get(attr));
+        }
+        return Optional.ofNullable(indexedAttributes == null ? null : indexedAttributes.get(attr, indexes));
     }
 
 
@@ -83,7 +101,15 @@ public class ILconstObject extends ILconstAbstract {
         return objectId;
     }
 
+    /** Snapshot of initialized fields for compiletime state migration. */
     public Table<ImVar, List<Integer>, ILconst> getAttributes() {
-        return attributes;
+        Table<ImVar, List<Integer>, ILconst> result = HashBasedTable.create();
+        if (scalarAttributes != null) {
+            scalarAttributes.forEach((field, value) -> result.put(field, Collections.emptyList(), value));
+        }
+        if (indexedAttributes != null) {
+            result.putAll(indexedAttributes);
+        }
+        return result;
     }
 }
