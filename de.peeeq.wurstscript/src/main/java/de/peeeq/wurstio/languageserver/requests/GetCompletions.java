@@ -101,6 +101,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
         boolean lineComment = false;
         boolean blockComment = false;
         char quote = 0;
+        boolean multilineStrings = filename.getUriString().endsWith(".j")
+                || filename.getUriString().endsWith(".jurst");
         for (int i = 0; i < cursor; i++) {
             char c = buffer.charAt(i);
             char next = i + 1 < cursor ? buffer.charAt(i + 1) : 0;
@@ -114,7 +116,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
                     i++;
                 }
             } else if (quote != 0) {
-                if (c == '\\') {
+                // Wurst strings cannot span lines, even when a trailing backslash precedes the newline.
+                if (quote == '"' && !multilineStrings && (c == '\n' || c == '\r')) {
+                    quote = 0;
+                } else if (c == '\\' && (multilineStrings || (next != '\n' && next != '\r'))) {
                     i++;
                 } else if (c == quote) {
                     quote = 0;

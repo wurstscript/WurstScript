@@ -77,6 +77,47 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         }
     }
 
+    @DataProvider
+    public Object[][] malformedStringCommentPositions() {
+        return new Object[][] {
+                {"\"unfinished", "// CreateG|", "\n"},
+                {"\"unfinished", "/* CreateG| */", "\r\n"},
+                {"\"unfinished\\", "// CreateG|", "\n"},
+                {"\"unfinished\\", "/* CreateG| */", "\r\n"}
+        };
+    }
+
+    @Test(dataProvider = "malformedStringCommentPositions")
+    public void commentsAfterMalformedWurstStrings(String literal, String comment, String newline) {
+        CompletionTestData testData = input("package test", "    init",
+                "        string text = " + literal, "        " + comment, "        CreateGroup()");
+        testData.buffer = testData.buffer.replace("\n", newline);
+        testCompletions(testData);
+    }
+
+    @Test
+    public void jassMultilineStringDoesNotOpenComment() {
+        CompletionTestData testData = input(
+                "function sample takes nothing returns nothing",
+                "    local string text = \"first line",
+                "    /* still in the string",
+                "    last line\"",
+                "    call CreateG|",
+                "endfunction");
+        assertTrue(sortedLabels(calculateCompletions(testData, "test.j")).contains("CreateGroup"));
+    }
+
+    @Test
+    public void jurstMultilineStringDoesNotOpenComment() {
+        CompletionTestData testData = input("package test", "init",
+                "    string text = \"first line",
+                "    /* still in the string",
+                "    last line\"",
+                "    CreateG|",
+                "end");
+        assertTrue(sortedLabels(calculateCompletions(testData, "test.jurst")).contains("CreateGroup"));
+    }
+
     @Test
     public void simpleExample1() {
         CompletionTestData testData = input(
@@ -687,10 +728,14 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
     }
 
     private CompletionList calculateCompletions(CompletionTestData testData) {
+        return calculateCompletions(testData, "test.wurst");
+    }
+
+    private CompletionList calculateCompletions(CompletionTestData testData, String fileName) {
         BufferManager bufferManager = new BufferManager();
         File projectPath = new File("./test-output").getAbsoluteFile();
         ModelManager modelManager = new ModelManagerImpl(projectPath, bufferManager);
-        String uri = projectPath.toURI() + "/wurst/test.wurst";
+        String uri = projectPath.toURI() + "/wurst/" + fileName;
         bufferManager.updateFile(WFile.create(uri), testData.buffer);
         TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
         Position pos = new Position(testData.line, testData.column);
