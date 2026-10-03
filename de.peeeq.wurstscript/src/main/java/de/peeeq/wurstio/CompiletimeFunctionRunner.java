@@ -224,9 +224,6 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void partitionCompiletimeStateInitFunction() {
-        if (translator.isLuaTarget()) {
-            return;
-        }
         if (compiletimeStateInitFunction != null) {
             FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
         }
@@ -1376,7 +1373,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             return true;
         }
         if (value instanceof IlConstHandle) {
-            return ((IlConstHandle) value).getObj() instanceof LinkedListMultimap;
+            Object obj = ((IlConstHandle) value).getObj();
+            return obj instanceof HashtableProvider.WurstHashtable || obj instanceof LinkedListMultimap;
         }
         return false;
     }
@@ -1391,10 +1389,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         WPos errorPos = trace.attrErrorPos();
         // we have to collect all values after all compiletime functions have run, so use delayedActions
         delayedActions.add(() -> {
-            ImFunction saveInteger = findNative("SaveInteger", errorPos);
-            ImFunction saveReal = findNative("SaveReal", errorPos);
-            ImFunction saveStr = findNative("SaveStr", errorPos);
-            ImFunction saveBoolean = findNative("SaveBoolean", errorPos);
+            ImFunction saveInteger = null;
+            ImFunction saveReal = null;
+            ImFunction saveStr = null;
+            ImFunction saveBoolean = null;
             List<HashtableProvider.WurstHashtable.Entry> entries = map.entries();
             List<ImStmt> batch = new ArrayList<>(entries.size());
             for (HashtableProvider.WurstHashtable.Entry entry : entries) {
@@ -1402,6 +1400,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 int childKey = entry.childKey;
                 Object v = entry.value;
                 if (v instanceof ILconstInt) {
+                    if (saveInteger == null) {
+                        saveInteger = findNative("SaveInteger", errorPos);
+                    }
                     ILconstInt iv = (ILconstInt) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
@@ -1410,6 +1411,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstReal) {
+                    if (saveReal == null) {
+                        saveReal = findNative("SaveReal", errorPos);
+                    }
                     ILconstReal iv = (ILconstReal) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
@@ -1418,6 +1422,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImRealVal("" + iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstString) {
+                    if (saveStr == null) {
+                        saveStr = findNative("SaveStr", errorPos);
+                    }
                     ILconstString iv = (ILconstString) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
@@ -1426,6 +1433,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstBool) {
+                    if (saveBoolean == null) {
+                        saveBoolean = findNative("SaveBoolean", errorPos);
+                    }
                     ILconstBool iv = (ILconstBool) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
                         JassIm.ImVarAccess(htVar),
@@ -1453,15 +1463,18 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         WPos errorPos = trace.attrErrorPos();
         // we have to collect all values after all compiletime functions have run, so use delayedActions
         delayedActions.add(() -> {
-            ImFunction saveInteger = findNative("SaveInteger", errorPos);
-            ImFunction saveReal = findNative("SaveReal", errorPos);
-            ImFunction saveStr = findNative("SaveStr", errorPos);
-            ImFunction saveBoolean = findNative("SaveBoolean", errorPos);
+            ImFunction saveInteger = null;
+            ImFunction saveReal = null;
+            ImFunction saveStr = null;
+            ImFunction saveBoolean = null;
             List<ImStmt> batch = new ArrayList<>(map.size());
             for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
                 HashtableProvider.KeyPair key = entry.getKey();
                 Object v = entry.getValue();
                 if (v instanceof ILconstInt) {
+                    if (saveInteger == null) {
+                        saveInteger = findNative("SaveInteger", errorPos);
+                    }
                     ILconstInt iv = (ILconstInt) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
@@ -1470,6 +1483,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstReal) {
+                    if (saveReal == null) {
+                        saveReal = findNative("SaveReal", errorPos);
+                    }
                     ILconstReal iv = (ILconstReal) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
@@ -1478,6 +1494,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImRealVal("" + iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstString) {
+                    if (saveStr == null) {
+                        saveStr = findNative("SaveStr", errorPos);
+                    }
                     ILconstString iv = (ILconstString) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
@@ -1486,6 +1505,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstBool) {
+                    if (saveBoolean == null) {
+                        saveBoolean = findNative("SaveBoolean", errorPos);
+                    }
                     ILconstBool iv = (ILconstBool) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
                         JassIm.ImVarAccess(htVar),
