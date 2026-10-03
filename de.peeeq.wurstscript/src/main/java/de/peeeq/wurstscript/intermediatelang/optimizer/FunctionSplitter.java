@@ -39,7 +39,7 @@ public class FunctionSplitter {
         // run some basic optimizations first:
         func.flatten(tr);
         LocalPlayerContextAnalyzer localPlayerContextAnalyzer =
-            new LocalPlayerContextAnalyzer(tr.getImProg());
+            new LocalPlayerContextAnalyzer(tr.getImProg(), Collections.singleton(func));
         new ConstantAndCopyPropagation().optimizeFunc(func, localPlayerContextAnalyzer);
 //        new TempMerger().optimizeFunc(func);
         new LocalMerger().optimizeFunc(func, localPlayerContextAnalyzer, tr);

@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -250,6 +251,7 @@ public class ImTranslator implements SpecialisationLookup {
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
     private final boolean debug = false;
+    public boolean isDebug() { return debug; }
     private final RunArgs runArgs;
 
     private final Map<ClassDef, Map<TypeParamDef, ImTypeVar>> capturedOwnerTypeVarsByStaticClass = new IdentityHashMap<>();
@@ -319,6 +321,9 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
     public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForFunction(ImFunction f) {
+        if (f.getTypeVariables().isEmpty()) {
+            return Collections.emptyMap();
+        }
         Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
         for (ImTypeVar tv : f.getTypeVariables()) {
             TypeParamDef tp = typeVariableReverse.get(tv);
@@ -326,7 +331,7 @@ public class ImTranslator implements SpecialisationLookup {
                 result.put(tp, tv);
             }
         }
-        return result;
+        return result.isEmpty() ? Collections.emptyMap() : result;
     }
 
 
@@ -360,11 +365,21 @@ public class ImTranslator implements SpecialisationLookup {
                 luaHelperFunctions.forEach(this::addFunction);
             }
 
+            long t0 = System.nanoTime();
             calculateCompiletimeOrder();
+            long tOrder = System.nanoTime();
 
+            Map<String, Long> cuTimes = new HashMap<>();
             for (CompilationUnit cu : wurstProg) {
+                long tCu0 = System.nanoTime();
                 translateCompilationUnit(cu);
+                long elapsed = System.nanoTime() - tCu0;
+                String cuFile = cu.getCuInfo().getFile();
+                if (cuFile != null) {
+                    cuTimes.put(cuFile, elapsed);
+                }
             }
+            long tCus = System.nanoTime();
 
             if (mainFunc == null) {
                 mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
@@ -375,10 +390,37 @@ public class ImTranslator implements SpecialisationLookup {
                 addFunction(configFunc);
             }
 
+            long tInitStart = System.nanoTime();
             finishInitFunctions();
+            long tInitEnd = System.nanoTime();
             EliminateCallFunctionsWithAnnotation.process(imProg);
             removeDuplicateNatives(imProg);
+            long tElimEnd = System.nanoTime();
             sortEverything();
+            long tSortEnd = System.nanoTime();
+            String imBreakdown = String.format("ImTranslator breakdown: order=%dms translateCus=%dms finishInits=%dms elimDuplicates=%dms sortEverything=%dms total=%dms",
+                (tOrder - t0) / 1_000_000L,
+                (tCus - tOrder) / 1_000_000L,
+                (tInitEnd - tInitStart) / 1_000_000L,
+                (tElimEnd - tInitEnd) / 1_000_000L,
+                (tSortEnd - tElimEnd) / 1_000_000L,
+                (tSortEnd - t0) / 1_000_000L
+            );
+            System.out.println(imBreakdown);
+            List<Map.Entry<String, Long>> topCus = cuTimes.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .collect(Collectors.toList());
+            for (Map.Entry<String, Long> entry : topCus) {
+                if (entry.getValue() > 50_000_000L) {
+                    System.out.println(String.format("  slow CU: %dms - %s", entry.getValue() / 1_000_000L, entry.getKey()));
+                }
+            }
+            StringBuilder sb = new StringBuilder("Top slowest CUs in ImTranslator:");
+            for (Map.Entry<String, Long> e : topCus) {
+                sb.append("\n  ").append(e.getKey()).append(": ").append(e.getValue() / 1_000_000L).append("ms");
+            }
+            WLogger.info(sb.toString());
             return imProg;
         } catch (CompileError t) {
             throw t;
@@ -597,41 +639,94 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
 
+    private static class ElementWithKey<T> implements Comparable<ElementWithKey<T>> {
+        final T element;
+        final String key;
+
+        ElementWithKey(T element, String key) {
+            this.element = element;
+            this.key = key;
+        }
+
+        @Override
+        public int compareTo(ElementWithKey<T> o) {
+            return this.key.compareTo(o.key);
+        }
+    }
+
+    private final Map<de.peeeq.wurstscript.ast.Element, String> scopePrefixCache = new IdentityHashMap<>();
+
     private <T extends Element> void sortList(List<T> list) {
-        List<T> classes = removeAll(list);
-        Comparator<T> comparator = Comparator.comparing(this::getQualifiedClassName);
-        classes.sort(comparator);
-        list.addAll(classes);
+        if (list.size() <= 1) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        ElementWithKey<T>[] elements = new ElementWithKey[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            T elem = list.get(i);
+            elements[i] = new ElementWithKey<>(elem, getSortKey(elem));
+        }
+        Arrays.sort(elements);
+        list.clear();
+        for (ElementWithKey<T> e : elements) {
+            list.add(e.element);
+        }
     }
 
-    public <T> List<T> removeAll(List<T> list) {
-        List<T> result = new ArrayList<>();
-        while (!list.isEmpty()) {
-            result.add(0, list.remove(list.size() - 1));
+    private String getSortKey(Element c) {
+        StringBuilder sb = new StringBuilder();
+        de.peeeq.wurstscript.ast.Element trace = c.attrTrace();
+        String scope = getScopePrefix(trace);
+        if (!scope.isEmpty()) {
+            sb.append(scope).append("_");
         }
+        if (c instanceof ImFunction) {
+            ImFunction f = (ImFunction) c;
+            sb.append("fn::").append(f.getName()).append("(");
+            for (int i = 0; i < f.getParameters().size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(f.getParameters().get(i).getType());
+            }
+            sb.append(")->").append(f.getReturnType());
+        } else if (c instanceof ImVar) {
+            ImVar v = (ImVar) c;
+            sb.append("var::").append(v.getName()).append(":").append(v.getType());
+        } else if (c instanceof ImClass) {
+            ImClass cls = (ImClass) c;
+            sb.append("class::").append(cls.getName());
+        } else if (c instanceof ImMethod) {
+            ImMethod m = (ImMethod) c;
+            sb.append("method::").append(m.getName());
+        } else {
+            sb.append(c.getClass().getSimpleName());
+        }
+        if (trace != null) {
+            de.peeeq.wurstscript.parser.WPos pos = trace.attrSource();
+            if (pos != null) {
+                sb.append("@L").append(pos.getLine()).append("C").append(pos.getStartColumn());
+            }
+        }
+        return sb.toString();
+    }
+
+    private String getScopePrefix(de.peeeq.wurstscript.ast.Element e) {
+        if (e == null) {
+            return "";
+        }
+        String cached = scopePrefixCache.get(e);
+        if (cached != null) {
+            return cached;
+        }
+        NamedScope ns = e instanceof NamedScope ? (NamedScope) e : e.attrNearestNamedScope();
+        if (ns == null) {
+            scopePrefixCache.put(e, "");
+            return "";
+        }
+        de.peeeq.wurstscript.ast.Element parent = ns.getParent();
+        String parentScope = parent != null ? getScopePrefix(parent) : "";
+        String result = parentScope.isEmpty() ? ns.getName() : parentScope + "_" + ns.getName();
+        scopePrefixCache.put(e, result);
         return result;
-    }
-
-    private String getQualifiedClassName(Element c) {
-        return getQualifiedClassName(c.attrTrace());
-    }
-
-
-    private String getQualifiedClassName(de.peeeq.wurstscript.ast.Element e) {
-        String result = "";
-        if (e instanceof NamedScope) {
-            NamedScope ns = (NamedScope) e;
-            result = ns.getName();
-        }
-        de.peeeq.wurstscript.ast.Element parent = e.getParent();
-        if (parent == null) {
-            return result;
-        }
-        parent = parent.attrNearestNamedScope();
-        if (parent == null) {
-            return result;
-        }
-        return getQualifiedClassName(parent) + "_" + result;
     }
 
 
@@ -1070,8 +1165,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
     public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
-        if (functionMap.containsKey(funcDef)) {
-            return functionMap.get(funcDef);
+        ImFunction existing = functionMap.get(funcDef);
+        if (existing != null) {
+            return existing;
         }
         String name = getNameFor(funcDef);
         List<FunctionFlag> flags = flags();
@@ -1319,6 +1415,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         } else if (e instanceof OnDestroyDef) {
             return "ondestroy_" + e.attrNearestClassDef().getName();
         } else if (e instanceof ExprClosure) {
+            de.peeeq.wurstscript.parser.WPos pos = e.attrSource();
+            if (pos != null) {
+                return e.attrNearestNamedScope().getName() + "__closure_L" + pos.getLine() + "_C" + pos.getStartColumn();
+            }
             return e.attrNearestNamedScope().getName() + "_closure";
         }
         throw new RuntimeException("unhandled case: " + e.getClass().getName());
@@ -1451,9 +1551,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
-        List<ImStmt> result = Lists.newArrayList();
+        List<ImStmt> result = Lists.newArrayListWithCapacity(statements.size());
         Map<TypeParamDef, ImTypeVar> ov = getTypeVarOverridesForFunction(f);
-        pushTypeVarOverrides(ov);
+        boolean hasOv = !ov.isEmpty();
+        if (hasOv) pushTypeVarOverrides(ov);
         try {
             for (WStatement s : statements) {
                 lasttranslatedThing = s;
@@ -1461,7 +1562,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 result.add(translated);
             }
         } finally {
-            popTypeVarOverrides(ov);
+            if (hasOv) popTypeVarOverrides(ov);
         }
         return result;
     }
@@ -2589,6 +2690,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public RunArgs getRunArgs() {
         return runArgs;
+    }
+
+    public boolean isIncremental() {
+        return runArgs != null && runArgs.isIncremental();
     }
 
     private final Map<ImMethod, String> dispatchSegments = new IdentityHashMap<>();

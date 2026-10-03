@@ -30,6 +30,8 @@ import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkEmitter;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkResult;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -71,6 +73,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private final List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
     private final TimeTaker timeTaker;
+    private @Nullable String compiledLuaScript = null;
+
+    public @Nullable String getCompiledLuaScript() {
+        return compiledLuaScript;
+    }
+
+    private File resolveCacheDir() {
+        if (runArgs.getCachePath() != null) {
+            return new File(runArgs.getCachePath());
+        }
+        if (runArgs.getWorkspaceroot() != null) {
+            return new File(runArgs.getWorkspaceroot(), "_build/cache/lua");
+        }
+        return new File("./_build/cache/lua");
+    }
 
     public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
         this(new TimeTaker.Default(), projectFolder, gui, mapFileMpq, runArgs);
@@ -83,7 +100,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.runArgs = runArgs;
         this.errorHandler = new ErrorHandler(gui);
         this.parser = new WurstParser(errorHandler, gui);
-        this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks());
+        File cacheDir = runArgs.getCachePath() != null ? new File(runArgs.getCachePath()) : null;
+        this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks(), runArgs.isIncremental(), cacheDir);
         this.mapFileMpq = mapFileMpq;
     }
 
@@ -160,7 +178,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public void loadWurstFilesInDir(File dir) {
-        for (File f : dir.listFiles()) {
+        File[] fileList = dir.listFiles();
+        if (fileList == null) return;
+        Arrays.sort(fileList, Comparator.comparing(File::getName));
+        for (File f : fileList) {
             if (f.isDirectory()) {
                 loadWurstFilesInDir(f);
             } else if (Utils.isWurstFile(f)) {
@@ -265,6 +286,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         File dependencyFolder = new File(new File(projectFolder, "_build"), "dependencies");
         File[] depProjects = dependencyFolder.listFiles();
         if (depProjects == null) return;
+        Arrays.sort(depProjects, Comparator.comparing(File::getName));
 
         // keep behavior (FileUtils.sameFile), but avoid O(n*m) scanning
         List<File> existing = new ArrayList<>(dependencies);
@@ -377,7 +399,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (!libDir.exists() || !libDir.isDirectory()) {
             throw new Error("Library folder " + libDir + " does not exist.");
         }
-        for (File f : libDir.listFiles()) {
+        File[] fileList = libDir.listFiles();
+        if (fileList == null) return;
+        Arrays.sort(fileList, Comparator.comparing(File::getName));
+        for (File f : fileList) {
             if (f.isDirectory()) {
                 // recursively scan directory
                 addLibDir(f);
@@ -695,8 +720,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
+    public WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
         gui.sendProgress("Merging Files");
+        compilationUnits.sort(Comparator.comparing(cu -> Objects.toString(cu.getCuInfo().getFile(), "")));
         WurstModel result = Ast.WurstModel();
         for (CompilationUnit compilationUnit : compilationUnits) {
             // remove from old parent
@@ -903,9 +929,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        boolean specializeTupleValueTypes = containsTupleTypeArgument();
+        GenericsCheckResult genericsCheck = checkGenericsRequirements();
+        boolean specializeTupleValueTypes = genericsCheck.containsTupleTypeArgument;
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
-        if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
+        if (genericsCheck.containsGenericNewCall || genericsCheck.containsTypeClassDispatch || specializeTupleValueTypes
             || luaGenerics.hasGenericStatics()) {
             beginPhase(2, "Specialize generics for Lua-only concrete operations");
             luaGenerics.transformGenericNewOnly(specializeTupleValueTypes);
@@ -981,14 +1008,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         EliminateLocalTypes.eliminateLocalTypesProg(getImProg(), imTranslator2);
 
         timeTaker.beginPhase("eliminate tuples");
-        getImProg().flatten(imTranslator2);
         EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
         imTranslator2.assertProperties(AssertProperty.NOTUPLES);
         timeTaker.endPhase();
 
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-        timeTaker.endPhase();
+        if (!runArgs.isIncremental()) {
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+            timeTaker.endPhase();
+        }
         stage = 10;
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");
@@ -1007,13 +1035,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
 
-        boolean garbageChanged = optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-
-        // Re-run to avoid #883
-        if (garbageChanged) {
-            optimizer.removeGarbage();
+        if (!runArgs.isIncremental()) {
+            boolean garbageChanged = optimizer.removeGarbage();
             imProg.flatten(imTranslator);
+
+            // Re-run to avoid #883
+            if (garbageChanged) {
+                optimizer.removeGarbage();
+                imProg.flatten(imTranslator);
+            }
         }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
@@ -1023,15 +1053,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(12, "froptimize");
             optimizer.optimize();
 
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
+            if (!runArgs.isIncremental()) {
+                optimizer.removeGarbage();
+                imProg.flatten(imTranslator);
+            }
             printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
             timeTaker.endPhase();
         }
-        beginPhase(13, "lua remove garbage");
-        RemoveGarbage.removeGarbage(imProg, imTranslator);
-        imProg.flatten(imTranslator);
-        timeTaker.endPhase();
+        if (!runArgs.isIncremental()) {
+            beginPhase(13, "lua remove garbage");
+            RemoveGarbage.removeGarbage(imProg, imTranslator);
+            imProg.flatten(imTranslator);
+            timeTaker.endPhase();
+        }
 
         beginPhase(13, "prepare lua dispatch");
         LuaDispatchPreparation.prepare(imProg, imTranslator);
@@ -1043,53 +1077,54 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         timeTaker.endPhase();
 
         beginPhase(14, "translate to lua");
-        LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
-        LuaCompilationUnit luaCode = luaTranslator.translate();
+        LuaCompilationUnit luaCode;
+        if (runArgs.isIncremental()) {
+            File cacheDir = resolveCacheDir();
+            PackageChunkResult chunkResult = PackageChunkEmitter.emitAndAssemble(imProg, imTranslator, cacheDir);
+            this.compiledLuaScript = chunkResult.getAssembledScript();
+            luaCode = chunkResult.getAssembledCu();
+        } else {
+            LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
+            luaCode = luaTranslator.translate();
+            this.compiledLuaScript = null;
+        }
         ImAttrType.setWurstClassType(TypesHelper.imInt());
         timeTaker.endPhase();
         return luaCode;
     }
 
-    /** Whether the program constructs a value of a type parameter, which needs its concrete type. */
-    private boolean containsGenericNewCall() {
-        boolean[] found = {false};
+    private static class GenericsCheckResult {
+        boolean containsGenericNewCall = false;
+        boolean containsTypeClassDispatch = false;
+        boolean containsTupleTypeArgument = false;
+    }
+
+    /** Single-pass check for generic operations requiring specialization. */
+    private GenericsCheckResult checkGenericsRequirements() {
+        GenericsCheckResult res = new GenericsCheckResult();
         getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
-                if (getImTranslator().isGenericNewMarker(call.getFunc())) {
-                    found[0] = true;
-                    return;
+                if (!res.containsGenericNewCall && getImTranslator().isGenericNewMarker(call.getFunc())) {
+                    res.containsGenericNewCall = true;
                 }
                 super.visit(call);
             }
-        });
-        return found[0];
-    }
 
-    /** Whether the program dispatches on a type class bound anywhere. */
-    private boolean containsTypeClassDispatch() {
-        boolean[] found = {false};
-        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
-                found[0] = true;
+                res.containsTypeClassDispatch = true;
+                super.visit(dispatch);
             }
-        });
-        return found[0];
-    }
 
-    /** Tuple type arguments need monomorphisation before tuples can become scalar storage. */
-    private boolean containsTupleTypeArgument() {
-        boolean[] found = {false};
-        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeArgument argument) {
-                if (TypesHelper.typeContainsTuples(argument.getType())) {
-                    found[0] = true;
+                if (!res.containsTupleTypeArgument && TypesHelper.typeContainsTuples(argument.getType())) {
+                    res.containsTupleTypeArgument = true;
                 }
                 super.visit(argument);
             }
         });
-        return found[0];
+        return res;
     }
 }

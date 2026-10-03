@@ -21,6 +21,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunk;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkAssembler;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkCache;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkResult;
+import org.eclipse.jdt.annotation.Nullable;
+
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
@@ -81,6 +87,15 @@ public class LuaTranslator {
     final ImProg prog;
     final LuaCompilationUnit luaModel;
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
+    private LuaCompilationUnit currentTargetCu = null;
+    private @Nullable String currentPackage = null;
+    private final Map<String, LuaStatements> packageDeferredInits = new LinkedHashMap<>();
+    private final LuaStatements globalDeferredInits = LuaAst.LuaStatements();
+    private boolean isModularMode = false;
+
+    LuaCompilationUnit targetCu() {
+        return currentTargetCu != null ? currentTargetCu : luaModel;
+    }
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
     private final Set<LuaVariable> localizableStorageTables = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -165,6 +180,15 @@ public class LuaTranslator {
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
+                if ((imTr.isIncremental() || isModularMode) && a.getTrace() instanceof GlobalVarDef) {
+                    de.peeeq.wurstscript.ast.PackageOrGlobal nearest = a.getTrace().attrNearestPackage();
+                    if (nearest instanceof WPackage) {
+                        String pkgName = ((WPackage) nearest).getName();
+                        if (!name.startsWith(pkgName + "__") && !name.startsWith(pkgName + "_")) {
+                            name = pkgName + "__" + name;
+                        }
+                    }
+                }
                 name = uniqueName(name);
             } else {
                 usedNames.add(name);
@@ -178,10 +202,26 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
+            boolean isCompiletimeNative = a.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_COMPILETIME_NATIVE)
+                || name.equals("testSuccess") || name.equals("testFail");
             if (!a.isExtern() && !a.isBj() && !a.isNative()
-                && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
+                && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)
+                && !isCompiletimeNative) {
+                if (a.getTrace() instanceof FunctionDefinition) {
+                    FunctionDefinition fd = (FunctionDefinition) a.getTrace();
+                    if (!de.peeeq.wurstscript.CompilerIntrinsics.isDeclaration(fd)
+                        && !fd.attrHasAnnotation("compiletimenative")
+                        && fd.attrNearestStructureDef() == null && fd.attrNearestPackage() instanceof WPackage) {
+                        String pkgName = ((WPackage) fd.attrNearestPackage()).getName();
+                        if (imTr.isIncremental() || isModularMode || hasMultiplePackages()) {
+                            if (!name.startsWith(pkgName + "__") && !name.startsWith(pkgName + "_")) {
+                                name = pkgName + "__" + name;
+                            }
+                        }
+                    }
+                }
                 name = uniqueName(name);
-            } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
+            } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a) || isCompiletimeNative) {
                 usedNames.add(name);
             }
 
@@ -272,7 +312,7 @@ public class LuaTranslator {
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver), LuaAst.LuaExprVarAccess(dots)));
             pendingDispatches.add(new PendingDispatch(method, target));
             result.getBody().add(LuaAst.LuaReturn(call));
-            luaModel.add(result);
+            targetCu().add(result);
             return result;
         }
     };
@@ -390,7 +430,7 @@ public class LuaTranslator {
             for (ImVar field : c.getFields()) {
                 LuaVariable storage = fieldStorage(field);
                 if (emittedFieldStorage.add(storage)) {
-                    luaModel.add(storage);
+                    targetCu().add(storage);
                 }
             }
         }
@@ -398,7 +438,7 @@ public class LuaTranslator {
         // first add class variables
         for (ImClass c : prog.getClasses()) {
             LuaVariable classVar = luaClassVar.getFor(c);
-            luaModel.add(classVar);
+            targetCu().add(classVar);
         }
 
         for (ImClass c : prog.getClasses()) {
@@ -423,6 +463,287 @@ public class LuaTranslator {
         enforceLuaLocalLimits();
 
         return luaModel;
+    }
+
+    public PackageChunkResult translateModular(PackageChunkCache cache) {
+        isModularMode = true;
+        collectPredefinedNames();
+        assertNoDanglingFunctionReferences(prog);
+        normalizeFieldNames();
+
+        // 1. Preamble (Runtime polyfills & global variables outside any package)
+        LuaCompilationUnit preambleCu = LuaAst.LuaCompilationUnit();
+        currentTargetCu = preambleCu;
+        currentPackage = null;
+
+        createObjectManagement();
+        createInstanceOfFunction();
+        createObjectIndexFunctions();
+        createStringIndexFunctions();
+
+        Map<WPackage, List<ImVar>> globalsByPackage = new IdentityHashMap<>();
+        for (ImVar v : prog.getGlobals()) {
+            WPackage pkg = getNearestPackage(v.getTrace());
+            if (pkg == null) {
+                translateGlobal(v);
+            } else {
+                globalsByPackage.computeIfAbsent(pkg, k -> new ArrayList<>()).add(v);
+            }
+        }
+
+        Map<WPackage, List<ImFunction>> funcsByPackage = new IdentityHashMap<>();
+        for (ImFunction f : prog.getFunctions()) {
+            if (isFixedEntryPoint(f)) continue;
+            WPackage pkg = getNearestPackage(f.getTrace());
+            if (pkg == null) {
+                translateFunc(f);
+            } else {
+                funcsByPackage.computeIfAbsent(pkg, k -> new ArrayList<>()).add(f);
+            }
+        }
+
+        Map<WPackage, List<ImClass>> classesByPackage = new IdentityHashMap<>();
+        for (ImClass c : prog.getClasses()) {
+            WPackage pkg = getNearestPackage(c.getTrace());
+            if (pkg != null) {
+                classesByPackage.computeIfAbsent(pkg, k -> new ArrayList<>()).add(c);
+            }
+        }
+
+        cleanStatements(preambleCu);
+        StringBuilder preambleSb = new StringBuilder();
+        preambleCu.print(preambleSb, 0);
+        String preambleCode = preambleSb.toString();
+
+        // 2. Discover packages and topological order
+        List<WPackage> packages = determineTopologicalPackageOrder();
+
+        // Pre-register class method names deterministically across all packages (cached or new)
+        List<ImClass> sortedClasses = new ArrayList<>(prog.getClasses());
+        sortedClasses.sort(Comparator.comparing(ImClass::getName));
+        for (ImClass c : sortedClasses) {
+            List<ImFunction> classFuncs = new ArrayList<>(c.getFunctions());
+            classFuncs.sort(Comparator.comparing(ImFunction::getName));
+            for (ImFunction f : classFuncs) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            }
+        }
+
+        // 3. For packages not in cache: translate their AST elements
+        Map<WPackage, LuaCompilationUnit> newlyEmittedCus = new LinkedHashMap<>();
+        List<PackageChunk> chunks = new ArrayList<>();
+
+        for (WPackage p : packages) {
+            String hash = PackageChunkCache.computePackageHash(p, imTr.getRunArgs(), funcsByPackage.get(p));
+            PackageChunk cached = cache.get(p.getName(), hash);
+            if (cached != null) {
+                chunks.add(cached);
+            } else {
+                LuaCompilationUnit pkgCu = LuaAst.LuaCompilationUnit();
+                currentTargetCu = pkgCu;
+                currentPackage = p.getName();
+
+                // Globals in p
+                List<ImVar> pkgGlobals = globalsByPackage.get(p);
+                if (pkgGlobals != null) {
+                    for (ImVar v : pkgGlobals) {
+                        translateGlobal(v);
+                    }
+                }
+
+                // Classes in p
+                List<ImClass> pkgClasses = classesByPackage.get(p);
+                if (pkgClasses != null) {
+                    Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
+                    for (ImClass c : pkgClasses) {
+                        for (ImVar field : c.getFields()) {
+                            LuaVariable storage = fieldStorage(field);
+                            if (emittedFieldStorage.add(storage)) {
+                                pkgCu.add(storage);
+                            }
+                        }
+                        pkgCu.add(luaClassVar.getFor(c));
+                        translateClass(c);
+                    }
+                }
+
+                // Functions in p
+                List<ImFunction> pkgFuncs = funcsByPackage.get(p);
+                if (pkgFuncs != null) {
+                    for (ImFunction f : pkgFuncs) {
+                        translateFunc(f);
+                    }
+                }
+
+                newlyEmittedCus.put(p, pkgCu);
+            }
+        }
+
+        // Initialize class tables for all classes: emit bootstrap code only for newly translated packages
+        for (ImClass c : sortedClasses) {
+            WPackage pkgOfClass = getPackageOf(c);
+            boolean shouldEmit = (pkgOfClass != null && newlyEmittedCus.containsKey(pkgOfClass))
+                || (pkgOfClass == null);
+            if (shouldEmit) {
+                currentPackage = pkgOfClass != null ? pkgOfClass.getName() : null;
+                initClassTables(c, true);
+            } else {
+                initClassTables(c, false);
+            }
+        }
+        currentPackage = null;
+
+        // 4. Resolve dispatch slots for all classes
+        resolveDispatchSlots();
+        assertResolvedDispatchSlots();
+
+        // 5. For each newly translated package: finalize statements, add bootstrap, optimize, print, and cache
+        for (Map.Entry<WPackage, LuaCompilationUnit> entry : newlyEmittedCus.entrySet()) {
+            WPackage p = entry.getKey();
+            LuaCompilationUnit pkgCu = entry.getValue();
+
+            // Add package bootstrap function if there are deferred inits
+            LuaStatements deferred = packageDeferredInits.get(p.getName());
+            if (deferred != null && !deferred.isEmpty()) {
+                LuaFunction pkgBoot = LuaAst.LuaFunction("__wurst_bootstrap_" + p.getName(),
+                    LuaAst.LuaParams(), LuaAst.LuaStatements());
+                while (!deferred.isEmpty()) {
+                    pkgBoot.getBody().add(deferred.remove(0));
+                }
+                pkgCu.add(pkgBoot);
+            }
+
+            cleanStatements(pkgCu);
+            demoteForLoopsOverLocalLimit(pkgCu);
+            localizeHotStorageTables(pkgCu);
+            enforceLuaLocalLimits(pkgCu);
+
+            StringBuilder pkgSb = new StringBuilder();
+            pkgCu.print(pkgSb, 0);
+            String pkgCode = pkgSb.toString();
+
+            String hash = PackageChunkCache.computePackageHash(p, imTr.getRunArgs(), funcsByPackage.get(p));
+            List<String> deps = p.attrInitDependencies().stream().map(WPackage::getName).collect(Collectors.toList());
+            PackageChunk chunk = new PackageChunk(p.getName(), hash, pkgCode, deps, false);
+            cache.put(chunk);
+            chunks.add(chunk);
+        }
+
+        // Ensure chunks are in topological order
+        Map<String, PackageChunk> chunkMap = new HashMap<>();
+        for (PackageChunk c : chunks) {
+            chunkMap.put(c.getPackageName(), c);
+        }
+        List<PackageChunk> orderedChunks = new ArrayList<>();
+        for (WPackage p : packages) {
+            PackageChunk c = chunkMap.get(p.getName());
+            if (c != null) {
+                orderedChunks.add(c);
+            }
+        }
+
+        // 6. Postamble (Entry points & bootstrap)
+        LuaCompilationUnit postambleCu = LuaAst.LuaCompilationUnit();
+        currentTargetCu = postambleCu;
+        currentPackage = null;
+
+        LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaExprNull());
+        postambleCu.add(doneFlag);
+        LuaFunction boot = LuaAst.LuaFunction(uniqueName("__wurst_init_bootstrap"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        bootstrapFunction = boot;
+        boot.getBody().add(LuaAst.LuaLiteral("if " + doneFlag.getName() + " then return end"));
+        boot.getBody().add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(doneFlag), LuaAst.LuaExprBoolVal(true)));
+
+        // Global deferred inits
+        while (!globalDeferredInits.isEmpty()) {
+            boot.getBody().add(globalDeferredInits.remove(0));
+        }
+
+        // Call each package's bootstrap function in topological order
+        for (WPackage p : packages) {
+            boot.getBody().add(LuaAst.LuaLiteral("if __wurst_bootstrap_" + p.getName() + " then __wurst_bootstrap_" + p.getName() + "() end"));
+        }
+        postambleCu.add(boot);
+
+        ImFunction mainIm = imTr.getMainFunc();
+        ImFunction confIm = imTr.getConfFunc();
+        if (mainIm != null) {
+            insertBootstrapCall(mainIm, boot);
+            translateFunc(mainIm);
+        }
+        if (confIm != null) {
+            insertBootstrapCall(confIm, boot);
+            translateFunc(confIm);
+        }
+
+        cleanStatements(postambleCu);
+        StringBuilder postambleSb = new StringBuilder();
+        postambleCu.print(postambleSb, 0);
+        String postambleCode = postambleSb.toString();
+
+        // 7. Rapid Assemble (<20ms)
+        long assembleStart = System.currentTimeMillis();
+        String fullScript = PackageChunkAssembler.assemble(preambleCode, orderedChunks, postambleCode);
+        long assembleTime = System.currentTimeMillis() - assembleStart;
+        WLogger.info("PackageChunkAssembler assembled " + orderedChunks.size() + " chunks in " + assembleTime + "ms");
+
+        LuaCompilationUnit assembledCu = PackageChunkAssembler.assembleAst(fullScript);
+        currentTargetCu = null;
+        isModularMode = false;
+        return new PackageChunkResult(preambleCode, orderedChunks, postambleCode, fullScript, assembledCu, assembleTime);
+    }
+
+    private final Map<de.peeeq.wurstscript.ast.Element, WPackage> nearestPackageCache = new IdentityHashMap<>();
+
+    private @Nullable WPackage getNearestPackage(de.peeeq.wurstscript.ast.@Nullable Element trace) {
+        if (trace == null) {
+            return null;
+        }
+        WPackage cached = nearestPackageCache.get(trace);
+        if (cached != null) {
+            return cached;
+        }
+        PackageOrGlobal nearest = trace.attrNearestPackage();
+        if (nearest instanceof WPackage p) {
+            nearestPackageCache.put(trace, p);
+            return p;
+        }
+        return null;
+    }
+
+    private boolean belongsToPackage(de.peeeq.wurstscript.ast.@Nullable Element trace, WPackage p) {
+        return getNearestPackage(trace) == p;
+    }
+
+    private @Nullable WPackage getPackageOf(ImClass c) {
+        return getNearestPackage(c.getTrace());
+    }
+
+    private List<WPackage> determineTopologicalPackageOrder() {
+        Set<WPackage> ordered = new LinkedHashSet<>();
+        List<WPackage> allPackages = new ArrayList<>();
+        if (imTr.getWurstProg() != null) {
+            for (CompilationUnit cu : imTr.getWurstProg()) {
+                allPackages.addAll(cu.getPackages());
+            }
+        }
+        allPackages.sort(Comparator.comparing(WPackage::getName));
+        for (WPackage p : allPackages) {
+            collectTopological(p, ordered);
+        }
+        return new ArrayList<>(ordered);
+    }
+
+    private void collectTopological(WPackage p, Set<WPackage> visited) {
+        if (visited.contains(p)) {
+            return;
+        }
+        List<WPackage> deps = new ArrayList<>(p.attrInitDependencies());
+        deps.sort(Comparator.comparing(WPackage::getName));
+        for (WPackage dep : deps) {
+            collectTopological(dep, visited);
+        }
+        visited.add(p);
     }
 
     /**
@@ -462,7 +783,7 @@ public class LuaTranslator {
                 LuaAst.LuaLiteral("_, result"), xpcall));
             adapter.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(result)));
         }
-        luaModel.add(adapter);
+        targetCu().add(adapter);
         return adapter;
     }
 
@@ -483,7 +804,7 @@ public class LuaTranslator {
                 + " end, function(err2) if err2 == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL
                 + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2))"
                 + " BJDebugMsg(\"while reporting: \" .. tostring(err)) end)"));
-        luaModel.add(callbackErrorHandler);
+        targetCu().add(callbackErrorHandler);
         return callbackErrorHandler;
     }
 
@@ -525,7 +846,15 @@ public class LuaTranslator {
     }
 
     void deferMainInit(LuaStatement statement) {
-        deferredMainInit.add(statement);
+        if (isModularMode) {
+            if (currentPackage != null) {
+                packageDeferredInits.computeIfAbsent(currentPackage, k -> LuaAst.LuaStatements()).add(statement);
+            } else {
+                globalDeferredInits.add(statement);
+            }
+        } else {
+            deferredMainInit.add(statement);
+        }
     }
 
     /**
@@ -545,7 +874,7 @@ public class LuaTranslator {
             return;
         }
         LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaExprNull());
-        luaModel.add(doneFlag);
+        targetCu().add(doneFlag);
         LuaFunction boot = LuaAst.LuaFunction(uniqueName("__wurst_init_bootstrap"), LuaAst.LuaParams(), LuaAst.LuaStatements());
         bootstrapFunction = boot;
         boot.getBody().add(LuaAst.LuaLiteral("if " + doneFlag.getName() + " then return end"));
@@ -558,7 +887,7 @@ public class LuaTranslator {
         for (LuaStatement stmt : stmts) {
             boot.getBody().add(stmt);
         }
-        luaModel.add(boot);
+        targetCu().add(boot);
 
         insertBootstrapCall(mainIm, boot);
         insertBootstrapCall(confIm, boot);
@@ -592,6 +921,21 @@ public class LuaTranslator {
     private boolean isFixedEntryPoint(ImFunction function) {
         return function == imTr.getMainFunc() || function == imTr.getConfFunc();
     }
+
+    private boolean hasMultiplePackages() {
+        if (imTr.getWurstProg() == null) {
+            return false;
+        }
+        int count = 0;
+        for (CompilationUnit cu : imTr.getWurstProg()) {
+            count += cu.getPackages().size();
+            if (count > 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     private void collectPredefinedNames() {
         for (ImFunction function : prog.getFunctions()) {
@@ -736,11 +1080,11 @@ public class LuaTranslator {
     }
 
     private void createObjectManagement() {
-        luaModel.add(objectClass);
+        targetCu().add(objectClass);
         localizableStorageTables.add(objectClass);
-        luaModel.add(objectFree);
-        luaModel.add(objectMax);
-        luaModel.add(objectFreeCount);
+        targetCu().add(objectFree);
+        targetCu().add(objectMax);
+        targetCu().add(objectFreeCount);
 
         LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
         objectDealloc.getParams().add(object);
@@ -764,7 +1108,7 @@ public class LuaTranslator {
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
             LuaAst.LuaExprVarAccess(object)));
-        luaModel.add(objectDealloc);
+        targetCu().add(objectDealloc);
 
         LuaVariable toIndexObject = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
         classToIndex.getParams().add(toIndexObject);
@@ -773,7 +1117,7 @@ public class LuaTranslator {
             LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprIntVal("0"))),
             LuaAst.LuaStatements()));
         classToIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(toIndexObject)));
-        luaModel.add(classToIndex);
+        targetCu().add(classToIndex);
 
         LuaVariable fromIndexValue = LuaAst.LuaVariable("index", LuaAst.LuaNoExpr());
         classFromIndex.getParams().add(fromIndexValue);
@@ -782,7 +1126,7 @@ public class LuaTranslator {
             LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprNull())),
             LuaAst.LuaStatements()));
         classFromIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(fromIndexValue)));
-        luaModel.add(classFromIndex);
+        targetCu().add(classFromIndex);
     }
 
     private void createObjectIndexFunctions() {
@@ -794,13 +1138,16 @@ public class LuaTranslator {
     }
 
     private void cleanStatements() {
-        luaModel.accept(new LuaModel.DefaultVisitor() {
+        cleanStatements(luaModel);
+    }
+
+    void cleanStatements(LuaCompilationUnit targetCu) {
+        targetCu.accept(new LuaModel.DefaultVisitor() {
             @Override
             public void visit(LuaStatements stmts) {
                 super.visit(stmts);
                 cleanStatements(stmts);
             }
-
         });
     }
 
@@ -836,11 +1183,11 @@ public class LuaTranslator {
             LuaNatives.get(lf);
         } else {
             if (LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && rewriteGetHandleIdCompatFunction(f, lf)) {
-                luaModel.add(lf);
+                targetCu().add(lf);
                 return;
             }
             if (rewriteTypeCastingCompatFunction(f, lf)) {
-                luaModel.add(lf);
+                targetCu().add(lf);
                 return;
             }
 
@@ -867,10 +1214,10 @@ public class LuaTranslator {
             String name = lf.getName();
             if (name.startsWith("__wurst_")) {
                 // Wurst-internal natives are never pre-defined by the WC3 runtime; emit directly.
-                luaModel.add(lf);
+                targetCu().add(lf);
             } else {
                 // only add the function if it is not yet defined by the WC3 runtime:
-                luaModel.add(LuaAst.LuaIf(
+                targetCu().add(LuaAst.LuaIf(
                     LuaAst.LuaExprFuncRef(lf),
                     LuaAst.LuaStatements(),
                     LuaAst.LuaStatements(
@@ -882,7 +1229,7 @@ public class LuaTranslator {
                 ));
             }
         } else {
-            luaModel.add(lf);
+            targetCu().add(lf);
         }
     }
 
@@ -979,7 +1326,11 @@ public class LuaTranslator {
     }
 
     private void enforceLuaLocalLimits() {
-        luaModel.accept(new LuaModel.DefaultVisitor() {
+        enforceLuaLocalLimits(luaModel);
+    }
+
+    void enforceLuaLocalLimits(LuaCompilationUnit targetCu) {
+        targetCu.accept(new LuaModel.DefaultVisitor() {
             @Override
             public void visit(LuaFunction f) {
                 super.visit(f);
@@ -1012,7 +1363,11 @@ public class LuaTranslator {
      * the locals-table fallback never has to spill a for-loop variable (which it cannot rewrite).
      */
     private void demoteForLoopsOverLocalLimit() {
-        luaModel.accept(new LuaModel.DefaultVisitor() {
+        demoteForLoopsOverLocalLimit(luaModel);
+    }
+
+    void demoteForLoopsOverLocalLimit(LuaCompilationUnit targetCu) {
+        targetCu.accept(new LuaModel.DefaultVisitor() {
             @Override
             public void visit(LuaFunction f) {
                 super.visit(f);
@@ -1060,7 +1415,11 @@ public class LuaTranslator {
      * the optimization into register pressure or immediately triggering the locals-table fallback.
      */
     private void localizeHotStorageTables() {
-        luaModel.accept(new LuaModel.DefaultVisitor() {
+        localizeHotStorageTables(luaModel);
+    }
+
+    void localizeHotStorageTables(LuaCompilationUnit targetCu) {
+        targetCu.accept(new LuaModel.DefaultVisitor() {
             @Override
             public void visit(LuaFunction f) {
                 super.visit(f);
@@ -1300,12 +1659,14 @@ public class LuaTranslator {
         LuaVariable classVar = luaClassVar.getFor(c);
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
 
-        luaModel.add(initMethod);
+        targetCu().add(initMethod);
 
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            if (!isModularMode) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            }
         }
 
         createClassInitFunction(c, classVar, initMethod);
@@ -1372,33 +1733,41 @@ public class LuaTranslator {
     }
 
     private void initClassTables(ImClass c) {
+        initClassTables(c, true);
+    }
+
+    private void initClassTables(ImClass c, boolean emitStatements) {
         LuaVariable classVar = luaClassVar.getFor(c);
         // create methods:
-        createMethods(c, classVar);
+        createMethods(c, classVar, emitStatements);
 
-        // set supertype metadata:
-        LuaTableFields superClasses = LuaAst.LuaTableFields();
-        collectSuperClasses(superClasses, c, new HashSet<>());
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            WURST_SUPERTYPES),
-            LuaAst.LuaTableConstructor(superClasses)
-        ));
+        if (emitStatements) {
+            // set supertype metadata:
+            LuaTableFields superClasses = LuaAst.LuaTableFields();
+            collectSuperClasses(superClasses, c, new HashSet<>());
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                WURST_SUPERTYPES),
+                LuaAst.LuaTableConstructor(superClasses)
+            ));
 
-        // set typeid metadata:
-        // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
-        // retains this canonical metadata dependency before emission.
-        ImClass typeIdClass = imTr.canonical(c);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
-        ));
-
-
+            // set typeid metadata:
+            // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
+            // retains this canonical metadata dependency before emission.
+            ImClass typeIdClass = imTr.canonical(c);
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                ExprTranslation.TYPE_ID),
+                LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
+            ));
+        }
     }
 
     private void createMethods(ImClass c, LuaVariable classVar) {
+        createMethods(c, classVar, true);
+    }
+
+    private void createMethods(ImClass c, LuaVariable classVar, boolean emitStatements) {
         List<ImMethod> allMethods = collectMethodsInHierarchy(c);
         Map<String, List<ImMethod>> groupedMethods = new TreeMap<>();
         for (ImMethod method : allMethods) {
@@ -1498,11 +1867,13 @@ public class LuaTranslator {
                 continue;
             }
             registerDispatchSlot(c, e.getKey(), dispatchGroupOf(impl));
-            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-                LuaAst.LuaExprVarAccess(classVar),
-                e.getKey()),
-                LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
-            ));
+            if (emitStatements) {
+                deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                    LuaAst.LuaExprVarAccess(classVar),
+                    e.getKey()),
+                    LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
+                ));
+            }
         }
 
     }
@@ -2234,7 +2605,7 @@ public class LuaTranslator {
             localizableStorageTables.add(lv);
         }
         lv.setInitialValue(LuaAst.LuaExprNull());
-        luaModel.add(lv);
+        targetCu().add(lv);
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(lv), defaultValue(v.getType())));
     }
 
@@ -2374,12 +2745,12 @@ public class LuaTranslator {
         LuaFunction indexFn = LuaAst.LuaFunction(uniqueName("__wurst_arrIndex_" + key),
             LuaAst.LuaParams(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()), LuaAst.LuaVariable("k", LuaAst.LuaNoExpr())),
             LuaAst.LuaStatements(LuaAst.LuaReturn(defaultValue(st))));
-        luaModel.add(indexFn);
+        targetCu().add(indexFn);
 
         LuaVariable mt = LuaAst.LuaVariable(uniqueName("__wurst_arrMt_" + key), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprFuncRef(indexFn))
         )));
-        luaModel.add(mt);
+        targetCu().add(mt);
         primitiveArrayMetatables.put(key, mt);
         return mt;
     }
@@ -2401,7 +2772,7 @@ public class LuaTranslator {
 
         LuaFunction thunk = LuaAst.LuaFunction(uniqueName("__wurst_arrDefault"), LuaAst.LuaParams(), LuaAst.LuaStatements());
         thunk.getBody().add(LuaAst.LuaReturn(defaultValue(entryType)));
-        luaModel.add(thunk);
+        targetCu().add(thunk);
 
         LuaVariable tParam = LuaAst.LuaVariable("t", LuaAst.LuaNoExpr());
         LuaVariable kParam = LuaAst.LuaVariable("k", LuaAst.LuaNoExpr());
@@ -2414,12 +2785,12 @@ public class LuaTranslator {
                     LuaAst.LuaExprVarAccess(vLocal)),
                 LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(vLocal))
             ));
-        luaModel.add(indexFn);
+        targetCu().add(indexFn);
 
         mt.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprFuncRef(indexFn))
         )));
-        luaModel.add(mt);
+        targetCu().add(mt);
         return mt;
     }
 
@@ -2451,8 +2822,9 @@ public class LuaTranslator {
 
     public String getTypeCastingFunctionName(ImFunction f) {
         de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
-        if (trace instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p) {
-            if ("TypeCasting".equals(p.getName())) {
+        if (trace instanceof FuncDef fd) {
+            WPackage p = getNearestPackage(trace);
+            if (p != null && "TypeCasting".equals(p.getName())) {
                 return fd.getName();
             }
         }

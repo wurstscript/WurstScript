@@ -124,6 +124,8 @@ public class WurstScriptTest {
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
         private boolean legacyJassTypeChecks = false;
+        private boolean incremental = false;
+        private String cachePath = null;
 
         TestConfig(String name) {
             this.name = name;
@@ -231,6 +233,18 @@ public class WurstScriptTest {
             return this;
         }
 
+        public TestConfig incremental() {
+            this.incremental = true;
+            this.testLua = true;
+            this.luaOnly = true;
+            return this;
+        }
+
+        public TestConfig cachePath(String path) {
+            this.cachePath = path;
+            return this;
+        }
+
         TestConfig expectError(String expectedError) {
             this.expectedError = expectedError;
             return this;
@@ -316,6 +330,12 @@ public class WurstScriptTest {
             }
             if (legacyJassTypeChecks) {
                 runArgs.setLegacyJassTypeChecks(true);
+            }
+            if (incremental) {
+                runArgs = runArgs.with("-incremental");
+                if (cachePath != null) {
+                    runArgs = runArgs.with("-cachePath", cachePath);
+                }
             }
 
             WurstGui gui = new WurstGuiCliImpl();
