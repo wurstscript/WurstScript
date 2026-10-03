@@ -99,7 +99,8 @@ public final class LuaNativeLowering {
 
     private LuaNativeLowering() {}
     /**
-     * Replaces the KeyedTable operations with their Lua stubs, and empties the destroy operation.
+     * Replaces the KeyedTable, KeyedMap and CodeList operations with their Lua stubs, and empties
+     * the destroy operations.
      *
      * <p>Separate from {@link #transform} so it can run <b>before</b> stack-trace injection. That
      * pass appends a parameter to every affected function, and on Lua every non-native function is
@@ -119,7 +120,7 @@ public final class LuaNativeLowering {
      */
     private static final Set<ImProg> keyedTablesLowered = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public static void lowerKeyedTables(ImProg prog) {
+    public static void lowerKeyedTables(ImProg prog, ImTranslator translator) {
         if (!keyedTablesLowered.add(prog)) {
             return;
         }
@@ -138,7 +139,9 @@ public final class LuaNativeLowering {
         // do still happens, as in UselessFunctionCallsRemover.
         removeDestroyCalls(prog);
 
-        Map<String, ImFunction> stubs = new LinkedHashMap<>();
+        // Shared with any earlier run, so a second lowering reuses a stub instead of adding another of
+        // the same name, and later passes can match the stub by identity.
+        Map<String, ImFunction> stubs = translator.luaKeyedStubs;
         List<ImFunction> additions = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -150,12 +153,16 @@ public final class LuaNativeLowering {
                     stubName = LuaKeyedMap.nativeStubFor(f);
                 }
                 if (stubName == null) {
+                    stubName = LuaCodeList.nativeStubFor(f);
+                }
+                if (stubName == null) {
                     return;
                 }
-                ImFunction replacement = stubs.computeIfAbsent(stubName, name -> createNativeStub(name, f));
-                if (!additions.contains(replacement)) {
-                    additions.add(replacement);
-                }
+                ImFunction replacement = stubs.computeIfAbsent(stubName, name -> {
+                    ImFunction created = createNativeStub(name, f);
+                    additions.add(created);
+                    return created;
+                });
                 call.replaceBy(JassIm.ImFunctionCall(
                     call.attrTrace(), replacement,
                     JassIm.ImTypeArguments(),
@@ -205,9 +212,9 @@ public final class LuaNativeLowering {
         }
 
         // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
-        lowerKeyedTables(prog);
+        lowerKeyedTables(prog, translator);
 
-        removeRedundantTypeAssurance(prog, translator);
+        lowerRealToInt(prog, translator);
 
         DivModFunctions funcs = new DivModFunctions(translator);
 
@@ -381,6 +388,57 @@ public final class LuaNativeLowering {
     }
 
     private static final de.peeeq.wurstscript.ast.Element SYNTHETIC_TRACE = de.peeeq.wurstscript.ast.Ast.NoExpr();
+
+    /**
+     * Rewrites calls to the native {@code R2I} to {@code __wurst_R2I}, which truncates in Lua arithmetic:
+     * {@code x // 1 | 0} for a non-negative real, and its negation for a negative one. That is exact
+     * wherever the result is a 32-bit integer, which is the range it covers. NaN, the infinities and
+     * everything outside that range call the native, so their results are the engine's.
+     *
+     * <p>On Lua {@code R2I} is an engine call. Measured on the 3.0.0 client, the engine and this
+     * arithmetic return the same for every value probed, the 32-bit edges and values outside the range
+     * included. The helper returns one intrinsic call, so it inlines anywhere, and the intrinsic is
+     * printed as a single Lua expression ({@code ExprTranslation#realToInt}) with no call in range.
+     */
+    private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
+        ImFunction[] shim = {null};
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                ImFunction f = call.getFunc();
+                if (!f.isBj() || !"R2I".equals(f.getName()) || call.getArguments().size() != 1) {
+                    return;
+                }
+                if (shim[0] == null) {
+                    shim[0] = buildRealToInt(translator);
+                }
+                call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL));
+            }
+        });
+        if (shim[0] != null) {
+            prog.getFunctions().add(translator.luaRawR2IFunc);
+            prog.getFunctions().add(shim[0]);
+        }
+    }
+
+    /** return rawR2I(x): one intrinsic call, printed as Lua arithmetic by ExprTranslation#realToInt. */
+    private static ImFunction buildRealToInt(ImTranslator translator) {
+        ImType realType = TypesHelper.imReal();
+        ImType intType = TypesHelper.imInt();
+        ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
+        ImFunction rawR2I = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
+            JassIm.ImVars(arg), intType.copy(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        translator.luaRawR2IFunc = rawR2I;
+
+        ImVar x = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
+        ImStmts body = JassIm.ImStmts(JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImFunctionCall(SYNTHETIC_TRACE, rawR2I,
+            JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(x)), false, CallType.NORMAL)));
+        return JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_R2I", JassIm.ImTypeVars(), JassIm.ImVars(x), intType.copy(),
+            JassIm.ImVars(), body, Collections.emptyList());
+    }
 
     /**
      * True for exactly the {@code ImOperatorCall(DIV_INT, [1, 0])} shape that

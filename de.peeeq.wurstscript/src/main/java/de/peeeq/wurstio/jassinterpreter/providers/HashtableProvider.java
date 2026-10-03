@@ -1,6 +1,9 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.Implements;
+import de.peeeq.wurstio.jassinterpreter.mocks.DestructableMock;
+import de.peeeq.wurstio.jassinterpreter.mocks.ItemMock;
+import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
@@ -127,7 +130,7 @@ public class HashtableProvider extends Provider {
         return new IlConstHandle(NameProvider.getRandomName("ht"), new WurstHashtable());
     }
 
-    @Implements(funcNames = {"SaveInteger", "SaveStr", "SaveReal", "SaveBoolean", "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle",
+    @Implements(funcNames = {"SaveInteger", "SaveReal", "SaveBoolean", "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle",
             "SaveItemHandle", "SaveUnitHandle", "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
             "SaveTriggerActionHandle", "SaveTriggerEventHandle", "SaveForceHandle", "SaveGroupHandle", "SaveLocationHandle", "SaveRectHandle",
             "SaveBooleanExprHandle", "SaveSoundHandle", "SaveEffectHandle", "SaveUnitPoolHandle", "SaveItemPoolHandle", "SaveQuestHandle",
@@ -137,6 +140,11 @@ public class HashtableProvider extends Provider {
             "SaveHashtableHandle",
     })
     public void Save(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
+        if (value instanceof ILconstNull) {
+            // Measured on the 3.0.0 client: saving a null handle stores nothing, and a handle already
+            // saved under the key stays.
+            return;
+        }
         WurstHashtable table = (WurstHashtable) ht.getObj();
         table.save(key1.getVal(), key2.getVal(), value);
     }
@@ -153,10 +161,21 @@ public class HashtableProvider extends Provider {
         return res != null ? res : new ILconstReal(0);
     }
 
-    public ILconstString LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    /** Measured on the 3.0.0 client: saving a null string does store it, replacing what was there,
+     *  and it loads as null. It is kept as {@link ILconstNull} in the string slot. */
+    public void SaveStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
         WurstHashtable table = (WurstHashtable) ht.getObj();
-        ILconstString res = table.get(key1.getVal(), key2.getVal(), ILconstString.class);
-        return res != null ? res : ILconstString.fromText("");
+        table.save(key1.getVal(), key2.getVal(), value);
+    }
+
+    /** Measured on the 3.0.0 client: a missing string loads as null, not as "". */
+    public ILconst LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        WurstHashtable table = (WurstHashtable) ht.getObj();
+        ILconst res = (ILconst) table.get(key1.getVal(), key2.getVal(), ILconstString.class);
+        if (res == null) {
+            res = (ILconst) table.get(key1.getVal(), key2.getVal(), ILconstNull.class);
+        }
+        return res != null ? res : ILconstNull.instance();
     }
 
     public ILconstBool LoadBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
@@ -165,16 +184,49 @@ public class HashtableProvider extends Provider {
         return res != null ? res : ILconstBool.FALSE;
     }
 
-    @Implements(funcNames = {"LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle", "LoadUnitHandle", "LoadAbilityHandle",
+    @Implements(funcNames = {"LoadPlayerHandle", "LoadAbilityHandle",
             "LoadTimerHandle", "LoadTriggerHandle", "LoadTriggerConditionHandle", "LoadTriggerActionHandle", "LoadTriggerEventHandle", "LoadForceHandle",
             "LoadGroupHandle", "LoadLocationHandle", "LoadRectHandle", "LoadBooleanExprHandle", "LoadSoundHandle", "LoadEffectHandle", "LoadUnitPoolHandle",
             "LoadItemPoolHandle", "LoadQuestHandle", "LoadQuestItemHandle", "LoadDefeatConditionHandle", "LoadTimerDialogHandle", "LoadLeaderboardHandle",
             "LoadMultiboardHandle", "LoadMultiboardItemHandle", "LoadTrackableHandle", "LoadDialogHandle", "LoadButtonHandle", "LoadTextTagHandle",
             "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle", "LoadFogStateHandle", "LoadFogModifierHandle",
             "LoadHashtableHandle"})
-    public IlConstHandle LoadHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    public ILconst LoadHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
         WurstHashtable table = (WurstHashtable) ht.getObj();
-        return table.get(key1.getVal(), key2.getVal(), IlConstHandle.class);
+        IlConstHandle handle = table.get(key1.getVal(), key2.getVal(), IlConstHandle.class);
+        return handle == null ? ILconstNull.instance() : handle;
+    }
+
+    // Measured on the 3.0.0 client: handle loads are typed. A saved unit loads as null through
+    // LoadItemHandle and as itself through LoadWidgetHandle.
+
+    public ILconst LoadUnitHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        return loadHandleOf(ht, key1, key2, UnitMock.class);
+    }
+
+    public ILconst LoadItemHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        return loadHandleOf(ht, key1, key2, ItemMock.class);
+    }
+
+    public ILconst LoadDestructableHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        return loadHandleOf(ht, key1, key2, DestructableMock.class);
+    }
+
+    public ILconst LoadWidgetHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        return loadHandleOf(ht, key1, key2, UnitMock.class, ItemMock.class, DestructableMock.class);
+    }
+
+    private ILconst loadHandleOf(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<?>... types) {
+        WurstHashtable table = (WurstHashtable) ht.getObj();
+        IlConstHandle handle = table.get(key1.getVal(), key2.getVal(), IlConstHandle.class);
+        if (handle != null) {
+            for (Class<?> type : types) {
+                if (type.isInstance(handle.getObj())) {
+                    return handle;
+                }
+            }
+        }
+        return ILconstNull.instance();
     }
 
     public void FlushParentHashtable(IlConstHandle ht) {
@@ -201,6 +253,7 @@ public class HashtableProvider extends Provider {
 
     public void RemoveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
         removeSaved(ht, key1, key2, ILconstString.class);
+        removeSaved(ht, key1, key2, ILconstNull.class);
     }
 
     public void RemoveSavedHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
@@ -208,7 +261,8 @@ public class HashtableProvider extends Provider {
     }
 
     public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstString.class));
+        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstString.class)
+                || haveSaved(ht, key1, key2, ILconstNull.class));
     }
 
     public ILconstBool HaveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {

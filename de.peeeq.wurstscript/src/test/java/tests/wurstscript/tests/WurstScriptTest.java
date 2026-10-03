@@ -118,6 +118,7 @@ public class WurstScriptTest {
         private boolean runCompiletimeFunctions;
         private boolean optimize;
         private boolean inline;
+        private boolean localOptimizations;
         private boolean stacktraces;
         private boolean testLua = false;
         private boolean luaOnly = false;
@@ -168,6 +169,12 @@ public class WurstScriptTest {
         /** Enables the IM inliner (-inline), which is a separate option from -opt. */
         TestConfig inline() {
             this.inline = true;
+            return this;
+        }
+
+        /** Enables the local optimisations (-localOptimizations), which fold constants, also on the Lua run. */
+        TestConfig localOptimizations() {
+            this.localOptimizations = true;
             return this;
         }
 
@@ -317,6 +324,9 @@ public class WurstScriptTest {
             }
             if (inline) {
                 runArgs = runArgs.with("-inline");
+            }
+            if (localOptimizations) {
+                runArgs = runArgs.with("-localOptimizations");
             }
             if (legacyJassTypeChecks) {
                 runArgs.setLegacyJassTypeChecks(true);

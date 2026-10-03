@@ -201,11 +201,19 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
+    /** {@code R2I} in Lua arithmetic, falling back to the native outside the 32-bit range; see ExprTranslation. */
+    @Nullable public ImFunction luaRawR2IFunc = null;
     /** The one-argument conversions the ensure helpers use; printed as direct Lua calls. */
     @Nullable public ImFunction luaRawToNumberIntFunc = null;
     @Nullable public ImFunction luaRawToNumberRealFunc = null;
     @Nullable public ImFunction luaRawToIntegerFunc = null;
     @Nullable public ImFunction luaRawToStringFunc = null;
+    /**
+     * The Lua keyed-table and keyed-map native stubs, by stub name. {@link LuaNativeLowering#lowerKeyedTables}
+     * creates each one once and a second lowering reuses it, so later passes can match the very node a
+     * call was lowered to instead of a name.
+     */
+    public final Map<String, ImFunction> luaKeyedStubs = new LinkedHashMap<>();
 
     /**
      * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a

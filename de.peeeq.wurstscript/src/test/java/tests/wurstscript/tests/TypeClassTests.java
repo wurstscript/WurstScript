@@ -631,6 +631,51 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A bound is satisfiable by a handle type as well. The name of a native type from common.j
+     * resolves to a static reference, so the instance has to be taken for the value type, as the
+     * parameters of its methods are.
+     */
+    @Test
+    public void instanceForHandle() {
+        test().withStdLib().lines(
+            "package Test",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<unit>",
+            "    function show(unit x) returns string",
+            "        return \"u\""
+        );
+    }
+
+    private static final String[] DISPATCH_ON_HANDLE = {
+        "package Test",
+        "interface Show<T:>",
+        "    function show(T x) returns string",
+        "implements Show<unit>",
+        "    function show(unit x) returns string",
+        "        return \"u\"",
+        "implements Show<int>",
+        "    function show(int x) returns string",
+        "        return \"i\"",
+        "function render<S: Show>(S x) returns string",
+        "    return S.show(x)",
+        "init",
+        "    unit u = null",
+        "    if render(u) == \"u\" and render(1) == \"i\"",
+        "        testSuccess()"
+    };
+
+    @Test
+    public void dispatchOnHandle() {
+        test().withStdLib().executeProg().lines(DISPATCH_ON_HANDLE);
+    }
+
+    @Test
+    public void dispatchOnHandleLua() {
+        test().withStdLib().testLua(true).executeProg().lines(DISPATCH_ON_HANDLE);
+    }
+
     /** Several requirements combine with 'and', and each resolves independently. */
     @Test
     public void multipleBounds() {

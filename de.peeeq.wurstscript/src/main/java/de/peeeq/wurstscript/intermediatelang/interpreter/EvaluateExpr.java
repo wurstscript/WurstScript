@@ -530,7 +530,9 @@ public class EvaluateExpr {
         }
         if (res instanceof ILconstInt) {
             if (targetType instanceof ImClassType) {
-                return globalState.getObjectByIndex(((ILconstInt) res).getVal(), (ImClassType) targetType);
+                // 0 is the null reference, and an id without a live object stays the integer, as on Jass.
+                ILconstObject obj = globalState.getObjectByIndex(((ILconstInt) res).getVal(), (ImClassType) targetType);
+                return obj == null ? res : obj;
             }
             if (targetType instanceof IlConstHandle) {
                 return globalState.getHandleByIndex(((ILconstInt) res).getVal());

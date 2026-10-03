@@ -253,12 +253,15 @@ Recent fixes established additional rules for backend work. Follow these for all
 ### Reference semantics for arithmetic
 
 * Integer/real division and modulo semantics are centralized: `WurstOperator.moduloInteger/moduloReal` implement the Blizzard.j formula (truncated remainder, plus divisor if negative) and Jass `div` truncates toward zero.
-* The Lua polyfills (`intDiv`/`wurstMod`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`, `ConstantAndCopyPropagation`) must all stay consistent with those helpers — never reimplement div/mod locally.
+* The Lua polyfills (`intDiv`/`wurstMod`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`) must all stay consistent with those helpers — never reimplement div/mod locally.
+* Jass `==` on reals allows a difference of 0.001 (`WurstOperator.jassRealEquals`), while `!=` and the orderings are exact, so on the Jass target `not (a == b)` is not `a != b` for reals. Lua compares exactly. Both interpreters use that helper; the optimiser must not swap one for the other or fold nearly equal reals on Jass.
+* The Jass literal parser does not round to the nearest float (measured: `0.1` reads one float high, `1.1` one float low), but short exact binary fractions read exactly. So Jass real folding (`SimpleRewrites.foldRealExactly`) only reads and writes those, and only folds an operation whose exact result is one.
+* Lua reals in the game have a 24-bit mantissa, not 53 (measured on 3.0.0: at run time `(2^24 + 1) - 2^24` is 0, the literal `16777217.` reads as 16777216, `0.9999999999999999` reads as exactly 1, and `0.7 + 0.1 + 0.1 + 0.1` computes to 1 - 2^-23). Literals are rounded to nearest and each arithmetic result is truncated, which neither double nor 32-bit float arithmetic reproduces. So Lua real folding uses the Jass rule (`SimpleRewrites.foldRealExactly`): exact literals and exact results only. The test runtime's Lua computes in double, so a test that runs the emitted Lua does not show the game's rounding.
 
 ### Interpreter native mocks
 
 * The mocks in `wurstio/jassinterpreter/providers` model what the game does. Where the behaviour is not obvious, measure it in game before mocking it, and say in the mock that it was measured.
-* Death is life at or below 0.405, never life at zero: a unit left with 0.3 life is dead. Use `UnitProvider.DEATH_LIFE_THRESHOLD` through `isAlive` for every life test, and cover a fractional life in the test.
+* Death is a state, entered at life 0.405 or below, never at zero: setting a living unit's life to 0.3 kills it and its life then reads 0, and a dead unit whose life is set again stays dead. Change life through `UnitProvider.setLife`, test it through `isAlive`, and cover a fractional life in the test.
 * common.j and blizzard.j constants carry their `ConvertX` handles in every interpreter run, the translated Jass program included (`JassInterpreter` evaluates their initialisers on first read). The engine reads a null enum argument as id 0 (a null unit state is `UNIT_STATE_LIFE`); a mock does the same only where that was measured.
 
 ### Error behavior parity expectations
@@ -433,3 +436,7 @@ destroys a map while retaining an alias and verifies the alias sees an empty sto
 value specializations reach one direct Lua table read/write with the handle itself as key, that
 integer and class-reference Jass specializations forward to the unchanged fixed hashtable
 intrinsics, that non-handle key types are rejected, and that destroy clears retained Lua aliases.
+
+## 10. Warcraft III Game Data Generation
+
+For refreshing object-data knowledge and ability-editing sources from the installed game, use the in-house sibling `../casc-ts` reader and follow [`HelperScripts/GAMEDATA.md`](HelperScripts/GAMEDATA.md). Do not use CascView or online game-data mirrors. Keep the extraction snapshot in ignored `HelperScripts/gamedata/`; generated JSON resources and ability-editing Wurst sources are checked in or merged into WurstStdlib2 as described in that guide.

@@ -380,7 +380,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
                     @Override
                     public ILconst case_JassOpEquals(JassOpEquals jassOpEquals) {
-                        return ILconstBool.instance(getLeft().isEqualTo(getRight()));
+                        return ILconstBool.instance(WurstOperator.jassEquals(getLeft(), getRight()));
                     }
 
                 });

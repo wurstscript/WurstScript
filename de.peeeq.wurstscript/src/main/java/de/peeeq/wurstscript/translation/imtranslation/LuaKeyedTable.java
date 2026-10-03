@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.ImAnyType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -18,8 +17,9 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * table - a Jass compromise carried into Lua, which AGENTS.md section 7 asks us not to do. On Lua
  * each keyed table is its own table and the element is the key, so each operation is one index.
  *
- * <p>Matching is by <b>declaration</b>, not by name: a function qualifies only if it is annotated
- * {@code @compilerintrinsic} and its IM signature is exactly the one the lowering assumes.
+ * <p>Matching is by <b>declaration</b>, not by name: a function qualifies only if it is an
+ * annotated {@code @compilerintrinsic} package function without a vararg parameter (see
+ * {@link IntrinsicDeclarations}) and its IM signature is exactly the one the lowering assumes.
  * Name-only matching would silently replace the body of any user function that happened to share
  * the name, including one with different types, which section 7 rules out - semantic identity must
  * come from the declaration and its structural signature, never from string comparison.
@@ -52,8 +52,8 @@ public final class LuaKeyedTable {
      * a compiler-owned KeyedTable operation.
      */
     public static String nativeStubFor(ImFunction f) {
-        if (!(f.attrTrace() instanceof FuncDef fd)
-            || !fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)) {
+        FuncDef fd = IntrinsicDeclarations.packageIntrinsic(f);
+        if (fd == null) {
             return null;
         }
         int params = f.getParameters().size();
@@ -80,9 +80,9 @@ public final class LuaKeyedTable {
      * that does nothing on every clear and every destroy.
      */
     public static boolean isDestroy(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd
+        FuncDef fd = IntrinsicDeclarations.packageIntrinsic(f);
+        return fd != null
             && DESTROY.equals(fd.getName())
-            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
             && f.getParameters().size() == 1
             && TypesHelper.isIntType(f.getParameters().get(0).getType())
             && f.getReturnType() instanceof ImVoid;

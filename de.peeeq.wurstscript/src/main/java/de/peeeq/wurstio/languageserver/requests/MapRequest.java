@@ -964,7 +964,8 @@ public abstract class MapRequest extends UserRequest<Object> {
         gui.sendProgress("Applying Map Config...");
         timeTaker.measure("Applying Map Config", () -> {
             try {
-                result.set(ProjectConfigBuilder.apply(projectConfig, testMap.get(), map.orElse(testMap.get()), scriptFile, buildDir, runArgs, w3data, outputScriptName));
+                result.set(ProjectConfigBuilder.apply(projectConfig, testMap.get(), map.orElse(testMap.get()), scriptFile, buildDir,
+                    runArgs, w3data, outputScriptName, gui::showInfoMessage));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

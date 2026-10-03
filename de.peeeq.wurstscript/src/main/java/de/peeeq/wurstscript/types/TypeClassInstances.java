@@ -88,7 +88,11 @@ public final class TypeClassInstances {
         return def instanceof InterfaceDef i ? i : null;
     }
 
-    /** The concrete type an instance is declared for, e.g. {@code vec2} in {@code instance Indexable<vec2>}. */
+    /**
+     * The concrete type an instance is declared for, e.g. {@code vec2} in {@code instance Indexable<vec2>}.
+     * A type argument names the type of a value, not a static reference to it, which is what the
+     * name of a native type such as {@code unit} resolves to on its own.
+     */
     public static @Nullable WurstType instanceType(InstanceDecl decl) {
         if (!(decl.getImplementedInterface() instanceof TypeExprSimple simple)) {
             return null;
@@ -96,7 +100,7 @@ public final class TypeClassInstances {
         if (simple.getTypeArgs().size() != 1) {
             return null;
         }
-        return simple.getTypeArgs().get(0).attrTyp();
+        return simple.getTypeArgs().get(0).attrTyp().dynamic();
     }
 
     /**

@@ -315,6 +315,18 @@ public class ImInliner {
                     }
                 }
             }
+        } else if (returnsCanBeStructured(called)) {
+            // Guard-clause shape: move what follows an early return into the other branch, so
+            // every return ends its path and needs no done flag.
+            ImVar retVar = null;
+            if (!(called.getReturnType() instanceof ImVoid)) {
+                retVar = JassIm.ImVar(call.attrTrace(), called.getReturnType().copy(), "inlineRet", false);
+                f.getLocals().add(retVar);
+            }
+            stmts.addAll(structureReturns(copiedBody, retVar));
+            if (retVar != null) {
+                newExpr = ImStatementExpr(ImStmts(stmts), JassIm.ImVarAccess(retVar));
+            }
         } else {
             // Multi-return path: rewrite returns to done-flag + optional return temp.
             ImVar doneVar = JassIm.ImVar(call.attrTrace(), TypesHelper.imBool(), "inlineDone", false);
@@ -346,6 +358,108 @@ public class ImInliner {
         }
         parent.set(parentI, newExpr);
 
+    }
+
+    /**
+     * Whether every return of {@code f} can end its path, without a done flag: the returns sit in
+     * an if whose other branch, or whatever follows it, takes over, and the body returns on every
+     * path when it has a value. A return inside a loop, or an if that falls through on both sides
+     * with more statements after it, would need that code twice, so those keep the flag.
+     */
+    private boolean returnsCanBeStructured(ImFunction f) {
+        List<ImStmt> body = f.getBody();
+        return (f.getReturnType() instanceof ImVoid || alwaysReturns(body)) && endsInTailReturns(body, 0);
+    }
+
+    private boolean alwaysReturns(List<ImStmt> stmts) {
+        for (ImStmt s : stmts) {
+            if (s instanceof ImReturn) {
+                return true;
+            }
+            if (s instanceof ImIf imIf
+                && alwaysReturns(imIf.getThenBlock()) && alwaysReturns(imIf.getElseBlock())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Each if that holds a return moves what follows it into one branch, copying that suffix, and
+     * nests the rest of the function one level deeper. A long run of guard clauses would copy the
+     * suffix once per guard and nest as deep as it is long, so past a small depth the function keeps
+     * the flat done-flag form, which is linear.
+     */
+    private static final int MAX_STRUCTURED_RETURN_DEPTH = 16;
+
+    private boolean endsInTailReturns(List<ImStmt> stmts, int depth) {
+        for (int i = 0; i < stmts.size(); i++) {
+            ImStmt s = stmts.get(i);
+            if (s instanceof ImReturn) {
+                return true;
+            }
+            if (!hasReturn(s)) {
+                continue;
+            }
+            if (!(s instanceof ImIf imIf)) {
+                return false;
+            }
+            if (depth >= MAX_STRUCTURED_RETURN_DEPTH) {
+                return false;
+            }
+            List<ImStmt> rest = stmts.subList(i + 1, stmts.size());
+            boolean thenReturns = alwaysReturns(imIf.getThenBlock());
+            boolean elseReturns = alwaysReturns(imIf.getElseBlock());
+            if (!thenReturns && !elseReturns && !rest.isEmpty()) {
+                return false;
+            }
+            return endsInTailReturns(thenReturns ? imIf.getThenBlock() : concat(imIf.getThenBlock(), rest), depth + 1)
+                && endsInTailReturns(elseReturns ? imIf.getElseBlock() : concat(imIf.getElseBlock(), rest), depth + 1);
+        }
+        return true;
+    }
+
+    private static List<ImStmt> concat(List<ImStmt> a, List<ImStmt> b) {
+        List<ImStmt> result = new ArrayList<>(a.size() + b.size());
+        result.addAll(a);
+        result.addAll(b);
+        return result;
+    }
+
+    /** The statements with each return replaced by a write of its value; see {@link #returnsCanBeStructured}. */
+    private List<ImStmt> structureReturns(List<ImStmt> stmts, ImVar retVar) {
+        List<ImStmt> result = new ArrayList<>();
+        for (int i = 0; i < stmts.size(); i++) {
+            ImStmt s = stmts.get(i);
+            if (s instanceof ImReturn r) {
+                if (retVar != null && r.getReturnValue() instanceof ImExpr value) {
+                    result.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(retVar), value.copy()));
+                }
+                return result;
+            }
+            if (!hasReturn(s)) {
+                result.add(s.copy());
+                continue;
+            }
+            ImIf imIf = (ImIf) s;
+            List<ImStmt> rest = stmts.subList(i + 1, stmts.size());
+            boolean thenReturns = alwaysReturns(imIf.getThenBlock());
+            boolean elseReturns = alwaysReturns(imIf.getElseBlock());
+            List<ImStmt> thenBlock = structureReturns(
+                thenReturns ? imIf.getThenBlock() : concat(imIf.getThenBlock(), rest), retVar);
+            List<ImStmt> elseBlock = structureReturns(
+                elseReturns ? imIf.getElseBlock() : concat(imIf.getElseBlock(), rest), retVar);
+            ImExpr condition = imIf.getCondition().copy();
+            if (thenBlock.isEmpty() && !elseBlock.isEmpty()) {
+                condition = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(condition));
+                List<ImStmt> swap = thenBlock;
+                thenBlock = elseBlock;
+                elseBlock = swap;
+            }
+            result.add(JassIm.ImIf(imIf.getTrace(), condition, JassIm.ImStmts(thenBlock), JassIm.ImStmts(elseBlock)));
+            return result;
+        }
+        return result;
     }
 
     private ImStmts rewriteForEarlyReturns(ImStmts body, ImVar doneVar, ImVar retVar) {
@@ -697,11 +811,14 @@ public class ImInliner {
         }
 
         private int inlineControlLocals(ImFunction callee) {
-            return maxOneReturn(callee)
+            if (maxOneReturn(callee)) {
+                return 0;
+            }
+            int resultSlots = callee.getReturnType() instanceof ImVoid
                 ? 0
-                : 1 + (callee.getReturnType() instanceof ImVoid
-                    ? 0
-                    : ImHelper.flattenedJassArity(callee.getReturnType()));
+                : ImHelper.flattenedJassArity(callee.getReturnType());
+            // The structured shape has a result variable, but no done flag.
+            return returnsCanBeStructured(callee) ? resultSlots : 1 + resultSlots;
         }
 
         private int flattenedDeclarationCount(ImVars variables) {

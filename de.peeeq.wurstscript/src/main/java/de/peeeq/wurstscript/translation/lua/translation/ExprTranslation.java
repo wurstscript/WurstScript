@@ -120,6 +120,15 @@ public class ExprTranslation {
                 LuaAst.LuaExprVarAccess(tr.luaLibrary(unaryIntrinsic.substring(0, dot))),
                 unaryIntrinsic.substring(dot + 1)), argument);
         }
+        if (e.getFunc() == tr.imTr.luaRawR2IFunc && e.getArguments().size() == 1) {
+            LuaExpr x = e.getArguments().get(0).translateToLua(tr);
+            // The expression reads x three times, so only a variable or a literal is printed in place.
+            // Anything else calls the emitted function, which has the same body.
+            if (x instanceof LuaExprVarAccess || x instanceof LuaExprRealVal || x instanceof LuaExprIntVal) {
+                return realToInt(x);
+            }
+            return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(x));
+        }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
@@ -164,6 +173,39 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc;
+    }
+
+    /**
+     * R2I of x without a call inside the 32-bit range: floor division of a float gives an integral
+     * float, and {@code | 0} turns it into an integer, which it can because the range was checked; a
+     * negative real is truncated as the negated floor of its negation. Both middle values are integers,
+     * which Lua counts as true even when they are 0, so {@code and}/{@code or} pick the right branch.
+     * NaN, the infinities and everything outside the range call the native.
+     */
+    static LuaExpr realToInt(LuaExpr x) {
+        LuaExpr nonNegative = LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpGreaterEq(), LuaAst.LuaExprRealVal("0.0")),
+            LuaAst.LuaOpAnd(),
+            LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpLess(), LuaAst.LuaExprRealVal("2147483648.0")));
+        LuaExpr negative = LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpLess(), LuaAst.LuaExprRealVal("0.0")),
+            LuaAst.LuaOpAnd(),
+            LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpGreater(), LuaAst.LuaExprRealVal("-2147483649.0")));
+        LuaExpr truncated = floorToInt(x.copy());
+        LuaExpr negatedTruncated = LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(),
+            floorToInt(LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(), x.copy())));
+        LuaExpr nativeCall = LuaAst.LuaExprFunctionCallByName("R2I", LuaAst.LuaExprlist(x.copy()));
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(nonNegative, LuaAst.LuaOpAnd(), truncated),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(negative, LuaAst.LuaOpAnd(), negatedTruncated),
+                LuaAst.LuaOpOr(), nativeCall));
+    }
+
+    private static LuaExpr floorToInt(LuaExpr x) {
+        return LuaAst.LuaExprBinary(LuaAst.LuaExprBinary(x, LuaAst.LuaOpFloorDiv(), LuaAst.LuaExprIntVal("1")),
+            LuaAst.LuaOpBitOr(), LuaAst.LuaExprIntVal("0"));
     }
 
     /**

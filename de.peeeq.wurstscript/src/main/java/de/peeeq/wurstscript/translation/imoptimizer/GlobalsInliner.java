@@ -280,7 +280,7 @@ public class GlobalsInliner implements OptimizerPass {
 
         BitSet pending = new BitSet(candidates.size());
         pending.set(0, candidates.size());
-        Set<ImFunction> reachableFromStartup = identitySet();
+        StartupReach reachableFromStartup = new StartupReach();
         ImFunction config = trans.getConfFunc();
         if (config != null) {
             scanStartupStatements(config.getBody(), pending, unsafe, readsByStatement, writesByStatement,
@@ -313,7 +313,7 @@ public class GlobalsInliner implements OptimizerPass {
                                        Map<ImStmt, Set<Integer>> readsByStatement,
                                        Map<ImStmt, Set<Integer>> writesByStatement,
                                        Map<ImFunction, Set<Integer>> readsByFunction,
-                                       Set<ImFunction> reachableFromStartup) {
+                                       StartupReach reachableFromStartup) {
         Set<ImFunction> packageInitializers = identitySet();
         packageInitializers.addAll(initializationOrder.subList(1, initializationOrder.size()));
         for (ImStmt statement : trans.getMainFunc().getBody()) {
@@ -330,7 +330,7 @@ public class GlobalsInliner implements OptimizerPass {
                                                Map<ImStmt, Set<Integer>> readsByStatement,
                                                Map<ImStmt, Set<Integer>> writesByStatement,
                                                Map<ImFunction, Set<Integer>> readsByFunction,
-                                               Set<ImFunction> reachableFromStartup,
+                                               StartupReach reachableFromStartup,
                                                @Nullable Set<Integer> writesInAbortableInitializer) {
         for (ImStmt statement : statements) {
             BitSet reads = new BitSet();
@@ -353,23 +353,96 @@ public class GlobalsInliner implements OptimizerPass {
         }
     }
 
-    private static void addNewlyReachableReads(ImStmt statement, Set<ImFunction> reachableFromStartup,
+    private static void addNewlyReachableReads(ImStmt statement, StartupReach reach,
                                                 Map<ImFunction, Set<Integer>> readsByFunction, BitSet reads) {
-        ArrayDeque<ImFunction> undiscovered = new ArrayDeque<>();
-        for (ImFunction function : directlyUsedFunctions(statement)) {
-            if (function != null && reachableFromStartup.add(function)) {
-                undiscovered.addLast(function);
-            }
-        }
-        while (!undiscovered.isEmpty()) {
-            ImFunction function = undiscovered.removeFirst();
+        reach.scan(statement);
+        ImFunction function;
+        while ((function = reach.nextFunction()) != null) {
             for (int candidate : readsByFunction.getOrDefault(function, Collections.emptySet())) {
                 reads.set(candidate);
             }
-            for (ImFunction callee : function.calcUsedFunctions()) {
-                if (callee != null && reachableFromStartup.add(callee)) {
-                    undiscovered.addLast(callee);
+            reach.scan(function);
+        }
+    }
+
+    /**
+     * What may have run by some point of startup. A function reference and a call are followed at
+     * once. A method call is followed only into implementations of classes that reached code has
+     * instantiated: an object of a class can only be dispatched on after an allocation of it (or of a
+     * subclass) ran, so an implementation of a class nothing has created yet cannot be the target.
+     * An implementation whose class is not live waits, and is reached when an allocation makes it so.
+     */
+    private static final class StartupReach {
+        private final Set<ImFunction> reached = identitySet();
+        private final Set<ImClass> liveClasses = identitySet();
+        private final Map<ImClass, List<ImFunction>> waiting = new IdentityHashMap<>();
+        private final ArrayDeque<ImFunction> unvisited = new ArrayDeque<>();
+
+        @Nullable ImFunction nextFunction() {
+            return unvisited.pollFirst();
+        }
+
+        void scan(de.peeeq.wurstscript.jassIm.Element element) {
+            element.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+                @Override
+                public void visit(ImFunctionCall call) {
+                    super.visit(call);
+                    reach(call.getFunc());
                 }
+
+                @Override
+                public void visit(ImFuncRef ref) {
+                    super.visit(ref);
+                    reach(ref.getFunc());
+                }
+
+                @Override
+                public void visit(ImMethodCall call) {
+                    super.visit(call);
+                    dispatch(call.getMethod());
+                    for (ImMethod subMethod : call.getMethod().getSubMethods()) {
+                        dispatch(subMethod);
+                    }
+                }
+
+                @Override
+                public void visit(ImAlloc alloc) {
+                    super.visit(alloc);
+                    instantiate(alloc.getClazz().getClassDef());
+                }
+            });
+        }
+
+        private void reach(@Nullable ImFunction function) {
+            if (function != null && reached.add(function)) {
+                unvisited.addLast(function);
+            }
+        }
+
+        private void dispatch(ImMethod method) {
+            ImFunction implementation = method.getImplementation();
+            if (implementation == null) {
+                return;
+            }
+            ImClass owner = method.getMethodClass().getClassDef();
+            if (liveClasses.contains(owner)) {
+                reach(implementation);
+            } else {
+                waiting.computeIfAbsent(owner, ignored -> new ArrayList<>()).add(implementation);
+            }
+        }
+
+        /** The class and every class it extends or implements now has an instance to dispatch on. */
+        private void instantiate(ImClass clazz) {
+            if (!liveClasses.add(clazz)) {
+                return;
+            }
+            List<ImFunction> released = waiting.remove(clazz);
+            if (released != null) {
+                released.forEach(this::reach);
+            }
+            for (ImClassType superClass : clazz.getSuperClasses()) {
+                instantiate(superClass.getClassDef());
             }
         }
     }
@@ -419,6 +492,11 @@ public class GlobalsInliner implements OptimizerPass {
         return current instanceof ImStmt ? (ImStmt) current : null;
     }
 
+    /**
+     * A {@code @configurable} constant counts too. Configuration is resolved at name resolution: a read of
+     * a configured constant already refers to the {@code @config} constant in the config package, which
+     * is a constant of its own, and the original is then read by nothing. So what is read here is final.
+     */
     private static boolean isSourceConstant(ImVar var) {
         if (!(var.getTrace() instanceof GlobalVarDef)) {
             return false;
@@ -430,7 +508,7 @@ public class GlobalsInliner implements OptimizerPass {
             return false;
         }
         GlobalVarDef global = (GlobalVarDef) var.getTrace();
-        return global.attrIsConstant() && !global.hasAnnotation("@configurable");
+        return global.attrIsConstant();
     }
 
     private static <T> Set<T> identitySet() {

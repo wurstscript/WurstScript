@@ -7,6 +7,10 @@ package de.peeeq.wurstio.jassinterpreter.providers;
  * operations intentionally work on float bit patterns: Warcraft's native
  * does not have the same rounding and subnormal behavior as Java float
  * arithmetic.</p>
+ *
+ * <p>The 3.0.0 client does not produce the same numbers: measured there,
+ * SetRandomSeed(42) followed by GetRandomInt(1, 100) five times gives
+ * 64, 12, 35, 16, 78, where this generator gives 9, 73, 70, 43, 57.</p>
  */
 final class JassPrng {
 

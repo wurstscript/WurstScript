@@ -59,13 +59,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * A real operation which overflows the 32-bit float the folder computes in has no literal, so
-     * it is left for the game instead of crashing the build on the infinity sign. The stdlib's
-     * REAL_MAX is such a value once the optimised Lua build inlines it, and REAL_MAX / 2. is how a
-     * map hit it.
+     * A real operation on literals that do not read exactly, such as the stdlib's REAL_MAX, is left
+     * for the game, and so is an overflow: no infinity is ever printed, which Lua would read as an
+     * unset global. REAL_MAX / 2. is how a map hit that.
      */
     @Test
     public void realFoldOverflowIsLeftUnfolded() {
+        String nearDoubleMax = "1" + "0".repeat(308) + ".";
         String compiled = compileOptimizedLua("realFoldOverflowIsLeftUnfolded",
             "package Test",
             "native consume(real value)",
@@ -73,9 +73,61 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    consume(REAL_MAX / 2.)",
             "    consume(2 * REAL_MAX)",
-            "    consume(300000000000000000000000000000000000000. * 10.)");
+            "    consume(300000000000000000000000000000000000000. * 10.)",
+            "    consume(" + nearDoubleMax + " * 10.)");
         assertFalse("no non-finite literal is printed:\n" + compiled,
-            compiled.contains("∞") || compiled.contains("NaN"));
+            compiled.contains("∞") || compiled.contains("NaN") || compiled.contains("Infinity"));
+        assertFalse("REAL_MAX / 2. is left for the game:\n" + compiled,
+            compiled.contains("consume(1.70141183460469E38)"));
+        assertTrue("the overflow is left for the game:\n" + compiled,
+            compiled.contains("consume((" + nearDoubleMax + " * 10.))"));
+    }
+
+    /**
+     * A comparison of literals folds only where both read exactly, as on Jass: 1.0005 does not, so
+     * the game compares what it reads. Exact literals fold, and Lua's == on them is exact.
+     */
+    @Test
+    public void realComparisonsFoldOnlyForExactLiteralsOnLua() {
+        String compiled = compileOptimizedLua("realComparisonsFoldOnlyForExactLiteralsOnLua",
+            "package Test",
+            "native consume(boolean value)",
+            "native consume2(boolean value)",
+            "init",
+            "    consume(1.0 == 1.0005)",
+            "    consume2(2.5 == 2.25)");
+        assertFalse("a literal that does not read exactly is compared by the game:\n" + compiled,
+            compiled.contains("consume(false)") || compiled.contains("consume(true)"));
+        assertTrue("exact literals fold:\n" + compiled, compiled.contains("consume2(false)"));
+    }
+
+    /**
+     * The game's Lua reals have a 24-bit mantissa and truncate each result, so the Lua build folds a
+     * real operation only where it is exact: then every rounding gives the folded value. 2.5 + 0.25
+     * and 1.5 * 4. fold; 2^24 + 1 needs a 25th bit, and 0.1 does not read exactly, so those are left
+     * for the game. The test runtime's Lua computes in double, which agrees on the exact folds.
+     */
+    @Test
+    public void realFoldingIsExactOnLua() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@noinline function isSum(real folded, real a, real b) returns boolean",
+            "    return folded == a + b",
+            "@noinline function isProduct(real folded, real a, real b) returns boolean",
+            "    return folded == a * b",
+            "init",
+            "    let twoTo24 = 16777216.",
+            "    if isSum(2.5 + 0.25, 2.5, 0.25) and isProduct(1.5 * 4., 1.5, 4.)",
+            "        and isSum(twoTo24 + 1., twoTo24, 1.) and isSum(0.1 + 0.2, 0.1, 0.2) and 2.5 > 2.25",
+            "        testSuccess()");
+        String compiled = compiledLua("realFoldingIsExactOnLua");
+        assertTrue("exact sums fold:\n" + compiled, compiled.contains("isSum(2.75,"));
+        assertTrue("exact products fold:\n" + compiled, compiled.contains("isProduct(6.0,"));
+        for (String inexact : new String[] {"16777217", "0.30000000000000004", "0.3,"}) {
+            assertFalse(inexact + " is not folded:\n" + compiled, compiled.contains("isSum(" + inexact));
+        }
+        assertFalse("an exact comparison folds:\n" + compiled, compiled.contains("2.5 > 2.25"));
     }
 
     /**
@@ -297,8 +349,48 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("if Test_active then"));
         assertTrue("constant arithmetic uses must be emitted as literals:\n" + compiled,
             compiled.contains("consume(7)"));
-        assertTrue("configurable constants must remain globals until configuration resolution:\n" + compiled,
-            compiled.contains("Test_CONFIGURABLE"));
+        assertTrue("an unconfigured configurable constant is emitted as its literal:\n" + compiled,
+            compiled.contains("consume(9)") && !compiled.contains("Test_CONFIGURABLE"));
+    }
+
+    /** A configured constant is emitted as the value its config package gives it. */
+    @Test
+    public void configuredConstantsInlineTheirConfiguredValue() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "configuredConstantsInlineTheirConfiguredValue",
+            "package Test",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "init",
+            "    consume(CONFIGURABLE)",
+            "endpackage",
+            "package Test_config",
+            "@config public constant int CONFIGURABLE = 4",
+            "endpackage"
+        );
+        assertTrue("the configured value is emitted as a literal:\n" + compiled,
+            compiled.contains("consume(4)") && !compiled.contains("consume(9)")
+                && !compiled.contains("CONFIGURABLE"));
+    }
+
+    /**
+     * An R2I of an expression stays Lua arithmetic in an optimised build. The printer takes only a
+     * variable or a constant in place, so the temp merger must leave the argument's temporary alone.
+     */
+    @Test
+    public void realToIntOfAnExpressionStaysArithmeticWhenOptimized() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "realToIntOfAnExpressionStaysArithmeticWhenOptimized",
+            "package Test",
+            "native consume(int value)",
+            "real array operands",
+            "init",
+            "    operands[0] = 2.",
+            "    operands[1] = 0.5",
+            "    consume(R2I(operands[0] + operands[1]))"
+        );
+        assertTrue("R2I of an expression is printed in place, without a call:\n" + compiled,
+            compiled.contains("// 1) | 0)") && compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1);
     }
 
     private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
@@ -312,10 +404,23 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     private String compileLuaWithRunArgs(String testName, RunArgs runArgs, boolean withStdLib, String... lines) {
+        return compileLuaUnits(runArgs, withStdLib,
+            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))));
+    }
+
+    /** Each array of lines is one package, compiled together. */
+    private String compileOptimizedLuaPackages(String testName, String[]... packages) {
+        List<CU> units = new ArrayList<>();
+        for (int i = 0; i < packages.length; i++) {
+            units.add(new CU(testName + i + ".wurst", String.join("\n", packages[i])));
+        }
+        return compileLuaUnits(new RunArgs().with("-lua", "-inline", "-localOptimizations"), false, units);
+    }
+
+    private String compileLuaUnits(RunArgs runArgs, boolean withStdLib, List<CU> units) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
-        WurstModel model = parseFiles(Collections.emptyList(),
-            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), withStdLib, compiler);
+        WurstModel model = parseFiles(Collections.emptyList(), units, withStdLib, compiler);
         assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
         compiler.checkProg(model);
         assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
@@ -2591,6 +2696,306 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("arithmetic("));
     }
 
+    /**
+     * The nil check around every native with a handle parameter returns early, and an inlined
+     * early return used to leave a done flag with two tests and a dead default write behind. A
+     * return that ends its branch needs none of that: the inlined call is one if with an else.
+     */
+    @Test
+    public void inlinedNilCheckWrapperLeavesNoDoneFlag() {
+        String compiled = compileOptimizedLuaWithStdLib("inlinedNilCheckWrapperLeavesNoDoneFlag",
+            popularStdlibHelpersProgram());
+        String caller = functionBody(compiled, "caller1");
+        assertFalse("no done flag is left behind:\n" + caller, caller.contains("inlineDone"));
+        assertFalse("nor a test of one:\n" + caller, caller.contains("not(inlineDone"));
+        assertTrue("the guard picks between the default and the native:\n" + caller,
+            caller.contains("if (u == nil) then") && caller.contains("else\n\t\tthis")
+                && caller.contains("= GetUnitX(u)"));
+    }
+
+    /**
+     * An early return inlines without a flag when it ends its path, and with one when what follows
+     * it would have to be written twice or it leaves a loop. Both must return what the function
+     * returned, and run what follows it only when the function did not return.
+     */
+    @Test
+    public void inlinedEarlyReturnsKeepTheirMeaning() throws IOException {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int failures = 0",
+            "@noinline function id(int x) returns int",
+            "    return x",
+            "@noinline function check(bool ok)",
+            "    if not ok",
+            "        failures++",
+            "@inline function guard(int x) returns int",
+            "    if x < 0",
+            "        return -1",
+            "    trace += 1",
+            "    return x * 2",
+            "@inline function nested(int x, int y) returns int",
+            "    if x < 0",
+            "        if y < 0",
+            "            return 1",
+            "        trace += 10",
+            "        return 2",
+            "    trace += 100",
+            "    if y < 0",
+            "        return 3",
+            "    return 4",
+            "@inline function bothBranches(int x) returns int",
+            "    if x > 0",
+            "        return 1",
+            "    else",
+            "        return 2",
+            "@inline function elseGuard(int x) returns int",
+            "    if x > 0",
+            "        trace += 1",
+            "    else",
+            "        return 7",
+            "    trace += 20",
+            "    return x",
+            "@inline function voidGuard(int x)",
+            "    if x < 0",
+            "        return",
+            "    trace += x",
+            "    if x > 100",
+            "        return",
+            "    trace += 1000",
+            "@inline function bothFallThrough(int x) returns int",
+            "    if x < 0",
+            "        if x < -5",
+            "            return 1",
+            "        trace += 1",
+            "    else",
+            "        if x > 5",
+            "            return 2",
+            "        trace += 2",
+            "    trace += 10000",
+            "    return 3",
+            "@inline function inLoop(int x) returns int",
+            "    for i = 0 to 9",
+            "        if i == x",
+            "            return i * 10",
+            "    return -1",
+            "@inline function doubleGuard(int x) returns int",
+            "    if x < 0",
+            "        return 0",
+            "    if x > 10",
+            "        return 10",
+            "    return x",
+            "init",
+            "    check(guard(id(-3)) == -1 and trace == 0)",
+            "    check(guard(id(4)) == 8 and trace == 1)",
+            "    trace = 0",
+            "    check(nested(id(-1), id(-1)) == 1 and trace == 0)",
+            "    check(nested(id(-1), id(1)) == 2 and trace == 10)",
+            "    trace = 0",
+            "    check(nested(id(1), id(-1)) == 3 and trace == 100)",
+            "    check(nested(id(1), id(1)) == 4 and trace == 200)",
+            "    check(bothBranches(id(5)) == 1 and bothBranches(id(-5)) == 2)",
+            "    trace = 0",
+            "    check(elseGuard(id(-2)) == 7 and trace == 0)",
+            "    check(elseGuard(id(3)) == 3 and trace == 21)",
+            "    trace = 0",
+            "    voidGuard(id(-4))",
+            "    check(trace == 0)",
+            "    voidGuard(id(200))",
+            "    check(trace == 200)",
+            "    voidGuard(id(5))",
+            "    check(trace == 1205)",
+            "    trace = 0",
+            "    check(bothFallThrough(id(-9)) == 1 and trace == 0)",
+            "    check(bothFallThrough(id(-2)) == 3 and trace == 10001)",
+            "    trace = 0",
+            "    check(bothFallThrough(id(9)) == 2 and trace == 0)",
+            "    check(bothFallThrough(id(3)) == 3 and trace == 10002)",
+            "    check(inLoop(id(4)) == 40 and inLoop(id(12)) == -1)",
+            "    check(doubleGuard(id(-1)) == 0 and doubleGuard(id(11)) == 10 and doubleGuard(id(6)) == 6)",
+            "    if failures == 0",
+            "        testSuccess()");
+        String compiled = compiledLua("inlinedEarlyReturnsKeepTheirMeaning");
+        assertTrue("the shapes that need a flag keep one:\n" + compiled, compiled.contains("inlineDone"));
+    }
+
+    /**
+     * A function reference taken at startup may run right then, and what it calls through an
+     * interface can only be a class something has created. Package A hands out a reference to a
+     * function that dispatches on a callback; B implements the callback, reads its own constant, and
+     * creates the only instance after A's initializer ran. Before that instance exists no B code can
+     * run, so the constant is written before anything reads it and folds.
+     */
+    @Test
+    public void constantsOfAnUninstantiatedImplementationFoldDespiteStartupDispatch() {
+        String compiled = compileOptimizedLuaPackages("constantsOfAnUninstantiatedImplementationFold",
+            new String[] {
+                "package A",
+                "native registerHook(code hook)",
+                "public interface Callback",
+                "    function run() returns int",
+                "public Callback current = null",
+                "public function fire() returns int",
+                "    return current.run()",
+                "init",
+                "    registerHook(function fire)"},
+            new String[] {
+                "package B",
+                "import A",
+                "native consume(int value)",
+                "constant int LIMIT = 9",
+                "class Impl implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT",
+                "init",
+                "    current = new Impl()",
+                "    consume(fire())"});
+        assertFalse("B's constant folds:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    /**
+     * The inverse of the test above. A imports B with initlater, so A's initializer runs first and
+     * creates B's class itself, then dispatches on it: B's implementation runs before B's initializer
+     * has written LIMIT, and the read has to stay a global read.
+     */
+    @Test
+    public void constantsReadThroughAnImplementationCreatedAtStartupStayGlobals() {
+        String compiled = compileOptimizedLuaPackages("constantsReadThroughAnImplementationCreatedAtStartup",
+            new String[] {
+                "package A",
+                "import initlater B",
+                "native consume(int value)",
+                "public interface Callback",
+                "    function run() returns int",
+                "Callback current = new Impl()",
+                "init",
+                "    consume(current.run())"},
+            new String[] {
+                "package B",
+                "import A",
+                "public constant int LIMIT = 9",
+                "public class Impl implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT"});
+        assertTrue("LIMIT is read before its write:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    /**
+     * A reference to a dispatching function is taken first and the class is created afterwards: the
+     * reference may run from then on, so the read counts once the instance exists.
+     */
+    @Test
+    public void constantsReadByAnImplementationCreatedAfterTheReferenceStayGlobals() {
+        String compiled = compileOptimizedLuaPackages("constantsReadByAnImplementationCreatedAfterTheReference",
+            new String[] {
+                "package A",
+                "import initlater B",
+                "native registerHook(code hook)",
+                "public interface Callback",
+                "    function run() returns int",
+                "Callback current = null",
+                "function fire() returns int",
+                "    return current.run()",
+                "init",
+                "    registerHook(function fire)",
+                "    current = new Impl()"},
+            new String[] {
+                "package B",
+                "import A",
+                "public constant int LIMIT = 9",
+                "public class Impl implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT"});
+        assertTrue("LIMIT may be read once the instance exists:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    /** An implementation inherited from a class whose subclass is the one created is still live. */
+    @Test
+    public void constantsReadByAnInheritedImplementationStayGlobals() {
+        String compiled = compileOptimizedLuaPackages("constantsReadByAnInheritedImplementation",
+            new String[] {
+                "package A",
+                "import initlater B",
+                "native consume(int value)",
+                "public interface Callback",
+                "    function run() returns int",
+                "Callback current = new Sub()",
+                "init",
+                "    consume(current.run())"},
+            new String[] {
+                "package B",
+                "import A",
+                "public constant int LIMIT = 9",
+                "public class Base implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT",
+                "public class Sub extends Base"});
+        assertTrue("LIMIT is read before its write:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    private static String[] guardChainProgram(int guards) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native consume(int value)",
+            "@inline function chain(int x) returns int"));
+        for (int i = 1; i <= guards; i++) {
+            lines.add("    if x == " + i);
+            lines.add("        return " + i + " * 10");
+        }
+        lines.add("    return -1");
+        lines.add("@noinline function caller(int x)");
+        lines.add("    consume(chain(x))");
+        lines.add("init");
+        lines.add("    caller(3)");
+        return lines.toArray(String[]::new);
+    }
+
+    /**
+     * Each guard clause moves the rest of the function into the other branch, which copies that
+     * suffix and nests one level deeper. A short chain becomes nested ifs with no done flag; a long
+     * one keeps the flat, linear flag form instead of copying the suffix once per guard.
+     */
+    @Test
+    public void shortGuardChainsInlineWithoutAFlagAndLongOnesKeepIt() {
+        String shortChain = compileOptimizedLua("shortGuardChain", guardChainProgram(8));
+        assertFalse("a short chain needs no done flag:\n" + shortChain,
+            functionBody(shortChain, "caller").contains("inlineDone"));
+        String longChain = compileOptimizedLua("longGuardChain", guardChainProgram(40));
+        assertTrue("a long chain keeps the flag:\n" + longChain,
+            functionBody(longChain, "caller").contains("inlineDone"));
+    }
+
+    @Test
+    public void guardChainsReturnTheSameFromEitherForm() {
+        for (int guards : new int[] {8, 40}) {
+            List<String> lines = new ArrayList<>(List.of(
+                "package Test",
+                "native testSuccess()",
+                "int failures = 0",
+                "@noinline function id(int x) returns int",
+                "    return x",
+                "@noinline function check(bool ok)",
+                "    if not ok",
+                "        failures++",
+                "@inline function chain(int x) returns int"));
+            for (int i = 1; i <= guards; i++) {
+                lines.add("    if x == " + i);
+                lines.add("        return " + i + " * 10");
+            }
+            lines.add("    return -1");
+            lines.add("init");
+            lines.add("    check(chain(id(1)) == 10)");
+            lines.add("    check(chain(id(" + guards + ")) == " + guards * 10 + ")");
+            lines.add("    check(chain(id(" + (guards / 2) + ")) == " + (guards / 2) * 10 + ")");
+            lines.add("    check(chain(id(0)) == -1 and chain(id(" + (guards + 1) + ")) == -1)");
+            lines.add("    if failures == 0");
+            lines.add("        testSuccess()");
+            test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg()
+                .lines(lines.toArray(String[]::new));
+        }
+    }
+
     @Test
     public void tinyMonomorphicMethodsInlineOnLua() {
         String compiled = compileOptimizedLua(
@@ -2734,27 +3139,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "optimizedUnitSpatialIndexInnerLoopUsesRawLuaOperations",
             "package Test",
             "import SpatialIndexForUnits",
+            "import ArrayList",
             "@noinline function query(vec2 center)",
-            "    let result = unitsInRange(center, 512.)",
+            "    let result = new ArrayList<unit>",
+            "    unitsInRange(result, center, 512.)",
             "    destroy result",
             "init",
             "    query(vec2(0., 0.))"
         );
 
-        // Register-pressure-aware inlining may keep the range helper as the hot-loop owner instead
-        // of folding it into query. Inspect whichever function actually retains the loop.
-        String body = topLevelFunctionBodyWithPrefix(compiled, "query");
-        if (!body.contains("= UnitSpatialIndex_nextInCell")) {
-            assertTrue("query must call the retained range helper:\n" + body,
-                body.contains("addRangeMatches("));
-            body = topLevelFunctionBodyWithPrefix(compiled, "addRangeMatches");
-        }
+        // Inlining decides which function keeps the hot loop (query, or one of the index's range
+        // helpers). Inspect whichever function localizes the next-link array.
+        String body = topLevelFunctionContaining(compiled, "= SpatialPartition_nextInCell");
         java.util.regex.Matcher nextAlias = java.util.regex.Pattern
-            .compile("local (\\w+) = UnitSpatialIndex_nextInCell").matcher(body);
+            .compile("local (\\w+) = SpatialPartition_nextInCell").matcher(body);
         java.util.regex.Matcher xAlias = java.util.regex.Pattern
-            .compile("local (\\w+) = UnitSpatialIndex_lastX").matcher(body);
+            .compile("local (\\w+) = SpatialPartition_entryX").matcher(body);
         java.util.regex.Matcher yAlias = java.util.regex.Pattern
-            .compile("local (\\w+) = UnitSpatialIndex_lastY").matcher(body);
+            .compile("local (\\w+) = SpatialPartition_entryY").matcher(body);
         assertTrue("spatial-index hot loop must localize the next-link array:\n" + body, nextAlias.find());
         assertTrue("spatial-index hot loop must localize cached X:\n" + body, xAlias.find());
         assertTrue("spatial-index hot loop must localize cached Y:\n" + body, yAlias.find());
@@ -2765,11 +3167,11 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("spatial-index hot loop must index localized cached Y:\n" + body,
             body.contains(yAlias.group(1) + "["));
         assertFalse("spatial-index loop must not retain global next-link lookups:\n" + body,
-            body.contains("UnitSpatialIndex_nextInCell["));
+            body.contains("SpatialPartition_nextInCell["));
         assertFalse("spatial-index loop must not retain global cached-X lookups:\n" + body,
-            body.contains("UnitSpatialIndex_lastX["));
+            body.contains("SpatialPartition_entryX["));
         assertFalse("spatial-index loop must not retain global cached-Y lookups:\n" + body,
-            body.contains("UnitSpatialIndex_lastY["));
+            body.contains("SpatialPartition_entryY["));
         assertFalse("typed array reads must not retain assurance calls:\n" + body,
             body.contains("__wurst_ensure"));
         assertFalse("static-arity helpers must not allocate vararg packs:\n" + body,
@@ -3939,6 +4341,17 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             .compile("function \\w+__" + java.util.regex.Pattern.quote(name) + (requireParen ? "\\(" : ""))
             .matcher(compiled);
         return matcher.find() ? matcher.start() : -1;
+    }
+
+    private static String topLevelFunctionContaining(String compiled, String text) {
+        int at = compiled.indexOf(text);
+        assertTrue("expected a function containing " + text + ":\n" + compiled, at >= 0);
+        int start = compiled.lastIndexOf("\nfunction ", at) + 1;
+        int end = compiled.indexOf("\nfunction ", at);
+        if (end < 0) {
+            end = compiled.length();
+        }
+        return compiled.substring(start, end);
     }
 
     private void assertNilCheckNotCorruptedToEmptyStringCheck(String compiled, String functionNamePrefix) {

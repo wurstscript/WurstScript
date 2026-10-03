@@ -15,6 +15,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -141,6 +142,13 @@ class Jmpq3BasedEditor implements MpqEditor {
         return stagingWriter != null
             ? stagingWriter.contains(fileName)
             : archive.contains(fileName);
+    }
+
+    @Override
+    public Collection<String> listFiles() {
+        // Every change is applied to the staging writer as it is made, so it already reflects
+        // staged inserts and deletes; without one the archive on disk is the whole truth.
+        return new ArrayList<>(stagingWriter != null ? stagingWriter.names() : archive.names());
     }
 
     @Override

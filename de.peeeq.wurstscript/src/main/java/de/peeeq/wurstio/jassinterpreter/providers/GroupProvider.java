@@ -1,12 +1,16 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
+import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 public class GroupProvider extends Provider {
 
@@ -26,11 +30,30 @@ public class GroupProvider extends Provider {
 
     public ILconstBool GroupAddUnit(IlConstHandle group, IlConstHandle unit) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
-        if (groupList.contains(unit)) {
+        // Measured on the 3.0.0 client: adding null returns false.
+        if (unit == null || groupList.contains(unit)) {
             return ILconstBool.FALSE;
         }
-        groupList.add(unit);
+        addInCreationOrder(groupList, unit);
         return ILconstBool.TRUE;
+    }
+
+    /** Measured on the 3.0.0 client: a group keeps its units in creation order, not in the order they
+     *  were added and not by handle id. */
+    private static void addInCreationOrder(LinkedHashSet<IlConstHandle> groupList, IlConstHandle unit) {
+        if (groupList.isEmpty() || serial(groupList.getLast()) < serial(unit)) {
+            groupList.add(unit);
+            return;
+        }
+        List<IlConstHandle> units = new ArrayList<>(groupList);
+        units.add(unit);
+        units.sort(Comparator.comparingLong(GroupProvider::serial));
+        groupList.clear();
+        groupList.addAll(units);
+    }
+
+    private static long serial(IlConstHandle unit) {
+        return unit.getObj() instanceof UnitMock unitMock ? unitMock.serial : Long.MAX_VALUE;
     }
 
     public ILconstBool GroupRemoveUnit(IlConstHandle group, IlConstHandle unit) {
@@ -103,7 +126,7 @@ public class GroupProvider extends Provider {
         int addCount = 0;
         for (IlConstHandle unit : addList) {
             if (!groupList.contains(unit)) {
-                groupList.add(unit);
+                addInCreationOrder(groupList, unit);
                 addCount++;
             }
         }

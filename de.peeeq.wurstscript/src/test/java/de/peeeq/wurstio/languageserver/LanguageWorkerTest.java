@@ -13,10 +13,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class LanguageWorkerTest {
@@ -51,6 +54,97 @@ public class LanguageWorkerTest {
 
             Thread.sleep(250);
             assertEquals(mm.syncFileCalls.get(), 0, "watcher changed event must not resync open files");
+        } finally {
+            worker.stop();
+        }
+    }
+
+    @Test
+    public void watcherChangedForMissingFileRemovesCompilationUnit() throws Exception {
+        Path tmp = Files.createTempDirectory("wurst-lw-missing-file");
+        File wurstFolder = tmp.resolve("wurst").toFile();
+        //noinspection ResultOfMethodCallIgnored
+        wurstFolder.mkdirs();
+        Files.writeString(tmp.resolve("wurst").resolve("Wurst.wurst"), "package Wurst\nendpackage\n");
+        File packageFile = tmp.resolve("wurst").resolve("Unit_config.wurst").toFile();
+        File mainFile = tmp.resolve("wurst").resolve("Main.wurst").toFile();
+        Files.writeString(packageFile.toPath(), "package Unit_config\nendpackage\n");
+        Files.writeString(mainFile.toPath(), "package Main\nimport Unit_config\nendpackage\n");
+        WFile wFile = WFile.create(packageFile);
+        WFile mainWFile = WFile.create(mainFile);
+
+        LanguageWorker worker = new LanguageWorker();
+        ModelManagerImpl mm = new ModelManagerImpl(tmp.toFile(), worker.getBufferManager());
+        AtomicReference<String> mainDiagnostics = new AtomicReference<>("");
+        mm.onCompilationResult(params -> {
+            if (WFile.create(params.getUri()).equals(mainWFile)) {
+                mainDiagnostics.set(params.getDiagnostics().stream()
+                    .map(Diagnostic::getMessage)
+                    .collect(Collectors.joining("\n")));
+            }
+        });
+        mm.buildProject();
+        assertFalse(hasMissingImportDiagnostic(mainDiagnostics.get(), "Unit_config"),
+            "fixture import should resolve before the package file is removed: " + mainDiagnostics.get());
+        worker.modelManager = mm;
+
+        try {
+            Files.delete(packageFile.toPath());
+            worker.handleFileChanged(new DidChangeWatchedFilesParams(Collections.singletonList(
+                new FileEvent(wFile.getUriString(), FileChangeType.Changed)
+            )));
+
+            assertTrue(waitUntil(() -> mm.getCompilationUnit(wFile) == null, 2000),
+                "watcher update for a missing file should remove its compilation unit");
+            assertTrue(waitUntil(() -> hasMissingImportDiagnostic(mainDiagnostics.get(), "Unit_config"), 8000),
+                "the dependent missing-import diagnostic should be reported after reconciliation");
+        } finally {
+            worker.stop();
+        }
+    }
+
+    @Test
+    public void watcherChangedForMissingJassFileRechecksDependents() throws Exception {
+        Path tmp = Files.createTempDirectory("wurst-lw-missing-jass");
+        File wurstFolder = tmp.resolve("wurst").toFile();
+        //noinspection ResultOfMethodCallIgnored
+        wurstFolder.mkdirs();
+        Files.writeString(tmp.resolve("wurst").resolve("Wurst.wurst"), "package Wurst\nendpackage\n");
+        File jassFile = tmp.resolve("wurst").resolve("helpers.j").toFile();
+        File mainFile = tmp.resolve("wurst").resolve("Main.wurst").toFile();
+        Files.writeString(jassFile.toPath(),
+            "function watcherJassHelper takes nothing returns nothing\nendfunction\n");
+        Files.writeString(mainFile.toPath(),
+            "package Main\ninit\n    watcherJassHelper()\nendpackage\n");
+        WFile wFile = WFile.create(jassFile);
+        WFile mainWFile = WFile.create(mainFile);
+
+        LanguageWorker worker = new LanguageWorker();
+        ModelManagerImpl mm = new ModelManagerImpl(tmp.toFile(), worker.getBufferManager());
+        AtomicReference<String> mainDiagnostics = new AtomicReference<>("");
+        mm.onCompilationResult(params -> {
+            if (WFile.create(params.getUri()).equals(mainWFile)) {
+                mainDiagnostics.set(params.getDiagnostics().stream()
+                    .map(Diagnostic::getMessage)
+                    .collect(Collectors.joining("\n")));
+            }
+        });
+        mm.buildProject();
+        assertFalse(mainDiagnostics.get().contains("watcherJassHelper"),
+            "fixture Jass function should resolve before the file is removed");
+        worker.modelManager = mm;
+
+        try {
+            Files.delete(jassFile.toPath());
+            worker.handleFileChanged(new DidChangeWatchedFilesParams(Collections.singletonList(
+                new FileEvent(wFile.getUriString(), FileChangeType.Changed)
+            )));
+
+            assertTrue(waitUntil(() -> mm.getCompilationUnit(wFile) == null, 2000),
+                "watcher update for a missing Jass file should remove its compilation unit");
+            assertTrue(waitUntil(() -> mainDiagnostics.get().contains("watcherJassHelper"), 8000),
+                "dependent Wurst files should be fully rechecked after a Jass file is removed; diagnostics: "
+                    + mainDiagnostics.get() + "; first model error: " + mm.getFirstErrorDescription());
         } finally {
             worker.stop();
         }
@@ -229,6 +323,11 @@ public class LanguageWorkerTest {
             Thread.sleep(20);
         }
         return condition.getAsBoolean();
+    }
+
+    private static boolean hasMissingImportDiagnostic(String diagnostics, String packageName) {
+        return diagnostics.contains("import '" + packageName + "' could not be resolved")
+            || diagnostics.contains("Could not find imported package " + packageName);
     }
 
     private static class CountingModelManager implements ModelManager {

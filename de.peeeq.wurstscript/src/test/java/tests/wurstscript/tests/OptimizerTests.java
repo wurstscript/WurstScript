@@ -69,7 +69,30 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(compiled.contains("function Test_dead takes") || compiled.contains("function Test_compiletimeDead takes"));
         assertTrue(compiled.contains("if Test_active then"));
         assertTrue(compiled.contains("call consume(7)"));
-        assertTrue(compiled.contains("Test_CONFIGURABLE"));
+        assertTrue(compiled.contains("call consume(9)"));
+        assertFalse(compiled.contains("Test_CONFIGURABLE"));
+    }
+
+    @Test
+    public void configuredConstantsInlineTheirConfiguredValueInJass() throws IOException {
+        test().withStdLib().lines(
+            "package Test",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "init",
+            "    consume(CONFIGURABLE)",
+            "endpackage",
+            "package Test_config",
+            "@config public constant int CONFIGURABLE = 4",
+            "endpackage"
+        );
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_configuredConstantsInlineTheirConfiguredValueInJass_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("call consume(4)"));
+        assertFalse(compiled.contains("call consume(9)"));
+        assertFalse(compiled.contains("CONFIGURABLE"));
     }
 
     @Test
@@ -1396,13 +1419,58 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(inlined.contains("call e("), "Expected e() to be inlined.");
     }
 
+    /** The generated Jass of the test's {@code init test} function, from a test-output file. */
+    private static String initFunctionOf(String outputFile) throws IOException {
+        String jass = Files.toString(new File("test-output/" + outputFile), Charsets.UTF_8);
+        int start = jass.indexOf("function init_test ");
+        assertTrue(start >= 0, "Expected init_test in " + outputFile);
+        return jass.substring(start, jass.indexOf("endfunction", start));
+    }
+
+    /**
+     * A return that ends its path writes the result variable on every path, so the inlined call has
+     * no done flag and no default write; both branches assign before the read.
+     */
     @Test
-    public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
+    public void inlinerGuardClauseAssignsTheResultOnEveryPath() throws IOException {
         testAssertOkLinesWithStdLib(true,
             "package test",
             "@inline function chooseLoc(boolean c, location a, location b) returns location",
             "    if c",
-                "        return a",
+            "        return a",
+            "    return b",
+            "init",
+            "    location la = Location(0., 0.)",
+            "    location lb = Location(1., 1.)",
+            "    location picked = chooseLoc(GetRandomInt(0, 1) == 0, la, lb)",
+            "    RemoveLocation(picked)",
+            "    RemoveLocation(la)",
+            "    RemoveLocation(lb)",
+            "    testSuccess()",
+            "endpackage"
+        );
+
+        // Only this test's own function: the linked stdlib has flag-shaped inlines of its own.
+        String inlined = initFunctionOf("OptimizerTests_inlinerGuardClauseAssignsTheResultOnEveryPath_inl.j");
+        assertFalse(inlined.contains("call chooseLoc("), "Expected chooseLoc() to be inlined.");
+        assertFalse(inlined.contains("inlineDone"), "Expected no done flag for a return that ends its path.");
+        assertFalse(inlined.contains("set inlineRet = null"), "Expected no default write when every path assigns.");
+        int thenIdx = inlined.indexOf("set inlineRet = a");
+        int elseIdx = inlined.indexOf("set inlineRet = b");
+        int useIdx = inlined.indexOf("set picked = inlineRet");
+        assertTrue(thenIdx >= 0 && elseIdx > thenIdx, "Expected inlineRet to be assigned in both branches.");
+        assertTrue(useIdx > elseIdx, "Expected inlineRet to be assigned before use.");
+    }
+
+    @Test
+    public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
+        // The return sits in a loop, which keeps the done flag and with it the default write.
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "@inline function chooseLoc(boolean c, location a, location b) returns location",
+            "    for i = 0 to 1",
+            "        if c",
+            "            return a",
             "    return b",
             "init",
             "    location la = Location(0., 0.)",
@@ -1449,8 +1517,9 @@ public class OptimizerTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(true,
             "package test",
             "@inline function maybeAbs(int x) returns int",
-            "    if x > 0",
-            "        return x",
+            "    for i = 0 to 0",
+            "        if x > 0",
+            "            return x",
             "    return 0 - x",
             "init",
             "    let y = maybeAbs(GetRandomInt(-5, 5))",
@@ -1459,8 +1528,8 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage"
         );
 
-        String inl = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inl.j"), Charsets.UTF_8);
-        String inlopt = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inlopt.j"), Charsets.UTF_8);
+        String inl = initFunctionOf("OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inl.j");
+        String inlopt = initFunctionOf("OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inlopt.j");
 
         for (String generated : java.util.List.of(inl, inlopt)) {
             assertFalse(generated.contains("call maybeAbs("), "Expected maybeAbs() to be fully inlined.");
@@ -2363,8 +2432,8 @@ public class OptimizerTests extends WurstScriptTest {
             "    print(b)"
         );
         String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_precision_oneThird_literal_opt.j"), Charsets.UTF_8);
-        // Common 32-bit float for 1/3 is 0.33333334 — accept either a or b presence
-        assertTrue(out.contains("0.33333334"));
+        // Jass reads the literal 0.333333343 one float low, so 1/3 is left for the game
+        assertFalse(out.contains("0.33333334"), out);
         // Also guard against scientific notation
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
     }
@@ -2440,6 +2509,91 @@ public class OptimizerTests extends WurstScriptTest {
         String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_equality_roundTripGuard_opt.j"), Charsets.UTF_8);
         // We don't assert true/false (depends on float), we only ensure no sci-notation
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
+    }
+
+    /** Jass == on reals allows 0.001 but != is exact, so for reals not (a == b) is not a != b, and a
+     *  while loop, which exits on not (condition), must keep the comparison it was written with. */
+    @Test
+    public void negatedRealEqualityIsNotUnequality() throws Exception {
+        test().executeProg(true).testLua(false).lines(
+            "package test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@noinline function r(real x) returns real",
+            "    return x",
+            "init",
+            "    let a = r(1.0)",
+            "    let b = r(1.0005)",
+            "    if not (a == b)",
+            "        testFail(\"not ==\")",
+            "    if not (a != b)",
+            "        testFail(\"not !=\")",
+            "    var n = 0",
+            "    while a == b and n < 3",
+            "        n++",
+            "    var m = 0",
+            "    while a != b and m < 3",
+            "        m++",
+            "    if n != 3 or m != 3",
+            "        testFail(\"loops\")",
+            "    testSuccess()"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_negatedRealEqualityIsNotUnequality_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("exitwhen ( not (a == b))") && out.contains("exitwhen ( not (a != b))"), out);
+    }
+
+    /** Real literals closer than 0.001 are equal in Jass but not in Lua. Jass does not read these
+     *  literals exactly, so the Jass build leaves them for the game to compare. */
+    @Test
+    public void nearlyEqualRealLiteralsAreNotFoldedForJass() throws Exception {
+        test().executeProg(true).testLua(false).lines(
+            "package test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "init",
+            "    boolean near = 1.0 == 1.0005",
+            "    boolean far = 1.0 == 1.002",
+            "    boolean differ = 1.0 != 1.0005",
+            "    if near and not far and differ",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"folded\")"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_nearlyEqualRealLiteralsAreNotFoldedForJass_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("1.0 == 1.0005") && out.contains("1.0 == 1.002") && out.contains("1.0 != 1.0005"), out);
+    }
+
+    /** Measured on the 3.0.0 client, Jass reads 0.1 one float high and 1.1 one float low but short exact
+     *  binary fractions exactly, so real folding for Jass only reads and writes those, and only where
+     *  the operation is exact. */
+    @Test
+    public void jassRealFoldingOnlyUsesExactLiterals() throws Exception {
+        test().lines(
+            "package test",
+            "native print(real r)",
+            "native printb(boolean b)",
+            "init",
+            "    print(1.0 / 3.0)",
+            "    print(0.1 + 0.2)",
+            "    print(1.1 * 2.0)",
+            "    print(16777216.0 + 1.0)",
+            "    print(1.0 + 0.015625)",
+            "    print(5.5 % 2.0)",
+            "    printb(0.1 < 0.2)",
+            "    print(2.5 * 0.5)",
+            "    print(1.0 + 0.03125)",
+            "    print(0.5 - 2.0)",
+            "    print(3 / 4)",
+            "    printb(0.5 < 0.75)"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_jassRealFoldingOnlyUsesExactLiterals_opt.j"), Charsets.UTF_8);
+        for (String unfolded : new String[] {"1.0 / 3.0", "0.1 + 0.2", "1.1 * 2.0", "16777216.0 + 1.0",
+                "1.0 + 0.015625", "ModuloReal(5.5, 2.0)", "0.1 < 0.2"}) {
+            assertTrue(out.contains(unfolded), unfolded + " must be left for the game:\n" + out);
+        }
+        for (String folded : new String[] {"print(1.25)", "print(1.03125)", "print(-1.5)", "print(0.75)", "printb(true)"}) {
+            assertTrue(out.contains(folded), folded + " should be folded:\n" + out);
+        }
     }
 
     @Test

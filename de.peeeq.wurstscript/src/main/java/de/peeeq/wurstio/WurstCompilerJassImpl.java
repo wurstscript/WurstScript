@@ -692,6 +692,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // translate wurst to intermediate lang:
         imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
         imProg = getImTranslator().translateProg();
+        // Before any compile-time function runs: the library asks whether this compiler lowers CodeList.
+        CodeListSupport.markSupported(imProg);
         int stage = 1;
         printDebugImProg("./test-output/im " + stage++ + ".im");
         timeTaker.endPhase();
@@ -944,7 +946,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // operations are recognised by would stop matching - silently leaving their Jass bodies on
         // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
         beginPhase(4, "lower keyed tables");
-        LuaNativeLowering.lowerKeyedTables(imProg);
+        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
         timeTaker.endPhase();
 
         if (runArgs.isNoDebugMessages()) {
@@ -974,6 +976,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // so the optimizer can inline and eliminate the nil-safety checks and remapped stubs.
         beginPhase(4, "lua native lowering");
         LuaNativeLowering.transform(imProg, imTranslator2);
+        LuaTypedKeyedReads.transform(imProg, imTranslator2);
         timeTaker.endPhase();
 
         // inliner

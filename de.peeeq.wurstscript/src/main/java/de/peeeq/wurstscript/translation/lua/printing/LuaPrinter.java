@@ -276,6 +276,10 @@ public class LuaPrinter {
         sb.append("//");
     }
 
+    public static void print(LuaOpBitOr luaOpBitOr, StringBuilder sb, int indent) {
+        sb.append("|");
+    }
+
     public static void print(LuaOpEquals luaOpEquals, StringBuilder sb, int indent) {
         sb.append("==");
     }

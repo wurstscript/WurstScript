@@ -9,8 +9,9 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.inwc3:wc3libs:a69318d921'
+    implementation 'com.github.inwc3:wc3libs:9a11e1f089'
     implementation 'com.google.guava:guava:31.1-jre'
+    testImplementation 'org.testng:testng:7.11.0'
 }
 
 application {
@@ -18,11 +19,18 @@ application {
 }
 
 run {
-    workingDir = file('.')
+    workingDir = project.projectDir
 }
 
 sourceSets {
     main {
-        java { srcDirs = ['src'] }
+        java {
+            srcDirs = ['src']
+            exclude 'test/**'
+        }
     }
+}
+
+test {
+    useTestNG()
 }

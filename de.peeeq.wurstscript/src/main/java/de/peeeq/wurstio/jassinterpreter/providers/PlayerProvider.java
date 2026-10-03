@@ -27,7 +27,12 @@ public class PlayerProvider extends Provider {
         if (player == null || playerstate == null) {
             return;
         }
-        ((PlayerMock) player.getObj()).playerStates.put(playerstate.print(), value);
+        String key = playerstate.print();
+        if (key.equals("playerstate1") || key.equals("playerstate2")) {
+            // Measured on the 3.0.0 client: gold and lumber are clamped to 0.
+            value = ILconstInt.create(Math.max(0, value.getVal()));
+        }
+        ((PlayerMock) player.getObj()).playerStates.put(key, value);
     }
 
     public ILconstInt GetPlayerState(IlConstHandle player, IlConstHandle playerstate) {
