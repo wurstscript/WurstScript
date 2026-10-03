@@ -192,14 +192,21 @@ public class ImportFileTests {
     }
 
     @Test
-    public void mapSystemFilesAreRecognisedByKnownNameNotByPrefix() {
-        for (String system : new String[] {"war3map.w3a", "war3map.wts", "war3map.doo", "war3map.lua", "war3mapUnits.doo",
-                "war3mapMap.blp", "war3mapMap.tga", "war3mapPreview.tga", "war3mapPath.tga", "war3mapMisc.txt",
-                "war3mapExtra.txt", "war3mapSkin.txt", "war3mapSkin.w3u", "war3campaign.w3f", "WAR3MAP.W3E"}) {
+    public void mapSystemFilesAreRecognisedByCompleteKnownName() {
+        // Every root file seen in real maps, plus the documented map and campaign files.
+        for (String system : new String[] {"war3map.doo", "war3map.imp", "war3map.j", "war3map.lua", "war3map.mmp",
+                "war3map.shd", "war3map.w3a", "war3map.w3b", "war3map.w3c", "war3map.w3d", "war3map.w3e", "war3map.w3h",
+                "war3map.w3i", "war3map.w3q", "war3map.w3r", "war3map.w3s", "war3map.w3t", "war3map.w3u", "war3map.wct",
+                "war3map.wpm", "war3map.wtg", "war3map.wts", "war3mapExtra.txt", "war3mapMap.blp", "war3mapMap.dds",
+                "war3mapMap.tga", "war3mapMisc.txt", "war3mapPath.tga", "war3mapPreview.tga", "war3mapSkin.txt",
+                "war3mapSkin.w3a", "war3mapSkin.w3b", "war3mapSkin.w3d", "war3mapSkin.w3h", "war3mapSkin.w3q",
+                "war3mapSkin.w3t", "war3mapSkin.w3u", "war3mapUnits.doo", "war3campaign.w3f", "WAR3MAP.W3E"}) {
             assertTrue(ImportFile.isMapSystemFile(system), system);
         }
-        // Root assets that merely share the prefix are imports and must reach the table.
-        for (String asset : new String[] {"war3mapHero.mdx", "war3campaignMusic.mp3", "war3mapGrass.blp"}) {
+        // A root asset that shares a map file's prefix or stem, or reuses its stem with another extension,
+        // is an import and must reach the table.
+        for (String asset : new String[] {"war3mapHero.mdx", "war3campaignMusic.mp3", "war3mapGrass.blp",
+                "war3map.mdx", "war3mapMap.mdx", "war3mapSkin.mdx", "war3map.w3u.bak", "war3campaign.mp3"}) {
             assertFalse(ImportFile.isMapSystemFile(asset), asset);
         }
     }
@@ -208,14 +215,15 @@ public class ImportFileTests {
     public void importTableKeepsRootAssetsThatShareAMapFilePrefix() throws Exception {
         tempDir = Files.createTempDirectory("wurst-import-table-prefix");
         FakeMpqEditor mpq = new FakeMpqEditor();
-        for (String name : new String[] {"war3mapHero.mdx", "war3campaignMusic.mp3", "war3map.w3u", "war3mapMisc.txt"}) {
+        for (String name : new String[] {"war3mapHero.mdx", "war3campaignMusic.mp3", "war3map.mdx", "war3mapMap.mdx",
+                "war3map.w3u", "war3mapMisc.txt"}) {
             mpq.insertFile(name, new byte[] {1});
         }
 
         ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
 
         assertEquals(readImportTable(mpq.extractFile(IMP.GAME_PATH)),
-            List.of("war3campaignMusic.mp3", "war3mapHero.mdx"));
+            List.of("war3campaignMusic.mp3", "war3map.mdx", "war3mapHero.mdx", "war3mapMap.mdx"));
     }
 
     /** Reads the paths out of a war3map.imp: int version, int count, then a flag byte and a C string each. */

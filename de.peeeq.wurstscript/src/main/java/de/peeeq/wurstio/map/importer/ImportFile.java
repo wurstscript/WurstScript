@@ -606,27 +606,41 @@ public class ImportFile {
      * bookkeeping, Wurst's cache files) rather than an imported asset. Imported assets are everything else.
      */
     static boolean isMapSystemFile(String archivePath) {
-        String path = normalizedArchivePath(archivePath).toLowerCase(Locale.ROOT);
-        if (path.startsWith("(")) {
-            return true;
-        }
-        if (path.equals("wurst_cache_manifest.txt") || path.equals("wurst_object_cache.txt")) {
-            return true;
-        }
-        if (path.equals("scripts\\war3map.j") || path.equals("scripts\\war3map.lua")
-            || path.equals("scripts\\common.j") || path.equals("scripts\\blizzard.j")) {
-            return true;
-        }
-        // Map files sit at the archive root and are one of the known names. A root asset that merely
-        // starts with the same letters (war3mapHero.mdx) is an import, as is anything under war3mapImported\.
-        int dot = path.indexOf('.');
-        return path.indexOf('\\') < 0 && dot > 0 && MAP_FILE_STEMS.contains(path.substring(0, dot));
+        return MAP_SYSTEM_FILES.contains(normalizedArchivePath(archivePath).toLowerCase(Locale.ROOT));
     }
 
-    /** File names (before the extension) of the files the map and campaign formats define at the archive root. */
-    private static final Set<String> MAP_FILE_STEMS = Set.of(
-        "war3map", "war3mapunits", "war3mapmap", "war3mappreview", "war3mappath", "war3mapmisc",
-        "war3mapextra", "war3mapskin", "war3campaign");
+    /**
+     * The complete archive paths (lower case) of everything that is part of the map rather than an import.
+     * It is a list of whole names on purpose: matching a prefix, a stem or an extension would swallow real
+     * assets such as war3mapHero.mdx or war3map.mdx, which then never reach war3map.imp.
+     */
+    private static final Set<String> MAP_SYSTEM_FILES = mapSystemFiles();
+
+    private static Set<String> mapSystemFiles() {
+        Set<String> files = new HashSet<>();
+        // Archive bookkeeping and Wurst's own cache files.
+        files.addAll(List.of("(listfile)", "(attributes)", "(signature)",
+            "wurst_cache_manifest.txt", "wurst_object_cache.txt"));
+        // Scripts the build writes or the game ships.
+        files.addAll(List.of("scripts\\war3map.j", "scripts\\war3map.lua", "scripts\\common.j", "scripts\\blizzard.j"));
+        addWithExtensions(files, "war3map", "w3e", "w3i", "w3u", "w3t", "w3a", "w3b", "w3d", "w3h", "w3q", "w3c",
+            "w3r", "w3s", "doo", "wpm", "shd", "mmp", "wtg", "wct", "wts", "imp", "j", "lua");
+        addWithExtensions(files, "war3mapUnits", "doo");
+        addWithExtensions(files, "war3mapMap", "blp", "tga", "dds");
+        addWithExtensions(files, "war3mapPreview", "tga", "blp", "dds");
+        addWithExtensions(files, "war3mapPath", "tga");
+        addWithExtensions(files, "war3mapMisc", "txt");
+        addWithExtensions(files, "war3mapExtra", "txt");
+        addWithExtensions(files, "war3mapSkin", "txt", "w3u", "w3t", "w3b", "w3d", "w3a", "w3h", "w3q");
+        addWithExtensions(files, "war3campaign", "w3f", "w3u", "w3t", "w3b", "w3d", "w3a", "w3h", "w3q");
+        return files;
+    }
+
+    private static void addWithExtensions(Set<String> files, String name, String... extensions) {
+        for (String extension : extensions) {
+            files.add((name + "." + extension).toLowerCase(Locale.ROOT));
+        }
+    }
 
     private static String normalizedArchivePath(String path) {
         return path.replace('/', '\\');
