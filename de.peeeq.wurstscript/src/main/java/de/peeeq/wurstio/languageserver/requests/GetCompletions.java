@@ -85,7 +85,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     /**
-     * Scan up to the LSP cursor (UTF-16), including comments which have no closing delimiter yet.
+     * Lex the text up to the LSP cursor (UTF-16), which also finds comments that have no closing delimiter yet.
      * The nearest AST element does not reliably identify comment text, especially unfinished comments.
      */
     private boolean isInsideComment() {
@@ -98,43 +98,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
             lineStart = newline + 1;
         }
         int cursor = Math.min(buffer.length(), lineStart + column);
-        boolean lineComment = false;
-        boolean blockComment = false;
-        char quote = 0;
-        boolean multilineStrings = filename.getUriString().endsWith(".j")
-                || filename.getUriString().endsWith(".jurst");
-        for (int i = 0; i < cursor; i++) {
-            char c = buffer.charAt(i);
-            char next = i + 1 < cursor ? buffer.charAt(i + 1) : 0;
-            if (lineComment) {
-                if (c == '\n' || c == '\r') {
-                    lineComment = false;
-                }
-            } else if (blockComment) {
-                if (c == '*' && next == '/') {
-                    blockComment = false;
-                    i++;
-                }
-            } else if (quote != 0) {
-                // Wurst strings cannot span lines, even when a trailing backslash precedes the newline.
-                if (quote == '"' && !multilineStrings && (c == '\n' || c == '\r')) {
-                    quote = 0;
-                } else if (c == '\\' && (multilineStrings || (next != '\n' && next != '\r'))) {
-                    i++;
-                } else if (c == quote) {
-                    quote = 0;
-                }
-            } else if (c == '"' || c == '\'') {
-                quote = c;
-            } else if (c == '/' && next == '/') {
-                lineComment = true;
-                i++;
-            } else if (c == '/' && next == '*') {
-                blockComment = true;
-                i++;
-            }
-        }
-        return lineComment || blockComment;
+        return CompletionComments.endsInsideComment(buffer.substring(0, cursor),
+                CompletionComments.Syntax.ofFile(filename.getUriString()));
     }
 
     private Comparator<CompletionItem> completionItemComparator() {

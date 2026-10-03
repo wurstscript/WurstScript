@@ -95,6 +95,23 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         testCompletions(testData);
     }
 
+    @DataProvider
+    public Object[][] invalidEscapeCommentPositions() {
+        // The lexer reports the bad escape and resumes after consuming the next character, which here is the
+        // first slash, so the comment opens at the second one.
+        return new Object[][] {
+                {"\"\\/// CreateG|"},
+                {"\"\\//* CreateG| */"},
+                {"\"\\q// CreateG|"}
+        };
+    }
+
+    @Test(dataProvider = "invalidEscapeCommentPositions")
+    public void commentsAfterInvalidStringEscapes(String literalAndComment) {
+        testCompletions(input("package test", "    init",
+                "        string text = " + literalAndComment, "        CreateGroup()"));
+    }
+
     @Test
     public void jassMultilineStringDoesNotOpenComment() {
         CompletionTestData testData = input(
