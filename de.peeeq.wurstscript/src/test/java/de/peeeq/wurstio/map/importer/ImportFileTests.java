@@ -8,10 +8,15 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.testng.Assert.assertEquals;
@@ -142,8 +147,77 @@ public class ImportFileTests {
         assertFalse(mpq.hasFile("nested\\unit.txt"));
     }
 
+    @Test
+    public void importTableListsMapFolderAssetsButNotMapFiles() throws Exception {
+        tempDir = Files.createTempDirectory("wurst-import-table");
+        FakeMpqEditor mpq = new FakeMpqEditor();
+        // A map folder's own assets are already in the archive and have no import directory behind them.
+        for (String name : new String[] {"biomes\\chaos.dds", "BrutalLord.MDX", "war3mapImported\\x.mdx",
+                "war3map.w3u", "war3map.lua", "war3mapMap.blp", "war3mapMisc.txt", "scripts\\war3map.j",
+                "(listfile)", "(attributes)"}) {
+            mpq.insertFile(name, new byte[] {1});
+        }
+
+        ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
+
+        assertEquals(readImportTable(mpq.extractFile(IMP.GAME_PATH)),
+            List.of("biomes\\chaos.dds", "BrutalLord.MDX", "war3mapImported\\x.mdx"));
+    }
+
+    @Test
+    public void importTableReplacesStaleEntriesAndIsNotRewrittenWhenUnchanged() throws Exception {
+        tempDir = Files.createTempDirectory("wurst-import-table-stale");
+        FakeMpqEditor mpq = new FakeMpqEditor();
+        mpq.insertFile("a\\real.dds", new byte[] {1});
+        mpq.insertFile(IMP.GAME_PATH, ImportFile.buildImportTable(List.of("gone\\deleted.mdx"), List.of()));
+        mpq.insertCounts.clear();
+
+        ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
+        assertEquals(readImportTable(mpq.extractFile(IMP.GAME_PATH)), List.of("a\\real.dds"));
+        assertEquals(mpq.insertCounts.get(IMP.GAME_PATH), Integer.valueOf(1));
+
+        ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
+        assertEquals(mpq.insertCounts.get(IMP.GAME_PATH), Integer.valueOf(1));
+    }
+
+    @Test
+    public void importTableMergesImportDirectoriesWithArchiveFilesWithoutDuplicates() throws Exception {
+        byte[] table = ImportFile.buildImportTable(
+            List.of("models/Unit.mdx", "tex\\a.blp"),
+            List.of("models\\unit.mdx", "tex\\b.blp", "war3map.imp"));
+
+        assertEquals(readImportTable(table), List.of("models\\Unit.mdx", "tex\\a.blp", "tex\\b.blp"));
+        assertTrue(ImportFile.isMapSystemFile("war3map.w3a"));
+        assertTrue(ImportFile.isMapSystemFile("war3campaign.w3f"));
+        assertFalse(ImportFile.isMapSystemFile("war3mapImported\\war3mapThing.mdx"));
+        assertFalse(ImportFile.isMapSystemFile("units\\unitdata.slk"));
+    }
+
+    /** Reads the paths out of a war3map.imp: int version, int count, then a flag byte and a C string each. */
+    private static List<String> readImportTable(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.getInt();
+        int count = buffer.getInt();
+        List<String> paths = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            buffer.get();
+            StringBuilder path = new StringBuilder();
+            for (byte b = buffer.get(); b != 0; b = buffer.get()) {
+                path.append((char) b);
+            }
+            paths.add(path.toString());
+        }
+        return paths;
+    }
+
     private static final class FakeMpqEditor implements MpqEditor {
         private final Map<String, byte[]> files = new HashMap<>();
+        private final Map<String, Integer> insertCounts = new HashMap<>();
+
+        @Override
+        public Collection<String> listFiles() {
+            return new ArrayList<>(files.keySet());
+        }
 
         @Override
         public boolean canWrite() {
@@ -161,11 +235,13 @@ public class ImportFileTests {
 
         @Override
         public void insertFile(String filenameInMpq, byte[] contents) {
+            insertCounts.merge(filenameInMpq, 1, Integer::sum);
             files.put(filenameInMpq, contents);
         }
 
         @Override
         public void insertFile(String filenameInMpq, File contents) throws IOException {
+            insertCounts.merge(filenameInMpq, 1, Integer::sum);
             files.put(filenameInMpq, Files.readAllBytes(contents.toPath()));
         }
 

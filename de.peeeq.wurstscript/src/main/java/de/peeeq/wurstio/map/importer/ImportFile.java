@@ -564,27 +564,25 @@ public class ImportFile {
             }
         }
 
-        // 4. Always rebuild war3map.imp to ensure it's in sync
-        if (importsChanged || !mpq.hasFile(IMP.GAME_PATH)) {
-            WLogger.info("Rebuilding war3map.imp");
-            IMP importFile = new IMP();
-            for (String path : allFiles.keySet()) {
-                IMP.Obj importObj = new IMP.Obj();
-                importObj.setPath(path);
-                importObj.setStdFlag(IMP.StdFlag.CUSTOM);
-                importFile.addObj(importObj);
+        // 4. Keep war3map.imp in sync with every imported file in the archive, not only the files that
+        // came from import directories. Assets that live in the map folder itself are already in the
+        // archive and would otherwise be missing from the table, and Reforged test launches
+        // (-editor -loadfile) then refuse to load every imported model and texture.
+        byte[] importTable = buildImportTable(allFiles.keySet(), mpq.listFiles());
+        byte[] existingTable = null;
+        if (mpq.hasFile(IMP.GAME_PATH)) {
+            try {
+                existingTable = mpq.extractFile(IMP.GAME_PATH);
+            } catch (Exception e) {
+                WLogger.info("Could not read existing war3map.imp, rebuilding: " + e.getMessage());
             }
-
+        }
+        if (!Arrays.equals(importTable, existingTable)) {
+            WLogger.info("Rebuilding war3map.imp");
             if (mpq.hasFile(IMP.GAME_PATH)) {
                 mpq.deleteFile(IMP.GAME_PATH);
             }
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (Wc3BinOutputStream out = new Wc3BinOutputStream(baos)) {
-                importFile.write(out);
-            }
-            baos.flush();
-            byte[] byteArray = baos.toByteArray();
-            mpq.insertFile(IMP.GAME_PATH, byteArray);
+            mpq.insertFile(IMP.GAME_PATH, importTable);
         }
 
         // 5. Save the new manifest AFTER all changes are made
@@ -601,6 +599,60 @@ public class ImportFile {
 
     private static String mpqName(String path) {
         return path.toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Whether an archive entry is part of the map itself (scripts, object data, terrain, the archive's own
+     * bookkeeping, Wurst's cache files) rather than an imported asset. Imported assets are everything else.
+     */
+    static boolean isMapSystemFile(String archivePath) {
+        String path = normalizedArchivePath(archivePath).toLowerCase(Locale.ROOT);
+        if (path.startsWith("(")) {
+            return true;
+        }
+        if (path.equals("wurst_cache_manifest.txt") || path.equals("wurst_object_cache.txt")) {
+            return true;
+        }
+        if (path.equals("scripts\\war3map.j") || path.equals("scripts\\war3map.lua")
+            || path.equals("scripts\\common.j") || path.equals("scripts\\blizzard.j")) {
+            return true;
+        }
+        // Map files sit at the archive root; imported files under war3mapImported\ do not.
+        return path.indexOf('\\') < 0 && (path.startsWith("war3map") || path.startsWith("war3campaign"));
+    }
+
+    private static String normalizedArchivePath(String path) {
+        return path.replace('/', '\\');
+    }
+
+    /**
+     * The serialized war3map.imp for the given imports: the import-directory files plus every other imported
+     * file already in the archive. Sorted and de-duplicated so identical inputs give identical bytes, which
+     * lets the caller skip rewriting an unchanged table.
+     */
+    static byte[] buildImportTable(Collection<String> importDirectoryFiles, Collection<String> archiveFiles) throws IOException {
+        TreeMap<String, String> paths = new TreeMap<>();
+        for (String path : importDirectoryFiles) {
+            paths.putIfAbsent(normalizedArchivePath(path).toLowerCase(Locale.ROOT), normalizedArchivePath(path));
+        }
+        for (String path : archiveFiles) {
+            if (!isMapSystemFile(path)) {
+                paths.putIfAbsent(normalizedArchivePath(path).toLowerCase(Locale.ROOT), normalizedArchivePath(path));
+            }
+        }
+        IMP importFile = new IMP();
+        for (String path : paths.values()) {
+            IMP.Obj importObj = new IMP.Obj();
+            importObj.setPath(path);
+            importObj.setStdFlag(IMP.StdFlag.CUSTOM);
+            importFile.addObj(importObj);
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (Wc3BinOutputStream out = new Wc3BinOutputStream(baos)) {
+            importFile.write(out);
+        }
+        baos.flush();
+        return baos.toByteArray();
     }
 
     private static File getImportDirectory(File projectFolder) {
