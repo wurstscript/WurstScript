@@ -238,22 +238,30 @@ tasks.register('versionInfoFile') {
     // capture at configuration time (no Task.project usage later)
     def versionString = project.version.toString()
 
-    // Inputs so the task reruns when metadata changes:
-    // - project version changes
+    // Git resolves linked worktrees and shared/packed refs. Track the values we emit,
+    // rather than assuming that repository metadata lives in a .git directory.
+    def revision = providers.exec {
+        workingDir(repoDir)
+        commandLine('git', 'rev-parse', 'HEAD')
+    }.standardOutput.asText.map { it.trim() }
+    def shortRevision = providers.exec {
+        workingDir(repoDir)
+        commandLine('git', 'rev-parse', '--short=8', 'HEAD')
+    }.standardOutput.asText.map { it.trim() }
+    def description = providers.exec {
+        workingDir(repoDir)
+        commandLine('git', 'describe', '--tags', '--always')
+    }.standardOutput.asText.map { it.trim() }
+
     inputs.property("projectVersion", versionString)
-    // - HEAD changes (branch updates)
-    inputs.file(new File(repoDir, ".git/HEAD")).withPropertyName("gitHeadRef")
-    // - branch ref changes (only for branch-based HEAD; harmless if missing)
-    inputs.files(fileTree(new File(repoDir, ".git/refs"))).withPropertyName("gitRefs")
-    // - tags move / new tags (for git describe --tags)
-    inputs.files(fileTree(new File(repoDir, ".git/refs/tags"))).withPropertyName("gitTags")
-    // - working tree dirtiness affects "--dirty"
-    inputs.file(new File(repoDir, ".git/index")).optional().withPropertyName("gitIndex")
+    inputs.property("gitRevision", revision)
+    inputs.property("gitShortRevision", shortRevision)
+    inputs.property("gitDescription", description)
 
     doLast {
-        def rev8 = ["git", "rev-parse", "--short=8", "HEAD"].execute(null, repoDir).text.trim()
-        def revLong = ["git", "rev-parse", "HEAD"].execute(null, repoDir).text.trim()
-        def tag = ["git", "describe", "--tags", "--always"].execute(null, repoDir).text.trim()
+        def rev8 = shortRevision.get()
+        def revLong = revision.get()
+        def tag = description.get()
 
         def wurstVersion = "${versionString}-${tag}"
 
