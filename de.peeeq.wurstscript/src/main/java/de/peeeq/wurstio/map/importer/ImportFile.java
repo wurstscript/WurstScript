@@ -421,21 +421,24 @@ public class ImportFile {
     }
 
     /**
-     * Reads chars from the inputstream until it hits a 0-char
+     * Reads bytes from the inputstream until it hits a 0 byte and decodes them as UTF-8, the encoding the
+     * map formats use for strings. Casting each byte to a char would turn every non-ASCII path into
+     * characters that no archive lookup matches.
      */
     private static String readString(LittleEndianDataInputStream reader) throws IOException {
-        StringBuilder sb = new StringBuilder();
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try {
             while (true) {
-                char c = (char) reader.readByte();
-                if (c == 0) {
-                    return sb.toString();
+                byte b = reader.readByte();
+                if (b == 0) {
+                    break;
                 }
-                sb.append(c);
+                bytes.write(b);
             }
         } catch (EOFException e) {
-            return sb.toString();
+            // an unterminated last string ends at the end of the data
         }
+        return bytes.toString(StandardCharsets.UTF_8);
     }
 
     private static LinkedList<File> getFilesOfDirectory(File dir, LinkedList<File> addTo) {

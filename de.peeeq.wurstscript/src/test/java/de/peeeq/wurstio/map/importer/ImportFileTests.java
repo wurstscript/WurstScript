@@ -247,6 +247,22 @@ public class ImportFileTests {
             List.of("hidden\\a.mdx", "listed\\c.blp", "war3mapImported\\b.mdx"));
     }
 
+    @Test
+    public void importTableKeepsExistingNonAsciiEntriesAndWritesThemAsUtf8() throws Exception {
+        tempDir = Files.createTempDirectory("wurst-import-table-utf8");
+        FakeMpqEditor mpq = new FakeMpqEditor();
+        String path = "täxtures\\élève中.blp";
+        mpq.insertFile(path, new byte[] {1});
+        mpq.unlisted.add(path);
+        mpq.insertFile(IMP.GAME_PATH, importTableBytes(new Object[] {13, path}));
+
+        assertEquals(ImportFile.readImportTablePaths(mpq.extractFile(IMP.GAME_PATH)), List.of(path));
+
+        ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
+
+        assertEquals(readImportTable(mpq.extractFile(IMP.GAME_PATH)), List.of(path));
+    }
+
     private static byte[] importTableBytes(Object[]... entries) {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         ByteBuffer header = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
@@ -254,7 +270,7 @@ public class ImportFileTests {
         out.writeBytes(header.array());
         for (Object[] entry : entries) {
             out.write((Integer) entry[0]);
-            out.writeBytes(((String) entry[1]).getBytes(StandardCharsets.ISO_8859_1));
+            out.writeBytes(((String) entry[1]).getBytes(StandardCharsets.UTF_8));
             out.write(0);
         }
         return out.toByteArray();
@@ -268,11 +284,11 @@ public class ImportFileTests {
         List<String> paths = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             buffer.get();
-            StringBuilder path = new StringBuilder();
+            java.io.ByteArrayOutputStream path = new java.io.ByteArrayOutputStream();
             for (byte b = buffer.get(); b != 0; b = buffer.get()) {
-                path.append((char) b);
+                path.write(b);
             }
-            paths.add(path.toString());
+            paths.add(path.toString(StandardCharsets.UTF_8));
         }
         return paths;
     }
