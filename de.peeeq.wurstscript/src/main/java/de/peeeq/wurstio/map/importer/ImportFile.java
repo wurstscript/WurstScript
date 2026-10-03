@@ -568,7 +568,6 @@ public class ImportFile {
         // came from import directories. Assets that live in the map folder itself are already in the
         // archive and would otherwise be missing from the table, and Reforged test launches
         // (-editor -loadfile) then refuse to load every imported model and texture.
-        byte[] importTable = buildImportTable(allFiles.keySet(), mpq.listFiles());
         byte[] existingTable = null;
         if (mpq.hasFile(IMP.GAME_PATH)) {
             try {
@@ -577,6 +576,16 @@ public class ImportFile {
                 WLogger.info("Could not read existing war3map.imp, rebuilding: " + e.getMessage());
             }
         }
+        // The archive listing is only as complete as the archive's (listfile), so an archive without one
+        // cannot enumerate every file it holds. The table that was already there is the other source for
+        // those: keep each of its entries whose file is still in the archive.
+        List<String> archiveFiles = new ArrayList<>(mpq.listFiles());
+        for (String existing : readImportTablePaths(existingTable)) {
+            if (mpq.hasFile(existing)) {
+                archiveFiles.add(existing);
+            }
+        }
+        byte[] importTable = buildImportTable(allFiles.keySet(), archiveFiles);
         if (!Arrays.equals(importTable, existingTable)) {
             WLogger.info("Rebuilding war3map.imp");
             if (mpq.hasFile(IMP.GAME_PATH)) {
@@ -644,6 +653,29 @@ public class ImportFile {
 
     private static String normalizedArchivePath(String path) {
         return path.replace('/', '\\');
+    }
+
+    /**
+     * The archive paths named by a war3map.imp, with standard-path entries resolved against war3mapImported\.
+     * A missing or unreadable table names nothing.
+     */
+    static List<String> readImportTablePaths(byte[] table) {
+        List<String> paths = new ArrayList<>();
+        if (table == null) {
+            return paths;
+        }
+        try (LittleEndianDataInputStream reader = new LittleEndianDataInputStream(new ByteArrayInputStream(table))) {
+            reader.readInt(); // file format version
+            int fileCount = reader.readInt();
+            for (int i = 0; i < fileCount; i++) {
+                byte flag = reader.readByte();
+                String name = readString(reader);
+                paths.add(isStandardPath(flag) ? DEFAULT_IMPORT_PATH + name : name);
+            }
+        } catch (IOException e) {
+            WLogger.info("Could not read the entries of war3map.imp, ignoring the rest: " + e.getMessage());
+        }
+        return paths;
     }
 
     /**

@@ -226,6 +226,40 @@ public class ImportFileTests {
             List.of("war3campaignMusic.mp3", "war3map.mdx", "war3mapHero.mdx", "war3mapMap.mdx"));
     }
 
+    @Test
+    public void importTableKeepsExistingEntriesForFilesTheListingDoesNotShow() throws Exception {
+        tempDir = Files.createTempDirectory("wurst-import-table-unlisted");
+        FakeMpqEditor mpq = new FakeMpqEditor();
+        // An archive without a complete (listfile) still holds these files, but cannot enumerate them.
+        mpq.insertFile("hidden\\a.mdx", new byte[] {1});
+        mpq.insertFile("war3mapImported\\b.mdx", new byte[] {1});
+        mpq.insertFile("listed\\c.blp", new byte[] {1});
+        mpq.unlisted.add("hidden\\a.mdx");
+        mpq.unlisted.add("war3mapImported\\b.mdx");
+        // The table written by the editor names them with a custom path (13) and a standard path (5, relative
+        // to war3mapImported\), plus one whose file is gone.
+        mpq.insertFile(IMP.GAME_PATH, importTableBytes(
+            new Object[] {13, "hidden\\a.mdx"}, new Object[] {5, "b.mdx"}, new Object[] {13, "gone\\d.mdx"}));
+
+        ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
+
+        assertEquals(readImportTable(mpq.extractFile(IMP.GAME_PATH)),
+            List.of("hidden\\a.mdx", "listed\\c.blp", "war3mapImported\\b.mdx"));
+    }
+
+    private static byte[] importTableBytes(Object[]... entries) {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        ByteBuffer header = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
+        header.putInt(1).putInt(entries.length);
+        out.writeBytes(header.array());
+        for (Object[] entry : entries) {
+            out.write((Integer) entry[0]);
+            out.writeBytes(((String) entry[1]).getBytes(StandardCharsets.ISO_8859_1));
+            out.write(0);
+        }
+        return out.toByteArray();
+    }
+
     /** Reads the paths out of a war3map.imp: int version, int count, then a flag byte and a C string each. */
     private static List<String> readImportTable(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
@@ -246,10 +280,14 @@ public class ImportFileTests {
     private static final class FakeMpqEditor implements MpqEditor {
         private final Map<String, byte[]> files = new HashMap<>();
         private final Map<String, Integer> insertCounts = new HashMap<>();
+        /** Files that are in the archive but that an incomplete (listfile) leaves out of the enumeration. */
+        private final java.util.Set<String> unlisted = new java.util.HashSet<>();
 
         @Override
         public Collection<String> listFiles() {
-            return new ArrayList<>(files.keySet());
+            List<String> listed = new ArrayList<>(files.keySet());
+            listed.removeAll(unlisted);
+            return listed;
         }
 
         @Override
