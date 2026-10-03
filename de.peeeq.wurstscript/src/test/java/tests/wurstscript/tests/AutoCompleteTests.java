@@ -6,6 +6,7 @@ import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
 import org.eclipse.lsp4j.*;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -23,6 +24,116 @@ import static org.testng.Assert.*;
  */
 public class AutoCompleteTests extends WurstLanguageServerTest {
 
+    @DataProvider
+    public Object[][] commentCompletionPositions() {
+        return new Object[][] {
+                {"    /** CreateG| */", "\n"},
+                {"    /**\n     * CreateG|\n     */", "\n"},
+                {"    /**\n     * CreateG|\n     */", "\r\n"},
+                {"    /* CreateG| */", "\n"},
+                {"    /*\n     CreateG|\n     */", "\n"},
+                {"    // CreateG|", "\n"},
+                {"    /** CreateG|", "\n"},
+                {"    /* CreateG|", "\n"}
+        };
+    }
+
+    @Test(dataProvider = "commentCompletionPositions")
+    public void noCompletionsInsideComments(String comment, String newline) {
+        String source = comment.startsWith("    /**")
+                ? "package test\nclass Documented\n" + comment + "\n    function sample()"
+                : "package test\n    init\n    " + comment.replace("\n", "\n    ") + "\n        CreateGroup()";
+        CompletionTestData testData = input(false, source.split("\n"));
+        testData.buffer = testData.buffer.replace("\n", newline);
+        testCompletions(testData);
+    }
+
+    @DataProvider
+    public Object[][] codeAfterCommentPositions() {
+        return new Object[][] {
+                {"        /* ignored */ CreateG|"},
+                {"        /* ignored */|"},
+                {"        string text = \"/* not a comment\""},
+                {"        string text = \"// not a comment\""},
+                {"        string text = \"escaped \\\" /* not a comment\""},
+                {"        int rawcode = '/*ab'"},
+                {"        // previous line comment"},
+                {"        /* previous\n           multiline comment */"}
+        };
+    }
+
+    @Test(dataProvider = "codeAfterCommentPositions")
+    public void completionsResumeOutsideComments(String precedingLine) {
+        String source = "package test\n    init\n" + precedingLine;
+        if (!precedingLine.contains("|")) {
+            source += "\n        CreateG|";
+        }
+        CompletionTestData testData = input(source.split("\n"));
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        if (precedingLine.endsWith("*/|")) {
+            assertFalse(labels.isEmpty(), "Completion must resume immediately after the closing delimiter");
+        } else {
+            assertTrue(labels.contains("CreateGroup"), "labels = " + labels);
+        }
+    }
+
+    @DataProvider
+    public Object[][] malformedStringCommentPositions() {
+        return new Object[][] {
+                {"\"unfinished", "// CreateG|", "\n"},
+                {"\"unfinished", "/* CreateG| */", "\r\n"},
+                {"\"unfinished\\", "// CreateG|", "\n"},
+                {"\"unfinished\\", "/* CreateG| */", "\r\n"}
+        };
+    }
+
+    @Test(dataProvider = "malformedStringCommentPositions")
+    public void commentsAfterMalformedWurstStrings(String literal, String comment, String newline) {
+        CompletionTestData testData = input("package test", "    init",
+                "        string text = " + literal, "        " + comment, "        CreateGroup()");
+        testData.buffer = testData.buffer.replace("\n", newline);
+        testCompletions(testData);
+    }
+
+    @DataProvider
+    public Object[][] invalidEscapeCommentPositions() {
+        // The lexer reports the bad escape and resumes after consuming the next character, which here is the
+        // first slash, so the comment opens at the second one.
+        return new Object[][] {
+                {"\"\\/// CreateG|"},
+                {"\"\\//* CreateG| */"},
+                {"\"\\q// CreateG|"}
+        };
+    }
+
+    @Test(dataProvider = "invalidEscapeCommentPositions")
+    public void commentsAfterInvalidStringEscapes(String literalAndComment) {
+        testCompletions(input("package test", "    init",
+                "        string text = " + literalAndComment, "        CreateGroup()"));
+    }
+
+    @Test
+    public void jassMultilineStringDoesNotOpenComment() {
+        CompletionTestData testData = input(
+                "function sample takes nothing returns nothing",
+                "    local string text = \"first line",
+                "    /* still in the string",
+                "    last line\"",
+                "    call CreateG|",
+                "endfunction");
+        assertTrue(sortedLabels(calculateCompletions(testData, "test.j")).contains("CreateGroup"));
+    }
+
+    @Test
+    public void jurstMultilineStringDoesNotOpenComment() {
+        CompletionTestData testData = input("package test", "init",
+                "    string text = \"first line",
+                "    /* still in the string",
+                "    last line\"",
+                "    CreateG|",
+                "end");
+        assertTrue(sortedLabels(calculateCompletions(testData, "test.jurst")).contains("CreateGroup"));
+    }
 
     @Test
     public void simpleExample1() {
@@ -634,10 +745,14 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
     }
 
     private CompletionList calculateCompletions(CompletionTestData testData) {
+        return calculateCompletions(testData, "test.wurst");
+    }
+
+    private CompletionList calculateCompletions(CompletionTestData testData, String fileName) {
         BufferManager bufferManager = new BufferManager();
         File projectPath = new File("./test-output").getAbsoluteFile();
         ModelManager modelManager = new ModelManagerImpl(projectPath, bufferManager);
-        String uri = projectPath.toURI() + "/wurst/test.wurst";
+        String uri = projectPath.toURI() + "/wurst/" + fileName;
         bufferManager.updateFile(WFile.create(uri), testData.buffer);
         TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
         Position pos = new Position(testData.line, testData.column);

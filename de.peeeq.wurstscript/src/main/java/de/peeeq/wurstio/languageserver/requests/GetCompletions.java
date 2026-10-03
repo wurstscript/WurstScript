@@ -84,6 +84,24 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
+    /**
+     * Lex the text up to the LSP cursor (UTF-16), which also finds comments that have no closing delimiter yet.
+     * The nearest AST element does not reliably identify comment text, especially unfinished comments.
+     */
+    private boolean isInsideComment() {
+        int lineStart = 0;
+        for (int l = 1; l < line; l++) {
+            int newline = buffer.indexOf('\n', lineStart);
+            if (newline < 0) {
+                return false;
+            }
+            lineStart = newline + 1;
+        }
+        int cursor = Math.min(buffer.length(), lineStart + column);
+        return CompletionComments.endsInsideComment(buffer.substring(0, cursor),
+                CompletionComments.Syntax.ofFile(filename.getUriString()));
+    }
+
     private Comparator<CompletionItem> completionItemComparator() {
         return Comparator
                 .comparing(CompletionItem::getSortText)
@@ -94,7 +112,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
      * computes completions at the current position
      */
     public List<CompletionItem> computeCompletionProposals(CompilationUnit cu) {
-        if (isEnteringRealNumber()) {
+        if (isInsideComment() || isEnteringRealNumber()) {
             return null;
         }
 
