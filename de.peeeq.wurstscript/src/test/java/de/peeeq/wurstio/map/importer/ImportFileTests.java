@@ -187,10 +187,35 @@ public class ImportFileTests {
             List.of("models\\unit.mdx", "tex\\b.blp", "war3map.imp"));
 
         assertEquals(readImportTable(table), List.of("models\\Unit.mdx", "tex\\a.blp", "tex\\b.blp"));
-        assertTrue(ImportFile.isMapSystemFile("war3map.w3a"));
-        assertTrue(ImportFile.isMapSystemFile("war3campaign.w3f"));
         assertFalse(ImportFile.isMapSystemFile("war3mapImported\\war3mapThing.mdx"));
         assertFalse(ImportFile.isMapSystemFile("units\\unitdata.slk"));
+    }
+
+    @Test
+    public void mapSystemFilesAreRecognisedByKnownNameNotByPrefix() {
+        for (String system : new String[] {"war3map.w3a", "war3map.wts", "war3map.doo", "war3map.lua", "war3mapUnits.doo",
+                "war3mapMap.blp", "war3mapMap.tga", "war3mapPreview.tga", "war3mapPath.tga", "war3mapMisc.txt",
+                "war3mapExtra.txt", "war3mapSkin.txt", "war3mapSkin.w3u", "war3campaign.w3f", "WAR3MAP.W3E"}) {
+            assertTrue(ImportFile.isMapSystemFile(system), system);
+        }
+        // Root assets that merely share the prefix are imports and must reach the table.
+        for (String asset : new String[] {"war3mapHero.mdx", "war3campaignMusic.mp3", "war3mapGrass.blp"}) {
+            assertFalse(ImportFile.isMapSystemFile(asset), asset);
+        }
+    }
+
+    @Test
+    public void importTableKeepsRootAssetsThatShareAMapFilePrefix() throws Exception {
+        tempDir = Files.createTempDirectory("wurst-import-table-prefix");
+        FakeMpqEditor mpq = new FakeMpqEditor();
+        for (String name : new String[] {"war3mapHero.mdx", "war3campaignMusic.mp3", "war3map.w3u", "war3mapMisc.txt"}) {
+            mpq.insertFile(name, new byte[] {1});
+        }
+
+        ImportFile.importFilesFromImports(tempDir.toFile(), mpq);
+
+        assertEquals(readImportTable(mpq.extractFile(IMP.GAME_PATH)),
+            List.of("war3campaignMusic.mp3", "war3mapHero.mdx"));
     }
 
     /** Reads the paths out of a war3map.imp: int version, int count, then a flag byte and a C string each. */

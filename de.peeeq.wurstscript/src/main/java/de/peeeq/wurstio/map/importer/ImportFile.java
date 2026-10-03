@@ -617,9 +617,16 @@ public class ImportFile {
             || path.equals("scripts\\common.j") || path.equals("scripts\\blizzard.j")) {
             return true;
         }
-        // Map files sit at the archive root; imported files under war3mapImported\ do not.
-        return path.indexOf('\\') < 0 && (path.startsWith("war3map") || path.startsWith("war3campaign"));
+        // Map files sit at the archive root and are one of the known names. A root asset that merely
+        // starts with the same letters (war3mapHero.mdx) is an import, as is anything under war3mapImported\.
+        int dot = path.indexOf('.');
+        return path.indexOf('\\') < 0 && dot > 0 && MAP_FILE_STEMS.contains(path.substring(0, dot));
     }
+
+    /** File names (before the extension) of the files the map and campaign formats define at the archive root. */
+    private static final Set<String> MAP_FILE_STEMS = Set.of(
+        "war3map", "war3mapunits", "war3mapmap", "war3mappreview", "war3mappath", "war3mapmisc",
+        "war3mapextra", "war3mapskin", "war3campaign");
 
     private static String normalizedArchivePath(String path) {
         return path.replace('/', '\\');
