@@ -27,7 +27,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
     private String getFunctionBody(String output, String functionName) {
         // Up to the closing 'end' at column 0; nested blocks are indented.
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\([^\\n]*\\n(.*?)\\nend", Pattern.DOTALL);
+        Pattern pattern = Pattern.compile("function\\s*(?:\\w+__)?" + Pattern.quote(functionName) + "\\s*\\([^\\n]*\\n(.*?)\\nend", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(output);
         if (!matcher.find()) {
             fail("Function " + functionName + " was not found.");
