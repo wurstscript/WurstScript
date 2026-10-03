@@ -99,19 +99,21 @@ public class ModelManagerImpl implements ModelManager {
         WurstModel model2 = model;
         List<CompilationUnit> toRemove = new ArrayList<>();
         if (model2 != null) {
-            for (CompilationUnit compilationUnit : model2) {
-                if (wFile(compilationUnit).equals(resource)) {
-                    toRemove.add(compilationUnit);
+            synchronized (model2) {
+                for (CompilationUnit compilationUnit : model2) {
+                    if (wFile(compilationUnit).equals(resource)) {
+                        toRemove.add(compilationUnit);
+                    }
                 }
-            }
-            GlobalCaches.clearLookupCacheFor(toRemove);
-            toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
-            for (CompilationUnit cu : toRemove) {
-                for (WPackage p : cu.getPackages()) {
-                    packageAbiHashes.remove(p.getName());
+                GlobalCaches.clearLookupCacheFor(toRemove);
+                toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
+                for (CompilationUnit cu : toRemove) {
+                    for (WPackage p : cu.getPackages()) {
+                        packageAbiHashes.remove(p.getName());
+                    }
                 }
+                model2.removeAll(toRemove);
             }
-            model2.removeAll(toRemove);
         }
 
         // Always clear state and diagnostics for removed files.
@@ -283,13 +285,15 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             return Collections.emptyList();
         }
-        List<CompilationUnit> list = new ArrayList<>();
-        for (CompilationUnit cu : model2) {
-            if (fileNames.contains(wFile(cu))) {
-                list.add(cu);
+        synchronized (model2) {
+            List<CompilationUnit> list = new ArrayList<>();
+            for (CompilationUnit cu : model2) {
+                if (fileNames.contains(wFile(cu))) {
+                    list.add(cu);
+                }
             }
+            return list;
         }
-        return list;
     }
 
     private List<WFile> getfileNames(Collection<CompilationUnit> compilationUnits) {
@@ -466,27 +470,29 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             model = newModel(cu, gui);
         } else {
-            ListIterator<CompilationUnit> it = model2.listIterator();
-            boolean updated = false;
-            while (it.hasNext()) {
-                CompilationUnit c = it.next();
-                if (wFile(c).equals(wFile(cu))) {
-                    // get old provided packages:
-                    Set<String> oldPackages = providedPackages(c);
-                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
+            synchronized (model2) {
+                ListIterator<CompilationUnit> it = model2.listIterator();
+                boolean updated = false;
+                while (it.hasNext()) {
+                    CompilationUnit c = it.next();
+                    if (wFile(c).equals(wFile(cu))) {
+                        // get old provided packages:
+                        Set<String> oldPackages = providedPackages(c);
+                        Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
 
-                    GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
-                    clearCompilationUnits(mustUpdate);
-                    // replace old compilationunit with new one:
-                    it.set(cu);
-                    updated = true;
-                    break;
+                        GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
+                        clearCompilationUnits(mustUpdate);
+                        // replace old compilationunit with new one:
+                        it.set(cu);
+                        updated = true;
+                        break;
+                    }
                 }
-            }
-            if (!updated) {
-                Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
-                clearCompilationUnits(mustUpdate);
-                model2.add(cu);
+                if (!updated) {
+                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                    clearCompilationUnits(mustUpdate);
+                    model2.add(cu);
+                }
             }
         }
         //doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));

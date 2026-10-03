@@ -121,10 +121,9 @@ public class WurstValidator {
             long tPre0 = System.currentTimeMillis();
             trveWrapperFuncs.clear();
             wrapperCalls.clear();
-            if (!quickMode) {
-                NamePreservation.clearSyntheticMarkers(prog);
-            }
-            runtimeNameIndex = null;
+            NamePreservation.clearSyntheticMarkers(prog);
+            runtimeNameIndex = NamePreservation.indexGlobals(prog);
+            recomputeTrvePreservation();
 
             long t0 = System.currentTimeMillis();
             lightValidation(toCheck);

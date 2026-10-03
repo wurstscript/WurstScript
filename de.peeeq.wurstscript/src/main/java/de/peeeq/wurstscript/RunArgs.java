@@ -433,7 +433,7 @@ public class RunArgs {
     }
 
     public boolean isIncremental() {
-        return optionIncremental.isSet || optionDevBuild.isSet;
+        return optionIncremental.isSet;
     }
 
     public @Nullable String getCachePath() {

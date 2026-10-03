@@ -164,6 +164,7 @@ public class HashtableProvider extends Provider {
     /** Measured on the 3.0.0 client: saving a null string does store it, replacing what was there,
      *  and it loads as null. It is kept as {@link ILconstNull} in the string slot. */
     public void SaveStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
+        RemoveSavedString(ht, key1, key2);
         WurstHashtable table = (WurstHashtable) ht.getObj();
         table.save(key1.getVal(), key2.getVal(), value);
     }

@@ -678,7 +678,7 @@ public class ImTranslator implements SpecialisationLookup {
         de.peeeq.wurstscript.ast.Element trace = c.attrTrace();
         String scope = getScopePrefix(trace);
         if (!scope.isEmpty()) {
-            sb.append(scope).append("::");
+            sb.append(scope).append("_");
         }
         if (c instanceof ImFunction) {
             ImFunction f = (ImFunction) c;

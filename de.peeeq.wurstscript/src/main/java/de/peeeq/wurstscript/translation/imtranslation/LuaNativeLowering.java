@@ -214,6 +214,8 @@ public final class LuaNativeLowering {
         // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
         lowerKeyedTables(prog, translator);
 
+        removeRedundantTypeAssurance(prog, translator);
+
         lowerRealToInt(prog, translator);
 
         DivModFunctions funcs = new DivModFunctions(translator);

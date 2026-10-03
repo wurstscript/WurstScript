@@ -61,22 +61,13 @@ public final class NamePreservation {
      * the AST definition and is copied to the corresponding IM variables through their trace.
      */
     public static void forEachGlobal(WurstModel model, java.util.function.Consumer<GlobalVarDef> consumer) {
-        for (CompilationUnit cu : model) {
-            for (WPackage p : cu.getPackages()) {
-                for (WEntity elem : p.getElements()) {
-                    if (elem instanceof GlobalVarDef gv) {
-                        consumer.accept(gv);
-                    }
-                }
+        model.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(GlobalVarDef gv) {
+                super.visit(gv);
+                consumer.accept(gv);
             }
-            for (JassToplevelDeclaration jassDecl : cu.getJassDecls()) {
-                if (jassDecl instanceof JassGlobalBlock block) {
-                    for (GlobalVarDef gv : block) {
-                        consumer.accept(gv);
-                    }
-                }
-            }
-        }
+        });
     }
 
     public static RuntimeNameIndex indexGlobals(WurstModel model) {
