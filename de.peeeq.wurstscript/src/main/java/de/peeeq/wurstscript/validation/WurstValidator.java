@@ -129,9 +129,7 @@ public class WurstValidator {
             lightValidation(toCheck);
             long tLight = System.currentTimeMillis();
 
-            if (!quickMode) {
-                heavyValidation();
-            }
+            heavyValidation();
             long tHeavy = System.currentTimeMillis();
 
             prog.getErrorHandler().setProgress("Post checks", 0.55);
@@ -175,11 +173,14 @@ public class WurstValidator {
             // returns + DFA
             checkUninitializedVars(f);
 
-            // reachability: walk only the function body statements
-            Element body = (f instanceof FunctionImplementation)
-                ? ((FunctionImplementation) f).getBody()
-                : f; // closures use ExprStatementsBlock path below
-            walkReachability(body);
+            boolean isAbstract = (f instanceof FuncDef) && ((FuncDef) f).attrIsAbstract();
+            if (!isAbstract) {
+                // reachability: walk only the function body statements
+                Element body = (f instanceof FunctionImplementation)
+                    ? ((FunctionImplementation) f).getBody()
+                    : f; // closures use ExprStatementsBlock path below
+                walkReachability(body);
+            }
         }
 
         // closure blocks collected for DFA
@@ -237,12 +238,10 @@ public class WurstValidator {
      * checks done after walking the tree
      */
     private void postChecks(Collection<CompilationUnit> toCheck) {
-        if (!quickMode) {
-            checkUnusedImports(toCheck);
-            ValidateGlobalsUsage.checkGlobalsUsage(toCheck);
-            ValidateClassMemberUsage.checkClassMembers(toCheck);
-            ValidateLocalUsage.checkLocalsUsage(toCheck);
-        }
+        checkUnusedImports(toCheck);
+        ValidateGlobalsUsage.checkGlobalsUsage(toCheck);
+        ValidateClassMemberUsage.checkClassMembers(toCheck);
+        ValidateLocalUsage.checkLocalsUsage(toCheck);
 
         for (String wrapper : trveWrapperFuncs) {
             if (wrapperCalls.containsKey(wrapper)) {

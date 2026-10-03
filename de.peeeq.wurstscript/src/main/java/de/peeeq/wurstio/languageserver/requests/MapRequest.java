@@ -756,24 +756,19 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
             }
 
-            if (!runArgs.isIncremental()) {
-                // CRITICAL: Import files into THIS mpq editor instance
-                gui.sendProgress("Importing resource files");
-                timeTaker.beginPhase("Importing files");
-                try {
-                    ImportFile.ImportResult importResult = ImportFile.importFilesFromImports(
-                        workspaceRoot.getFile(),
-                        mpqEditor
-                    );
-                    WLogger.info("Import result: " + importResult.toString());
-                } catch (Exception e) {
-                    WLogger.severe("Failed to import files: " + e.getMessage());
-                    throw e;
-                }
-                timeTaker.endPhase();
-            } else {
-                WLogger.info("Incremental build: patching script directly into cached map, skipping resource re-import");
+            gui.sendProgress("Importing resource files");
+            timeTaker.beginPhase("Importing files");
+            try {
+                ImportFile.ImportResult importResult = ImportFile.importFilesFromImports(
+                    workspaceRoot.getFile(),
+                    mpqEditor
+                );
+                WLogger.info("Import result: " + importResult.toString());
+            } catch (Exception e) {
+                WLogger.severe("Failed to import files: " + e.getMessage());
+                throw e;
             }
+            timeTaker.endPhase();
         }
 
         timeTaker.endPhase();

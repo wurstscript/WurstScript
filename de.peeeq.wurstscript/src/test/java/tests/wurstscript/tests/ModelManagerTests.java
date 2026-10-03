@@ -1357,6 +1357,58 @@ public class ModelManagerTests {
     }
 
     @Test
+    public void packageAbiDetectsInferredTypesAndModifiers() {
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(null, new WurstGuiLogger(), null, RunArgs.defaults());
+
+        // Baseline
+        CompilationUnit cuBase = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = 5\n" +
+            "public class MyClass\n" +
+            "    public int member = 1\n" +
+            "    public static function doThing()\n"
+        ));
+        WPackage pBase = cuBase.getPackages().get(0);
+        String hashBase = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pBase);
+
+        // 1. Inferred type change: int (5) -> string ("hello")
+        CompilationUnit cuInferred = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = \"hello\"\n" +
+            "public class MyClass\n" +
+            "    public int member = 1\n" +
+            "    public static function doThing()\n"
+        ));
+        WPackage pInferred = cuInferred.getPackages().get(0);
+        String hashInferred = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pInferred);
+        org.testng.Assert.assertNotEquals(hashInferred, hashBase, "Changing inferred type must change ABI hash");
+
+        // 2. Modifier change: public static -> public non-static
+        CompilationUnit cuStatic = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = 5\n" +
+            "public class MyClass\n" +
+            "    public int member = 1\n" +
+            "    public function doThing()\n"
+        ));
+        WPackage pStatic = cuStatic.getPackages().get(0);
+        String hashStatic = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pStatic);
+        org.testng.Assert.assertNotEquals(hashStatic, hashBase, "Changing static modifier must change ABI hash");
+
+        // 3. Visibility change: public member -> protected member
+        CompilationUnit cuVis = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = 5\n" +
+            "public class MyClass\n" +
+            "    protected int member = 1\n" +
+            "    public static function doThing()\n"
+        ));
+        WPackage pVis = cuVis.getPackages().get(0);
+        String hashVis = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pVis);
+        org.testng.Assert.assertNotEquals(hashVis, hashBase, "Changing member visibility must change ABI hash");
+    }
+
+    @Test
     public void packageAbiDiffingOnlyInvalidatesOnPublicSignatureChange() throws IOException {
         File projectFolder = new File("./temp/testProjectAbi/");
         File wurstFolder = new File(projectFolder, "wurst");

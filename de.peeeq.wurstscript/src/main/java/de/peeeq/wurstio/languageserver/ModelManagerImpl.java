@@ -252,22 +252,39 @@ public class ModelManagerImpl implements ModelManager {
         }
         Changes changes = Changes.empty();
         File wurstFolder = new File(projectPath, "wurst");
+        Set<WFile> expectedProjectFiles = new HashSet<>();
         if (wurstFolder.exists()) {
-            changes = syncWurstFiles(wurstFolder);
+            collectWurstFiles(wurstFolder, expectedProjectFiles);
+        }
+
+        WurstModel model2 = model;
+        if (model2 != null) {
+            List<WFile> loadedProjectFiles = model2.stream()
+                .map(this::wFile)
+                .filter(this::isUnderWurstFolder)
+                .collect(Collectors.toList());
+
+            for (WFile loadedFile : loadedProjectFiles) {
+                if (!expectedProjectFiles.contains(loadedFile)) {
+                    changes = changes.mergeWith(removeCompilationUnit(loadedFile));
+                }
+            }
+        }
+
+        for (WFile f : expectedProjectFiles) {
+            changes = changes.mergeWith(syncCompilationUnit(f));
         }
         return changes;
     }
 
-    private Changes syncWurstFiles(File dir) {
-        Changes changes = Changes.empty();
+    private void collectWurstFiles(File dir, Set<WFile> result) {
         for (File f : getFiles(dir)) {
             if (f.isDirectory()) {
-                changes = changes.mergeWith(syncWurstFiles(f));
+                collectWurstFiles(f, result);
             } else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j")) {
-                changes = changes.mergeWith(syncCompilationUnit(WFile.create(f)));
+                result.add(WFile.create(f));
             }
         }
-        return changes;
     }
 
     private String getCanonicalPath(File f) {
@@ -1036,6 +1053,18 @@ public class ModelManagerImpl implements ModelManager {
                 .toAbsolutePath()
                 .normalize();
             return filePath.startsWith(dependencyRoot) && Utils.isWurstFile(filePath.toString());
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+    }
+
+    private boolean isUnderWurstFolder(WFile file) {
+        try {
+            Path filePath = file.getPath().toAbsolutePath().normalize();
+            Path wurstRoot = Paths.get(projectPath.getAbsolutePath(), "wurst")
+                .toAbsolutePath()
+                .normalize();
+            return filePath.startsWith(wurstRoot) && Utils.isWurstFile(filePath.toString());
         } catch (FileNotFoundException e) {
             return false;
         }

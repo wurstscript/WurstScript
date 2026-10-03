@@ -83,6 +83,9 @@ public class PackageAbi {
                 if (ModifiersHelper.isPublic(m)) {
                     appendModuleDef(sb, m);
                 }
+            } else if (elem instanceof InstanceDecl) {
+                InstanceDecl id = (InstanceDecl) elem;
+                appendInstanceDecl(sb, id);
             }
         }
 
@@ -91,14 +94,26 @@ public class PackageAbi {
         return hasher.hash().toString();
     }
 
+    private static void appendTypeParamConstraints(StringBuilder sb, TypeParamDef tp) {
+        TypeParamConstraints constraints = tp.getTypeParamConstraints();
+        if (constraints instanceof TypeExprList) {
+            TypeExprList list = (TypeExprList) constraints;
+            for (TypeExpr te : list) {
+                sb.append(":bound:").append(typeExprToString(te));
+            }
+        }
+    }
+
     private static void appendFuncDef(StringBuilder sb, FuncDef f) {
         sb.append("func:").append(f.getName());
         appendModifiers(sb, f.getModifiers());
         for (TypeParamDef tp : f.getTypeParameters()) {
             sb.append(":tp:").append(tp.getName());
+            appendTypeParamConstraints(sb, tp);
         }
         for (WParameter param : f.getParameters()) {
             sb.append(":p:").append(param.getName()).append(":").append(typeExprToString(param.getTyp()));
+            appendModifiers(sb, param.getModifiers());
         }
         sb.append(":ret:").append(typeExprToString(f.getReturnTyp())).append("\n");
     }
@@ -108,39 +123,68 @@ public class PackageAbi {
         appendModifiers(sb, f.getModifiers());
         for (TypeParamDef tp : f.getTypeParameters()) {
             sb.append(":tp:").append(tp.getName());
+            appendTypeParamConstraints(sb, tp);
         }
         for (WParameter param : f.getParameters()) {
             sb.append(":p:").append(param.getName()).append(":").append(typeExprToString(param.getTyp()));
+            appendModifiers(sb, param.getModifiers());
         }
         sb.append(":ret:").append(typeExprToString(f.getReturnTyp())).append("\n");
     }
 
     private static void appendGlobalVar(StringBuilder sb, GlobalVarDef v) {
-        sb.append("var:").append(v.getName()).append(":")
-          .append(ModifiersHelper.isConstant(v) ? "const:" : "var:")
-          .append(typeExprToString(v.getOptTyp())).append("\n");
+        sb.append("var:").append(v.getName());
+        appendModifiers(sb, v.getModifiers());
+        String typStr = null;
+        try {
+            de.peeeq.wurstscript.types.WurstType t = v.attrTyp();
+            if (t != null) {
+                typStr = t.getFullName();
+            }
+        } catch (Throwable ignored) {
+        }
+        if (typStr == null || typStr.isEmpty()) {
+            typStr = typeExprToString(v.getOptTyp());
+        }
+        sb.append(":typ:").append(typStr);
+        if (ModifiersHelper.isConstant(v) && v.getInitialExpr() instanceof Expr) {
+            sb.append(":init:").append(de.peeeq.wurstscript.utils.Utils.prettyPrint(v.getInitialExpr()));
+        }
+        sb.append("\n");
     }
 
     private static void appendClassDef(StringBuilder sb, ClassDef c) {
         sb.append("class:").append(c.getName());
-        if (ModifiersHelper.isAbstract(c)) {
-            sb.append(":abstract");
-        }
+        appendModifiers(sb, c.getModifiers());
         for (TypeParamDef tp : c.getTypeParameters()) {
             sb.append(":tp:").append(tp.getName());
+            appendTypeParamConstraints(sb, tp);
         }
         sb.append(":ext:").append(typeExprToString(c.getExtendedClass()));
         for (TypeExpr imp : c.getImplementsList()) {
             sb.append(":imp:").append(typeExprToString(imp));
         }
+        for (ModuleUse mu : c.getModuleUses()) {
+            sb.append(":use:").append(mu.getModuleName());
+            for (TypeExpr te : mu.getTypeArgs()) {
+                sb.append("<").append(typeExprToString(te)).append(">");
+            }
+        }
         sb.append("\n");
         for (ConstructorDef constr : c.getConstructors()) {
             if (ModifiersHelper.isPublic(constr)) {
                 sb.append("  construct");
+                appendModifiers(sb, constr.getModifiers());
                 for (WParameter param : constr.getParameters()) {
                     sb.append(":p:").append(param.getName()).append(":").append(typeExprToString(param.getTyp()));
                 }
                 sb.append("\n");
+            }
+        }
+        for (ClassDef inner : c.getInnerClasses()) {
+            if (!ModifiersHelper.isPrivate(inner)) {
+                sb.append("  inner:");
+                appendClassDef(sb, inner);
             }
         }
         for (FuncDef m : c.getMethods()) {
@@ -159,21 +203,36 @@ public class PackageAbi {
 
     private static void appendInterfaceDef(StringBuilder sb, InterfaceDef inf) {
         sb.append("interface:").append(inf.getName());
+        appendModifiers(sb, inf.getModifiers());
         for (TypeParamDef tp : inf.getTypeParameters()) {
             sb.append(":tp:").append(tp.getName());
+            appendTypeParamConstraints(sb, tp);
         }
         for (TypeExpr ext : inf.getExtendsList()) {
             sb.append(":ext:").append(typeExprToString(ext));
+        }
+        for (ModuleUse mu : inf.getModuleUses()) {
+            sb.append(":use:").append(mu.getModuleName());
+            for (TypeExpr te : mu.getTypeArgs()) {
+                sb.append("<").append(typeExprToString(te)).append(">");
+            }
         }
         sb.append("\n");
         for (FuncDef m : inf.getMethods()) {
             sb.append("  ");
             appendFuncDef(sb, m);
         }
+        for (GlobalVarDef v : inf.getVars()) {
+            if (!ModifiersHelper.isPrivate(v)) {
+                sb.append("  ");
+                appendGlobalVar(sb, v);
+            }
+        }
     }
 
     private static void appendTupleDef(StringBuilder sb, TupleDef t) {
         sb.append("tuple:").append(t.getName());
+        appendModifiers(sb, t.getModifiers());
         for (WParameter param : t.getParameters()) {
             sb.append(":p:").append(param.getName()).append(":").append(typeExprToString(param.getTyp()));
         }
@@ -182,14 +241,17 @@ public class PackageAbi {
 
     private static void appendEnumDef(StringBuilder sb, EnumDef ed) {
         sb.append("enum:").append(ed.getName());
+        appendModifiers(sb, ed.getModifiers());
         for (EnumMember m : ed.getMembers()) {
             sb.append(":").append(m.getName());
+            appendModifiers(sb, m.getModifiers());
         }
         sb.append("\n");
     }
 
     private static void appendNativeFunc(StringBuilder sb, NativeFunc nf) {
         sb.append("nativefunc:").append(nf.getName());
+        appendModifiers(sb, nf.getModifiers());
         for (WParameter param : nf.getParameters()) {
             sb.append(":p:").append(param.getName()).append(":").append(typeExprToString(param.getTyp()));
         }
@@ -197,18 +259,32 @@ public class PackageAbi {
     }
 
     private static void appendNativeType(StringBuilder sb, NativeType nt) {
-        sb.append("nativetype:").append(nt.getName()).append(":").append(typeExprToString(nt.getOptTyp())).append("\n");
+        sb.append("nativetype:").append(nt.getName()).append(":").append(typeExprToString(nt.getOptTyp()));
+        appendModifiers(sb, nt.getModifiers());
+        sb.append("\n");
     }
 
     private static void appendModuleDef(StringBuilder sb, ModuleDef m) {
         sb.append("module:").append(m.getName());
+        appendModifiers(sb, m.getModifiers());
         for (TypeParamDef tp : m.getTypeParameters()) {
             sb.append(":tp:").append(tp.getName());
+            appendTypeParamConstraints(sb, tp);
         }
         sb.append("\n");
         // Modules are expanded directly into using classes; any changes to the module AST affect instantiating classes.
         sb.append(de.peeeq.wurstscript.utils.Utils.prettyPrint(m));
         sb.append("\n");
+    }
+
+    private static void appendInstanceDecl(StringBuilder sb, InstanceDecl id) {
+        sb.append("instance:").append(typeExprToString(id.getImplementedInterface()));
+        appendModifiers(sb, id.getModifiers());
+        sb.append("\n");
+        for (FuncDef m : id.getMethods()) {
+            sb.append("  ");
+            appendFuncDef(sb, m);
+        }
     }
 
     private static void appendModifiers(StringBuilder sb, Modifiers modifiers) {
@@ -221,8 +297,24 @@ public class PackageAbi {
                 sb.append(":abstract");
             } else if (m instanceof ModVararg) {
                 sb.append(":vararg");
+            } else if (m instanceof ModStatic) {
+                sb.append(":static");
+            } else if (m instanceof ModReadonly) {
+                sb.append(":readonly");
+            } else if (m instanceof VisibilityPublic) {
+                sb.append(":public");
+            } else if (m instanceof VisibilityProtected) {
+                sb.append(":protected");
+            } else if (m instanceof VisibilityDefault) {
+                sb.append(":default");
+            } else if (m instanceof VisibilityPrivate) {
+                sb.append(":private");
             } else if (m instanceof Annotation) {
-                sb.append(":ann:").append(((Annotation) m).getAnnotationType());
+                Annotation ann = (Annotation) m;
+                sb.append(":ann:").append(ann.getAnnotationType());
+                for (Expr arg : ann.getArgs()) {
+                    sb.append("(").append(de.peeeq.wurstscript.utils.Utils.prettyPrint(arg)).append(")");
+                }
             }
         }
     }

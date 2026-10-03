@@ -180,6 +180,15 @@ public class LuaTranslator {
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
+                if ((imTr.isIncremental() || isModularMode) && a.getTrace() instanceof GlobalVarDef) {
+                    de.peeeq.wurstscript.ast.PackageOrGlobal nearest = a.getTrace().attrNearestPackage();
+                    if (nearest instanceof WPackage) {
+                        String pkgName = ((WPackage) nearest).getName();
+                        if (!name.startsWith(pkgName + "__") && !name.startsWith(pkgName + "_")) {
+                            name = pkgName + "__" + name;
+                        }
+                    }
+                }
                 name = uniqueName(name);
             } else {
                 usedNames.add(name);
@@ -525,7 +534,7 @@ public class LuaTranslator {
         List<PackageChunk> chunks = new ArrayList<>();
 
         for (WPackage p : packages) {
-            String hash = PackageChunkCache.computePackageHash(p);
+            String hash = PackageChunkCache.computePackageHash(p, imTr.getRunArgs(), funcsByPackage.get(p));
             PackageChunk cached = cache.get(p.getName(), hash);
             if (cached != null) {
                 chunks.add(cached);
@@ -613,7 +622,7 @@ public class LuaTranslator {
             pkgCu.print(pkgSb, 0);
             String pkgCode = pkgSb.toString();
 
-            String hash = PackageChunkCache.computePackageHash(p);
+            String hash = PackageChunkCache.computePackageHash(p, imTr.getRunArgs(), funcsByPackage.get(p));
             List<String> deps = p.attrInitDependencies().stream().map(WPackage::getName).collect(Collectors.toList());
             PackageChunk chunk = new PackageChunk(p.getName(), hash, pkgCode, deps, false);
             cache.put(chunk);
@@ -926,6 +935,7 @@ public class LuaTranslator {
         }
         return false;
     }
+
 
     private void collectPredefinedNames() {
         for (ImFunction function : prog.getFunctions()) {
