@@ -224,6 +224,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void partitionCompiletimeStateInitFunction() {
+        if (translator.isLuaTarget() && !translator.getRunArgs().isFunctionSplitLimitExplicit()) {
+            return;
+        }
         if (compiletimeStateInitFunction != null) {
             FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
         }

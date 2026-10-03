@@ -60,6 +60,7 @@ public class RunArgs {
     private final RunOption optionTestTimeout;
     private final RunOption optionDevBuild;
     private final RunOption optionIncremental;
+    private final RunOption optionFunctionSplitLimit;
     private @Nullable String cachePath = null;
     private int functionSplitLimit = 10000;
 
@@ -162,7 +163,7 @@ public class RunArgs {
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
         optionCompiletimeCache = addOption("compiletimeCache", "(Experimental) Cache results of compiletime invocations without side effects");
 
-        addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
+        optionFunctionSplitLimit = addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
             s -> functionSplitLimit = Integer.parseInt(s, 10));
         optionPrettyPrint = addOption("prettyPrint", "Pretty print the input file, or all sub-directory if the given path is: '...'");
 
@@ -458,6 +459,10 @@ public class RunArgs {
 
     public int getFunctionSplitLimit() {
         return functionSplitLimit;
+    }
+
+    public boolean isFunctionSplitLimitExplicit() {
+        return optionFunctionSplitLimit.isSet;
     }
 
 }
