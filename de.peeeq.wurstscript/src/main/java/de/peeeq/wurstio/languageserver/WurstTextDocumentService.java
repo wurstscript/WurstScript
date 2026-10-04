@@ -35,7 +35,8 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
         WLogger.trace("resolveCompletionItem");
-        return worker.handle(completionDocumentation.new Resolve(unresolved));
+        CompletionDocumentation.Resolve request = completionDocumentation.new Resolve(unresolved);
+        return worker.handle(request).thenCompose(item -> request.finish(worker));
     }
 
     @Override

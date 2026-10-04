@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import de.peeeq.wurstio.languageserver.JassDocService;
+import de.peeeq.wurstio.languageserver.LanguageWorker;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
@@ -12,12 +13,14 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.MarkupContent;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /** Lazily resolves documentation on the language worker without retaining old model snapshots. */
 public final class CompletionDocumentation {
@@ -44,6 +47,8 @@ public final class CompletionDocumentation {
 
     public final class Resolve extends UserRequest<CompletionItem> {
         private final CompletionItem item;
+        private @Nullable String id;
+        private JassDocService.@Nullable LookupKey lookup;
 
         public Resolve(CompletionItem item) {
             this.item = item;
@@ -56,23 +61,68 @@ public final class CompletionDocumentation {
 
         @Override
         public CompletionItem execute(ModelManager modelManager) {
-            String id = targetId(item.getData());
-            Target saved = targets.get(id);
-            if (saved == null || !Objects.equals(saved.label(), item.getLabel())) {
-                return item;
-            }
-            AstElementWithSource target = saved.element().get();
-            CompilationUnit cu = saved.compilationUnit().get();
-            // Edits/removals replace CUs; module invalidation can also detach individual declarations.
-            // An old list must never resolve against a different declaration at the same offset.
-            if (target == null || cu == null || target.attrCompilationUnit() != cu
-                    || modelManager.getCompilationUnit(WFile.create(cu.getCuInfo().getFile())) != cu) {
-                targets.remove(id);
+            id = targetId(item.getData());
+            AstElementWithSource target = currentTarget(item, id, modelManager);
+            if (target == null) {
                 return item;
             }
             enrich(item, target);
+            if (item.getDocumentation() == null) {
+                if (target instanceof FunctionDefinition function) {
+                    lookup = new JassDocService.LookupKey(function.getName(), JassDocService.SymbolKind.FUNCTION,
+                            function.getSource().getFile());
+                } else if (target instanceof NameDef name) {
+                    lookup = new JassDocService.LookupKey(name.getName(), JassDocService.SymbolKind.VARIABLE,
+                            name.getSource().getFile());
+                }
+            }
             return item;
         }
+
+        public CompletableFuture<CompletionItem> finish(LanguageWorker worker) {
+            if (lookup == null) {
+                return CompletableFuture.completedFuture(item);
+            }
+            // Only immutable lookup strings leave the worker. DB initialization/download can take seconds.
+            return JassDocService.getInstance().documentationForAsync(lookup).thenCompose(comment -> {
+                if (comment == null || comment.isEmpty()) {
+                    return CompletableFuture.completedFuture(item);
+                }
+                return worker.handle(new UserRequest<CompletionItem>() {
+                    @Override
+                    public boolean keepDuplicateRequests() {
+                        return true;
+                    }
+
+                    @Override
+                    public CompletionItem execute(ModelManager modelManager) {
+                        // The declaration may have changed while the asynchronous lookup was pending.
+                        if (currentTarget(item, id, modelManager) != null) {
+                            setJassDoc(item, comment);
+                        }
+                        return item;
+                    }
+                });
+            });
+        }
+    }
+
+    private @Nullable AstElementWithSource currentTarget(CompletionItem item, @Nullable String id,
+                                                       ModelManager modelManager) {
+        Target saved = targets.get(id);
+        if (saved == null || !Objects.equals(saved.label(), item.getLabel())) {
+            return null;
+        }
+        AstElementWithSource target = saved.element().get();
+        CompilationUnit cu = saved.compilationUnit().get();
+        // Edits/removals replace CUs; module invalidation can also detach individual declarations.
+        // An old list must never resolve against a different declaration at the same offset.
+        if (target == null || cu == null || target.attrCompilationUnit() != cu
+                || modelManager.getCompilationUnit(WFile.create(cu.getCuInfo().getFile())) != cu) {
+            targets.remove(id);
+            return null;
+        }
+        return target;
     }
 
     private static String targetId(Object data) {
@@ -107,11 +157,15 @@ public final class CompletionDocumentation {
         }
         if (comment != null && !comment.isEmpty()) {
             if (jassDoc) {
-                item.setDocumentation(new MarkupContent("markdown", "*JassDoc*\n\n" + comment));
+                setJassDoc(item, comment);
             } else {
                 item.setDocumentation(comment);
             }
         }
+    }
+
+    private static void setJassDoc(CompletionItem item, String comment) {
+        item.setDocumentation(new MarkupContent("markdown", "*JassDoc*\n\n" + comment));
     }
 
     private record Target(WeakReference<AstElementWithSource> element,
