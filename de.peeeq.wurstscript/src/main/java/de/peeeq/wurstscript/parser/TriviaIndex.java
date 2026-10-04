@@ -25,10 +25,7 @@ public final class TriviaIndex {
     }
 
     public static TriviaIndex fromTokens(List<Token> tokens) {
-        if (tokens == null || tokens.isEmpty()) {
-            return EMPTY;
-        }
-        return new TriviaIndex(new ArrayList<>(tokens));
+        return fromTokens(tokens, null);
     }
 
     public static TriviaIndex fromTokens(List<Token> tokens, Deque<Token> hiddenCommentTokens) {
@@ -80,11 +77,20 @@ public final class TriviaIndex {
     }
 
     private int firstNonTriviaTokenAtOrAfter(int offset) {
-        for (int i = 0; i < tokens.size(); i++) {
-            Token token = tokens.get(i);
-            if (token.getStartIndex() < offset) {
-                continue;
+        // Tokens (including hidden comments) are sorted by source offset at construction.
+        // Repeated documentation lookups must not rescan a large file's entire prefix.
+        int low = 0;
+        int high = tokens.size();
+        while (low < high) {
+            int middle = low + (high - low) / 2;
+            if (tokens.get(middle).getStartIndex() < offset) {
+                low = middle + 1;
+            } else {
+                high = middle;
             }
+        }
+        for (int i = low; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
             if (!isTriviaBetweenDocAndDeclaration(token)) {
                 return i;
             }

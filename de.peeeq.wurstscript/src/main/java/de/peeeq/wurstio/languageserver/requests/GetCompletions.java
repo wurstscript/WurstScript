@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstio.languageserver.BufferManager;
-import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
@@ -18,7 +17,6 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.*;
-import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -48,11 +46,18 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private boolean isIncomplete = false;
     private CompilationUnit cu;
     private final IdentityHashMap<CompletionItem, AstElementWithSource> docTargets = new IdentityHashMap<>();
+    private final @Nullable CompletionDocumentation documentation;
     private final IdentityHashMap<CompletionItem, WurstType> completionTypes = new IdentityHashMap<>();
     private PriorityQueue<CompletionItem> worstCandidates;
 
 
     public GetCompletions(CompletionParams position, BufferManager bufferManager) {
+        this(position, bufferManager, null);
+    }
+
+    public GetCompletions(CompletionParams position, BufferManager bufferManager,
+                          @Nullable CompletionDocumentation documentation) {
+        this.documentation = documentation;
         this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
         this.line = position.getPosition().getLine() + 1;
@@ -161,7 +166,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         preferBestMatchTier(completions);
         preferExpectedTypeForShortQueries(completions);
         dropBadCompletions(completions);
-        enrichTopDocumentation(completions);
+        prepareDocumentation(completions);
         return completions;
     }
 
@@ -186,42 +191,18 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
-    private void enrichTopDocumentation(List<CompletionItem> completions) {
-        // Keep completion responsive: enrich only visible/top results.
-        int limit = Math.min(completions.size(), 24);
-        for (int i = 0; i < limit; i++) {
-            CompletionItem ci = completions.get(i);
-            AstElementWithSource target = docTargets.get(ci);
+    private void prepareDocumentation(List<CompletionItem> completions) {
+        // Only returned items need resolve handles. Never read docs for discarded candidates.
+        for (CompletionItem item : completions) {
+            AstElementWithSource target = docTargets.get(item);
             if (target == null) {
                 continue;
             }
-            String comment = null;
-            boolean jassDoc = false;
-            if (target instanceof FunctionDefinition) {
-                FunctionDefinition f = (FunctionDefinition) target;
-                comment = f.attrComment();
-                if (comment == null || comment.isEmpty()) {
-                    comment = JassDocService.getInstance().documentationForFunctionQuick(f);
-                    jassDoc = comment != null && !comment.isEmpty();
-                }
-            } else if (target instanceof NameDef) {
-                NameDef n = (NameDef) target;
-                comment = n.attrComment();
-                if (comment == null || comment.isEmpty()) {
-                    comment = JassDocService.getInstance().documentationForVariableQuick(n);
-                    jassDoc = comment != null && !comment.isEmpty();
-                }
-            }
-            if (comment == null || comment.isEmpty()) {
-                continue;
-            }
-            if (jassDoc) {
-                MarkupContent mc = new MarkupContent();
-                mc.setKind("markdown");
-                mc.setValue("*JassDoc*\n\n" + comment);
-                ci.setDocumentation(Either.forRight(mc));
+            if (documentation != null) {
+                documentation.attach(item, target);
             } else {
-                ci.setDocumentation(comment);
+                // Direct callers without a resolve service still receive docs, after ranking.
+                CompletionDocumentation.enrich(item, target);
             }
         }
     }
@@ -889,7 +870,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         CompletionItem completion = new CompletionItem(n.getName());
 
         completion.setDetail(n.getTyp() + " [" + nearestScopeName(n.getDef()) + "]");
-        completion.setDocumentation(n.getDef().attrComment());
         docTargets.put(completion, n.getDef());
         double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
@@ -1091,7 +1071,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
         completion.setDetail(getFunctionDescriptionShort(f.getDef()));
-        completion.setDocumentation(f.getDef().attrComment());
         docTargets.put(completion, f.getDef());
         completion.setInsertText(replacementString);
 		double rating = calculateRating(f.getName(), f.getReturnType());
@@ -1187,7 +1166,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setKind(CompletionItemKind.Constructor);
         String params = Utils.getParameterListText(constr);
         completion.setDetail("(" + params + ")");
-        completion.setDocumentation(constr.attrComment());
         docTargets.put(completion, constr);
         completion.setInsertTextFormat(InsertTextFormat.Snippet);
         completion.setInsertText(replacementString);
