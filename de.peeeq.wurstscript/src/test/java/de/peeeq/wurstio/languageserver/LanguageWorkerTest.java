@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import org.eclipse.lsp4j.*;
 import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -17,6 +18,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutionException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.Comparator;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -24,10 +29,98 @@ import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.expectThrows;
 
 public class LanguageWorkerTest {
+
+    @DataProvider
+    public Object[][] coldCompletionDocumentationSymbols() {
+        return new Object[][] {
+                {"DisplayTextToPlayer", "DisplayTextToPl", false},
+                {"PLAYER_COLOR_RED", "PLAYER_COLOR_R", false},
+                {"DisplayTextToPlayer", "DisplayTextToPl", true},
+                {"PLAYER_COLOR_RED", "PLAYER_COLOR_R", true}
+        };
+    }
+
+    @Test(dataProvider = "coldCompletionDocumentationSymbols")
+    public void firstNativeResolveWaitsForColdDatabaseWithoutBlockingWorker(String symbol, String prefix,
+                                                                          boolean removeDeclaration) throws Exception {
+        Path root = Files.createTempDirectory("wurst-cold-completion-docs");
+        Path wurst = Files.createDirectories(root.resolve("wurst"));
+        Path source = wurst.resolve("test.wurst");
+        Files.writeString(source, "package test\ninit\n    " + prefix + "\n");
+        Files.writeString(wurst.resolve("Wurst.wurst"), "package Wurst\n");
+        Path database = root.resolve("jassdoc.db");
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+             Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE docs(name TEXT, documentation TEXT)");
+            statement.execute("INSERT INTO docs VALUES ('" + symbol + "', 'cold database documentation')");
+        }
+        String previous = System.getProperty("WURST_JASSDOC_DB_PATH");
+        LanguageWorker worker = new LanguageWorker();
+        worker.setLanguageClient((org.eclipse.lsp4j.services.LanguageClient) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{org.eclipse.lsp4j.services.LanguageClient.class},
+                (proxy, method, args) -> null));
+        WurstTextDocumentService service = new WurstTextDocumentService(worker);
+        try {
+            System.setProperty("WURST_JASSDOC_DB_PATH", database.toString());
+            worker.setRootPath(WFile.create(root));
+            CompletionList completions = service.completion(new CompletionParams(
+                    new TextDocumentIdentifier(source.toUri().toString()), new Position(2, 4 + prefix.length())))
+                    .get(10, TimeUnit.SECONDS).getRight();
+            CompletionItem item = completions.getItems().stream().filter(candidate -> symbol.equals(candidate.getLabel()))
+                    .findFirst().orElseThrow();
+            java.util.concurrent.CompletableFuture<CompletionItem> pending;
+            JassDocService docs = JassDocService.getInstance();
+            synchronized (docs) {
+                docs.clearCacheForTests();
+                // Hold the initialization lock so a cold DB cannot become ready by chance.
+                pending = service.resolveCompletionItem(item);
+                assertTrue(worker.handle(new UserRequest<Boolean>() {
+                    @Override
+                    public Boolean execute(ModelManager modelManager) { return true; }
+                }).get(2, TimeUnit.SECONDS), "A DB lookup must not occupy the language worker");
+                assertFalse(pending.isDone(), "The first resolve must await documentation rather than return an empty item");
+                if (removeDeclaration) {
+                    worker.handle(new UserRequest<Boolean>() {
+                        @Override
+                        public Boolean execute(ModelManager modelManager) {
+                            CompilationUnit common = modelManager.getModel().stream()
+                                    .filter(cu -> cu.getCuInfo().getFile().endsWith("common.j")).findFirst().orElseThrow();
+                            modelManager.removeCompilationUnit(WFile.create(common.getCuInfo().getFile()));
+                            return true;
+                        }
+                    }).get(2, TimeUnit.SECONDS);
+                }
+            }
+            CompletionItem resolved = pending.get(5, TimeUnit.SECONDS);
+            if (removeDeclaration) {
+                assertNull(resolved.getDocumentation(), "A delayed lookup must revalidate the declaration on the worker");
+            } else {
+                assertEquals(resolved.getDocumentation().getRight().getKind(), "markdown");
+                assertTrue(resolved.getDocumentation().getRight().getValue().contains("cold database documentation"));
+            }
+        } finally {
+            worker.stop();
+            // Drain any initialization task even when a deliberate regression makes resolve return early.
+            JassDocService.getInstance().documentationForAsync(new JassDocService.LookupKey(symbol,
+                    JassDocService.SymbolKind.FUNCTION, "common.j")).get(5, TimeUnit.SECONDS);
+            JassDocService.getInstance().clearCacheForTests();
+            if (previous == null) {
+                System.clearProperty("WURST_JASSDOC_DB_PATH");
+            } else {
+                System.setProperty("WURST_JASSDOC_DB_PATH", previous);
+            }
+            try (var paths = Files.walk(root)) {
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                    Files.delete(path);
+                }
+            }
+        }
+    }
 
     @Test
     public void failedModelInitializationRejectsRequests() throws Exception {

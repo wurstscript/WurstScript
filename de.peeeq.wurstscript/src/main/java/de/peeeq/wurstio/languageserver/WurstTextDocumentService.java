@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class WurstTextDocumentService implements TextDocumentService {
     private final LanguageWorker worker;
+    private final CompletionDocumentation completionDocumentation = new CompletionDocumentation();
 
     public WurstTextDocumentService(LanguageWorker worker) {
         this.worker = worker;
@@ -27,13 +28,15 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams position) {
         WLogger.debug("completion");
-        return worker.handle(new GetCompletions(position, worker.getBufferManager())).thenApply(Either::forRight);
+        return worker.handle(new GetCompletions(position, worker.getBufferManager(), completionDocumentation))
+                .thenApply(Either::forRight);
     }
 
     @Override
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
         WLogger.trace("resolveCompletionItem");
-        return CompletableFuture.completedFuture(unresolved);
+        CompletionDocumentation.Resolve request = completionDocumentation.new Resolve(unresolved);
+        return worker.handle(request).thenCompose(item -> request.finish(worker));
     }
 
     @Override
