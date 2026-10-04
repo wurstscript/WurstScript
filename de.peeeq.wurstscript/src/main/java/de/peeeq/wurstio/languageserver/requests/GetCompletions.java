@@ -49,6 +49,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private CompilationUnit cu;
     private final IdentityHashMap<CompletionItem, AstElementWithSource> docTargets = new IdentityHashMap<>();
     private final IdentityHashMap<CompletionItem, WurstType> completionTypes = new IdentityHashMap<>();
+    private PriorityQueue<CompletionItem> worstCandidates;
 
 
     public GetCompletions(CompletionParams position, BufferManager bufferManager) {
@@ -151,6 +152,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
         WLogger.info("....expected type = " + expectedType);
 
         calculateCompletions(completions);
+        if (worstCandidates != null) {
+            completions.clear();
+            completions.addAll(worstCandidates);
+            worstCandidates = null;
+        }
         removeDuplicates(completions);
         preferBestMatchTier(completions);
         preferExpectedTypeForShortQueries(completions);
@@ -167,7 +173,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         List<CompletionItem> others = new ArrayList<>();
         for (CompletionItem item : completions) {
             WurstType t = completionTypes.get(item);
-            if (t != null && t.isSubtypeOf(expectedType, elem)) {
+            if (t != null && !(t instanceof WurstTypeUnknown) && t.isSubtypeOf(expectedType, elem)) {
                 expectedTypeMatches.add(item);
             } else {
                 others.add(item);
@@ -252,7 +258,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             return false;
         }
         WurstType t = completionTypes.get(item);
-        return t != null && t.isSubtypeOf(expectedType, elem);
+        return t != null && !(t instanceof WurstTypeUnknown) && t.isSubtypeOf(expectedType, elem);
     }
 
     private boolean shouldKeepAsExpectedTypeFallback(CompletionItem item) {
@@ -372,10 +378,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                             && nameLink.getVisibility() == Visibility.PUBLIC) {
                         CompletionItem completion = makeNameDefCompletion(nameLink);
                         if (!addCompletionCandidate(completions, completion)) {
-                            isIncomplete = true;
-                            if (!hasExpectedType) {
-                                break;
-                            }
+                            break;
                         }
                     }
                 }
@@ -411,7 +414,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                     if (n.getDef() instanceof ClassDef && isSuitableCompletion(n.getName())) {
                         ClassDef c = (ClassDef) n.getDef();
                         for (ConstructorDef constr : c.getConstructors()) {
-                            completions.add(makeConstructorCompletion(c, constr));
+                            addCompletionCandidate(completions, makeConstructorCompletion(c, constr));
                         }
                     }
                 }
@@ -474,18 +477,18 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setDetail("int length");
         completion.setInsertText("length");
         completion.setSortText(ratingToString(calculateRating("length", WurstTypeInt.instance())));
-        completions.add(completion);
+        addCompletionCandidate(completions, completion);
     }
 
     private void addKeywordCompletions(List<CompletionItem> completions) {
         for (String keyword : WurstKeywords.KEYWORDS) {
             if (keyword.startsWith(alreadyEntered)) {
-                completions.add(makeSimpleNameCompletion(keyword));
+                addCompletionCandidate(completions, makeSimpleNameCompletion(keyword));
             }
         }
         for (String keyword : WurstKeywords.JASS_PRIMITIVE_TYPES) {
             if (keyword.startsWith(alreadyEntered)) {
-                completions.add(makeSimpleNameCompletion(keyword));
+                addCompletionCandidate(completions, makeSimpleNameCompletion(keyword));
             }
         }
     }
@@ -496,7 +499,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         Set<String> usedPackages = Sets.newHashSet();
         for (WPackage p : model.attrPackages().values()) {
             if (!usedPackages.contains(p.getName()) && isSuitableCompletion(p.getName())) {
-                completions.add(makeNameDefCompletion(PackageLink.create(p, p.attrNearestScope())));
+                addCompletionCandidate(completions, makeNameDefCompletion(PackageLink.create(p, p.attrNearestScope())));
                 usedPackages.add(p.getName());
             }
         }
@@ -504,11 +507,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
             String libName = Utils.getLibName(dep);
             if (!usedPackages.contains(libName) && isSuitableCompletion(libName)) {
                 usedPackages.add(libName);
-                completions.add(makeSimpleNameCompletion(libName));
+                addCompletionCandidate(completions, makeSimpleNameCompletion(libName));
             }
         }
         if (isSuitableCompletion("NoWurst")) {
-            completions.add(makeSimpleNameCompletion("NoWurst"));
+            addCompletionCandidate(completions, makeSimpleNameCompletion("NoWurst"));
         }
     }
 
@@ -555,7 +558,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             assert classDef != null; // every constructor has a nearest class
             CompletionItem ci = makeConstructorCompletion(classDef, constructorDef);
             ci.setTextEdit(null);
-            completions.add(ci);
+            addCompletionCandidate(completions, ci);
         }
     }
 
@@ -564,7 +567,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (funcDef != null) {
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
-            completions.add(ci);
+            addCompletionCandidate(completions, ci);
             preferExpectedTypeFromCall(funcDef, currentArgumentIndex(c.getFuncName(), c.getLeft().getSource().getEndColumn()));
             // Also provide argument value suggestions at this call site.
             addDefaultCompletions(completions, c, false);
@@ -578,10 +581,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private void getCompletionsForExistingCall(List<CompletionItem> completions, ExprFunctionCall c) {
         FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
-            alreadyEntered = c.getFuncName();
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
-            completions.add(ci);
+            addCompletionCandidate(completions, ci);
             preferExpectedTypeFromCall(funcDef, currentArgumentIndex(c.getFuncName(), c.getSource().getStartColumn()));
             // Also provide argument value suggestions at this call site.
             addDefaultCompletions(completions, c, false);
@@ -704,22 +706,40 @@ public class GetCompletions extends UserRequest<CompletionList> {
             completions.add(candidate);
             return true;
         }
-        if (!hasExpectedType || !isExpectedTypeMatch(candidate)) {
-            return false;
-        }
-        // Keep expected-type candidates even when the cap is reached by replacing
-        // a non-expected candidate if possible.
-        for (int i = completions.size() - 1; i >= 0; i--) {
-            CompletionItem existing = completions.get(i);
-            if (!isExpectedTypeMatch(existing)) {
-                completions.remove(i);
-                docTargets.remove(existing);
-                completionTypes.remove(existing);
-                completions.add(candidate);
-                return true;
+        isIncomplete = true;
+        // Empty queries preserve scope proximity and only replace candidates for expected types.
+        // No name match can become stronger without a query, so stop early if there is no type hint.
+        if (alreadyEntered.isEmpty()) {
+            if (isExpectedTypeMatch(candidate)) {
+                for (int i = completions.size() - 1; i >= 0; i--) {
+                    CompletionItem existing = completions.get(i);
+                    if (!isExpectedTypeMatch(existing)) {
+                        completions.remove(i);
+                        docTargets.remove(existing);
+                        completionTypes.remove(existing);
+                        completions.add(candidate);
+                        return true;
+                    }
+                }
             }
+            docTargets.remove(candidate);
+            completionTypes.remove(candidate);
+            return hasExpectedType;
         }
-        return false;
+        // The budget bounds retained items, not the scope walk. A strong imported match can
+        // occur after thousands of weak local matches, regardless of their iteration order.
+        if (worstCandidates == null) {
+            worstCandidates = new PriorityQueue<>(MAX_CANDIDATES, completionItemComparator().reversed());
+            worstCandidates.addAll(completions);
+        }
+        CompletionItem discarded = candidate;
+        if (completionItemComparator().compare(candidate, worstCandidates.peek()) < 0) {
+            discarded = worstCandidates.remove();
+            worstCandidates.add(candidate);
+        }
+        docTargets.remove(discarded);
+        completionTypes.remove(discarded);
+        return true;
     }
 
 	/*
@@ -780,14 +800,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void removeDuplicates(List<CompletionItem> completions) {
-        for (int i = 0; i < completions.size() - 1; i++) {
-            for (int j = completions.size() - 1; j > i; j--) {
-                if (completions.get(i).equals(completions.get(j))) {
-                    completions.remove(j);
-                }
-            }
-        }
-
+        Set<CompletionItem> seen = new HashSet<>();
+        completions.removeIf(item -> !seen.add(item));
     }
 
     /**
@@ -849,19 +863,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 FuncLink funcLink = (FuncLink) defLink;
                 CompletionItem completion = makeFunctionCompletion(funcLink);
                 if (!addCompletionCandidate(completions, completion)) {
-                    isIncomplete = true;
-                    if (!hasExpectedType) {
-                        return;
-                    }
-                    continue;
+                    return;
                 }
             } else {
                 CompletionItem completion = makeNameDefCompletion(defLink);
                 if (!addCompletionCandidate(completions, completion)) {
-                    isIncomplete = true;
-                    if (!hasExpectedType) {
-                        return;
-                    }
+                    return;
                 }
             }
         }
@@ -914,7 +921,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private double calculateRating(String name, WurstType wurstType) {
         double r = calculateNameBasedRating(name);
         if (hasExpectedType) {
-            if (wurstType.isSubtypeOf(expectedType, elem)) {
+            if (!(wurstType instanceof WurstTypeUnknown) && wurstType.isSubtypeOf(expectedType, elem)) {
                 // Strongly prefer candidates that satisfy the expected type at cursor.
                 r += 1.0;
             } else {
@@ -937,9 +944,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
             case 0:
                 return 1.8;
             case 1:
-                return 1.65;
+                return 1.65 + 0.05 * alreadyEntered.length() / name.length();
             case 2:
-                return 1.55;
+                return 1.55 + 0.05 * Math.min(1.0, (double) alreadyEntered.length() / name.length());
             case 3:
                 return 1.45;
             case 4:
@@ -1205,10 +1212,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 FuncLink ef2 = ef.adaptToReceiverType(leftType);
                 if (ef2 != null) {
                     if (!addCompletionCandidate(completions, makeFunctionCompletion(ef2))) {
-                        isIncomplete = true;
-                        if (!hasExpectedType) {
-                            return;
-                        }
+                        return;
                     }
                 }
             }
