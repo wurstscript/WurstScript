@@ -14,6 +14,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutionException;
+import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -21,8 +25,85 @@ import java.util.stream.Collectors;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 
 public class LanguageWorkerTest {
+
+    @Test
+    public void failedModelInitializationRejectsRequests() throws Exception {
+        LanguageWorker worker = new LanguageWorker();
+        AtomicInteger failures = new AtomicInteger();
+        worker.setLanguageClient((org.eclipse.lsp4j.services.LanguageClient) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{org.eclipse.lsp4j.services.LanguageClient.class},
+                (proxy, method, args) -> null));
+        worker.setInitialBuildListener(success -> { assertFalse(success); failures.incrementAndGet(); });
+        try {
+            // Exercise initialization failure without adding a production-only factory hook.
+            var init = LanguageWorker.class.getDeclaredMethod("doInit", WFile.class);
+            init.setAccessible(true);
+            init.invoke(worker, new Object[]{null});
+            var request = worker.handle(new UserRequest<Boolean>() {
+                @Override
+                public Boolean execute(ModelManager modelManager) { throw new AssertionError("failed initialization must not run requests"); }
+            });
+            expectThrows(ExecutionException.class, () -> request.get(2, TimeUnit.SECONDS));
+            assertEquals(failures.get(), 1);
+        } finally {
+            worker.stop();
+        }
+    }
+
+    @Test
+    public void initialBuildReportsCompletionOnlyAfterBuildReturns() throws Exception {
+        Path tmp = Files.createTempDirectory("wurst-lw-initial-build");
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicReference<Boolean> completed = new AtomicReference<>();
+        LanguageWorker worker = new LanguageWorker();
+        worker.modelManager = new CountingModelManager(tmp.toFile()) {
+            @Override
+            public void buildProject() {
+                entered.countDown();
+                try {
+                    assertTrue(release.await(5, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        worker.setInitialBuildListener(completed::set);
+        try {
+            worker.setRootPath(WFile.create(tmp.toFile()));
+            assertTrue(entered.await(2, TimeUnit.SECONDS));
+            assertEquals(completed.get(), null, "readiness must not precede the full build");
+            release.countDown();
+            assertTrue(waitUntil(() -> completed.get() != null, 2000));
+            assertEquals(completed.get(), Boolean.TRUE);
+        } finally {
+            release.countDown();
+            worker.stop();
+        }
+    }
+
+    @Test
+    public void initialBuildExceptionReportsFailure() throws Exception {
+        Path tmp = Files.createTempDirectory("wurst-lw-initial-failure");
+        AtomicReference<Boolean> completed = new AtomicReference<>();
+        LanguageWorker worker = new LanguageWorker();
+        worker.modelManager = new CountingModelManager(tmp.toFile()) {
+            @Override
+            public void buildProject() { throw new IllegalStateException("initial build failed"); }
+        };
+        worker.setInitialBuildListener(completed::set);
+        try {
+            worker.setRootPath(WFile.create(tmp.toFile()));
+            assertTrue(waitUntil(() -> completed.get() != null, 2000));
+            assertEquals(completed.get(), Boolean.FALSE, "an exception must not report readiness");
+        } finally {
+            worker.stop();
+        }
+    }
 
     @Test
     public void watcherChangedForOpenFileIsIgnored() throws Exception {

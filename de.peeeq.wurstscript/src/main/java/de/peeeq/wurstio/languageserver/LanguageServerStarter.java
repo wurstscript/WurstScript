@@ -18,8 +18,8 @@ public class LanguageServerStarter {
         // redirect all other output to StdErr, just to be sure:
         System.setOut(System.err);
         server.connect(launcher.getRemoteProxy());
-        launcher.startListening();
         server.setRemoteEndpoint(launcher.getRemoteEndpoint());
+        launcher.startListening();
     }
 
     public static void trainForAppCds() {
