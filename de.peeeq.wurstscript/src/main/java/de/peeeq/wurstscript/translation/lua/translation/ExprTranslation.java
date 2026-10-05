@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -129,6 +130,11 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(x));
         }
+        String keyedRead = LuaKeyedMap.readStubName(tr.imTr, e.getFunc());
+        if (keyedRead != null && e.getArguments().size() == 2) {
+            return keyedMapRead(keyedRead, e.getArguments().get(0).translateToLua(tr),
+                e.getArguments().get(1).translateToLua(tr));
+        }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
@@ -172,7 +178,31 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFmodIntFunc
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
-            || function == tr.imTr.luaRawConcatFunc;
+            || function == tr.imTr.luaRawConcatFunc
+            || LuaKeyedMap.readStubName(tr.imTr, function) != null;
+    }
+
+    /**
+     * A keyed-map read as the table index its stub stands for. A typed read answers the Wurst
+     * default for a missing key; {@code t} and {@code k} are each evaluated once, in that order, as
+     * they are as call arguments.
+     */
+    static LuaExpr keyedMapRead(String stub, LuaExpr table, LuaExpr key) {
+        LuaExpr read = LuaAst.LuaExprArrayAccess(table, LuaAst.LuaExprlist(key));
+        switch (stub) {
+            case LuaKeyedMap.NATIVE_GET_INT:
+                return LuaAst.LuaExprBinary(read, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0"));
+            case LuaKeyedMap.NATIVE_GET_REAL:
+                return LuaAst.LuaExprBinary(read, LuaAst.LuaOpOr(), LuaAst.LuaExprRealVal("0."));
+            case LuaKeyedMap.NATIVE_GET_BOOL:
+                return LuaAst.LuaExprBinary(read, LuaAst.LuaOpEquals(), LuaAst.LuaExprBoolVal(true));
+            case LuaKeyedMap.NATIVE_GET_STR:
+                return LuaAst.LuaExprBinary(read, LuaAst.LuaOpOr(), LuaAst.LuaExprStringVal(""));
+            case LuaKeyedMap.NATIVE_HAS:
+                return LuaAst.LuaExprBinary(read, LuaAst.LuaOpUnequals(), LuaAst.LuaExprNull());
+            default:
+                return read;
+        }
     }
 
     /**

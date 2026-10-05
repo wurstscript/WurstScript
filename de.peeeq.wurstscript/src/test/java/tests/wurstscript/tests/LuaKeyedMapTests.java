@@ -77,12 +77,17 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         String compiled = compiled("keyedMapLowersToSingleLuaIndexes");
         assertTrue("create allocates a bare table", getFunctionBody(compiled, "__wurst_keyedMapCreate").contains("return {}"));
         assertTrue("put is one store", getFunctionBody(compiled, "__wurst_keyedMapPut").contains("t[k] = v"));
-        assertTrue("an int read answers 0 for a missing key",
-            getFunctionBody(compiled, "__wurst_keyedMapGetInt").contains("return t[k] or 0"));
-        assertTrue("has is one index", getFunctionBody(compiled, "__wurst_keyedMapHas").contains("] ~= nil"));
         assertTrue("remove is one store", getFunctionBody(compiled, "__wurst_keyedMapRemove").contains("t[k] = nil"));
 
         String init = getFunctionBody(compiled, "init_Test");
+        // The reads are printed as the index they stand for, so there is no stub to call or define.
+        assertTrue("an int read is one index that answers 0 for a missing key: " + init,
+            init.contains("] or 0)"));
+        assertTrue("has is one index: " + init, init.contains("] ~= nil)"));
+        assertFalse("no read stub is called: " + init,
+            init.contains("__wurst_keyedMapGetInt") || init.contains("__wurst_keyedMapHas"));
+        assertFalse("no read stub is defined", compiled.contains("function __wurst_keyedMapGetInt")
+            || compiled.contains("function __wurst_keyedMapHas"));
         assertFalse("the caller must not reach the hashtable natives: " + init,
             init.contains("SaveInteger") || init.contains("LoadInteger") || init.contains("HaveSavedInteger"));
         assertFalse("an int read needs no nil normalisation: " + init,
@@ -127,10 +132,44 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
         String compiled = compiled("keyedMapStaysNativeWithStackTraces");
         String init = getFunctionBody(compiled, "init_Test");
-        assertTrue("the caller must call the stubs directly: " + init,
-            init.contains("__wurst_keyedMapGetInt") && init.contains("__wurst_keyedMapPut"));
+        assertTrue("the caller must read the table itself and call the put stub directly: " + init,
+            init.contains("] or 0)") && init.contains("__wurst_keyedMapPut"));
         assertFalse("the caller must not reach the hashtable natives: " + init,
             init.contains("SaveInteger") || init.contains("LoadInteger"));
+    }
+
+    /**
+     * A typed read is printed as the index it stands for, where it is called: the stubs are natives
+     * with Lua text bodies, which the inliner cannot expand. A read whose result nothing uses is
+     * dropped, which a call to a native the optimiser knows nothing about never was.
+     */
+    @Test
+    public void keyedMapLookupIsExpandedAndAnUnusedReadIsDropped() throws IOException {
+        test().testLua(true).inline().localOptimizations().withStdLib().lines(keyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "@noinline function lookup(int m, int k) returns int",
+            "    return keyedMapGetInt(m, k)",
+            "@noinline function discard(int m, int k)",
+            "    let ignoredValue = keyedMapGetInt(m, k)",
+            "    let ignoredPresence = keyedMapHas(m, k)",
+            "init",
+            "    let m = keyedMapCreate()",
+            "    keyedMapPut(m, 7, 70)",
+            "    discard(m, 7)",
+            "    print(lookup(m, 7).toString())",
+            "endpackage"));
+
+        String compiled = compiled("keyedMapLookupIsExpandedAndAnUnusedReadIsDropped");
+        String lookup = getFunctionBody(compiled, "lookup");
+        assertTrue("the lookup is the table index with the int default: " + lookup, lookup.contains("] or 0)"));
+        int discardStart = compiled.indexOf("function discard(");
+        assertTrue("expected function discard", discardStart >= 0);
+        String discard = compiled.substring(discardStart, compiled.indexOf("\nend", discardStart));
+        assertFalse("the unused reads are dropped: " + discard,
+            discard.contains("[") || discard.contains("wurstExpr") || discard.contains("__wurst_keyedMap"));
+        assertFalse("no read stub is called or defined anywhere:\n" + compiled,
+            compiled.contains("__wurst_keyedMapGetInt") || compiled.contains("__wurst_keyedMapHas"));
     }
 
     @Test
@@ -191,8 +230,8 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage");
 
         String compiled = compiled("keyedMapGenericKeyAndValueReachLuaUncast");
-        assertTrue("generic operations lower to the keyed-map stubs",
-            compiled.contains("__wurst_keyedMapPut") && compiled.contains("__wurst_keyedMapGetInt"));
+        assertTrue("generic operations lower to the keyed-map put stub and the table read",
+            compiled.contains("__wurst_keyedMapPut") && compiled.contains("] or 0)"));
         String init = getFunctionBody(compiled, "init_Test");
         assertFalse("the unit must be handed over as itself: " + init,
             init.contains("__wurst_objectToIndex") || init.contains("__wurst_classFromIndex")
@@ -232,23 +271,21 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
             "    forwardPut(map, u, 5)",
             "    let value = map.get(u)",
+            "    print(value.toString())",
             "endpackage"));
 
+        // The small specialized wrappers are expanded into the caller, which is all that is left to read.
         String lua = compiled("handleBoundWrapperSpecializesToOneLuaTableAccess");
         String init = getFunctionBody(lua, "init_Test");
-        String put = getFunctionBody(lua, "KeyedMap_KeyedMap_put");
-        String get = getFunctionBody(lua, "KeyedMap_KeyedMap_get");
-        assertTrue("specialized wrapper calls the unchanged put intrinsic: " + put,
-            put.contains("__wurst_keyedMapPut"));
-        assertTrue("specialized wrapper calls the unchanged get intrinsic: " + get,
-            get.contains("__wurst_keyedMapGetInt"));
-        assertFalse("the native unit is used as the key without handle-id conversion: " + init + put + get,
-            (init + put + get).contains("GetHandleId") || (init + put + get).contains("__wurst_objectToIndex")
-                || (init + put + get).contains("__wurst_classToIndex"));
+        assertTrue("the caller calls the unchanged put intrinsic: " + init, init.contains("__wurst_keyedMapPut"));
+        assertTrue("and reads the table with the int default: " + init,
+            init.contains("] or 0)") && !init.contains("__wurst_keyedMapGetInt"));
+        assertFalse("the native unit is used as the key without handle-id conversion: " + init,
+            init.contains("GetHandleId") || init.contains("__wurst_objectToIndex")
+                || init.contains("__wurst_classToIndex"));
         assertTrue("put is one direct Lua table store",
             getFunctionBody(lua, "__wurst_keyedMapPut").contains("t[k] = v"));
-        assertTrue("get is one direct Lua table read",
-            getFunctionBody(lua, "__wurst_keyedMapGetInt").contains("return t[k] or 0"));
+        assertTrue("get is one direct Lua table read", init.indexOf("] or 0)") == init.lastIndexOf("] or 0)"));
     }
 
     @Test
@@ -351,30 +388,26 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    classMap.put(u, new Data())",
             "    let data = classMap.get(u)",
             "    data.field = number",
+            "    print(data.field.toString())",
             "endpackage");
 
+        // The small specialized wrappers are expanded into the caller, which is all that is left to read.
         String lua = compiled("handleBoundGenericValuesKeepTheirNativeLuaRepresentation");
         String init = getFunctionBody(lua, "init_Test");
-        String put = getFunctionBody(lua, "KeyedMap_KeyedMap_put");
-        String get = getFunctionBody(lua, "KeyedMap_KeyedMap_get");
-        assertTrue("specialized generic wrapper calls the generic put intrinsic: " + put,
-            put.contains("__wurst_keyedMapPut"));
-        assertTrue("specialized generic wrapper calls the generic get intrinsic: " + get,
-            get.contains("__wurst_keyedMapGet"));
-        String wrapperCalls = init + put + get;
-        assertFalse("generic values and handle keys need no index conversions: " + wrapperCalls,
-            wrapperCalls.contains("GetHandleId") || wrapperCalls.contains("__wurst_objectToIndex")
-                || wrapperCalls.contains("__wurst_classToIndex") || wrapperCalls.contains("__wurst_classFromIndex"));
+        assertTrue("the caller calls the generic put intrinsic: " + init, init.contains("__wurst_keyedMapPut"));
+        assertTrue("and reads the table directly: " + init,
+            init.contains("] or 0)") && !init.contains("__wurst_keyedMapGet"));
+        assertFalse("generic values and handle keys need no index conversions: " + init,
+            init.contains("GetHandleId") || init.contains("__wurst_objectToIndex")
+                || init.contains("__wurst_classToIndex") || init.contains("__wurst_classFromIndex"));
         String putStub = getFunctionBody(lua, "__wurst_keyedMapPut");
-        String getStub = getFunctionBody(lua, "__wurst_keyedMapGet");
         assertTrue("generic put has exactly one direct table store: " + putStub,
             putStub.contains("t[k] = v") && putStub.indexOf("t[k]") == putStub.lastIndexOf("t[k]"));
-        assertTrue("generic get has exactly one direct table read: " + getStub,
-            getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
+        assertFalse("generic get is a table index, with no stub to define", lua.contains("function __wurst_keyedMapGet("));
     }
 
     @Test
-    public void nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub() throws IOException {
+    public void nativeIntegerGetterThroughGenericWrapperUsesRawLuaIndex() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package KeyedMap",
             "import ErrorHandling",
@@ -395,22 +428,21 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
             "    keyedMapPutNative<unit, int>(map, u, 42)",
             "    let value = readNative<unit, int>(map, u)",
+            "    print(value.toString())",
             "endpackage");
 
-        String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub");
+        String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaIndex");
         String init = getFunctionBody(lua, "init_Test");
         // Used as an int, the wrapper's read is the typed read (LuaTypedKeyedReads): a typed copy of
-        // the wrapper returns __wurst_keyedMapGetInt, which answers Wurst's int default itself, so no
-        // ensure is left around the call.
+        // the wrapper reads the table with the int default, so no ensure is left around the call.
         assertTrue("the generic wrapper is read through its typed copy: " + init,
             init.contains("readNative_int(map, u)") && !init.contains("__wurst_ensureInt"));
-        assertTrue("the typed copy returns the typed read: " + getFunctionBody(lua, "readNative_int"),
-            getFunctionBody(lua, "readNative_int").contains("__wurst_keyedMapGetInt("));
+        String typedCopy = getFunctionBody(lua, "readNative_int");
+        assertTrue("the typed copy returns one direct table read with the int default: " + typedCopy,
+            typedCopy.contains("] or 0)") && typedCopy.indexOf("] or 0)") == typedCopy.lastIndexOf("] or 0)"));
         assertFalse("integer get must not leave the failing source fallback body",
             lua.contains("function keyedMapGetNative_unit_int") && lua.contains("return nil"));
-        String getStub = getFunctionBody(lua, "__wurst_keyedMapGetInt");
-        assertTrue("the typed get is one direct table read with the int default: " + getStub,
-            getStub.contains("return t[k] or 0") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
+        assertFalse("the typed get has no stub to define", lua.contains("function __wurst_keyedMapGetInt"));
     }
 
     /**
@@ -636,7 +668,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             end++;
         }
         String loop = String.join("\n", java.util.Arrays.copyOfRange(lines, start, end + 1));
-        assertTrue("the int read is the typed read: " + loop, loop.contains("__wurst_keyedMapGetInt("));
+        assertTrue("the int read is the typed read: " + loop, loop.contains("] or 0)"));
         assertFalse("no ensure left on the int read: " + loop,
             loop.contains("tonumber") || loop.contains("math.tointeger") || loop.contains("__wurst_keyedMapGet("));
     }
@@ -668,7 +700,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage"));
 
         String lua = compiled("fastKeyedMapIntReadsAreTypedWithStackTraces");
-        assertTrue("the typed read is emitted: " + lua.length(), lua.contains("__wurst_keyedMapGetInt("));
+        assertTrue("the typed read is emitted: " + lua.length(), lua.contains("] or 0)"));
         assertFalse("no int ensure is left anywhere a FastKeyedMap<timer, int> is read",
             lua.contains("__wurst_ensureInt(FastKeyedMap") || lua.contains("__wurst_ensureInt(readAll"));
         int stubs = lua.split("function __wurst_keyedMapGet\\(", -1).length - 1;
@@ -703,7 +735,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage"));
 
         String init = getFunctionBody(compiled("delegatedFastKeyedMapIntReadsAreTyped"), "init_Test");
-        assertTrue("the delegated int read is the typed read: " + init, init.contains("__wurst_keyedMapGetInt("));
+        assertTrue("the delegated int read is the typed read: " + init, init.contains("] or 0)"));
         assertFalse("no ensure left on the delegated int read: " + init,
             init.contains("math.tointeger") || init.contains("__wurst_ensureInt("));
     }
@@ -873,9 +905,9 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
         String compiled = compiled("unitKeyedMapKeysTheUnitItselfOnLua");
         String init = getFunctionBody(compiled, "init_Test");
-        assertTrue("the operations lower to the keyed-map stubs: " + init,
-            init.contains("__wurst_keyedMapPut") && init.contains("__wurst_keyedMapGetInt")
-                && init.contains("__wurst_keyedMapHas") && init.contains("__wurst_keyedMapRemove"));
+        assertTrue("writes lower to the keyed-map stubs and reads to the table index: " + init,
+            init.contains("__wurst_keyedMapPut") && init.contains("] or 0)")
+                && init.contains("] ~= nil)") && init.contains("__wurst_keyedMapRemove"));
         assertFalse("the unit must not go through a handle id or an index map: " + init,
             init.contains("GetHandleId") || init.contains("__wurst_objectToIndex") || init.contains("SaveInteger"));
     }
@@ -1024,9 +1056,9 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
         String compiled = compiled("intKeyedClassMapLowersToSingleLuaIndexes");
         String init = getFunctionBody(compiled, "init_Test");
-        assertTrue("the operations lower to the keyed-map stubs: " + init,
-            init.contains("__wurst_keyedMapPut") && init.contains("__wurst_keyedMapGet")
-                && init.contains("__wurst_keyedMapHas") && init.contains("__wurst_keyedMapRemove"));
+        assertTrue("writes lower to the keyed-map stubs and reads to the table index: " + init,
+            init.contains("__wurst_keyedMapPut") && init.contains("] ~= nil)")
+                && !init.contains("__wurst_keyedMapGet") && init.contains("__wurst_keyedMapRemove"));
         assertFalse("the object must be stored as itself: " + init,
             init.contains("__wurst_objectToIndex") || init.contains("__wurst_classToIndex")
                 || init.contains("__wurst_classFromIndex"));

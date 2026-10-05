@@ -266,7 +266,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        this.minY = minY",
             "        this.maxX = maxX",
             "        this.maxY = maxY",
-            "    function contains(Vec2 p) returns boolean",
+            "    @noinline function contains(Vec2 p) returns boolean",
             "        return p.x > minX and p.x < maxX and p.y > minY and p.y < maxY",
             "function gridAnchor(MyRect r, int dirX, int dirY, boolean isBehind) returns Vec2",
             "    let ax = dirX >= 0 ? r.minX + (isBehind ? 0 : 64) : r.maxX + (isBehind ? 0 : 64)",
@@ -696,9 +696,16 @@ public class LuaTranslationTests extends WurstScriptTest {
             "class Child extends Base",
             "    override function setup(int a, int b)",
             "        super.setup(a, b)",
+            "class Other extends Base",
+            "    override function setup(int a)",
+            "        skip",
+            "    override function setup(int a, int b, boolean c)",
+            "        skip",
             "init",
             "    let c = new Child()",
-            "    c.setup(1)"
+            "    c.setup(1)",
+            "    Base other = new Other()",
+            "    other.setup(1)"
         );
 
         List<String> overriddenSlots = uniqueMatches(compiled, "Child\\.Base(?:_M)?_setup(\\d*)\\s*=\\s*Child_Child_setup", 1);
@@ -731,7 +738,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    override function greet() returns thistype",
             "        return this",
             "module GreeterCaller",
-            "    function call(Greeter greeter) returns Greeter",
+            "    @noinline function call(Greeter greeter) returns Greeter",
             "        return greeter.greet()",
             "class First implements Greeter",
             "    use NestedFirstGreeter",
@@ -777,13 +784,17 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "class Both implements IntValue, StringValue",
             "    use IntValueImpl",
+            "class OtherString implements StringValue",
+            "    override function value() returns string",
+            "        return \"other\"",
             "@noinline function readInt(IntValue value) returns int",
             "    return value.value()",
             "@noinline function readString(StringValue value) returns string",
             "    return value.value()",
             "init",
             "    readInt(new Both())",
-            "    readString(new Both())"
+            "    readString(new Both())",
+            "    readString(new OtherString())"
         );
 
         String intSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readInt"));
@@ -810,13 +821,17 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "class Both<T> implements IntValue, StringValue",
             "    use IntValueImpl",
+            "class OtherString implements StringValue",
+            "    override function value() returns string",
+            "        return \"other\"",
             "@noinline function readInt(IntValue value) returns int",
             "    return value.value()",
             "@noinline function readString(StringValue value) returns string",
             "    return value.value()",
             "init",
             "    readInt(new Both<int>())",
-            "    readString(new Both<int>())"
+            "    readString(new Both<int>())",
+            "    readString(new OtherString())"
         );
 
         assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
@@ -841,13 +856,17 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return new Base()",
             "class Both implements DerivedValue, BaseValue",
             "    use BaseValueImpl",
+            "class OtherDerived implements DerivedValue",
+            "    override function value() returns Derived",
+            "        return new Derived()",
             "@noinline function readDerived(DerivedValue value) returns Derived",
             "    return value.value()",
             "@noinline function readBase(BaseValue value) returns Base",
             "    return value.value()",
             "init",
             "    readDerived(new Both())",
-            "    readBase(new Both())"
+            "    readBase(new Both())",
+            "    readDerived(new OtherDerived())"
         );
 
         assertContainsRegex(compiled, "Both\\.DerivedValue_DerivedValue_value\\s*=\\s*DerivedValue_DerivedValue_value");
@@ -874,9 +893,14 @@ public class LuaTranslationTests extends WurstScriptTest {
             "class Child extends Mid",
             "    override function setup(int a, int b, boolean c)",
             "        super.setup(a, b, c)",
+            "class Other extends Base",
+            "    override function setup(int a)",
+            "        skip",
             "init",
             "    let c = new Child()",
-            "    c.setup(1)"
+            "    c.setup(1)",
+            "    Base other = new Other()",
+            "    other.setup(1)"
         );
 
         List<String> midSlots = uniqueMatches(compiled, "Mid\\.(Base_setup\\d*)\\s*=\\s*Mid_Mid_setup", 1);
@@ -908,8 +932,10 @@ public class LuaTranslationTests extends WurstScriptTest {
 
                 assertEquals("Expected one overridden route slot for overloadCount=" + overloadCount + ", overrideIndex=" + overrideIndex,
                     1, overriddenSlots.size());
-                assertEquals("Expected distinct route slots to match overload count for overloadCount=" + overloadCount,
-                    overloadCount, baseSlots.size());
+                // A call that cannot dispatch anywhere else is a direct call and its method gets no slot:
+                // only the overload a subclass overrides is dispatched, so it is the only one with a slot.
+                assertEquals("Expected only the overridden route overload to have a slot for overloadCount=" + overloadCount,
+                    overriddenSlots, baseSlots);
                 assertTrue("Missing child binding for overridden slot " + overriddenSlots.get(0),
                     compiled.contains("Child." + overriddenSlots.get(0) + " = Child_Child_route"));
 
@@ -974,11 +1000,11 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    function setup(int a, int b, int c, int d, int e, int f, int g)",
             "        skip",
             "class KUIWindow extends KUIFrame",
-            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h)",
+            "    @noinline function setup(int a, int b, int c, int d, int e, int f, int g, int h)",
             "        this.setup(a, b, c, d, e, f, g, h, 0)",
-            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i)",
+            "    @noinline function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i)",
             "        this.setup(a, b, c, d, e, f, g, h, i, 0)",
-            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j)",
+            "    @noinline function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j)",
             "        skip",
             "class KUITargetUnit extends KUIWindow",
             "    override function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i)",
@@ -1003,7 +1029,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "interface LLItrClosure",
             "    function run(int t)",
             "class LinkedList",
-            "    function forEach(LLItrClosure f)",
+            "    @noinline function forEach(LLItrClosure f)",
             "        f.run(1)",
             "function feed(LinkedList xs)",
             "    xs.forEach((int t) -> skip)",
@@ -1032,12 +1058,12 @@ public class LuaTranslationTests extends WurstScriptTest {
             "public abstract class OtherCallback",
             "    abstract function callback(int elem)",
             "class OtherRegistry",
-            "    function applyTo(OtherCallback cb)",
+            "    @noinline function applyTo(OtherCallback cb)",
             "        cb.callback(0)",
             "public abstract class ForElementCallback",
             "    abstract function callback(int elem)",
             "class Registry",
-            "    function forEachIn(ForElementCallback cb)",
+            "    @noinline function forEachIn(ForElementCallback cb)",
             "        cb.callback(1)",
             "function runAll(Registry r, OtherRegistry o)",
             "    r.forEachIn() elem ->",
@@ -1083,7 +1109,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    Box<X> stored = null",
             "    function add(X x)",
             "        stored = new Box<X>(x)",
-            "    function forEach(LLItrClosure<X> f)",
+            "    @noinline function forEach(LLItrClosure<X> f)",
             "        if stored != null",
             "            f.run(stored.elem)",
             "public interface LLItrClosure<T>",
@@ -1114,7 +1140,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    T stored = null",
             "    construct(T stored)",
             "        this.stored = stored",
-            "    function forEachIn(ForElementCallback<T> cb)",
+            "    @noinline function forEachIn(ForElementCallback<T> cb)",
             "        if stored != null",
             "            cb.callback(stored)",
             "public abstract class ForElementCallback<T>",
@@ -2546,7 +2572,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         lines.add("package Test");
         lines.add("class Base");
         for (int i = 1; i <= overloadCount; i++) {
-            lines.add("    function route(" + routeParams(i) + ")");
+            // kept as functions: the stubs' bodies are what the test reads
+            lines.add("    @noinline function route(" + routeParams(i) + ")");
             if (i < overloadCount) {
                 lines.add("        this.route(" + routeArgsToNext(i) + ")");
             } else {

@@ -2,6 +2,13 @@
 
 - Code completion no longer suggests code while writing documentation, block, or line comments.
 
+- On Lua, `-inline` now expands one-line getters and setters at every call site, whatever the number of
+  callers and wherever the call is. Method calls with a single implementation used to reach the inliner only
+  inside loops, so `list.size()` outside a loop stayed a call however small it was. A getter or setter is also
+  expanded in functions too large for the inliner's register budget, since it declares no local, and
+  `KeyedMap` reads are written as the table index (`t[k] or 0`) instead of calling a helper, so an unused
+  read is dropped.
+
 - Added type class bounds for `T:` generics. A bound requires operations of the type it is bound to, so a
   generic can do more than store and return values, without giving up static dispatch:
 
