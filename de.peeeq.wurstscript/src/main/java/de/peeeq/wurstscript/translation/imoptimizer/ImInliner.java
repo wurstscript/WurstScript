@@ -41,6 +41,7 @@ public class ImInliner {
     private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
     /** What the decision log reports for a caller which is not tracked in {@link #funcSizes}; never read by a decision. */
     private final Map<ImFunction, Integer> untrackedCallerSizes = Maps.newIdentityHashMap();
+    private final Map<ImFunction, Integer> calleeIds = Maps.newIdentityHashMap();
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
     private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
     private final Map<ImFunction, LuaRegisterBudget> luaRegisterBudgets = Maps.newLinkedHashMap();
@@ -136,7 +137,7 @@ public class ImInliner {
                         ? " projectedLuaRegisters=" + getLuaRegisterBudget(f).projectedPressure(call, called)
                         : "") +
                     (canInline ? "" : " reason=" + skipReason(f, call, called)) +
-                    " calleeId=" + Integer.toHexString(System.identityHashCode(called)) +
+                    " calleeId=" + calleeIdForLog(called) +
                     " calls=" + getCallCount(called) + " args=" + call.getArguments().size() +
                     " constArg=" + hasConstantArgument(call) + " loopDepth=" + loopDepth(call) +
                     " callerSize=" + callerSizeForLog(f);
@@ -209,6 +210,19 @@ public class ImInliner {
      * only, so a caller which is none (the global initialiser, a vararg function, a package
      * initialiser) is measured when asked, until its first inlining starts tracking it.
      */
+    /**
+     * A number for a function, in the order the log first meets it. Unlike an identity hash code it is
+     * never shared by two functions, which is the point of logging it: names are not unique.
+     */
+    private int calleeIdForLog(ImFunction f) {
+        Integer id = calleeIds.get(f);
+        if (id == null) {
+            id = calleeIds.size();
+            calleeIds.put(f, id);
+        }
+        return id;
+    }
+
     private int callerSizeForLog(ImFunction f) {
         Integer tracked = funcSizes.get(f);
         // measured once, not per decision: a caller with many refused calls would otherwise be rescanned for each

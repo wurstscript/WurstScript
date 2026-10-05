@@ -5733,7 +5733,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     private static String calleeId(String record) {
-        java.util.regex.Matcher id = java.util.regex.Pattern.compile(" calleeId=([0-9a-f]+) ").matcher(record);
+        java.util.regex.Matcher id = java.util.regex.Pattern.compile(" calleeId=(\\d+) ").matcher(record);
         assertTrue("a calleeId in " + record, id.find());
         return id.group(1);
     }
@@ -5778,7 +5778,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
         for (String record : log) {
             assertTrue("every record carries the cost fields: " + record,
-                record.matches(".* calleeId=[0-9a-f]+ calls=\\d+ args=\\d+ constArg=(true|false) loopDepth=\\d+ callerSize=\\d+"));
+                record.matches(".* calleeId=\\d+ calls=\\d+ args=\\d+ constArg=(true|false) loopDepth=\\d+ callerSize=\\d+"));
             assertFalse("the size of the calling function is known, even for the package initialiser: " + record,
                 record.endsWith("callerSize=2147483647"));
         }
