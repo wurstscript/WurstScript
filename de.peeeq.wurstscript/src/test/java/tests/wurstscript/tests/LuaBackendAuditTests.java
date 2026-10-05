@@ -22,8 +22,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
@@ -41,6 +44,48 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     private String compiledLua(String testName) throws IOException {
         return Files.toString(new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua"), Charsets.UTF_8);
+    }
+
+    private static final java.util.regex.Pattern SLOT_ASSIGNMENT =
+        java.util.regex.Pattern.compile("(?m)^\\s*(\\w+)\\.(\\w+) = (\\w+)\\s*$");
+
+    /** The dispatch slots the bootstrap binds, by class table. Engine metadata ({@code __...}) is not a slot. */
+    private Map<String, List<String>> boundSlotsByClass(String lua) {
+        Map<String, List<String>> result = new TreeMap<>();
+        java.util.regex.Matcher assignment = SLOT_ASSIGNMENT.matcher(lua);
+        while (assignment.find()) {
+            if (!assignment.group(2).startsWith("__")) {
+                result.computeIfAbsent(assignment.group(1), table -> new ArrayList<>()).add(assignment.group(2));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * A slot is only worth binding if some call site reads it. Aliases that nobody reads still cost one
+     * table write per class, and for a family of closures that is quadratic in the family: a slot name
+     * which occurs nowhere but in its own assignments is dead.
+     */
+    private void assertEveryBoundSlotIsRead(String lua) {
+        Map<String, Integer> bound = new TreeMap<>();
+        for (List<String> slots : boundSlotsByClass(lua).values()) {
+            for (String slot : slots) {
+                bound.merge(slot, 1, Integer::sum);
+            }
+        }
+        Map<String, Integer> occurrences = new HashMap<>();
+        java.util.regex.Matcher word = java.util.regex.Pattern.compile("\\w+").matcher(lua);
+        while (word.find()) {
+            occurrences.merge(word.group(), 1, Integer::sum);
+        }
+        List<String> unread = new ArrayList<>();
+        for (Map.Entry<String, Integer> slot : bound.entrySet()) {
+            if (occurrences.get(slot.getKey()) <= slot.getValue()) {
+                unread.add(slot.getKey() + " (bound " + slot.getValue() + "x)");
+            }
+        }
+        assertTrue("class tables bind " + unread.size() + " slots which no call site reads, e.g. "
+            + unread.subList(0, Math.min(8, unread.size())), unread.isEmpty());
     }
 
     private String luaFunctionBody(String compiled, String functionName) {
@@ -2434,7 +2479,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
-    public void randomizedClassInterfaceModuleDispatchMatchesAllBackends() {
+    public void randomizedClassInterfaceModuleDispatchMatchesAllBackends() throws IOException {
         Random random = new Random(0xD15A7C4L);
         List<String> source = new ArrayList<>();
         Collections.addAll(source,
@@ -2546,6 +2591,151 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         source.add("        testSuccess()");
 
         test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+        assertEveryBoundSlotIsRead(compiledLua("randomizedClassInterfaceModuleDispatchMatchesAllBackends"));
+    }
+
+    /** A generated closure: which family it implements, its arithmetic, and the closure it calls in turn. */
+    private record ClosureNode(int family, int mul, int add, ClosureNode inner) {
+    }
+
+    private static final String[] VOID_FAMILIES = {"Step", "Step2", "Visitor"};
+    private static final int MAPPER_FAMILY = 3;
+
+    private static ClosureNode randomClosure(Random random, int family, int depth) {
+        ClosureNode inner = null;
+        if (depth < 2 && random.nextInt(3) == 0) {
+            inner = randomClosure(random, family == MAPPER_FAMILY ? MAPPER_FAMILY : random.nextInt(3), depth + 1);
+        }
+        return new ClosureNode(family, 1 + random.nextInt(4), random.nextInt(6), inner);
+    }
+
+    /** What the closure does: the void families add to {@code sum}, a mapper returns its result. */
+    private static int evaluate(ClosureNode closure, int x, long[] sum) {
+        int value = x * closure.mul() + closure.add();
+        if (closure.family() == MAPPER_FAMILY) {
+            return value + (closure.inner() == null ? 0 : evaluate(closure.inner(), x + 1, sum));
+        }
+        sum[0] += value;
+        if (closure.inner() != null) {
+            evaluate(closure.inner(), x + 1, sum);
+        }
+        return 0;
+    }
+
+    private static void emitVoidClosure(List<String> out, ClosureNode closure, String argument, String indent, int depth) {
+        out.add(indent + "apply" + VOID_FAMILIES[closure.family()] + "(" + argument + ") x" + depth + " ->");
+        out.add(indent + "    sum += x" + depth + " * " + closure.mul() + " + " + closure.add());
+        if (closure.inner() != null) {
+            emitVoidClosure(out, closure.inner(), "x" + depth + " + 1", indent + "    ", depth + 1);
+        }
+    }
+
+    private static String mapperLambda(ClosureNode closure, int depth) {
+        String m = "m" + depth;
+        return "(int " + m + ") -> " + m + " * " + closure.mul() + " + " + closure.add()
+            + (closure.inner() == null ? "" : " + applyMapper(" + m + " + 1, " + mapperLambda(closure.inner(), depth + 1) + ")");
+    }
+
+    /**
+     * Differential dispatch corpus for closures: several families which share a method name, an
+     * abstract class and a generic interface, closures nested up to three deep, and an override chain
+     * reached both through a parameter and through a call result. Every seed runs in the Jass
+     * interpreter and in the Lua runtime and must reach the total the generator computes itself, so a
+     * slot which a call site reads but a class table does not bind fails here as a nil call.
+     */
+    @Test
+    public void randomizedClosureAndOverrideDispatchMatchesAllBackends() throws IOException {
+        for (long seed = 1; seed <= 8; seed++) {
+            Random random = new Random(0xC105E5L * seed);
+            List<String> source = new ArrayList<>();
+            int c0 = random.nextInt(5);
+            int c1 = random.nextInt(5);
+            int c2 = 1 + random.nextInt(3);
+            Collections.addAll(source,
+                "package Test",
+                "native testSuccess()",
+                "int sum",
+                "interface Step",
+                "    function run(int x)",
+                "interface Step2",
+                "    function run(int x)",
+                "abstract class Visitor",
+                "    abstract function visit(int x)",
+                "interface Mapper<T>",
+                "    function map(T t) returns T",
+                "interface Scorer",
+                "    function score() returns int",
+                "class RootScorer implements Scorer",
+                "    int base",
+                "    construct(int base)",
+                "        this.base = base",
+                "    override function score() returns int",
+                "        return base + " + c0,
+                "class MidScorer extends RootScorer",
+                "    construct(int base)",
+                "        super(base)",
+                "    override function score() returns int",
+                "        return super.score() * 2 + " + c1,
+                "class LeafScorer extends MidScorer",
+                "    construct(int base)",
+                "        super(base)",
+                "    override function score() returns int",
+                "        return super.score() + base * " + c2,
+                "@noinline function applyStep(int arg, Step s)",
+                "    s.run(arg)",
+                "@noinline function applyStep2(int arg, Step2 s)",
+                "    s.run(arg)",
+                "@noinline function applyVisitor(int arg, Visitor v)",
+                "    v.visit(arg)",
+                "@noinline function applyMapper(int arg, Mapper<int> m) returns int",
+                "    return m.map(arg)",
+                "@noinline function viaScorer(Scorer s) returns int",
+                "    return s.score()",
+                "function makeScorer(int kind, int base) returns Scorer",
+                "    if kind == 0",
+                "        return new RootScorer(base)",
+                "    if kind == 1",
+                "        return new MidScorer(base)",
+                "    return new LeafScorer(base)",
+                "init");
+
+            long[] sum = {0};
+            for (int family = 0; family <= MAPPER_FAMILY; family++) {
+                int count = 2 + random.nextInt(5);
+                for (int i = 0; i < count; i++) {
+                    ClosureNode closure = randomClosure(random, family, 0);
+                    int argument = random.nextInt(9);
+                    if (family == MAPPER_FAMILY) {
+                        source.add("    sum += applyMapper(" + argument + ", " + mapperLambda(closure, 0) + ")");
+                        sum[0] += evaluate(closure, argument, sum);
+                    } else {
+                        emitVoidClosure(source, closure, Integer.toString(argument), "    ", 0);
+                        evaluate(closure, argument, sum);
+                    }
+                }
+            }
+            int scorers = 4 + random.nextInt(5);
+            for (int i = 0; i < scorers; i++) {
+                int kind = random.nextInt(3);
+                int base = 1 + random.nextInt(9);
+                String[] constructors = {"RootScorer", "MidScorer", "LeafScorer"};
+                source.add("    sum += viaScorer(new " + constructors[kind] + "(" + base + "))");
+                source.add("    sum += makeScorer(" + kind + ", " + base + ").score()");
+                int score = base + c0;
+                if (kind >= 1) {
+                    score = score * 2 + c1;
+                }
+                if (kind == 2) {
+                    score += base * c2;
+                }
+                sum[0] += 2L * score;
+            }
+            source.add("    if sum == " + sum[0]);
+            source.add("        testSuccess()");
+
+            test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+            assertEveryBoundSlotIsRead(compiledLua("randomizedClosureAndOverrideDispatchMatchesAllBackends"));
+        }
     }
 
     /**
@@ -5337,6 +5527,129 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    destroy picked",
             "    if sum == 12 + 9 + 9 + 12",
             "        testSuccess()");
+        assertEveryBoundSlotIsRead(compiledLua("virtualCallsDispatchThroughEveryReceiverShape"));
+    }
+
+    /**
+     * Closures of one interface, of one abstract class and of one generic interface, some nested, next to
+     * a plain override chain. Each family must still reach every implementation at run time, and the
+     * class tables must bind exactly what the call sites read: the dispatched slot of each family in
+     * every closure of it, and nothing else.
+     */
+    @Test
+    public void closureFamiliesBindOnlyTheSlotsCallSitesRead() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int sum",
+            "interface Step",
+            "    function run(int x)",
+            "abstract class Visitor",
+            "    abstract function visit(int x)",
+            "interface Mapper<T>",
+            "    function map(T t) returns T",
+            "class Base",
+            "    function value() returns int",
+            "        return 1",
+            "class Mid extends Base",
+            "    override function value() returns int",
+            "        return 10",
+            "class Leaf extends Mid",
+            "    override function value() returns int",
+            "        return 100",
+            "@noinline function applyStep(int arg, Step s)",
+            "    s.run(arg)",
+            "@noinline function applyVisitor(int arg, Visitor v)",
+            "    v.visit(arg)",
+            "@noinline function applyMap(int arg, Mapper<int> m) returns int",
+            "    return m.map(arg)",
+            "@noinline function valueOf(Base b) returns int",
+            "    return b.value()",
+            "init",
+            "    let k = 3",
+            "    applyStep(1) x ->",
+            "        sum += x",
+            "    applyStep(2) x ->",
+            "        sum += x * k",
+            "    applyStep(3) x ->",
+            "        applyStep(x + 1) y ->",
+            "            sum += y * 2",
+            "    applyStep(4) x ->",
+            "        sum += x - k",
+            "    applyVisitor(5) v ->",
+            "        sum += v",
+            "    applyVisitor(6) v ->",
+            "        sum += v * k",
+            "    applyVisitor(7) v ->",
+            "        applyStep(v) y ->",
+            "            sum += y + 1",
+            "    sum += applyMap(8, (int m) -> m + 1)",
+            "    sum += applyMap(8, (int m) -> m * k)",
+            "    sum += applyMap(8, (int m) -> applyMap(m, (int n) -> n + 2))",
+            "    sum += valueOf(new Leaf()) + valueOf(new Mid()) + valueOf(new Base())",
+            // steps 1 + 6 + 8 + 1, visitors 5 + 18 + 8, mappers 9 + 24 + 10, classes 100 + 10 + 1
+            "    if sum == 16 + 31 + 43 + 111",
+            "        testSuccess()");
+
+        String compiled = compiledLua("closureFamiliesBindOnlyTheSlotsCallSitesRead");
+        assertEveryBoundSlotIsRead(compiled);
+        Map<String, Integer> closures = new TreeMap<>();
+        closures.put("applyStep", 6);
+        closures.put("applyVisitor", 3);
+        closures.put("applyMap", 4);
+        for (Map.Entry<String, Integer> family : closures.entrySet()) {
+            String body = topLevelFunctionBodyWithPrefix(compiled, family.getKey());
+            java.util.regex.Matcher read = java.util.regex.Pattern
+                .compile("__wurst_objectClass\\[\\w+]\\.(\\w+)\\(").matcher(body);
+            assertTrue(family.getKey() + " reads its slot from the receiver's descriptor:\n" + body, read.find());
+            String slot = read.group(1);
+            int bindings = 0;
+            for (List<String> slots : boundSlotsByClass(compiled).values()) {
+                bindings += Collections.frequency(slots, slot);
+            }
+            assertEquals(family.getKey() + " dispatches '" + slot + "', which every closure of the family binds",
+                family.getValue().intValue(), bindings);
+        }
+    }
+
+    /** A closure family must cost each of its classes the slots its callers read, not one per sibling. */
+    @Test
+    public void closureTablesDoNotGrowWithTheSizeOfTheirFamily() {
+        String compiled = compileOptimizedLua("closureTablesDoNotGrowWithTheSizeOfTheirFamily",
+            closureFamilySource(16));
+        for (Map.Entry<String, List<String>> table : boundSlotsByClass(compiled).entrySet()) {
+            assertTrue("class table " + table.getKey() + " binds " + table.getValue().size()
+                    + " slots: " + table.getValue(),
+                table.getValue().size() <= 3);
+        }
+        assertEveryBoundSlotIsRead(compiled);
+    }
+
+    @Test
+    public void closureFamilySlotsAreEmittedDeterministically() {
+        String[] source = closureFamilySource(8);
+        assertEquals(compileOptimizedLua("closureFamilySlotsAreEmittedDeterministicallyA", source),
+            compileOptimizedLua("closureFamilySlotsAreEmittedDeterministicallyA", source));
+    }
+
+    /** {@code size} closures of one interface, all passed through the same dispatching function. */
+    private static String[] closureFamilySource(int size) {
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native consume(int value)",
+            "interface Step",
+            "    function run(int x)",
+            "@noinline function applyStep(int arg, Step s)",
+            "    s.run(arg)",
+            "int sum",
+            "init");
+        for (int i = 0; i < size; i++) {
+            source.add("    applyStep(" + i + ") x ->");
+            source.add("        sum += x * " + (i + 2));
+        }
+        source.add("    consume(sum)");
+        return source.toArray(new String[0]);
     }
 
     @Test

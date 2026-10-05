@@ -2,8 +2,11 @@ package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.luaAst.Element;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import de.peeeq.wurstscript.luaAst.LuaExpr;
+import de.peeeq.wurstscript.luaAst.LuaExprArrayAccess;
 import de.peeeq.wurstscript.luaAst.LuaExprFieldAccess;
 import de.peeeq.wurstscript.luaAst.LuaExprFunctionCallByName;
+import de.peeeq.wurstscript.luaAst.LuaExprVarAccess;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaMethod;
 import de.peeeq.wurstscript.luaAst.LuaTableNamedField;
@@ -87,6 +90,45 @@ public class LuaAssertions {
             throw new RuntimeException("Wurst Lua backend assertion failed: emitted names are not Lua identifiers: "
                 + String.join(", ", invalid));
         }
+    }
+
+    /**
+     * Asserts that no lookup in a class descriptor names a dispatch slot which was dropped as unread.
+     *
+     * <p>A slot is dropped when none of the call sites known at that point reads it. This looks at
+     * the finished tree, after every later pass, so a call site which was copied or created afterwards
+     * and still reads a dropped name stops the build, instead of surfacing as a nil call in the game.
+     * A lookup is recognised by its shape: a field of {@code objectClass[...]}, or of an alias local
+     * which the storage localisation initialised from it.
+     */
+    public static void assertNoDroppedSlotIsRead(LuaCompilationUnit luaCode, LuaVariable objectClass,
+                                                 Set<String> droppedSlots) {
+        if (droppedSlots.isEmpty()) {
+            return;
+        }
+        Set<String> read = new TreeSet<>();
+        luaCode.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(LuaExprFieldAccess fa) {
+                super.visit(fa);
+                if (droppedSlots.contains(fa.getFieldName()) && isDescriptorLookup(fa.getReceiver(), objectClass)) {
+                    read.add(fa.getFieldName());
+                }
+            }
+        });
+        if (!read.isEmpty()) {
+            throw new RuntimeException("Wurst Lua backend assertion failed: dispatch slots are read from a class "
+                + "descriptor but were dropped as unread: " + String.join(", ", read));
+        }
+    }
+
+    private static boolean isDescriptorLookup(LuaExpr receiver, LuaVariable objectClass) {
+        if (!(receiver instanceof LuaExprArrayAccess lookup) || !(lookup.getLeft() instanceof LuaExprVarAccess table)) {
+            return false;
+        }
+        LuaVariable variable = table.getVar();
+        return variable == objectClass
+            || (variable.getInitialValue() instanceof LuaExprVarAccess alias && alias.getVar() == objectClass);
     }
 
     /**

@@ -96,6 +96,13 @@ public class LuaTranslator {
     private boolean dispatchGroupsBuilt;
     private boolean dispatchReceiverIndexBuilt;
     private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
+    /** The class-table bindings written for a descriptor's slots, so unread ones can be dropped once call sites are resolved. */
+    private final Map<LuaStatement, SlotBinding> slotBindings = new IdentityHashMap<>();
+    /** The slot names which were dropped, for the check that nothing reads one of them after all. */
+    private final Set<String> droppedSlots = new TreeSet<>();
+
+    private record SlotBinding(ImClass receiver, String slot) {
+    }
 
     private static final class PendingDispatch {
         final ImMethod method;
@@ -415,12 +422,17 @@ public class LuaTranslator {
 
         resolveDispatchSlots();
         assertResolvedDispatchSlots();
+        dropUnreadDispatchSlots();
+        // The tables as they will be printed: every slot a call site reads must still be bound
+        // in every descriptor which can receive it.
+        assertResolvedDispatchSlots();
 
         createBootstrapFunction();
         cleanStatements();
         demoteForLoopsOverLocalLimit();
         localizeHotStorageTables();
         enforceLuaLocalLimits();
+        LuaAssertions.assertNoDroppedSlotIsRead(luaModel, objectClass, droppedSlots);
 
         return luaModel;
     }
@@ -1498,13 +1510,53 @@ public class LuaTranslator {
                 continue;
             }
             registerDispatchSlot(c, e.getKey(), dispatchGroupOf(impl));
-            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+            LuaStatement binding = LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 e.getKey()),
                 LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
-            ));
+            );
+            slotBindings.put(binding, new SlotBinding(c, e.getKey()));
+            deferMainInit(binding);
         }
 
+    }
+
+    /**
+     * Class tables bind every name dispatch preparation collected for a method: the names of its
+     * overrides, of the closures which share its interface, the class-prefixed forms and the numbered
+     * overloads. That keeps the resolution above free to land on whichever name a family has in common,
+     * but a table is a closed world: once every call site has its slot, a binding no call site reads is
+     * never looked up. Dropping those keeps a table at the slots its callers use, instead of one per
+     * sibling, which for a family of closures is quadratic in its size.
+     *
+     * <p>Slots the runtime itself reads ({@code __wurst_...}) always stay.
+     */
+    private void dropUnreadDispatchSlots() {
+        Set<String> read = new HashSet<>();
+        for (PendingDispatch pending : pendingDispatches) {
+            read.add(pending.target.getFieldName());
+        }
+        List<LuaStatement> drained = new ArrayList<>(deferredMainInit.size());
+        while (!deferredMainInit.isEmpty()) {
+            drained.add(deferredMainInit.remove(deferredMainInit.size() - 1));
+        }
+        Collections.reverse(drained);
+        for (LuaStatement statement : drained) {
+            SlotBinding binding = slotBindings.get(statement);
+            if (binding == null || binding.slot().startsWith("__wurst_") || read.contains(binding.slot())) {
+                deferredMainInit.add(statement);
+                continue;
+            }
+            droppedSlots.add(binding.slot());
+            Set<String> slots = emittedDispatchSlotsByClass.get(binding.receiver());
+            if (slots != null) {
+                slots.remove(binding.slot());
+            }
+            Map<String, Set<DispatchGroupIdentity>> groups = emittedDispatchSlotGroupsByClass.get(binding.receiver());
+            if (groups != null) {
+                groups.remove(binding.slot());
+            }
+        }
     }
 
     private void registerDispatchSlot(ImClass receiver, String slot, DispatchGroupIdentity group) {

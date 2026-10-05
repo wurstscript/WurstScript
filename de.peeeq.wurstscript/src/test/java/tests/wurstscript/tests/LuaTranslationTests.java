@@ -15,7 +15,10 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.LuaExpr;
+import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaMethod;
+import de.peeeq.wurstscript.luaAst.LuaVariable;
+import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Test;
 
@@ -24,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -232,6 +236,63 @@ public class LuaTranslationTests extends WurstScriptTest {
         StringBuilder rendered = new StringBuilder();
         expr.print(rendered, 0);
         return rendered.toString();
+    }
+
+    /** The module and the descriptor table of a program whose one function calls {@code table[obj].field(obj)}. */
+    private record ModuleCallingField(LuaCompilationUnit module, LuaVariable objectClass) {
+    }
+
+    /** {@code via} is the table the call goes through: the descriptor table, an alias local of it, or another table. */
+    private ModuleCallingField moduleCallingField(String via, String field) {
+        LuaVariable objectClass = LuaAst.LuaVariable("__wurst_objectClass",
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        LuaVariable table = switch (via) {
+            case "descriptor" -> objectClass;
+            case "alias" -> LuaAst.LuaVariable("__wurst_objectClass_local", LuaAst.LuaExprVarAccess(objectClass));
+            default -> LuaAst.LuaVariable("other", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        };
+        LuaVariable obj = LuaAst.LuaVariable("obj", LuaAst.LuaNoExpr());
+        LuaFunction caller = LuaAst.LuaFunction("caller", LuaAst.LuaParams(obj), LuaAst.LuaStatements(
+            LuaAst.LuaExprFunctionCallE(
+                LuaAst.LuaExprFieldAccess(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(table),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(obj))),
+                    field),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(obj)))));
+        LuaCompilationUnit module = LuaAst.LuaCompilationUnit();
+        module.add(objectClass);
+        if (table != objectClass) {
+            module.add(table);
+        }
+        module.add(caller);
+        return new ModuleCallingField(module, objectClass);
+    }
+
+    private void assertDroppedSlot(String via, String field, Set<String> dropped, boolean rejected) {
+        ModuleCallingField program = moduleCallingField(via, field);
+        try {
+            LuaAssertions.assertNoDroppedSlotIsRead(program.module(), program.objectClass(), dropped);
+        } catch (RuntimeException e) {
+            assertTrue("unexpected rejection of " + via + "." + field + ": " + e.getMessage(), rejected);
+            assertTrue(e.getMessage(), e.getMessage().contains(field));
+            return;
+        }
+        assertFalse("a read of the dropped slot '" + field + "' through " + via + " must stop the build", rejected);
+    }
+
+    @Test
+    public void aDispatchReadOfADroppedSlotStopsTheBuild() {
+        // a lookup in the descriptor table, and one through the local alias the loop optimisation makes
+        assertDroppedSlot("descriptor", "gone", Set.of("gone"), true);
+        assertDroppedSlot("alias", "gone", Set.of("gone"), true);
+
+        // reading a different slot is fine, and so is dropping nothing
+        assertDroppedSlot("descriptor", "kept", Set.of("gone"), false);
+        assertDroppedSlot("descriptor", "gone", Set.of(), false);
+
+        // the same name on some other table is not a dispatch read: a dropped slot called max must
+        // not make math.max an error
+        assertDroppedSlot("other", "gone", Set.of("gone"), false);
     }
 
     @Test
@@ -618,64 +679,127 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void overloadedMethodsDoNotAliasInLuaDispatchTables() throws IOException {
-        test().testLua(true).lines(
+        test().testLua(true).executeProg().lines(
             "package Test",
-            "class Writer",
+            "native testSuccess()",
+            "int total",
+            "interface Writer",
             "    function write(int i)",
-            "        skip",
             "    function write(string s)",
-            "        skip",
-            "init",
-            "    let w = new Writer()",
+            "class Plain implements Writer",
+            "    function write(int i)",
+            "        total += i",
+            "    function write(string s)",
+            "        total += 1000",
+            "class Doubled implements Writer",
+            "    function write(int i)",
+            "        total += i * 2",
+            "    function write(string s)",
+            "        total += 2000",
+            "@noinline function feed(Writer w)",
             "    w.write(1)",
-            "    w.write(\"x\")"
+            "    w.write(\"x\")",
+            "init",
+            "    feed(new Plain())",
+            "    feed(new Doubled())",
+            "    if total == 1 + 1000 + 2 + 2000",
+            "        testSuccess()"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_overloadedMethodsDoNotAliasInLuaDispatchTables.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("Writer.Writer_write = Writer_Writer_write"));
-        assertTrue(compiled.contains("Writer.Writer_write1 = Writer_Writer_write1"));
-        assertFalse(compiled.contains("Writer.Writer_write = Writer_Writer_write1"));
+        List<String> readSlots = uniqueMatches(getFunctionBody(compiled, "feed"), DISPATCH_CALL_SITE, 1);
+        assertEquals("the two overloads are read through two different slots", 2, readSlots.size());
+        for (String table : List.of("Plain", "Doubled")) {
+            List<String> bound = new ArrayList<>();
+            for (String slot : readSlots) {
+                bound.add(singleMatch(compiled, "\\b" + table + "\\." + Pattern.quote(slot) + " = ([A-Za-z0-9_]+)", 1));
+            }
+            assertEquals(table + " binds each overload slot to its own implementation: " + bound,
+                2, new java.util.HashSet<>(bound).size());
+        }
     }
 
     @Test
     public void overloadedOverrideDispatchDoesNotCollapseLuaSlots() throws IOException {
-        test().testLua(true).lines(
+        // Only the middle overload is overridden, so it is the only one a call site dispatches.
+        // Each implementation appends its own digit: the order shows which one ran.
+        test().testLua(true).executeProg().lines(
             "package DispatchOverloadBug",
+            "native testSuccess()",
+            "int trace = 0",
             "class Base",
             "    function doThing(int a)",
+            "        trace = trace * 10 + 1",
             "        this.doThing(a, 0)",
             "    function doThing(int a, int b)",
+            "        trace = trace * 10 + 2",
             "        this.doThing(a, b, false)",
             "    function doThing(int a, int b, boolean flag)",
-            "        skip",
+            "        trace = trace * 10 + 3",
             "class Child extends Base",
             "    override function doThing(int a, int b)",
+            "        trace = trace * 10 + 5",
             "        super.doThing(a, b)",
             "init",
             "    let c = new Child()",
-            "    c.doThing(1)"
+            "    c.doThing(1)",
+            "    if trace == 1523",
+            "        testSuccess()"
         );
 
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_overloadedOverrideDispatchDoesNotCollapseLuaSlots.lua"), Charsets.UTF_8);
-        Matcher slotMatcher = Pattern.compile("Child\\.(Base_doThing\\d*)\\s*=\\s*Child_Child_doThing").matcher(compiled);
-        List<String> overriddenSlots = new ArrayList<>();
-        while (slotMatcher.find()) {
-            overriddenSlots.add(slotMatcher.group(1));
-        }
-        assertEquals("Expected Child override to bind exactly one dispatch slot.", 1, overriddenSlots.size());
+        String slot = singleMatch(compiled, DISPATCH_CALL_SITE, 1);
+        String childBinding = singleMatch(compiled, "\\bChild\\." + Pattern.quote(slot) + " = ([A-Za-z0-9_]+)", 1);
+        String baseBinding = singleMatch(compiled, "\\bBase\\." + Pattern.quote(slot) + " = ([A-Za-z0-9_]+)", 1);
+        assertTrue("Child binds the dispatched slot to its override: " + childBinding,
+            childBinding.startsWith("Child_Child_doThing"));
+        assertTrue("Base keeps its own implementation in that slot: " + baseBinding,
+            baseBinding.startsWith("Base_Base_doThing"));
+    }
 
-        Matcher baseSlotsMatcher = Pattern.compile("Base\\.(Base_doThing\\d*)\\s*=").matcher(compiled);
-        List<String> baseSlots = new ArrayList<>();
-        while (baseSlotsMatcher.find()) {
-            String slot = baseSlotsMatcher.group(1);
-            if (!baseSlots.contains(slot)) {
-                baseSlots.add(slot);
+    /** Every overload is overridden and dispatched, so each needs a slot of its own. */
+    @Test
+    public void everyOverloadOfAnOverriddenFamilyDispatchesToItsOwnOverride() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package DispatchOverloadBug",
+            "native testSuccess()",
+            "int trace = 0",
+            "class Base",
+            "    function doThing(int a)",
+            "        trace = trace * 10 + 1",
+            "        this.doThing(a, 0)",
+            "    function doThing(int a, int b)",
+            "        trace = trace * 10 + 2",
+            "        this.doThing(a, b, false)",
+            "    function doThing(int a, int b, boolean flag)",
+            "        trace = trace * 10 + 3",
+            "class Child extends Base",
+            "    override function doThing(int a)",
+            "        trace = trace * 10 + 4",
+            "        super.doThing(a)",
+            "    override function doThing(int a, int b)",
+            "        trace = trace * 10 + 5",
+            "        super.doThing(a, b)",
+            "    override function doThing(int a, int b, boolean flag)",
+            "        trace = trace * 10 + 6",
+            "        super.doThing(a, b, flag)",
+            "init",
+            "    Base b = new Child()",
+            "    b.doThing(1)",
+            "    if trace == 415263",
+            "        testSuccess()"
+        );
+
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_everyOverloadOfAnOverriddenFamilyDispatchesToItsOwnOverride.lua"), Charsets.UTF_8);
+        List<String> slots = uniqueMatches(compiled, DISPATCH_CALL_SITE, 1);
+        assertEquals("three overloads are read through three slots: " + slots, 3, slots.size());
+        for (String table : List.of("Base", "Child")) {
+            List<String> bound = new ArrayList<>();
+            for (String slot : slots) {
+                bound.add(singleMatch(compiled, "\\b" + table + "\\." + Pattern.quote(slot) + " = ([A-Za-z0-9_]+)", 1));
             }
+            assertEquals(table + " binds each overload slot to its own implementation: " + bound,
+                3, new java.util.HashSet<>(bound).size());
         }
-        assertEquals("Expected three distinct Base overload dispatch slots.", 3, baseSlots.size());
-        assertContainsRegex(compiled, "__wurst_objectClass\\[this\\]\\.Base_doThing1\\(this, a, 0\\)");
-        assertTrue(compiled.contains("Base_Base_doThing2(this1, a1, b, false)"));
-        assertTrue(compiled.contains("Child.Base_doThing1 = Child_Child_doThing"));
-        assertTrue(compiled.contains("Child.Base_doThing2 = Base_Base_doThing2"));
     }
 
     @Test
@@ -798,11 +922,14 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String intSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readInt"));
+        String stringSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readString"));
+        assertFalse("same-named methods with incompatible returns must not share a slot",
+            intSlot.equals(stringSlot));
         assertContainsRegex(compiled, "Both\\." + Pattern.quote(intSlot) + "\\s*=");
         assertDoesNotContainRegex(compiled,
             "Both\\." + Pattern.quote(intSlot) + "\\s*=\\s*StringValue_StringValue_value");
-        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
-        assertDoesNotContainRegex(compiled, "Both\\.IntValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertContainsRegex(compiled,
+            "Both\\." + Pattern.quote(stringSlot) + "\\s*=\\s*StringValue_StringValue_value");
     }
 
     @Test
@@ -834,8 +961,14 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    readString(new OtherString())"
         );
 
-        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
-        assertDoesNotContainRegex(compiled, "Both\\.StringValue_value\\s*=\\s*Both_[^\\n]*IntValueImpl_value");
+        String intSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readInt"));
+        String stringSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readString"));
+        assertFalse("same-named methods with incompatible returns must not share a slot",
+            intSlot.equals(stringSlot));
+        assertContainsRegex(compiled,
+            "Both\\." + Pattern.quote(stringSlot) + "\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled,
+            "Both\\." + Pattern.quote(stringSlot) + "\\s*=\\s*Both_[^\\n]*IntValueImpl_value");
     }
 
     @Test
@@ -869,9 +1002,16 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    readDerived(new OtherDerived())"
         );
 
-        assertContainsRegex(compiled, "Both\\.DerivedValue_DerivedValue_value\\s*=\\s*DerivedValue_DerivedValue_value");
-        assertContainsRegex(compiled, "Both\\.BaseValue_value\\s*=\\s*Both_Both_BaseValueImpl_value");
-        assertDoesNotContainRegex(compiled, "Both\\.DerivedValue_value\\s*=\\s*BaseValue_BaseValue_value");
+        String derivedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readDerived"));
+        String baseSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readBase"));
+        assertFalse("same-named methods with different returns must not share a slot",
+            derivedSlot.equals(baseSlot));
+        assertContainsRegex(compiled,
+            "Both\\." + Pattern.quote(derivedSlot) + "\\s*=\\s*DerivedValue_DerivedValue_value");
+        assertContainsRegex(compiled,
+            "Both\\." + Pattern.quote(baseSlot) + "\\s*=\\s*Both_Both_BaseValueImpl_value");
+        assertDoesNotContainRegex(compiled,
+            "Both\\." + Pattern.quote(derivedSlot) + "\\s*=\\s*BaseValue_BaseValue_value");
     }
 
     @Test
@@ -1294,11 +1434,19 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         List<String> subclasses = subclassCreateClasses(compiled, "LLItrClosure");
         assertTrue("Expected multiple generated LLItrClosure subclasses", subclasses.size() >= 3);
-        List<String> suffixedSlots = uniqueMatches(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.(run\\d+)\\s*=", 1);
-        assertTrue("Expected at least one suffixed LLItrClosure run slot", !suffixedSlots.isEmpty());
-        String slotName = suffixedSlots.get(0);
-        for (String subclass : subclasses) {
-            assertContainsRegex(compiled, Pattern.quote(subclass) + "\\." + Pattern.quote(slotName) + "\\s*=");
+        // The slots which call sites read are the ones every closure must bind; a binding nobody
+        // reads is not emitted, so the call sites decide which slots there are to align.
+        List<String> dispatchedSlots = new ArrayList<>();
+        for (String slot : uniqueMatches(compiled, DISPATCH_CALL_SITE, 1)) {
+            if (!nonBaseSubclassBindings(compiled, "LLItrClosure", slot).isEmpty()) {
+                dispatchedSlots.add(slot);
+            }
+        }
+        assertTrue("Expected a call site which dispatches to the LLItrClosure closures", !dispatchedSlots.isEmpty());
+        for (String slotName : dispatchedSlots) {
+            for (String subclass : subclasses) {
+                assertContainsRegex(compiled, Pattern.quote(subclass) + "\\." + Pattern.quote(slotName) + "\\s*=");
+            }
         }
     }
 
@@ -1352,13 +1500,16 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaClassDispatchTablesAreInitializedInsideMain() throws IOException {
+        // The call goes through the interface, so it reads a slot and A's table binds one.
         test().testLua(true).lines(
             "package Test",
-            "class A",
+            "interface I",
+            "    function f() returns int",
+            "class A implements I",
             "    function f() returns int",
             "        return 1",
             "init",
-            "    let a = new A()",
+            "    I a = new A()",
             "    if a.f() > 0",
             "        skip"
         );
@@ -1373,19 +1524,22 @@ public class LuaTranslationTests extends WurstScriptTest {
         String bootstrap = bootstrapSection(compiled);
         assertTrue(bootstrap.contains("A.__wurst_supertypes ="));
         assertTrue(bootstrap.contains("A.__typeId__ ="));
-        assertTrue(bootstrap.contains("A.A_f ="));
+        assertContainsRegex(bootstrap, "A\\.[A-Za-z0-9_]*f[A-Za-z0-9_]* = A_A_f\\b");
         assertContainsRegex(compiled, "function main\\(\\)\\s*\\n\\s*__wurst_init_bootstrap\\(");
     }
 
     @Test
     public void luaDeferredBootstrapRunsBeforeInitGlobalsInMain() throws IOException {
+        // The call goes through the interface, so it reads a slot and C's table binds one.
         test().testLua(true).lines(
             "package Test",
-            "class C",
+            "interface I",
+            "    function f() returns int",
+            "class C implements I",
             "    function f() returns int",
             "        return 1",
             "init",
-            "    let c = new C()",
+            "    I c = new C()",
             "    if c.f() > 0",
             "        skip"
         );
@@ -1402,7 +1556,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(bootstrap.contains("__wurst_string_index_map = ({"));
         assertTrue(bootstrap.contains("C.__wurst_supertypes ="));
         assertTrue(bootstrap.contains("C.__typeId__ ="));
-        assertTrue(bootstrap.contains("C.C_f ="));
+        assertContainsRegex(bootstrap, "C\\.[A-Za-z0-9_]*f[A-Za-z0-9_]* = C_C_f\\b");
     }
 
     @Test
