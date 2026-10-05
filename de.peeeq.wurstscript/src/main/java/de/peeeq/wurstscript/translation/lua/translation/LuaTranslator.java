@@ -98,6 +98,8 @@ public class LuaTranslator {
     private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
     /** The class-table bindings written for a descriptor's slots, so unread ones can be dropped once call sites are resolved. */
     private final Map<LuaStatement, SlotBinding> slotBindings = new IdentityHashMap<>();
+    /** The slot names which were dropped, for the check that nothing reads one of them after all. */
+    private final Set<String> droppedSlots = new TreeSet<>();
 
     private record SlotBinding(ImClass receiver, String slot) {
     }
@@ -430,6 +432,7 @@ public class LuaTranslator {
         demoteForLoopsOverLocalLimit();
         localizeHotStorageTables();
         enforceLuaLocalLimits();
+        LuaAssertions.assertNoDroppedSlotIsRead(luaModel, objectClass, droppedSlots);
 
         return luaModel;
     }
@@ -1544,6 +1547,7 @@ public class LuaTranslator {
                 deferredMainInit.add(statement);
                 continue;
             }
+            droppedSlots.add(binding.slot());
             Set<String> slots = emittedDispatchSlotsByClass.get(binding.receiver());
             if (slots != null) {
                 slots.remove(binding.slot());

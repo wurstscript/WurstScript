@@ -15,7 +15,10 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.LuaExpr;
+import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaMethod;
+import de.peeeq.wurstscript.luaAst.LuaVariable;
+import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Test;
 
@@ -24,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -232,6 +236,63 @@ public class LuaTranslationTests extends WurstScriptTest {
         StringBuilder rendered = new StringBuilder();
         expr.print(rendered, 0);
         return rendered.toString();
+    }
+
+    /** The module and the descriptor table of a program whose one function calls {@code table[obj].field(obj)}. */
+    private record ModuleCallingField(LuaCompilationUnit module, LuaVariable objectClass) {
+    }
+
+    /** {@code via} is the table the call goes through: the descriptor table, an alias local of it, or another table. */
+    private ModuleCallingField moduleCallingField(String via, String field) {
+        LuaVariable objectClass = LuaAst.LuaVariable("__wurst_objectClass",
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        LuaVariable table = switch (via) {
+            case "descriptor" -> objectClass;
+            case "alias" -> LuaAst.LuaVariable("__wurst_objectClass_local", LuaAst.LuaExprVarAccess(objectClass));
+            default -> LuaAst.LuaVariable("other", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        };
+        LuaVariable obj = LuaAst.LuaVariable("obj", LuaAst.LuaNoExpr());
+        LuaFunction caller = LuaAst.LuaFunction("caller", LuaAst.LuaParams(obj), LuaAst.LuaStatements(
+            LuaAst.LuaExprFunctionCallE(
+                LuaAst.LuaExprFieldAccess(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(table),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(obj))),
+                    field),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(obj)))));
+        LuaCompilationUnit module = LuaAst.LuaCompilationUnit();
+        module.add(objectClass);
+        if (table != objectClass) {
+            module.add(table);
+        }
+        module.add(caller);
+        return new ModuleCallingField(module, objectClass);
+    }
+
+    private void assertDroppedSlot(String via, String field, Set<String> dropped, boolean rejected) {
+        ModuleCallingField program = moduleCallingField(via, field);
+        try {
+            LuaAssertions.assertNoDroppedSlotIsRead(program.module(), program.objectClass(), dropped);
+        } catch (RuntimeException e) {
+            assertTrue("unexpected rejection of " + via + "." + field + ": " + e.getMessage(), rejected);
+            assertTrue(e.getMessage(), e.getMessage().contains(field));
+            return;
+        }
+        assertFalse("a read of the dropped slot '" + field + "' through " + via + " must stop the build", rejected);
+    }
+
+    @Test
+    public void aDispatchReadOfADroppedSlotStopsTheBuild() {
+        // a lookup in the descriptor table, and one through the local alias the loop optimisation makes
+        assertDroppedSlot("descriptor", "gone", Set.of("gone"), true);
+        assertDroppedSlot("alias", "gone", Set.of("gone"), true);
+
+        // reading a different slot is fine, and so is dropping nothing
+        assertDroppedSlot("descriptor", "kept", Set.of("gone"), false);
+        assertDroppedSlot("descriptor", "gone", Set.of(), false);
+
+        // the same name on some other table is not a dispatch read: a dropped slot called max must
+        // not make math.max an error
+        assertDroppedSlot("other", "gone", Set.of("gone"), false);
     }
 
     @Test
