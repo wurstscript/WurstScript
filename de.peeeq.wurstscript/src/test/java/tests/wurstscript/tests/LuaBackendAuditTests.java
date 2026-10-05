@@ -3,6 +3,9 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.jassinterpreter.providers.LuaEnsureTypeProvider;
+import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -5772,6 +5775,36 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    string middle = \"[\" + missing(h) + \"|\" + I2S(5) + \"]\"",
             "    if right == \"x=\" and left == \"=x\" and middle == \"[|5]\"",
             "        testSuccess()");
+    }
+
+    /**
+     * Compile-time evaluation runs before the Lua lowering, so it joins a null string through the
+     * ordinary operator. Pinned so that a change in that order, which would hand the interpreter the
+     * lowered form, shows up here.
+     */
+    @Test
+    public void compiletimeConcatenationJoinsANullStringAsNothing() throws IOException {
+        test().withStdLib().testLua(true).luaOnly(true).runCompiletimeFunctions(true).executeProg().lines(
+            "package Test",
+            "import Hashtable",
+            "function missing(hashtable h) returns string",
+            "    return LoadStr(h, 1, 1)",
+            "let right = compiletime(\"x=\" + missing(InitHashtable()))",
+            "let left = compiletime(missing(InitHashtable()) + \"=x\")",
+            "init",
+            "    if right == \"x=\" and left == \"=x\"",
+            "        testSuccess()");
+    }
+
+    /** The interpreter mock of {@code x or ""} is given a null where the Lua operator is given a nil. */
+    @Test
+    public void interpreterMockOfOrEmptyAnswersNothingForNull() {
+        // the leaves never touch the interpreter; the provider only insists on being given one
+        LuaEnsureTypeProvider provider = new LuaEnsureTypeProvider((AbstractInterpreter) java.lang.reflect.Proxy.newProxyInstance(
+            AbstractInterpreter.class.getClassLoader(), new Class<?>[]{AbstractInterpreter.class}, (proxy, method, args) -> null));
+        assertEquals("", provider.__wurst_rawOrEmpty(null).getVal());
+        assertEquals("a", provider.__wurst_rawOrEmpty(ILconstString.ofBytes("a")).getVal());
+        assertEquals("ab", provider.__wurst_rawConcat(provider.__wurst_rawOrEmpty(null), ILconstString.ofBytes("ab")).getVal());
     }
 
     @Test
