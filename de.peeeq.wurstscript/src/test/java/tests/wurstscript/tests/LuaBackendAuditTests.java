@@ -5701,15 +5701,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("wurstExpr"));
     }
 
+    /** What compiling with the inliner's decision log on produced: the records, and the script. */
+    private record LoggedCompile(List<String> records, String lua) {
+    }
+
     /** The inliner's decision records for a program, with the log switched on for just that compile. */
     private List<String> inlinerDecisions(String testName, String... lines) {
+        return compileWithInlinerLog(testName, lines).records();
+    }
+
+    private LoggedCompile compileWithInlinerLog(String testName, String... lines) {
         java.io.PrintStream original = System.out;
         java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
         String previous = System.getProperty("wurst.inliner.log");
         System.setProperty("wurst.inliner.log", "true");
         System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+        String lua;
         try {
-            compileOptimizedLua(testName, lines);
+            lua = compileOptimizedLua(testName, lines);
         } finally {
             System.setOut(original);
             if (previous == null) {
@@ -5724,7 +5733,59 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                 records.add(line);
             }
         }
-        return records;
+        return new LoggedCompile(records, lua);
+    }
+
+    /**
+     * A function that meets substitutable getters first and a register-budget-checked call after them,
+     * with {@code locals} values live across it.
+     */
+    private static String[] gettersThenABudgetCheckedCall(int locals) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "int array values",
+            "class Cell",
+            "    int v = 1",
+            "    function get() returns int",
+            "        return v",
+            "@noinline function opaque(int i) returns int",
+            "    return i",
+            "function mid(int a, int b) returns int",
+            "    let t = a * b + opaque(a)",
+            "    let u = t - opaque(b)",
+            "    return t + u + b",
+            "@noinline function big(Cell c) returns int"));
+        for (int j = 0; j < 12; j++) {
+            lines.add("    let g" + j + " = c.get() + c.get() + c.get() + c.get() + c.get() + c.get()");
+        }
+        for (int i = 0; i < locals; i++) {
+            lines.add("    let a" + i + " = opaque(" + i + ")");
+        }
+        lines.add("    let m = mid(c.get() + c.get() + c.get() + c.get(), c.get() + c.get())");
+        for (int i = 0; i < locals; i++) {
+            lines.add("    values[" + i + "] = a" + i + " + m");
+        }
+        lines.add("    return values[7]");
+        lines.add("init");
+        lines.add("    big(new Cell())");
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * Reading the decision log must not change what is compiled. Its register projection used to ask
+     * for the caller's budget, which builds it from the body as it is then; a build without the log
+     * builds it at the first call that is budget-checked, after the getters before it were substituted,
+     * and a substitution does not refresh a budget that exists. Pinned across the budget's limit.
+     */
+    @Test
+    public void switchingTheInlinerLogOnChangesNothingInTheScript() {
+        for (int locals : new int[]{120, 150, 170, 180, 185, 190, 195}) {
+            String[] program = gettersThenABudgetCheckedCall(locals);
+            String quiet = compileOptimizedLua("inlinerLogIsInertQuiet", program);
+            LoggedCompile logged = compileWithInlinerLog("inlinerLogIsInertLogged", program);
+            assertFalse("the log has records with " + locals + " locals", logged.records().isEmpty());
+            assertEquals("the script with " + locals + " live values is the same with the log on", quiet, logged.lua());
+        }
     }
 
     private static List<String> recordsOfCallee(List<String> records, String callee) {

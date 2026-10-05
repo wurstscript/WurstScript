@@ -134,8 +134,11 @@ public class ImInliner {
             if (logDecisions) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
                     " size=" + getFuncSize(called) + " rating=" + getRating(called) +
-                    (translator.isLuaTarget() && inlinableFunctions.contains(called)
-                        ? " projectedLuaRegisters=" + getLuaRegisterBudget(f).projectedPressure(call, called)
+                    // Only a budget the inlining has already built: asking for one here would build it from the
+                    // body as it is now, earlier than a build without the log does, and a substitution that
+                    // follows does not refresh it, so the log could change what is inlined.
+                    (translator.isLuaTarget() && inlinableFunctions.contains(called) && luaRegisterBudgets.containsKey(f)
+                        ? " projectedLuaRegisters=" + luaRegisterBudgets.get(f).projectedPressure(call, called)
                         : "") +
                     (canInline ? "" : " reason=" + skipReason(f, call, called)) +
                     " calleeId=" + calleeIdForLog(called) +
