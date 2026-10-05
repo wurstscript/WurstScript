@@ -132,7 +132,11 @@ public class ImInliner {
                     (translator.isLuaTarget() && inlinableFunctions.contains(called)
                         ? " projectedLuaRegisters=" + getLuaRegisterBudget(f).projectedPressure(call, called)
                         : "") +
-                    (canInline ? "" : " reason=" + skipReason(f, call, called));
+                    (canInline ? "" : " reason=" + skipReason(f, call, called)) +
+                    " calleeId=" + Integer.toHexString(System.identityHashCode(called)) +
+                    " calls=" + getCallCount(called) + " args=" + call.getArguments().size() +
+                    " constArg=" + hasConstantArgument(call) + " loopDepth=" + loopDepth(call) +
+                    " callerSize=" + getFuncSize(f);
                 WLogger.info(msg);
                 System.out.println(msg);
             }
@@ -178,6 +182,36 @@ public class ImInliner {
         return null;
     }
 
+    private static boolean hasConstantArgument(ImFunctionCall call) {
+        for (ImExpr arg : call.getArguments()) {
+            if (arg instanceof ImConst) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasAnnotation(ImFunction f, String annotation) {
+        for (FunctionFlag flag : f.getFlags()) {
+            if (flag instanceof FunctionFlagAnnotation
+                && ((FunctionFlagAnnotation) flag).getAnnotation().equals(annotation)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** How many loops of the calling function enclose the call; only the decision log asks. */
+    private static int loopDepth(ImFunctionCall call) {
+        int depth = 0;
+        for (Element e = call.getParent(); e != null && !(e instanceof ImFunction); e = e.getParent()) {
+            if (e instanceof ImLoop || e instanceof ImVarargLoop) {
+                depth++;
+            }
+        }
+        return depth;
+    }
+
     private String skipReason(ImFunction caller, ImFunctionCall call, ImFunction f) {
         if (f.isNative()) {
             return "native";
@@ -191,18 +225,25 @@ public class ImInliner {
         if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
             return "local_player_context_barrier";
         }
+        if (isLuaTypeCastingCompatFunction(f)) {
+            return "lua_typecasting_compat";
+        }
         if (!inlinableFunctions.contains(f)) {
             return "not_in_inlinable_set";
         }
         if (isRecursive(f)) {
             return "recursive";
         }
+        // getRating answers Double.MAX_VALUE for these, which would read as a body that is too big
+        if (dontInline.contains(f.getName())) {
+            return "dont_inline_name";
+        }
+        if (hasAnnotation(f, NOINLINE)) {
+            return "noinline_annotation";
+        }
         double threshold = inlineTreshold;
-        for (ImExpr arg : call.getArguments()) {
-            if (arg instanceof ImConst) {
-                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
-                break;
-            }
+        if (hasConstantArgument(call)) {
+            threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
         }
         double rating = getRating(f);
         if (rating >= threshold) {
