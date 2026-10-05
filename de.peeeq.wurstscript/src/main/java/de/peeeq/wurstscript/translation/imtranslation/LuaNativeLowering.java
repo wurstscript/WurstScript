@@ -401,8 +401,12 @@ public final class LuaNativeLowering {
         return intrinsicCall(call, translator.luaRawConcatFunc, left, right);
     }
 
-    /** Natives whose result is a string in every case, never null. */
-    private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S", "R2S", "R2SW");
+    /**
+     * Natives whose result is a string whatever the runtime does. Only {@code I2S}: the backend prints
+     * it as {@code tostring}, which cannot answer nil. A native which merely returns a string in the
+     * game, such as {@code R2S}, is not trusted to: a runtime of one's own may declare it to answer nil.
+     */
+    private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S");
 
     private static boolean neverNil(ImExpr e, ImTranslator translator) {
         if (e instanceof ImStringVal) {

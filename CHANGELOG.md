@@ -2,7 +2,7 @@
 
 - On Lua, joining two strings no longer checks for nil an operand which cannot be nil. Every `a + b` on
   strings went through a helper that checks both sides, which `-inline` then expanded into a nest of
-  comparisons at each use. A literal and the result of `I2S`, `R2S` or `R2SW` are always strings, so with both
+  comparisons at each use. A literal and the result of `I2S` are always strings, so with both
   known the join is the `..` operator, and with one known only the other side is guarded, as `x or ""`. Two
   operands which may both be nil still use the helper. A nil on either side still reads as nothing.
 

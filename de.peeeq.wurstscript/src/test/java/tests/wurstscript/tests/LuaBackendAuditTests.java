@@ -5714,11 +5714,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "native R2S(real r) returns string",
             "@noinline function tag(int i) returns string",
             "    return \"x=\" + I2S(i)",
-            "@noinline function wrap(int i, real r) returns string",
-            "    return \"<\" + I2S(i) + \"|\" + R2S(r) + \">\"",
+            "@noinline function wrap(int i, int j) returns string",
+            "    return \"<\" + I2S(i) + \"|\" + I2S(j) + \">\"",
+            "@noinline function fraction(real r) returns string",
+            "    return \"r=\" + R2S(r)",
             "init",
             "    consume(tag(1))",
-            "    consume(wrap(2, 3.))");
+            "    consume(wrap(2, 3))",
+            "    consume(fraction(3.))");
         String tag = luaFunctionBody(compiled, "tag");
         assertTrue("a literal and a conversion join with the operator:\n" + tag, tag.contains("\"x=\" .. tostring("));
         String wrap = luaFunctionBody(compiled, "wrap");
@@ -5727,6 +5730,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             wrap.split(java.util.regex.Pattern.quote(" .. "), -1).length - 1);
         assertFalse("the nil-safe helper is not needed at all:\n" + compiled,
             compiled.contains("__wurst_stringConcat"));
+        // R2S is only a string in the game; a runtime of one's own may declare it to answer nil
+        String fraction = luaFunctionBody(compiled, "fraction");
+        assertTrue("a native other than I2S is guarded like any other operand:\n" + fraction,
+            java.util.regex.Pattern.compile("\"r=\" \\.\\. \\(R2S\\(\\w+\\) or \"\"\\)").matcher(fraction).find());
     }
 
     /** With one operand known, only the other is made safe; with neither known the helper stays. */
