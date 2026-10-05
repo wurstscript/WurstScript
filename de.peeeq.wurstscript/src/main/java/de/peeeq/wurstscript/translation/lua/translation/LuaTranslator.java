@@ -1317,10 +1317,22 @@ public class LuaTranslator {
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
         }
 
         createClassInitFunction(c, classVar, initMethod);
+    }
+
+    /**
+     * What a class function is called after its class's name. A closure's implementation is named after
+     * the method and the scopes around the closure, which its class is named after as well, so there the
+     * method alone is left.
+     */
+    private String classFunctionName(ImFunction f) {
+        if (f.attrTrace() instanceof ExprClosure closure) {
+            return closure.attrClosureAbstractMethod().getDef().getName();
+        }
+        return f.getName();
     }
 
     private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaMethod initMethod) {

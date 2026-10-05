@@ -5917,6 +5917,18 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return names;
     }
 
+    /** The names of the Lua functions which start with the prefix, sorted. */
+    private List<String> luaFunctionsWithPrefix(String compiled, String prefix) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?m)^function (" + java.util.regex.Pattern.quote(prefix) + "\\w*)\\(").matcher(compiled);
+        List<String> names = new ArrayList<>();
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
     /** The names of the Jass functions which start with the prefix, sorted. */
     private List<String> jassFunctionsWithPrefix(String compiled, String prefix) {
         java.util.regex.Matcher matcher = java.util.regex.Pattern
@@ -5959,6 +5971,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("the call is named once per closure, not once per level:\n" + lua, lua.contains("doAfter_doAfter"));
         assertEquals(java.util.Arrays.asList("Callback_doAfter_Test", "Callback_doAfter_Test1", "Callback_doAfter_Test2"),
             luaTablesWithPrefix(lua, "Callback_"));
+        // The class carries the scopes and calls around the closure, so its function only adds the method.
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test_call", "Callback_doAfter_Test_call1", "Callback_doAfter_Test_call2"),
+            luaFunctionsWithPrefix(lua, "Callback_doAfter_"));
         String jass = compiledJass("closuresNestedInTheSameCallAreNamedAfterItOnce");
         assertFalse("the call is named once per closure, not once per level:\n" + jass, jass.contains("doAfter_doAfter"));
         assertEquals(java.util.Arrays.asList("alloc_Callback_doAfter_Test", "alloc_Callback_doAfter_Test_1", "alloc_Callback_doAfter_Test_2"),
@@ -5996,6 +6011,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertEquals(java.util.Arrays.asList("Callback_doAfter_Test", "Callback_doAfter_Test1", "Callback_doAfter_Test2",
                 "Callback_twice_Test", "Callback_twice_Test1"),
             luaTablesWithPrefix(lua, "Callback_"));
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test_call", "Callback_doAfter_Test_call1", "Callback_doAfter_Test_call2"),
+            luaFunctionsWithPrefix(lua, "Callback_doAfter_"));
+        assertEquals(java.util.Arrays.asList("Callback_twice_Test_call", "Callback_twice_Test_call1"),
+            luaFunctionsWithPrefix(lua, "Callback_twice_"));
         String jass = compiledJass("closuresWithTheSameNameStayDistinct");
         assertFalse(jass, jass.contains("doAfter_doAfter"));
         assertEquals(java.util.Arrays.asList("alloc_Callback_doAfter_Test", "alloc_Callback_doAfter_Test_1", "alloc_Callback_doAfter_Test_2",
@@ -6085,6 +6104,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             luaTablesWithPrefix(lua, "Under_pass"));
         assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test", "Hidden_passHidden_Test1"),
             luaTablesWithPrefix(lua, "Hidden_pass"));
+        assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test__hidden", "Hidden_passHidden_Test__hidden1"),
+            luaFunctionsWithPrefix(lua, "Hidden_pass"));
+        assertEquals(java.util.Arrays.asList("Under_passUnder_Test_do_it", "Under_passUnder_Test_do_it1"),
+            luaFunctionsWithPrefix(lua, "Under_pass"));
         assertFalse(lua, lua.contains("passUnder_passUnder"));
     }
 }
