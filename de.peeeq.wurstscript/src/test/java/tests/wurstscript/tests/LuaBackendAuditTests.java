@@ -393,6 +393,49 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("// 1) | 0)") && compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1);
     }
 
+    /**
+     * The lines of a program whose function sums {@code terms} int locals in one left-nested chain
+     * of additions. The locals come from a noinline call, so nothing folds and the whole chain
+     * survives to the backends. Their sum is 0 + 1 + ... + (terms - 1).
+     */
+    private String[] longIntSumChain(int terms) {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native testSuccess()");
+        lines.add("@noinline function id(int x) returns int");
+        lines.add("    return x");
+        lines.add("@noinline function sum() returns int");
+        StringBuilder chain = new StringBuilder("    return ");
+        for (int i = 0; i < terms; i++) {
+            lines.add("    int a" + i + " = id(" + i + ")");
+            chain.append(i == 0 ? "" : " + ").append("a").append(i);
+        }
+        lines.add(chain.toString());
+        lines.add("init");
+        lines.add("    if sum() == " + (terms * (terms - 1) / 2));
+        lines.add("        testSuccess()");
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * The type of an operator call on non-real operands is its left operand's type. It used to be
+     * computed twice per level, so a left-nested chain of operators was typed in 2^depth steps and
+     * the Lua string-concatenation lowering, which types every operator call, never finished.
+     * Compile only: the printed chain nests 219 parentheses, which luac itself rejects.
+     */
+    @Test(timeOut = 60_000)
+    public void longIntSumChainIsTypedInLinearTimeOnLua() {
+        String compiled = compileOptimizedLua("longIntSumChainIsTypedInLinearTimeOnLua", longIntSumChain(220));
+        String sum = topLevelFunctionBodyWithPrefix(compiled, "sum");
+        assertEquals("every addition of the chain is emitted:\n" + sum, 219, sum.split(" \\+ ", -1).length - 1);
+    }
+
+    /** The same function on the Jass backend, which must also stay linear and keep the sum. */
+    @Test(timeOut = 60_000)
+    public void longIntSumChainIsTypedInLinearTimeOnJass() {
+        test().inline().localOptimizations().executeProg().lines(longIntSumChain(220));
+    }
+
     private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
             "-runcompiletimefunctions", "-lib", StdLib.getLib());
