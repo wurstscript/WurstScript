@@ -3,6 +3,9 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.jassinterpreter.providers.LuaEnsureTypeProvider;
+import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -5699,6 +5702,116 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("the raw concat primitive is not a call:\n" + compiled, compiled.contains("__wurst_rawConcat"));
         assertFalse("an unused concatenation is dropped rather than kept in a dead local:\n" + compiled,
             compiled.contains("wurstExpr"));
+    }
+
+    /** A literal, or the result of a conversion, is a string whatever happens: nothing to check. */
+    @Test
+    public void concatenationOfStringsWhichCannotBeNilHasNoNilCheck() {
+        String compiled = compileOptimizedLua("concatenationOfStringsWhichCannotBeNilHasNoNilCheck",
+            "package Test",
+            "native consume(string value)",
+            "native I2S(int i) returns string",
+            "native R2S(real r) returns string",
+            "@noinline function tag(int i) returns string",
+            "    return \"x=\" + I2S(i)",
+            "@noinline function wrap(int i, int j) returns string",
+            "    return \"<\" + I2S(i) + \"|\" + I2S(j) + \">\"",
+            "@noinline function fraction(real r) returns string",
+            "    return \"r=\" + R2S(r)",
+            "init",
+            "    consume(tag(1))",
+            "    consume(wrap(2, 3))",
+            "    consume(fraction(3.))");
+        String tag = luaFunctionBody(compiled, "tag");
+        assertTrue("a literal and a conversion join with the operator:\n" + tag, tag.contains("\"x=\" .. tostring("));
+        String wrap = luaFunctionBody(compiled, "wrap");
+        assertFalse("no operand of this chain can be nil:\n" + wrap, wrap.contains("nil"));
+        assertEquals("five operands are joined by four operators:\n" + wrap, 4,
+            wrap.split(java.util.regex.Pattern.quote(" .. "), -1).length - 1);
+        assertFalse("the nil-safe helper is not needed at all:\n" + compiled,
+            compiled.contains("__wurst_stringConcat"));
+        // R2S is only a string in the game; a runtime of one's own may declare it to answer nil
+        String fraction = luaFunctionBody(compiled, "fraction");
+        assertTrue("a native other than I2S is guarded like any other operand:\n" + fraction,
+            java.util.regex.Pattern.compile("\"r=\" \\.\\. \\(R2S\\(\\w+\\) or \"\"\\)").matcher(fraction).find());
+    }
+
+    /** With one operand known, only the other is made safe; with neither known the helper stays. */
+    @Test
+    public void onlyTheOperandWhichMayBeNilIsGuarded() {
+        String compiled = compileOptimizedLua("onlyTheOperandWhichMayBeNilIsGuarded",
+            "package Test",
+            "native consume(string value)",
+            "@noinline function tail(string s) returns string",
+            "    return \"x=\" + s",
+            "@noinline function head(string s) returns string",
+            "    return s + \"=x\"",
+            "@noinline function either(string a, string b) returns string",
+            "    return a + b",
+            "init",
+            "    consume(tail(\"a\"))",
+            "    consume(head(\"b\"))",
+            "    consume(either(\"c\", \"d\"))");
+        String tail = luaFunctionBody(compiled, "tail");
+        assertTrue("only the variable is guarded:\n" + tail,
+            java.util.regex.Pattern.compile("\"x=\" \\.\\. \\(\\w+ or \"\"\\)").matcher(tail).find());
+        String head = luaFunctionBody(compiled, "head");
+        assertTrue("only the variable is guarded:\n" + head,
+            java.util.regex.Pattern.compile("\\(\\w+ or \"\"\\) \\.\\. \"=x\"").matcher(head).find());
+        String either = luaFunctionBody(compiled, "either");
+        assertTrue("two variables keep the full check:\n" + either + "\n" + compiled,
+            either.contains("nil") || either.contains("__wurst_stringConcat"));
+    }
+
+    /**
+     * The Lua hashtable emulation answers nil for a missing string, where Jass answers null: the case
+     * the check exists for. A nil joined to a string must read as nothing, whichever side it is on,
+     * and a conversion must still join.
+     */
+    @Test
+    public void concatenationJoinsANilStringAsNothing() throws IOException {
+        test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "@noinline function missing(hashtable h) returns string",
+            "    return LoadStr(h, 1, 1)",
+            "init",
+            "    let h = InitHashtable()",
+            "    string right = \"x=\" + missing(h)",
+            "    string left = missing(h) + \"=x\"",
+            "    string middle = \"[\" + missing(h) + \"|\" + I2S(5) + \"]\"",
+            "    if right == \"x=\" and left == \"=x\" and middle == \"[|5]\"",
+            "        testSuccess()");
+    }
+
+    /**
+     * Compile-time evaluation runs before the Lua lowering, so it joins a null string through the
+     * ordinary operator. Pinned so that a change in that order, which would hand the interpreter the
+     * lowered form, shows up here.
+     */
+    @Test
+    public void compiletimeConcatenationJoinsANullStringAsNothing() throws IOException {
+        test().withStdLib().testLua(true).luaOnly(true).runCompiletimeFunctions(true).executeProg().lines(
+            "package Test",
+            "import Hashtable",
+            "function missing(hashtable h) returns string",
+            "    return LoadStr(h, 1, 1)",
+            "let right = compiletime(\"x=\" + missing(InitHashtable()))",
+            "let left = compiletime(missing(InitHashtable()) + \"=x\")",
+            "init",
+            "    if right == \"x=\" and left == \"=x\"",
+            "        testSuccess()");
+    }
+
+    /** The interpreter mock of {@code x or ""} is given a null where the Lua operator is given a nil. */
+    @Test
+    public void interpreterMockOfOrEmptyAnswersNothingForNull() {
+        // the leaves never touch the interpreter; the provider only insists on being given one
+        LuaEnsureTypeProvider provider = new LuaEnsureTypeProvider((AbstractInterpreter) java.lang.reflect.Proxy.newProxyInstance(
+            AbstractInterpreter.class.getClassLoader(), new Class<?>[]{AbstractInterpreter.class}, (proxy, method, args) -> null));
+        assertEquals("", provider.__wurst_rawOrEmpty(null).getVal());
+        assertEquals("a", provider.__wurst_rawOrEmpty(ILconstString.ofBytes("a")).getVal());
+        assertEquals("ab", provider.__wurst_rawConcat(provider.__wurst_rawOrEmpty(null), ILconstString.ofBytes("ab")).getVal());
     }
 
     @Test
