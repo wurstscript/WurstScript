@@ -392,7 +392,7 @@ public class ImInliner {
 
     /**
      * Whether evaluating {@code e} changes nothing: constants and reads, with no allocation, statement
-     * or call inside other than a call of a native which only reads, and no division that may abort.
+     * or call inside other than a call of a native which only reads, and no division that may abort or cast that numbers a handle.
      * Such an expression may be evaluated later, or not at all.
      */
     private boolean isEffectFree(Element e) {
@@ -408,8 +408,8 @@ public class ImInliner {
                 ? !(e instanceof ImFuncRef)
                 : e instanceof ImVarAccess || e instanceof ImVarArrayAccess || e instanceof ImMemberAccess
                     || e instanceof ImTupleSelection || (e instanceof ImOperatorCall op && !mayAbort(op))
-                    || e instanceof ImCast || e instanceof ImInstanceof || e instanceof ImTypeIdOfObj
-                    || e instanceof ImTypeIdOfClass;
+                    || (e instanceof ImCast cast && !numbersItsOperand(cast)) || e instanceof ImInstanceof
+                    || e instanceof ImTypeIdOfObj || e instanceof ImTypeIdOfClass;
             if (!allowed) {
                 return false;
             }
@@ -422,6 +422,17 @@ public class ImInliner {
             }
         }
         return true;
+    }
+
+    /**
+     * A cast to int which the Lua backend implements by numbering a handle or string on first sight.
+     * Later numbers depend on it, so it must not be dropped as unused. Instance ids and old generics
+     * convert without state.
+     */
+    private static boolean numbersItsOperand(ImCast cast) {
+        ImType from = cast.getExpr().attrTyp();
+        return TypesHelper.isIntType(cast.getToType())
+            && !(from instanceof ImClassType) && !(from instanceof ImAnyType);
     }
 
     /**
