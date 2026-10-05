@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
+import org.eclipse.jdt.annotation.Nullable;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -567,6 +568,13 @@ public class ImInliner {
         if (f.isNative() || call.getCallType() == CallType.EXECUTE) {
             return false;
         }
+        if (translator.isIncremental()) {
+            de.peeeq.wurstscript.ast.WPackage callerPkg = getPackage(caller);
+            de.peeeq.wurstscript.ast.WPackage calledPkg = getPackage(f);
+            if (callerPkg != calledPkg) {
+                return false;
+            }
+        }
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             // Functions that build callback refs are lowered with Lua-specific wrappers/xpcall.
             // Keeping them as standalone calls avoids callback context/vararg scope breakage.
@@ -605,6 +613,17 @@ public class ImInliner {
         return function == translator.luaIntDivFunc
             || function == translator.luaModIntFunc
             || function == translator.luaModRealFunc;
+    }
+
+    private static de.peeeq.wurstscript.ast.@Nullable WPackage getPackage(ImFunction func) {
+        de.peeeq.wurstscript.ast.Element trace = func.getTrace();
+        if (trace != null) {
+            de.peeeq.wurstscript.ast.PackageOrGlobal p = trace.attrNearestPackage();
+            if (p instanceof de.peeeq.wurstscript.ast.WPackage) {
+                return (de.peeeq.wurstscript.ast.WPackage) p;
+            }
+        }
+        return null;
     }
 
     private static int backendGeneratedLuaLocals(ImFunction function) {

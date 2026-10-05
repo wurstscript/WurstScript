@@ -19,7 +19,8 @@ class LuaPolyfillSetup {
         tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral("local descriptor = __wurst_objectClass[x]"));
         tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral(
             "return descriptor ~= nil and descriptor." + WURST_SUPERTYPES + "[A] == true"));
-        tr.luaModel.add(tr.instanceOfFunction);
+        // Must go to targetCu(): luaModel content is dropped in modular compilation.
+        tr.targetCu().add(tr.instanceOfFunction);
     }
 
     /**
@@ -32,13 +33,13 @@ class LuaPolyfillSetup {
      */
     static void createObjectIndexFunctions(LuaTranslator tr) {
         LuaVariable objectIndexMap = LuaAst.LuaVariable("__wurst_objectIndexMap", LuaAst.LuaExprNull());
-        tr.luaModel.add(objectIndexMap);
+        tr.targetCu().add(objectIndexMap);
         tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectIndexMap), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
         ))));
 
         LuaVariable numberWrapperMap = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaExprNull());
-        tr.luaModel.add(numberWrapperMap);
+        tr.targetCu().add(numberWrapperMap);
         tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(numberWrapperMap), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
         ))));
@@ -72,7 +73,7 @@ class LuaPolyfillSetup {
             for (String c : code) {
                 tr.toIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
             }
-            tr.luaModel.add(tr.toIndexFunction);
+            tr.targetCu().add(tr.toIndexFunction);
         }
 
         {
@@ -90,14 +91,14 @@ class LuaPolyfillSetup {
             for (String c : code) {
                 tr.fromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
             }
-            tr.luaModel.add(tr.fromIndexFunction);
+            tr.targetCu().add(tr.fromIndexFunction);
         }
     }
 
     /** The sentinel an old-generics int value 0 is stored as (see ExprTranslation.translate(ImCast)). */
     static LuaVariable createOldGenericsZero(LuaTranslator tr) {
         LuaVariable zero = LuaAst.LuaVariable("__wurst_oldGenericsZero", LuaAst.LuaLiteral("math.mininteger"));
-        tr.luaModel.add(zero);
+        tr.targetCu().add(zero);
         return zero;
     }
 
@@ -114,19 +115,19 @@ class LuaPolyfillSetup {
             LuaAst.LuaParams(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
         toInt.getBody().add(LuaAst.LuaLiteral("if x == 0 then return " + zero + " end"));
         toInt.getBody().add(LuaAst.LuaLiteral("return x or 0"));
-        tr.luaModel.add(toInt);
+        tr.targetCu().add(toInt);
         LuaFunction fromInt = LuaAst.LuaFunction("__wurst_oldGenericsFromInt",
             LuaAst.LuaParams(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
         fromInt.getBody().add(LuaAst.LuaLiteral("if i == " + zero + " then return 0 end"));
         fromInt.getBody().add(LuaAst.LuaLiteral("if i == 0 then return nil end"));
         fromInt.getBody().add(LuaAst.LuaLiteral("return i"));
-        tr.luaModel.add(fromInt);
+        tr.targetCu().add(fromInt);
         return new OldGenericsHelpers(toInt, fromInt);
     }
 
     static void createStringIndexFunctions(LuaTranslator tr) {
         LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
-        tr.luaModel.add(map);
+        tr.targetCu().add(map);
         tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(map), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0")),
             LuaAst.LuaTableNamedField("byString", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())),
@@ -156,7 +157,7 @@ class LuaPolyfillSetup {
             for (String c : code) {
                 tr.stringToIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
             }
-            tr.luaModel.add(tr.stringToIndexFunction);
+            tr.targetCu().add(tr.stringToIndexFunction);
         }
 
         {
@@ -180,7 +181,7 @@ class LuaPolyfillSetup {
             for (String c : code) {
                 tr.stringFromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
             }
-            tr.luaModel.add(tr.stringFromIndexFunction);
+            tr.targetCu().add(tr.stringFromIndexFunction);
         }
     }
 

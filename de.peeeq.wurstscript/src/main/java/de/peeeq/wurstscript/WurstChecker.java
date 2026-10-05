@@ -9,24 +9,40 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstChecker {
 
     private final WurstGui gui;
     private final ErrorHandler errorHandler;
     private final boolean legacyJassTypeChecks;
+    private final boolean quickMode;
+    private final @Nullable File cacheDir;
 
     public WurstChecker(WurstGui gui, ErrorHandler errorHandler) {
-        this(gui, errorHandler, false);
+        this(gui, errorHandler, false, false, null);
     }
 
     public WurstChecker(WurstGui gui, ErrorHandler errorHandler, boolean legacyJassTypeChecks) {
+        this(gui, errorHandler, legacyJassTypeChecks, false, null);
+    }
+
+    public WurstChecker(WurstGui gui, ErrorHandler errorHandler, boolean legacyJassTypeChecks, boolean quickMode) {
+        this(gui, errorHandler, legacyJassTypeChecks, quickMode, null);
+    }
+
+    public WurstChecker(WurstGui gui, ErrorHandler errorHandler, boolean legacyJassTypeChecks, boolean quickMode, @Nullable File cacheDir) {
         this.gui = gui;
         this.errorHandler = errorHandler;
         this.legacyJassTypeChecks = legacyJassTypeChecks;
+        this.quickMode = quickMode;
+        this.cacheDir = cacheDir;
     }
 
     public void checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
@@ -35,33 +51,57 @@ public class WurstChecker {
         if (root.isEmpty()) {
             return;
         }
+        long t0 = System.currentTimeMillis();
+        WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
+        validator.setQuickMode(quickMode);
+        validator.setCacheDir(cacheDir);
+
+        Collection<CompilationUnit> unitsToWalk = validator.getUnitsToWalk(toCheck);
+        Collection<CompilationUnit> unitsForCheck = (unitsToWalk != null) ? unitsToWalk : toCheck;
+
         new DesugarArrayLength().run(root);
         gui.sendProgress("Checking Files");
 
         if (errorHandler.getErrorCount() > 0) return;
 
         attachErrorHandler(root);
-        clearGlobalCaches(root, toCheck);
+        clearGlobalCaches(root, unitsForCheck);
 
+        long tModules = System.currentTimeMillis();
         expandModules(root);
+        long tExpand = System.currentTimeMillis();
 
         if (errorHandler.getErrorCount() > 0) return;
 
         SyntacticSugar syntacticSugar = new SyntacticSugar();
         List<SyntacticSugar.DeferredModuleCall> detachedTemplates = new ArrayList<>();
+        // Changed libraries must be desugared like everything else; unchanged ones stay
+        // skipped (the filter already excluded them from the check set).
+        Set<CompilationUnit> checkedSet = new HashSet<>(unitsForCheck);
         for (CompilationUnit cu : toCheck) {
+            if (quickMode && cu.getCuInfo().isLibrary() && !checkedSet.contains(cu)) {
+                continue;
+            }
             syntacticSugar.expandFieldIterations(cu);
+        }
+        for (CompilationUnit cu : unitsForCheck) {
             detachedTemplates.addAll(syntacticSugar.detachModuleTemplateFieldIterations(cu));
         }
+        long tSugar = System.currentTimeMillis();
         try {
-            // compute the flow attributes
-            for (CompilationUnit cu : toCheck) {
+            // Checked units need the same control-flow setup as normal compilation.
+            // Skipping this in incremental/quick mode leaves reachability analysis
+            // without next-statement edges and falsely rejects valid returning closures.
+            for (CompilationUnit cu : unitsForCheck) {
                 WurstValidator.computeFlowAttributes(cu);
             }
+            long tFlow = System.currentTimeMillis();
 
-            // validate the resource:
-            WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
-            validator.validate(toCheck);
+            validator.validate(unitsForCheck);
+            long tVal = System.currentTimeMillis();
+            String checkerTiming = String.format("WurstChecker: total=%dms (expandModules=%dms, sugar=%dms, flow=%dms, validate=%dms)",
+                tVal - t0, tExpand - tModules, tSugar - tExpand, tFlow - tSugar, tVal - tFlow);
+            de.peeeq.wurstscript.WLogger.info(checkerTiming);
         } finally {
             syntacticSugar.restoreModuleTemplateFieldIterations(detachedTemplates);
         }

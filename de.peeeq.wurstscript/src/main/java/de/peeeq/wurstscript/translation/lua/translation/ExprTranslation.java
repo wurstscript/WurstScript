@@ -392,6 +392,12 @@ public class ExprTranslation {
     }
 
 
+    /** Creates copy/equality helpers for {@code t} without needing a use site (for preamble pre-creation). */
+    public static void precreateTupleFuncs(ImTupleType t, LuaTranslator tr) {
+        getTupleCopyFunc(t, tr);
+        getTupleEqualsFunc(t, tr);
+    }
+
     private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
         Optional<TupleFunc> tfo = Optional.empty();
         for (TupleFunc f : tr.tupleEqualsFuncs) {

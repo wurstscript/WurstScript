@@ -29,6 +29,10 @@ public interface ModelManager {
 
     void buildProject();
 
+    default void buildProject(boolean doTypeCheck) {
+        buildProject();
+    }
+
     /**
      * refresh discovered dependency roots (e.g. _build/dependencies after grill install)
      */
@@ -41,6 +45,10 @@ public interface ModelManager {
     Changes syncDependencyCompilationUnits();
 
     Changes syncCompilationUnit(WFile changedFilePath);
+ 
+    default Changes syncProjectFiles() {
+        return Changes.empty();
+    }
 
     Changes syncCompilationUnitContent(WFile filename, String contents);
 

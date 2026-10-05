@@ -231,6 +231,10 @@ public class ClosureTranslator {
 
     private String makeNameSuffix() {
         StringBuilder sb = new StringBuilder();
+        WPos pos = this.e.attrSource();
+        if (pos != null && pos.getLine() > 0) {
+            sb.append("_L").append(pos.getLine()).append("_C").append(pos.getStartColumn());
+        }
         Element elem = this.e;
         while (elem != null) {
             if (elem instanceof NamedScope) {

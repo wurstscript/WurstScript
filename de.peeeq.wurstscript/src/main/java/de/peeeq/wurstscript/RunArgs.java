@@ -59,6 +59,9 @@ public class RunArgs {
     private final RunOption optionHotReload;
     private final RunOption optionTestTimeout;
     private final RunOption optionDevBuild;
+    private final RunOption optionIncremental;
+    private final RunOption optionFunctionSplitLimit;
+    private @Nullable String cachePath = null;
     private int functionSplitLimit = 10000;
 
     /**
@@ -153,12 +156,14 @@ public class RunArgs {
 
         optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
         optionDevBuild = addOption("dev", "Builds an output map in development/run mode, so compiletime isProductionBuild() is false.");
+        optionIncremental = addOption("incremental", "Enables incremental package-level modular Lua compilation and chunk caching.");
+        addOptionWithArg("cachePath", "Directory for caching build artifacts.", arg -> cachePath = arg);
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
         optionCompiletimeCache = addOption("compiletimeCache", "(Experimental) Cache results of compiletime invocations without side effects");
 
-        addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
+        optionFunctionSplitLimit = addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
             s -> functionSplitLimit = Integer.parseInt(s, 10));
         optionPrettyPrint = addOption("prettyPrint", "Pretty print the input file, or all sub-directory if the given path is: '...'");
 
@@ -427,6 +432,14 @@ public class RunArgs {
         return optionDevBuild.isSet;
     }
 
+    public boolean isIncremental() {
+        return optionIncremental.isSet;
+    }
+
+    public @Nullable String getCachePath() {
+        return cachePath;
+    }
+
     public String getWorkspaceroot() {
         return workspaceroot;
     }
@@ -446,6 +459,10 @@ public class RunArgs {
 
     public int getFunctionSplitLimit() {
         return functionSplitLimit;
+    }
+
+    public boolean isFunctionSplitLimitExplicit() {
+        return optionFunctionSplitLimit.isSet;
     }
 
 }

@@ -71,8 +71,10 @@ public final class LuaOldGenericsCasts {
                 JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(temp), operand)),
                 replacement));
         }
-        prog.flatten(translator);
-        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+        for (ImFunction function : touched) {
+            function.flatten(translator);
+        }
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog, touched);
         for (ImFunction function : touched) {
             new LocalMerger().optimizeFunc(function, analyzer, translator);
         }

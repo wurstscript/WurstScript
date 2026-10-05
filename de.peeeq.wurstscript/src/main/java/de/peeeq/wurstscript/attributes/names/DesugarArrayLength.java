@@ -9,8 +9,8 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
  * This is purely syntactic; type checking will validate later.
  */
 public final class DesugarArrayLength extends Element.DefaultVisitor {
-    public void run(WurstModel model) { if (model != null) {
-        model.accept(this);
+    public void run(Element elem) { if (elem != null) {
+        elem.accept(this);
     } }
 
     @Override public void visit(ExprMemberVarDot e) {

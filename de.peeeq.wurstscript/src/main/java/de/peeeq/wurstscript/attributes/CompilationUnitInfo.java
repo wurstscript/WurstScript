@@ -9,6 +9,8 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class CompilationUnitInfo {
     private String file = "";
+    /** Source text that was parsed into this compilation unit (editor buffer or file). */
+    private String sourceContent;
     private de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler;
     private IndentationMode indentationMode = IndentationMode.spaces(4);
     private TriviaIndex triviaIndex = TriviaIndex.empty();
@@ -25,6 +27,14 @@ public class CompilationUnitInfo {
 
     public void setFile(String file) {
         this.file = file;
+    }
+
+    public String getSourceContent() {
+        return sourceContent;
+    }
+
+    public void setSourceContent(String sourceContent) {
+        this.sourceContent = sourceContent;
     }
 
     public ErrorHandler getCuErrorHandler() {

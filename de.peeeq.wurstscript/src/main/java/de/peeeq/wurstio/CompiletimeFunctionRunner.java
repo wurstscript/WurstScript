@@ -39,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class CompiletimeFunctionRunner implements AutoCloseable {
@@ -134,8 +135,11 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
             long tWriteback = System.nanoTime();
+            long tDelayedActionsStart = System.nanoTime();
             runDelayedActions();
+            long tDelayedActionsEnd = System.nanoTime();
             emitCompiletimeObjectAllocs();
+            long tAllocsEnd = System.nanoTime();
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 insertCompiletimeScalarStateInitCalls();
                 insertCompiletimeArrayStateInitCalls();
@@ -144,7 +148,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
             partitionCompiletimeStateInitFunction();
             long tPartitioned = System.nanoTime();
-            logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned);
+            logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned,
+                tDelayedActionsEnd - tDelayedActionsStart, tAllocsEnd - tDelayedActionsEnd, tDelayed - tAllocsEnd);
 
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
@@ -170,7 +175,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private void logCompiletimeTiming(List<Either<ImCompiletimeExpr, ImFunction>> toExecute,
                                       long t0, long tCollected, long tSorted, long tExecuted,
-                                      long tWriteback, long tDelayed, long tPartitioned) {
+                                      long tWriteback, long tDelayed, long tPartitioned,
+                                      long delayedActionsNanos, long allocsNanos, long migratedNanos) {
         int exprCount = 0;
         int funcCount = 0;
         for (Either<ImCompiletimeExpr, ImFunction> e : toExecute) {
@@ -180,23 +186,27 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 funcCount++;
             }
         }
-        WLogger.info(String.format(
-            "Compiletime breakdown: total=%dms collect=%dms sort=%dms execute=%dms writeback=%dms delayed=%dms partition=%dms funcs=%d exprs=%d exprEval=%dms",
+        String cteBreakdown = String.format(
+            "Compiletime breakdown: total=%dms collect=%dms sort=%dms execute=%dms writeback=%dms delayed=%dms (actions=%dms allocs=%dms migrated=%dms) partition=%dms funcs=%d exprs=%d exprEval=%dms",
             ms(tPartitioned - t0),
             ms(tCollected - t0),
             ms(tSorted - tCollected),
             ms(tExecuted - tSorted),
             ms(tWriteback - tExecuted),
             ms(tDelayed - tWriteback),
+            ms(delayedActionsNanos),
+            ms(allocsNanos),
+            ms(migratedNanos),
             ms(tPartitioned - tDelayed),
             funcCount,
             exprCount,
             ms(compiletimeExprNanos)
-        ));
+        );
+        WLogger.info(cteBreakdown);
         if (!compiletimeFunctionNanos.isEmpty()) {
             List<Map.Entry<String, Long>> top = compiletimeFunctionNanos.entrySet().stream()
                 .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
-                .limit(10)
+                .limit(5)
                 .collect(Collectors.toList());
             StringBuilder sb = new StringBuilder("Top compiletime functions:");
             for (Map.Entry<String, Long> e : top) {
@@ -211,6 +221,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void partitionCompiletimeStateInitFunction() {
+        if (translator.isLuaTarget() && !translator.getRunArgs().isFunctionSplitLimitExplicit()) {
+            return;
+        }
         if (compiletimeStateInitFunction != null) {
             FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
         }
@@ -316,7 +329,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
             ImExpr newExpr = constantToExpr(cte.getTrace(), value);
-            if(translator.isLuaTarget() && value.toString().equals("0")) {
+            if(translator.isLuaTarget() && value instanceof ILconstInt && ((ILconstInt) value).getVal() == 0) {
                 // convert 0 to null/nil, if the value is 0 and not a numeric type
                 ImExpr expr = cte.getExpr();
 
@@ -382,7 +395,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             indexesT.add(imExpr);
                         }
                         ImExpr value2 = constantToExpr(trace, attrValue);
-                        if(translator.isLuaTarget() && value2.toString().equals("0")) {
+                        if(translator.isLuaTarget() && value2 instanceof ImIntVal && ((ImIntVal) value2).getValI() == 0) {
                             ImType varType = var.getType();
                             if(varType instanceof ImArrayLikeType) {
                                 varType = ((ImArrayLikeType) varType).getEntryType();
@@ -409,7 +422,18 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImExpr init;
 
             Object obj = a.getObj();
-            if (obj instanceof LinkedListMultimap) {
+            if (obj instanceof HashtableProvider.WurstHashtable) {
+                HashtableProvider.WurstHashtable map = (HashtableProvider.WurstHashtable) obj;
+                ImType type = TypesHelper.imHashTable();
+                ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
+                imProg.getGlobals().add(res);
+                globalState.setValUntracked(res, a);
+
+                init = constantToExprHashtable(trace, res, a, map);
+                addCompiletimeStateInitAlloc(trace, res, init);
+
+                return res;
+            } else if (obj instanceof LinkedListMultimap) {
                 @SuppressWarnings("unchecked")
                 LinkedListMultimap<HashtableProvider.KeyPair, Object> map = (LinkedListMultimap<HashtableProvider.KeyPair, Object>) obj;
                 ImType type = TypesHelper.imHashTable();
@@ -417,7 +441,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 imProg.getGlobals().add(res);
                 globalState.setValUntracked(res, a);
 
-                init = constantToExprHashtable(trace, res, a, map);
+                init = constantToExprHashtableOld(trace, res, a, map);
                 addCompiletimeStateInitAlloc(trace, res, init);
 
                 return res;
@@ -723,17 +747,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private int findLastInitializer(ImFunction function, Set<ImSet> modifiedInitializers) {
-        if (function == null || function.getBody().isEmpty()) {
+        if (function == null || function.getBody().isEmpty() || modifiedInitializers.isEmpty()) {
             return -1;
         }
-        int insertionIndex = -1;
-        for (int i = 0; i < function.getBody().size(); i++) {
-            if (function.getBody().get(i) instanceof ImSet
-                && modifiedInitializers.contains(function.getBody().get(i))) {
-                insertionIndex = i;
+        ImStmts body = function.getBody();
+        for (int i = body.size() - 1; i >= 0; i--) {
+            ImStmt s = body.get(i);
+            if (s instanceof ImSet && modifiedInitializers.contains((ImSet) s)) {
+                return i;
             }
         }
-        return insertionIndex;
+        return -1;
     }
 
     private ImFunctionCall newCompiletimeStateInitCall(ImFunction replayFunction) {
@@ -744,8 +768,19 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private void emitCompiletimeState() {
         // constantToExpr may materialize object handles as additional globals.
         // Iterate over a snapshot to avoid modifying the collection in-flight.
-        Set<ImVar> runtimeScalarWrites = Collections.newSetFromMap(new IdentityHashMap<>());
-        Set<RuntimeArrayWrite> runtimeArrayWrites = findRuntimeWrites(runtimeScalarWrites);
+        Map<ImSet, ImFunction> initStmtToFunc = new IdentityHashMap<>();
+        for (ImStmt s : translator.getGlobalInitFunc().getBody()) {
+            if (s instanceof ImSet) {
+                initStmtToFunc.put((ImSet) s, translator.getGlobalInitFunc());
+            }
+        }
+        for (ImFunction candidate : translator.initFuncMap.values()) {
+            for (ImStmt s : candidate.getBody()) {
+                if (s instanceof ImSet) {
+                    initStmtToFunc.put((ImSet) s, candidate);
+                }
+            }
+        }
         List<ImVar> modifiedScalars = new ArrayList<>(globalState.getModifiedScalars());
         List<ImVar> modifiedArrays = new ArrayList<>(globalState.getModifiedArrays());
         Map<ImVar, Integer> globalOrder = new IdentityHashMap<>();
@@ -761,13 +796,13 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 || !isCompiletimeStateMigrationTarget(var)) {
                 continue;
             }
-            StateReplayLocation replayLocation = findReplayTarget(var);
+            StateReplayLocation replayLocation = findReplayTarget(var, initStmtToFunc);
             ImFunction replayFunction = getCompiletimeScalarStateInitFunction(replayLocation);
             for (ProgramState.ScalarState state : globalState.getScalarStates(var)) {
                 if (!isPersistableCompiletimeValue(state.getValue())) {
                     String message = "Unsupported compiletime scalar value for " + var.getName()
                         + ": " + state.getValue();
-                    if (runtimeScalarWrites.contains(var)) {
+                    if (getRuntimeScalarWrites().contains(var)) {
                         WLogger.warning(message + "; runtime initialization remains authoritative ("
                             + sourceDiagnostic(var) + ")");
                         continue;
@@ -793,20 +828,20 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (!(var.getType() instanceof ImArrayLikeType)) {
                 continue;
             }
-            StateReplayLocation replayLocation = findReplayTarget(var);
+            StateReplayLocation replayLocation = findReplayTarget(var, initStmtToFunc);
             ImFunction replayFunction = getCompiletimeArrayStateInitFunction(replayLocation);
             UnsupportedArrayEntries unsupportedEntries = new UnsupportedArrayEntries();
             for (ProgramState.ArrayState state : globalState.getArrayStates(var)) {
                 if (!state.isGeneric()) {
                     emitCompiletimeArrayEntries(replayFunction, var, state.getValue(),
-                        new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites,
+                        new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType(),
                         state.getModifiedIndexes(), unsupportedEntries);
                 } else if (state.getTypeArguments().isEmpty()) {
                     throw new InterpreterException(var.getTrace(),
                         "Could not determine the generic specialization for compiletime array " + var.getName());
                 } else {
                     emitCompiletimeGenericArrayState(replayFunction, var, state,
-                        ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites, unsupportedEntries);
+                        ((ImArrayLikeType) var.getType()).getEntryType(), unsupportedEntries);
                 }
             }
             if (!unsupportedEntries.isEmpty()) {
@@ -817,6 +852,25 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     + "runtime initialization remains authoritative (" + sourceDiagnostic(var) + ")");
             }
         }
+    }
+
+    private Set<ImVar> runtimeScalarWrites = null;
+    private Set<RuntimeArrayWrite> runtimeArrayWrites = null;
+
+    private Set<ImVar> getRuntimeScalarWrites() {
+        if (runtimeScalarWrites == null) {
+            runtimeScalarWrites = Collections.newSetFromMap(new IdentityHashMap<>());
+            runtimeArrayWrites = findRuntimeWrites(runtimeScalarWrites);
+        }
+        return runtimeScalarWrites;
+    }
+
+    private Set<RuntimeArrayWrite> getRuntimeArrayWrites() {
+        if (runtimeArrayWrites == null) {
+            runtimeScalarWrites = Collections.newSetFromMap(new IdentityHashMap<>());
+            runtimeArrayWrites = findRuntimeWrites(runtimeScalarWrites);
+        }
+        return runtimeArrayWrites;
     }
 
     private boolean isCompiletimeStateMigrationTarget(ImVar var) {
@@ -830,30 +884,26 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         return var.getTrace().attrSource().printShort();
     }
 
-    private StateReplayLocation findReplayTarget(ImVar var) {
+    private StateReplayLocation findReplayTarget(ImVar var, Map<ImSet, ImFunction> initStmtToFunc) {
         List<ImSet> initializers = imProg.getGlobalInits().getOrDefault(var, Collections.emptyList());
         if (initializers.isEmpty()) {
             return new StateReplayLocation(null, Collections.emptySet());
         }
-        List<ImFunction> candidates = new ArrayList<>();
-        candidates.add(translator.getGlobalInitFunc());
-        candidates.addAll(translator.initFuncMap.values());
-        for (ImFunction candidate : candidates) {
-            Set<ImSet> matching = Collections.newSetFromMap(new IdentityHashMap<>());
-            for (ImSet initializer : initializers) {
-                for (ImStmt statement : candidate.getBody()) {
-                    if (statement == initializer) {
-                        matching.add(initializer);
-                        break;
-                    }
+        ImFunction target = null;
+        Set<ImSet> matching = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImSet initializer : initializers) {
+            ImFunction candidate = initStmtToFunc.get(initializer);
+            if (candidate != null) {
+                if (target == null) {
+                    target = candidate;
+                }
+                if (target == candidate) {
+                    matching.add(initializer);
                 }
             }
-            if (!matching.isEmpty()) {
-                if (candidate != translator.getGlobalInitFunc()) {
-                    return new StateReplayLocation(candidate, matching);
-                }
-                return new StateReplayLocation(null, Collections.emptySet());
-            }
+        }
+        if (target != null && target != translator.getGlobalInitFunc() && !matching.isEmpty()) {
+            return new StateReplayLocation(target, matching);
         }
         return new StateReplayLocation(null, Collections.emptySet());
     }
@@ -877,7 +927,6 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private void emitCompiletimeGenericArrayState(ImFunction replayFunction, ImVar var,
                                                    ProgramState.ArrayState state, ImType entryType,
-                                                  Set<RuntimeArrayWrite> runtimeArrayWrites,
                                                   UnsupportedArrayEntries unsupportedEntries) {
         List<ImTypeVar> typeVars = new ArrayList<>();
         for (int i = 0; i < state.getTypeArguments().size(); i++) {
@@ -890,7 +939,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         imProg.getFunctions().add(replay);
         arrayStateSplitTargets.add(replay);
         emitCompiletimeArrayEntries(replay, var, state.getValue(), new ArrayList<>(), entryType,
-            runtimeArrayWrites, state.getModifiedIndexes(), unsupportedEntries);
+            state.getModifiedIndexes(), unsupportedEntries);
         if (!replay.getBody().isEmpty()) {
             replayFunction.getBody().add(JassIm.ImFunctionCall(
                 var.getTrace(), replay, JassIm.ImTypeArguments(state.getTypeArguments()), JassIm.ImExprs(), true, CallType.NORMAL));
@@ -898,7 +947,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void emitCompiletimeArrayEntries(ImFunction target, ImVar var, ILconstArray values, List<Integer> indexes,
-                                             ImType entryType, Set<RuntimeArrayWrite> runtimeArrayWrites,
+                                             ImType entryType,
                                              Set<List<Integer>> modifiedIndexes,
                                              UnsupportedArrayEntries unsupportedEntries) {
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
@@ -906,7 +955,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             nextIndexes.add(entry.getIntKey());
             if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
                 emitCompiletimeArrayEntries(target, var, (ILconstArray) entry.getValue(), nextIndexes,
-                    ((ImArrayLikeType) entryType).getEntryType(), runtimeArrayWrites, modifiedIndexes,
+                    ((ImArrayLikeType) entryType).getEntryType(), modifiedIndexes,
                     unsupportedEntries);
             } else if (!modifiedIndexes.contains(nextIndexes)) {
                 continue;
@@ -925,7 +974,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     .map(JassIm::ImIntVal)
                     .collect(Collectors.toList());
                 RuntimeArrayWrite runtimeWrite = runtimeArrayWrite(var, indexExpressions);
-                if (runtimeWrite != null && runtimeArrayWrites.stream().anyMatch(runtimeWrite::matches)) {
+                if (runtimeWrite != null && getRuntimeArrayWrites().stream().anyMatch(runtimeWrite::matches)) {
                     unsupportedEntries.add(nextIndexes, entry.getValue());
                 } else {
                     throw new InterpreterException(var.getTrace(), message);
@@ -1039,53 +1088,143 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             return true;
         }
         if (value instanceof IlConstHandle) {
-            return ((IlConstHandle) value).getObj() instanceof LinkedListMultimap;
+            Object obj = ((IlConstHandle) value).getObj();
+            return obj instanceof HashtableProvider.WurstHashtable || obj instanceof LinkedListMultimap;
         }
         return false;
     }
+
+    private final Map<String, ImFunction> nativeCache = new HashMap<>();
 
     /**
      * Stores a hashtable value in a compiletime expression
      * by generating the respective native calls
      */
-    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, LinkedListMultimap<HashtableProvider.KeyPair, Object> map) {
+    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, HashtableProvider.WurstHashtable map) {
         WPos errorPos = trace.attrErrorPos();
         // we have to collect all values after all compiletime functions have run, so use delayedActions
         delayedActions.add(() -> {
+            ImFunction saveInteger = null;
+            ImFunction saveReal = null;
+            ImFunction saveStr = null;
+            ImFunction saveBoolean = null;
+            List<HashtableProvider.WurstHashtable.Entry> entries = map.entries();
+            List<ImStmt> batch = new ArrayList<>(entries.size());
+            for (HashtableProvider.WurstHashtable.Entry entry : entries) {
+                int parentKey = entry.parentKey;
+                int childKey = entry.childKey;
+                Object v = entry.value;
+                if (v instanceof ILconstInt) {
+                    if (saveInteger == null) {
+                        saveInteger = findNative("SaveInteger", errorPos);
+                    }
+                    ILconstInt iv = (ILconstInt) v;
+                    batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
+                            JassIm.ImIntVal(iv.getVal())
+                    ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstReal) {
+                    if (saveReal == null) {
+                        saveReal = findNative("SaveReal", errorPos);
+                    }
+                    ILconstReal iv = (ILconstReal) v;
+                    batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
+                            JassIm.ImRealVal("" + iv.getVal())
+                    ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstString) {
+                    if (saveStr == null) {
+                        saveStr = findNative("SaveStr", errorPos);
+                    }
+                    ILconstString iv = (ILconstString) v;
+                    batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
+                            JassIm.ImStringVal(literalText(iv, trace))
+                    ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstBool) {
+                    if (saveBoolean == null) {
+                        saveBoolean = findNative("SaveBoolean", errorPos);
+                    }
+                    ILconstBool iv = (ILconstBool) v;
+                    batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                        JassIm.ImVarAccess(htVar),
+                        JassIm.ImIntVal(parentKey),
+                        JassIm.ImIntVal(childKey),
+                        JassIm.ImBoolVal(iv.getVal())
+                    ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstNull) {
+                    // treat null like no entry
+                } else {
+                    throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
+                }
+            }
+            if (!batch.isEmpty()) {
+                getCompiletimeStateInitFunction().getBody().addAll(batch);
+            }
+        });
+
+        // we already return the expr and fill out stmts in delayedActions (see above)
+        ImFunction initHashtable = findNative("InitHashtable", errorPos);
+        return JassIm.ImFunctionCall(trace, initHashtable, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL);
+    }
+
+    private ImExpr constantToExprHashtableOld(Element trace, ImVar htVar, IlConstHandle handle, LinkedListMultimap<HashtableProvider.KeyPair, Object> map) {
+        WPos errorPos = trace.attrErrorPos();
+        // we have to collect all values after all compiletime functions have run, so use delayedActions
+        delayedActions.add(() -> {
+            ImFunction saveInteger = null;
+            ImFunction saveReal = null;
+            ImFunction saveStr = null;
+            ImFunction saveBoolean = null;
+            List<ImStmt> batch = new ArrayList<>(map.size());
             for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
                 HashtableProvider.KeyPair key = entry.getKey();
                 Object v = entry.getValue();
                 if (v instanceof ILconstInt) {
+                    if (saveInteger == null) {
+                        saveInteger = findNative("SaveInteger", errorPos);
+                    }
                     ILconstInt iv = (ILconstInt) v;
-                    ImFunction SaveInteger = findNative("SaveInteger", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(key.getParentkey()),
                             JassIm.ImIntVal(key.getChildkey()),
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstReal) {
+                    if (saveReal == null) {
+                        saveReal = findNative("SaveReal", errorPos);
+                    }
                     ILconstReal iv = (ILconstReal) v;
-                    ImFunction SaveReal = findNative("SaveReal", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(key.getParentkey()),
                             JassIm.ImIntVal(key.getChildkey()),
                             JassIm.ImRealVal("" + iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstString) {
+                    if (saveStr == null) {
+                        saveStr = findNative("SaveStr", errorPos);
+                    }
                     ILconstString iv = (ILconstString) v;
-                    ImFunction SaveStr = findNative("SaveStr", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(key.getParentkey()),
                             JassIm.ImIntVal(key.getChildkey()),
                             JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstBool) {
+                    if (saveBoolean == null) {
+                        saveBoolean = findNative("SaveBoolean", errorPos);
+                    }
                     ILconstBool iv = (ILconstBool) v;
-                    ImFunction SaveBoolean = findNative("SaveBoolean", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
                         JassIm.ImVarAccess(htVar),
                         JassIm.ImIntVal(key.getParentkey()),
                         JassIm.ImIntVal(key.getChildkey()),
@@ -1097,6 +1236,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
                 }
             }
+            if (!batch.isEmpty()) {
+                getCompiletimeStateInitFunction().getBody().addAll(batch);
+            }
         });
 
         // we already return the expr and fill out stmts in delayedActions (see above)
@@ -1106,18 +1248,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     @NotNull
     private ImFunction findNative(String funcName, WPos trace) {
+        ImFunction cached = nativeCache.get(funcName);
+        if (cached != null) {
+            return cached;
+        }
         for (ImFunction func : imProg.getFunctions()) {
-            if (func.isNative()) {
-                if (func.getName().equals(funcName)) {
-                    return Optional.of(func)
-                        .orElseGet(() -> {
-                            throw new CompileError(trace, "Could not find native 'InitHashtable'");
-                        });
-                }
+            if (func.isNative() && func.getName().equals(funcName)) {
+                nativeCache.put(funcName, func);
+                return func;
             }
         }
-        return Optional.<ImFunction>empty()
-                .orElseThrow(() -> new CompileError(trace, "Could not find native 'InitHashtable'"));
+        throw new CompileError(trace, "Could not find native '" + funcName + "'");
     }
 
 

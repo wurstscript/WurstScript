@@ -195,4 +195,31 @@ public class CompilationUnitTests extends WurstScriptTest {
             );
     }
 
+    /** Verifies that compilation unit and package discovery order is deterministic regardless of input ordering. */
+    @Test
+    public void compilationUnitAndPackageOrderingIsDeterministic() {
+        CompilationResult res1 = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .compilationUnits(
+                compilationUnit("Z.wurst", "package Z", "endpackage"),
+                compilationUnit("A.wurst", "package A", "endpackage"),
+                compilationUnit("M.wurst", "package M", "endpackage")
+            );
+
+        CompilationResult res2 = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .compilationUnits(
+                compilationUnit("A.wurst", "package A", "endpackage"),
+                compilationUnit("M.wurst", "package M", "endpackage"),
+                compilationUnit("Z.wurst", "package Z", "endpackage")
+            );
+
+        java.util.List<String> packages1 = new java.util.ArrayList<>(res1.getModel().attrPackages().keySet());
+        java.util.List<String> packages2 = new java.util.ArrayList<>(res2.getModel().attrPackages().keySet());
+        org.testng.Assert.assertEquals(packages1, packages2);
+        org.testng.Assert.assertEquals(packages1, java.util.Arrays.asList("A", "M", "Z"));
+    }
+
 }

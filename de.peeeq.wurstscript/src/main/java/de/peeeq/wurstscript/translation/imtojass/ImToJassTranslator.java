@@ -66,7 +66,7 @@ public class ImToJassTranslator {
     private <T extends JassImElementWithName> void makeNamesUnique(List<T> list) {
         List<T> sorted = new ArrayList<>(list);
         sorted.sort(Comparator.comparing(JassImElementWithName::getName)
-            .thenComparing(v -> v.getTrace().attrSource().getFile())
+            .thenComparing(v -> new java.io.File(v.getTrace().attrSource().getFile()).getName())
             .thenComparingInt(v -> v.getTrace().attrSource().getLine())
             .thenComparingInt(v -> v.getTrace().attrSource().getStartColumn()));
 
@@ -111,8 +111,12 @@ public class ImToJassTranslator {
     }
 
     private void collectGlobalVars() {
+        // An initializer can name a global later in this list (bj_DEGTORAD reads bj_PI).
+        // getJassVarFor emits a variable only once it is known to be global, and caches that
+        // result: translating the initializer first would cache bj_PI as a non-global and the
+        // later declaration would never be added.
+        globalImVars.addAll(imProg.getGlobals());
         for (ImVar v : imProg.getGlobals()) {
-            globalImVars.add(v);
             getJassVarFor(v);
         }
     }
@@ -132,8 +136,7 @@ public class ImToJassTranslator {
                         start = true;
                     }
                     if (start) {
-                        msg.append("\n - ").append(Utils.printElement(getTrace(f))).append("  ( ").append(f.attrTrace().attrSource().getFile()).append(" line" +
-                                "  ").append(f.attrTrace().attrSource().getLine()).append(")");
+                        msg.append("\n - ").append(Utils.printElement(getTrace(f))).append("  ( ").append(f.attrTrace().attrSource().printShort()).append(")");
                     }
                 }
                 WPos src = getTrace(imFunc).attrSource();
