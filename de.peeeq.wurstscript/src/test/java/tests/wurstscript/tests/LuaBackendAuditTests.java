@@ -5705,13 +5705,18 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     private List<String> inlinerDecisions(String testName, String... lines) {
         java.io.PrintStream original = System.out;
         java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
+        String previous = System.getProperty("wurst.inliner.log");
         System.setProperty("wurst.inliner.log", "true");
         System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
         try {
             compileOptimizedLua(testName, lines);
         } finally {
             System.setOut(original);
-            System.clearProperty("wurst.inliner.log");
+            if (previous == null) {
+                System.clearProperty("wurst.inliner.log");
+            } else {
+                System.setProperty("wurst.inliner.log", previous);
+            }
         }
         List<String> records = new ArrayList<>();
         for (String line : captured.toString(java.nio.charset.StandardCharsets.UTF_8).split("\\R")) {
