@@ -42,6 +42,10 @@ public class LuaEnsureTypeProvider extends Provider {
         return x;
     }
 
+    public ILconstString __wurst_rawOrEmpty(ILconstString x) {
+        return x;
+    }
+
     public ILconstString __wurst_rawConcat(ILconstString x, ILconstString y) {
         return ILconstString.ofBytes(x.getVal() + y.getVal());
     }

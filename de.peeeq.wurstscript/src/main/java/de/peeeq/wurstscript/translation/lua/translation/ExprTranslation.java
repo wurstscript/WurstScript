@@ -121,6 +121,10 @@ public class ExprTranslation {
                 LuaAst.LuaExprVarAccess(tr.luaLibrary(unaryIntrinsic.substring(0, dot))),
                 unaryIntrinsic.substring(dot + 1)), argument);
         }
+        if (e.getFunc() == tr.imTr.luaRawOrEmptyFunc && e.getArguments().size() == 1) {
+            return LuaAst.LuaExprBinary(e.getArguments().get(0).translateToLua(tr), LuaAst.LuaOpOr(),
+                LuaAst.LuaExprStringVal(""));
+        }
         if (e.getFunc() == tr.imTr.luaRawR2IFunc && e.getArguments().size() == 1) {
             LuaExpr x = e.getArguments().get(0).translateToLua(tr);
             // The expression reads x three times, so only a variable or a literal is printed in place.
@@ -179,6 +183,7 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc
+            || function == tr.imTr.luaRawOrEmptyFunc
             || LuaKeyedMap.readStubName(tr.imTr, function) != null;
     }
 

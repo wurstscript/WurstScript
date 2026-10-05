@@ -369,10 +369,58 @@ public final class LuaNativeLowering {
                 if (call.getOp() == WurstOperator.PLUS && args.size() == 2
                     && TypesHelper.isStringType(args.get(0).attrTyp())
                     && TypesHelper.isStringType(args.get(1).attrTyp())) {
-                    call.replaceBy(callWithStacktrace(call.attrTrace(), translator.stringConcatFunc, args.copy()));
+                    call.replaceBy(concatenation(call, translator));
                 }
             }
         });
+    }
+
+    /**
+     * Jass joins a null string to nothing, and a Lua string can be nil, so a concatenation of two
+     * strings which might both be nil goes through the helper that checks for it. An operand which
+     * cannot be nil needs no check: with both known the {@code ..} operator is all there is, and
+     * with one known only the other is made safe, as {@code x or ""}. The common concatenations
+     * of a literal with a conversion or with one variable then print as a plain expression,
+     * where the helper inlined into each of them was a nest of nil checks.
+     */
+    private static ImExpr concatenation(ImOperatorCall call, ImTranslator translator) {
+        ImExprs args = call.getArguments();
+        boolean leftKnown = neverNil(args.get(0), translator);
+        boolean rightKnown = neverNil(args.get(1), translator);
+        if (!leftKnown && !rightKnown) {
+            return callWithStacktrace(call.attrTrace(), translator.stringConcatFunc, args.copy());
+        }
+        ImExpr left = args.get(0).copy();
+        ImExpr right = args.get(1).copy();
+        if (!leftKnown) {
+            left = intrinsicCall(call, translator.luaRawOrEmptyFunc, left);
+        }
+        if (!rightKnown) {
+            right = intrinsicCall(call, translator.luaRawOrEmptyFunc, right);
+        }
+        return intrinsicCall(call, translator.luaRawConcatFunc, left, right);
+    }
+
+    /** Natives whose result is a string in every case, never null. */
+    private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S", "R2S", "R2SW");
+
+    private static boolean neverNil(ImExpr e, ImTranslator translator) {
+        if (e instanceof ImStringVal) {
+            return true;
+        }
+        if (e instanceof ImFunctionCall) {
+            ImFunction f = ((ImFunctionCall) e).getFunc();
+            // a lowered concatenation always has two strings to join
+            return f == translator.luaRawConcatFunc
+                || f == translator.luaRawOrEmptyFunc
+                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()));
+        }
+        return false;
+    }
+
+    private static ImFunctionCall intrinsicCall(ImOperatorCall at, ImFunction f, ImExpr... args) {
+        return JassIm.ImFunctionCall(at.attrTrace(), f, JassIm.ImTypeArguments(), JassIm.ImExprs(args),
+            false, CallType.NORMAL);
     }
 
     private static final de.peeeq.wurstscript.ast.Element SYNTHETIC_TRACE = de.peeeq.wurstscript.ast.Ast.NoExpr();

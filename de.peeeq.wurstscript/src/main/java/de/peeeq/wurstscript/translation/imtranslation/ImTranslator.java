@@ -200,6 +200,8 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
+    /** {@code x or ""}: a string operand which may be nil, made safe for {@link #luaRawConcatFunc}. */
+    @Nullable public ImFunction luaRawOrEmptyFunc = null;
     /** {@code R2I} in Lua arithmetic, falling back to the native outside the 32-bit range; see ExprTranslation. */
     @Nullable public ImFunction luaRawR2IFunc = null;
     /** The one-argument conversions the ensure helpers use; printed as direct Lua calls. */
@@ -221,6 +223,9 @@ public class ImTranslator implements SpecialisationLookup {
      */
     public boolean isTrapFreeLuaIntrinsicCall(ImFunctionCall call) {
         ImFunction target = call.getFunc();
+        if (target == luaRawOrEmptyFunc && call.getArguments().size() == 1) {
+            return true;
+        }
         if (call.getArguments().size() != 2) {
             return false;
         }

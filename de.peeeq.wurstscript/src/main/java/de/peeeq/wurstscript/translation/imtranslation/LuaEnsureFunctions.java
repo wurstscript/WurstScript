@@ -148,6 +148,10 @@ final class LuaEnsureFunctions {
         // The Lua backend prints a call to this exact node as the .. operator; see ExprTranslation.
         translator.luaRawConcatFunc = rawConcat;
         out.add(rawConcat);
+        // The Lua backend prints a call to this exact node as (x or ""); see ExprTranslation.
+        ImFunction rawOrEmpty = rawNative("__wurst_rawOrEmpty", stringType, 1);
+        translator.luaRawOrEmptyFunc = rawOrEmpty;
+        out.add(rawOrEmpty);
 
         ImVar x = JassIm.ImVar(TRACE, stringType.copy(), "x", false);
         ImVar y = JassIm.ImVar(TRACE, stringType.copy(), "y", false);

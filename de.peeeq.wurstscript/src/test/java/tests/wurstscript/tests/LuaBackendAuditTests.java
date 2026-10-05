@@ -5701,6 +5701,79 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("wurstExpr"));
     }
 
+    /** A literal, or the result of a conversion, is a string whatever happens: nothing to check. */
+    @Test
+    public void concatenationOfStringsWhichCannotBeNilHasNoNilCheck() {
+        String compiled = compileOptimizedLua("concatenationOfStringsWhichCannotBeNilHasNoNilCheck",
+            "package Test",
+            "native consume(string value)",
+            "native I2S(int i) returns string",
+            "native R2S(real r) returns string",
+            "@noinline function tag(int i) returns string",
+            "    return \"x=\" + I2S(i)",
+            "@noinline function wrap(int i, real r) returns string",
+            "    return \"<\" + I2S(i) + \"|\" + R2S(r) + \">\"",
+            "init",
+            "    consume(tag(1))",
+            "    consume(wrap(2, 3.))");
+        String tag = luaFunctionBody(compiled, "tag");
+        assertTrue("a literal and a conversion join with the operator:\n" + tag, tag.contains("\"x=\" .. tostring("));
+        String wrap = luaFunctionBody(compiled, "wrap");
+        assertFalse("no operand of this chain can be nil:\n" + wrap, wrap.contains("nil"));
+        assertEquals("five operands are joined by four operators:\n" + wrap, 4,
+            wrap.split(java.util.regex.Pattern.quote(" .. "), -1).length - 1);
+        assertFalse("the nil-safe helper is not needed at all:\n" + compiled,
+            compiled.contains("__wurst_stringConcat"));
+    }
+
+    /** With one operand known, only the other is made safe; with neither known the helper stays. */
+    @Test
+    public void onlyTheOperandWhichMayBeNilIsGuarded() {
+        String compiled = compileOptimizedLua("onlyTheOperandWhichMayBeNilIsGuarded",
+            "package Test",
+            "native consume(string value)",
+            "@noinline function tail(string s) returns string",
+            "    return \"x=\" + s",
+            "@noinline function head(string s) returns string",
+            "    return s + \"=x\"",
+            "@noinline function either(string a, string b) returns string",
+            "    return a + b",
+            "init",
+            "    consume(tail(\"a\"))",
+            "    consume(head(\"b\"))",
+            "    consume(either(\"c\", \"d\"))");
+        String tail = luaFunctionBody(compiled, "tail");
+        assertTrue("only the variable is guarded:\n" + tail,
+            java.util.regex.Pattern.compile("\"x=\" \\.\\. \\(\\w+ or \"\"\\)").matcher(tail).find());
+        String head = luaFunctionBody(compiled, "head");
+        assertTrue("only the variable is guarded:\n" + head,
+            java.util.regex.Pattern.compile("\\(\\w+ or \"\"\\) \\.\\. \"=x\"").matcher(head).find());
+        String either = luaFunctionBody(compiled, "either");
+        assertTrue("two variables keep the full check:\n" + either + "\n" + compiled,
+            either.contains("nil") || either.contains("__wurst_stringConcat"));
+    }
+
+    /**
+     * The Lua hashtable emulation answers nil for a missing string, where Jass answers null: the case
+     * the check exists for. A nil joined to a string must read as nothing, whichever side it is on,
+     * and a conversion must still join.
+     */
+    @Test
+    public void concatenationJoinsANilStringAsNothing() throws IOException {
+        test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "@noinline function missing(hashtable h) returns string",
+            "    return LoadStr(h, 1, 1)",
+            "init",
+            "    let h = InitHashtable()",
+            "    string right = \"x=\" + missing(h)",
+            "    string left = missing(h) + \"=x\"",
+            "    string middle = \"[\" + missing(h) + \"|\" + I2S(5) + \"]\"",
+            "    if right == \"x=\" and left == \"=x\" and middle == \"[|5]\"",
+            "        testSuccess()");
+    }
+
     @Test
     public void classToClassCastIsFree() {
         String compiled = compileOptimizedLua("classToClassCastIsFree",
