@@ -683,13 +683,165 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * The type of an operator call on non-real operands is its left operand's type. It used to be
      * computed twice per level, so a left-nested chain of operators was typed in 2^depth steps and
      * the Lua string-concatenation lowering, which types every operator call, never finished.
-     * Compile only: the printed chain nests 219 parentheses, which luac itself rejects.
+     * The chain is printed flat, as one parenthesised expression; see the next test for why.
      */
     @Test(timeOut = 60_000)
     public void longIntSumChainIsTypedInLinearTimeOnLua() {
         String compiled = compileOptimizedLua("longIntSumChainIsTypedInLinearTimeOnLua", longIntSumChain(220));
         String sum = topLevelFunctionBodyWithPrefix(compiled, "sum");
         assertEquals("every addition of the chain is emitted:\n" + sum, 219, sum.split(" \\+ ", -1).length - 1);
+        assertEquals("the chain is one flat expression, not nested in proportion to its length:\n" + sum,
+            1, countOccurrences(sum, "return ("));
+        assertFalse("no addition is parenthesised separately:\n" + sum, sum.contains("(("));
+    }
+
+    /**
+     * luac parses each parenthesis as a nested expression and rejects a chunk nested more than 200
+     * levels ("too many C levels"). A left-nested chain used to be printed with one parenthesis per
+     * addition, so 220 terms did not load. The game's Lua is 5.3 too.
+     */
+    @Test(timeOut = 120_000)
+    public void longIntSumChainLoadsAndRunsOnLua() {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(longIntSumChain(220));
+    }
+
+    /**
+     * Far past the limit: the nesting must not grow with the length of the chain at all. Kept well
+     * below 1200 terms, where the compiler's own recursion over the chain (IM flattening) overflows
+     * the default thread stack before any Lua is printed.
+     */
+    @Test(timeOut = 120_000)
+    public void veryLongIntSumChainLoadsAndRunsOnLua() {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(longIntSumChain(600));
+    }
+
+    /**
+     * Operators the printer writes without parentheses must keep the meaning the parentheses gave.
+     * Each case is a Wurst expression over operands which a noinline call hides from the optimiser,
+     * and the value it must have. The inputs are chosen so that every wrong grouping gives another
+     * value; the test names the wrong ones.
+     */
+    private static final String[][] OPERATOR_GROUPING_CASES = {
+        // integers: a = 100, b = 30, c = 7, d = 4
+        {"a - b - c", "63"},
+        {"a - (b - c)", "77"},
+        {"a - b + c - d", "73"},
+        {"a - (b + c) - d", "59"},
+        {"a - (b - c - d)", "81"},
+        {"a - b - c - d", "59"},
+        {"a + b * c", "310"},
+        {"(a + b) * c", "910"},
+        {"a * (b + c)", "3700"},
+        {"a * b - c * d", "2972"},
+        {"(a - b) * (c - d)", "210"},
+        {"a - b * c * d", "-740"},
+        {"a * (b - c) * d", "9200"},
+        {"-(a - b - c)", "-63"},
+        {"-a - b", "-130"},
+        {"a - -b", "130"},
+        {"a div b div c", "0"},
+        {"a div (b div c)", "25"},
+        {"a div b * c", "21"},
+        {"a * b div c", "428"},
+        {"a mod b mod d", "2"},
+        {"a mod (b mod 11)", "4"},
+        // reals: x = 10, y = 4, z = 2 (all exact in binary)
+        {"x / y / z", "1.25"},
+        {"x / (y / z)", "5."},
+        {"x - y - z", "4."},
+        {"x - (y - z)", "8."},
+        {"x * y / z", "20."},
+        {"x / y * z", "5."},
+        {"x / (y * z)", "1.25"},
+        {"(x + y) * z", "28."},
+        {"x + y * z", "18."},
+        {"x - y - z - x", "-6."},
+        // booleans: p = true, q = false
+        {"p and q or p", "true"},
+        {"p or q and q", "true"},
+        {"(p or q) and q", "false"},
+        {"p and (q or p)", "true"},
+        {"q and p or p", "true"},
+        {"q and (p or p)", "false"},
+        {"p and q and p", "false"},
+        {"q or q or p", "true"},
+        {"p and (q and p)", "false"},
+        {"q or (q or p)", "true"},
+        {"not (p and q)", "true"},
+        {"not p or q", "false"},
+        {"not (p or q)", "false"},
+        {"not p and not q", "false"},
+        {"(p == q) == q", "true"},
+        {"p == (q == p)", "false"},
+        {"a - b - c > d", "true"},
+        {"a - (b - c) < a - b - c", "false"},
+        // strings: s = "a", t = "b", and the integers above
+        {"s + t + \"c\"", "\"abc\""},
+        {"s + (t + \"c\")", "\"abc\""},
+        {"(s + t) + (\"c\" + s)", "\"abca\""},
+        {"\"n\" + I2S(a) + I2S(b)", "\"n10030\""},
+        {"\"n\" + I2S(a + b)", "\"n130\""},
+        {"\"n\" + I2S(a * b)", "\"n3000\""},
+        {"\"n\" + I2S(a - b - c)", "\"n63\""},
+        {"\"n\" + I2S(a) + I2S(b - c)", "\"n10023\""},
+        {"s + t + I2S(a) + I2S(b)", "\"ab10030\""},
+    };
+
+    private String[] operatorGroupingProgram(List<String[]> cases) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "@noinline function idInt(int x) returns int",
+            "    return x",
+            "@noinline function idReal(real x) returns real",
+            "    return x",
+            "@noinline function idBool(bool x) returns bool",
+            "    return x",
+            "@noinline function idString(string x) returns string",
+            "    return x",
+            "init",
+            "    int a = idInt(100)",
+            "    int b = idInt(30)",
+            "    int c = idInt(7)",
+            "    int d = idInt(4)",
+            "    real x = idReal(10.)",
+            "    real y = idReal(4.)",
+            "    real z = idReal(2.)",
+            "    bool p = idBool(true)",
+            "    bool q = idBool(false)",
+            "    string s = idString(\"a\")",
+            "    string t = idString(\"b\")",
+            "    bool ok = true"));
+        for (String[] grouping : cases) {
+            lines.add("    if (" + grouping[0] + ") != " + grouping[1]);
+            lines.add("        ok = false");
+        }
+        lines.add("    if ok");
+        lines.add("        testSuccess()");
+        return lines.toArray(new String[0]);
+    }
+
+    private void runOperatorGroupingOnLua(List<String[]> cases) {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(operatorGroupingProgram(cases));
+    }
+
+    @Test(timeOut = 120_000)
+    public void operatorGroupingKeepsItsMeaningOnLua() {
+        try {
+            runOperatorGroupingOnLua(List.of(OPERATOR_GROUPING_CASES));
+        } catch (Error | RuntimeException failure) {
+            // A failed run only says that testSuccess was not reached. Name the wrong cases.
+            List<String> wrong = new ArrayList<>();
+            for (String[] grouping : OPERATOR_GROUPING_CASES) {
+                try {
+                    runOperatorGroupingOnLua(List.<String[]>of(grouping));
+                } catch (Error | RuntimeException single) {
+                    wrong.add(grouping[0] + " should be " + grouping[1]);
+                }
+            }
+            throw new AssertionError("wrong value on Lua for: " + wrong, failure);
+        }
     }
 
     /** The same function on the Jass backend, which must also stay linear and keep the sum. */
