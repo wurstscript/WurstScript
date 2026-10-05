@@ -392,8 +392,8 @@ public class ImInliner {
 
     /**
      * Whether evaluating {@code e} changes nothing: constants and reads, with no allocation, statement
-     * or call inside other than a call of a native which only reads. Such an expression may be
-     * evaluated later, or not at all.
+     * or call inside other than a call of a native which only reads, and no division that may abort.
+     * Such an expression may be evaluated later, or not at all.
      */
     private boolean isEffectFree(Element e) {
         if (e instanceof ImFunctionCall call) {
@@ -407,8 +407,9 @@ public class ImInliner {
             boolean allowed = e instanceof ImConst
                 ? !(e instanceof ImFuncRef)
                 : e instanceof ImVarAccess || e instanceof ImVarArrayAccess || e instanceof ImMemberAccess
-                    || e instanceof ImTupleSelection || e instanceof ImOperatorCall || e instanceof ImCast
-                    || e instanceof ImInstanceof || e instanceof ImTypeIdOfObj || e instanceof ImTypeIdOfClass;
+                    || e instanceof ImTupleSelection || (e instanceof ImOperatorCall op && !mayAbort(op))
+                    || e instanceof ImCast || e instanceof ImInstanceof || e instanceof ImTypeIdOfObj
+                    || e instanceof ImTypeIdOfClass;
             if (!allowed) {
                 return false;
             }
@@ -421,6 +422,19 @@ public class ImInliner {
             }
         }
         return true;
+    }
+
+    /**
+     * An integer division or remainder whose divisor is not a non-zero literal: evaluating it may
+     * abort, on purpose in {@code I2S(1 div 0)}, so it must not be dropped as unused.
+     */
+    private static boolean mayAbort(ImOperatorCall op) {
+        de.peeeq.wurstscript.WurstOperator o = op.getOp();
+        if ((o == de.peeeq.wurstscript.WurstOperator.DIV_INT || o == de.peeeq.wurstscript.WurstOperator.MOD_INT
+            || o == de.peeeq.wurstscript.WurstOperator.JASS_MOD_INT) && op.getArguments().size() >= 2) {
+            return !(op.getArguments().get(1) instanceof ImIntVal divisor) || divisor.getValI() == 0;
+        }
+        return false;
     }
 
     /** Records the reads of the parameters under {@code e}, children before the node that reads them. */

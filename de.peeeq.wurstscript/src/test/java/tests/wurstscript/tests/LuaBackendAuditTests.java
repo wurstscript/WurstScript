@@ -409,6 +409,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * An argument the callee ignores is dropped only if it cannot fail. {@code I2S(1 div 0)} is the
+     * deliberate callback abort, kept as an operator expression by the div/mod lowering, and expanding
+     * the accessor must not lose it.
+     */
+    @Test
+    public void inlinedAccessorKeepsAnAbortingArgumentItIgnores() {
+        String compiled = compileOptimizedLua("inlinedAccessorKeepsAnAbortingArgumentItIgnores",
+            "package Test",
+            "native I2S(int i) returns string",
+            "native consume(int value)",
+            "function ignore(string s) returns int",
+            "    return 5",
+            "@noinline function trap() returns int",
+            "    return ignore(I2S(1 div 0))",
+            "init",
+            "    consume(trap())");
+        String trap = topLevelFunctionBodyWithPrefix(compiled, "trap");
+        assertTrue("the aborting argument is still evaluated:\n" + trap,
+            trap.contains("error(\"__wurst_abort_thread\", 0)"));
+    }
+
+    /**
      * Expanding a getter keeps the argument evaluated once, and before the getter's own reads: the
      * body is substituted, not copied around its arguments.
      */
