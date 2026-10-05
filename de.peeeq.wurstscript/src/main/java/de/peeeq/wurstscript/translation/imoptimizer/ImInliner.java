@@ -136,7 +136,7 @@ public class ImInliner {
                     " calleeId=" + Integer.toHexString(System.identityHashCode(called)) +
                     " calls=" + getCallCount(called) + " args=" + call.getArguments().size() +
                     " constArg=" + hasConstantArgument(call) + " loopDepth=" + loopDepth(call) +
-                    " callerSize=" + getFuncSize(f);
+                    " callerSize=" + callerSizeForLog(f);
                 WLogger.info(msg);
                 System.out.println(msg);
             }
@@ -199,6 +199,16 @@ public class ImInliner {
             }
         }
         return false;
+    }
+
+    /**
+     * The calling function's size for the decision log. Sizes are tracked for the inline candidates
+     * only, so a caller which is none (the global initialiser, a vararg function, a package
+     * initialiser) is measured when asked, until its first inlining starts tracking it.
+     */
+    private int callerSizeForLog(ImFunction f) {
+        Integer tracked = funcSizes.get(f);
+        return tracked != null ? tracked : estimateSize(f);
     }
 
     /** How many loops of the calling function enclose the call; only the decision log asks. */
