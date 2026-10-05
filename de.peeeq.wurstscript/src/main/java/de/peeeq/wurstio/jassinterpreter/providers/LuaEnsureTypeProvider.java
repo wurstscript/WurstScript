@@ -42,6 +42,11 @@ public class LuaEnsureTypeProvider extends Provider {
         return x;
     }
 
+    /** {@code x or ""}: unlike the other leaves this one exists to be given a nil, which arrives as Java null. */
+    public ILconstString __wurst_rawOrEmpty(ILconstString x) {
+        return x == null ? ILconstString.ofBytes("") : x;
+    }
+
     public ILconstString __wurst_rawConcat(ILconstString x, ILconstString y) {
         return ILconstString.ofBytes(x.getVal() + y.getVal());
     }

@@ -1,5 +1,11 @@
 ## 1.9 (in progress)
 
+- On Lua, joining two strings no longer checks for nil an operand which cannot be nil. Every `a + b` on
+  strings went through a helper that checks both sides, which `-inline` then expanded into a nest of
+  comparisons at each use. A literal and the result of `I2S` are always strings, so with both
+  known the join is the `..` operator, and with one known only the other side is guarded, as `x or ""`. Two
+  operands which may both be nil still use the helper. A nil on either side still reads as nothing.
+
 - A closure is named after the call it is passed to once, however many levels of that call enclose it. A
   closure passed to `doAfter(..)` inside a closure passed to `doAfter(..)` inside another used to get
   `doAfter` three times in its class name, and the Lua function implementing it repeated the whole name a
