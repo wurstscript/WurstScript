@@ -32,12 +32,15 @@ public class ImInliner {
     private static final int LUA_LIVENESS_REFRESH_INLINE_SIZE = 256;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
-    private static final boolean LOG_INLINER = Boolean.getBoolean("wurst.inliner.log");
+    /** Read when the inliner is made, not once per JVM, so that a test can switch the decision log on. */
+    private final boolean logDecisions = Boolean.getBoolean("wurst.inliner.log");
     private final ImTranslator translator;
     private final ImProg prog;
     private final Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
     private final Map<ImFunction, Integer> callCounts = Maps.newLinkedHashMap();
     private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
+    /** What the decision log reports for a caller which is not tracked in {@link #funcSizes}; never read by a decision. */
+    private final Map<ImFunction, Integer> untrackedCallerSizes = Maps.newIdentityHashMap();
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
     private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
     private final Map<ImFunction, LuaRegisterBudget> luaRegisterBudgets = Maps.newLinkedHashMap();
@@ -126,7 +129,7 @@ public class ImInliner {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
             boolean canInline = f != called && shouldInline(f, call, called);
-            if (LOG_INLINER) {
+            if (logDecisions) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
                     " size=" + getFuncSize(called) + " rating=" + getRating(called) +
                     (translator.isLuaTarget() && inlinableFunctions.contains(called)
@@ -208,7 +211,8 @@ public class ImInliner {
      */
     private int callerSizeForLog(ImFunction f) {
         Integer tracked = funcSizes.get(f);
-        return tracked != null ? tracked : estimateSize(f);
+        // measured once, not per decision: a caller with many refused calls would otherwise be rescanned for each
+        return tracked != null ? tracked : untrackedCallerSizes.computeIfAbsent(f, this::estimateSize);
     }
 
     /** How many loops of the calling function enclose the call; only the decision log asks. */

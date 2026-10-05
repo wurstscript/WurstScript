@@ -5701,6 +5701,114 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("wurstExpr"));
     }
 
+    /** The inliner's decision records for a program, with the log switched on for just that compile. */
+    private List<String> inlinerDecisions(String testName, String... lines) {
+        java.io.PrintStream original = System.out;
+        java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
+        System.setProperty("wurst.inliner.log", "true");
+        System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+        try {
+            compileOptimizedLua(testName, lines);
+        } finally {
+            System.setOut(original);
+            System.clearProperty("wurst.inliner.log");
+        }
+        List<String> records = new ArrayList<>();
+        for (String line : captured.toString(java.nio.charset.StandardCharsets.UTF_8).split("\\R")) {
+            if (line.startsWith("[INLINER]")) {
+                records.add(line);
+            }
+        }
+        return records;
+    }
+
+    private static List<String> recordsOfCallee(List<String> records, String callee) {
+        List<String> result = new ArrayList<>();
+        for (String record : records) {
+            if (record.contains(" callee=" + callee + " ")) {
+                result.add(record);
+            }
+        }
+        return result;
+    }
+
+    private static String calleeId(String record) {
+        java.util.regex.Matcher id = java.util.regex.Pattern.compile(" calleeId=([0-9a-f]+) ").matcher(record);
+        assertTrue("a calleeId in " + record, id.find());
+        return id.group(1);
+    }
+
+    /**
+     * A cost model is replayed from the decision log, so its reasons and fields are a contract: every
+     * refusal names its real cause, and each record carries the callee's identity, its caller count, the
+     * call's argument count, whether an argument is constant, how many loops enclose the call and how big
+     * the calling function is, whether or not that function is an inline candidate itself.
+     */
+    @Test
+    public void inlinerDecisionLogSaysWhyAndWhatItCost() {
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native consume(int value)",
+            "@noinline function pinned(int x) returns int",
+            "    return x + 1",
+            "function small(int x) returns int",
+            "    return x * 2",
+            "function big(int x) returns int",
+            "    var a = x");
+        for (int i = 0; i < 30; i++) {
+            source.add("    a = a * 3 + " + (i + 1));
+        }
+        // the caller count is of calling functions, not of call sites, so big needs two callers to be shared
+        Collections.addAll(source,
+            "    return a",
+            "function viaFirst() returns int",
+            "    return big(5)",
+            "function viaSecond() returns int",
+            "    return big(6)",
+            "init",
+            "    consume(small(3))",
+            "    consume(pinned(4))",
+            "    consume(viaFirst())",
+            "    consume(viaSecond())",
+            "    for i = 0 to 2",
+            "        consume(small(i))");
+        List<String> log = inlinerDecisions("inlinerDecisionLogSaysWhyAndWhatItCost", source.toArray(new String[0]));
+        assertFalse("the log has records", log.isEmpty());
+
+        for (String record : log) {
+            assertTrue("every record carries the cost fields: " + record,
+                record.matches(".* calleeId=[0-9a-f]+ calls=\\d+ args=\\d+ constArg=(true|false) loopDepth=\\d+ callerSize=\\d+"));
+            assertFalse("the size of the calling function is known, even for the package initialiser: " + record,
+                record.endsWith("callerSize=2147483647"));
+        }
+
+        List<String> small = recordsOfCallee(log, "small");
+        assertTrue("a small body is inlined at each call: " + small,
+            small.size() >= 2 && small.stream().allMatch(r -> r.contains("decision=inline")));
+        assertTrue("a call with a literal argument says so: " + small,
+            small.stream().anyMatch(r -> r.contains("constArg=true")));
+        assertTrue("a call inside a loop says so: " + small,
+            small.stream().anyMatch(r -> r.contains("loopDepth=1")));
+        assertEquals("one function, one identity", 1, small.stream().map(LuaBackendAuditTests::calleeId).distinct().count());
+
+        List<String> pinned = recordsOfCallee(log, "pinned");
+        assertTrue("an annotation is not a size: " + pinned,
+            !pinned.isEmpty() && pinned.stream().allMatch(r -> r.contains("reason=noinline_annotation")));
+
+        List<String> big = recordsOfCallee(log, "big");
+        assertTrue("a big body with two callers is refused for its rating: " + big,
+            big.size() >= 2 && big.stream().allMatch(r -> r.contains("reason=rating_too_high(")
+                && r.matches(".* calls=([2-9]|\\d\\d+) .*")));
+
+        List<String> consume = recordsOfCallee(log, "consume");
+        assertTrue("a native is refused as one: " + consume,
+            !consume.isEmpty() && consume.stream().allMatch(r -> r.contains("reason=native")));
+
+        assertEquals("different functions have different identities", 3,
+            java.util.stream.Stream.of(small, pinned, big).map(r -> calleeId(r.get(0))).distinct().count());
+    }
+
     @Test
     public void classToClassCastIsFree() {
         String compiled = compileOptimizedLua("classToClassCastIsFree",
