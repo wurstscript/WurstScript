@@ -5704,6 +5704,194 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("wurstExpr"));
     }
 
+    /** What compiling with the inliner's decision log on produced: the records, and the script. */
+    private record LoggedCompile(List<String> records, String lua) {
+    }
+
+    /** The inliner's decision records for a program, with the log switched on for just that compile. */
+    private List<String> inlinerDecisions(String testName, String... lines) {
+        return compileWithInlinerLog(testName, lines).records();
+    }
+
+    private LoggedCompile compileWithInlinerLog(String testName, String... lines) {
+        java.io.PrintStream original = System.out;
+        java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
+        String previous = System.getProperty("wurst.inliner.log");
+        System.setProperty("wurst.inliner.log", "true");
+        System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+        String lua;
+        try {
+            lua = compileOptimizedLua(testName, lines);
+        } finally {
+            System.setOut(original);
+            if (previous == null) {
+                System.clearProperty("wurst.inliner.log");
+            } else {
+                System.setProperty("wurst.inliner.log", previous);
+            }
+        }
+        List<String> records = new ArrayList<>();
+        for (String line : captured.toString(java.nio.charset.StandardCharsets.UTF_8).split("\\R")) {
+            if (line.startsWith("[INLINER]")) {
+                records.add(line);
+            }
+        }
+        return new LoggedCompile(records, lua);
+    }
+
+    /**
+     * A function that meets substitutable getters first and a register-budget-checked call after them,
+     * with {@code locals} values live across it.
+     */
+    private static String[] gettersThenABudgetCheckedCall(int locals) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "int array values",
+            "class Cell",
+            "    int v = 1",
+            "    function get() returns int",
+            "        return v",
+            "@noinline function opaque(int i) returns int",
+            "    return i",
+            "function mid(int a, int b) returns int",
+            "    let t = a * b + opaque(a)",
+            "    let u = t - opaque(b)",
+            "    return t + u + b",
+            "@noinline function big(Cell c) returns int"));
+        for (int j = 0; j < 12; j++) {
+            lines.add("    let g" + j + " = c.get() + c.get() + c.get() + c.get() + c.get() + c.get()");
+        }
+        for (int i = 0; i < locals; i++) {
+            lines.add("    let a" + i + " = opaque(" + i + ")");
+        }
+        lines.add("    let m = mid(c.get() + c.get() + c.get() + c.get(), c.get() + c.get())");
+        for (int i = 0; i < locals; i++) {
+            lines.add("    values[" + i + "] = a" + i + " + m");
+        }
+        lines.add("    return values[7]");
+        lines.add("init");
+        lines.add("    big(new Cell())");
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * Reading the decision log must not change what is compiled. Its register projection used to ask
+     * for the caller's budget, which builds it from the body as it is then; a build without the log
+     * builds it at the first call that is budget-checked, after the getters before it were substituted,
+     * and a substitution does not refresh a budget that exists. Pinned across the budget's limit.
+     */
+    @Test
+    public void switchingTheInlinerLogOnChangesNothingInTheScript() {
+        for (int locals : new int[]{120, 150, 170, 180, 185, 190, 195}) {
+            String[] program = gettersThenABudgetCheckedCall(locals);
+            String quiet = compileOptimizedLua("inlinerLogIsInertQuiet", program);
+            LoggedCompile logged = compileWithInlinerLog("inlinerLogIsInertLogged", program);
+            assertFalse("the log has records with " + locals + " locals", logged.records().isEmpty());
+            assertEquals("the script with " + locals + " live values is the same with the log on", quiet, logged.lua());
+        }
+    }
+
+    private static List<String> recordsOfCallee(List<String> records, String callee) {
+        List<String> result = new ArrayList<>();
+        for (String record : records) {
+            if (record.contains(" callee=" + callee + " ")) {
+                result.add(record);
+            }
+        }
+        return result;
+    }
+
+    private static String calleeId(String record) {
+        java.util.regex.Matcher id = java.util.regex.Pattern.compile(" calleeId=(\\d+) ").matcher(record);
+        assertTrue("a calleeId in " + record, id.find());
+        return id.group(1);
+    }
+
+    /**
+     * A cost model is replayed from the decision log, so its reasons and fields are a contract: every
+     * refusal names its real cause, and each record carries the callee's identity, its caller count, the
+     * call's argument count, whether an argument is constant, how many loops enclose the call and how big
+     * the calling function is, whether or not that function is an inline candidate itself.
+     */
+    @Test
+    public void inlinerDecisionLogSaysWhyAndWhatItCost() {
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native consume(int value)",
+            "@noinline function pinned(int x) returns int",
+            "    return x + 1",
+            "@noinline function countdown(int n) returns int",
+            "    if n <= 0",
+            "        return 0",
+            "    return countdown(n - 1)",
+            "function small(int x) returns int",
+            "    return x * 2",
+            "function big(int x) returns int",
+            "    var a = x");
+        for (int i = 0; i < 30; i++) {
+            source.add("    a = a * 3 + " + (i + 1));
+        }
+        // the caller count is of calling functions, not of call sites, so big needs two callers to be shared
+        Collections.addAll(source,
+            "    return a",
+            "function viaFirst() returns int",
+            "    return big(5)",
+            "function viaSecond() returns int",
+            "    return big(6)",
+            "init",
+            "    consume(small(3))",
+            "    consume(pinned(4))",
+            "    consume(countdown(3))",
+            "    consume(viaFirst())",
+            "    consume(viaSecond())",
+            "    for i = 0 to 2",
+            "        consume(small(i))");
+        List<String> log = inlinerDecisions("inlinerDecisionLogSaysWhyAndWhatItCost", source.toArray(new String[0]));
+        assertFalse("the log has records", log.isEmpty());
+
+        for (String record : log) {
+            assertTrue("every record carries the cost fields: " + record,
+                record.matches(".* calleeId=\\d+ calls=\\d+ args=\\d+ constArg=(true|false) loopDepth=\\d+ callerSize=\\d+"));
+            assertFalse("the size of the calling function is known, even for the package initialiser: " + record,
+                record.endsWith("callerSize=2147483647"));
+        }
+
+        List<String> small = recordsOfCallee(log, "small");
+        assertTrue("a small body is inlined at each call: " + small,
+            small.size() >= 2 && small.stream().allMatch(r -> r.contains("decision=inline")));
+        assertTrue("a call with a literal argument says so: " + small,
+            small.stream().anyMatch(r -> r.contains("constArg=true")));
+        assertTrue("a call inside a loop says so: " + small,
+            small.stream().anyMatch(r -> r.contains("loopDepth=1")));
+        assertEquals("one function, one identity", 1, small.stream().map(LuaBackendAuditTests::calleeId).distinct().count());
+
+        List<String> pinned = recordsOfCallee(log, "pinned");
+        assertTrue("an annotation is not a size: " + pinned,
+            !pinned.isEmpty() && pinned.stream().allMatch(r -> r.contains("reason=noinline_annotation")));
+
+        // the exclusion is checked before recursion, as the decision does: a call from outside is refused
+        // for the annotation, and only the function's call to itself is a recursion
+        List<String> countdown = recordsOfCallee(log, "countdown");
+        assertTrue("a recursive @noinline function is refused for its annotation from outside: " + countdown,
+            countdown.stream().filter(r -> !r.startsWith("[INLINER] caller=countdown "))
+                .allMatch(r -> r.contains("reason=noinline_annotation")));
+        assertTrue("its call to itself is a recursion: " + countdown,
+            countdown.stream().anyMatch(r -> r.startsWith("[INLINER] caller=countdown ") && r.contains("reason=recursive")));
+
+        List<String> big = recordsOfCallee(log, "big");
+        assertTrue("a big body with two callers is refused for its rating: " + big,
+            big.size() >= 2 && big.stream().allMatch(r -> r.contains("reason=rating_too_high(")
+                && r.matches(".* calls=([2-9]|\\d\\d+) .*")));
+
+        List<String> consume = recordsOfCallee(log, "consume");
+        assertTrue("a native is refused as one: " + consume,
+            !consume.isEmpty() && consume.stream().allMatch(r -> r.contains("reason=native")));
+
+        assertEquals("different functions have different identities", 3,
+            java.util.stream.Stream.of(small, pinned, big).map(r -> calleeId(r.get(0))).distinct().count());
+    }
+
     /** A literal, or the result of a conversion, is a string whatever happens: nothing to check. */
     @Test
     public void concatenationOfStringsWhichCannotBeNilHasNoNilCheck() {
