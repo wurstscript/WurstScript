@@ -27,9 +27,12 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -1136,6 +1139,92 @@ public class ModelManagerTests {
         String sameContent = Files.readString(fileMain.getFile().toPath());
         ModelManager.Changes changes = manager.syncCompilationUnitContent(fileMain, sameContent);
         assertEquals(changes.isEmpty(), true, "unchanged sync should not trigger reconcile work");
+    }
+
+    /**
+     * The language worker replaces and removes compilation units while other threads (a test polling
+     * for the result, for example) look them up. A lookup must neither fail nor see a half-updated model.
+     */
+    @Test(timeOut = 60_000)
+    public void readingCompilationUnitsWhileTheModelChangesIsSafe() throws Exception {
+        assertLookupsSurvive("./temp/testProject_concurrent_read/", (manager, churn, content) -> {
+            manager.removeCompilationUnit(churn);
+            manager.replaceCompilationUnitContent(churn, content, false);
+        });
+    }
+
+    /** Same, for a map build that purges the managed model (quick and dirty) instead of a copy. */
+    @Test(timeOut = 60_000)
+    public void readingCompilationUnitsWhileTheModelIsPurgedIsSafe() throws Exception {
+        assertLookupsSurvive("./temp/testProject_concurrent_purge/", (manager, churn, content) -> {
+            manager.retainCompilationUnits(manager.getModel(),
+                cu -> !cu.getCuInfo().getFile().endsWith("Churn.wurst"));
+            manager.replaceCompilationUnitContent(churn, content, false);
+        });
+    }
+
+    private interface ModelChange {
+        void apply(ModelManagerImpl manager, WFile churn, String churnContent) throws Exception;
+    }
+
+    /** Runs {@code change} on a writer thread (the language worker) while two threads look compilation units up. */
+    private void assertLookupsSurvive(String projectPath, ModelChange change) throws Exception {
+        File projectFolder = new File(projectPath);
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        writeFile(WFile.create(new File(wurstFolder, "Wurst.wurst")), "package Wurst\n");
+        // A long model keeps every lookup iterating for long enough to overlap an update.
+        for (int i = 0; i < 100; i++) {
+            writeFile(WFile.create(new File(wurstFolder, "P" + i + ".wurst")), "package P" + i + "\n");
+        }
+        WFile churn = WFile.create(new File(wurstFolder, "Churn.wurst"));
+        String churnContent = "package Churn\n";
+        writeFile(churn, churnContent);
+        WFile missing = WFile.create(new File(wurstFolder, "Missing.wurst"));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        assertNotNull(manager.getCompilationUnit(churn));
+
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        AtomicBoolean writerDone = new AtomicBoolean();
+        Thread writer = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100 && failure.get() == null; i++) {
+                    change.apply(manager, churn, churnContent);
+                }
+            } catch (Throwable t) {
+                failure.compareAndSet(null, t);
+            } finally {
+                writerDone.set(true);
+            }
+        }, "model-writer");
+        List<Thread> readers = new ArrayList<>();
+        for (int r = 0; r < 2; r++) {
+            readers.add(new Thread(() -> {
+                try {
+                    while (!writerDone.get() && failure.get() == null) {
+                        // A missing file makes the lookup walk the whole model.
+                        assertEquals(manager.getCompilationUnit(missing), null);
+                        manager.getCompilationUnit(churn);
+                    }
+                } catch (Throwable t) {
+                    failure.compareAndSet(null, t);
+                }
+            }, "model-reader-" + r));
+        }
+        readers.forEach(Thread::start);
+        writer.start();
+        writer.join();
+        for (Thread reader : readers) {
+            reader.join();
+        }
+
+        if (failure.get() != null) {
+            throw new AssertionError("concurrent lookups failed: " + failure.get(), failure.get());
+        }
+        assertNotNull(manager.getCompilationUnit(churn), "the last replacement must be visible");
     }
 
     @Test

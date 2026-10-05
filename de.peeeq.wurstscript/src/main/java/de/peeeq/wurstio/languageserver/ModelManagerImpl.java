@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,8 +50,13 @@ public class ModelManagerImpl implements ModelManager {
     // hashcode for each compilation unit content as string
     private final Map<WFile, Integer> fileHashcodes = new HashMap<>();
 
-    // file for each compilation unit
-    private final WeakHashMap<CompilationUnit, WFile> compilationunitFile = new WeakHashMap<>();
+    // file for each compilation unit; also read by lookups from other threads
+    private final Map<CompilationUnit, WFile> compilationunitFile = Collections.synchronizedMap(new WeakHashMap<>());
+
+    // Guards the compilation unit list of the model: the language worker adds, replaces, removes and purges
+    // units while other threads look them up (getCompilationUnit). Every change to that list is made here,
+    // under this lock, and the lock is held only around the list operations.
+    private final Object modelLock = new Object();
 
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
@@ -99,7 +105,9 @@ public class ModelManagerImpl implements ModelManager {
             }
             GlobalCaches.clearLookupCacheFor(toRemove);
             toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
-            model2.removeAll(toRemove);
+            synchronized (modelLock) {
+                model2.removeAll(toRemove);
+            }
         }
 
         // Always clear state and diagnostics for removed files.
@@ -237,9 +245,11 @@ public class ModelManagerImpl implements ModelManager {
             return Collections.emptyList();
         }
         List<CompilationUnit> list = new ArrayList<>();
-        for (CompilationUnit cu : model2) {
-            if (fileNames.contains(wFile(cu))) {
-                list.add(cu);
+        synchronized (modelLock) {
+            for (CompilationUnit cu : model2) {
+                if (fileNames.contains(wFile(cu))) {
+                    list.add(cu);
+                }
             }
         }
         return list;
@@ -426,13 +436,17 @@ public class ModelManagerImpl implements ModelManager {
                     GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
                     clearCompilationUnits(mustUpdate);
                     // replace old compilationunit with new one:
-                    it.set(cu);
+                    synchronized (modelLock) {
+                        it.set(cu);
+                    }
                     updated = true;
                     break;
                 }
             }
             if (!updated) {
-                model2.add(cu);
+                synchronized (modelLock) {
+                    model2.add(cu);
+                }
             }
         }
         //doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
@@ -689,6 +703,13 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public WurstModel getModel() {
         return model;
+    }
+
+    @Override
+    public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
+        synchronized (modelLock) {
+            model.removeIf(cu -> !keep.test(cu));
+        }
     }
 
     @Override
