@@ -130,7 +130,9 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            boolean canInline = f != called && shouldInline(f, call, called);
+            // a call to itself never runs the chain, as before
+            Refusal refusal = f == called ? Refusal.RECURSIVE : refusal(f, call, called);
+            boolean canInline = refusal == null;
             if (logDecisions) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
                     " size=" + getFuncSize(called) + " rating=" + getRating(called) +
@@ -140,7 +142,7 @@ public class ImInliner {
                     (translator.isLuaTarget() && inlinableFunctions.contains(called) && luaRegisterBudgets.containsKey(f)
                         ? " projectedLuaRegisters=" + luaRegisterBudgets.get(f).projectedPressure(call, called)
                         : "") +
-                    (canInline ? "" : " reason=" + skipReason(f, call, called)) +
+                    (canInline ? "" : " reason=" + reasonText(refusal, f, call, called)) +
                     " calleeId=" + calleeIdForLog(called) +
                     " calls=" + getCallCount(called) + " args=" + call.getArguments().size() +
                     " constArg=" + hasConstantArgument(call) + " loopDepth=" + loopDepth(call) +
@@ -242,50 +244,6 @@ public class ImInliner {
             }
         }
         return depth;
-    }
-
-    private String skipReason(ImFunction caller, ImFunctionCall call, ImFunction f) {
-        if (f.isNative()) {
-            return "native";
-        }
-        if (call.getCallType() == CallType.EXECUTE) {
-            return "execute_call";
-        }
-        if (translator.isLuaTarget() && containsFuncRef(f)) {
-            return "lua_callback_funcref_barrier";
-        }
-        if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
-            return "local_player_context_barrier";
-        }
-        if (isLuaTypeCastingCompatFunction(f)) {
-            return "lua_typecasting_compat";
-        }
-        if (!inlinableFunctions.contains(f)) {
-            return "not_in_inlinable_set";
-        }
-        if (isRecursive(f)) {
-            return "recursive";
-        }
-        // getRating answers Double.MAX_VALUE for these, which would read as a body that is too big
-        if (dontInline.contains(f.getName())) {
-            return "dont_inline_name";
-        }
-        if (hasAnnotation(f, NOINLINE)) {
-            return "noinline_annotation";
-        }
-        double threshold = inlineTreshold;
-        if (hasConstantArgument(call)) {
-            threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
-        }
-        double rating = getRating(f);
-        if (rating >= threshold) {
-            return "rating_too_high(" + rating + ">=" + threshold + ")";
-        }
-        if (translator.isLuaTarget() && !getLuaRegisterBudget(caller).fits(call, f)) {
-            return "lua_register_budget(" + getLuaRegisterBudget(caller).projectedPressure(call, f)
-                + ">" + LUA_INLINE_REGISTER_BUDGET + ")";
-        }
-        return "unknown";
     }
 
     private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
@@ -844,44 +802,90 @@ public class ImInliner {
         }
     }
 
-    private boolean shouldInline(ImFunction caller, ImFunctionCall call, ImFunction f) {
-        if (f.isNative() || call.getCallType() == CallType.EXECUTE) {
-            return false;
+    /** Why a call is not inlined, in the order the checks are made. The log reads the same answer the decision does. */
+    private enum Refusal {
+        NATIVE("native"),
+        EXECUTE_CALL("execute_call"),
+        LUA_CALLBACK_FUNCREF_BARRIER("lua_callback_funcref_barrier"),
+        LOCAL_PLAYER_CONTEXT_BARRIER("local_player_context_barrier"),
+        LUA_TYPECASTING_COMPAT("lua_typecasting_compat"),
+        NOT_IN_INLINABLE_SET("not_in_inlinable_set"),
+        /** getRating answers Double.MAX_VALUE for these two, which would read as a body that is too big. */
+        DONT_INLINE_NAME("dont_inline_name"),
+        NOINLINE_ANNOTATION("noinline_annotation"),
+        RATING_TOO_HIGH("rating_too_high"),
+        RECURSIVE("recursive"),
+        LUA_REGISTER_BUDGET("lua_register_budget");
+
+        private final String label;
+
+        Refusal(String label) {
+            this.label = label;
+        }
+    }
+
+    private double inlineThreshold(ImFunctionCall call) {
+        return hasConstantArgument(call) ? inlineTreshold * THRESHOLD_MODIFIER_CONSTANT_ARG : inlineTreshold;
+    }
+
+    /** The first reason the call must stay a call, or null when it may be inlined. */
+    private Refusal refusal(ImFunction caller, ImFunctionCall call, ImFunction f) {
+        if (f.isNative()) {
+            return Refusal.NATIVE;
+        }
+        if (call.getCallType() == CallType.EXECUTE) {
+            return Refusal.EXECUTE_CALL;
         }
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             // Functions that build callback refs are lowered with Lua-specific wrappers/xpcall.
             // Keeping them as standalone calls avoids callback context/vararg scope breakage.
-            return false;
+            return Refusal.LUA_CALLBACK_FUNCREF_BARRIER;
         }
         if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
             // Keep the call boundary around GetLocalPlayer-dependent code.
             // Inlining is normally context-preserving, but future local
             // rewrites must not gain an opportunity to move its body.
-            return false;
+            return Refusal.LOCAL_PLAYER_CONTEXT_BARRIER;
         }
         if (isLuaTypeCastingCompatFunction(f)) {
             // In Lua these compat wrappers are rewritten to object index helpers.
             // If they are inlined beforehand, old TypeCasting bodies leak through.
-            return false;
+            return Refusal.LUA_TYPECASTING_COMPAT;
         }
-
-        double threshold = inlineTreshold;
-        for (ImExpr arg : call.getArguments()) {
-            if (arg instanceof ImConst) {
-                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
-                break;
+        if (!inlinableFunctions.contains(f)) {
+            return Refusal.NOT_IN_INLINABLE_SET;
+        }
+        if (getRating(f) >= inlineThreshold(call)) {
+            if (dontInline.contains(f.getName())) {
+                return Refusal.DONT_INLINE_NAME;
             }
+            if (hasAnnotation(f, NOINLINE)) {
+                return Refusal.NOINLINE_ANNOTATION;
+            }
+            return Refusal.RATING_TOO_HIGH;
         }
-//		WLogger.info("Should I inline function " + f.getName() + "?");
-//		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
-//		WLogger.info("	rating: " + getRating(f));
-        return inlinableFunctions.contains(f)
-                && getRating(f) < threshold
-                && !isRecursive(f)
-                && (!translator.isLuaTarget()
-                    // a substituted body declares no local, so it cannot cross the register budget
-                    || canSubstitute(call, f)
-                    || getLuaRegisterBudget(caller).fits(call, f));
+        if (isRecursive(f)) {
+            return Refusal.RECURSIVE;
+        }
+        // a substituted body declares no local, so it cannot cross the register budget
+        if (translator.isLuaTarget() && !canSubstitute(call, f) && !getLuaRegisterBudget(caller).fits(call, f)) {
+            return Refusal.LUA_REGISTER_BUDGET;
+        }
+        return null;
+    }
+
+    /** The refusal as the decision log writes it, with the numbers the two size checks compared. */
+    private String reasonText(Refusal refusal, ImFunction caller, ImFunctionCall call, ImFunction f) {
+        switch (refusal) {
+            case RATING_TOO_HIGH:
+                return refusal.label + "(" + getRating(f) + ">=" + inlineThreshold(call) + ")";
+            case LUA_REGISTER_BUDGET:
+                // the budget exists: it was just asked whether the call fits
+                return refusal.label + "(" + getLuaRegisterBudget(caller).projectedPressure(call, f)
+                    + ">" + LUA_INLINE_REGISTER_BUDGET + ")";
+            default:
+                return refusal.label;
+        }
     }
 
     private boolean isLuaDivModHelper(ImFunction function) {

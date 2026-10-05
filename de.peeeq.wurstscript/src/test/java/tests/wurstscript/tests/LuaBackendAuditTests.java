@@ -5821,6 +5821,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "native consume(int value)",
             "@noinline function pinned(int x) returns int",
             "    return x + 1",
+            "@noinline function countdown(int n) returns int",
+            "    if n <= 0",
+            "        return 0",
+            "    return countdown(n - 1)",
             "function small(int x) returns int",
             "    return x * 2",
             "function big(int x) returns int",
@@ -5838,6 +5842,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    consume(small(3))",
             "    consume(pinned(4))",
+            "    consume(countdown(3))",
             "    consume(viaFirst())",
             "    consume(viaSecond())",
             "    for i = 0 to 2",
@@ -5864,6 +5869,15 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         List<String> pinned = recordsOfCallee(log, "pinned");
         assertTrue("an annotation is not a size: " + pinned,
             !pinned.isEmpty() && pinned.stream().allMatch(r -> r.contains("reason=noinline_annotation")));
+
+        // the exclusion is checked before recursion, as the decision does: a call from outside is refused
+        // for the annotation, and only the function's call to itself is a recursion
+        List<String> countdown = recordsOfCallee(log, "countdown");
+        assertTrue("a recursive @noinline function is refused for its annotation from outside: " + countdown,
+            countdown.stream().filter(r -> !r.startsWith("[INLINER] caller=countdown "))
+                .allMatch(r -> r.contains("reason=noinline_annotation")));
+        assertTrue("its call to itself is a recursion: " + countdown,
+            countdown.stream().anyMatch(r -> r.startsWith("[INLINER] caller=countdown ") && r.contains("reason=recursive")));
 
         List<String> big = recordsOfCallee(log, "big");
         assertTrue("a big body with two callers is refused for its rating: " + big,
