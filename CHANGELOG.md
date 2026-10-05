@@ -2,6 +2,12 @@
 
 - Code completion no longer suggests code while writing documentation, block, or line comments.
 
+- On Lua, class tables bind only the dispatch slots a call site reads. Every method used to be bound under the
+  names of its overrides, of the closures sharing its interface and of its class-prefixed forms, so a family of
+  closures cost one table write per sibling in every member: quadratic in the size of the family, and 36,000 of
+  the 38,000 bindings in a large map were never read. The unread ones are no longer emitted, which takes about
+  40% off that map's script. Dispatch itself is unchanged.
+
 - On Lua, `-inline` now expands one-line getters and setters at every call site, whatever the number of
   callers and wherever the call is. Method calls with a single implementation used to reach the inliner only
   inside loops, so `list.size()` outside a loop stayed a call however small it was. A getter or setter is also
