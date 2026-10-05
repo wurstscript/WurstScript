@@ -21,10 +21,12 @@ import java.util.ListIterator;
 public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPass {
     public int totalCallsRemoved = 0;
     private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
+    private ImTranslator translator;
 
     public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         totalCallsRemoved = 0;
         ImProg prog = trans.getImProg();
+        translator = trans;
         localPlayerContextAnalyzer = analyzer;
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func, trans);
@@ -111,7 +113,7 @@ public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPas
     private boolean isNativeWithoutSideEffect(ImFunction func) {
         return func.isNative()
             && !localPlayerContextAnalyzer.isLocalPlayerSource(func)
-            && isFunctionWithoutSideEffect(func.getName());
+            && (isFunctionWithoutSideEffect(func.getName()) || translator.isLuaKeyedMapRead(func));
     }
 
     /**

@@ -234,6 +234,13 @@ public class ImTranslator implements SpecialisationLookup {
             && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
                 || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
     }
+    /**
+     * Whether {@code f} is one of the Lua keyed-map read stubs, which the backend prints as a table
+     * index. A call whose result nothing uses may be dropped, as for the Jass natives which only read.
+     */
+    public boolean isLuaKeyedMapRead(ImFunction f) {
+        return LuaKeyedMap.readStubName(this, f) != null;
+    }
     @Nullable public ImFunction luaIntDivFunc = null;
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;

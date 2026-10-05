@@ -264,6 +264,198 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("the copied inner call is inlined as well:\n" + run, run.contains("leaf"));
     }
 
+    /**
+     * A one-line field getter is expanded at every call site that dispatches nowhere else, in a loop
+     * or not, whatever the number of callers: method calls outside a loop used to reach the inliner
+     * as method calls, which it does not look at, and stayed calls.
+     */
+    @Test
+    public void fieldGetterOutsideLoopsIsInlinedAtEveryCallSite() {
+        String compiled = compileOptimizedLua("fieldGetterOutsideLoopsIsInlinedAtEveryCallSite",
+            "package Test",
+            "native consume(int value)",
+            "class Counter",
+            "    int count",
+            "    function getCount() returns int",
+            "        return count",
+            "@noinline function readA(Counter c) returns int",
+            "    return c.getCount()",
+            "@noinline function readB(Counter c) returns int",
+            "    return c.getCount() + 1",
+            "@noinline function readC(Counter c) returns int",
+            "    return c.getCount() * 2",
+            "init",
+            "    let c = new Counter()",
+            "    consume(readA(c) + readB(c) + readC(c))");
+        for (String reader : new String[] {"readA", "readB", "readC"}) {
+            String body = topLevelFunctionBodyWithPrefix(compiled, reader);
+            assertFalse("the getter is expanded in " + reader + ":\n" + body, body.contains("getCount"));
+            assertTrue("the field is read in place:\n" + body, body.contains("Counter_count_storage["));
+        }
+        assertFalse("no definition is left for a function nothing calls:\n" + compiled,
+            compiled.contains("function Counter_Counter_getCount"));
+    }
+
+    /**
+     * A function already past the inliner's register budget refuses every callee that would declare a
+     * local, however small. A getter declares none, so it is expanded there as well, and the function
+     * is no further over Lua's limit than it was.
+     */
+    @Test
+    public void getterIsExpandedInAFunctionPastTheRegisterBudget() throws IOException {
+        int count = 220;
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "int array values",
+            "class Cell",
+            "    int v = 1",
+            "    function get() returns int",
+            "        return v",
+            "    function text() returns string",
+            "        return I2S(v)",
+            "@noinline function opaque(int i) returns int",
+            "    return i",
+            "@noinline function big(Cell c) returns int"));
+        for (int i = 0; i < count; i++) {
+            lines.add("    let a" + i + " = c.get() + opaque(" + i + ")");
+        }
+        lines.add("    if c.text() == \"2\"");
+        lines.add("        return -1");
+        // every local is read after the getters, so all of them are live at once
+        for (int i = 0; i < count; i++) {
+            lines.add("    values[" + i + "] = a" + i);
+        }
+        lines.add("    return values[7]");
+        lines.add("init");
+        lines.add("    if big(new Cell()) == 8");
+        lines.add("        testSuccess()");
+        test().testLua(true).inline().localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+
+        String big = topLevelFunctionBodyWithPrefix(
+            compiledLua("getterIsExpandedInAFunctionPastTheRegisterBudget"), "big");
+        assertFalse("the getter is expanded although the function is past the budget:\n" + big,
+            big.contains("get") || big.contains("text"));
+    }
+
+    /** A getter whose result nothing uses leaves nothing behind: not the call, not the read it expands to. */
+    @Test
+    public void unusedGetterResultIsDropped() {
+        String compiled = compileOptimizedLua("unusedGetterResultIsDropped",
+            "package Test",
+            "class Counter",
+            "    int count",
+            "    function getCount() returns int",
+            "        return count",
+            "@noinline function discard(Counter c)",
+            "    let ignored = c.getCount()",
+            "init",
+            "    discard(new Counter())");
+        int start = compiled.indexOf("function discard");
+        assertTrue("expected function discard", start >= 0);
+        String discard = compiled.substring(start, compiled.indexOf("\nend", start));
+        assertFalse("neither the call nor its read is left:\n" + discard,
+            discard.contains("getCount") || discard.contains("Counter_count_storage"));
+    }
+
+    /** One caller is no different from many: the call count does not gate a one-line getter. */
+    @Test
+    public void singleCallerGetterIsInlined() {
+        String compiled = compileOptimizedLua("singleCallerGetterIsInlined",
+            "package Test",
+            "native consume(int value)",
+            "class Signal",
+            "    int value",
+            "    function peek() returns int",
+            "        return value",
+            "@noinline function once(Signal s) returns int",
+            "    return s.peek()",
+            "init",
+            "    consume(once(new Signal()))");
+        String once = topLevelFunctionBodyWithPrefix(compiled, "once");
+        assertFalse("the only call site is expanded:\n" + once, once.contains("peek"));
+    }
+
+    /**
+     * A getter next to a larger callee that is expanded is expanded too: the ArrayList.add inside
+     * IntMap.put was inlined while the ArrayList.size beside it stayed a call.
+     */
+    @Test
+    public void getterNextToAnInlinedLargerCalleeIsInlined() {
+        String compiled = compileOptimizedLua("getterNextToAnInlinedLargerCalleeIsInlined",
+            "package Test",
+            "native consume(int value)",
+            "class Bag",
+            "    private static int array store",
+            "    private int count = 0",
+            "    private int capacity = 8",
+            "    function add(int value)",
+            "        if count >= capacity",
+            "            capacity = capacity * 2",
+            "        store[count] = value",
+            "        count++",
+            "    function size() returns int",
+            "        return count",
+            "@noinline function fill(Bag b) returns int",
+            "    b.add(1)",
+            "    b.add(2)",
+            "    return b.size()",
+            "init",
+            "    consume(fill(new Bag()))");
+        String fill = topLevelFunctionBodyWithPrefix(compiled, "fill");
+        assertFalse("the larger callee is expanded:\n" + fill, fill.contains("Bag_add"));
+        assertFalse("and so is the getter beside it:\n" + fill, fill.contains("Bag_size"));
+    }
+
+    /**
+     * Expanding a getter keeps the argument evaluated once, and before the getter's own reads: the
+     * body is substituted, not copied around its arguments.
+     */
+    @Test
+    public void inlinedAccessorEvaluatesArgumentsOnceAndInOrder() {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "int counter = 0",
+            "@noinline function next() returns int",
+            "    counter++",
+            "    return counter",
+            "function twice(int x) returns int",
+            "    return x + x",
+            "function minus(int a, int b) returns int",
+            "    return a - b",
+            "class Cell",
+            "    int v = 5",
+            "    function reversed(int a, int b) returns int",
+            "        return b - a",
+            "    function addTo(int a) returns int",
+            "        return v + a",
+            "    function ignore(int a) returns int",
+            "        return v",
+            "@noinline function bump(Cell c) returns int",
+            "    c.v++",
+            "    return 1",
+            "init",
+            "    let c = new Cell()",
+            "    if twice(next()) != 2",
+            "        testFail(\"an argument used twice was evaluated twice\")",
+            "    counter = 1",
+            "    if minus(next(), next()) != -1",
+            "        testFail(\"arguments were evaluated out of order\")",
+            "    counter = 1",
+            "    if c.reversed(next(), next()) != 1",
+            "        testFail(\"reversed use evaluated the arguments out of order\")",
+            "    if c.addTo(bump(c)) != 7",
+            "        testFail(\"the body read its field before the argument changed it\")",
+            "    counter = 0",
+            "    c.ignore(next())",
+            "    if counter != 1",
+            "        testFail(\"an unused argument was not evaluated\")",
+            "    testSuccess()");
+    }
+
     /** Methods which call each other are a cycle: the loop still compiles and computes correctly. */
     @Test
     public void mutuallyRecursiveMethodsInALoopStayCalls() throws IOException {
@@ -3150,7 +3342,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
         // Inlining decides which function keeps the hot loop (query, or one of the index's range
         // helpers). Inspect whichever function localizes the next-link array.
-        String body = topLevelFunctionContaining(compiled, "= SpatialPartition_nextInCell");
+        java.util.regex.Matcher localized = java.util.regex.Pattern
+            .compile("local \\w+ = SpatialPartition_nextInCell\\b").matcher(compiled);
+        assertTrue("some function must localize the next-link array:\n" + compiled, localized.find());
+        String body = topLevelFunctionContaining(compiled, localized.group());
         java.util.regex.Matcher nextAlias = java.util.regex.Pattern
             .compile("local (\\w+) = SpatialPartition_nextInCell").matcher(body);
         java.util.regex.Matcher xAlias = java.util.regex.Pattern
