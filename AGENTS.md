@@ -129,6 +129,7 @@ This repository has multiple entry points that may trigger compilation/build beh
 * `WurstLanguageServer` wires LSP protocol handlers.
 * `LanguageWorker` serializes requests and file-change reconciliation.
 * `ModelManagerImpl` owns project model state (wurst files, dependencies, diagnostics).
+* Add, replace, remove or purge compilation units of the managed model only through `ModelManager` (`retainCompilationUnits` for purges), never by mutating `getModel()`: lookups from other threads rely on its `modelLock`. A copy from `ModelManager.copy` can be changed freely.
 * User actions like build/start/tests are implemented in `languageserver.requests.*`.
 
 ### Initial workspace readiness

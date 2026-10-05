@@ -25,6 +25,7 @@ import java.util.Comparator;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
@@ -521,6 +522,10 @@ public class LanguageWorkerTest {
         @Override
         public Changes removeCompilationUnit(WFile filename) {
             return Changes.empty();
+        }
+
+        @Override
+        public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
         }
 
         @Override

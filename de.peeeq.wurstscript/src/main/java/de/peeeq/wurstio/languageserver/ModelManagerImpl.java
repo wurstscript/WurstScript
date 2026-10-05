@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -52,8 +53,9 @@ public class ModelManagerImpl implements ModelManager {
     // file for each compilation unit; also read by lookups from other threads
     private final Map<CompilationUnit, WFile> compilationunitFile = Collections.synchronizedMap(new WeakHashMap<>());
 
-    // Guards the compilation unit list of the model: the language worker adds, replaces and removes units
-    // while other threads look them up (getCompilationUnit). Held only around those list operations.
+    // Guards the compilation unit list of the model: the language worker adds, replaces, removes and purges
+    // units while other threads look them up (getCompilationUnit). Every change to that list is made here,
+    // under this lock, and the lock is held only around the list operations.
     private final Object modelLock = new Object();
 
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
@@ -701,6 +703,13 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public WurstModel getModel() {
         return model;
+    }
+
+    @Override
+    public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
+        synchronized (modelLock) {
+            model.removeIf(cu -> !keep.test(cu));
+        }
     }
 
     @Override

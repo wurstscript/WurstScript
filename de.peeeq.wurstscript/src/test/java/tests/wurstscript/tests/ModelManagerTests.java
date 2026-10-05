@@ -1147,7 +1147,29 @@ public class ModelManagerTests {
      */
     @Test(timeOut = 60_000)
     public void readingCompilationUnitsWhileTheModelChangesIsSafe() throws Exception {
-        File projectFolder = new File("./temp/testProject_concurrent_read/");
+        assertLookupsSurvive("./temp/testProject_concurrent_read/", (manager, churn, content) -> {
+            manager.removeCompilationUnit(churn);
+            manager.replaceCompilationUnitContent(churn, content, false);
+        });
+    }
+
+    /** Same, for a map build that purges the managed model (quick and dirty) instead of a copy. */
+    @Test(timeOut = 60_000)
+    public void readingCompilationUnitsWhileTheModelIsPurgedIsSafe() throws Exception {
+        assertLookupsSurvive("./temp/testProject_concurrent_purge/", (manager, churn, content) -> {
+            manager.retainCompilationUnits(manager.getModel(),
+                cu -> !cu.getCuInfo().getFile().endsWith("Churn.wurst"));
+            manager.replaceCompilationUnitContent(churn, content, false);
+        });
+    }
+
+    private interface ModelChange {
+        void apply(ModelManagerImpl manager, WFile churn, String churnContent) throws Exception;
+    }
+
+    /** Runs {@code change} on a writer thread (the language worker) while two threads look compilation units up. */
+    private void assertLookupsSurvive(String projectPath, ModelChange change) throws Exception {
+        File projectFolder = new File(projectPath);
         File wurstFolder = new File(projectFolder, "wurst");
         newCleanFolder(wurstFolder);
 
@@ -1170,8 +1192,7 @@ public class ModelManagerTests {
         Thread writer = new Thread(() -> {
             try {
                 for (int i = 0; i < 100 && failure.get() == null; i++) {
-                    manager.removeCompilationUnit(churn);
-                    manager.replaceCompilationUnitContent(churn, churnContent, false);
+                    change.apply(manager, churn, churnContent);
                 }
             } catch (Throwable t) {
                 failure.compareAndSet(null, t);

@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public interface ModelManager {
@@ -54,6 +55,13 @@ public interface ModelManager {
     @Nullable CompilationUnit getCompilationUnit(WFile filename);
 
     WurstModel getModel();
+
+    /**
+     * Removes the compilation units that do not satisfy {@code keep} from the given model, which is the
+     * managed model or a copy of it. The managed model is only changed through the manager, so that
+     * lookups from other threads stay safe.
+     */
+    void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep);
 
     boolean hasErrors();
 
