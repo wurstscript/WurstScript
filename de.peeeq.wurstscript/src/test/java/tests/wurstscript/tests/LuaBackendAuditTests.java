@@ -5898,4 +5898,193 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("a counter read after the loop keeps the while form:\n" + run, run.contains("while true do"));
         assertFalse(run, run.contains("for i"));
     }
+
+    // --- the names of closure classes and of their implementation functions ---
+
+    private String compiledJass(String testName) throws IOException {
+        return Files.toString(new File(TEST_OUTPUT_PATH + "LuaBackendAuditTests_" + testName + "_no_opts.j"), Charsets.UTF_8);
+    }
+
+    /** The names of the Lua class tables which start with the prefix, sorted. */
+    private List<String> luaTablesWithPrefix(String compiled, String prefix) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?m)^(" + java.util.regex.Pattern.quote(prefix) + "\\w*) = \\(\\{\\}\\)").matcher(compiled);
+        List<String> names = new ArrayList<>();
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    /** The names of the Jass functions which start with the prefix, sorted. */
+    private List<String> jassFunctionsWithPrefix(String compiled, String prefix) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?m)^function (" + java.util.regex.Pattern.quote(prefix) + "\\w*) takes").matcher(compiled);
+        List<String> names = new ArrayList<>();
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    /**
+     * A closure inside a closure passed to the same call used to be named after the call once per
+     * level, which made the class and, with the class name in front of it again, the Lua function a
+     * string of repeated words.
+     */
+    @Test
+    public void closuresNestedInTheSameCallAreNamedAfterItOnce() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Callback",
+            "    function call()",
+            "int hits = 0",
+            "function add(int n)",
+            "    hits += n",
+            "function doAfter(Callback cb)",
+            "    cb.call()",
+            "init",
+            "    doAfter() ->",
+            "        add(1)",
+            "        doAfter() ->",
+            "            add(10)",
+            "            doAfter() ->",
+            "                add(100)",
+            "    if hits == 111",
+            "        testSuccess()");
+        String lua = compiledLua("closuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse("the call is named once per closure, not once per level:\n" + lua, lua.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test", "Callback_doAfter_Test1", "Callback_doAfter_Test2"),
+            luaTablesWithPrefix(lua, "Callback_"));
+        String jass = compiledJass("closuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse("the call is named once per closure, not once per level:\n" + jass, jass.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("alloc_Callback_doAfter_Test", "alloc_Callback_doAfter_Test_1", "alloc_Callback_doAfter_Test_2"),
+            jassFunctionsWithPrefix(jass, "alloc_Callback_"));
+    }
+
+    /**
+     * Closures which end up with the same name still are different classes with different
+     * implementations: every name is made unique and each closure runs its own body.
+     */
+    @Test
+    public void closuresWithTheSameNameStayDistinct() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Callback",
+            "    function call()",
+            "int hits = 0",
+            "function add(int n)",
+            "    hits += n",
+            "function doAfter(Callback cb)",
+            "    cb.call()",
+            "function twice(Callback first, Callback second)",
+            "    first.call()",
+            "    second.call()",
+            "init",
+            "    twice(() -> add(1), () -> add(10))",
+            "    doAfter(() -> add(100))",
+            "    doAfter() ->",
+            "        doAfter(() -> add(1000))",
+            "    if hits == 1111",
+            "        testSuccess()");
+        String lua = compiledLua("closuresWithTheSameNameStayDistinct");
+        assertFalse(lua, lua.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test", "Callback_doAfter_Test1", "Callback_doAfter_Test2",
+                "Callback_twice_Test", "Callback_twice_Test1"),
+            luaTablesWithPrefix(lua, "Callback_"));
+        String jass = compiledJass("closuresWithTheSameNameStayDistinct");
+        assertFalse(jass, jass.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("alloc_Callback_doAfter_Test", "alloc_Callback_doAfter_Test_1", "alloc_Callback_doAfter_Test_2",
+                "alloc_Callback_twice_Test", "alloc_Callback_twice_Test_1"),
+            jassFunctionsWithPrefix(jass, "alloc_Callback_"));
+    }
+
+    /**
+     * Closures of one generic interface which are used at different type arguments share their
+     * name and are told apart by the number only; each is dispatched to its own implementation.
+     */
+    @Test
+    public void genericClosuresNestedInTheSameCallAreNamedAfterItOnce() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Fn<T:>",
+            "    function apply(T value) returns T",
+            "function pass<T:>(Fn<T> f) returns Fn<T>",
+            "    return f",
+            "init",
+            "    Fn<int> a = pass(pass((int x) -> x + 1))",
+            "    Fn<int> b = pass((int x) -> x * 2)",
+            "    Fn<string> c = pass(pass((string s) -> s + \"!\"))",
+            "    if a.apply(1) == 2 and b.apply(4) == 8 and c.apply(\"hi\") == \"hi!\"",
+            "        testSuccess()");
+        String lua = compiledLua("genericClosuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse(lua, lua.contains("pass_pass"));
+        assertEquals(java.util.Arrays.asList("Fn_pass_Test", "Fn_pass_Test1", "Fn_pass_Test2"),
+            luaTablesWithPrefix(lua, "Fn_"));
+        String jass = compiledJass("genericClosuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse(jass, jass.contains("pass_pass"));
+        assertEquals(java.util.Arrays.asList("alloc_Fn_pass_Test", "alloc_Fn_pass_Test_1", "alloc_Fn_pass_Test_2"),
+            jassFunctionsWithPrefix(jass, "alloc_Fn_"));
+    }
+
+    /**
+     * The Lua dispatch preparation reads a semantic name back out of a closure's implementation
+     * name: what precedes the first underscore, or the whole name when it starts with one. Shortening
+     * the suffix must leave both readings as they were, since dispatch aliases are built from them,
+     * and the closures must still dispatch next to a class which implements the same interface.
+     */
+    @Test
+    public void closureMethodsWithUnderscoresKeepTheirSemanticNames() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Under",
+            "    function do_it(int x) returns int",
+            "interface Hidden",
+            "    function _hidden(int x) returns int",
+            "class UnderImpl implements Under",
+            "    override function do_it(int x) returns int",
+            "        return x * 3",
+            "class HiddenImpl implements Hidden",
+            "    override function _hidden(int x) returns int",
+            "        return x * 5",
+            "function passUnder(Under u) returns Under",
+            "    return u",
+            "function passHidden(Hidden h) returns Hidden",
+            "    return h",
+            "function applyUnder(Under u, int x) returns int",
+            "    return u.do_it(x)",
+            "function applyHidden(Hidden h, int x) returns int",
+            "    return h._hidden(x)",
+            "init",
+            "    int offset = 100",
+            "    Under a = passUnder(passUnder((int x) -> x + 1))",
+            "    Under b = passUnder((int x) -> x + offset)",
+            "    Under c = passUnder(new UnderImpl())",
+            "    Hidden d = passHidden(passHidden((int x) -> x + 2))",
+            "    Hidden e = passHidden((int x) -> x + offset)",
+            "    Hidden f = new HiddenImpl()",
+            "    if applyUnder(a, 1) == 2 and applyUnder(b, 1) == 101 and applyUnder(c, 1) == 3",
+            "        if applyHidden(d, 1) == 3 and applyHidden(e, 1) == 101 and applyHidden(f, 1) == 5",
+            "            testSuccess()");
+        // The IM functions are what the semantic names are read from. do_it is read up to its first
+        // underscore, so only needs to be there; _hidden is read whole, so it keeps every level.
+        String im = Files.toString(new File(TEST_OUTPUT_PATH
+            + "LuaBackendAuditTests_closureMethodsWithUnderscoresKeepTheirSemanticNames_no_opts.jim"), Charsets.UTF_8);
+        assertTrue(im, im.contains("function do_it_passUnder_Test"));
+        assertFalse(im, im.contains("passUnder_passUnder"));
+        assertTrue(im, im.contains("function _hidden_passHidden_passHidden_Test"));
+        assertTrue(im, im.contains("function _hidden_passHidden_Test"));
+        String lua = compiledLua("closureMethodsWithUnderscoresKeepTheirSemanticNames");
+        assertEquals(java.util.Arrays.asList("Under_passUnder_Test", "Under_passUnder_Test1"),
+            luaTablesWithPrefix(lua, "Under_pass"));
+        assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test", "Hidden_passHidden_Test1"),
+            luaTablesWithPrefix(lua, "Hidden_pass"));
+        assertFalse(lua, lua.contains("passUnder_passUnder"));
+    }
 }

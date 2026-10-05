@@ -1,5 +1,13 @@
 ## 1.9 (in progress)
 
+- A closure is named after the call it is passed to once, however many levels of that call enclose it. A
+  closure passed to `doAfter(..)` inside a closure passed to `doAfter(..)` inside another used to get
+  `doAfter` three times in its class name and again in the name of the function implementing it, so the
+  generated Lua held identifiers such as `Callback_doAfter_doAfter_doAfter_Pkg`. A name which directly
+  repeats the one before it is now left out, which gives `Callback_doAfter_Pkg`. Closures which end up with
+  the same name are told apart by a number, as closures in the same function already were, on Jass and on Lua.
+  Dispatch is unaffected; only the names, and the order in which the compiler sorts by them, change.
+
 - Code completion no longer suggests code while writing documentation, block, or line comments.
 
 - On Lua, class tables bind only the dispatch slots a call site reads. Every method used to be bound under the
