@@ -41,6 +41,7 @@ public class ImInliner {
     private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
     /** What the decision log reports for a caller which is not tracked in {@link #funcSizes}; never read by a decision. */
     private final Map<ImFunction, Integer> untrackedCallerSizes = Maps.newIdentityHashMap();
+    /** The numbers the decision log gives its callees; never read by a decision. */
     private final Map<ImFunction, Integer> calleeIds = Maps.newIdentityHashMap();
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
     private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
@@ -206,11 +207,6 @@ public class ImInliner {
     }
 
     /**
-     * The calling function's size for the decision log. Sizes are tracked for the inline candidates
-     * only, so a caller which is none (the global initialiser, a vararg function, a package
-     * initialiser) is measured when asked, until its first inlining starts tracking it.
-     */
-    /**
      * A number for a function, in the order the log first meets it. Unlike an identity hash code it is
      * never shared by two functions, which is the point of logging it: names are not unique.
      */
@@ -223,6 +219,11 @@ public class ImInliner {
         return id;
     }
 
+    /**
+     * The calling function's size for the decision log. Sizes are tracked for the inline candidates
+     * only, so a caller which is none (the global initialiser, a vararg function, a package
+     * initialiser) is measured when asked, until its first inlining starts tracking it.
+     */
     private int callerSizeForLog(ImFunction f) {
         Integer tracked = funcSizes.get(f);
         // measured once, not per decision: a caller with many refused calls would otherwise be rescanned for each
