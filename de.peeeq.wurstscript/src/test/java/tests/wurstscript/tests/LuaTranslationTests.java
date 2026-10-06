@@ -559,7 +559,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         // lists of names to protect or avoid, not emitted code
         Set<String> nameLists = Set.of("LuaReservedNames.java", "RestrictedCompressedNames.java");
         // The shim which ends a test run. A map never declares testSuccess, so it is not emitted into one.
+        // Exempt only the os.exit() inside the testSuccess registration, not any other literal in the file.
         String testOnlyFile = "LuaNatives.java";
+        String testOnlyRegistration = "addNative(\"testSuccess\"";
         String testOnlyText = "os.exit()";
         List<String> found = new ArrayList<>();
         try (java.util.stream.Stream<java.nio.file.Path> walk =
@@ -572,7 +574,11 @@ public class LuaTranslationTests extends WurstScriptTest {
                     continue;
                 }
                 List<String> lines = java.nio.file.Files.readAllLines(source);
+                String registration = ""; // the addNative(...) line whose body is being read
                 for (int i = 0; i < lines.size(); i++) {
+                    if (lines.get(i).contains("addNative(")) {
+                        registration = lines.get(i);
+                    }
                     String trimmed = lines.get(i).trim();
                     if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
                         continue;
@@ -581,7 +587,8 @@ public class LuaTranslationTests extends WurstScriptTest {
                     while (quoted.find()) {
                         String text = quoted.group(1);
                         boolean withheld = bareName.matcher(text).matches() || firstWithheldLibraryUse(text) != null;
-                        boolean testOnly = fileName.equals(testOnlyFile) && text.equals(testOnlyText);
+                        boolean testOnly = fileName.equals(testOnlyFile) && text.equals(testOnlyText)
+                            && registration.contains(testOnlyRegistration);
                         if (withheld && !testOnly) {
                             found.add(source.getFileName() + ":" + (i + 1) + ": \"" + text + "\"");
                         }
