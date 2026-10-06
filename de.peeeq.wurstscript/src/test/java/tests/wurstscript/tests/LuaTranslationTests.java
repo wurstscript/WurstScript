@@ -499,6 +499,54 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse(compiled.contains("debug.traceback"));
     }
 
+    /**
+     * The game's Lua is not the test runtime's Lua. The tests run a stock Lua 5.3 with every library, while
+     * the game is reported to withhold debug and collectgarbage, and nothing in emitted code needs io, os,
+     * package or require, which are not known to exist there. A test which executes the emitted script
+     * cannot notice a helper that reaches for one, so assert it on the text instead, over a program that
+     * makes the backend emit its helpers: object management, dispatch, callback boundaries, the error
+     * handler and stack positions. See docs/WC3_RUNTIME.md.
+     */
+    @Test
+    public void emittedLuaUsesOnlyLibrariesTheGameProvides() {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "public function error(string msg)",
+            "    skip"));
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_emittedLuaUsesOnlyLibrariesTheGameProvides",
+            false,
+            Collections.singletonList(errorHandling),
+            "package Test",
+            "import ErrorHandling",
+            "native apply(code c)",
+            "native I2S(int i) returns string",
+            "interface Shape",
+            "    function area() returns int",
+            "class Square implements Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "    ondestroy",
+            "        skip",
+            "function describe(Shape s, string label) returns string",
+            "    return label + \": \" + I2S(s.area())",
+            "init",
+            "    let s = new Square(3)",
+            "    apply(() -> error(\"callback\"))",
+            "    error(describe(s, \"init\"))",
+            "    destroy s"
+        );
+        Matcher withheld = Pattern.compile(
+            "(?<![\\w.\"])(?:debug|io|package|os)\\s*\\.\\s*\\w+"
+                + "|(?<![\\w.\"])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(compiled);
+        if (withheld.find()) {
+            fail("emitted Lua uses `" + withheld.group() + "`, which the game does not provide:\n" + compiled);
+        }
+    }
+
     @Test
     public void continueLoweringInLua() throws IOException {
         test().testLua(true).lines(

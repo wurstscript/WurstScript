@@ -10,8 +10,9 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Manages object ids in a queue. This way the time each object is
- * inactive is maximized and thus errors should be easier to detect
+ * Manages the ids of each class's objects. Despite the name the free list is a stack: the most
+ * recently freed id is handed out first, so a stale reference to it reads the next object
+ * (docs/WC3_RUNTIME.md).
  */
 public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 
