@@ -16,7 +16,7 @@ de.peeeq.wurstscript/
 
 ### Sibling projects
 
-Separate repositories, checked out next to this repository's main checkout (in a git worktree `../` is not that folder). Fix a problem in the project that owns it instead of compensating here, then bump the pin here where there is one. Read a sibling's sources; never decompile its jar.
+Separate repositories, checked out next to this repository's main checkout (in a git worktree `../` is not that folder). We own all of them. A defect is fixed in the project that owns it (§3), then the pin here is bumped where there is one. Read a sibling's sources; never decompile its jar.
 
 * **WurstStdlib2**: the standard library. Tests fetch a pinned copy into `de.peeeq.wurstscript/temp/` (`ensureStdLib`, skipped with `-PskipStdLibFetch`); that copy is a fetched artefact, so change the library in its own repository. The library requires the latest compiler: add no old-compiler fallbacks. Only a change to its API or observable behaviour is breaking.
 * **WurstSetup** (`grill`): the CLI that installs dependencies and runs `-build` through `CliBuildMap`.
@@ -62,6 +62,14 @@ Inside `de.peeeq.wurstscript`:
 4. Optionally: Run IM in the interpreter, Optimize
 5. Transform IM → Backend (Jass or Lua)
 
+### Two generic systems
+
+Two incompatible generic systems coexist. The syntax of the type parameter picks one (`WurstValidator.isTypeParamNewGeneric`), and one declaration cannot mix them.
+
+* **Old `<T>`**: the parameter is erased on both targets. A value enters and leaves as an `int` through casts (`ImCast` between `ImAnyType` and int or class), so values of unrelated types share one integer space, and on Lua int `0` needs a sentinel (`LuaOldGenericsCasts`).
+* **New `<T:>`**: `EliminateGenerics` specialises each concrete type argument into its own copy with the type's native representation and its own type-id space; nothing is cast to `int`. Jass specialises everything; Lua only the paths that need the concrete type (construction, bounded dispatch, tuple storage, runtime type identity: `transformGenericNewOnly`) and keeps the rest erased.
+* Know which one you are in before changing generic code. A fix that suits one is usually wrong for the other: never `castTo int` a new-generic value, never instantiate an old generic with a new-style type parameter (a compile error), and test both. Do not migrate the old containers (`BACKLOG.md`). Language rules: `WURST_LANGUAGE.md`, "New generics and native representations".
+
 
 ### Language and tooling
 
@@ -81,7 +89,9 @@ Inside `de.peeeq.wurstscript`:
 
 ## 3. Coding Guidelines
 
-* The IM is the central representation and the backends (Jass/Lua) expect well-formed IM. Fix malformed IM in the phase that creates it (§7).
+* **Fix a defect where it originates.** The whole toolchain is ours: this compiler and the siblings in §1 (jmpq3, wc3libs, grill, the VS Code extension, the stdlib), so there is no external tool to work around. Do not monkey-patch, filter or compensate in a later pass, in a caller or in this repository for something an earlier pass or a sibling got wrong. Change the pass that produced it (§7 for IM) or the project that owns it. A workaround leaves the defect in place for every other consumer.
+* **Do not take the current shape of the compiler for granted.** It grew organically, and the Lua backend began as "make Lua mode usable": much of what it emits was simply the easiest thing to emit, and the Lua fixes since then keep finding waste that had been there all along (`git log --grep "Lua"`: unread dispatch slots were about 40% of a real map's script, a closure's name repeated three times, a nil-checking helper ran on every string join). Treat a slow emission, a pass that parses names, or a pass that exists to undo another as a finding, not a precedent: measure it against what the output should be and fix the root. Keep each change small (§2), but raise bigger ideas as a written proposal with evidence in `BACKLOG.md` (a different IM shape, pass order or generated-AST design), and do not start one unasked.
+* **The compiler is deterministic.** The same source must emit byte-identical Jass and Lua, whatever was compiled before it and whatever the platform, thread or file order. Output must never depend on filesystem listing order (`File.listFiles()`), the iteration order of a `HashMap`, `HashSet` or `IdentityHashMap`, full paths or path separators, or a counter that survives between compilations (generated names, type ids: a script can read them). Use `LinkedHash*` collections or sort by a stable key (package, name, source position). `DeterministicChecks` compiles twice and shuffles compilation-unit order; add a case there for each new source of variation. Lua slot binding has its own rules in §8.
 * Report problems with explicit, descriptive diagnostics; add no silent fallback and swallow no exception. Do not change the text of an existing error message unless required: about 300 tests assert them (`testAssertErrorsLines`).
 
 ---
@@ -231,9 +241,11 @@ Rules for backend work:
   downstream phases consume the lowered representation and must not reconstruct its source meaning.
 * Prefer backend-appropriate, state-of-the-art lowering when semantics permit it. Jass limitations may
   require compatibility compromises; do not carry those compromises into Lua without evidence.
-* Behavioral correctness is the primary requirement. Runtime and allocation performance are the next
-  requirement: common optimized paths must not retain avoidable compiler-introduced allocation,
-  dispatch, copying, or bookkeeping overhead.
+* Wurst lets users write high-level, readable, maintainable code and relies on the compiler to turn it
+  into high-performance Jass or Lua, so an abstraction must not cost at run time. Behavioral correctness
+  is the primary requirement. Runtime and allocation performance are the next requirement: common
+  optimized paths must not retain avoidable compiler-introduced allocation, dispatch, copying, or
+  bookkeeping overhead. Overhead the compiler adds is a defect, not a trade-off.
 
 ### Lua performance policy
 
@@ -253,7 +265,7 @@ Rules for backend work:
 ### Jass/Lua feature parity
 
 * New language/compiler features must be validated for **both Jass and Lua** backends.
-* Behavior should be as close as possible across backends.
+* Behavior should be as close as possible across backends. Lua is deliberately shimmed to behave like Jass so one Wurst program means the same on both targets: native calls with a handle parameter are wrapped in a nil guard because Jass returns defaults on null handles (`LuaNativeLowering`), div/mod follow Blizzard.j (`__wurst_intDiv` and friends), and typed arrays carry their default in a metatable. Shim the behaviour a program can observe, not Jass's limitations or implementation, and only where the targets really differ; make the shim cost nothing on the ordinary path (inlinable helper, metatable, operator). Real `==` is a known exception (see below).
 * If behavior differs, treat it as intentional only when:
   * the reason is backend/runtime-specific, and
   * the difference is documented in tests.
@@ -322,7 +334,7 @@ Virtual-slot binding can silently degrade to base/no-op implementations in gener
 
 ### Deterministic Lua emission requirements
 
-* Lua output must be deterministic for identical input (same input -> byte-identical output in the tests).
+* Lua output must be deterministic (§3); the rules below are what that means for slot binding.
 * Any iteration over methods/supertypes/union groups used for naming or table assignment must be deterministic (stable ordering).
 * If multiple candidate methods exist for the same slot in a class, selection must be deterministic and must prefer the most specific non-abstract implementation for that class.
 
@@ -408,43 +420,12 @@ source intrinsic names or runtime reflection machinery.
 
 ## 10. New-Generic Handle-Keyed Maps
 
-The new generic bound `<K: handle>` can restrict keys to Warcraft handle types while retaining the
-specialized native handle type. A Lua keyed-map backend can therefore use a unit, timer, or other
-handle itself as the table key; do not convert it with `GetHandleId` or route it through an object
-index map.
+The representation rules (the handle itself is the Lua table key, with no `GetHandleId` or index map; generic values are non-null; destroy clears in place) are in [`WURST_LANGUAGE.md`](de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md) under "KeyedMap intrinsic representation". `LuaKeyedMapTests` is the focused suite; extend it when changing this lowering. The compiler must also hold to:
 
-Keep the existing fixed `keyedMapPut(int, handle, int)` signature intact. A generic overload with the
-same name becomes ambiguous with ordinary legacy calls after specialization. Use a distinct
-compiler-intrinsic name such as `keyedMapPutNative<K: handle, V:>` for the typed operation (and
-`keyedMapGetNative<K: handle, V:>` for its typed read). Lua maps these aliases to a native table:
-`t[k] = v` for put and a single `t[k]` read with a type-appropriate primitive default. The
-specialized wrapper should add no conversion around those calls.
-
-Jass source cannot cast a new generic `V:` to `int`. For Jass, wait until after generic elimination
-and class elimination, then rewrite the specialized typed aliases to the existing fixed integer
-intrinsics. At that phase both `int` and class references have Jass integer representation. Reject
-other specialized value types with a diagnostic rather than adding generic boxing or a permissive
-cast. The original fixed intrinsic declarations and their `Table`/`GetHandleId` bodies remain the
-Jass compatibility path.
-
-Handle-bounded generic keys are nullable, so `K: handle` values may be compared with `null` and a
-null key must be guarded before a Lua table write. Do not infer a handle-bounded type argument from
-a bare `null`; null is a nullable value of a concrete handle specialization, not a native handle type
-to specialize as. An explicit type argument such as `f<unit>(null)` remains valid. Generic reference values must be non-null under
-the current map contract (the type bound does not enforce this): Jass specializes generic null to
-the type default, which cannot be distinguished from storing that default after specialization.
-Use `remove` for absence; do not add a post-specialization null check for generic values.
-
-`keyedMapDestroy` must release the Jass `Table` and clear the backing Lua table in place. Lua `destroy` only
-recycles the id and leaves field storage as it was ([`docs/WC3_RUNTIME.md`](docs/WC3_RUNTIME.md) "Objects and
-memory"), so the map object and table may remain reachable through aliases after `destroy`; dropping the clear
-call would retain all map entries. Keep a Lua runtime test that
-destroys a map while retaining an alias and verifies the alias sees an empty store.
-
-`LuaKeyedMapTests` is the focused compiler suite. It should assert that integer and class-reference
-value specializations reach one direct Lua table read/write with the handle itself as key, that
-integer and class-reference Jass specializations forward to the unchanged fixed hashtable
-intrinsics, that non-handle key types are rejected, and that destroy clears retained Lua aliases.
+* Keep the fixed `keyedMapPut(int, handle, int)` signature intact: a generic overload with the same name becomes ambiguous with legacy calls after specialization. The typed operations have distinct compiler-intrinsic names, `keyedMapPutNative<K: handle, V:>` and `keyedMapGetNative<K: handle, V:>`. Lua maps them to `t[k] = v` and a single `t[k]` read with a primitive default; the specialized wrapper adds no conversion around them.
+* Jass source cannot cast a new generic `V:` to `int`. After generic elimination and class elimination both `int` and class references have Jass integer representation, so only then rewrite the typed aliases to the fixed integer intrinsics. Reject other specialized value types with a diagnostic; add no generic boxing or permissive cast.
+* Handle-bounded keys are nullable: guard a null key before a Lua table write, and never infer a handle-bounded type argument from a bare `null` (`f<unit>(null)` is fine). Jass specializes generic null to the type default, which cannot be told from storing that default, so add no post-specialization null check for generic values; use `remove` for absence.
+* `keyedMapDestroy` clears the backing Lua table in place, because Lua `destroy` leaves field storage alone ([`docs/WC3_RUNTIME.md`](docs/WC3_RUNTIME.md) "Objects and memory"); dropping the clear would keep every entry reachable through aliases. A Lua runtime test must destroy a map while retaining an alias and find it empty (`keyedMapDestroyClearsLuaStoreWhileAliasRemains`).
 
 ## 11. Warcraft III Runtime Traps
 

@@ -38,7 +38,7 @@ Every client simulates the same game from the same inputs; any value that differ
 
 * **reported** The iteration order of `pairs()` is not the same for different players ([SyncedTable](https://www.hiveworkshop.com/threads/syncedtable.332894/)). So emitted Lua and stdlib code that compiles to Lua never iterate a table whose order is observable. A table is safe as a membership set (`t[k] = true`, `t[k] ~= nil`, `t[k] = nil`); anything iterated needs a separately kept insertion-ordered array, which is what a sparse set's dense array buys.
 * **code** The keyed table offers no iteration (`LuaNatives`). `__wurst_keyedMapDestroy` does loop with `pairs`, but only to set every entry to nil, which does not depend on order.
-* **code** The compiler's own output must be byte-identical for identical input (AGENTS.md §8).
+* **code** The compiler's own output must be byte-identical for identical input (AGENTS.md §3).
 
 ## Numbers
 
