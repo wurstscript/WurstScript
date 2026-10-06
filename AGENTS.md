@@ -10,7 +10,7 @@ This repository contains the **WurstScript compiler**. Its main code lives in:
 de.peeeq.wurstscript/
 ```
 
-Other directories like `WurstPack` and `HelperScripts` exist but are largely **deprecated** and should not be modified unless explicitly requested.
+`HelperScripts/` holds the generators for the compiler's game-data resources and the stdlib's ability wrappers (see `HelperScripts/GAMEDATA.md`); change it only for that work. Design notes live in `docs/`.
 
 ### Compiler layout
 
@@ -249,7 +249,6 @@ Recent fixes established additional rules for backend work. Follow these for all
 * **A compiler-introduced call or allocation on an ordinary typed code path is a defect.** The
   optimiser must be able to inline small pure helpers; an analysis barrier that refuses to inline a
   function must be justified by what that function does, not by where else it happens to be called.
-* The concrete open items and their acceptance criteria are in `LUA_HOT_PATH_SPEC.md`.
 
 ### Jass/Lua feature parity
 

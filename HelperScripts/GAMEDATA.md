@@ -2,6 +2,18 @@
 
 The checked-in game data resources are generated from the Warcraft III installation, not from an online mirror. Use the in-house sibling reader in `../casc-ts`; do not use CascView.
 
+## Which tool does what
+
+There is one pipeline. Its three tools are stages that produce different outputs, not alternatives for the same job, and none of them is deprecated.
+
+| Stage | Tool | Reads | Writes |
+|---|---|---|---|
+| 1. Extract | `extract-wc3-gamedata.mjs` (Node, uses `../casc-ts`) | the Warcraft III install | the ignored `gamedata/` snapshot |
+| 2. Ability wrappers | `src/objEditing/abilities/GenAbilities.java` (Gradle `run`) | `gamedata/`, the sibling WurstStdlib2 ability IDs | `AbilityIds_additions.wurst`, `AbilityObjEditing.wurst`, `AbilityObjEditing_additions.wurst` in this directory (ignored; merged into WurstStdlib2 by hand) |
+| 3. Compiler resources | `generate-obj-mappings.ts` (Deno) | `gamedata/` and the sibling WurstStdlib2 object-editing sources | `stdlib-obj-mappings.json` and `wc3-knowledge-base.json` in the compiler resources (checked in) |
+
+Stage 3 parses the stdlib's `objediting/AbilityObjEditing.wurst`, not the stage 2 output. When the ability wrappers change, run stage 2, merge its output into WurstStdlib2, then run stage 3. Only stage 2 has tests; CI runs them with `./gradlew -p ../HelperScripts test`.
+
 ## Refreshing the inputs and compiler resources
 
 From the WurstScript repository root:

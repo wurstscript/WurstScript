@@ -34,10 +34,8 @@ This repository contains the following sub-projects:
 
 - de.peeeq.wurstscript
 	- The core wurstscript compiler and directly related tools
-- Wurstpack
-	- (deprecated) Wurst integration for the Warcraft III World Editor
- - HelperScripts
-   	- Some external scripts used for generating data e.g. for StdLib
+- HelperScripts
+	- Generators for the compiler's game-data resources and the stdlib's ability wrappers, see [HelperScripts/GAMEDATA.md](HelperScripts/GAMEDATA.md)
 
 IDE support is provided via a VSCode plugin: https://github.com/wurstscript/wurst4vscode
 
@@ -66,10 +64,10 @@ To update the local compiler installation used by vscode run
 .\gradlew make_for_userdir
 ```
 
-For deploying .jars and .zips see tasks in **deploy.gradle**
+For building the release packages (compiler jar, bundled runtime and the `wurstscript`/`grill` launchers) see the tasks in **deploy.gradle**
 
 ```bash
-.\gradlew create_zip_wurstpack_compiler
+.\gradlew packageSlimCompilerDist
 ```
 
 
