@@ -83,16 +83,6 @@ public class HashtableProvider extends Provider {
             }
             return result;
         }
-
-        public int size() {
-            int count = 0;
-            for (Map<Integer, Map<Class<?>, Object>> parent : data.values()) {
-                for (Map<Class<?>, Object> child : parent.values()) {
-                    count += child.size();
-                }
-            }
-            return count;
-        }
     }
 
     public IlConstHandle InitHashtable() {
@@ -141,9 +131,9 @@ public class HashtableProvider extends Provider {
     /** Measured on the 3.0.0 client: a missing string loads as null, not as "". */
     public ILconst LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
         WurstHashtable table = (WurstHashtable) ht.getObj();
-        ILconst res = (ILconst) table.get(key1.getVal(), key2.getVal(), ILconstString.class);
+        ILconst res = table.get(key1.getVal(), key2.getVal(), ILconstString.class);
         if (res == null) {
-            res = (ILconst) table.get(key1.getVal(), key2.getVal(), ILconstNull.class);
+            res = table.get(key1.getVal(), key2.getVal(), ILconstNull.class);
         }
         return res != null ? res : ILconstNull.instance();
     }

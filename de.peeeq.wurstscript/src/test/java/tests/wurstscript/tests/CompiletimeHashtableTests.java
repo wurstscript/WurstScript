@@ -23,6 +23,8 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
         "@extern native FlushChildHashtable(hashtable h, int p)",
         "@extern native FlushParentHashtable(hashtable h)",
         "@extern native RemoveSavedInteger(hashtable h, int p, int c)",
+        "@extern native RemoveSavedReal(hashtable h, int p, int c)",
+        "@extern native RemoveSavedString(hashtable h, int p, int c)",
         "@extern native HaveSavedInteger(hashtable h, int p, int c) returns bool",
         "function compiletime(hashtable h) returns hashtable",
         "    return h",
@@ -81,5 +83,77 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "init",
             "    if LoadInteger(h, 1, 1) == 0 and LoadInteger(h, 2, 2) == 0 and LoadInteger(h, 5, 5) == 50",
             "        testSuccess()"));
+    }
+
+    @Test
+    public void savingAnotherTypeKeepsTheOtherValuesOfTheSlot() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@compiletime",
+            "function fill()",
+            "    SaveInteger(h, 1, 1, 5)",
+            "    SaveStr(h, 1, 1, \"s\")",
+            "init",
+            "    if LoadInteger(h, 1, 1) == 5 and LoadStr(h, 1, 1) == \"s\"",
+            "        testSuccess()"));
+    }
+
+    @Test
+    public void removingOneChildKeepsItsSiblings() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@compiletime",
+            "function fill()",
+            "    SaveInteger(h, 1, 1, 1)",
+            "    SaveInteger(h, 1, 2, 2)",
+            "    RemoveSavedInteger(h, 1, 1)",
+            "init",
+            "    if LoadInteger(h, 1, 1) == 0 and LoadInteger(h, 1, 2) == 2",
+            "        testSuccess()"));
+    }
+
+    @Test
+    public void removingTheStringLeavesTheIntegerOfTheSlot() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@compiletime",
+            "function fill()",
+            "    SaveInteger(h, 1, 1, 5)",
+            "    SaveStr(h, 1, 1, \"s\")",
+            "    RemoveSavedString(h, 1, 1)",
+            "init",
+            "    if LoadInteger(h, 1, 1) == 5 and LoadStr(h, 1, 1) == null",
+            "        testSuccess()"));
+    }
+
+    /** An integer and a real of equal value are different slot entries and must not replace each other. */
+    @Test
+    public void numericallyEqualIntegerAndRealAreSeparateEntries() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@compiletime",
+            "function fill()",
+            "    SaveInteger(h, 1, 1, 3)",
+            "    SaveReal(h, 1, 1, 3.0)",
+            "    SaveReal(h, 1, 1, 5.0)",
+            "    SaveInteger(h, 2, 2, 7)",
+            "    SaveReal(h, 2, 2, 7.0)",
+            "    RemoveSavedReal(h, 2, 2)",
+            "init",
+            "    if LoadInteger(h, 1, 1) == 3 and LoadReal(h, 1, 1) == 5.0",
+            "        if LoadInteger(h, 2, 2) == 7 and LoadReal(h, 2, 2) == 0.0",
+            "            testSuccess()"));
+    }
+
+    @Test
+    public void valuesOfDifferentTypesShareAKeyAndAreReplayedInLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@compiletime",
+            "function fill()",
+            "    SaveInteger(h, 1, 1, 10)",
+            "    SaveStr(h, 1, 1, \"s\")",
+            "    SaveReal(h, 1, 1, 2.5)",
+            "    SaveInteger(h, 2, 5, 20)",
+            "    FlushChildHashtable(h, 2)",
+            "init",
+            "    if LoadInteger(h, 1, 1) == 10 and LoadStr(h, 1, 1) == \"s\" and LoadReal(h, 1, 1) == 2.5",
+            "        if LoadInteger(h, 2, 5) == 0",
+            "            testSuccess()"));
     }
 }
