@@ -3,6 +3,9 @@ package de.peeeq.wurstscript.translation.lua.printing;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class LuaPrinter {
 
     public static void print(LuaAssignment s, StringBuilder sb, int indent) {
@@ -51,12 +54,79 @@ public class LuaPrinter {
 
     public static void print(LuaExprBinary e, StringBuilder sb, int indent) {
         sb.append("(");
-        e.getLeftExpr().print(sb, indent);
+        if (continuesChain(e, e.getLeftExpr())) {
+            printChain(e, sb, indent);
+        } else {
+            e.getLeftExpr().print(sb, indent);
+            printOperatorAndRight(e, sb, indent);
+        }
+        sb.append(")");
+    }
+
+    private static void printOperatorAndRight(LuaExprBinary e, StringBuilder sb, int indent) {
         sb.append(" ");
         e.getOp().print(sb, indent);
         sb.append(" ");
         e.getRight().print(sb, indent);
-        sb.append(")");
+    }
+
+    /**
+     * Prints a left-nested chain of operators as one flat expression inside a single pair of
+     * parentheses: {@code (a + b + c)}, not {@code ((a + b) + c)}. Lua parses every binary operator
+     * except {@code ..} and {@code ^} as left associative, so {@code a - b + c} is {@code (a - b) + c}
+     * and the parentheses around the left operand change nothing. They are not free: luac nests one
+     * parser level per parenthesis and rejects a chunk nested more than 200 levels
+     * ("too many C levels"), which a sum of 200 terms reached; a flat chain is a loop in its parser.
+     * Walks the spine instead of recursing, so the chain length costs no stack either.
+     */
+    private static void printChain(LuaExprBinary outermost, StringBuilder sb, int indent) {
+        List<LuaExprBinary> spine = new ArrayList<>();
+        LuaExprBinary current = outermost;
+        spine.add(current);
+        while (continuesChain(current, current.getLeftExpr())) {
+            current = (LuaExprBinary) current.getLeftExpr();
+            spine.add(current);
+        }
+        current.getLeftExpr().print(sb, indent);
+        for (int i = spine.size() - 1; i >= 0; i--) {
+            printOperatorAndRight(spine.get(i), sb, indent);
+        }
+    }
+
+    /**
+     * True when {@code left}, the left operand of {@code parent}, may print without parentheses:
+     * it is an operation of the same left associative precedence level, so the unparenthesised text
+     * parses back to the same tree. A different level keeps its parentheses, as does a right
+     * operand (which is never checked here): {@code a - (b - c)} is not {@code a - b - c}.
+     */
+    private static boolean continuesChain(LuaExprBinary parent, LuaExpr left) {
+        if (!(left instanceof LuaExprBinary leftBinary)) {
+            return false;
+        }
+        int level = chainLevel(parent.getOp());
+        return level >= 0 && level == chainLevel(leftBinary.getOp());
+    }
+
+    /**
+     * The Lua precedence level of an operator whose left-nested chains print flat, or -1 for one
+     * which keeps its parentheses. Only the levels (not their order) matter, and they follow the
+     * Lua 5.3 manual, section 3.4.8: {@code or}; {@code and}; {@code + -}; {@code * / // %}.
+     * Not listed, so always parenthesised: {@code ..}, which is right associative (so
+     * {@code (a .. b) .. c} is not {@code a .. b .. c}); the comparisons, where a chain reads as
+     * a range check but compares a boolean; and any operator added later until its level is decided.
+     */
+    private static int chainLevel(LuaOpBinary op) {
+        if (op instanceof LuaOpOr) {
+            return 1;
+        } else if (op instanceof LuaOpAnd) {
+            return 2;
+        } else if (op instanceof LuaOpPlus || op instanceof LuaOpMinus) {
+            return 3;
+        } else if (op instanceof LuaOpMult || op instanceof LuaOpDiv || op instanceof LuaOpFloorDiv
+            || op instanceof LuaOpMod) {
+            return 4;
+        }
+        return -1;
     }
 
     public static void print(LuaExprBoolVal e, StringBuilder sb, int indent) {
