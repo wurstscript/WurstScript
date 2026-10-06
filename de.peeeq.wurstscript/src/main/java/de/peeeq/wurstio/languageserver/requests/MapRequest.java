@@ -688,7 +688,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             .stream()
             .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
-            println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
+            println("Put the map's war3map.j into your wurst-folder, or use a map that contains it. ");
             println("We will try to start the map now, but it will probably fail. ");
         }
         return result;

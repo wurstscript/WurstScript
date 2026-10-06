@@ -4,10 +4,6 @@ Open compiler work that is not derivable from the code or the issue tracker. Kee
 item lands, delete it here and let the commit and PR carry the history. Durable lessons go under
 Notes; finished-work narrative does not.
 
-The Lua backend performance items live in `LUA_HOT_PATH_SPEC.md`, which carries their root causes,
-required changes and acceptance criteria. Task 2 of that spec is done (#1284); Tasks 1, 3, 4 and 5
-are open.
-
 ## Open
 
 - **A dead dispatch slot survives for overloads inside a specialised class.** Two overloads of one
@@ -18,7 +14,7 @@ are open.
   class's type variable (`void|T192,real` against `void|T636,real`). Worth doing only if this stops
   being dead weight.
 
-- **Implement `RawHashMap<K, V>` from [NATIVE_KEYED_STORE_DESIGN.md](NATIVE_KEYED_STORE_DESIGN.md).**
+- **Implement `RawHashMap<K, V>` from [docs/NATIVE_KEYED_STORE_DESIGN.md](docs/NATIVE_KEYED_STORE_DESIGN.md).**
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
   requirements, and regression cases; the data structure itself is not implemented.
 
@@ -61,6 +57,10 @@ are open.
   reach is bounded by how much of the roughly one thousand natives the shim models, so those tests
   stay small and targeted. There is no Wurst-level end-to-end feature; correctness in a real map on
   the Lua target is asserted in the agent workflow.
+- `wurst_run.args` in a generated project defaults to `-stacktraces` and no `-inline`, so every
+  emitted function pays `wurst_stack` bookkeeping and no leaf is inlined. Benchmarks that inform
+  stdlib design must use `-inline -localOptimizations` without `-stacktraces`, or they measure the
+  debug configuration.
 - Test forks: eight forks won on eight cores (7m03s wall against 13m11s serial) even though each
   test runs 2.6 times slower there. Wall time cannot go below the slowest class, `ExportToWurstTest`
   at 108s, until it is split.

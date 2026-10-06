@@ -23,34 +23,17 @@
 */temp/*
 */WurstSetup/*
 WSetup/*
-Wurstpack/wurstscript/lib/MapStuff/*
-Wurstpack/wurstscript/lib/EBR/*
 */backupsdata.txt
-
-Wurstpack/war3map.j
 
 de.peeeq.wurstscript/logs/*
 de.peeeq.wurstscript/test-output/*
 de.peeeq.wurstscript/junitTestResults/
 de.peeeq.wurstscript/version2.properties
 
-WurstWeb/gwt-unitCache/*
-WurstWeb/war/WEB-INF/classes/*
-WurstWeb/war/WEB-INF/deploy/*
-WurstWeb/war/wurstweb/*
-
 *~
 /WurstSetup/WurstSetup/nbproject/private/
 /WurstSetup/WurstSetup/build/
 /bin
-Wurstpack/vexorianjasshelper/Blizzard.j
-Wurstpack/vexorianjasshelper/common.j
-Wurstpack/wurstscript/Blizzard.j
-Wurstpack/wurstscript/common.j
-Wurstpack/winmpq/temp/*
-Wurstpack/wurstscript/logs/*
-Wurstpack/tesh/TESH.ini
-Checksums/testmd5.txt
 /.idea
 *.iml
 downloads/

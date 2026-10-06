@@ -180,7 +180,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     public void loadWurstFilesInDir(File dir) {
         File[] fileList = dir.listFiles();
-        if (fileList == null) return;
+        if (fileList == null) {
+            WLogger.warning("Could not list directory " + dir);
+            return;
+        }
         Arrays.sort(fileList, Comparator.comparing(File::getName));
         for (File f : fileList) {
             if (f.isDirectory()) {
@@ -401,7 +404,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             throw new Error("Library folder " + libDir + " does not exist.");
         }
         File[] fileList = libDir.listFiles();
-        if (fileList == null) return;
+        if (fileList == null) {
+            WLogger.warning("Could not list library folder " + libDir);
+            return;
+        }
         Arrays.sort(fileList, Comparator.comparing(File::getName));
         for (File f : fileList) {
             if (f.isDirectory()) {
@@ -723,7 +729,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     public WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
         gui.sendProgress("Merging Files");
-        compilationUnits.sort(Comparator.comparing(cu -> Objects.toString(cu.getCuInfo().getFile(), "")));
+        // Compare with '/' separators so the order does not depend on the platform's path separator.
+        compilationUnits.sort(Comparator.comparing(cu -> Objects.toString(cu.getCuInfo().getFile(), "").replace('\\', '/')));
         WurstModel result = Ast.WurstModel();
         for (CompilationUnit compilationUnit : compilationUnits) {
             // remove from old parent

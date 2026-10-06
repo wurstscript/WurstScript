@@ -97,7 +97,7 @@ public class RemoveGarbage {
             }
             if (newDispatchClass) {
                 Collection<ImMethod> imMethods = waitingMethods.get(c);
-                // This is a HashMultimap set view, not an indexed list. Keep the one iterator:
+                // This is a multimap set view, not an indexed list. Keep the one iterator:
                 // taking an array snapshot here allocates one entry for every waiting method.
                 Iterator<ImMethod> iterator = imMethods.iterator();
                 while (iterator.hasNext()) {

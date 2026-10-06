@@ -82,7 +82,9 @@ public class ModelManagerImpl implements ModelManager {
         WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
 
         File[] jassdocFiles = jassdoc.toFile().listFiles();
-        if (jassdocFiles != null) {
+        if (jassdocFiles == null) {
+            WLogger.warning("Could not list jassdoc folder " + jassdoc);
+        } else {
             Arrays.sort(jassdocFiles, Comparator.comparing(File::getName));
             for (File f : jassdocFiles) {
                 if (f.getName().endsWith(".j") && ! f.getName().startsWith("builtin-types")) {

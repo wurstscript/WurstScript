@@ -1,1 +1,8 @@
-/bin
+/build
+/.gradle
+# Snapshot of the installed game's data files (see GAMEDATA.md)
+/gamedata
+# GenAbilities output. It is merged into WurstStdlib2 by hand, so it is not tracked here.
+/AbilityIds_additions.wurst
+/AbilityObjEditing.wurst
+/AbilityObjEditing_additions.wurst

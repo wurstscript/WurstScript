@@ -221,5 +221,4 @@ public class CompilationUnitTests extends WurstScriptTest {
         org.testng.Assert.assertEquals(packages1, packages2);
         org.testng.Assert.assertEquals(packages1, java.util.Arrays.asList("A", "M", "Z"));
     }
-
 }
