@@ -11,6 +11,12 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static de.peeeq.wurstscript.utils.Utils.string;
 
@@ -1941,7 +1947,7 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
-    public void linkedListModule_perClassStatics_andTyping_ok() {
+    public void linkedListModule_perClassStatics_andTyping_ok() throws IOException {
         testAssertOkLinesWithStdLib(true,
             "package Test",
             "import LinkedListModule",
@@ -1981,6 +1987,119 @@ public class BugTests extends WurstScriptTest {
             "    doSmth()",
             "    testSuccess()"
         );
+        // Compiling is not enough: the loop over B has to call B's iterator, not the one B inherits.
+        Assert.assertEquals(
+            iteratorCallsInDoSmth(readJass("linkedListModule_perClassStatics_andTyping_ok", "no_opts"), "LinkedListModule"),
+            List.of("A", "B"));
+    }
+
+    /**
+     * B extends A and both use the module, so looking up the module's static {@code iterator} on B
+     * finds B's own and the one B inherits from A. A loop over B or a call on B has to take B's. The
+     * lookup used to leave that to the order of a hash set, so it depended on the identity hash codes
+     * of the AST nodes, which differ with every compilation. One compilation therefore passes most of
+     * the time even with the defect; compile the same program many times and check every result.
+     */
+    @Test
+    public void moduleStaticsOfSubclass_resolveToOwnClass_everyCompilation() throws IOException {
+        String[] variants = {"no_opts", "opt", "inl", "inlopt", "stacktraceinlopt"};
+        Map<String, String> first = new HashMap<>();
+        for (int run = 0; run < 40; run++) {
+            testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "",
+                "module Registry",
+                "    static thistype first = null",
+                "    thistype next = null",
+                "",
+                "    construct()",
+                "        next = first",
+                "        first = this",
+                "",
+                "    static function iterator() returns Iter",
+                "        return new Iter(first)",
+                "",
+                "    static class Iter",
+                "        Registry.thistype current",
+                "",
+                "        construct(Registry.thistype start)",
+                "            current = start",
+                "",
+                "        function hasNext() returns boolean",
+                "            return current != null",
+                "",
+                "        function next() returns Registry.thistype",
+                "            let res = current",
+                "            current = current.next",
+                "            return res",
+                "",
+                "        function close()",
+                "            destroy this",
+                "",
+                "class A",
+                "    use Registry",
+                "",
+                "class B extends A",
+                "    use Registry",
+                "",
+                "class C extends A",
+                "",
+                "class D extends C",
+                "    use Registry",
+                "",
+                "function doSmth()",
+                "    for a in A",
+                "        skip",
+                "    for b in B",
+                "        skip",
+                "    let itrB = B.iterator()",
+                "    itrB.close()",
+                "    let itrD = D.iterator()",
+                "    itrD.close()",
+                "",
+                "init",
+                "    doSmth()",
+                "    testSuccess()"
+            );
+
+            Map<String, String> jass = new HashMap<>();
+            for (String variant : variants) {
+                jass.put(variant, readJass("moduleStaticsOfSubclass_resolveToOwnClass_everyCompilation", variant));
+            }
+            // for A, for B, B.iterator(), D.iterator()
+            Assert.assertEquals(iteratorCallsInDoSmth(jass.get("no_opts"), "Registry"), List.of("A", "B", "B", "D"),
+                "compilation " + run + " resolved the module's iterator to the wrong class:\n" + jass.get("no_opts"));
+
+            if (run == 0) {
+                first.putAll(jass);
+            } else {
+                for (String variant : variants) {
+                    Assert.assertEquals(jass.get(variant), first.get(variant),
+                        "compilation " + run + " emitted other " + variant + " Jass than the first");
+                }
+            }
+        }
+    }
+
+    private String readJass(String testName, String variant) throws IOException {
+        return Files.toString(new File(TEST_OUTPUT_PATH + "BugTests_" + testName + "_" + variant + ".j"), Charsets.UTF_8);
+    }
+
+    /**
+     * The classes {@code doSmth} takes a per-class {@code iterator} of, in call order. Only the
+     * script emitted without optimisations still has these calls to read.
+     */
+    private static List<String> iteratorCallsInDoSmth(String jass, String module) {
+        Matcher doSmth = Pattern.compile("function doSmth takes nothing returns nothing(.*?)endfunction",
+            Pattern.DOTALL).matcher(jass);
+        Assert.assertTrue(doSmth.find(), jass);
+        Matcher calls = Pattern.compile("\\b(\\w)_" + module + "_iterator\\w*\\(\\)").matcher(doSmth.group(1));
+        List<String> classes = new ArrayList<>();
+        while (calls.find()) {
+            classes.add(calls.group(1));
+        }
+        return classes;
     }
 
     @Test

@@ -107,6 +107,23 @@ public class AttrPossibleFunctionSignatures {
         return v != Visibility.PRIVATE_OTHER && v != Visibility.PROTECTED_OTHER;
     }
 
+    /**
+     * Whether a function with receiver {@code more} hides one with receiver {@code than}
+     * when both fit a call equally well.
+     *
+     * <p>That is the case for a strict subtype. The receivers of functions injected by
+     * {@code use Module} are module instantiations, which are unrelated to each other even
+     * when one class extends the other, so for those the class owning the instantiation decides.
+     */
+    private static boolean isMoreSpecificReceiver(WurstType more, WurstType than, Element site) {
+        boolean moreSubThan = more.isSubtypeOf(than, site);
+        boolean thanSubMore = than.isSubtypeOf(more, site);
+        if (moreSubThan || thanSubMore) {
+            return moreSubThan && !thanSubMore;
+        }
+        return NameResolution.isOwnedBySubclassOf(more, than);
+    }
+
     public static <T> java.util.List<T> keepMostSpecificReceivers(
         java.util.List<T> candidates,
         java.util.function.Function<T, de.peeeq.wurstscript.types.WurstType> recvOf,
@@ -122,10 +139,8 @@ public class AttrPossibleFunctionSignatures {
                 if (i == j) continue;
                 var rj = recvOf.apply(candidates.get(j));
                 if (rj == null) continue;
-                // If rj is a strict subtype of ri, drop ri
-                boolean rj_le_ri = rj.isSubtypeOf(ri, site);
-                boolean ri_le_rj = ri.isSubtypeOf(rj, site);
-                if (rj_le_ri && !ri_le_rj) {
+                // If rj is more specific than ri, drop ri
+                if (isMoreSpecificReceiver(rj, ri, site)) {
                     continue outer;
                 }
             }
@@ -297,11 +312,8 @@ public class AttrPossibleFunctionSignatures {
                     WurstType rj = best.get(j).getSig().getReceiverType();
                     if (rj == null) continue;
 
-                    boolean jSubI = rj.isSubtypeOf(ri, mm);
-                    boolean iSubJ = ri.isSubtypeOf(rj, mm);
-
-                    // j strictly more specific than i → drop i
-                    if (jSubI && !iSubJ) {
+                    // j more specific than i → drop i
+                    if (isMoreSpecificReceiver(rj, ri, mm)) {
                         drop[i] = true;
                     }
                 }

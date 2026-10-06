@@ -429,6 +429,19 @@ public class NameResolution {
         return -1;
     }
 
+    /**
+     * Whether {@code type} is owned by a class which strictly extends the class owning {@code other}.
+     *
+     * <p>A function a class gets through {@code use Module} has that class's module instantiation as
+     * its receiver, and the instantiations in a class and in its superclass are unrelated types.
+     * Subtyping alone therefore cannot say which of two equal static functions hides the other.
+     */
+    public static boolean isOwnedBySubclassOf(WurstType type, WurstType other) {
+        ClassDef sub = owningClass(type);
+        ClassDef sup = owningClass(other);
+        return sub != null && sup != null && sub != sup && inheritanceDistance(sub, sup) > 0;
+    }
+
     private static @Nullable ClassDef owningClass(WurstType type) {
         if (type instanceof WurstTypeClass) {
             return ((WurstTypeClass) type).getClassDef();
