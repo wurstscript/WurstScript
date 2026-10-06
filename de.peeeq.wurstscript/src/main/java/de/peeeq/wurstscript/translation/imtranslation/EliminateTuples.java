@@ -39,9 +39,7 @@ public class EliminateTuples {
             eliminateTuplesFunc(f, translator, discardEvaluation);
         }
         removeOldVars.forEach(Runnable::run);
-        if (translator.isDebug()) {
-            assertNoTuples(imProg);
-        }
+        assertNoTuples(imProg);
     }
 
     private static void assertNoTuples(Element element) {

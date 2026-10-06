@@ -727,7 +727,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
+    private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
         gui.sendProgress("Merging Files");
         // Compare with '/' separators so the order does not depend on the platform's path separator.
         compilationUnits.sort(Comparator.comparing(cu -> Objects.toString(cu.getCuInfo().getFile(), "").replace('\\', '/')));
@@ -951,10 +951,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        GenericsCheckResult genericsCheck = checkGenericsRequirements();
-        boolean specializeTupleValueTypes = genericsCheck.containsTupleTypeArgument;
+        boolean specializeTupleValueTypes = containsTupleTypeArgument();
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
-        if (genericsCheck.containsGenericNewCall || genericsCheck.containsTypeClassDispatch || specializeTupleValueTypes
+        if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
             || luaGenerics.hasGenericStatics()) {
             beginPhase(2, "Specialize generics for Lua-only concrete operations");
             luaGenerics.transformGenericNewOnly(specializeTupleValueTypes);
@@ -1025,6 +1024,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         EliminateLocalTypes.eliminateLocalTypesProg(getImProg(), imTranslator2);
 
         timeTaker.beginPhase("eliminate tuples");
+        getImProg().flatten(imTranslator2);
         EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
         imTranslator2.assertProperties(AssertProperty.NOTUPLES);
         timeTaker.endPhase();
@@ -1110,38 +1110,46 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return luaCode;
     }
 
-    private static class GenericsCheckResult {
-        boolean containsGenericNewCall = false;
-        boolean containsTypeClassDispatch = false;
-        boolean containsTupleTypeArgument = false;
-    }
-
-    /** Single-pass check for generic operations requiring specialization. */
-    private GenericsCheckResult checkGenericsRequirements() {
-        GenericsCheckResult res = new GenericsCheckResult();
+    /** Whether the program constructs a value of a type parameter, which needs its concrete type. */
+    private boolean containsGenericNewCall() {
+        boolean[] found = {false};
         getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
-                if (!res.containsGenericNewCall && getImTranslator().isGenericNewMarker(call.getFunc())) {
-                    res.containsGenericNewCall = true;
+                if (getImTranslator().isGenericNewMarker(call.getFunc())) {
+                    found[0] = true;
+                    return;
                 }
                 super.visit(call);
             }
+        });
+        return found[0];
+    }
 
+    /** Whether the program dispatches on a type class bound anywhere. */
+    private boolean containsTypeClassDispatch() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
-                res.containsTypeClassDispatch = true;
-                super.visit(dispatch);
+                found[0] = true;
             }
+        });
+        return found[0];
+    }
 
+    /** Tuple type arguments need monomorphisation before tuples can become scalar storage. */
+    private boolean containsTupleTypeArgument() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeArgument argument) {
-                if (!res.containsTupleTypeArgument && TypesHelper.typeContainsTuples(argument.getType())) {
-                    res.containsTupleTypeArgument = true;
+                if (TypesHelper.typeContainsTuples(argument.getType())) {
+                    found[0] = true;
                 }
                 super.visit(argument);
             }
         });
-        return res;
+        return found[0];
     }
 }

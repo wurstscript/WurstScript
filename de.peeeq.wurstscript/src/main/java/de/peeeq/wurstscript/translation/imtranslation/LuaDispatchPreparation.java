@@ -139,27 +139,20 @@ public final class LuaDispatchPreparation {
     }
 
     private static void assignDispatchAliases(ImProg prog, List<ImMethod> allMethods, ImTranslator tr) {
-        // Concurrent map: the parallel pass below populates entries on demand via
-        // sortedMethodsForClass for classes not seen here (e.g. closure classes), and
-        // HashMap.computeIfAbsent from multiple threads can corrupt the map.
-        Map<ImClass, List<ImMethod>> sortedMethodsByClass = new java.util.concurrent.ConcurrentHashMap<>();
-        for (ImClass c : prog.getClasses()) {
-            List<ImMethod> methods = new ArrayList<>(c.getMethods());
-            methods.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
-            sortedMethodsByClass.put(c, methods);
-        }
-        Map<ImClass, Set<ImClass>> closureFamilyAnchorsCache = new java.util.concurrent.ConcurrentHashMap<>();
-        Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor = new java.util.concurrent.ConcurrentHashMap<>();
+        Map<ImClass, List<ImMethod>> sortedMethodsByClass = new HashMap<>();
+        Map<ImClass, Set<ImClass>> closureFamilyAnchorsCache = new HashMap<>();
+        Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor = new HashMap<>();
 
         Set<String> ambiguousDirectAliases = ambiguousDirectAliases(allMethods, tr);
 
-        allMethods.parallelStream().forEach(method -> {
+        for (int i = 0; i < allMethods.size(); i++) {
+            ImMethod method = allMethods.get(i);
             TreeSet<String> aliases = new TreeSet<>();
             addDirectAliases(method, aliases, ambiguousDirectAliases, tr);
             addHierarchyAliases(method, aliases, sortedMethodsByClass, tr);
             addClosureFamilyAliases(prog, method, aliases, sortedMethodsByClass, closureFamilyAnchorsCache, closureFamilyClassesByAnchor, tr);
             method.setLuaMethodDispatchAliases(new ArrayList<>(aliases));
-        });
+        }
     }
 
     private static void collectPredefinedNames(ImProg prog, Set<String> usedNames) {
@@ -377,6 +370,7 @@ public final class LuaDispatchPreparation {
             || semanticNames.contains(sourceSemanticName(method));
     }
 
+    /** The name the method was written with, or empty when there is no declaration to ask. */
     /** The name a method carries in the source, which a method and its overrides all share. */
     public static String declaredName(ImMethod method) {
         if (method == null) {

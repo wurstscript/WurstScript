@@ -89,7 +89,7 @@ public class ProjectConfigBuilder {
             // Start from the original map metadata. The cached map can already contain a
             // downgraded W3I from an earlier target patch, which would permanently lose
             // fields if a later build targets a newer patch or removes the pin.
-            w3I = readW3I(sourceMap, buildDir);
+            w3I = readW3I(sourceMap);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -130,45 +130,20 @@ public class ProjectConfigBuilder {
         applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size(), w3I.getMapName(), w3I.getFlags().toInt());
 
         // Update the manifest with new config hash (must open writable to insert)
-        if (configNeedsApplying) {
-            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
-                ImportFile.CacheManifest manifest = ImportFile.getCachedManifest(mpq).orElse(new ImportFile.CacheManifest());
-                manifest.setMapConfig(configHash);
-                ImportFile.saveManifest(mpq, manifest);
-            } catch (Exception e) {
-                WLogger.warning("Could not update manifest with config hash: " + e.getMessage());
-            }
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
+            ImportFile.CacheManifest manifest = ImportFile.getCachedManifest(mpq).orElse(new ImportFile.CacheManifest());
+            manifest.setMapConfig(configHash);
+            ImportFile.saveManifest(mpq, manifest);
+        } catch (Exception e) {
+            WLogger.warning("Could not update manifest with config hash: " + e.getMessage());
         }
 
         return result;
     }
 
     static W3I readW3I(File map) throws Exception {
-        return readW3I(map, null);
-    }
-
-    static W3I readW3I(File map, File buildDir) throws Exception {
         if (map.isDirectory()) {
             return new W3I(java.nio.file.Files.readAllBytes(new File(map, "war3map.w3i").toPath()));
-        }
-        if (buildDir != null && buildDir.isDirectory()) {
-            File cachedSourceW3i = new File(buildDir, "source_war3map.w3i");
-            if (cachedSourceW3i.exists() && cachedSourceW3i.lastModified() >= map.lastModified()) {
-                try {
-                    return new W3I(java.nio.file.Files.readAllBytes(cachedSourceW3i.toPath()));
-                } catch (Exception e) {
-                    WLogger.warning("Failed to read cached source_war3map.w3i: " + e.getMessage());
-                }
-            }
-            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(map), true)) {
-                byte[] bytes = mpq.extractFile("war3map.w3i");
-                try {
-                    java.nio.file.Files.write(cachedSourceW3i.toPath(), bytes);
-                    cachedSourceW3i.setLastModified(map.lastModified());
-                } catch (Exception ignored) {
-                }
-                return new W3I(bytes);
-            }
         }
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(map), true)) {
             return new W3I(mpq.extractFile("war3map.w3i"));

@@ -15,7 +15,14 @@ import java.util.ArrayList;
 public class TLDTranslation {
 
     public static void translate(JassGlobalBlock jassGlobalBlock, ImTranslator translator) {
+        // Batch process all globals to reduce overhead
+        List<GlobalVarDef> globals = new ArrayList<>();
         for (GlobalVarDef g : jassGlobalBlock) {
+            globals.add(g);
+        }
+
+        // Process in batch to improve cache locality
+        for (GlobalVarDef g : globals) {
             translateVar(g, translator);
         }
     }
@@ -49,14 +56,27 @@ public class TLDTranslation {
         }
         translator.setTranslated(pack);
 
+        // Batch process imports
+        List<WPackage> packagesToTranslate = new ArrayList<>();
         for (WImport imp : pack.getImports()) {
             WPackage p = imp.attrImportedPackage();
             if (p != null) {
-                p.imTranslateTLD(translator);
+                packagesToTranslate.add(p);
             }
         }
 
+        for (WPackage p : packagesToTranslate) {
+            p.imTranslateTLD(translator);
+        }
+
+        // Batch process elements by type for better cache locality
+        List<WEntity> elements = new ArrayList<>();
         for (WEntity e : pack.getElements()) {
+            elements.add(e);
+        }
+
+        // Process elements
+        for (WEntity e : elements) {
             translator.lasttranslatedThing = e;
             e.imTranslateEntity(translator);
         }

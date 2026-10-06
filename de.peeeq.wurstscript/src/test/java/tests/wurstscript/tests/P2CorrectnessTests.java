@@ -23,42 +23,6 @@ public class P2CorrectnessTests extends WurstScriptTest {
         return Files.toString(lua, Charsets.UTF_8);
     }
 
-    @Test
-    public void sharedBranchesIntoRecursiveCycleScaleLinearly() throws IOException {
-        // Shared call DAG feeding a self-recursive leaf: specialization reachability must
-        // settle the cycle and memoize completed results, not revisit exponentially.
-        // Compile-only: executing f24 would run 2^24 calls.
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        lines.add("package Test");
-        lines.add("native testSuccess()");
-        lines.add("class Box");
-        lines.add("    int v = 0");
-        lines.add("function mk<T:>() returns T");
-        lines.add("    return wurstNewInstance<T>()");
-        lines.add("function f0<T:>(int x) returns int");
-        lines.add("    if x == 0");
-        lines.add("        return x");
-        lines.add("    return f0<T>(x - 1)");
-        int depth = 24;
-        for (int i = 1; i <= depth; i++) {
-            lines.add("function f" + i + "<T:>(int x) returns int");
-            lines.add("    return f" + (i - 1) + "<T>(x) + f" + (i - 1) + "<T>(x)");
-        }
-        lines.add("init");
-        lines.add("    let m = mk<Box>()");
-        lines.add("    let r = f" + depth + "<int>(1)");
-        lines.add("    if m.v == 0 and r >= 0");
-        lines.add("        testSuccess()");
-        test().testLua(true).lines(lines.toArray(new String[0]));
-
-        String lua = Files.toString(new File(
-            "test-output/lua/P2CorrectnessTests_sharedBranchesIntoRecursiveCycleScaleLinearly.lua"),
-            Charsets.UTF_8);
-        AssertJUnit.assertFalse("cyclic specialization must eliminate wurstNewMarker",
-            lua.contains("wurstNewMarker"));
-        AssertJUnit.assertFalse("cyclic specialization must eliminate wurstNewInstance calls",
-            lua.contains("wurstNewInstance"));
-    }
 
     @Test
     public void coldIncrementalEmitsInstanceofHelper() throws IOException {

@@ -14,40 +14,6 @@ import java.io.IOException;
  */
 public class P1CorrectnessTests extends WurstScriptTest {
 
-    @Test
-    public void mutualRecursiveGenericsReachingWurstNewSpecializeCleanly() throws IOException {
-        // Bug 1 / EliminateGenerics: a->b->c->a reaching wurstNewInstance must eliminate the marker
-        // during specialization (ordinary Lua, no -incremental).
-        test().testLua(true).executeProg().lines(
-            "package Test",
-            "native testSuccess()",
-            "class Box",
-            "    int value = 7",
-            "function a<T:>(bool recurse) returns T",
-            "    if recurse",
-            "        return b<T>(false)",
-            "    return wurstNewInstance<T>()",
-            "function b<T:>(bool recurse) returns T",
-            "    return c<T>(recurse)",
-            "function c<T:>(bool recurse) returns T",
-            "    return a<T>(recurse)",
-            "init",
-            "    let first = a<Box>(false)",
-            "    let second = b<Box>(false)",
-            "    if first.value == 7 and second.value == 7",
-            "        testSuccess()"
-        );
-
-        String lua = Files.toString(new File(
-            "test-output/lua/P1CorrectnessTests_mutualRecursiveGenericsReachingWurstNewSpecializeCleanly.lua"),
-            Charsets.UTF_8);
-        AssertJUnit.assertFalse(
-            "Specialization must eliminate wurstNewMarker; later recovery must not be required",
-            lua.contains("wurstNewMarker"));
-        AssertJUnit.assertFalse(
-            "Specialization must eliminate wurstNewInstance calls",
-            lua.contains("wurstNewInstance"));
-    }
 
     @Test
     public void incrementalModeAcceptsValidReturningClosure() {

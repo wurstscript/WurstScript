@@ -26,11 +26,10 @@ public class TypeId {
                     .thenComparing(ImClass::getName)
                     .thenComparing(TypeId::sourceKey);
 
-    // sort class types by package, name, and source coordinate to get deterministic order
+    // sort class types by name to get deterministic order
     private static final Comparator<ImClassType> classtype_comparator =
-            Comparator.comparing((ImClassType ct) -> TypeId.packageName(ct.getClassDef()))
-                    .thenComparing(ct -> ct.getClassDef().getName())
-                    .thenComparing(ct -> TypeId.sourceKey(ct.getClassDef()));
+            Comparator.comparing((ImClassType ct) -> ct.getClassDef().getName())
+                    .thenComparing(ct -> TypeId.packageName(ct.getClassDef()));
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         AtomicInteger count = new AtomicInteger();

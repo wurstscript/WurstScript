@@ -28,7 +28,6 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -263,7 +262,6 @@ public class ImTranslator implements SpecialisationLookup {
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
     private final boolean debug = false;
-    public boolean isDebug() { return debug; }
     private final RunArgs runArgs;
 
     private final Map<ClassDef, Map<TypeParamDef, ImTypeVar>> capturedOwnerTypeVarsByStaticClass = new IdentityHashMap<>();
@@ -333,9 +331,6 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
     public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForFunction(ImFunction f) {
-        if (f.getTypeVariables().isEmpty()) {
-            return Collections.emptyMap();
-        }
         Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
         for (ImTypeVar tv : f.getTypeVariables()) {
             TypeParamDef tp = typeVariableReverse.get(tv);
@@ -343,7 +338,7 @@ public class ImTranslator implements SpecialisationLookup {
                 result.put(tp, tv);
             }
         }
-        return result.isEmpty() ? Collections.emptyMap() : result;
+        return result;
     }
 
 
@@ -377,21 +372,11 @@ public class ImTranslator implements SpecialisationLookup {
                 luaHelperFunctions.forEach(this::addFunction);
             }
 
-            long t0 = System.nanoTime();
             calculateCompiletimeOrder();
-            long tOrder = System.nanoTime();
 
-            Map<String, Long> cuTimes = new HashMap<>();
             for (CompilationUnit cu : wurstProg) {
-                long tCu0 = System.nanoTime();
                 translateCompilationUnit(cu);
-                long elapsed = System.nanoTime() - tCu0;
-                String cuFile = cu.getCuInfo().getFile();
-                if (cuFile != null) {
-                    cuTimes.put(cuFile, elapsed);
-                }
             }
-            long tCus = System.nanoTime();
 
             if (mainFunc == null) {
                 mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
@@ -402,37 +387,10 @@ public class ImTranslator implements SpecialisationLookup {
                 addFunction(configFunc);
             }
 
-            long tInitStart = System.nanoTime();
             finishInitFunctions();
-            long tInitEnd = System.nanoTime();
             EliminateCallFunctionsWithAnnotation.process(imProg);
             removeDuplicateNatives(imProg);
-            long tElimEnd = System.nanoTime();
             sortEverything();
-            long tSortEnd = System.nanoTime();
-            String imBreakdown = String.format("ImTranslator breakdown: order=%dms translateCus=%dms finishInits=%dms elimDuplicates=%dms sortEverything=%dms total=%dms",
-                (tOrder - t0) / 1_000_000L,
-                (tCus - tOrder) / 1_000_000L,
-                (tInitEnd - tInitStart) / 1_000_000L,
-                (tElimEnd - tInitEnd) / 1_000_000L,
-                (tSortEnd - tElimEnd) / 1_000_000L,
-                (tSortEnd - t0) / 1_000_000L
-            );
-            WLogger.info(imBreakdown);
-            List<Map.Entry<String, Long>> topCus = cuTimes.entrySet().stream()
-                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
-                .limit(5)
-                .collect(Collectors.toList());
-            for (Map.Entry<String, Long> entry : topCus) {
-                if (entry.getValue() > 50_000_000L) {
-                    WLogger.info(String.format("  slow CU: %dms - %s", entry.getValue() / 1_000_000L, entry.getKey()));
-                }
-            }
-            StringBuilder sb = new StringBuilder("Top slowest CUs in ImTranslator:");
-            for (Map.Entry<String, Long> e : topCus) {
-                sb.append("\n  ").append(e.getKey()).append(": ").append(e.getValue() / 1_000_000L).append("ms");
-            }
-            WLogger.info(sb.toString());
             return imProg;
         } catch (CompileError t) {
             throw t;
@@ -1177,9 +1135,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
     public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
-        ImFunction existing = functionMap.get(funcDef);
-        if (existing != null) {
-            return existing;
+        if (functionMap.containsKey(funcDef)) {
+            return functionMap.get(funcDef);
         }
         String name = getNameFor(funcDef);
         List<FunctionFlag> flags = flags();
@@ -1427,10 +1384,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         } else if (e instanceof OnDestroyDef) {
             return "ondestroy_" + e.attrNearestClassDef().getName();
         } else if (e instanceof ExprClosure) {
-            de.peeeq.wurstscript.parser.WPos pos = e.attrSource();
-            if (pos != null) {
-                return e.attrNearestNamedScope().getName() + "__closure_L" + pos.getLine() + "_C" + pos.getStartColumn();
-            }
             return e.attrNearestNamedScope().getName() + "_closure";
         }
         throw new RuntimeException("unhandled case: " + e.getClass().getName());
@@ -1563,10 +1516,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
-        List<ImStmt> result = Lists.newArrayListWithCapacity(statements.size());
+        List<ImStmt> result = Lists.newArrayList();
         Map<TypeParamDef, ImTypeVar> ov = getTypeVarOverridesForFunction(f);
-        boolean hasOv = !ov.isEmpty();
-        if (hasOv) pushTypeVarOverrides(ov);
+        pushTypeVarOverrides(ov);
         try {
             for (WStatement s : statements) {
                 lasttranslatedThing = s;
@@ -1574,7 +1526,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 result.add(translated);
             }
         } finally {
-            if (hasOv) popTypeVarOverrides(ov);
+            popTypeVarOverrides(ov);
         }
         return result;
     }
