@@ -612,6 +612,15 @@ public class LuaNatives {
         return result;
     }
 
+    /**
+     * The name of every native this class defines. A native is only emitted when a program refers to it,
+     * so a test that has to see all of them enumerates them here. Sorted, so a test fails the same way
+     * on every run.
+     */
+    public static java.util.Set<String> names() {
+        return new java.util.TreeSet<>(nativeCodes.keySet());
+    }
+
     public static void get(LuaFunction f) {
         nativeCodes.getOrDefault(f.getName(), ff -> {
             // generate a runtime exception

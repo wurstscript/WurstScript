@@ -19,6 +19,7 @@ import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaMethod;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
+import de.peeeq.wurstscript.translation.lua.translation.LuaNatives;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Test;
 
@@ -505,7 +506,9 @@ public class LuaTranslationTests extends WurstScriptTest {
      * package or require, which are not known to exist there. A test which executes the emitted script
      * cannot notice a helper that reaches for one, so assert it on the text instead, over a program that
      * makes the backend emit its helpers: object management, dispatch, callback boundaries, the error
-     * handler and stack positions. See docs/WC3_RUNTIME.md.
+     * handler and stack positions. The natives the backend defines itself are emitted only on demand, so
+     * no one program reaches them all: {@link #everyLuaNativeFallbackUsesOnlyLibrariesTheGameProvides}
+     * enumerates those. See docs/WC3_RUNTIME.md.
      */
     @Test
     public void emittedLuaUsesOnlyLibrariesTheGameProvides() {
@@ -539,12 +542,45 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    error(describe(s, \"init\"))",
             "    destroy s"
         );
+        String withheld = firstWithheldLibraryUse(compiled);
+        if (withheld != null) {
+            fail("emitted Lua uses `" + withheld + "`, which the game does not provide:\n" + compiled);
+        }
+    }
+
+    /**
+     * Natives which exist only to end a test run. {@code testSuccess} stops the interpreter with
+     * {@code os.exit}; a map never declares it, so it is not emitted into one.
+     */
+    private static final Set<String> TEST_ONLY_NATIVES = Set.of("testSuccess");
+
+    @Test
+    public void everyLuaNativeFallbackUsesOnlyLibrariesTheGameProvides() {
+        for (String name : LuaNatives.names()) {
+            if (TEST_ONLY_NATIVES.contains(name)) {
+                continue;
+            }
+            LuaFunction fallback = LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
+            LuaNatives.get(fallback);
+            StringBuilder lua = new StringBuilder();
+            fallback.print(lua, 0);
+            String withheld = firstWithheldLibraryUse(lua.toString());
+            if (withheld != null) {
+                fail("the Lua fallback for native " + name + " uses `" + withheld
+                    + "`, which the game does not provide. If it only exists for tests, add it to TEST_ONLY_NATIVES:\n" + lua);
+            }
+        }
+    }
+
+    /**
+     * The first use of a library or function the game withholds in {@code lua}, or null. A name inside a
+     * Lua string literal is text, not a use, so it is not matched.
+     */
+    private static String firstWithheldLibraryUse(String lua) {
         Matcher withheld = Pattern.compile(
             "(?<![\\w.\"])(?:debug|io|package|os)\\s*\\.\\s*\\w+"
-                + "|(?<![\\w.\"])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(compiled);
-        if (withheld.find()) {
-            fail("emitted Lua uses `" + withheld.group() + "`, which the game does not provide:\n" + compiled);
-        }
+                + "|(?<![\\w.\"])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(lua);
+        return withheld.find() ? withheld.group() : null;
     }
 
     @Test
