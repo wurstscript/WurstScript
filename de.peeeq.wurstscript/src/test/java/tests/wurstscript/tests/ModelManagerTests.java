@@ -1406,4 +1406,177 @@ public class ModelManagerTests {
 
 
 
+    @Test
+    public void packageAbiHashStableAcrossWhitespaceAndPrivateEdits() {
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(null, new WurstGuiLogger(), null, RunArgs.defaults());
+        CompilationUnit cu1 = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "int privateCounter = 0\n" +
+            "function helper() returns int\n" +
+            "    return privateCounter + 1\n" +
+            "public function calculate(int a, int b) returns int\n" +
+            "    return a + b + helper()\n"
+        ));
+        CompilationUnit cu2 = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "// comment change\n" +
+            "int privateCounter = 100\n" +
+            "function helper() returns int\n" +
+            "    return privateCounter * 2\n" +
+            "public function calculate(int a, int b) returns int\n" +
+            "    int temp = a * 2\n" +
+            "    return temp + b\n"
+        ));
+        CompilationUnit cu3 = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public function calculate(int a, string b) returns int\n" +
+            "    return a\n"
+        ));
+
+        WPackage p1 = cu1.getPackages().get(0);
+        WPackage p2 = cu2.getPackages().get(0);
+        WPackage p3 = cu3.getPackages().get(0);
+
+        String hash1 = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(p1);
+        String hash2 = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(p2);
+        String hash3 = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(p3);
+
+        assertEquals(hash2, hash1, "Implementation-only and private member edits must not change public ABI hash");
+        org.testng.Assert.assertNotEquals(hash3, hash1, "Changing parameter types must change public ABI hash");
+    }
+
+    @Test
+    public void packageAbiDetectsInferredTypesAndModifiers() {
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(null, new WurstGuiLogger(), null, RunArgs.defaults());
+
+        // Baseline
+        CompilationUnit cuBase = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = 5\n" +
+            "public class MyClass\n" +
+            "    public int member = 1\n" +
+            "    public static function doThing()\n"
+        ));
+        WPackage pBase = cuBase.getPackages().get(0);
+        String hashBase = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pBase);
+
+        // 1. Inferred type change: int (5) -> string ("hello")
+        CompilationUnit cuInferred = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = \"hello\"\n" +
+            "public class MyClass\n" +
+            "    public int member = 1\n" +
+            "    public static function doThing()\n"
+        ));
+        WPackage pInferred = cuInferred.getPackages().get(0);
+        String hashInferred = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pInferred);
+        org.testng.Assert.assertNotEquals(hashInferred, hashBase, "Changing inferred type must change ABI hash");
+
+        // 2. Modifier change: public static -> public non-static
+        CompilationUnit cuStatic = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = 5\n" +
+            "public class MyClass\n" +
+            "    public int member = 1\n" +
+            "    public function doThing()\n"
+        ));
+        WPackage pStatic = cuStatic.getPackages().get(0);
+        String hashStatic = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pStatic);
+        org.testng.Assert.assertNotEquals(hashStatic, hashBase, "Changing static modifier must change ABI hash");
+
+        // 3. Visibility change: public member -> protected member
+        CompilationUnit cuVis = comp.parse("A.wurst", new java.io.StringReader(
+            "package A\n" +
+            "public constant exportedVal = 5\n" +
+            "public class MyClass\n" +
+            "    protected int member = 1\n" +
+            "    public static function doThing()\n"
+        ));
+        WPackage pVis = cuVis.getPackages().get(0);
+        String hashVis = de.peeeq.wurstscript.validation.PackageAbi.computeAbiHash(pVis);
+        org.testng.Assert.assertNotEquals(hashVis, hashBase, "Changing member visibility must change ABI hash");
+    }
+
+    @Test
+    public void packageAbiDiffingOnlyInvalidatesOnPublicSignatureChange() throws IOException {
+        File projectFolder = new File("./temp/testProjectAbi/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File fileA = new File(wurstFolder, "A.wurst");
+        File fileB = new File(wurstFolder, "B.wurst");
+        File fileWurst = new File(wurstFolder, "Wurst.wurst");
+        Files.writeString(fileWurst.toPath(), "package Wurst\n");
+
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public function compute(int x) returns int",
+            "    return x + 1"
+        ));
+        Files.writeString(fileB.toPath(), string(
+            "package B",
+            "import A",
+            "public function run() returns int",
+            "    return compute(5)"
+        ));
+
+        ModelManager modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
+        modelManager.buildProject();
+
+        // 1. Change only function body in A
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public function compute(int x) returns int",
+            "    int temp = x * 2",
+            "    return temp + 42"
+        ));
+
+        ModelManager.Changes bodyChanges = modelManager.syncCompilationUnit(WFile.create(fileA));
+        assertTrue(bodyChanges.getAffectedFiles().contains(WFile.create(fileA)), "A must be affected");
+        org.testng.Assert.assertFalse(bodyChanges.getAffectedFiles().contains(WFile.create(fileB)),
+            "B must NOT be invalidated when only A's implementation body changes");
+
+        // 2. Change public signature in A
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public function compute(int x, int y) returns int",
+            "    return x + y"
+        ));
+
+        ModelManager.Changes sigChanges = modelManager.syncCompilationUnit(WFile.create(fileA));
+        assertTrue(sigChanges.getAffectedFiles().contains(WFile.create(fileA)), "A must be affected");
+        assertTrue(sigChanges.getAffectedFiles().contains(WFile.create(fileB)),
+            "B MUST be invalidated when A's public signature changes");
+    }
+
+    @Test
+    public void syncProjectFilesDetectsModifiedFilesWithoutClean() throws IOException {
+        File projectFolder = new File("./temp/testProjectSync/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File fileWurst = new File(wurstFolder, "Wurst.wurst");
+        Files.writeString(fileWurst.toPath(), "package Wurst\n");
+        File fileA = new File(wurstFolder, "A.wurst");
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public int counter = 1"
+        ));
+
+        ModelManager modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
+        modelManager.buildProject();
+
+        // File unchanged -> no affected files
+        ModelManager.Changes noChanges = modelManager.syncProjectFiles();
+        assertTrue(noChanges.getAffectedFiles().isEmpty(), "No files changed on disk");
+
+        // Modify file on disk
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public int counter = 2"
+        ));
+
+        ModelManager.Changes changes = modelManager.syncProjectFiles();
+        assertTrue(changes.getAffectedFiles().contains(WFile.create(fileA)), "File A must be detected as modified and synced");
+    }
 }
