@@ -214,13 +214,13 @@ tasks.register("assembleSlimCompilerDist", Copy) {
 // Add launch scripts
 tasks.named("assembleSlimCompilerDist", Copy) { t ->
     if (os.isWindows()) {
-        from("../Wurstpack/wurstscript/wurstscript.cmd") { into(".") }
-        from("../Wurstpack/wurstscript/wurstscript")     { into(".") }
-        from("../Wurstpack/wurstscript/grill.cmd")       { into(".") }
-        from("../Wurstpack/wurstscript/grill")           { into(".") }
+        from("launchers/wurstscript.cmd") { into(".") }
+        from("launchers/wurstscript")     { into(".") }
+        from("launchers/grill.cmd")       { into(".") }
+        from("launchers/grill")           { into(".") }
     } else {
-        from("../Wurstpack/wurstscript/wurstscript") { into(".") }
-        from("../Wurstpack/wurstscript/grill")       { into(".") }
+        from("launchers/wurstscript") { into(".") }
+        from("launchers/grill")       { into(".") }
     }
 }
 

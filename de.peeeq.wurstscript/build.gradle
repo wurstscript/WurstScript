@@ -486,53 +486,5 @@ tasks.register('make_for_userdir_wurst_compiler') {
     dependsOn 'make_for_userdir'
 }
 
-tasks.register('make_for_wurstpack', Copy) {
-    dependsOn 'shadowJar'
-    from fatJar
-    into '../Wurstpack/wurstscript/'
-}
-
-tasks.register('create_zip_wurstpack_complete', Zip) {
-    dependsOn 'make_for_wurstpack'
-    from '../Wurstpack'
-    archiveFileName.set('wurstpack_complete.zip')
-}
-
-tasks.register('create_zip_wurstpack_compiler', Zip) {
-    dependsOn 'make_for_wurstpack'
-    from '../Wurstpack/wurstscript/'
-    archiveFileName.set('wurstpack_compiler.zip')
-}
-
-tasks.register('create_zips') {
-    dependsOn 'shadowJar', 'create_zip_wurstpack_complete', 'create_zip_wurstpack_compiler'
-
-    doLast {
-        ExecOperations execOps = project.services.get(ExecOperations)
-
-        mkdir("../downloads/")
-
-        copy {
-            from fatJar.get()
-            into '../downloads/'
-        }
-        copy {
-            from '../Wurstpack'
-            into '../downloads/Wurstpack/'
-        }
-        copy {
-            from '../WurstSetup/build/libs/WurstSetup.jar'
-            into '../downloads/'
-        }
-
-        mkdir("../Checksums/bin")
-        execOps.javaexec {
-            classpath = sourceSets.main.runtimeClasspath
-            mainClass.set('de.peeeq.wurstio.Checksums')
-            args("../downloads/Wurstpack/", "../downloads/wurstpack.md5")
-        }
-    }
-}
-
 /** -------- Apply deployment settings -------- */
 apply from: 'deploy.gradle'
