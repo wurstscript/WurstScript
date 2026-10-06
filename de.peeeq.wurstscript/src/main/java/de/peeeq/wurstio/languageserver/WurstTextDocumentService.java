@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class WurstTextDocumentService implements TextDocumentService {
     private final LanguageWorker worker;
+    private final CompletionDocumentation completionDocumentation = new CompletionDocumentation();
 
     public WurstTextDocumentService(LanguageWorker worker) {
         this.worker = worker;
@@ -27,13 +28,15 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams position) {
         WLogger.debug("completion");
-        return worker.handle(new GetCompletions(position, worker.getBufferManager())).thenApply(Either::forRight);
+        return worker.handle(new GetCompletions(position, worker.getBufferManager(), completionDocumentation))
+                .thenApply(Either::forRight);
     }
 
     @Override
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
         WLogger.trace("resolveCompletionItem");
-        return CompletableFuture.completedFuture(unresolved);
+        CompletionDocumentation.Resolve request = completionDocumentation.new Resolve(unresolved);
+        return worker.handle(request).thenCompose(item -> request.finish(worker));
     }
 
     @Override
@@ -125,22 +128,29 @@ public class WurstTextDocumentService implements TextDocumentService {
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
         WLogger.debug("formatting");
 
-        if (worker.modelManager.hasErrors()) {
-            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + worker.modelManager.getFirstErrorDescription());
-        }
-        TextDocumentIdentifier doc = params.getTextDocument();
-        String buffer = worker.getBufferManager().getBuffer(doc);
+        return worker.handle(new UserRequest<List<? extends TextEdit>>() {
+            @Override
+            public boolean keepDuplicateRequests() {
+                // Bulk/save formatting of another document must not cancel this request.
+                return true;
+            }
 
-        String ending = doc.getUri().substring(doc.getUri().lastIndexOf("."));
-        String clean = PrettyUtils.pretty(buffer, ending);
+            @Override
+            public List<? extends TextEdit> execute(ModelManager modelManager) {
+                if (modelManager.hasErrors()) {
+                    throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + modelManager.getFirstErrorDescription());
+                }
+                TextDocumentIdentifier doc = params.getTextDocument();
+                String buffer = worker.getBufferManager().getBuffer(doc);
 
-        String[] lines = buffer.split("\n");
-        Range range = new Range(new Position(0, 0), new Position(lines.length, lines[lines.length-1].length()));
-        TextEdit textEdit = new TextEdit(range, clean);
+                String ending = doc.getUri().substring(doc.getUri().lastIndexOf("."));
+                String clean = PrettyUtils.pretty(buffer, ending);
 
-        List<TextEdit> edits = new ArrayList<>();
-        edits.add(textEdit);
-        return CompletableFuture.completedFuture(edits);
+                String[] lines = buffer.split("\n", -1);
+                Range range = new Range(new Position(0, 0), new Position(lines.length - 1, lines[lines.length-1].length()));
+                return Collections.singletonList(new TextEdit(range, clean));
+            }
+        });
     }
 
     @Override

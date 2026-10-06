@@ -74,6 +74,7 @@ public class ImAttrType {
                 if (typeReal(leftType) || typeReal(rightType)) {
                     return WurstTypeReal.instance().imTranslateType();
                 }
+                return leftType;
             }
             case UNARY_MINUS:
         }

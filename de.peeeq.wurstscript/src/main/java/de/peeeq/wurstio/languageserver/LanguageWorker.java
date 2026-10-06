@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  *
@@ -45,10 +46,21 @@ public class LanguageWorker implements Runnable {
     protected ModelManager modelManager;
 
     public void setRootPath(WFile rootPath) {
-        this.rootPath = rootPath;
+        synchronized (lock) {
+            this.rootPath = rootPath;
+            initialBuildPending = true;
+            lock.notifyAll();
+        }
+    }
+
+    private Consumer<Boolean> initialBuildListener = success -> {};
+
+    public void setInitialBuildListener(Consumer<Boolean> listener) {
+        this.initialBuildListener = listener;
     }
 
     private WFile rootPath;
+    private Exception initializationFailure;
 
     private final Object lock = new Object();
     private ModelManager.Changes changesToReconcile = ModelManager.Changes.empty();
@@ -188,6 +200,10 @@ public class LanguageWorker implements Runnable {
 
     private Workitem getNextWorkItem() {
         if (modelManager == null) {
+            if (initializationFailure != null && !userRequests.isEmpty()) {
+                UserRequest<?> request = userRequests.remove();
+                return new Workitem("failed initialization", () -> request.getFuture().completeExceptionally(initializationFailure));
+            }
             if (rootPath != null) {
                 WLogger.info("LanguageWorker start init");
                 return new Workitem("init", () -> doInit(rootPath));
@@ -275,13 +291,20 @@ public class LanguageWorker implements Runnable {
             log("Handle init " + rootPath);
             modelManager = new ModelManagerImpl(rootPath.getFile(), bufferManager);
             modelManager.onCompilationResult(this::onCompilationResult);
-            initialBuildPending = true;
         } catch (Exception e) {
             WLogger.severe(e);
+            synchronized (lock) {
+                initializationFailure = e;
+                modelManager = null;
+                this.rootPath = null; // Do not retry a failed initialization in a busy loop.
+                initialBuildPending = false;
+            }
+            initialBuildListener.accept(false);
         }
     }
 
     private void doInitialBuild() {
+        boolean success = false;
         try {
             if (modelManager == null || rootPath == null) {
                 return;
@@ -289,8 +312,11 @@ public class LanguageWorker implements Runnable {
             log("Start background full build " + rootPath);
             modelManager.buildProject();
             log("Finished background full build " + rootPath);
+            success = true;
         } catch (Exception e) {
             WLogger.severe(e);
+        } finally {
+            initialBuildListener.accept(success);
         }
     }
 

@@ -147,8 +147,8 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    protected File compileMap(File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs, WurstModel model,
-                              WurstProjectConfigData projectConfigData, boolean isProd) {
+    protected File compileMap(ModelManager modelManager, File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs,
+                              WurstModel model, WurstProjectConfigData projectConfigData, boolean isProd) {
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             if (mpqEditor != null && !mpqEditor.canWrite()) {
                 WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
@@ -163,7 +163,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 // The cached map holds the object data written back by the previous run, so start from the source map's.
                 compiler.setObjectDataSource(map.get());
             }
-            purgeUnimportedFiles(model);
+            purgeUnimportedFiles(modelManager, model);
 
             gui.sendProgress("Check program");
             timeTaker.measure("Check program", () -> compiler.checkProg(model));
@@ -283,7 +283,7 @@ public abstract class MapRequest extends UserRequest<Object> {
      * - a jass file
      * - imported by a file in a wurst folder
      */
-    private void purgeUnimportedFiles(WurstModel model) {
+    private void purgeUnimportedFiles(ModelManager modelManager, WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
             .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile())
@@ -292,7 +292,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             .collect(Collectors.toSet());
         addImports(imported, imported);
 
-        model.removeIf(cu -> !imported.contains(cu));
+        // the model may be the managed one (quick and dirty), which only the manager may change
+        modelManager.retainCompilationUnits(model, imported::contains);
     }
 
     private boolean isProjectWar3MapScript(String file) {
@@ -417,7 +418,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             model = ModelManager.copy(model);
         }
 
-        return compileMap(modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
+        return compileMap(modelManager, modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
     }
 
     private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {

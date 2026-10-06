@@ -3,6 +3,9 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.jassinterpreter.providers.LuaEnsureTypeProvider;
+import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -22,8 +25,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
@@ -41,6 +47,48 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     private String compiledLua(String testName) throws IOException {
         return Files.toString(new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua"), Charsets.UTF_8);
+    }
+
+    private static final java.util.regex.Pattern SLOT_ASSIGNMENT =
+        java.util.regex.Pattern.compile("(?m)^\\s*(\\w+)\\.(\\w+) = (\\w+)\\s*$");
+
+    /** The dispatch slots the bootstrap binds, by class table. Engine metadata ({@code __...}) is not a slot. */
+    private Map<String, List<String>> boundSlotsByClass(String lua) {
+        Map<String, List<String>> result = new TreeMap<>();
+        java.util.regex.Matcher assignment = SLOT_ASSIGNMENT.matcher(lua);
+        while (assignment.find()) {
+            if (!assignment.group(2).startsWith("__")) {
+                result.computeIfAbsent(assignment.group(1), table -> new ArrayList<>()).add(assignment.group(2));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * A slot is only worth binding if some call site reads it. Aliases that nobody reads still cost one
+     * table write per class, and for a family of closures that is quadratic in the family: a slot name
+     * which occurs nowhere but in its own assignments is dead.
+     */
+    private void assertEveryBoundSlotIsRead(String lua) {
+        Map<String, Integer> bound = new TreeMap<>();
+        for (List<String> slots : boundSlotsByClass(lua).values()) {
+            for (String slot : slots) {
+                bound.merge(slot, 1, Integer::sum);
+            }
+        }
+        Map<String, Integer> occurrences = new HashMap<>();
+        java.util.regex.Matcher word = java.util.regex.Pattern.compile("\\w+").matcher(lua);
+        while (word.find()) {
+            occurrences.merge(word.group(), 1, Integer::sum);
+        }
+        List<String> unread = new ArrayList<>();
+        for (Map.Entry<String, Integer> slot : bound.entrySet()) {
+            if (occurrences.get(slot.getKey()) <= slot.getValue()) {
+                unread.add(slot.getKey() + " (bound " + slot.getValue() + "x)");
+            }
+        }
+        assertTrue("class tables bind " + unread.size() + " slots which no call site reads, e.g. "
+            + unread.subList(0, Math.min(8, unread.size())), unread.isEmpty());
     }
 
     private String luaFunctionBody(String compiled, String functionName) {
@@ -264,6 +312,220 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("the copied inner call is inlined as well:\n" + run, run.contains("leaf"));
     }
 
+    /**
+     * A one-line field getter is expanded at every call site that dispatches nowhere else, in a loop
+     * or not, whatever the number of callers: method calls outside a loop used to reach the inliner
+     * as method calls, which it does not look at, and stayed calls.
+     */
+    @Test
+    public void fieldGetterOutsideLoopsIsInlinedAtEveryCallSite() {
+        String compiled = compileOptimizedLua("fieldGetterOutsideLoopsIsInlinedAtEveryCallSite",
+            "package Test",
+            "native consume(int value)",
+            "class Counter",
+            "    int count",
+            "    function getCount() returns int",
+            "        return count",
+            "@noinline function readA(Counter c) returns int",
+            "    return c.getCount()",
+            "@noinline function readB(Counter c) returns int",
+            "    return c.getCount() + 1",
+            "@noinline function readC(Counter c) returns int",
+            "    return c.getCount() * 2",
+            "init",
+            "    let c = new Counter()",
+            "    consume(readA(c) + readB(c) + readC(c))");
+        for (String reader : new String[] {"readA", "readB", "readC"}) {
+            String body = topLevelFunctionBodyWithPrefix(compiled, reader);
+            assertFalse("the getter is expanded in " + reader + ":\n" + body, body.contains("getCount"));
+            assertTrue("the field is read in place:\n" + body, body.contains("Counter_count_storage["));
+        }
+        assertFalse("no definition is left for a function nothing calls:\n" + compiled,
+            compiled.contains("function Counter_Counter_getCount"));
+    }
+
+    /**
+     * A function already past the inliner's register budget refuses every callee that would declare a
+     * local, however small. A getter declares none, so it is expanded there as well, and the function
+     * is no further over Lua's limit than it was.
+     */
+    @Test
+    public void getterIsExpandedInAFunctionPastTheRegisterBudget() throws IOException {
+        int count = 220;
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "int array values",
+            "class Cell",
+            "    int v = 1",
+            "    function get() returns int",
+            "        return v",
+            "    function text() returns string",
+            "        return I2S(v)",
+            "@noinline function opaque(int i) returns int",
+            "    return i",
+            "@noinline function big(Cell c) returns int"));
+        for (int i = 0; i < count; i++) {
+            lines.add("    let a" + i + " = c.get() + opaque(" + i + ")");
+        }
+        lines.add("    if c.text() == \"2\"");
+        lines.add("        return -1");
+        // every local is read after the getters, so all of them are live at once
+        for (int i = 0; i < count; i++) {
+            lines.add("    values[" + i + "] = a" + i);
+        }
+        lines.add("    return values[7]");
+        lines.add("init");
+        lines.add("    if big(new Cell()) == 8");
+        lines.add("        testSuccess()");
+        test().testLua(true).inline().localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+
+        String big = topLevelFunctionBodyWithPrefix(
+            compiledLua("getterIsExpandedInAFunctionPastTheRegisterBudget"), "big");
+        assertFalse("the getter is expanded although the function is past the budget:\n" + big,
+            big.contains("get") || big.contains("text"));
+    }
+
+    /** A getter whose result nothing uses leaves nothing behind: not the call, not the read it expands to. */
+    @Test
+    public void unusedGetterResultIsDropped() {
+        String compiled = compileOptimizedLua("unusedGetterResultIsDropped",
+            "package Test",
+            "class Counter",
+            "    int count",
+            "    function getCount() returns int",
+            "        return count",
+            "@noinline function discard(Counter c)",
+            "    let ignored = c.getCount()",
+            "init",
+            "    discard(new Counter())");
+        int start = compiled.indexOf("function discard");
+        assertTrue("expected function discard", start >= 0);
+        String discard = compiled.substring(start, compiled.indexOf("\nend", start));
+        assertFalse("neither the call nor its read is left:\n" + discard,
+            discard.contains("getCount") || discard.contains("Counter_count_storage"));
+    }
+
+    /** One caller is no different from many: the call count does not gate a one-line getter. */
+    @Test
+    public void singleCallerGetterIsInlined() {
+        String compiled = compileOptimizedLua("singleCallerGetterIsInlined",
+            "package Test",
+            "native consume(int value)",
+            "class Signal",
+            "    int value",
+            "    function peek() returns int",
+            "        return value",
+            "@noinline function once(Signal s) returns int",
+            "    return s.peek()",
+            "init",
+            "    consume(once(new Signal()))");
+        String once = topLevelFunctionBodyWithPrefix(compiled, "once");
+        assertFalse("the only call site is expanded:\n" + once, once.contains("peek"));
+    }
+
+    /**
+     * A getter next to a larger callee that is expanded is expanded too: the ArrayList.add inside
+     * IntMap.put was inlined while the ArrayList.size beside it stayed a call.
+     */
+    @Test
+    public void getterNextToAnInlinedLargerCalleeIsInlined() {
+        String compiled = compileOptimizedLua("getterNextToAnInlinedLargerCalleeIsInlined",
+            "package Test",
+            "native consume(int value)",
+            "class Bag",
+            "    private static int array store",
+            "    private int count = 0",
+            "    private int capacity = 8",
+            "    function add(int value)",
+            "        if count >= capacity",
+            "            capacity = capacity * 2",
+            "        store[count] = value",
+            "        count++",
+            "    function size() returns int",
+            "        return count",
+            "@noinline function fill(Bag b) returns int",
+            "    b.add(1)",
+            "    b.add(2)",
+            "    return b.size()",
+            "init",
+            "    consume(fill(new Bag()))");
+        String fill = topLevelFunctionBodyWithPrefix(compiled, "fill");
+        assertFalse("the larger callee is expanded:\n" + fill, fill.contains("Bag_add"));
+        assertFalse("and so is the getter beside it:\n" + fill, fill.contains("Bag_size"));
+    }
+
+    /**
+     * An argument the callee ignores is dropped only if it cannot fail. {@code I2S(1 div 0)} is the
+     * deliberate callback abort, kept as an operator expression by the div/mod lowering, and expanding
+     * the accessor must not lose it.
+     */
+    @Test
+    public void inlinedAccessorKeepsAnAbortingArgumentItIgnores() {
+        String compiled = compileOptimizedLua("inlinedAccessorKeepsAnAbortingArgumentItIgnores",
+            "package Test",
+            "native I2S(int i) returns string",
+            "native consume(int value)",
+            "function ignore(string s) returns int",
+            "    return 5",
+            "@noinline function trap() returns int",
+            "    return ignore(I2S(1 div 0))",
+            "init",
+            "    consume(trap())");
+        String trap = topLevelFunctionBodyWithPrefix(compiled, "trap");
+        assertTrue("the aborting argument is still evaluated:\n" + trap,
+            trap.contains("error(\"__wurst_abort_thread\", 0)"));
+    }
+
+    /**
+     * Expanding a getter keeps the argument evaluated once, and before the getter's own reads: the
+     * body is substituted, not copied around its arguments.
+     */
+    @Test
+    public void inlinedAccessorEvaluatesArgumentsOnceAndInOrder() {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "int counter = 0",
+            "@noinline function next() returns int",
+            "    counter++",
+            "    return counter",
+            "function twice(int x) returns int",
+            "    return x + x",
+            "function minus(int a, int b) returns int",
+            "    return a - b",
+            "class Cell",
+            "    int v = 5",
+            "    function reversed(int a, int b) returns int",
+            "        return b - a",
+            "    function addTo(int a) returns int",
+            "        return v + a",
+            "    function ignore(int a) returns int",
+            "        return v",
+            "@noinline function bump(Cell c) returns int",
+            "    c.v++",
+            "    return 1",
+            "init",
+            "    let c = new Cell()",
+            "    if twice(next()) != 2",
+            "        testFail(\"an argument used twice was evaluated twice\")",
+            "    counter = 1",
+            "    if minus(next(), next()) != -1",
+            "        testFail(\"arguments were evaluated out of order\")",
+            "    counter = 1",
+            "    if c.reversed(next(), next()) != 1",
+            "        testFail(\"reversed use evaluated the arguments out of order\")",
+            "    if c.addTo(bump(c)) != 7",
+            "        testFail(\"the body read its field before the argument changed it\")",
+            "    counter = 0",
+            "    c.ignore(next())",
+            "    if counter != 1",
+            "        testFail(\"an unused argument was not evaluated\")",
+            "    testSuccess()");
+    }
+
     /** Methods which call each other are a cycle: the loop still compiles and computes correctly. */
     @Test
     public void mutuallyRecursiveMethodsInALoopStayCalls() throws IOException {
@@ -391,6 +653,49 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
         assertTrue("R2I of an expression is printed in place, without a call:\n" + compiled,
             compiled.contains("// 1) | 0)") && compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1);
+    }
+
+    /**
+     * The lines of a program whose function sums {@code terms} int locals in one left-nested chain
+     * of additions. The locals come from a noinline call, so nothing folds and the whole chain
+     * survives to the backends. Their sum is 0 + 1 + ... + (terms - 1).
+     */
+    private String[] longIntSumChain(int terms) {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native testSuccess()");
+        lines.add("@noinline function id(int x) returns int");
+        lines.add("    return x");
+        lines.add("@noinline function sum() returns int");
+        StringBuilder chain = new StringBuilder("    return ");
+        for (int i = 0; i < terms; i++) {
+            lines.add("    int a" + i + " = id(" + i + ")");
+            chain.append(i == 0 ? "" : " + ").append("a").append(i);
+        }
+        lines.add(chain.toString());
+        lines.add("init");
+        lines.add("    if sum() == " + (terms * (terms - 1) / 2));
+        lines.add("        testSuccess()");
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * The type of an operator call on non-real operands is its left operand's type. It used to be
+     * computed twice per level, so a left-nested chain of operators was typed in 2^depth steps and
+     * the Lua string-concatenation lowering, which types every operator call, never finished.
+     * Compile only: the printed chain nests 219 parentheses, which luac itself rejects.
+     */
+    @Test(timeOut = 60_000)
+    public void longIntSumChainIsTypedInLinearTimeOnLua() {
+        String compiled = compileOptimizedLua("longIntSumChainIsTypedInLinearTimeOnLua", longIntSumChain(220));
+        String sum = topLevelFunctionBodyWithPrefix(compiled, "sum");
+        assertEquals("every addition of the chain is emitted:\n" + sum, 219, sum.split(" \\+ ", -1).length - 1);
+    }
+
+    /** The same function on the Jass backend, which must also stay linear and keep the sum. */
+    @Test(timeOut = 60_000)
+    public void longIntSumChainIsTypedInLinearTimeOnJass() {
+        test().inline().localOptimizations().executeProg().lines(longIntSumChain(220));
     }
 
     private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
@@ -2177,7 +2482,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
-    public void randomizedClassInterfaceModuleDispatchMatchesAllBackends() {
+    public void randomizedClassInterfaceModuleDispatchMatchesAllBackends() throws IOException {
         Random random = new Random(0xD15A7C4L);
         List<String> source = new ArrayList<>();
         Collections.addAll(source,
@@ -2289,6 +2594,151 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         source.add("        testSuccess()");
 
         test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+        assertEveryBoundSlotIsRead(compiledLua("randomizedClassInterfaceModuleDispatchMatchesAllBackends"));
+    }
+
+    /** A generated closure: which family it implements, its arithmetic, and the closure it calls in turn. */
+    private record ClosureNode(int family, int mul, int add, ClosureNode inner) {
+    }
+
+    private static final String[] VOID_FAMILIES = {"Step", "Step2", "Visitor"};
+    private static final int MAPPER_FAMILY = 3;
+
+    private static ClosureNode randomClosure(Random random, int family, int depth) {
+        ClosureNode inner = null;
+        if (depth < 2 && random.nextInt(3) == 0) {
+            inner = randomClosure(random, family == MAPPER_FAMILY ? MAPPER_FAMILY : random.nextInt(3), depth + 1);
+        }
+        return new ClosureNode(family, 1 + random.nextInt(4), random.nextInt(6), inner);
+    }
+
+    /** What the closure does: the void families add to {@code sum}, a mapper returns its result. */
+    private static int evaluate(ClosureNode closure, int x, long[] sum) {
+        int value = x * closure.mul() + closure.add();
+        if (closure.family() == MAPPER_FAMILY) {
+            return value + (closure.inner() == null ? 0 : evaluate(closure.inner(), x + 1, sum));
+        }
+        sum[0] += value;
+        if (closure.inner() != null) {
+            evaluate(closure.inner(), x + 1, sum);
+        }
+        return 0;
+    }
+
+    private static void emitVoidClosure(List<String> out, ClosureNode closure, String argument, String indent, int depth) {
+        out.add(indent + "apply" + VOID_FAMILIES[closure.family()] + "(" + argument + ") x" + depth + " ->");
+        out.add(indent + "    sum += x" + depth + " * " + closure.mul() + " + " + closure.add());
+        if (closure.inner() != null) {
+            emitVoidClosure(out, closure.inner(), "x" + depth + " + 1", indent + "    ", depth + 1);
+        }
+    }
+
+    private static String mapperLambda(ClosureNode closure, int depth) {
+        String m = "m" + depth;
+        return "(int " + m + ") -> " + m + " * " + closure.mul() + " + " + closure.add()
+            + (closure.inner() == null ? "" : " + applyMapper(" + m + " + 1, " + mapperLambda(closure.inner(), depth + 1) + ")");
+    }
+
+    /**
+     * Differential dispatch corpus for closures: several families which share a method name, an
+     * abstract class and a generic interface, closures nested up to three deep, and an override chain
+     * reached both through a parameter and through a call result. Every seed runs in the Jass
+     * interpreter and in the Lua runtime and must reach the total the generator computes itself, so a
+     * slot which a call site reads but a class table does not bind fails here as a nil call.
+     */
+    @Test
+    public void randomizedClosureAndOverrideDispatchMatchesAllBackends() throws IOException {
+        for (long seed = 1; seed <= 8; seed++) {
+            Random random = new Random(0xC105E5L * seed);
+            List<String> source = new ArrayList<>();
+            int c0 = random.nextInt(5);
+            int c1 = random.nextInt(5);
+            int c2 = 1 + random.nextInt(3);
+            Collections.addAll(source,
+                "package Test",
+                "native testSuccess()",
+                "int sum",
+                "interface Step",
+                "    function run(int x)",
+                "interface Step2",
+                "    function run(int x)",
+                "abstract class Visitor",
+                "    abstract function visit(int x)",
+                "interface Mapper<T>",
+                "    function map(T t) returns T",
+                "interface Scorer",
+                "    function score() returns int",
+                "class RootScorer implements Scorer",
+                "    int base",
+                "    construct(int base)",
+                "        this.base = base",
+                "    override function score() returns int",
+                "        return base + " + c0,
+                "class MidScorer extends RootScorer",
+                "    construct(int base)",
+                "        super(base)",
+                "    override function score() returns int",
+                "        return super.score() * 2 + " + c1,
+                "class LeafScorer extends MidScorer",
+                "    construct(int base)",
+                "        super(base)",
+                "    override function score() returns int",
+                "        return super.score() + base * " + c2,
+                "@noinline function applyStep(int arg, Step s)",
+                "    s.run(arg)",
+                "@noinline function applyStep2(int arg, Step2 s)",
+                "    s.run(arg)",
+                "@noinline function applyVisitor(int arg, Visitor v)",
+                "    v.visit(arg)",
+                "@noinline function applyMapper(int arg, Mapper<int> m) returns int",
+                "    return m.map(arg)",
+                "@noinline function viaScorer(Scorer s) returns int",
+                "    return s.score()",
+                "function makeScorer(int kind, int base) returns Scorer",
+                "    if kind == 0",
+                "        return new RootScorer(base)",
+                "    if kind == 1",
+                "        return new MidScorer(base)",
+                "    return new LeafScorer(base)",
+                "init");
+
+            long[] sum = {0};
+            for (int family = 0; family <= MAPPER_FAMILY; family++) {
+                int count = 2 + random.nextInt(5);
+                for (int i = 0; i < count; i++) {
+                    ClosureNode closure = randomClosure(random, family, 0);
+                    int argument = random.nextInt(9);
+                    if (family == MAPPER_FAMILY) {
+                        source.add("    sum += applyMapper(" + argument + ", " + mapperLambda(closure, 0) + ")");
+                        sum[0] += evaluate(closure, argument, sum);
+                    } else {
+                        emitVoidClosure(source, closure, Integer.toString(argument), "    ", 0);
+                        evaluate(closure, argument, sum);
+                    }
+                }
+            }
+            int scorers = 4 + random.nextInt(5);
+            for (int i = 0; i < scorers; i++) {
+                int kind = random.nextInt(3);
+                int base = 1 + random.nextInt(9);
+                String[] constructors = {"RootScorer", "MidScorer", "LeafScorer"};
+                source.add("    sum += viaScorer(new " + constructors[kind] + "(" + base + "))");
+                source.add("    sum += makeScorer(" + kind + ", " + base + ").score()");
+                int score = base + c0;
+                if (kind >= 1) {
+                    score = score * 2 + c1;
+                }
+                if (kind == 2) {
+                    score += base * c2;
+                }
+                sum[0] += 2L * score;
+            }
+            source.add("    if sum == " + sum[0]);
+            source.add("        testSuccess()");
+
+            test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+            assertEveryBoundSlotIsRead(compiledLua("randomizedClosureAndOverrideDispatchMatchesAllBackends"));
+        }
     }
 
     /**
@@ -3150,7 +3600,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
         // Inlining decides which function keeps the hot loop (query, or one of the index's range
         // helpers). Inspect whichever function localizes the next-link array.
-        String body = topLevelFunctionContaining(compiled, "= SpatialPartition_nextInCell");
+        java.util.regex.Matcher localized = java.util.regex.Pattern
+            .compile("local \\w+ = SpatialPartition_nextInCell\\b").matcher(compiled);
+        assertTrue("some function must localize the next-link array:\n" + compiled, localized.find());
+        String body = topLevelFunctionContaining(compiled, localized.group());
         java.util.regex.Matcher nextAlias = java.util.regex.Pattern
             .compile("local (\\w+) = SpatialPartition_nextInCell").matcher(body);
         java.util.regex.Matcher xAlias = java.util.regex.Pattern
@@ -5095,6 +5548,129 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    destroy picked",
             "    if sum == 12 + 9 + 9 + 12",
             "        testSuccess()");
+        assertEveryBoundSlotIsRead(compiledLua("virtualCallsDispatchThroughEveryReceiverShape"));
+    }
+
+    /**
+     * Closures of one interface, of one abstract class and of one generic interface, some nested, next to
+     * a plain override chain. Each family must still reach every implementation at run time, and the
+     * class tables must bind exactly what the call sites read: the dispatched slot of each family in
+     * every closure of it, and nothing else.
+     */
+    @Test
+    public void closureFamiliesBindOnlyTheSlotsCallSitesRead() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int sum",
+            "interface Step",
+            "    function run(int x)",
+            "abstract class Visitor",
+            "    abstract function visit(int x)",
+            "interface Mapper<T>",
+            "    function map(T t) returns T",
+            "class Base",
+            "    function value() returns int",
+            "        return 1",
+            "class Mid extends Base",
+            "    override function value() returns int",
+            "        return 10",
+            "class Leaf extends Mid",
+            "    override function value() returns int",
+            "        return 100",
+            "@noinline function applyStep(int arg, Step s)",
+            "    s.run(arg)",
+            "@noinline function applyVisitor(int arg, Visitor v)",
+            "    v.visit(arg)",
+            "@noinline function applyMap(int arg, Mapper<int> m) returns int",
+            "    return m.map(arg)",
+            "@noinline function valueOf(Base b) returns int",
+            "    return b.value()",
+            "init",
+            "    let k = 3",
+            "    applyStep(1) x ->",
+            "        sum += x",
+            "    applyStep(2) x ->",
+            "        sum += x * k",
+            "    applyStep(3) x ->",
+            "        applyStep(x + 1) y ->",
+            "            sum += y * 2",
+            "    applyStep(4) x ->",
+            "        sum += x - k",
+            "    applyVisitor(5) v ->",
+            "        sum += v",
+            "    applyVisitor(6) v ->",
+            "        sum += v * k",
+            "    applyVisitor(7) v ->",
+            "        applyStep(v) y ->",
+            "            sum += y + 1",
+            "    sum += applyMap(8, (int m) -> m + 1)",
+            "    sum += applyMap(8, (int m) -> m * k)",
+            "    sum += applyMap(8, (int m) -> applyMap(m, (int n) -> n + 2))",
+            "    sum += valueOf(new Leaf()) + valueOf(new Mid()) + valueOf(new Base())",
+            // steps 1 + 6 + 8 + 1, visitors 5 + 18 + 8, mappers 9 + 24 + 10, classes 100 + 10 + 1
+            "    if sum == 16 + 31 + 43 + 111",
+            "        testSuccess()");
+
+        String compiled = compiledLua("closureFamiliesBindOnlyTheSlotsCallSitesRead");
+        assertEveryBoundSlotIsRead(compiled);
+        Map<String, Integer> closures = new TreeMap<>();
+        closures.put("applyStep", 6);
+        closures.put("applyVisitor", 3);
+        closures.put("applyMap", 4);
+        for (Map.Entry<String, Integer> family : closures.entrySet()) {
+            String body = topLevelFunctionBodyWithPrefix(compiled, family.getKey());
+            java.util.regex.Matcher read = java.util.regex.Pattern
+                .compile("__wurst_objectClass\\[\\w+]\\.(\\w+)\\(").matcher(body);
+            assertTrue(family.getKey() + " reads its slot from the receiver's descriptor:\n" + body, read.find());
+            String slot = read.group(1);
+            int bindings = 0;
+            for (List<String> slots : boundSlotsByClass(compiled).values()) {
+                bindings += Collections.frequency(slots, slot);
+            }
+            assertEquals(family.getKey() + " dispatches '" + slot + "', which every closure of the family binds",
+                family.getValue().intValue(), bindings);
+        }
+    }
+
+    /** A closure family must cost each of its classes the slots its callers read, not one per sibling. */
+    @Test
+    public void closureTablesDoNotGrowWithTheSizeOfTheirFamily() {
+        String compiled = compileOptimizedLua("closureTablesDoNotGrowWithTheSizeOfTheirFamily",
+            closureFamilySource(16));
+        for (Map.Entry<String, List<String>> table : boundSlotsByClass(compiled).entrySet()) {
+            assertTrue("class table " + table.getKey() + " binds " + table.getValue().size()
+                    + " slots: " + table.getValue(),
+                table.getValue().size() <= 3);
+        }
+        assertEveryBoundSlotIsRead(compiled);
+    }
+
+    @Test
+    public void closureFamilySlotsAreEmittedDeterministically() {
+        String[] source = closureFamilySource(8);
+        assertEquals(compileOptimizedLua("closureFamilySlotsAreEmittedDeterministicallyA", source),
+            compileOptimizedLua("closureFamilySlotsAreEmittedDeterministicallyA", source));
+    }
+
+    /** {@code size} closures of one interface, all passed through the same dispatching function. */
+    private static String[] closureFamilySource(int size) {
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native consume(int value)",
+            "interface Step",
+            "    function run(int x)",
+            "@noinline function applyStep(int arg, Step s)",
+            "    s.run(arg)",
+            "int sum",
+            "init");
+        for (int i = 0; i < size; i++) {
+            source.add("    applyStep(" + i + ") x ->");
+            source.add("        sum += x * " + (i + 2));
+        }
+        source.add("    consume(sum)");
+        return source.toArray(new String[0]);
     }
 
     @Test
@@ -5144,6 +5720,304 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("the raw concat primitive is not a call:\n" + compiled, compiled.contains("__wurst_rawConcat"));
         assertFalse("an unused concatenation is dropped rather than kept in a dead local:\n" + compiled,
             compiled.contains("wurstExpr"));
+    }
+
+    /** What compiling with the inliner's decision log on produced: the records, and the script. */
+    private record LoggedCompile(List<String> records, String lua) {
+    }
+
+    /** The inliner's decision records for a program, with the log switched on for just that compile. */
+    private List<String> inlinerDecisions(String testName, String... lines) {
+        return compileWithInlinerLog(testName, lines).records();
+    }
+
+    private LoggedCompile compileWithInlinerLog(String testName, String... lines) {
+        java.io.PrintStream original = System.out;
+        java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
+        String previous = System.getProperty("wurst.inliner.log");
+        System.setProperty("wurst.inliner.log", "true");
+        System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+        String lua;
+        try {
+            lua = compileOptimizedLua(testName, lines);
+        } finally {
+            System.setOut(original);
+            if (previous == null) {
+                System.clearProperty("wurst.inliner.log");
+            } else {
+                System.setProperty("wurst.inliner.log", previous);
+            }
+        }
+        List<String> records = new ArrayList<>();
+        for (String line : captured.toString(java.nio.charset.StandardCharsets.UTF_8).split("\\R")) {
+            if (line.startsWith("[INLINER]")) {
+                records.add(line);
+            }
+        }
+        return new LoggedCompile(records, lua);
+    }
+
+    /**
+     * A function that meets substitutable getters first and a register-budget-checked call after them,
+     * with {@code locals} values live across it.
+     */
+    private static String[] gettersThenABudgetCheckedCall(int locals) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "int array values",
+            "class Cell",
+            "    int v = 1",
+            "    function get() returns int",
+            "        return v",
+            "@noinline function opaque(int i) returns int",
+            "    return i",
+            "function mid(int a, int b) returns int",
+            "    let t = a * b + opaque(a)",
+            "    let u = t - opaque(b)",
+            "    return t + u + b",
+            "@noinline function big(Cell c) returns int"));
+        for (int j = 0; j < 12; j++) {
+            lines.add("    let g" + j + " = c.get() + c.get() + c.get() + c.get() + c.get() + c.get()");
+        }
+        for (int i = 0; i < locals; i++) {
+            lines.add("    let a" + i + " = opaque(" + i + ")");
+        }
+        lines.add("    let m = mid(c.get() + c.get() + c.get() + c.get(), c.get() + c.get())");
+        for (int i = 0; i < locals; i++) {
+            lines.add("    values[" + i + "] = a" + i + " + m");
+        }
+        lines.add("    return values[7]");
+        lines.add("init");
+        lines.add("    big(new Cell())");
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * Reading the decision log must not change what is compiled. Its register projection used to ask
+     * for the caller's budget, which builds it from the body as it is then; a build without the log
+     * builds it at the first call that is budget-checked, after the getters before it were substituted,
+     * and a substitution does not refresh a budget that exists. Pinned across the budget's limit.
+     */
+    @Test
+    public void switchingTheInlinerLogOnChangesNothingInTheScript() {
+        for (int locals : new int[]{120, 150, 170, 180, 185, 190, 195}) {
+            String[] program = gettersThenABudgetCheckedCall(locals);
+            String quiet = compileOptimizedLua("inlinerLogIsInertQuiet", program);
+            LoggedCompile logged = compileWithInlinerLog("inlinerLogIsInertLogged", program);
+            assertFalse("the log has records with " + locals + " locals", logged.records().isEmpty());
+            assertEquals("the script with " + locals + " live values is the same with the log on", quiet, logged.lua());
+        }
+    }
+
+    private static List<String> recordsOfCallee(List<String> records, String callee) {
+        List<String> result = new ArrayList<>();
+        for (String record : records) {
+            if (record.contains(" callee=" + callee + " ")) {
+                result.add(record);
+            }
+        }
+        return result;
+    }
+
+    private static String calleeId(String record) {
+        java.util.regex.Matcher id = java.util.regex.Pattern.compile(" calleeId=(\\d+) ").matcher(record);
+        assertTrue("a calleeId in " + record, id.find());
+        return id.group(1);
+    }
+
+    /**
+     * A cost model is replayed from the decision log, so its reasons and fields are a contract: every
+     * refusal names its real cause, and each record carries the callee's identity, its caller count, the
+     * call's argument count, whether an argument is constant, how many loops enclose the call and how big
+     * the calling function is, whether or not that function is an inline candidate itself.
+     */
+    @Test
+    public void inlinerDecisionLogSaysWhyAndWhatItCost() {
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native consume(int value)",
+            "@noinline function pinned(int x) returns int",
+            "    return x + 1",
+            "@noinline function countdown(int n) returns int",
+            "    if n <= 0",
+            "        return 0",
+            "    return countdown(n - 1)",
+            "function small(int x) returns int",
+            "    return x * 2",
+            "function big(int x) returns int",
+            "    var a = x");
+        for (int i = 0; i < 30; i++) {
+            source.add("    a = a * 3 + " + (i + 1));
+        }
+        // the caller count is of calling functions, not of call sites, so big needs two callers to be shared
+        Collections.addAll(source,
+            "    return a",
+            "function viaFirst() returns int",
+            "    return big(5)",
+            "function viaSecond() returns int",
+            "    return big(6)",
+            "init",
+            "    consume(small(3))",
+            "    consume(pinned(4))",
+            "    consume(countdown(3))",
+            "    consume(viaFirst())",
+            "    consume(viaSecond())",
+            "    for i = 0 to 2",
+            "        consume(small(i))");
+        List<String> log = inlinerDecisions("inlinerDecisionLogSaysWhyAndWhatItCost", source.toArray(new String[0]));
+        assertFalse("the log has records", log.isEmpty());
+
+        for (String record : log) {
+            assertTrue("every record carries the cost fields: " + record,
+                record.matches(".* calleeId=\\d+ calls=\\d+ args=\\d+ constArg=(true|false) loopDepth=\\d+ callerSize=\\d+"));
+            assertFalse("the size of the calling function is known, even for the package initialiser: " + record,
+                record.endsWith("callerSize=2147483647"));
+        }
+
+        List<String> small = recordsOfCallee(log, "small");
+        assertTrue("a small body is inlined at each call: " + small,
+            small.size() >= 2 && small.stream().allMatch(r -> r.contains("decision=inline")));
+        assertTrue("a call with a literal argument says so: " + small,
+            small.stream().anyMatch(r -> r.contains("constArg=true")));
+        assertTrue("a call inside a loop says so: " + small,
+            small.stream().anyMatch(r -> r.contains("loopDepth=1")));
+        assertEquals("one function, one identity", 1, small.stream().map(LuaBackendAuditTests::calleeId).distinct().count());
+
+        List<String> pinned = recordsOfCallee(log, "pinned");
+        assertTrue("an annotation is not a size: " + pinned,
+            !pinned.isEmpty() && pinned.stream().allMatch(r -> r.contains("reason=noinline_annotation")));
+
+        // the exclusion is checked before recursion, as the decision does: a call from outside is refused
+        // for the annotation, and only the function's call to itself is a recursion
+        List<String> countdown = recordsOfCallee(log, "countdown");
+        assertTrue("a recursive @noinline function is refused for its annotation from outside: " + countdown,
+            countdown.stream().filter(r -> !r.startsWith("[INLINER] caller=countdown "))
+                .allMatch(r -> r.contains("reason=noinline_annotation")));
+        assertTrue("its call to itself is a recursion: " + countdown,
+            countdown.stream().anyMatch(r -> r.startsWith("[INLINER] caller=countdown ") && r.contains("reason=recursive")));
+
+        List<String> big = recordsOfCallee(log, "big");
+        assertTrue("a big body with two callers is refused for its rating: " + big,
+            big.size() >= 2 && big.stream().allMatch(r -> r.contains("reason=rating_too_high(")
+                && r.matches(".* calls=([2-9]|\\d\\d+) .*")));
+
+        List<String> consume = recordsOfCallee(log, "consume");
+        assertTrue("a native is refused as one: " + consume,
+            !consume.isEmpty() && consume.stream().allMatch(r -> r.contains("reason=native")));
+
+        assertEquals("different functions have different identities", 3,
+            java.util.stream.Stream.of(small, pinned, big).map(r -> calleeId(r.get(0))).distinct().count());
+    }
+
+    /** A literal, or the result of a conversion, is a string whatever happens: nothing to check. */
+    @Test
+    public void concatenationOfStringsWhichCannotBeNilHasNoNilCheck() {
+        String compiled = compileOptimizedLua("concatenationOfStringsWhichCannotBeNilHasNoNilCheck",
+            "package Test",
+            "native consume(string value)",
+            "native I2S(int i) returns string",
+            "native R2S(real r) returns string",
+            "@noinline function tag(int i) returns string",
+            "    return \"x=\" + I2S(i)",
+            "@noinline function wrap(int i, int j) returns string",
+            "    return \"<\" + I2S(i) + \"|\" + I2S(j) + \">\"",
+            "@noinline function fraction(real r) returns string",
+            "    return \"r=\" + R2S(r)",
+            "init",
+            "    consume(tag(1))",
+            "    consume(wrap(2, 3))",
+            "    consume(fraction(3.))");
+        String tag = luaFunctionBody(compiled, "tag");
+        assertTrue("a literal and a conversion join with the operator:\n" + tag, tag.contains("\"x=\" .. tostring("));
+        String wrap = luaFunctionBody(compiled, "wrap");
+        assertFalse("no operand of this chain can be nil:\n" + wrap, wrap.contains("nil"));
+        assertEquals("five operands are joined by four operators:\n" + wrap, 4,
+            wrap.split(java.util.regex.Pattern.quote(" .. "), -1).length - 1);
+        assertFalse("the nil-safe helper is not needed at all:\n" + compiled,
+            compiled.contains("__wurst_stringConcat"));
+        // R2S is only a string in the game; a runtime of one's own may declare it to answer nil
+        String fraction = luaFunctionBody(compiled, "fraction");
+        assertTrue("a native other than I2S is guarded like any other operand:\n" + fraction,
+            java.util.regex.Pattern.compile("\"r=\" \\.\\. \\(R2S\\(\\w+\\) or \"\"\\)").matcher(fraction).find());
+    }
+
+    /** With one operand known, only the other is made safe; with neither known the helper stays. */
+    @Test
+    public void onlyTheOperandWhichMayBeNilIsGuarded() {
+        String compiled = compileOptimizedLua("onlyTheOperandWhichMayBeNilIsGuarded",
+            "package Test",
+            "native consume(string value)",
+            "@noinline function tail(string s) returns string",
+            "    return \"x=\" + s",
+            "@noinline function head(string s) returns string",
+            "    return s + \"=x\"",
+            "@noinline function either(string a, string b) returns string",
+            "    return a + b",
+            "init",
+            "    consume(tail(\"a\"))",
+            "    consume(head(\"b\"))",
+            "    consume(either(\"c\", \"d\"))");
+        String tail = luaFunctionBody(compiled, "tail");
+        assertTrue("only the variable is guarded:\n" + tail,
+            java.util.regex.Pattern.compile("\"x=\" \\.\\. \\(\\w+ or \"\"\\)").matcher(tail).find());
+        String head = luaFunctionBody(compiled, "head");
+        assertTrue("only the variable is guarded:\n" + head,
+            java.util.regex.Pattern.compile("\\(\\w+ or \"\"\\) \\.\\. \"=x\"").matcher(head).find());
+        String either = luaFunctionBody(compiled, "either");
+        assertTrue("two variables keep the full check:\n" + either + "\n" + compiled,
+            either.contains("nil") || either.contains("__wurst_stringConcat"));
+    }
+
+    /**
+     * The Lua hashtable emulation answers nil for a missing string, where Jass answers null: the case
+     * the check exists for. A nil joined to a string must read as nothing, whichever side it is on,
+     * and a conversion must still join.
+     */
+    @Test
+    public void concatenationJoinsANilStringAsNothing() throws IOException {
+        test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "@noinline function missing(hashtable h) returns string",
+            "    return LoadStr(h, 1, 1)",
+            "init",
+            "    let h = InitHashtable()",
+            "    string right = \"x=\" + missing(h)",
+            "    string left = missing(h) + \"=x\"",
+            "    string middle = \"[\" + missing(h) + \"|\" + I2S(5) + \"]\"",
+            "    if right == \"x=\" and left == \"=x\" and middle == \"[|5]\"",
+            "        testSuccess()");
+    }
+
+    /**
+     * Compile-time evaluation runs before the Lua lowering, so it joins a null string through the
+     * ordinary operator. Pinned so that a change in that order, which would hand the interpreter the
+     * lowered form, shows up here.
+     */
+    @Test
+    public void compiletimeConcatenationJoinsANullStringAsNothing() throws IOException {
+        test().withStdLib().testLua(true).luaOnly(true).runCompiletimeFunctions(true).executeProg().lines(
+            "package Test",
+            "import Hashtable",
+            "function missing(hashtable h) returns string",
+            "    return LoadStr(h, 1, 1)",
+            "let right = compiletime(\"x=\" + missing(InitHashtable()))",
+            "let left = compiletime(missing(InitHashtable()) + \"=x\")",
+            "init",
+            "    if right == \"x=\" and left == \"=x\"",
+            "        testSuccess()");
+    }
+
+    /** The interpreter mock of {@code x or ""} is given a null where the Lua operator is given a nil. */
+    @Test
+    public void interpreterMockOfOrEmptyAnswersNothingForNull() {
+        // the leaves never touch the interpreter; the provider only insists on being given one
+        LuaEnsureTypeProvider provider = new LuaEnsureTypeProvider((AbstractInterpreter) java.lang.reflect.Proxy.newProxyInstance(
+            AbstractInterpreter.class.getClassLoader(), new Class<?>[]{AbstractInterpreter.class}, (proxy, method, args) -> null));
+        assertEquals("", provider.__wurst_rawOrEmpty(null).getVal());
+        assertEquals("a", provider.__wurst_rawOrEmpty(ILconstString.ofBytes("a")).getVal());
+        assertEquals("ab", provider.__wurst_rawConcat(provider.__wurst_rawOrEmpty(null), ILconstString.ofBytes("ab")).getVal());
     }
 
     @Test
@@ -5342,5 +6216,217 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String run = topLevelFunctionBodyWithPrefix(compiled, "run");
         assertTrue("a counter read after the loop keeps the while form:\n" + run, run.contains("while true do"));
         assertFalse(run, run.contains("for i"));
+    }
+
+    // --- the names of closure classes and of their implementation functions ---
+
+    private String compiledJass(String testName) throws IOException {
+        return Files.toString(new File(TEST_OUTPUT_PATH + "LuaBackendAuditTests_" + testName + "_no_opts.j"), Charsets.UTF_8);
+    }
+
+    /** The names of the Lua class tables which start with the prefix, sorted. */
+    private List<String> luaTablesWithPrefix(String compiled, String prefix) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?m)^(" + java.util.regex.Pattern.quote(prefix) + "\\w*) = \\(\\{\\}\\)").matcher(compiled);
+        List<String> names = new ArrayList<>();
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    /** The names of the Lua functions which start with the prefix, sorted. */
+    private List<String> luaFunctionsWithPrefix(String compiled, String prefix) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?m)^function (" + java.util.regex.Pattern.quote(prefix) + "\\w*)\\(").matcher(compiled);
+        List<String> names = new ArrayList<>();
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    /** The names of the Jass functions which start with the prefix, sorted. */
+    private List<String> jassFunctionsWithPrefix(String compiled, String prefix) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?m)^function (" + java.util.regex.Pattern.quote(prefix) + "\\w*) takes").matcher(compiled);
+        List<String> names = new ArrayList<>();
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    /**
+     * A closure inside a closure passed to the same call used to be named after the call once per
+     * level, which made the class and, with the class name in front of it again, the Lua function a
+     * string of repeated words.
+     */
+    @Test
+    public void closuresNestedInTheSameCallAreNamedAfterItOnce() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Callback",
+            "    function call()",
+            "int hits = 0",
+            "function add(int n)",
+            "    hits += n",
+            "function doAfter(Callback cb)",
+            "    cb.call()",
+            "init",
+            "    doAfter() ->",
+            "        add(1)",
+            "        doAfter() ->",
+            "            add(10)",
+            "            doAfter() ->",
+            "                add(100)",
+            "    if hits == 111",
+            "        testSuccess()");
+        String lua = compiledLua("closuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse("the call is named once per closure, not once per level:\n" + lua, lua.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test", "Callback_doAfter_Test1", "Callback_doAfter_Test2"),
+            luaTablesWithPrefix(lua, "Callback_"));
+        // The class carries the scopes and calls around the closure, so its function only adds the method.
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test_call", "Callback_doAfter_Test_call1", "Callback_doAfter_Test_call2"),
+            luaFunctionsWithPrefix(lua, "Callback_doAfter_"));
+        String jass = compiledJass("closuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse("the call is named once per closure, not once per level:\n" + jass, jass.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("alloc_Callback_doAfter_Test", "alloc_Callback_doAfter_Test_1", "alloc_Callback_doAfter_Test_2"),
+            jassFunctionsWithPrefix(jass, "alloc_Callback_"));
+    }
+
+    /**
+     * Closures which end up with the same name still are different classes with different
+     * implementations: every name is made unique and each closure runs its own body.
+     */
+    @Test
+    public void closuresWithTheSameNameStayDistinct() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Callback",
+            "    function call()",
+            "int hits = 0",
+            "function add(int n)",
+            "    hits += n",
+            "function doAfter(Callback cb)",
+            "    cb.call()",
+            "function twice(Callback first, Callback second)",
+            "    first.call()",
+            "    second.call()",
+            "init",
+            "    twice(() -> add(1), () -> add(10))",
+            "    doAfter(() -> add(100))",
+            "    doAfter() ->",
+            "        doAfter(() -> add(1000))",
+            "    if hits == 1111",
+            "        testSuccess()");
+        String lua = compiledLua("closuresWithTheSameNameStayDistinct");
+        assertFalse(lua, lua.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test", "Callback_doAfter_Test1", "Callback_doAfter_Test2",
+                "Callback_twice_Test", "Callback_twice_Test1"),
+            luaTablesWithPrefix(lua, "Callback_"));
+        assertEquals(java.util.Arrays.asList("Callback_doAfter_Test_call", "Callback_doAfter_Test_call1", "Callback_doAfter_Test_call2"),
+            luaFunctionsWithPrefix(lua, "Callback_doAfter_"));
+        assertEquals(java.util.Arrays.asList("Callback_twice_Test_call", "Callback_twice_Test_call1"),
+            luaFunctionsWithPrefix(lua, "Callback_twice_"));
+        String jass = compiledJass("closuresWithTheSameNameStayDistinct");
+        assertFalse(jass, jass.contains("doAfter_doAfter"));
+        assertEquals(java.util.Arrays.asList("alloc_Callback_doAfter_Test", "alloc_Callback_doAfter_Test_1", "alloc_Callback_doAfter_Test_2",
+                "alloc_Callback_twice_Test", "alloc_Callback_twice_Test_1"),
+            jassFunctionsWithPrefix(jass, "alloc_Callback_"));
+    }
+
+    /**
+     * Closures of one generic interface which are used at different type arguments share their
+     * name and are told apart by the number only; each is dispatched to its own implementation.
+     */
+    @Test
+    public void genericClosuresNestedInTheSameCallAreNamedAfterItOnce() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Fn<T:>",
+            "    function apply(T value) returns T",
+            "function pass<T:>(Fn<T> f) returns Fn<T>",
+            "    return f",
+            "init",
+            "    Fn<int> a = pass(pass((int x) -> x + 1))",
+            "    Fn<int> b = pass((int x) -> x * 2)",
+            "    Fn<string> c = pass(pass((string s) -> s + \"!\"))",
+            "    if a.apply(1) == 2 and b.apply(4) == 8 and c.apply(\"hi\") == \"hi!\"",
+            "        testSuccess()");
+        String lua = compiledLua("genericClosuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse(lua, lua.contains("pass_pass"));
+        assertEquals(java.util.Arrays.asList("Fn_pass_Test", "Fn_pass_Test1", "Fn_pass_Test2"),
+            luaTablesWithPrefix(lua, "Fn_"));
+        String jass = compiledJass("genericClosuresNestedInTheSameCallAreNamedAfterItOnce");
+        assertFalse(jass, jass.contains("pass_pass"));
+        assertEquals(java.util.Arrays.asList("alloc_Fn_pass_Test", "alloc_Fn_pass_Test_1", "alloc_Fn_pass_Test_2"),
+            jassFunctionsWithPrefix(jass, "alloc_Fn_"));
+    }
+
+    /**
+     * The Lua dispatch preparation reads a semantic name back out of a closure's implementation
+     * name: what precedes the first underscore, or the whole name when it starts with one. Shortening
+     * the suffix must leave both readings as they were, since dispatch aliases are built from them,
+     * and the closures must still dispatch next to a class which implements the same interface.
+     */
+    @Test
+    public void closureMethodsWithUnderscoresKeepTheirSemanticNames() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Under",
+            "    function do_it(int x) returns int",
+            "interface Hidden",
+            "    function _hidden(int x) returns int",
+            "class UnderImpl implements Under",
+            "    override function do_it(int x) returns int",
+            "        return x * 3",
+            "class HiddenImpl implements Hidden",
+            "    override function _hidden(int x) returns int",
+            "        return x * 5",
+            "function passUnder(Under u) returns Under",
+            "    return u",
+            "function passHidden(Hidden h) returns Hidden",
+            "    return h",
+            "function applyUnder(Under u, int x) returns int",
+            "    return u.do_it(x)",
+            "function applyHidden(Hidden h, int x) returns int",
+            "    return h._hidden(x)",
+            "init",
+            "    int offset = 100",
+            "    Under a = passUnder(passUnder((int x) -> x + 1))",
+            "    Under b = passUnder((int x) -> x + offset)",
+            "    Under c = passUnder(new UnderImpl())",
+            "    Hidden d = passHidden(passHidden((int x) -> x + 2))",
+            "    Hidden e = passHidden((int x) -> x + offset)",
+            "    Hidden f = new HiddenImpl()",
+            "    if applyUnder(a, 1) == 2 and applyUnder(b, 1) == 101 and applyUnder(c, 1) == 3",
+            "        if applyHidden(d, 1) == 3 and applyHidden(e, 1) == 101 and applyHidden(f, 1) == 5",
+            "            testSuccess()");
+        // The IM functions are what the semantic names are read from. do_it is read up to its first
+        // underscore, so only needs to be there; _hidden is read whole, so it keeps every level.
+        String im = Files.toString(new File(TEST_OUTPUT_PATH
+            + "LuaBackendAuditTests_closureMethodsWithUnderscoresKeepTheirSemanticNames_no_opts.jim"), Charsets.UTF_8);
+        assertTrue(im, im.contains("function do_it_passUnder_Test"));
+        assertFalse(im, im.contains("passUnder_passUnder"));
+        assertTrue(im, im.contains("function _hidden_passHidden_passHidden_Test"));
+        assertTrue(im, im.contains("function _hidden_passHidden_Test"));
+        String lua = compiledLua("closureMethodsWithUnderscoresKeepTheirSemanticNames");
+        assertEquals(java.util.Arrays.asList("Under_passUnder_Test", "Under_passUnder_Test1"),
+            luaTablesWithPrefix(lua, "Under_pass"));
+        assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test", "Hidden_passHidden_Test1"),
+            luaTablesWithPrefix(lua, "Hidden_pass"));
+        assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test__hidden", "Hidden_passHidden_Test__hidden1"),
+            luaFunctionsWithPrefix(lua, "Hidden_pass"));
+        assertEquals(java.util.Arrays.asList("Under_passUnder_Test_do_it", "Under_passUnder_Test_do_it1"),
+            luaFunctionsWithPrefix(lua, "Under_pass"));
+        assertFalse(lua, lua.contains("passUnder_passUnder"));
     }
 }

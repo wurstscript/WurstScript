@@ -56,7 +56,27 @@ public final class LuaKeyedMap {
     public static final String NATIVE_REMOVE = "__wurst_keyedMapRemove";
     public static final String NATIVE_DESTROY = "__wurst_keyedMapDestroy";
 
+    /** The stubs which only read a map: a call is as free of effects as the table index it prints as. */
+    private static final java.util.List<String> READ_STUBS = java.util.List.of(
+        NATIVE_GET, NATIVE_GET_INT, NATIVE_GET_REAL, NATIVE_GET_BOOL, NATIVE_GET_STR, NATIVE_HAS);
+
     private LuaKeyedMap() {
+    }
+
+    /**
+     * The name of the read stub {@code f} is, or null. Identity, not name: the translator created
+     * each stub once and a user function that happens to share the name stays an ordinary function.
+     */
+    public static String readStubName(ImTranslator translator, ImFunction f) {
+        if (!f.isNative()) {
+            return null;
+        }
+        for (String name : READ_STUBS) {
+            if (translator.luaKeyedStubs.get(name) == f) {
+                return name;
+            }
+        }
+        return null;
     }
 
     /**

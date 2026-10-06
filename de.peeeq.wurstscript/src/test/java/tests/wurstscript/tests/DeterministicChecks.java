@@ -275,7 +275,7 @@ public class DeterministicChecks extends WurstScriptTest {
         String output = Files.toString(new File("test-output/lua/DeterministicChecks_packageFunctionAndClosureNamingIsDeterministic.lua"), Charsets.UTF_8);
         AssertJUnit.assertTrue(output.contains("PkgA__update"));
         AssertJUnit.assertTrue(output.contains("PkgB__update"));
-        AssertJUnit.assertTrue(output.contains("Callback_L"));
+        AssertJUnit.assertTrue(output.contains("Callback_PkgA"));
     }
 
     @Test

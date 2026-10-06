@@ -161,6 +161,11 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
         });
 
+        addNative("__wurst_rawOrEmpty", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return x or \"\""));
+        });
+
         addNative("__wurst_rawConcat", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("y", LuaAst.LuaNoExpr()));

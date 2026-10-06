@@ -25,6 +25,60 @@ import static org.testng.Assert.*;
 public class AutoCompleteTests extends WurstLanguageServerTest {
 
     @DataProvider
+    public Object[][] printCompletionPositions() {
+        return new Object[][] {
+                {"init\n    pri|", ""},
+                {"function example()\n    pri|", ""},
+                {"function example()\n    pri|\n    print(\"message\")", ""},
+                {"init\n    pri|", "import Other\n"},
+                {"function example()\n    pri|", "import Other\n"},
+                {"function example()\n    pri|", "import MissingPackage\n"}
+        };
+    }
+
+    @Test(dataProvider = "printCompletionPositions")
+    public void implicitImportPrintIsSuggestedForThreeLetterPrefix(String body, String imports) {
+        CompletionTestData testData = input(("package Printing\nimport NoWurst\n"
+                + "public function print(string message)\n"
+                + "endpackage\n"
+                + "package Wurst\nimport public Printing\nendpackage\n"
+                + "package Other\npublic function other()\nendpackage\n"
+                + "package test\n" + imports + body + "\nendpackage").split("\n"));
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("print"), "labels = " + labels);
+        assertLabelBefore(labels, "print", "private");
+    }
+
+    @Test
+    public void implicitImportPrintSurvivesBroadCandidateBudget() {
+        StringBuilder source = new StringBuilder("package Printing\nimport NoWurst\n"
+                + "public function print(string message)\nendpackage\n"
+                + "package Wurst\nimport public Printing\npublic class vec2\nendpackage\n"
+                + "package ChannelAbilityPreset\nimport NoWurst\n");
+        for (int i = 0; i < 2100; i++) {
+            source.append("public int unrelated_pri_").append(i).append(" = 0\n");
+        }
+        source.append("endpackage\npackage Wtf\nimport ChannelAbilityPreset\n\n"
+                + "public function blinkUnit(unit u, vec2 target)\n    pri|\n");
+        CompletionList result = calculateCompletions(input(source.toString().split("\n")));
+        List<String> labels = sortedLabels(result);
+        assertTrue(labels.contains("print"), "labels = " + labels);
+        assertTrue(labels.contains("private"), "labels = " + labels);
+        assertLabelBefore(labels, "print", "private");
+        assertFalse(labels.stream().anyMatch(label -> label.startsWith("unrelated_")),
+                "Weak matches must not flood a strong prefix query: " + labels);
+        assertTrue(result.isIncomplete(), "An exhausted candidate budget must request a fresh list when typing continues");
+    }
+
+    @Test
+    public void shorterPrefixRanksAheadOfAlphabeticallyEarlierLongName() {
+        CompletionList result = calculateCompletions(input("package test",
+                "function priAlphabeticallyEarlierLongName()", "function priZ()",
+                "init", "    pri|", "endpackage"));
+        assertLabelBefore(sortedLabels(result), "priZ", "priAlphabeticallyEarlierLongName");
+    }
+
+    @DataProvider
     public Object[][] commentCompletionPositions() {
         return new Object[][] {
                 {"    /** CreateG| */", "\n"},

@@ -230,19 +230,31 @@ public class ClosureTranslator {
     }
 
     private String makeNameSuffix() {
+        return makeNameSuffix(true);
+    }
+
+    /**
+     * The scopes and calls which enclose the closure, innermost first. With {@code collapseRepeats},
+     * a name which directly follows an equal one is left out, so a closure passed to a call inside
+     * a closure passed to the same call is named after that call once rather than once per level.
+     */
+    private String makeNameSuffix(boolean collapseRepeats) {
         StringBuilder sb = new StringBuilder();
-        WPos pos = this.e.attrSource();
-        if (pos != null && pos.getLine() > 0) {
-            sb.append("_L").append(pos.getLine()).append("_C").append(pos.getStartColumn());
-        }
+        String previous = null;
         Element elem = this.e;
         while (elem != null) {
+            String name = null;
             if (elem instanceof NamedScope) {
-                sb.append("_");
-                sb.append(((NamedScope) elem).getName());
+                name = ((NamedScope) elem).getName();
             } else if (elem instanceof AstElementWithFuncName) {
-                sb.append("_");
-                sb.append(((AstElementWithFuncName) elem).getFuncNameId().getName());
+                name = ((AstElementWithFuncName) elem).getFuncNameId().getName();
+            }
+            if (name != null) {
+                if (!collapseRepeats || !name.equals(previous)) {
+                    sb.append("_");
+                    sb.append(name);
+                }
+                previous = name;
             }
             elem = elem.getParent();
         }
@@ -250,7 +262,11 @@ public class ClosureTranslator {
     }
 
     private String makeFuncName(FuncDef superClass) {
-        return superClass.getName() + makeNameSuffix();
+        String name = superClass.getName();
+        // LuaDispatchPreparation reads a semantic name back out of the implementation's name: what
+        // precedes the first underscore, or the whole name when it starts with one - suffix included.
+        // Dispatch aliases are built from that string, so such a name keeps the suffix it always had.
+        return name + makeNameSuffix(!name.startsWith("_"));
     }
 
     /**

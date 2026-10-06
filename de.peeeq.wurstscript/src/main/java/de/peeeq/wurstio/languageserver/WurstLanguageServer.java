@@ -1,10 +1,14 @@
 package de.peeeq.wurstio.languageserver;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import de.peeeq.wurstio.languageserver.requests.SemanticTokensRequest;
 import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.RemoteEndpoint;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.*;
 
 import java.io.FileDescriptor;
@@ -16,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,6 +34,12 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
     private final de.peeeq.wurstio.languageserver.LanguageWorker languageWorker;
     private LanguageClient languageClient;
     private RemoteEndpoint remoteEndpoint;
+    private boolean initialBuildStatusSupported;
+    private boolean workDoneProgressSupported;
+    private boolean initialBuildProgressActive;
+    private boolean initialized;
+    private volatile boolean stopped;
+    private static final String INITIAL_BUILD_TOKEN = "wurst/initialBuild";
 
     public WurstLanguageServer() {
         System.setErr(createFilteredErr());
@@ -44,9 +56,15 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
         }
         WLogger.info("initialize " + params.getRootUri());
         rootUri = WFile.create(params.getRootUri());
-        languageWorker.setRootPath(rootUri);
+        ClientCapabilities clientCapabilities = params.getCapabilities();
+        JsonElement experimental = new Gson().toJsonTree(clientCapabilities == null ? null : clientCapabilities.getExperimental());
+        initialBuildStatusSupported = experimental.isJsonObject()
+                && new JsonPrimitive(true).equals(experimental.getAsJsonObject().get("wurstInitialBuildStatus"));
+        workDoneProgressSupported = clientCapabilities != null && clientCapabilities.getWindow() != null
+                && Boolean.TRUE.equals(clientCapabilities.getWindow().getWorkDoneProgress());
 
         ServerCapabilities capabilities = new ServerCapabilities();
+        capabilities.setExperimental(Map.of("wurstInitialBuildStatus", initialBuildStatusSupported));
         capabilities.setCompletionProvider(new CompletionOptions(true, Collections.singletonList(".")));
         capabilities.setHoverProvider(true);
         capabilities.setDefinitionProvider(true);
@@ -90,6 +108,50 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
         InitializeResult res = new InitializeResult(capabilities);
         WLogger.info("initialization done: " + params.getRootUri());
         return CompletableFuture.completedFuture(res);
+    }
+
+    @Override
+    public synchronized void initialized(InitializedParams params) {
+        if (initialized || stopped || rootUri == null) return;
+        initialized = true;
+        languageWorker.setInitialBuildListener(success -> {
+            if (stopped) return;
+            if (initialBuildProgressActive) {
+                WorkDoneProgressEnd end = new WorkDoneProgressEnd();
+                end.setMessage(success ? "Workspace loaded" : "Workspace build failed; see compiler log");
+                languageClient.notifyProgress(new ProgressParams(Either.forLeft(INITIAL_BUILD_TOKEN), Either.forLeft(end)));
+            }
+            reportInitialBuildStatus(success ? "ready" : "failed");
+        });
+        reportInitialBuildStatus("loading");
+        if (!workDoneProgressSupported) {
+            languageWorker.setRootPath(rootUri);
+            return;
+        }
+        // This is a server-to-client request: it does not flush delayed document opens.
+        // A broken/rejecting progress UI must not prevent the workspace build.
+        languageClient.createProgress(new WorkDoneProgressCreateParams(Either.forLeft(INITIAL_BUILD_TOKEN)))
+                .orTimeout(5, TimeUnit.SECONDS).whenComplete((ignored, error) -> {
+                    if (stopped) return;
+                    if (error == null) {
+                        WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
+                        begin.setTitle("Loading WurstScript workspace");
+                        begin.setCancellable(false);
+                        languageClient.notifyProgress(new ProgressParams(Either.forLeft(INITIAL_BUILD_TOKEN), Either.forLeft(begin)));
+                        initialBuildProgressActive = true;
+                    } else {
+                        WLogger.warning("Initial workspace progress unavailable; continuing without progress UI.");
+                    }
+                    languageWorker.setRootPath(rootUri);
+                });
+    }
+
+    private void reportInitialBuildStatus(String state) {
+        if (initialBuildStatusSupported) {
+            // Standard work-done progress has no success/failure field. Keep readiness typed
+            // rather than making clients parse human-readable progress messages.
+            remoteEndpoint.notify("wurst/initialBuildStatus", Map.of("state", state));
+        }
     }
     private void setupLogger() {
         WLogger.setLogger("languageServer");
@@ -145,6 +207,7 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
     @Override
     public CompletableFuture<Object> shutdown() {
         WLogger.info("shutdown");
+        stopped = true;
         languageWorker.stop();
         return CompletableFuture.completedFuture("ok");
     }

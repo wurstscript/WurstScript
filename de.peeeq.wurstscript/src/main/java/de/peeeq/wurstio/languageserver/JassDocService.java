@@ -43,6 +43,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -104,6 +107,11 @@ public final class JassDocService {
     }
 
     private static final JassDocService INSTANCE = new JassDocService();
+    private static final ExecutorService BACKGROUND = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "JassDoc");
+        thread.setDaemon(true);
+        return thread;
+    });
     private static final Duration DEFAULT_LATEST_MAX_AGE = Duration.ofHours(24);
     private static final String RELEASES_LATEST_API = "https://api.github.com/repos/wurstscript/wurst-jassdoc-build/releases/latest";
     private static final String RELEASES_API = "https://api.github.com/repos/wurstscript/wurst-jassdoc-build/releases?per_page=20";
@@ -167,6 +175,15 @@ public final class JassDocService {
 
     public @Nullable String documentationForVariableQuick(NameDef n) {
         return documentationForQuick(n.getName(), SymbolKind.VARIABLE, n.getSource().getFile());
+    }
+
+    /** Waits for cold database initialization without occupying the language worker. */
+    public CompletableFuture<String> documentationForAsync(LookupKey key) {
+        if (testLookup == null && !isJassBuiltinSource(key.sourceFile())) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.supplyAsync(
+                () -> documentationFor(key.symbolName(), key.symbolKind(), key.sourceFile()), BACKGROUND);
     }
 
     public @Nullable String documentationFor(String symbolName, SymbolKind symbolKind, String sourceFile) {
@@ -277,7 +294,7 @@ public final class JassDocService {
         }
     }
 
-    private @Nullable String lookupFromDb(CachedDb db, LookupKey key) {
+    private synchronized @Nullable String lookupFromDb(CachedDb db, LookupKey key) {
         try {
             Connection conn = getSharedConnection(db.dbPath);
             String legacyDoc = lookupFromLegacyJassdocTables(conn, key);
@@ -356,15 +373,13 @@ public final class JassDocService {
         if (!initRequested.compareAndSet(false, true)) {
             return;
         }
-        Thread t = new Thread(() -> {
+        BACKGROUND.execute(() -> {
             try {
                 getOrInitDb();
             } finally {
                 initRequested.set(false);
             }
-        }, "JassDocInit");
-        t.setDaemon(true);
-        t.start();
+        });
     }
 
     private @Nullable String lookupFromLegacyJassdocTables(Connection conn, LookupKey key) throws SQLException {

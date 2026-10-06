@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -52,8 +53,13 @@ public class ModelManagerImpl implements ModelManager {
     // public ABI hash for each package
     private final Map<String, String> packageAbiHashes = new HashMap<>();
 
-    // file for each compilation unit
-    private final WeakHashMap<CompilationUnit, WFile> compilationunitFile = new WeakHashMap<>();
+    // file for each compilation unit; also read by lookups from other threads
+    private final Map<CompilationUnit, WFile> compilationunitFile = Collections.synchronizedMap(new WeakHashMap<>());
+
+    // Guards the compilation unit list of the model: the language worker adds, replaces, removes and purges
+    // units while other threads look them up (getCompilationUnit). Every change to that list is made here,
+    // under this lock, and the lock is held only around the list operations.
+    private final Object modelLock = new Object();
 
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
@@ -99,19 +105,19 @@ public class ModelManagerImpl implements ModelManager {
         WurstModel model2 = model;
         List<CompilationUnit> toRemove = new ArrayList<>();
         if (model2 != null) {
-            synchronized (model2) {
-                for (CompilationUnit compilationUnit : model2) {
-                    if (wFile(compilationUnit).equals(resource)) {
-                        toRemove.add(compilationUnit);
-                    }
+            for (CompilationUnit compilationUnit : model2) {
+                if (wFile(compilationUnit).equals(resource)) {
+                    toRemove.add(compilationUnit);
                 }
-                GlobalCaches.clearLookupCacheFor(toRemove);
-                toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
-                for (CompilationUnit cu : toRemove) {
-                    for (WPackage p : cu.getPackages()) {
-                        packageAbiHashes.remove(p.getName());
-                    }
+            }
+            GlobalCaches.clearLookupCacheFor(toRemove);
+            toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
+            for (CompilationUnit cu : toRemove) {
+                for (WPackage p : cu.getPackages()) {
+                    packageAbiHashes.remove(p.getName());
                 }
+            }
+            synchronized (modelLock) {
                 model2.removeAll(toRemove);
             }
         }
@@ -302,8 +308,8 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             return Collections.emptyList();
         }
-        synchronized (model2) {
-            List<CompilationUnit> list = new ArrayList<>();
+        List<CompilationUnit> list = new ArrayList<>();
+        synchronized (modelLock) {
             for (CompilationUnit cu : model2) {
                 if (fileNames.contains(wFile(cu))) {
                     list.add(cu);
@@ -487,27 +493,29 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             model = newModel(cu, gui);
         } else {
-            synchronized (model2) {
-                ListIterator<CompilationUnit> it = model2.listIterator();
-                boolean updated = false;
-                while (it.hasNext()) {
-                    CompilationUnit c = it.next();
-                    if (wFile(c).equals(wFile(cu))) {
-                        // get old provided packages:
-                        Set<String> oldPackages = providedPackages(c);
-                        Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
+            ListIterator<CompilationUnit> it = model2.listIterator();
+            boolean updated = false;
+            while (it.hasNext()) {
+                CompilationUnit c = it.next();
+                if (wFile(c).equals(wFile(cu))) {
+                    // get old provided packages:
+                    Set<String> oldPackages = providedPackages(c);
+                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
 
-                        GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
-                        clearCompilationUnits(mustUpdate);
-                        // replace old compilationunit with new one:
-                        it.set(cu);
-                        updated = true;
-                        break;
-                    }
-                }
-                if (!updated) {
-                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                    GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
                     clearCompilationUnits(mustUpdate);
+                    // replace old compilationunit with new one:
+                    synchronized (modelLock) {
+                        it.set(cu);
+                    }
+                    updated = true;
+                    break;
+                }
+            }
+            if (!updated) {
+                Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                clearCompilationUnits(mustUpdate);
+                synchronized (modelLock) {
                     model2.add(cu);
                 }
             }
@@ -767,6 +775,13 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public WurstModel getModel() {
         return model;
+    }
+
+    @Override
+    public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
+        synchronized (modelLock) {
+            model.removeIf(cu -> !keep.test(cu));
+        }
     }
 
     @Override

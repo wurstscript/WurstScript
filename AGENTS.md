@@ -129,7 +129,16 @@ This repository has multiple entry points that may trigger compilation/build beh
 * `WurstLanguageServer` wires LSP protocol handlers.
 * `LanguageWorker` serializes requests and file-change reconciliation.
 * `ModelManagerImpl` owns project model state (wurst files, dependencies, diagnostics).
+* Add, replace, remove or purge compilation units of the managed model only through `ModelManager` (`retainCompilationUnits` for purges), never by mutating `getModel()`: lookups from other threads rely on its `modelLock`. A copy from `ModelManager.copy` can be changed freely.
 * User actions like build/start/tests are implemented in `languageserver.requests.*`.
+
+### Initial workspace readiness
+
+* Start the worker only after `initialized`, after negotiating progress in `initialize`. When clients support `window.workDoneProgress`, create a server-initiated progress token, then emit begin/end around worker initialization and the initial full build. Rejected or timed-out progress creation must still start the build; shutdown must cancel pending startup.
+* Client and server opt into `experimental.wurstInitialBuildStatus: true`. Send `wurst/initialBuildStatus` with `{ state: "loading" | "ready" | "failed" }` only to clients that opted in. Standard work-done progress has no success/failure field, so clients must not parse its prose for readiness.
+* Completion means `ModelManager.buildProject()` returned, including projects with ordinary source diagnostics. Exceptions report failed. Legacy clients retain their queued `workspace/symbol` readiness barrier. Keep that request ordering intact.
+* Model-dependent requests, including formatting, must use `LanguageWorker.handle` so progress negotiation, initialization, and the initial build complete before model access. Formatting keeps duplicate requests because separate documents must each receive an answer.
+* Run `InitialBuildProgressTest` and `LanguageWorkerTest` for startup changes; the extension's opt-in `scripts/test-lsp-readiness.js <compiler.jar>` verifies the actual stdio protocol.
 
 ### Build-map pipeline (centralized)
 

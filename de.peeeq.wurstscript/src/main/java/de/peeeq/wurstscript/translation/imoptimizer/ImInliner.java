@@ -13,7 +13,6 @@ import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
 import org.eclipse.jdt.annotation.Nullable;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
@@ -34,12 +33,17 @@ public class ImInliner {
     private static final int LUA_LIVENESS_REFRESH_INLINE_SIZE = 256;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
-    private static final boolean LOG_INLINER = Boolean.getBoolean("wurst.inliner.log");
+    /** Read when the inliner is made, not once per JVM, so that a test can switch the decision log on. */
+    private final boolean logDecisions = Boolean.getBoolean("wurst.inliner.log");
     private final ImTranslator translator;
     private final ImProg prog;
     private final Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
     private final Map<ImFunction, Integer> callCounts = Maps.newLinkedHashMap();
     private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
+    /** What the decision log reports for a caller which is not tracked in {@link #funcSizes}; never read by a decision. */
+    private final Map<ImFunction, Integer> untrackedCallerSizes = Maps.newIdentityHashMap();
+    /** The numbers the decision log gives its callees; never read by a decision. */
+    private final Map<ImFunction, Integer> calleeIds = Maps.newIdentityHashMap();
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
     private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
     private final Map<ImFunction, LuaRegisterBudget> luaRegisterBudgets = Maps.newLinkedHashMap();
@@ -64,47 +68,6 @@ public class ImInliner {
         collectInlinableFunctions();
         rateInlinableFunctions();
         inlineFunctions();
-    }
-
-    /**
-     * Inlines exactly the given calls, under the same rules as {@link #doInlining}, and returns how
-     * many were inlined; {@code onInlined} receives each inlined call and the expression that
-     * replaced it. For calls a lowering exposed after the main round: a delegating method such as
-     * {@code op_index -> get}, once inlined into a loop, leaves the method call it delegates to
-     * inside that loop, where it can be lowered and inlined in turn. Restricting this round to
-     * those calls keeps it from re-inlining every function whose rating changed in the first round.
-     */
-    public int inlineCalls(Collection<ImFunctionCall> calls, BiConsumer<ImFunctionCall, Element> onInlined) {
-        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
-        collectInlinableFunctions();
-        rateInlinableFunctions();
-        int inlined = 0;
-        for (ImFunctionCall call : calls) {
-            Element parent = call.getParent();
-            ImFunction caller = call.getNearestFunc();
-            ImFunction called = call.getFunc();
-            if (parent == null || caller == null || caller == called || !shouldInline(caller, call, called)) {
-                continue;
-            }
-            int index = -1;
-            for (int i = 0; i < parent.size(); i++) {
-                if (parent.get(i) == call) {
-                    index = i;
-                    break;
-                }
-            }
-            if (index < 0) {
-                continue;
-            }
-            if (translator.isLuaTarget()) {
-                getLuaRegisterBudget(caller).recordInline(call, called);
-            }
-            inlineCall(caller, parent, index, call);
-            funcSizes.put(caller, estimateSize(caller));
-            onInlined.accept(call, parent.get(index));
-            inlined++;
-        }
-        return inlined;
     }
 
     /**
@@ -168,19 +131,34 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            boolean canInline = f != called && shouldInline(f, call, called);
-            if (LOG_INLINER) {
+            // a call to itself never runs the chain, as before
+            Refusal refusal = f == called ? Refusal.RECURSIVE : refusal(f, call, called);
+            boolean canInline = refusal == null;
+            if (logDecisions) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
                     " size=" + getFuncSize(called) + " rating=" + getRating(called) +
-                    (translator.isLuaTarget() && inlinableFunctions.contains(called)
-                        ? " projectedLuaRegisters=" + getLuaRegisterBudget(f).projectedPressure(call, called)
+                    // Only a budget the inlining has already built: asking for one here would build it from the
+                    // body as it is now, earlier than a build without the log does, and a substitution that
+                    // follows does not refresh it, so the log could change what is inlined.
+                    (translator.isLuaTarget() && inlinableFunctions.contains(called) && luaRegisterBudgets.containsKey(f)
+                        ? " projectedLuaRegisters=" + luaRegisterBudgets.get(f).projectedPressure(call, called)
                         : "") +
-                    (canInline ? "" : " reason=" + skipReason(f, call, called));
+                    (canInline ? "" : " reason=" + reasonText(refusal, f, call, called)) +
+                    " calleeId=" + calleeIdForLog(called) +
+                    " calls=" + getCallCount(called) + " args=" + call.getArguments().size() +
+                    " constArg=" + hasConstantArgument(call) + " loopDepth=" + loopDepth(call) +
+                    " callerSize=" + callerSizeForLog(f);
                 WLogger.info(msg);
                 System.out.println(msg);
             }
             if (canInline) {
                 if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
+                    if (translator.isLuaTarget() && canSubstitute(call, called)) {
+                        inlineBySubstitution(parent, parentI, call);
+                        changed[0] = true;
+                        funcSizes.put(f, estimateSize(f));
+                        return called;
+                    }
                     if (translator.isLuaTarget()) {
                         getLuaRegisterBudget(f).recordInline(call, called);
                     }
@@ -215,41 +193,58 @@ public class ImInliner {
         return null;
     }
 
-    private String skipReason(ImFunction caller, ImFunctionCall call, ImFunction f) {
-        if (f.isNative()) {
-            return "native";
-        }
-        if (call.getCallType() == CallType.EXECUTE) {
-            return "execute_call";
-        }
-        if (translator.isLuaTarget() && containsFuncRef(f)) {
-            return "lua_callback_funcref_barrier";
-        }
-        if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
-            return "local_player_context_barrier";
-        }
-        if (!inlinableFunctions.contains(f)) {
-            return "not_in_inlinable_set";
-        }
-        if (isRecursive(f)) {
-            return "recursive";
-        }
-        double threshold = inlineTreshold;
+    private static boolean hasConstantArgument(ImFunctionCall call) {
         for (ImExpr arg : call.getArguments()) {
             if (arg instanceof ImConst) {
-                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
-                break;
+                return true;
             }
         }
-        double rating = getRating(f);
-        if (rating >= threshold) {
-            return "rating_too_high(" + rating + ">=" + threshold + ")";
+        return false;
+    }
+
+    private static boolean hasAnnotation(ImFunction f, String annotation) {
+        for (FunctionFlag flag : f.getFlags()) {
+            if (flag instanceof FunctionFlagAnnotation
+                && ((FunctionFlagAnnotation) flag).getAnnotation().equals(annotation)) {
+                return true;
+            }
         }
-        if (translator.isLuaTarget() && !getLuaRegisterBudget(caller).fits(call, f)) {
-            return "lua_register_budget(" + getLuaRegisterBudget(caller).projectedPressure(call, f)
-                + ">" + LUA_INLINE_REGISTER_BUDGET + ")";
+        return false;
+    }
+
+    /**
+     * A number for a function, in the order the log first meets it. Unlike an identity hash code it is
+     * never shared by two functions, which is the point of logging it: names are not unique.
+     */
+    private int calleeIdForLog(ImFunction f) {
+        Integer id = calleeIds.get(f);
+        if (id == null) {
+            id = calleeIds.size();
+            calleeIds.put(f, id);
         }
-        return "unknown";
+        return id;
+    }
+
+    /**
+     * The calling function's size for the decision log. Sizes are tracked for the inline candidates
+     * only, so a caller which is none (the global initialiser, a vararg function, a package
+     * initialiser) is measured when asked, until its first inlining starts tracking it.
+     */
+    private int callerSizeForLog(ImFunction f) {
+        Integer tracked = funcSizes.get(f);
+        // measured once, not per decision: a caller with many refused calls would otherwise be rescanned for each
+        return tracked != null ? tracked : untrackedCallerSizes.computeIfAbsent(f, this::estimateSize);
+    }
+
+    /** How many loops of the calling function enclose the call; only the decision log asks. */
+    private static int loopDepth(ImFunctionCall call) {
+        int depth = 0;
+        for (Element e = call.getParent(); e != null && !(e instanceof ImFunction); e = e.getParent()) {
+            if (e instanceof ImLoop || e instanceof ImVarargLoop) {
+                depth++;
+            }
+        }
+        return depth;
     }
 
     private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
@@ -358,6 +353,250 @@ public class ImInliner {
         }
         parent.set(parentI, newExpr);
 
+    }
+
+    /**
+     * A callee whose whole body is one return of an effect-free expression, or one store of one: a
+     * getter or a setter. A call of it is expanded by putting each argument where its parameter is
+     * read, which declares no local and leaves nothing for a later pass to clean up.
+     */
+    private static final class Substitutable {
+        private final ImStmt statement;
+        private final boolean isStore;
+        private final int[] uses;
+        /** The reads of the parameters in the order the body evaluates them. */
+        private final List<ParameterUse> order = new ArrayList<>();
+
+        private Substitutable(ImStmt statement, boolean isStore, int parameterCount) {
+            this.statement = statement;
+            this.isStore = isStore;
+            this.uses = new int[parameterCount];
+        }
+    }
+
+    /**
+     * One read of a parameter. {@code conditional}: it sits where an {@code and}/{@code or} may not
+     * evaluate it. {@code stateReadBefore}: the body has already read a variable, field or array
+     * element by then, which an argument that writes could have changed.
+     */
+    private record ParameterUse(int parameter, boolean conditional, boolean stateReadBefore) {
+    }
+
+    private final Map<ImFunction, Substitutable> substitutables = Maps.newLinkedHashMap();
+
+    private Substitutable substitutable(ImFunction f) {
+        if (!substitutables.containsKey(f)) {
+            substitutables.put(f, analyseSubstitutable(f));
+        }
+        return substitutables.get(f);
+    }
+
+    private Substitutable analyseSubstitutable(ImFunction f) {
+        if (!f.getLocals().isEmpty() || f.getBody().size() != 1 || f.getReturnType() instanceof ImTupleType) {
+            return null;
+        }
+        for (ImVar parameter : f.getParameters()) {
+            if (parameter.getType() instanceof ImTupleType) {
+                return null;
+            }
+        }
+        ImStmt statement = f.getBody().get(0);
+        Substitutable result;
+        if (statement instanceof ImReturn ret && ret.getReturnValue() instanceof ImExpr value
+            && isEffectFree(value)) {
+            result = new Substitutable(statement, false, f.getParameters().size());
+            collectParameterUses(value, f.getParameters(), result, false, new boolean[1]);
+        } else if (statement instanceof ImSet set && isStoreTarget(set.getLeft())
+            && isEffectFree(set.getLeft()) && isEffectFree(set.getRight())) {
+            result = new Substitutable(statement, true, f.getParameters().size());
+            collectParameterUses(set, f.getParameters(), result, false, new boolean[1]);
+        } else {
+            return null;
+        }
+        return result;
+    }
+
+    private static boolean isStoreTarget(ImLExpr target) {
+        return target instanceof ImVarArrayAccess
+            || target instanceof ImMemberAccess
+            || (target instanceof ImVarAccess access && access.getVar().isGlobal());
+    }
+
+    /**
+     * Whether evaluating {@code e} changes nothing: constants and reads, with no allocation, statement
+     * or call inside other than a call of a native which only reads, and no division that may abort or cast that numbers a handle.
+     * Such an expression may be evaluated later, or not at all.
+     */
+    private boolean isEffectFree(Element e) {
+        if (e instanceof ImFunctionCall call) {
+            ImFunction target = call.getFunc();
+            if (!target.isNative() || localPlayerContextAnalyzer.isLocalPlayerSource(target)
+                || !(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(target.getName())
+                    || translator.isLuaKeyedMapRead(target))) {
+                return false;
+            }
+        } else if (e instanceof ImExpr) {
+            boolean allowed = e instanceof ImConst
+                ? !(e instanceof ImFuncRef)
+                : e instanceof ImVarAccess || e instanceof ImVarArrayAccess || e instanceof ImMemberAccess
+                    || e instanceof ImTupleSelection || (e instanceof ImOperatorCall op && !mayAbort(op))
+                    || (e instanceof ImCast cast && !numbersItsOperand(cast)) || e instanceof ImInstanceof
+                    || e instanceof ImTypeIdOfObj || e instanceof ImTypeIdOfClass;
+            if (!allowed) {
+                return false;
+            }
+        } else if (e instanceof ImStmt) {
+            return false;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (!isEffectFree(e.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * A cast to int which the Lua backend implements by numbering a handle or string on first sight.
+     * Later numbers depend on it, so it must not be dropped as unused. Instance ids and old generics
+     * convert without state.
+     */
+    private static boolean numbersItsOperand(ImCast cast) {
+        ImType from = cast.getExpr().attrTyp();
+        return TypesHelper.isIntType(cast.getToType())
+            && !(from instanceof ImClassType) && !(from instanceof ImAnyType);
+    }
+
+    /**
+     * An integer division or remainder whose divisor is not a non-zero literal: evaluating it may
+     * abort, on purpose in {@code I2S(1 div 0)}, so it must not be dropped as unused.
+     */
+    private static boolean mayAbort(ImOperatorCall op) {
+        de.peeeq.wurstscript.WurstOperator o = op.getOp();
+        if ((o == de.peeeq.wurstscript.WurstOperator.DIV_INT || o == de.peeeq.wurstscript.WurstOperator.MOD_INT
+            || o == de.peeeq.wurstscript.WurstOperator.JASS_MOD_INT) && op.getArguments().size() >= 2) {
+            return !(op.getArguments().get(1) instanceof ImIntVal divisor) || divisor.getValI() == 0;
+        }
+        return false;
+    }
+
+    /** Records the reads of the parameters under {@code e}, children before the node that reads them. */
+    private static void collectParameterUses(Element e, ImVars parameters, Substitutable result,
+                                             boolean conditional, boolean[] stateRead) {
+        if (e instanceof ImOperatorCall op
+            && (op.getOp() == de.peeeq.wurstscript.WurstOperator.AND || op.getOp() == de.peeeq.wurstscript.WurstOperator.OR)) {
+            for (int i = 0; i < op.getArguments().size(); i++) {
+                collectParameterUses(op.getArguments().get(i), parameters, result, conditional || i > 0, stateRead);
+            }
+            return;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            collectParameterUses(e.get(i), parameters, result, conditional, stateRead);
+        }
+        if (e instanceof ImVarAccess access) {
+            int parameter = parameters.indexOf(access.getVar());
+            if (parameter >= 0) {
+                result.uses[parameter]++;
+                result.order.add(new ParameterUse(parameter, conditional, stateRead[0]));
+            } else if (access.getVar().isGlobal()) {
+                stateRead[0] = true;
+            }
+        } else if (e instanceof ImVarArrayAccess || e instanceof ImMemberAccess || e instanceof ImFunctionCall) {
+            // a native which only reads still reads state
+            stateRead[0] = true;
+        }
+    }
+
+    /**
+     * Whether the call can be expanded by substitution without changing what it computes. An argument
+     * is evaluated exactly once, before the body reads anything, so it may move to its parameter only
+     * where that stays true: an argument that changes state (a call) must be read once, unconditionally,
+     * in argument order, before the body reads any state it could change; an effect-free argument may
+     * be dropped when unused, and repeated when it is a constant or a variable.
+     */
+    private boolean canSubstitute(ImFunctionCall call, ImFunction f) {
+        Substitutable shape = substitutable(f);
+        ImExprs args = call.getArguments();
+        if (shape == null || args.size() != shape.uses.length) {
+            return false;
+        }
+        boolean[] changesState = new boolean[args.size()];
+        boolean anyChangesState = false;
+        for (int i = 0; i < args.size(); i++) {
+            ImExpr arg = args.get(i);
+            if (arg.attrTyp() instanceof ImTupleType) {
+                return false;
+            }
+            changesState[i] = !isEffectFree(arg);
+            anyChangesState |= changesState[i];
+        }
+        if (anyChangesState && shape.isStore) {
+            return false;
+        }
+        for (int i = 0; i < args.size(); i++) {
+            if (anyChangesState) {
+                if (shape.uses[i] != 1) {
+                    return false;
+                }
+            } else if (shape.uses[i] > 1 && !(args.get(i) instanceof ImConst || args.get(i) instanceof ImVarAccess)) {
+                return false;
+            }
+        }
+        if (anyChangesState) {
+            int previous = -1;
+            for (ParameterUse use : shape.order) {
+                if (use.conditional() || use.parameter() < previous
+                    || (changesState[use.parameter()] && use.stateReadBefore())) {
+                    return false;
+                }
+                previous = use.parameter();
+            }
+        }
+        return true;
+    }
+
+    private void inlineBySubstitution(Element parent, int parentI, ImFunctionCall call) {
+        ImFunction called = call.getFunc();
+        Substitutable shape = substitutable(called);
+        List<ImExpr> args = call.getArguments().removeAll();
+        ImExpr expanded;
+        if (shape.isStore) {
+            ImSet store = (ImSet) shape.statement.copy();
+            substituteArguments(store, called.getParameters(), args);
+            expanded = ImHelper.statementExprVoid(ImStmts(store));
+        } else {
+            ImExpr value = (ImExpr) ((ImReturn) shape.statement).getReturnValue().copy();
+            expanded = (ImExpr) substituteArguments(value, called.getParameters(), args);
+        }
+        parent.set(parentI, expanded);
+    }
+
+    /** Puts each argument in place of the reads of its parameter under {@code root}; returns the new root. */
+    private static Element substituteArguments(Element root, ImVars parameters, List<ImExpr> args) {
+        List<ImVarAccess> reads = new ArrayList<>();
+        root.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess access) {
+                super.visit(access);
+                if (parameters.contains(access.getVar())) {
+                    reads.add(access);
+                }
+            }
+        });
+        boolean[] placed = new boolean[args.size()];
+        Element result = root;
+        for (ImVarAccess read : reads) {
+            int parameter = parameters.indexOf(read.getVar());
+            ImExpr arg = args.get(parameter);
+            ImExpr replacement = placed[parameter] ? arg.copy() : arg;
+            placed[parameter] = true;
+            if (read == root) {
+                result = replacement;
+            } else {
+                read.replaceBy(replacement);
+            }
+        }
+        return result;
     }
 
     /**
@@ -564,49 +803,99 @@ public class ImInliner {
         }
     }
 
-    private boolean shouldInline(ImFunction caller, ImFunctionCall call, ImFunction f) {
-        if (f.isNative() || call.getCallType() == CallType.EXECUTE) {
-            return false;
+    /** Why a call is not inlined, in the order the checks are made. The log reads the same answer the decision does. */
+    private enum Refusal {
+        NATIVE("native"),
+        EXECUTE_CALL("execute_call"),
+        /** -incremental keeps every package's code independent of the others, so calls never cross a package. */
+        INCREMENTAL_PACKAGE_BOUNDARY("incremental_package_boundary"),
+        LUA_CALLBACK_FUNCREF_BARRIER("lua_callback_funcref_barrier"),
+        LOCAL_PLAYER_CONTEXT_BARRIER("local_player_context_barrier"),
+        LUA_TYPECASTING_COMPAT("lua_typecasting_compat"),
+        NOT_IN_INLINABLE_SET("not_in_inlinable_set"),
+        /** getRating answers Double.MAX_VALUE for these two, which would read as a body that is too big. */
+        DONT_INLINE_NAME("dont_inline_name"),
+        NOINLINE_ANNOTATION("noinline_annotation"),
+        RATING_TOO_HIGH("rating_too_high"),
+        RECURSIVE("recursive"),
+        LUA_REGISTER_BUDGET("lua_register_budget");
+
+        private final String label;
+
+        Refusal(String label) {
+            this.label = label;
+        }
+    }
+
+    private double inlineThreshold(ImFunctionCall call) {
+        return hasConstantArgument(call) ? inlineTreshold * THRESHOLD_MODIFIER_CONSTANT_ARG : inlineTreshold;
+    }
+
+    /** The first reason the call must stay a call, or null when it may be inlined. */
+    private Refusal refusal(ImFunction caller, ImFunctionCall call, ImFunction f) {
+        if (f.isNative()) {
+            return Refusal.NATIVE;
+        }
+        if (call.getCallType() == CallType.EXECUTE) {
+            return Refusal.EXECUTE_CALL;
         }
         if (translator.isIncremental()) {
             de.peeeq.wurstscript.ast.WPackage callerPkg = getPackage(caller);
             de.peeeq.wurstscript.ast.WPackage calledPkg = getPackage(f);
             if (callerPkg != calledPkg) {
-                return false;
+                return Refusal.INCREMENTAL_PACKAGE_BOUNDARY;
             }
         }
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             // Functions that build callback refs are lowered with Lua-specific wrappers/xpcall.
             // Keeping them as standalone calls avoids callback context/vararg scope breakage.
-            return false;
+            return Refusal.LUA_CALLBACK_FUNCREF_BARRIER;
         }
         if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
             // Keep the call boundary around GetLocalPlayer-dependent code.
             // Inlining is normally context-preserving, but future local
             // rewrites must not gain an opportunity to move its body.
-            return false;
+            return Refusal.LOCAL_PLAYER_CONTEXT_BARRIER;
         }
         if (isLuaTypeCastingCompatFunction(f)) {
             // In Lua these compat wrappers are rewritten to object index helpers.
             // If they are inlined beforehand, old TypeCasting bodies leak through.
-            return false;
+            return Refusal.LUA_TYPECASTING_COMPAT;
         }
-
-        double threshold = inlineTreshold;
-        for (ImExpr arg : call.getArguments()) {
-            if (arg instanceof ImConst) {
-                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
-                break;
+        if (!inlinableFunctions.contains(f)) {
+            return Refusal.NOT_IN_INLINABLE_SET;
+        }
+        if (getRating(f) >= inlineThreshold(call)) {
+            if (dontInline.contains(f.getName())) {
+                return Refusal.DONT_INLINE_NAME;
             }
+            if (hasAnnotation(f, NOINLINE)) {
+                return Refusal.NOINLINE_ANNOTATION;
+            }
+            return Refusal.RATING_TOO_HIGH;
         }
-//		WLogger.info("Should I inline function " + f.getName() + "?");
-//		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
-//		WLogger.info("	rating: " + getRating(f));
-        return inlinableFunctions.contains(f)
-                && getRating(f) < threshold
-                && !isRecursive(f)
-                && (!translator.isLuaTarget()
-                    || getLuaRegisterBudget(caller).fits(call, f));
+        if (isRecursive(f)) {
+            return Refusal.RECURSIVE;
+        }
+        // a substituted body declares no local, so it cannot cross the register budget
+        if (translator.isLuaTarget() && !canSubstitute(call, f) && !getLuaRegisterBudget(caller).fits(call, f)) {
+            return Refusal.LUA_REGISTER_BUDGET;
+        }
+        return null;
+    }
+
+    /** The refusal as the decision log writes it, with the numbers the two size checks compared. */
+    private String reasonText(Refusal refusal, ImFunction caller, ImFunctionCall call, ImFunction f) {
+        switch (refusal) {
+            case RATING_TOO_HIGH:
+                return refusal.label + "(" + getRating(f) + ">=" + inlineThreshold(call) + ")";
+            case LUA_REGISTER_BUDGET:
+                // the budget exists: it was just asked whether the call fits
+                return refusal.label + "(" + getLuaRegisterBudget(caller).projectedPressure(call, f)
+                    + ">" + LUA_INLINE_REGISTER_BUDGET + ")";
+            default:
+                return refusal.label;
+        }
     }
 
     private boolean isLuaDivModHelper(ImFunction function) {

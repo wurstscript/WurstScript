@@ -1,6 +1,36 @@
 ## 1.9 (in progress)
 
+- On Lua, joining two strings no longer checks for nil an operand which cannot be nil. Every `a + b` on
+  strings went through a helper that checks both sides, which `-inline` then expanded into a nest of
+  comparisons at each use. A literal and the result of `I2S` are always strings, so with both
+  known the join is the `..` operator, and with one known only the other side is guarded, as `x or ""`. Two
+  operands which may both be nil still use the helper. A nil on either side still reads as nothing.
+
+- A closure is named after the call it is passed to once, however many levels of that call enclose it. A
+  closure passed to `doAfter(..)` inside a closure passed to `doAfter(..)` inside another used to get
+  `doAfter` three times in its class name, and the Lua function implementing it repeated the whole name a
+  second time, so the script held identifiers such as
+  `Callback_doAfter_doAfter_doAfter_Pkg_call_doAfter_doAfter_doAfter_Pkg`. A name which directly repeats the
+  one before it is now left out, which gives `Callback_doAfter_Pkg`, and on Lua the function is named after its
+  class and the method alone: `Callback_doAfter_Pkg_call`. Closures which end up with the same name are told
+  apart by a number, as closures in the same function already were, on Jass and on Lua. Dispatch is
+  unaffected. Only the names change, and type ids with them, since those are numbered in name order,
+  as they already change when a class is added or renamed.
+
 - Code completion no longer suggests code while writing documentation, block, or line comments.
+
+- On Lua, class tables bind only the dispatch slots a call site reads. Every method used to be bound under the
+  names of its overrides, of the closures sharing its interface and of its class-prefixed forms, so a family of
+  closures cost one table write per sibling in every member: quadratic in the size of the family, and 36,000 of
+  the 38,000 bindings in a large map were never read. The unread ones are no longer emitted, which takes about
+  40% off that map's script. Dispatch itself is unchanged.
+
+- On Lua, `-inline` now expands one-line getters and setters at every call site, whatever the number of
+  callers and wherever the call is. Method calls with a single implementation used to reach the inliner only
+  inside loops, so `list.size()` outside a loop stayed a call however small it was. A getter or setter is also
+  expanded in functions too large for the inliner's register budget, since it declares no local, and
+  `KeyedMap` reads are written as the table index (`t[k] or 0`) instead of calling a helper, so an unused
+  read is dropped.
 
 - Added type class bounds for `T:` generics. A bound requires operations of the type it is bound to, so a
   generic can do more than store and return values, without giving up static dispatch:
