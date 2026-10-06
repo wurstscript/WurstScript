@@ -295,6 +295,131 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDroppedSlot("other", "gone", Set.of("gone"), false);
     }
 
+    private static LuaExpr v(String name) {
+        return LuaAst.LuaExprVarAccess(LuaAst.LuaVariable(name, LuaAst.LuaNoExpr()));
+    }
+
+    private static LuaExpr plus(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpPlus(), r);
+    }
+
+    private static LuaExpr minus(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpMinus(), r);
+    }
+
+    private static LuaExpr mult(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpMult(), r);
+    }
+
+    private static LuaExpr div(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpDiv(), r);
+    }
+
+    private static LuaExpr floorDiv(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpFloorDiv(), r);
+    }
+
+    private static LuaExpr mod(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpMod(), r);
+    }
+
+    private static LuaExpr and(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpAnd(), r);
+    }
+
+    private static LuaExpr or(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpOr(), r);
+    }
+
+    private static LuaExpr concat(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpConcatString(), r);
+    }
+
+    private static LuaExpr less(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpLess(), r);
+    }
+
+    private static LuaExpr equal(LuaExpr l, LuaExpr r) {
+        return LuaAst.LuaExprBinary(l, LuaAst.LuaOpEquals(), r);
+    }
+
+    /**
+     * A left-nested chain of operators of one precedence level is one flat expression: Lua reads
+     * {@code a - b - c} as {@code (a - b) - c}. luac nests a parser level per parenthesis and stops
+     * at 200, so a chain printed with one pair per operator could not be loaded.
+     */
+    @Test
+    public void leftNestedChainsOfOneLevelPrintFlat() {
+        assertEquals("(a - b - c)", renderLuaExpr(minus(minus(v("a"), v("b")), v("c"))));
+        assertEquals("(a - b + c - d)",
+            renderLuaExpr(minus(plus(minus(v("a"), v("b")), v("c")), v("d"))));
+        assertEquals("(a * b / c // d % e)",
+            renderLuaExpr(mod(floorDiv(div(mult(v("a"), v("b")), v("c")), v("d")), v("e"))));
+        assertEquals("(a and b and c)", renderLuaExpr(and(and(v("a"), v("b")), v("c"))));
+        assertEquals("(a or b or c)", renderLuaExpr(or(or(v("a"), v("b")), v("c"))));
+    }
+
+    /** {@code a - (b - c)} is not {@code a - b - c}: a right operand always keeps its parentheses. */
+    @Test
+    public void rightOperandsKeepTheirParentheses() {
+        assertEquals("(a - (b - c))", renderLuaExpr(minus(v("a"), minus(v("b"), v("c")))));
+        assertEquals("(a + (b + c))", renderLuaExpr(plus(v("a"), plus(v("b"), v("c")))));
+        assertEquals("(a / (b / c))", renderLuaExpr(div(v("a"), div(v("b"), v("c")))));
+        assertEquals("(a and (b and c))", renderLuaExpr(and(v("a"), and(v("b"), v("c")))));
+        // a chain on the right is flat inside its own parentheses, and the left one is flat too
+        assertEquals("(a - b - (c - d - a))", renderLuaExpr(
+            minus(minus(v("a"), v("b")), minus(minus(v("c"), v("d")), v("a")))));
+    }
+
+    /** Only operators of the same level share a chain: {@code (a + b) * c} is not {@code a + b * c}. */
+    @Test
+    public void otherLevelsKeepTheirParentheses() {
+        assertEquals("((a + b) * c)", renderLuaExpr(mult(plus(v("a"), v("b")), v("c"))));
+        assertEquals("(a * (b + c))", renderLuaExpr(mult(v("a"), plus(v("b"), v("c")))));
+        assertEquals("((a * b) + c)", renderLuaExpr(plus(mult(v("a"), v("b")), v("c"))));
+        assertEquals("((a and b) or c)", renderLuaExpr(or(and(v("a"), v("b")), v("c"))));
+        assertEquals("((a or b) and c)", renderLuaExpr(and(or(v("a"), v("b")), v("c"))));
+        // the left operand of the outer operator is itself a chain
+        assertEquals("((a + b + c) * a)",
+            renderLuaExpr(mult(plus(plus(v("a"), v("b")), v("c")), v("a"))));
+        // the innermost operator of a chain may have a different level on its left
+        assertEquals("((a * b) + c + a)",
+            renderLuaExpr(plus(plus(mult(v("a"), v("b")), v("c")), v("a"))));
+    }
+
+    /**
+     * {@code ..} is right associative, so {@code (a .. b) .. c} is not {@code a .. b .. c}; a chain
+     * of comparisons reads as a range check but compares a boolean; unary operators print their
+     * operand in parentheses. None of them joins a chain.
+     */
+    @Test
+    public void concatenationComparisonsAndUnaryOperatorsKeepTheirParentheses() {
+        assertEquals("((a .. b) .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
+        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
+        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+        assertEquals("((a < b) == c)", renderLuaExpr(equal(less(v("a"), v("b")), v("c"))));
+        assertEquals("((a == b) == c)", renderLuaExpr(equal(equal(v("a"), v("b")), v("c"))));
+        assertEquals("(-(a) - b)", renderLuaExpr(
+            minus(LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(), v("a")), v("b"))));
+        assertEquals("(not((a - b)) and c)", renderLuaExpr(
+            and(LuaAst.LuaExprUnary(LuaAst.LuaOpNot(), minus(v("a"), v("b"))), v("c"))));
+    }
+
+    /** The chain is walked, not recursed into: its length costs no stack and no nesting. */
+    @Test
+    public void aVeryLongChainPrintsFlatWithoutRecursion() {
+        int terms = 50_000;
+        LuaExpr chain = v("t0");
+        for (int i = 1; i < terms; i++) {
+            chain = plus(chain, v("t" + i));
+        }
+        String rendered = renderLuaExpr(chain);
+        assertEquals(1, rendered.chars().filter(ch -> ch == '(').count());
+        assertEquals(terms - 1, rendered.chars().filter(ch -> ch == '+').count());
+        assertTrue(rendered.startsWith("(t0 + t1 + t2 + "));
+        assertTrue(rendered.endsWith(" + t" + (terms - 1) + ")"));
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
