@@ -88,6 +88,12 @@ public abstract class MapRequest extends UserRequest<Object> {
      */
     protected SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
 
+    /**
+     * Whether compiling first cleans and rebuilds the project model. That discards state from the editor,
+     * which a CLI build does not have: it has built the model itself immediately before.
+     */
+    protected boolean rebuildModelBeforeCompile = true;
+
     public TimeTaker getTimeTaker() {
         return timeTaker;
     }
@@ -380,7 +386,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             WLogger.debug("dep: " + dep.getPath());
         }
         print("Dependencies done.");
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && rebuildModelBeforeCompile) {
             // it is safer to rebuild the project, instead of taking the current editor state
             gui.sendProgress("Cleaning project");
             modelManager.clean();
