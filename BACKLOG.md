@@ -18,7 +18,20 @@ Notes; finished-work narrative does not.
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
   requirements, and regression cases; the data structure itself is not implemented.
 
+- **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
+  recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
+  were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
+  hand-written Lua would be, list every compiler-introduced call, allocation or table write on an
+  ordinary path, and fix the root (AGENTS.md §3, §7).
+
 ## Blocked on a decision
+
+- **Is the generated AST the right shape for the passes?** Generated nodes are single-parent mutable
+  trees: a node that already has a parent cannot be placed elsewhere (`setParent` throws), so the passes
+  copy (`.copy()`) and splice (`replaceBy`) throughout, and attribute caches are cleared by hand
+  (`clearAttributes`). Whether an immutable or persistent IM, or a different rewrite API in
+  abstractsyntaxgen, would make passes simpler or faster has no recorded evaluation. A proposal needs a
+  baseline (compile time on a large map) and one pass ported as a trial. Do not start it autonomously.
 
 - **Replacing `castTo int` in the old generic containers.** The motivating case is timer data
   attachment (`ClosureTimers.wurst`) and the containers behind it: `Table`, `HashList`, `HashSet`,
@@ -34,8 +47,7 @@ Notes; finished-work narrative does not.
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`. `div` and `mod`
   return the left operand's type, so `real r = 7 div 2` compiles and is meant to
   (`ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal`).
-- Emitted Lua must be byte-identical for identical input (AGENTS.md §8), and emitted Jass can be
-  diffed across runs too. `LuaTranslationTests.luaOutputIsDeterministicForGenericOverrideSlots`
+- Emitted Jass and Lua must be byte-identical for identical input (AGENTS.md §3). `LuaTranslationTests.luaOutputIsDeterministicForGenericOverrideSlots`
   failed once on Windows CI and never again in 250 local compiles; the test now writes both scripts
   and names the first differing lines, so the next occurrence will say what differed. Do not weaken it.
 - A name that looks redundant is usually carrying a distinction. The mangled method name separates

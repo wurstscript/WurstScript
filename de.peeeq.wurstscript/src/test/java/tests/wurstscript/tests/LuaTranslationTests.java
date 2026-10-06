@@ -505,6 +505,119 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse(compiled.contains("debug.traceback"));
     }
 
+    /**
+     * The game's Lua is not the test runtime's Lua. The tests run a stock Lua with every library, while
+     * the game is reported to withhold debug and collectgarbage, and nothing in emitted code needs io, os,
+     * package or require, which are not known to exist there. A test which executes the emitted script
+     * cannot notice a helper that reaches for one, so assert it on the text instead, over a program that
+     * makes the backend emit its helpers: object management, dispatch, callback boundaries, the error
+     * handler and stack positions. Helpers emitted only on demand are out of this program's reach:
+     * {@link #noLuaBackendLiteralNamesALibraryTheGameWithholds} scans for those. See docs/WC3_RUNTIME.md.
+     */
+    @Test
+    public void emittedLuaUsesOnlyLibrariesTheGameProvides() {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "public function error(string msg)",
+            "    skip"));
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_emittedLuaUsesOnlyLibrariesTheGameProvides",
+            false,
+            Collections.singletonList(errorHandling),
+            "package Test",
+            "import ErrorHandling",
+            "native apply(code c)",
+            "native I2S(int i) returns string",
+            "interface Shape",
+            "    function area() returns int",
+            "class Square implements Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "    ondestroy",
+            "        skip",
+            "function describe(Shape s, string label) returns string",
+            "    return label + \": \" + I2S(s.area())",
+            "init",
+            "    let s = new Square(3)",
+            "    apply(() -> error(\"callback\"))",
+            "    error(describe(s, \"init\"))",
+            "    destroy s"
+        );
+        String withheld = firstWithheldLibraryUse(compiled);
+        if (withheld != null) {
+            fail("emitted Lua uses `" + withheld + "`, which the game does not provide:\n" + compiled);
+        }
+    }
+
+    /**
+     * Everything the backend emits starts as a string literal under translation/, whether or not a program
+     * makes it emit: a native only when it is referenced, an old-generics cast helper only when a cast cannot
+     * be written inline. The output of any one program, or of the whole suite, cannot show that no helper
+     * reaches for a library the game withholds, so scan the literals themselves.
+     */
+    @Test
+    public void noLuaBackendLiteralNamesALibraryTheGameWithholds() throws IOException {
+        Pattern literal = Pattern.compile("\"((?:[^\"\\\\]|\\\\.)*)\"");
+        Pattern bareName = Pattern.compile("os|io|debug|package|require|collectgarbage|dofile|loadfile");
+        // lists of names to protect or avoid, not emitted code
+        Set<String> nameLists = Set.of("LuaReservedNames.java", "RestrictedCompressedNames.java");
+        // The shim which ends a test run. A map never declares testSuccess, so it is not emitted into one.
+        // Exempt only the os.exit() inside the testSuccess registration, not any other literal in the file.
+        String testOnlyFile = "LuaNatives.java";
+        String testOnlyRegistration = "addNative(\"testSuccess\"";
+        String testOnlyText = "os.exit()";
+        List<String> found = new ArrayList<>();
+        try (java.util.stream.Stream<java.nio.file.Path> walk =
+                 java.nio.file.Files.walk(java.nio.file.Paths.get("src/main/java/de/peeeq/wurstscript/translation"))) {
+            List<java.nio.file.Path> sources = walk.filter(p -> p.toString().endsWith(".java"))
+                .sorted().collect(Collectors.toList());
+            for (java.nio.file.Path source : sources) {
+                String fileName = source.getFileName().toString();
+                if (nameLists.contains(fileName)) {
+                    continue;
+                }
+                List<String> lines = java.nio.file.Files.readAllLines(source);
+                String registration = ""; // the addNative(...) line whose body is being read
+                for (int i = 0; i < lines.size(); i++) {
+                    if (lines.get(i).contains("addNative(")) {
+                        registration = lines.get(i);
+                    }
+                    String trimmed = lines.get(i).trim();
+                    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
+                        continue;
+                    }
+                    Matcher quoted = literal.matcher(lines.get(i));
+                    while (quoted.find()) {
+                        String text = quoted.group(1);
+                        boolean withheld = bareName.matcher(text).matches() || firstWithheldLibraryUse(text) != null;
+                        boolean testOnly = fileName.equals(testOnlyFile) && text.equals(testOnlyText)
+                            && registration.contains(testOnlyRegistration);
+                        if (withheld && !testOnly) {
+                            found.add(source.getFileName() + ":" + (i + 1) + ": \"" + text + "\"");
+                        }
+                    }
+                }
+            }
+        }
+        assertTrue("the Lua backend names a library or function the game does not provide. If it only exists "
+            + "for tests, exempt it in this test:\n" + String.join("\n", found), found.isEmpty());
+    }
+
+    /**
+     * The first use of a library or function the game withholds in {@code lua}, or null. Any occurrence
+     * counts, inside a Lua string or comment too: a string can be run with {@code load}, so skipping strings
+     * would let a use through unseen, while a false alarm is loud and cheap to exempt in the caller.
+     */
+    private static String firstWithheldLibraryUse(String lua) {
+        Matcher withheld = Pattern.compile(
+            "(?<![\\w.])(?:debug|io|package|os)\\s*\\.\\s*\\w+"
+                + "|(?<![\\w.])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(lua);
+        return withheld.find() ? withheld.group() : null;
+    }
+
     @Test
     public void continueLoweringInLua() throws IOException {
         test().testLua(true).lines(
