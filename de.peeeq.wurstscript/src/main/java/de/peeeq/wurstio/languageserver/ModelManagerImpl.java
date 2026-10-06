@@ -78,14 +78,20 @@ public class ModelManagerImpl implements ModelManager {
         ArrayList<CompilationUnit> units = new ArrayList<>();
         WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
 
-        for (File f : jassdoc.toFile().listFiles()) {
-            if (f.getName().endsWith(".j") && ! f.getName().startsWith("builtin-types")) {
-                try (InputStreamReader reader = new FileReader(f)) {
-                    CompilationUnit cu = comp.parse(f.getAbsolutePath(), reader);
-                    cu.getCuInfo().setFile(getCanonicalPath(f));
-                    units.add(cu);
-                } catch (IOException e) {
-                    e.printStackTrace();
+        File[] jassdocFiles = jassdoc.toFile().listFiles();
+        if (jassdocFiles == null) {
+            WLogger.warning("Could not list jassdoc folder " + jassdoc);
+        } else {
+            Arrays.sort(jassdocFiles, Comparator.comparing(File::getName));
+            for (File f : jassdocFiles) {
+                if (f.getName().endsWith(".j") && ! f.getName().startsWith("builtin-types")) {
+                    try (InputStreamReader reader = new FileReader(f)) {
+                        CompilationUnit cu = comp.parse(f.getAbsolutePath(), reader);
+                        cu.getCuInfo().setFile(getCanonicalPath(f));
+                        units.add(cu);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -178,6 +184,7 @@ public class ModelManagerImpl implements ModelManager {
         if (res == null) {
             return new File[0];
         }
+        Arrays.sort(res, Comparator.comparing(File::getName));
         return res;
     }
 

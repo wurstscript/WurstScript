@@ -20,10 +20,11 @@ import java.util.stream.Collectors;
 
 public class TypeId {
 
-    // sort classes by name to get deterministic order
+    // sort classes by package, name, and source coordinate to get deterministic order
     private static final Comparator<ImClass> class_comparator =
-            Comparator.comparing(ImClass::getName)
-                    .thenComparing(TypeId::packageName);
+            Comparator.comparing(TypeId::packageName)
+                    .thenComparing(ImClass::getName)
+                    .thenComparing(TypeId::sourceKey);
 
     // sort class types by name to get deterministic order
     private static final Comparator<ImClassType> classtype_comparator =
@@ -43,11 +44,27 @@ public class TypeId {
 
     private static String packageName(ImClass ic) {
         Element c = ic.attrTrace();
+        if (c == null) {
+            return "global";
+        }
         @Nullable PackageOrGlobal nearestPackage = c.attrNearestPackage();
         if (nearestPackage instanceof WPackage) {
             return ((WPackage) nearestPackage).getName();
         }
         return "global";
+    }
+
+    private static String sourceKey(ImClass ic) {
+        Element c = ic.attrTrace();
+        if (c != null) {
+            de.peeeq.wurstscript.parser.WPos pos = c.attrSource();
+            if (pos != null) {
+                String file = pos.getFile();
+                String simpleFile = file != null ? new java.io.File(file).getName() : "";
+                return simpleFile + ":" + pos.getLine() + ":" + pos.getStartColumn();
+            }
+        }
+        return "";
     }
 
     private static void assignIds(AtomicInteger count, Map<ImClass, Integer> result,

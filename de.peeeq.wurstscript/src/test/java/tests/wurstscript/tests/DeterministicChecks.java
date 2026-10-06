@@ -1,6 +1,7 @@
 package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import org.testng.AssertJUnit;
@@ -161,6 +162,142 @@ public class DeterministicChecks extends WurstScriptTest {
         //System.out.println(counts.keySet());
         // Interesting note: LocalMerger seems to switch the order in the return line and sometimes rewrites the return to
         // return p_msg + p_pos
+    }
+
+    @Test
+    public void functionAndGlobalSortOrderIsDeterministic() {
+        CompilationResult res1 = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .testLua(true)
+            .lines(
+                "package test",
+                "int zVar = 1",
+                "int aVar = 2",
+                "function zFunc() returns int",
+                "    return zVar",
+                "function aFunc() returns int",
+                "    return aVar",
+                "init",
+                "    aFunc()",
+                "    zFunc()"
+            );
+
+        CompilationResult res2 = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .testLua(true)
+            .lines(
+                "package test",
+                "function aFunc() returns int",
+                "    return aVar",
+                "int aVar = 2",
+                "function zFunc() returns int",
+                "    return zVar",
+                "int zVar = 1",
+                "init",
+                "    aFunc()",
+                "    zFunc()"
+            );
+
+        de.peeeq.wurstscript.translation.imtranslation.ImTranslator tr1 =
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator(res1.getModel(), false, new de.peeeq.wurstscript.RunArgs());
+        de.peeeq.wurstscript.jassIm.ImProg prog1 = tr1.translateProg();
+
+        de.peeeq.wurstscript.translation.imtranslation.ImTranslator tr2 =
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator(res2.getModel(), false, new de.peeeq.wurstscript.RunArgs());
+        de.peeeq.wurstscript.jassIm.ImProg prog2 = tr2.translateProg();
+
+        java.util.List<String> funcs1 = prog1.getFunctions().stream()
+            .map(de.peeeq.wurstscript.jassIm.ImFunction::getName)
+            .filter(name -> name.contains("Func"))
+            .collect(java.util.stream.Collectors.toList());
+        java.util.List<String> funcs2 = prog2.getFunctions().stream()
+            .map(de.peeeq.wurstscript.jassIm.ImFunction::getName)
+            .filter(name -> name.contains("Func"))
+            .collect(java.util.stream.Collectors.toList());
+        assertEquals(funcs1, funcs2);
+
+        java.util.List<String> globals1 = prog1.getGlobals().stream()
+            .map(de.peeeq.wurstscript.jassIm.ImVar::getName)
+            .filter(name -> name.endsWith("Var"))
+            .collect(java.util.stream.Collectors.toList());
+        java.util.List<String> globals2 = prog2.getGlobals().stream()
+            .map(de.peeeq.wurstscript.jassIm.ImVar::getName)
+            .filter(name -> name.endsWith("Var"))
+            .collect(java.util.stream.Collectors.toList());
+        assertEquals(2, globals1.size());
+        assertEquals(globals1, globals2);
+    }
+
+    @Test
+    public void multiPackageShuffledCompilationUnitOrderIsBitExact() throws IOException {
+        CU cuA = compilationUnit("PkgA.wurst",
+            "package PkgA",
+            "public interface Formatter",
+            "    function format(string s) returns string",
+            "public class UpperFormatter implements Formatter",
+            "    override function format(string s) returns string",
+            "        return s",
+            "public int counter = 0",
+            "public function inc()",
+            "    counter++"
+        );
+        CU cuB = compilationUnit("PkgB.wurst",
+            "package PkgB",
+            "import PkgA",
+            "public class FancyFormatter extends UpperFormatter",
+            "    override function format(string s) returns string",
+            "        return super.format(s) + \"!\"",
+            "public function runAction(Formatter f, string text) returns string",
+            "    inc()",
+            "    return f.format(text)"
+        );
+        CU cuC = compilationUnit("PkgC.wurst",
+            "package PkgC",
+            "public interface Transformer",
+            "    function transform(int x) returns int",
+            "public function applyTransformer(int val, Transformer t) returns int",
+            "    return t.transform(val)"
+        );
+        CU cuD = compilationUnit("PkgD.wurst",
+            "package PkgD",
+            "import PkgB",
+            "import PkgC",
+            "public function compute(int val) returns int",
+            "    Transformer t = (int x) -> begin",
+            "        return x * 2 + 1",
+            "    end",
+            "    return applyTransformer(val, t)"
+        );
+        CU cuE = compilationUnit("PkgE.wurst",
+            "package PkgE",
+            "import PkgA",
+            "import PkgB",
+            "import PkgD",
+            "native testSuccess()",
+            "init",
+            "    FancyFormatter ff = new FancyFormatter()",
+            "    let resStr = runAction(ff, \"test\")",
+            "    let resNum = compute(10)",
+            "    if resStr == \"test!\" and resNum == 21 and counter == 1",
+            "        testSuccess()",
+            "    destroy ff"
+        );
+
+        // Pass 1 in order [A, B, C, D, E]
+        test().testLua(true).executeProg().compilationUnits(cuA, cuB, cuC, cuD, cuE);
+        File outFile = new File("test-output/lua/DeterministicChecks_multiPackageShuffledCompilationUnitOrderIsBitExact.lua");
+        String outputStd1 = Files.toString(outFile, Charsets.UTF_8);
+        String hashStd1 = Hashing.sha256().hashString(outputStd1, Charsets.UTF_8).toString();
+
+        // Pass 2 in shuffled order [D, A, E, C, B]
+        test().testLua(true).executeProg().compilationUnits(cuD, cuA, cuE, cuC, cuB);
+        String outputStd2 = Files.toString(outFile, Charsets.UTF_8);
+        String hashStd2 = Hashing.sha256().hashString(outputStd2, Charsets.UTF_8).toString();
+
+        assertEquals(hashStd1, hashStd2, "SHA-256 hash must be identical across shuffled compilation unit order");
+        assertEquals(outputStd1, outputStd2, "Output must be bit-for-bit identical across shuffled compilation unit order");
     }
 
 }

@@ -6,6 +6,9 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 public class AttrImportedPackage {
@@ -37,14 +40,19 @@ public class AttrImportedPackage {
 
     public static ImmutableMap<String, WPackage> getPackages(WurstModel wurstModel) {
         Map<String, WPackage> result = Maps.newLinkedHashMap();
+        List<WPackage> allPackages = new ArrayList<>();
         for (CompilationUnit cu : wurstModel) {
             for (WPackage p : cu.getPackages()) {
-                WPackage old = result.put(p.getName(), p);
-                if (old != null) {
-                    if (!p.getName().equals("Wurst")) {
-                        p.addError("Package '" + p.getName() + "' is defined multiple times. "
-                            + "This is currently not supported. First definition: " + Utils.printPos(old.getSource()));
-                    }
+                allPackages.add(p);
+            }
+        }
+        allPackages.sort(Comparator.comparing(WPackage::getName));
+        for (WPackage p : allPackages) {
+            WPackage old = result.put(p.getName(), p);
+            if (old != null) {
+                if (!p.getName().equals("Wurst")) {
+                    p.addError("Package '" + p.getName() + "' is defined multiple times. "
+                        + "This is currently not supported. First definition: " + Utils.printPos(old.getSource()));
                 }
             }
         }

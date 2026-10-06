@@ -150,7 +150,7 @@ public class ImOptimizer {
             totalFunctionsRemoved += functionsRemoved;
 
             // also consider class functions
-            Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
+            Set<ImFunction> allFunctions = new LinkedHashSet<>(prog.getFunctions());
             for (ImClass c : prog.getClasses()) {
                 int classFunctionsBefore = c.getFunctions().size();
                 changes |= c.getFunctions().retainAll(usedFuncs);
@@ -166,7 +166,7 @@ public class ImOptimizer {
                 changes |= c.getFields().retainAll(c.getFields().stream()
                     .filter(field -> readVars.contains(field)
                         || readVars.contains(trans.canonical(field)))
-                    .collect(Collectors.toSet()));
+                    .collect(Collectors.toCollection(LinkedHashSet::new)));
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
