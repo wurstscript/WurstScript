@@ -2082,6 +2082,53 @@ public class BugTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * A loop takes the {@code iterator()} member a class inherits, not an extension function
+     * declared on the subclass: picking among the iterators by receiver must not cross from
+     * member methods to extensions.
+     */
+    @Test
+    public void forInIterator_prefersInheritedMemberOverExtension() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "int memberCalls = 0",
+            "",
+            "class MemberItr",
+            "    function hasNext() returns boolean",
+            "        memberCalls++",
+            "        return false",
+            "    function next() returns int",
+            "        return 0",
+            "    function close()",
+            "        destroy this",
+            "",
+            "class ExtensionItr",
+            "    function hasNext() returns boolean",
+            "        return false",
+            "    function next() returns int",
+            "        return 0",
+            "    function close()",
+            "        destroy this",
+            "",
+            "class A",
+            "    function iterator() returns MemberItr",
+            "        return new MemberItr()",
+            "",
+            "class B extends A",
+            "",
+            "function B.iterator() returns ExtensionItr",
+            "    return new ExtensionItr()",
+            "",
+            "init",
+            "    B b = new B()",
+            "    for x in b",
+            "        skip",
+            "    if memberCalls == 1",
+            "        testSuccess()"
+        );
+    }
+
     private String readJass(String testName, String variant) throws IOException {
         return Files.toString(new File(TEST_OUTPUT_PATH + "BugTests_" + testName + "_" + variant + ".j"), Charsets.UTF_8);
     }

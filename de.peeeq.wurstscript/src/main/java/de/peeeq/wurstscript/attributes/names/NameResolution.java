@@ -430,13 +430,19 @@ public class NameResolution {
     }
 
     /**
-     * Whether {@code type} is owned by a class which strictly extends the class owning {@code other}.
+     * Whether {@code type} is the module instantiation of a class which strictly extends the class
+     * owning the module instantiation {@code other}.
      *
      * <p>A function a class gets through {@code use Module} has that class's module instantiation as
      * its receiver, and the instantiations in a class and in its superclass are unrelated types.
      * Subtyping alone therefore cannot say which of two equal static functions hides the other.
+     * Both receivers have to be module instantiations: that is the only pair subtyping leaves
+     * unordered, and it keeps this from ever ranking an extension function against a member.
      */
     public static boolean isOwnedBySubclassOf(WurstType type, WurstType other) {
+        if (!(type instanceof WurstTypeModuleInstanciation) || !(other instanceof WurstTypeModuleInstanciation)) {
+            return false;
+        }
         ClassDef sub = owningClass(type);
         ClassDef sup = owningClass(other);
         return sub != null && sup != null && sub != sup && inheritanceDistance(sub, sup) > 0;
