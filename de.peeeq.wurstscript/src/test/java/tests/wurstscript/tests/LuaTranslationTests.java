@@ -500,7 +500,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * The game's Lua is not the test runtime's Lua. The tests run a stock Lua 5.3 with every library, while
+     * The game's Lua is not the test runtime's Lua. The tests run a stock Lua with every library, while
      * the game is reported to withhold debug and collectgarbage, and nothing in emitted code needs io, os,
      * package or require, which are not known to exist there. A test which executes the emitted script
      * cannot notice a helper that reaches for one, so assert it on the text instead, over a program that
@@ -594,13 +594,14 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * The first use of a library or function the game withholds in {@code lua}, or null. A name inside a
-     * Lua string literal is text, not a use, so it is not matched.
+     * The first use of a library or function the game withholds in {@code lua}, or null. Any occurrence
+     * counts, inside a Lua string or comment too: a string can be run with {@code load}, so skipping strings
+     * would let a use through unseen, while a false alarm is loud and cheap to exempt in the caller.
      */
     private static String firstWithheldLibraryUse(String lua) {
         Matcher withheld = Pattern.compile(
-            "(?<![\\w.\"])(?:debug|io|package|os)\\s*\\.\\s*\\w+"
-                + "|(?<![\\w.\"])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(lua);
+            "(?<![\\w.])(?:debug|io|package|os)\\s*\\.\\s*\\w+"
+                + "|(?<![\\w.])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(lua);
         return withheld.find() ? withheld.group() : null;
     }
 
