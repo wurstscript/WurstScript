@@ -9,6 +9,8 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class AttrForEachStatement {
@@ -20,13 +22,20 @@ public class AttrForEachStatement {
         ImmutableCollection<FuncLink> iterator = iterationTarget.lookupMemberFuncs(itrType, "iterator", false);
         // find the 'iterator' function without parameters:
         // must exist, because this is after type check
-        Optional<FuncLink> iteratorFunc = Optional.empty();
+        List<FuncLink> members = new ArrayList<>();
+        List<FuncLink> extensions = new ArrayList<>();
         for (FuncLink nl : iterator) {
             if (nl.getParameterTypes().isEmpty()) {
-                iteratorFunc = Optional.of(nl);
-                break;
+                (AttrPossibleFunctionSignatures.isExtension(nl) ? extensions : members).add(nl);
             }
         }
+        // Member methods take precedence over extension functions, so receivers are only compared
+        // within one of the two. A class and its subclass can each get an 'iterator' from a module
+        // they use: the one closest to the loop's target hides the other, the order of the lookup
+        // must not decide.
+        List<FuncLink> candidates = AttrPossibleFunctionSignatures.keepMostSpecificReceivers(
+            members.isEmpty() ? extensions : members, FuncLink::getReceiverType, iterationTarget);
+        Optional<FuncLink> iteratorFunc = candidates.isEmpty() ? Optional.empty() : Optional.of(candidates.get(0));
         // find the 'hasNext' function without parameters
         if (!iteratorFunc.isPresent()) {
             forEach.getIn().addError("For loop target " + itrType + " doesn't provide a iterator() function");
