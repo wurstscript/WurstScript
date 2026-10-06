@@ -100,6 +100,12 @@ public class LuaTranslator {
     }
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    /**
+     * In modular mode: the names the variables of the function being translated have taken. They are not
+     * part of {@link #usedNames}, so a function is named the same whichever other functions were translated
+     * before it; a build which reuses chunks translates fewer of them.
+     */
+    private Set<String> functionNames = null;
     private final Set<LuaVariable> localizableStorageTables = Collections.newSetFromMap(new IdentityHashMap<>());
     private LuaFunction bootstrapFunction;
     private final Set<String> emittedDispatchSlots = new HashSet<>();
@@ -198,7 +204,7 @@ public class LuaTranslator {
                         }
                     }
                 }
-                name = uniqueName(name);
+                name = a.isGlobal() ? uniqueName(name) : uniqueLocalName(name);
             } else {
                 usedNames.add(name);
             }
@@ -403,7 +409,7 @@ public class LuaTranslator {
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);
-            if (usedNames.add(name)) {
+            if (claimName(name)) {
                 return name;
             }
             nextIndex = 1;
@@ -412,8 +418,33 @@ public class LuaTranslator {
         do {
             candidate = name + nextIndex;
             nextIndex++;
-        } while (!usedNames.add(candidate));
+        } while (!claimName(candidate));
         uniqueNameCounters.put(name, nextIndex);
+        return candidate;
+    }
+
+    /** A name which is not a variable of the function in progress either, or it would hide it there. */
+    private boolean claimName(String name) {
+        return (functionNames == null || !functionNames.contains(name)) && usedNames.add(name);
+    }
+
+    /**
+     * Names a variable of a function. In modular mode that is the lowest name which no global name and no
+     * other variable of the function has; elsewhere it is a global name, as every name has always been.
+     */
+    protected String uniqueLocalName(String rawName) {
+        if (functionNames == null) {
+            return uniqueName(rawName);
+        }
+        return uniqueNameIn(functionNames, rawName);
+    }
+
+    private String uniqueNameIn(Set<String> taken, String rawName) {
+        String name = LuaIdentifiers.toIdentifier(rawName);
+        String candidate = name;
+        for (int i = 1; usedNames.contains(candidate) || !taken.add(candidate); i++) {
+            candidate = name + i;
+        }
         return candidate;
     }
 
@@ -641,11 +672,159 @@ public class LuaTranslator {
         }
     }
 
+    /**
+     * Claims the Lua name of every global, function, class and field of the program, in program order.
+     * Names are otherwise claimed by first use, and a package whose chunk is reused is not translated:
+     * the package which is translated would then claim names in a different order than the build which
+     * wrote the other chunks (the second overload of a function, or the second class of one name, would
+     * be handed the first one's name). Local variables are still named while their function is translated;
+     * they cannot clash with a name claimed here.
+     */
+    private void preRegisterNames() {
+        for (ImVar v : prog.getGlobals()) {
+            luaVar.getFor(v);
+        }
+        for (ImClass c : prog.getClasses()) {
+            luaClassVar.getFor(c);
+            luaClassInitMethod.getFor(c);
+            for (ImVar field : c.getFields()) {
+                fieldStorage(field);
+            }
+        }
+        for (ImFunction f : prog.getFunctions()) {
+            if (!isFixedEntryPoint(f)) {
+                luaFunc.getFor(f);
+            }
+        }
+        List<ImClass> sortedClasses = new ArrayList<>(prog.getClasses());
+        sortedClasses.sort(Comparator.comparing(ImClass::getName));
+        for (ImClass c : sortedClasses) {
+            List<ImFunction> classFuncs = new ArrayList<>(c.getFunctions());
+            classFuncs.sort(Comparator.comparing(ImFunction::getName));
+            for (ImFunction f : classFuncs) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+            }
+        }
+    }
+
+    /**
+     * Digest of the Lua names a package's chunk is written against: those of everything it defines and of
+     * every function, global, class and field its code mentions. A chunk is only valid while those names are
+     * the ones this build gave them, and nothing else in the key says so: a private overload added to a
+     * package renumbers its public one, which an importer's chunk calls by name.
+     */
+    private String namesDigest(List<ImFunction> funcs, List<ImVar> globals, List<ImClass> classes) {
+        com.google.common.hash.Hasher hasher = com.google.common.hash.Hashing.sha256().newHasher();
+        Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        java.util.function.Consumer<ImFunction> function = f -> {
+            if (f != null && seen.add(f) && !isFixedEntryPoint(f)) {
+                hasher.putString("f:" + luaFunc.getFor(f).getName() + "\n", java.nio.charset.StandardCharsets.UTF_8);
+            }
+        };
+        java.util.function.Consumer<ImVar> global = v -> {
+            if (v != null && v.isGlobal() && seen.add(v)) {
+                hasher.putString("v:" + luaVar.getFor(v).getName() + "\n", java.nio.charset.StandardCharsets.UTF_8);
+            }
+        };
+        java.util.function.Consumer<ImVar> field = v -> {
+            if (v != null && seen.add(v)) {
+                hasher.putString("s:" + fieldStorage(v).getName() + "\n", java.nio.charset.StandardCharsets.UTF_8);
+            }
+        };
+        java.util.function.Consumer<ImClass> clazz = c -> {
+            if (c != null && seen.add(c)) {
+                hasher.putString("c:" + luaClassVar.getFor(c).getName() + ":" + luaClassInitMethod.getFor(c).getName() + "\n",
+                    java.nio.charset.StandardCharsets.UTF_8);
+            }
+        };
+        de.peeeq.wurstscript.jassIm.Element.DefaultVisitor mentions = new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall e) {
+                super.visit(e);
+                function.accept(e.getFunc());
+            }
+
+            @Override
+            public void visit(ImFuncRef e) {
+                super.visit(e);
+                function.accept(e.getFunc());
+            }
+
+            @Override
+            public void visit(ImVarAccess e) {
+                super.visit(e);
+                global.accept(e.getVar());
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess e) {
+                super.visit(e);
+                global.accept(e.getVar());
+            }
+
+            @Override
+            public void visit(ImMemberAccess e) {
+                super.visit(e);
+                field.accept(e.getVar());
+            }
+
+            @Override
+            public void visit(ImAlloc e) {
+                super.visit(e);
+                clazz.accept(e.getClazz().getClassDef());
+            }
+
+            @Override
+            public void visit(ImDealloc e) {
+                super.visit(e);
+                clazz.accept(e.getClazz().getClassDef());
+            }
+
+            @Override
+            public void visit(ImInstanceof e) {
+                super.visit(e);
+                clazz.accept(e.getClazz().getClassDef());
+            }
+
+            @Override
+            public void visit(ImMethodCall e) {
+                super.visit(e);
+                ImMethod m = e.getMethod();
+                if (m != null) {
+                    function.accept(m.getImplementation());
+                    if (!LuaMethodCallLowering.canLowerDirectly(m) && seen.add(m)) {
+                        hasher.putString("d:" + luaDispatchFunc.getFor(m).getName() + "\n",
+                            java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                }
+            }
+        };
+        for (ImVar v : globals) {
+            global.accept(v);
+        }
+        for (ImFunction f : funcs) {
+            function.accept(f);
+            f.accept(mentions);
+        }
+        for (ImClass c : classes) {
+            clazz.accept(c);
+            for (ImVar f : c.getFields()) {
+                field.accept(f);
+            }
+            for (ImFunction f : c.getFunctions()) {
+                function.accept(f);
+            }
+            c.accept(mentions);
+        }
+        return hasher.hash().toString().substring(0, 16);
+    }
+
     public PackageChunkResult translateModular(PackageChunkCache cache) {
         isModularMode = true;
         collectPredefinedNames();
         assertNoDanglingFunctionReferences(prog);
         normalizeFieldNames();
+        preRegisterNames();
 
         // 1. Preamble (Runtime polyfills & global variables outside any package)
         LuaCompilationUnit preambleCu = LuaAst.LuaCompilationUnit();
@@ -700,16 +879,8 @@ public class LuaTranslator {
         // 2. Discover packages and topological order
         List<WPackage> packages = determineTopologicalPackageOrder();
 
-        // Pre-register class method names deterministically across all packages (cached or new)
         List<ImClass> sortedClasses = new ArrayList<>(prog.getClasses());
         sortedClasses.sort(Comparator.comparing(ImClass::getName));
-        for (ImClass c : sortedClasses) {
-            List<ImFunction> classFuncs = new ArrayList<>(c.getFunctions());
-            classFuncs.sort(Comparator.comparing(ImFunction::getName));
-            for (ImFunction f : classFuncs) {
-                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
-            }
-        }
 
         // 3. For packages not in cache: translate their AST elements
         Map<WPackage, LuaCompilationUnit> newlyEmittedCus = new LinkedHashMap<>();
@@ -727,10 +898,11 @@ public class LuaTranslator {
             List<ImFunction> fpFuncs = funcsByPackage.get(p);
             List<ImVar> fpGlobals = globalsByPackage.get(p);
             List<ImClass> fpClasses = classesByPackage.get(p);
-            String imPrint = ImStructuralFingerprint.fingerprint(
-                fpFuncs != null ? fpFuncs : Collections.emptyList(),
-                fpGlobals != null ? fpGlobals : Collections.emptyList(),
-                fpClasses != null ? fpClasses : Collections.emptyList());
+            List<ImFunction> keyFuncs = fpFuncs != null ? fpFuncs : Collections.emptyList();
+            List<ImVar> keyGlobals = fpGlobals != null ? fpGlobals : Collections.emptyList();
+            List<ImClass> keyClasses = fpClasses != null ? fpClasses : Collections.emptyList();
+            String imPrint = ImStructuralFingerprint.fingerprint(keyFuncs, keyGlobals, keyClasses)
+                + ":" + namesDigest(keyFuncs, keyGlobals, keyClasses);
             String hash = PackageChunkCache.computePackageHash(
                 p, imTr.getRunArgs(), fpFuncs, programShape, imPrint);
             packageHashes.put(p, hash);
@@ -1395,6 +1567,16 @@ public class LuaTranslator {
     }
 
     private void translateFunc(ImFunction f) {
+        Set<String> outerFunctionNames = functionNames;
+        functionNames = isModularMode ? new HashSet<>() : null;
+        try {
+            translateFuncInScope(f);
+        } finally {
+            functionNames = outerFunctionNames;
+        }
+    }
+
+    private void translateFuncInScope(ImFunction f) {
         if (f.isBj()) {
             // do not translate blizzard functions
             return;
@@ -1680,8 +1862,9 @@ public class LuaTranslator {
         }
 
         Map<LuaVariable, LuaVariable> aliases = new IdentityHashMap<>();
+        Set<String> taken = namesDeclaredIn(params, body);
         for (LuaVariable storage : selected) {
-            aliases.put(storage, LuaAst.LuaVariable(uniqueName(storage.getName() + "_local"),
+            aliases.put(storage, LuaAst.LuaVariable(uniqueNameInFunction(taken, storage.getName() + "_local"),
                 LuaAst.LuaExprVarAccess(storage)));
         }
         rewriteStorageAccesses(body, aliases);
@@ -1750,7 +1933,7 @@ public class LuaTranslator {
 
         LuaVariable localsTable = findTopLevelLocalsTable(body);
         if (localsTable == null) {
-            localsTable = LuaAst.LuaVariable(uniqueName("__wurst_locals"),
+            localsTable = LuaAst.LuaVariable(uniqueNameInFunction(namesDeclaredIn(params, body), "__wurst_locals"),
                 LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
         // Must be declared before any rewritten uses; otherwise accesses become global lookups.
@@ -1857,6 +2040,24 @@ public class LuaTranslator {
             out.add((LuaVariable) e);
         }
         e.forEachElement(child -> collectFunctionScopeLocalsRec(child, out));
+    }
+
+    /** Every name a function declares, in its parameters and anywhere in its body. */
+    private Set<String> namesDeclaredIn(LuaParams params, LuaStatements body) {
+        Set<String> names = new HashSet<>();
+        java.util.function.Consumer<de.peeeq.wurstscript.luaAst.Element> collect = e -> {
+            if (e instanceof LuaVariable) {
+                names.add(((LuaVariable) e).getName());
+            }
+        };
+        forEachElementRec(params, collect);
+        forEachElementRec(body, collect);
+        return names;
+    }
+
+    /** A name for a variable added to a function after it was translated; see {@link #uniqueLocalName}. */
+    private String uniqueNameInFunction(Set<String> declared, String rawName) {
+        return isModularMode ? uniqueNameIn(declared, rawName) : uniqueName(rawName);
     }
 
     private void forEachElementRec(de.peeeq.wurstscript.luaAst.Element root, java.util.function.Consumer<de.peeeq.wurstscript.luaAst.Element> action) {
