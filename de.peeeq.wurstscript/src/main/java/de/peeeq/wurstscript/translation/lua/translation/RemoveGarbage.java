@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -25,16 +25,16 @@ public class RemoveGarbage {
 
     private static class Used {
         private final ImTranslator translator;
-        private final Set<ImFunction> functions = new HashSet<>();
-        private final Set<ImMethod> methods = new HashSet<>();
+        private final Set<ImFunction> functions = new LinkedHashSet<>();
+        private final Set<ImMethod> methods = new LinkedHashSet<>();
         // methods that will be added once the class is used:
-        private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
-        private final Set<ImClass> classes = new HashSet<>();
+        private final Multimap<ImClass, ImMethod> waitingMethods = LinkedHashMultimap.create();
+        private final Set<ImClass> classes = new LinkedHashSet<>();
         /** Classes whose reachable runtime objects may dispatch virtual methods. */
-        private final Set<ImClass> dispatchClasses = new HashSet<>();
+        private final Set<ImClass> dispatchClasses = new LinkedHashSet<>();
         /** Classes which reachable code actually allocates, excluding nominal type-only references. */
-        private final Set<ImClass> instantiatedClasses = new HashSet<>();
-        private final Set<ImVar> vars = new HashSet<>();
+        private final Set<ImClass> instantiatedClasses = new LinkedHashSet<>();
+        private final Set<ImVar> vars = new LinkedHashSet<>();
         private final Set<ImSet> ignoredInitializers;
 
         private Used(ImTranslator translator, Set<ImSet> ignoredInitializers) {
@@ -97,7 +97,7 @@ public class RemoveGarbage {
             }
             if (newDispatchClass) {
                 Collection<ImMethod> imMethods = waitingMethods.get(c);
-                // This is a HashMultimap set view, not an indexed list. Keep the one iterator:
+                // This is a multimap set view, not an indexed list. Keep the one iterator:
                 // taking an array snapshot here allocates one entry for every waiting method.
                 Iterator<ImMethod> iterator = imMethods.iterator();
                 while (iterator.hasNext()) {
