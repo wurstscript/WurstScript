@@ -16,7 +16,7 @@ The rules that follow are in [AGENTS.md](../AGENTS.md) §7 and §11.
 | Lua libraries | none | all of Lua 5.3; `os.exit()` is how `testSuccess` ends a run (code: `LuaNatives`) | Lua 5.3 without some of them (reported, below) |
 | Natives | mocks in `wurstio/jassinterpreter/providers` | `wc3shim.lua` plus the Reforged `common.j`/`blizzard.j` Lua dumps (`src/test/resources/luaruntime/README.md`) | the engine |
 
-A test that passes in the first two columns says nothing about the third where they differ. The natives the Lua backend defines itself (`LuaNatives`) are fallbacks: the script installs one only if the native is still undefined, so the real Blizzard.j always wins.
+A test that passes in the first two columns says nothing about the third where they differ. The natives `LuaNatives` defines for a Jass native name (such as `GetRandomInt`) are fallbacks: the script defines one only if the game has not, so the real implementation wins (`LuaTranslator.translateFunc`). The `__wurst_`-prefixed ones are Wurst's own, never pre-defined by the game, and always emitted.
 
 ## Objects and memory
 
