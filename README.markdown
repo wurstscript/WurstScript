@@ -75,7 +75,7 @@ For building the release packages (compiler jar, bundled runtime and the `wursts
 
 You can import the compiler project into any IDE that provides a gradle plugin.
 For IntelliJ IDEA, you can simply execute `./gradlew openIdea`.
-To run the Test Suite, execute `AllTests.xml` with TestNG.
+To run the test suite, execute `./gradlew test` in `de.peeeq.wurstscript`.
 
 ### Publishing a new release
 
