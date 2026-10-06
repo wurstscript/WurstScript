@@ -10,7 +10,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Manages the ids of each class's objects. Despite the name the free list is a stack: the most
+ * Manages object ids, one allocator for each group of classes joined by inheritance
+ * ({@code ImTranslator.buildClassPartitions}). Despite the name the free list is a stack: the most
  * recently freed id is handed out first, so a stale reference to it reads the next object
  * (docs/WC3_RUNTIME.md).
  */
