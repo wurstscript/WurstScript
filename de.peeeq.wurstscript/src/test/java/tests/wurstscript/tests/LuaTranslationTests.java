@@ -19,7 +19,6 @@ import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaMethod;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
-import de.peeeq.wurstscript.translation.lua.translation.LuaNatives;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Test;
 
@@ -506,9 +505,8 @@ public class LuaTranslationTests extends WurstScriptTest {
      * package or require, which are not known to exist there. A test which executes the emitted script
      * cannot notice a helper that reaches for one, so assert it on the text instead, over a program that
      * makes the backend emit its helpers: object management, dispatch, callback boundaries, the error
-     * handler and stack positions. The natives the backend defines itself are emitted only on demand, so
-     * no one program reaches them all: {@link #everyLuaNativeFallbackUsesOnlyLibrariesTheGameProvides}
-     * enumerates those. See docs/WC3_RUNTIME.md.
+     * handler and stack positions. Helpers emitted only on demand are out of this program's reach:
+     * {@link #noLuaBackendLiteralNamesALibraryTheGameWithholds} scans for those. See docs/WC3_RUNTIME.md.
      */
     @Test
     public void emittedLuaUsesOnlyLibrariesTheGameProvides() {
@@ -549,27 +547,50 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * Natives which exist only to end a test run. {@code testSuccess} stops the interpreter with
-     * {@code os.exit}; a map never declares it, so it is not emitted into one.
+     * Everything the backend emits starts as a string literal under translation/, whether or not a program
+     * makes it emit: a native only when it is referenced, an old-generics cast helper only when a cast cannot
+     * be written inline. The output of any one program, or of the whole suite, cannot show that no helper
+     * reaches for a library the game withholds, so scan the literals themselves.
      */
-    private static final Set<String> TEST_ONLY_NATIVES = Set.of("testSuccess");
-
     @Test
-    public void everyLuaNativeFallbackUsesOnlyLibrariesTheGameProvides() {
-        for (String name : LuaNatives.names()) {
-            if (TEST_ONLY_NATIVES.contains(name)) {
-                continue;
-            }
-            LuaFunction fallback = LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
-            LuaNatives.get(fallback);
-            StringBuilder lua = new StringBuilder();
-            fallback.print(lua, 0);
-            String withheld = firstWithheldLibraryUse(lua.toString());
-            if (withheld != null) {
-                fail("the Lua fallback for native " + name + " uses `" + withheld
-                    + "`, which the game does not provide. If it only exists for tests, add it to TEST_ONLY_NATIVES:\n" + lua);
+    public void noLuaBackendLiteralNamesALibraryTheGameWithholds() throws IOException {
+        Pattern literal = Pattern.compile("\"((?:[^\"\\\\]|\\\\.)*)\"");
+        Pattern bareName = Pattern.compile("os|io|debug|package|require|collectgarbage|dofile|loadfile");
+        // lists of names to protect or avoid, not emitted code
+        Set<String> nameLists = Set.of("LuaReservedNames.java", "RestrictedCompressedNames.java");
+        // The shim which ends a test run. A map never declares testSuccess, so it is not emitted into one.
+        String testOnlyFile = "LuaNatives.java";
+        String testOnlyText = "os.exit()";
+        List<String> found = new ArrayList<>();
+        try (java.util.stream.Stream<java.nio.file.Path> walk =
+                 java.nio.file.Files.walk(java.nio.file.Paths.get("src/main/java/de/peeeq/wurstscript/translation"))) {
+            List<java.nio.file.Path> sources = walk.filter(p -> p.toString().endsWith(".java"))
+                .sorted().collect(Collectors.toList());
+            for (java.nio.file.Path source : sources) {
+                String fileName = source.getFileName().toString();
+                if (nameLists.contains(fileName)) {
+                    continue;
+                }
+                List<String> lines = java.nio.file.Files.readAllLines(source);
+                for (int i = 0; i < lines.size(); i++) {
+                    String trimmed = lines.get(i).trim();
+                    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
+                        continue;
+                    }
+                    Matcher quoted = literal.matcher(lines.get(i));
+                    while (quoted.find()) {
+                        String text = quoted.group(1);
+                        boolean withheld = bareName.matcher(text).matches() || firstWithheldLibraryUse(text) != null;
+                        boolean testOnly = fileName.equals(testOnlyFile) && text.equals(testOnlyText);
+                        if (withheld && !testOnly) {
+                            found.add(source.getFileName() + ":" + (i + 1) + ": \"" + text + "\"");
+                        }
+                    }
+                }
             }
         }
+        assertTrue("the Lua backend names a library or function the game does not provide. If it only exists "
+            + "for tests, exempt it in this test:\n" + String.join("\n", found), found.isEmpty());
     }
 
     /**
