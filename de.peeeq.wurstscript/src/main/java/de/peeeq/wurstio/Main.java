@@ -165,7 +165,7 @@ public class Main {
                         );
                         de.peeeq.wurstio.languageserver.ModelManager modelManager =
                             new de.peeeq.wurstio.languageserver.ModelManagerImpl(root.toFile(), new de.peeeq.wurstio.languageserver.BufferManager());
-                        modelManager.buildProject(false);
+                        modelManager.buildProject();
                         Object result = cliBuildMap.execute(modelManager);
                         WLogger.info("map build success");
                         System.out.println("Build succeeded. Output file: <" + result + ">");
