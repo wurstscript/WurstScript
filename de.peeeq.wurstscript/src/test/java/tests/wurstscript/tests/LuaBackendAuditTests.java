@@ -826,22 +826,66 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).inline().localOptimizations().executeProg().lines(operatorGroupingProgram(cases));
     }
 
-    @Test(timeOut = 120_000)
-    public void operatorGroupingKeepsItsMeaningOnLua() {
+    /** Runs all cases at once, and on a failure each alone, to name the wrong ones. */
+    private static void checkGroupingCases(java.util.function.Consumer<List<String[]>> run, List<String[]> cases) {
         try {
-            runOperatorGroupingOnLua(List.of(OPERATOR_GROUPING_CASES));
+            run.accept(cases);
+        } catch (org.testng.SkipException skip) {
+            // No Lua interpreter on this host: keep the framework's visible skip instead of
+            // rerunning every case and turning it into a failure.
+            throw skip;
         } catch (Error | RuntimeException failure) {
             // A failed run only says that testSuccess was not reached. Name the wrong cases.
             List<String> wrong = new ArrayList<>();
-            for (String[] grouping : OPERATOR_GROUPING_CASES) {
+            for (String[] grouping : cases) {
                 try {
-                    runOperatorGroupingOnLua(List.<String[]>of(grouping));
+                    run.accept(List.<String[]>of(grouping));
                 } catch (Error | RuntimeException single) {
                     wrong.add(grouping[0] + " should be " + grouping[1]);
                 }
             }
             throw new AssertionError("wrong value on Lua for: " + wrong, failure);
         }
+    }
+
+    @Test(timeOut = 120_000)
+    public void operatorGroupingKeepsItsMeaningOnLua() {
+        checkGroupingCases(this::runOperatorGroupingOnLua, List.of(OPERATOR_GROUPING_CASES));
+    }
+
+    /** A host without a working Lua interpreter skips the check, as every other Lua run does. */
+    @Test
+    public void aMissingLuaInterpreterSkipsTheGroupingCheck() {
+        int[] runs = {0};
+        try {
+            checkGroupingCases(cases -> {
+                runs[0]++;
+                throw new org.testng.SkipException("no Lua interpreter");
+            }, List.of(OPERATOR_GROUPING_CASES));
+        } catch (org.testng.SkipException expected) {
+            assertEquals("a skip is not retried per case", 1, runs[0]);
+            return;
+        }
+        throw new AssertionError("the skip must reach the framework");
+    }
+
+    /** A wrong value still fails the check and is named, so the skip rule hides nothing. */
+    @Test
+    public void aWrongGroupingIsNamedWhenTheCheckFails() {
+        String[] right = {"a - b", "70"};
+        String[] wrong = {"a - (b - c)", "0"};
+        try {
+            checkGroupingCases(cases -> {
+                if (cases.contains(wrong)) {
+                    throw new AssertionError("testSuccess not reached");
+                }
+            }, List.of(right, wrong));
+        } catch (AssertionError expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains("a - (b - c) should be 0"));
+            assertFalse(expected.getMessage(), expected.getMessage().contains("a - b should be"));
+            return;
+        }
+        throw new AssertionError("a failing case must fail the check");
     }
 
     /** The same function on the Jass backend, which must also stay linear and keep the sum. */
