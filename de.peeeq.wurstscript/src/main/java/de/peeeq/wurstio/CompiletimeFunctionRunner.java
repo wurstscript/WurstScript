@@ -1,7 +1,6 @@
 package de.peeeq.wurstio;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -409,9 +408,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImExpr init;
 
             Object obj = a.getObj();
-            if (obj instanceof LinkedListMultimap) {
-                @SuppressWarnings("unchecked")
-                LinkedListMultimap<HashtableProvider.KeyPair, Object> map = (LinkedListMultimap<HashtableProvider.KeyPair, Object>) obj;
+            if (obj instanceof HashtableProvider.WurstHashtable) {
+                HashtableProvider.WurstHashtable map = (HashtableProvider.WurstHashtable) obj;
                 ImType type = TypesHelper.imHashTable();
                 ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
                 imProg.getGlobals().add(res);
@@ -1039,56 +1037,74 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             return true;
         }
         if (value instanceof IlConstHandle) {
-            return ((IlConstHandle) value).getObj() instanceof LinkedListMultimap;
+            Object obj = ((IlConstHandle) value).getObj();
+            return obj instanceof HashtableProvider.WurstHashtable;
         }
         return false;
     }
+
+    private final Map<String, ImFunction> nativeCache = new HashMap<>();
 
     /**
      * Stores a hashtable value in a compiletime expression
      * by generating the respective native calls
      */
-    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, LinkedListMultimap<HashtableProvider.KeyPair, Object> map) {
+    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, HashtableProvider.WurstHashtable map) {
         WPos errorPos = trace.attrErrorPos();
         // we have to collect all values after all compiletime functions have run, so use delayedActions
         delayedActions.add(() -> {
-            for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
-                HashtableProvider.KeyPair key = entry.getKey();
-                Object v = entry.getValue();
+            ImFunction saveInteger = null;
+            ImFunction saveReal = null;
+            ImFunction saveStr = null;
+            ImFunction saveBoolean = null;
+            List<HashtableProvider.WurstHashtable.Entry> entries = map.entries();
+            List<ImStmt> batch = new ArrayList<>(entries.size());
+            for (HashtableProvider.WurstHashtable.Entry entry : entries) {
+                int parentKey = entry.parentKey;
+                int childKey = entry.childKey;
+                Object v = entry.value;
                 if (v instanceof ILconstInt) {
+                    if (saveInteger == null) {
+                        saveInteger = findNative("SaveInteger", errorPos);
+                    }
                     ILconstInt iv = (ILconstInt) v;
-                    ImFunction SaveInteger = findNative("SaveInteger", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstReal) {
+                    if (saveReal == null) {
+                        saveReal = findNative("SaveReal", errorPos);
+                    }
                     ILconstReal iv = (ILconstReal) v;
-                    ImFunction SaveReal = findNative("SaveReal", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
                             JassIm.ImRealVal("" + iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstString) {
+                    if (saveStr == null) {
+                        saveStr = findNative("SaveStr", errorPos);
+                    }
                     ILconstString iv = (ILconstString) v;
-                    ImFunction SaveStr = findNative("SaveStr", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
                             JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstBool) {
+                    if (saveBoolean == null) {
+                        saveBoolean = findNative("SaveBoolean", errorPos);
+                    }
                     ILconstBool iv = (ILconstBool) v;
-                    ImFunction SaveBoolean = findNative("SaveBoolean", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                    batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
                         JassIm.ImVarAccess(htVar),
-                        JassIm.ImIntVal(key.getParentkey()),
-                        JassIm.ImIntVal(key.getChildkey()),
+                        JassIm.ImIntVal(parentKey),
+                        JassIm.ImIntVal(childKey),
                         JassIm.ImBoolVal(iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstNull) {
@@ -1096,6 +1112,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 } else {
                     throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
                 }
+            }
+            if (!batch.isEmpty()) {
+                getCompiletimeStateInitFunction().getBody().addAll(batch);
             }
         });
 
@@ -1106,18 +1125,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     @NotNull
     private ImFunction findNative(String funcName, WPos trace) {
+        ImFunction cached = nativeCache.get(funcName);
+        if (cached != null) {
+            return cached;
+        }
         for (ImFunction func : imProg.getFunctions()) {
-            if (func.isNative()) {
-                if (func.getName().equals(funcName)) {
-                    return Optional.of(func)
-                        .orElseGet(() -> {
-                            throw new CompileError(trace, "Could not find native 'InitHashtable'");
-                        });
-                }
+            if (func.isNative() && func.getName().equals(funcName)) {
+                nativeCache.put(funcName, func);
+                return func;
             }
         }
-        return Optional.<ImFunction>empty()
-                .orElseThrow(() -> new CompileError(trace, "Could not find native 'InitHashtable'"));
+        throw new CompileError(trace, "Could not find native '" + funcName + "'");
     }
 
 
