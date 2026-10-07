@@ -28,6 +28,7 @@ public class CliBuildMap extends MapRequest {
         super(null, map, compileArgs, workspaceRoot, wc3Path, Optional.empty());
         this.gui = gui;
         this.rebuildModelBeforeCompile = false;
+        this.safeCompilation = SafetyLevel.QuickAndDirty;
     }
 
     @Override

@@ -3404,4 +3404,43 @@ public class OptimizerTests extends WurstScriptTest {
         assertEquals(loopLiveness.get(copy), HashSet.of(t));
         assertEquals(loopLiveness.get(step), HashSet.of(i));
     }
+
+    /**
+     * An element is dependent when anything in it is: the value and every element around it, up to the
+     * body of its function, which then uses the local player. Siblings which do not take part stay clean.
+     */
+    @Test
+    public void localPlayerDependenceReachesTheEnclosingElementsAndNothingElse() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction localPlayer = nativeIntFunction(model, "GetLocalPlayer");
+        ImVar tainted = JassIm.ImVar(model, TypesHelper.imInt(), "tainted", false);
+        ImVar clean = JassIm.ImVar(model, TypesHelper.imInt(), "clean", false);
+        ImFunctionCall source = JassIm.ImFunctionCall(model, localPlayer, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(), false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImExprs operands = JassIm.ImExprs(source, JassIm.ImIntVal(1));
+        ImOperatorCall sum = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS, operands);
+        ImSet taintedAssignment = JassIm.ImSet(model, JassIm.ImVarAccess(tainted), sum);
+        ImIntVal constant = JassIm.ImIntVal(2);
+        ImSet cleanAssignment = JassIm.ImSet(model, JassIm.ImVarAccess(clean), constant);
+        ImFunction function = JassIm.ImFunction(model, "function", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(tainted, clean),
+            JassIm.ImStmts(taintedAssignment, cleanAssignment), Collections.emptyList());
+        prog.getFunctions().add(localPlayer);
+        prog.getFunctions().add(function);
+
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+
+        assertTrue(analyzer.isLocalPlayerDependent(source));
+        assertTrue(analyzer.isLocalPlayerDependent(operands));
+        assertTrue(analyzer.isLocalPlayerDependent(sum));
+        assertTrue(analyzer.isLocalPlayerDependent(taintedAssignment));
+        assertTrue(analyzer.isLocalPlayerDependent(function.getBody()));
+        assertTrue(analyzer.isLocalPlayerDependent(tainted));
+        assertTrue(analyzer.functionUsesLocalPlayer(function));
+        assertFalse(analyzer.isLocalPlayerDependent(constant));
+        assertFalse(analyzer.isLocalPlayerDependent(cleanAssignment));
+        assertFalse(analyzer.isLocalPlayerDependent(clean));
+    }
 }
