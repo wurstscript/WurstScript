@@ -185,7 +185,12 @@ public class EvaluateExpr {
             }
             return r;
         } else {
-            return notNull(localState.getVal(var), var.getType(), "Local variable " + var + " is null.", true);
+            ILconst val = localState.getVal(var);
+            if (val == null) {
+                // The message is built only here: printing the variable on every read dominated allocation.
+                throw new InterpreterException("Local variable " + var + " is null.");
+            }
+            return val;
         }
     }
 
@@ -203,16 +208,10 @@ public class EvaluateExpr {
         return false;
     }
 
-    private static ILconst notNull(@Nullable ILconst val, ImType imType, String msg, boolean failOnErr) {
-        if (val == null) {
-            if (failOnErr) {
-                throw new InterpreterException(msg);
-            } else {
-                WLogger.warning(msg);
-                return imType.defaultValue();
-            }
-        }
-        return val;
+    /** The value of an array element nobody has written: the type's default, with a warning. */
+    private static ILconst defaultForMissingElement(ImVar var) {
+        WLogger.warning("Variable " + var.getName() + " is null.");
+        return var.getType().defaultValue();
     }
 
     public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
@@ -223,9 +222,11 @@ public class EvaluateExpr {
         }
 
         if (e.getVar().isGlobal()) {
-            return globalState.resolveDefault(notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false));
+            ILconst val = globalState.getArrayVal(e.getVar(), indexes);
+            return globalState.resolveDefault(val != null ? val : defaultForMissingElement(e.getVar()));
         } else {
-            return globalState.resolveDefault(notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false));
+            ILconst val = localState.getArrayVal(e.getVar(), indexes);
+            return globalState.resolveDefault(val != null ? val : defaultForMissingElement(e.getVar()));
         }
     }
 
