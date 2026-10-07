@@ -27,7 +27,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
     private String getFunctionBody(String output, String functionName) {
         // Up to the closing 'end' at column 0; nested blocks are indented.
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\([^\\n]*\\n(.*?)\\nend", Pattern.DOTALL);
+        Pattern pattern = Pattern.compile("function\\s*(?:\\w+__)?" + Pattern.quote(functionName) + "\\s*\\([^\\n]*\\n(.*?)\\nend", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(output);
         if (!matcher.find()) {
             fail("Function " + functionName + " was not found.");
@@ -163,8 +163,9 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         String compiled = compiled("keyedMapLookupIsExpandedAndAnUnusedReadIsDropped");
         String lookup = getFunctionBody(compiled, "lookup");
         assertTrue("the lookup is the table index with the int default: " + lookup, lookup.contains("] or 0)"));
-        int discardStart = compiled.indexOf("function discard(");
-        assertTrue("expected function discard", discardStart >= 0);
+        Matcher discardMatcher = Pattern.compile("function (?:\\w+__)?discard\\(").matcher(compiled);
+        assertTrue("expected function discard", discardMatcher.find());
+        int discardStart = discardMatcher.start();
         String discard = compiled.substring(discardStart, compiled.indexOf("\nend", discardStart));
         assertFalse("the unused reads are dropped: " + discard,
             discard.contains("[") || discard.contains("wurstExpr") || discard.contains("__wurst_keyedMap"));

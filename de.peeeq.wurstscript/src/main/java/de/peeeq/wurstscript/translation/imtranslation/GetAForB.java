@@ -20,4 +20,9 @@ public abstract class GetAForB<B, A> {
         return created;
     }
 
+    /** Number of memoized entries; used to detect unexpected creations during cached phases. */
+    public int cachedCount() {
+        return thing.size();
+    }
+
 }

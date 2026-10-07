@@ -1404,6 +1404,34 @@ public class ModelManagerTests {
         if (!didFindString.get()) throw new AssertionError("Did not find call to next() returning string.");
     }
 
+    @Test
+    public void syncProjectFilesDetectsModifiedFilesWithoutClean() throws IOException {
+        File projectFolder = new File("./temp/testProjectSync/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
 
+        File fileWurst = new File(wurstFolder, "Wurst.wurst");
+        Files.writeString(fileWurst.toPath(), "package Wurst\n");
+        File fileA = new File(wurstFolder, "A.wurst");
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public int counter = 1"
+        ));
 
+        ModelManager modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
+        modelManager.buildProject();
+
+        // File unchanged -> no affected files
+        ModelManager.Changes noChanges = modelManager.syncProjectFiles();
+        assertTrue(noChanges.getAffectedFiles().isEmpty(), "No files changed on disk");
+
+        // Modify file on disk
+        Files.writeString(fileA.toPath(), string(
+            "package A",
+            "public int counter = 2"
+        ));
+
+        ModelManager.Changes changes = modelManager.syncProjectFiles();
+        assertTrue(changes.getAffectedFiles().contains(WFile.create(fileA)), "File A must be detected as modified and synced");
+    }
 }

@@ -42,28 +42,34 @@ public class LuaTranslationTests extends WurstScriptTest {
         /*
         The function functionName must only return returnValue and do nothing else.
          */
-        Pattern pattern = Pattern.compile("function\\s+" + functionName + "\\(.*?\\)\\s+return\\s+" + returnValue + "\\s+end");
+        Pattern pattern = Pattern.compile("function\\s+(?:\\w+__)?" + Pattern.quote(functionName) + "\\(.*?\\)\\s+return\\s+" + returnValue + "\\s+end");
         Matcher matcher = pattern.matcher(output);
         assertTrue("Function " + functionName + " with return value " + returnValue + " was not found.", matcher.find());
     }
 
     private void assertFunctionCall(String output, String functionName, String arguments) {
         /*
-        The function declaration is ignored by using negative lookbehind.
+        The function declaration is ignored by skipping function declaration lines.
         All function calls must use the specified arguments.
          */
-        Pattern pattern = Pattern.compile("(?<!\\sfunction\\s)" + functionName + "\\((.*)\\)");
-        Matcher matcher = pattern.matcher(output);
         boolean findAtLeastOne = false;
-        while (matcher.find()) {
-            assertEquals(arguments, matcher.group(1));
-            findAtLeastOne = true;
+        Pattern pattern = Pattern.compile("(?:\\w+__)?" + Pattern.quote(functionName) + "\\((.*?)\\)");
+        for (String line : output.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("function ") || trimmed.startsWith("local function ")) {
+                continue;
+            }
+            Matcher matcher = pattern.matcher(line);
+            while (matcher.find()) {
+                assertEquals(arguments, matcher.group(1));
+                findAtLeastOne = true;
+            }
         }
         assertTrue("Function call to function " + functionName + " with arguments (" + arguments + ") was not found.", findAtLeastOne);
     }
 
     private void assertFunctionBodyContains(String output, String functionName, String search, boolean mustContain) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
+        Pattern pattern = Pattern.compile("function\\s*(?:\\w+__)?" + Pattern.quote(functionName) + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
         Matcher matcher = pattern.matcher(output);
         boolean found = false;
         while (matcher.find()) {
@@ -98,7 +104,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private String getFunctionBody(String output, String functionName) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
+        Pattern pattern = Pattern.compile("function\\s*(?:\\w+__)?" + Pattern.quote(functionName) + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
         Matcher matcher = pattern.matcher(output);
         if (!matcher.find()) {
             fail("Function " + functionName + " was not found.");
@@ -878,7 +884,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        testSuccess()"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_lazyGenericClosureDispatchWorksInLua.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("Lazy_lazy_Test.Lazy_retrieve ="));
+        assertContainsRegex(compiled, "Lazy_(?:L\\d+_C\\d+_)?lazy_Test\\.Lazy_retrieve\\s*=");
         assertTrue(compiled.contains("Lazy_Lazy_get(l)") || compiled.contains("l:Lazy_get()"));
     }
 
@@ -1867,8 +1873,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_configEntrypointNotRenamedWhenUserHasConfigFunction.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("function config("));
         assertFalse(compiled.contains("function config2("));
-        assertTrue(compiled.contains("function config1("));
-        assertTrue(compiled.contains("config1()"));
+        assertTrue(compiled.contains("function config1(") || compiled.contains("function Test__config("));
+        assertTrue(compiled.contains("config1()") || compiled.contains("Test__config()"));
     }
 
     @Test
@@ -2132,7 +2138,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             Charsets.UTF_8);
         assertContainsRegex(compiled,
             "__wurst_objectClass(?:_local\\d*)?\\[[^\\]]+\\]\\.__wurst_dispatch_test\\(");
-        assertContainsRegex(compiled, "Predicate_matches_test\\.__wurst_dispatch_test\\s*=");
+        assertContainsRegex(compiled, "Predicate_(?:L\\d+_C\\d+_)?matches_test\\.__wurst_dispatch_test\\s*=");
         assertContainsRegex(compiled, "Impl\\.__wurst_dispatch_test\\s*=");
         assertDoesNotContainRegex(compiled,
             "__wurst_objectClass(?:_local\\d*)?\\[[^\\]]+\\]\\.Predicate_test");
@@ -3761,9 +3767,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         assertFalse(compiled.contains("debug.traceback"));
         assertContainsRegex(compiled,
-            "function\\s+error1\\([^\\)]*__wurst_stackPos");
+            "function\\s+(?:\\w+__)?error\\w*\\([^\\)]*__wurst_stackPos");
         assertContainsRegex(compiled,
-            "error1\\(tostring\\(err\\), \\\"in lua callback error handler\\\"\\)");
+            "(?:\\w+__)?error\\w*\\(tostring\\(err\\), \\\"in lua callback error handler\\\"\\)");
     }
 
     @Test
@@ -3827,7 +3833,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    let p = caller(f)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaInlinerKeepsCallbackFuncRefFunctionsAsCallBoundary.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "function\\s+caller\\s*\\([^\\)]*\\)\\s+return\\s+pick\\([^\\)]*\\)\\s+end");
+        assertContainsRegex(compiled, "function\\s+(?:\\w+__)?caller\\s*\\([^\\)]*\\)\\s+return\\s+(?:\\w+__)?pick\\([^\\)]*\\)\\s+end");
     }
 
     @Test
@@ -4017,14 +4023,14 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_closureEventsHandleGetHandleIdUsesNativeGetHandleIdInLua.lua"), Charsets.UTF_8);
 
-        assertContainsRegex(compiled, "function\\s+handle_getHandleId\\s*\\(");
+        assertContainsRegex(compiled, "function\\s+(?:\\w+__)?handle_getHandleId\\s*\\(");
         String helperBody = getFunctionBody(compiled, "handle_getHandleId");
         assertTrue(helperBody.contains("return GetHandleId("));
         assertFalse(helperBody.contains("__wurst_GetHandleId("));
-        assertContainsRegex(compiled, "eventid_toIntId\\(GetTriggerEventId\\(\\)\\)");
-        assertContainsRegex(compiled, "function\\s+eventid_isPlayerunitEvent\\s*\\(");
-        assertContainsRegex(compiled, "registerPlayerUnitEvent1\\(ConvertPlayerUnitEvent\\(eventId\\)");
-        assertContainsRegex(compiled, "eventId\\s*=\\s*handle_getHandleId\\(evnt\\)");
+        assertContainsRegex(compiled, "(?:\\w+__)?eventid_toIntId\\(GetTriggerEventId\\(\\)\\)");
+        assertContainsRegex(compiled, "function\\s+(?:\\w+__)?eventid_isPlayerunitEvent\\s*\\(");
+        assertContainsRegex(compiled, "(?:\\w+__)?registerPlayerUnitEvent\\w*\\(ConvertPlayerUnitEvent\\(eventId\\)");
+        assertContainsRegex(compiled, "eventId\\s*=\\s*(?:\\w+__)?handle_getHandleId\\(evnt\\)");
         assertDoesNotContainRegex(compiled, "__wurst_GetHandleId\\(evnt\\)");
         assertDoesNotContainRegex(compiled, "__wurst_GetHandleId\\(GetTriggerEventId\\(\\)\\)");
     }
@@ -4045,11 +4051,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_closureEventsEventIdCompatDoesNotUseOpaqueHandleShimInLua.lua"), Charsets.UTF_8);
 
-        assertContainsRegex(compiled, "function\\s+handle_getHandleId\\s*\\(");
+        assertContainsRegex(compiled, "function\\s+(?:\\w+__)?handle_getHandleId\\s*\\(");
         String helperBody = getFunctionBody(compiled, "handle_getHandleId");
         assertTrue(helperBody.contains("return GetHandleId("));
         assertFalse(helperBody.contains("__wurst_GetHandleId("));
-        assertDoesNotContainRegex(compiled, "function\\s+handle_getHandleId\\s*\\([^\\)]*\\)\\s*\\n\\s*return\\s+__wurst_GetHandleId\\(");
+        assertDoesNotContainRegex(compiled, "function\\s+(?:\\w+__)?handle_getHandleId\\s*\\([^\\)]*\\)\\s*\\n\\s*return\\s+__wurst_GetHandleId\\(");
         assertContainsRegex(compiled, "=\\s*__wurst_GetHandleId\\(");
     }
 
@@ -4069,9 +4075,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_registerEventsSpellCastKeepsNativeEventHandleIdsWhileUnitHandlesStayShimmedInLua.lua"), Charsets.UTF_8);
 
-        assertContainsRegex(compiled, "registerPlayerUnitEvent\\(EVENT_PLAYER_UNIT_SPELL_CAST");
-        assertContainsRegex(compiled, "function\\s+registerPlayerUnitEvent\\s*\\(");
-        assertContainsRegex(compiled, "hid\\s*=\\s*handle_getHandleId\\(");
+        assertContainsRegex(compiled, "(?:\\w+__)?registerPlayerUnitEvent\\(EVENT_PLAYER_UNIT_SPELL_CAST");
+        assertContainsRegex(compiled, "function\\s+(?:\\w+__)?registerPlayerUnitEvent\\s*\\(");
+        assertContainsRegex(compiled, "hid\\s*=\\s*(?:\\w+__)?handle_getHandleId\\(");
         String helperBody = getFunctionBody(compiled, "handle_getHandleId");
         assertTrue(helperBody.contains("return GetHandleId("));
         assertFalse(helperBody.contains("__wurst_GetHandleId("));

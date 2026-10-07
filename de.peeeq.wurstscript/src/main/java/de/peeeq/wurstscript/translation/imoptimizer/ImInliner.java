@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
+import org.eclipse.jdt.annotation.Nullable;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
@@ -806,6 +807,8 @@ public class ImInliner {
     private enum Refusal {
         NATIVE("native"),
         EXECUTE_CALL("execute_call"),
+        /** -incremental keeps every package's code independent of the others, so calls never cross a package. */
+        INCREMENTAL_PACKAGE_BOUNDARY("incremental_package_boundary"),
         LUA_CALLBACK_FUNCREF_BARRIER("lua_callback_funcref_barrier"),
         LOCAL_PLAYER_CONTEXT_BARRIER("local_player_context_barrier"),
         LUA_TYPECASTING_COMPAT("lua_typecasting_compat"),
@@ -835,6 +838,13 @@ public class ImInliner {
         }
         if (call.getCallType() == CallType.EXECUTE) {
             return Refusal.EXECUTE_CALL;
+        }
+        if (translator.isIncremental()) {
+            de.peeeq.wurstscript.ast.WPackage callerPkg = getPackage(caller);
+            de.peeeq.wurstscript.ast.WPackage calledPkg = getPackage(f);
+            if (callerPkg != calledPkg) {
+                return Refusal.INCREMENTAL_PACKAGE_BOUNDARY;
+            }
         }
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             // Functions that build callback refs are lowered with Lua-specific wrappers/xpcall.
@@ -892,6 +902,17 @@ public class ImInliner {
         return function == translator.luaIntDivFunc
             || function == translator.luaModIntFunc
             || function == translator.luaModRealFunc;
+    }
+
+    private static de.peeeq.wurstscript.ast.@Nullable WPackage getPackage(ImFunction func) {
+        de.peeeq.wurstscript.ast.Element trace = func.getTrace();
+        if (trace != null) {
+            de.peeeq.wurstscript.ast.PackageOrGlobal p = trace.attrNearestPackage();
+            if (p instanceof de.peeeq.wurstscript.ast.WPackage) {
+                return (de.peeeq.wurstscript.ast.WPackage) p;
+            }
+        }
+        return null;
     }
 
     private static int backendGeneratedLuaLocals(ImFunction function) {

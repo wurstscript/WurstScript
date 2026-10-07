@@ -3,12 +3,19 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -298,6 +305,519 @@ public class DeterministicChecks extends WurstScriptTest {
 
         assertEquals(hashStd1, hashStd2, "SHA-256 hash must be identical across shuffled compilation unit order");
         assertEquals(outputStd1, outputStd2, "Output must be bit-for-bit identical across shuffled compilation unit order");
+
+        // 2. Incremental Lua translation: Shuffled order with disk chunk cache
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_shuffled").toFile();
+        try {
+            // Cold build with order [B, C, A, E, D]
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuB, cuC, cuA, cuE, cuD);
+            String outputInc1 = Files.toString(outFile, Charsets.UTF_8);
+            String hashInc1 = Hashing.sha256().hashString(outputInc1, Charsets.UTF_8).toString();
+
+            // Re-run with reverse order [D, E, A, C, B]
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuD, cuE, cuA, cuC, cuB);
+            String outputInc2 = Files.toString(outFile, Charsets.UTF_8);
+            String hashInc2 = Hashing.sha256().hashString(outputInc2, Charsets.UTF_8).toString();
+
+            assertEquals(hashInc1, hashInc2, "Incremental build SHA-256 hash must be identical across shuffled compilation unit order");
+            assertEquals(outputInc1, outputInc2, "Incremental build output must be bit-for-bit identical across shuffled compilation unit order");
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void packageFunctionAndClosureNamingIsDeterministic() throws IOException {
+        test().testLua(true).compilationUnits(
+            compilationUnit("PkgA.wurst",
+                "package PkgA",
+                "interface Callback",
+                "    function run()",
+                "public function update()",
+                "    Callback cb = () -> begin",
+                "        int x = 1",
+                "    end",
+                "    cb.run()",
+                "init",
+                "    update()"
+            ),
+            compilationUnit("PkgB.wurst",
+                "package PkgB",
+                "public function update()",
+                "init",
+                "    update()"
+            )
+        );
+
+        String output = Files.toString(new File("test-output/lua/DeterministicChecks_packageFunctionAndClosureNamingIsDeterministic.lua"), Charsets.UTF_8);
+        AssertJUnit.assertTrue(output.contains("PkgA__update"));
+        AssertJUnit.assertTrue(output.contains("PkgB__update"));
+        AssertJUnit.assertTrue(output.contains("Callback_PkgA"));
+    }
+
+    @Test
+    public void modularChunkEmissionAndRapidAssembly() throws IOException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_test1").toFile();
+        try {
+            test().incremental().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(
+                compilationUnit("PkgA.wurst",
+                    "package PkgA",
+                    "public function calc(int x) returns int",
+                    "    return x * 2",
+                    "init",
+                    "    calc(5)"
+                ),
+                compilationUnit("PkgB.wurst",
+                    "package PkgB",
+                    "import PkgA",
+                    "public function run() returns int",
+                    "    return calc(10) + 1",
+                    "init",
+                    "    run()"
+                )
+            );
+
+            File[] cachedFiles = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedFiles);
+            AssertJUnit.assertTrue(cachedFiles.length >= 2);
+            boolean hasPkgA = false;
+            boolean hasPkgB = false;
+            for (File f : cachedFiles) {
+                if (f.getName().startsWith("PkgA_")) hasPkgA = true;
+                if (f.getName().startsWith("PkgB_")) hasPkgB = true;
+            }
+            AssertJUnit.assertTrue(hasPkgA);
+            AssertJUnit.assertTrue(hasPkgB);
+
+            String output = Files.toString(new File("test-output/lua/DeterministicChecks_modularChunkEmissionAndRapidAssembly.lua"), Charsets.UTF_8);
+            AssertJUnit.assertTrue(output.contains("PkgA__calc"));
+            AssertJUnit.assertTrue(output.contains("PkgB__run"));
+            AssertJUnit.assertTrue(output.contains("__wurst_init_bootstrap"));
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void incrementalBuildAchievesFullCacheHitAndBitExactOutput() throws IOException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_test2").toFile();
+        try {
+            CU cuA = compilationUnit("PkgA.wurst",
+                "package PkgA",
+                "public function calc(int x) returns int",
+                "    return x * 2",
+                "init",
+                "    calc(5)"
+            );
+            CU cuB = compilationUnit("PkgB.wurst",
+                "package PkgB",
+                "import PkgA",
+                "public function run() returns int",
+                "    return calc(10) + 1",
+                "init",
+                "    run()"
+            );
+
+            // Run 1: Cold build - populate cache
+            test().incremental().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuA, cuB);
+            File outFile = new File("test-output/lua/DeterministicChecks_incrementalBuildAchievesFullCacheHitAndBitExactOutput.lua");
+            String output1 = Files.toString(outFile, Charsets.UTF_8);
+
+            // Record modification timestamps of cached chunks
+            File[] cachedFiles = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedFiles);
+            AssertJUnit.assertEquals(2, cachedFiles.length);
+            Map<String, Long> timestamps = new HashMap<>();
+            for (File f : cachedFiles) {
+                timestamps.put(f.getName(), f.lastModified());
+            }
+
+            // Run 2: Warm build with identical source
+            test().incremental().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuA, cuB);
+            String output2 = Files.toString(outFile, Charsets.UTF_8);
+
+            // Verify bit-exact reproducible output
+            assertEquals(output1, output2);
+
+            // Verify cache files were not overwritten (full cache hit)
+            for (File f : cachedFiles) {
+                assertEquals((long) timestamps.get(f.getName()), f.lastModified());
+            }
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void packageModificationCausesCacheMissOnlyForModifiedPackage() throws IOException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_test3").toFile();
+        try {
+            CU cuA = compilationUnit("PkgA.wurst",
+                "package PkgA",
+                "public function funcA() returns int",
+                "    return 1",
+                "init",
+                "    funcA()"
+            );
+            CU cuB1 = compilationUnit("PkgB.wurst",
+                "package PkgB",
+                "public function funcB() returns int",
+                "    return 10",
+                "init",
+                "    funcB()"
+            );
+            CU cuC = compilationUnit("PkgC.wurst",
+                "package PkgC",
+                "public function funcC() returns int",
+                "    return 100",
+                "init",
+                "    funcC()"
+            );
+
+            // Build 1: Cold build
+            test().incremental().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuA, cuB1, cuC);
+
+            File[] cachedFiles1 = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedFiles1);
+            AssertJUnit.assertEquals(3, cachedFiles1.length);
+            String pkgAFile = null;
+            String pkgCFile = null;
+            for (File f : cachedFiles1) {
+                if (f.getName().startsWith("PkgA_")) pkgAFile = f.getName();
+                if (f.getName().startsWith("PkgC_")) pkgCFile = f.getName();
+            }
+            AssertJUnit.assertNotNull(pkgAFile);
+            AssertJUnit.assertNotNull(pkgCFile);
+
+            // Build 2: Modify only PkgB
+            CU cuB2 = compilationUnit("PkgB.wurst",
+                "package PkgB",
+                "public function funcB() returns int",
+                "    return 20",
+                "init",
+                "    funcB()"
+            );
+            test().incremental().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuA, cuB2, cuC);
+
+            // Verify PkgA and PkgC cache files are still intact
+            AssertJUnit.assertTrue(new File(tempCacheDir, pkgAFile).exists());
+            AssertJUnit.assertTrue(new File(tempCacheDir, pkgCFile).exists());
+
+            String output = Files.toString(new File("test-output/lua/DeterministicChecks_packageModificationCausesCacheMissOnlyForModifiedPackage.lua"), Charsets.UTF_8);
+            AssertJUnit.assertTrue(output.contains("PkgB__funcB"));
+            AssertJUnit.assertTrue(output.contains("20"));
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void incrementalDisablesCrossPackageInliningAndDce() throws IOException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_test4").toFile();
+        try {
+            CU cuLib = compilationUnit("Lib.wurst",
+                "package Lib",
+                "public function leafCalc(int x) returns int",
+                "    return x + 42",
+                "public function unusedHelper() returns int",
+                "    return 999",
+                "init",
+                "    leafCalc(1)"
+            );
+            CU cuMain = compilationUnit("Main.wurst",
+                "package Main",
+                "import Lib",
+                "public function run() returns int",
+                "    return leafCalc(10)",
+                "init",
+                "    run()"
+            );
+
+            // Incremental build with inlining enabled (-incremental -inline)
+            test().incremental().inline().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuLib, cuMain);
+
+            String output = Files.toString(new File("test-output/lua/DeterministicChecks_incrementalDisablesCrossPackageInliningAndDce.lua"), Charsets.UTF_8);
+            // 1. Cross-package function call is NOT inlined
+            AssertJUnit.assertTrue("Cross-package call to leafCalc should not be inlined",
+                output.contains("Lib__leafCalc(10)"));
+            // 2. Dead code elimination is disabled: unusedHelper is preserved
+            AssertJUnit.assertTrue("Unused function should be retained in incremental mode",
+                output.contains("Lib__unusedHelper"));
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void modularLuaAssemblyExecutesCorrectly() throws IOException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_test5").toFile();
+        try {
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(
+                compilationUnit("PkgA.wurst",
+                    "package PkgA",
+                    "public interface Greeter",
+                    "    function greet() returns string",
+                    "public class FriendlyGreeter implements Greeter",
+                    "    override function greet() returns string",
+                    "        return \"hello\"",
+                    "init",
+                    "    Greeter g = new FriendlyGreeter()",
+                    "    destroy g"
+                ),
+                compilationUnit("PkgB.wurst",
+                    "package PkgB",
+                    "import PkgA",
+                    "native testSuccess()",
+                    "init",
+                    "    Greeter g = new FriendlyGreeter()",
+                    "    if g.greet() == \"hello\"",
+                    "        testSuccess()",
+                    "    destroy g"
+                )
+            );
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void incrementalRebuildBenchmarkingAndSelectiveInvalidation() throws IOException, InterruptedException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_bench_cache").toFile();
+        try {
+            CU cuMath = compilationUnit("LibMath.wurst",
+                "package LibMath",
+                "public function calcSquare(int x) returns int",
+                "    return x * x",
+                "public function calcCube(int x) returns int",
+                "    return x * x * x"
+            );
+            CU cuString = compilationUnit("LibString.wurst",
+                "package LibString",
+                "public function wrapTag(string tag, string content) returns string",
+                "    return \"<\" + tag + \">\" + content + \"</\" + tag + \">\""
+            );
+            CU cuEntity = compilationUnit("LibEntity.wurst",
+                "package LibEntity",
+                "public interface Entity",
+                "    function getScore() returns int",
+                "public class UnitEntity implements Entity",
+                "    int kills = 5",
+                "    override function getScore() returns int",
+                "        return kills * 10"
+            );
+            CU cuLogicV1 = compilationUnit("GameLogic.wurst",
+                "package GameLogic",
+                "import LibMath",
+                "import LibString",
+                "import LibEntity",
+                "public function computeBonus() returns int",
+                "    return 42",
+                "public function evaluateGame() returns int",
+                "    Entity e = new UnitEntity()",
+                "    int s = e.getScore() + calcSquare(3) + computeBonus()",
+                "    destroy e",
+                "    return s"
+            );
+            CU cuMain = compilationUnit("Main.wurst",
+                "package Main",
+                "import GameLogic",
+                "import LibString",
+                "native testSuccess()",
+                "init",
+                "    int total = evaluateGame()",
+                "    string tag = wrapTag(\"score\", \"ok\")",
+                "    if total > 0 and tag == \"<score>ok</score>\"",
+                "        testSuccess()"
+            );
+
+            // 1. Cold build: populate chunk cache for all 5 packages
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath())
+                .compilationUnits(cuMath, cuString, cuEntity, cuLogicV1, cuMain);
+
+            File[] cachedChunks1 = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedChunks1);
+            AssertJUnit.assertEquals(5, cachedChunks1.length);
+
+            Map<String, Long> timestamps1 = new HashMap<>();
+            Map<String, String> hashes1 = new HashMap<>();
+            String logicChunkName1 = null;
+            for (File f : cachedChunks1) {
+                timestamps1.put(f.getName(), f.lastModified());
+                hashes1.put(f.getName(), Files.asByteSource(f).hash(Hashing.sha256()).toString());
+                if (f.getName().startsWith("GameLogic_")) {
+                    logicChunkName1 = f.getName();
+                }
+            }
+            AssertJUnit.assertNotNull("GameLogic chunk must be present in cache", logicChunkName1);
+
+            // Verify cold build output
+            File outFile = new File("test-output/lua/DeterministicChecks_incrementalRebuildBenchmarkingAndSelectiveInvalidation.lua");
+            String outputV1 = Files.toString(outFile, Charsets.UTF_8);
+            AssertJUnit.assertTrue(outputV1.contains("42"));
+
+            // Sleep briefly to ensure filesystem timestamp resolution ticks
+            Thread.sleep(60);
+
+            // 2. Warm rebuild: Modify ONLY the function body of computeBonus in GameLogic
+            CU cuLogicV2 = compilationUnit("GameLogic.wurst",
+                "package GameLogic",
+                "import LibMath",
+                "import LibString",
+                "import LibEntity",
+                "public function computeBonus() returns int",
+                "    return 100",
+                "public function evaluateGame() returns int",
+                "    Entity e = new UnitEntity()",
+                "    int s = e.getScore() + calcSquare(3) + computeBonus()",
+                "    destroy e",
+                "    return s"
+            );
+
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath())
+                .compilationUnits(cuMath, cuString, cuEntity, cuLogicV2, cuMain);
+
+            // 3. Cache hit/miss validation (timing assertions need a baseline to mean anything)
+            File[] cachedChunks2 = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedChunks2);
+            // Cache contains 6 files: 4 untouched packages + old GameLogic chunk + new GameLogic chunk
+            AssertJUnit.assertEquals(6, cachedChunks2.length);
+
+            // All untouched packages (LibMath, LibString, LibEntity, Main) must hit the cache exactly
+            int touchedCount = 0;
+            int untouchedHitCount = 0;
+            for (File f : cachedChunks2) {
+                String name = f.getName();
+                if (name.startsWith("GameLogic_")) {
+                    touchedCount++;
+                } else {
+                    untouchedHitCount++;
+                    // Must be an exact cache hit (same timestamp and same content hash)
+                    AssertJUnit.assertEquals("Untouched chunk " + name + " must maintain same timestamp (cache hit)",
+                        timestamps1.get(name), (Long) f.lastModified());
+                    AssertJUnit.assertEquals("Untouched chunk " + name + " must have identical hash (cache hit)",
+                        hashes1.get(name), Files.asByteSource(f).hash(Hashing.sha256()).toString());
+                }
+            }
+            AssertJUnit.assertEquals("Should have 2 chunks for modified package (old and new)", 2, touchedCount);
+            AssertJUnit.assertEquals("Should have 4 exact chunk cache hits for untouched packages", 4, untouchedHitCount);
+
+            // 5. Output lua must reflect the updated function body
+            String outputV2 = Files.toString(outFile, Charsets.UTF_8);
+            AssertJUnit.assertTrue("Rebuilt script should contain updated value 100", outputV2.contains("100"));
+
+            // 6. The partially-cached warm rebuild must agree byte-for-byte with a clean
+            // rebuild of the same sources: reusing 4 chunks must not change the program.
+            File cleanCacheDir = java.nio.file.Files.createTempDirectory("wurst_bench_clean").toFile();
+            try {
+                test().incremental().executeProg().cachePath(cleanCacheDir.getAbsolutePath())
+                    .compilationUnits(cuMath, cuString, cuEntity, cuLogicV2, cuMain);
+                String outputClean = Files.toString(outFile, Charsets.UTF_8);
+                AssertJUnit.assertEquals("Warm rebuild with cache hits must agree with a clean build",
+                    outputClean, outputV2);
+            } finally {
+                de.peeeq.wurstio.utils.FileUtils.deleteRecursively(cleanCacheDir);
+            }
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    /**
+     * The preamble pre-scan collects shared-helper triggers (array metatables, tuple
+     * helpers, callback adapters) in whole-program walk order and breaks sort-key ties
+     * by encounter order. It used to collect callbacks into an identity-hash set and
+     * sort by {@code package#function}, so targets sharing that key (generated same-name
+     * wrappers, e.g. Castle Fight's {@code AbilityFieldRegistry} adapters) were ordered by
+     * identity-hash iteration and two cold builds disagreed on adapter order and numeric
+     * suffixes. Fresh compilers with perturbed allocation histories in between must still
+     * agree byte-for-byte.
+     *
+     * <p>Verification boundary, stated plainly: HotSpot identity hashes repeat for
+     * identical allocation sequences, so same-key ties cannot be made to diverge within
+     * one JVM and this test locks the post-fix invariant rather than reproducing the old
+     * failure. The pre-fix divergence was demonstrated out-of-band by two cold builds of
+     * Castle Fight differing in adapter order and suffixes; re-measuring that map is the
+     * acceptance for this fix.
+     */
+    @Test
+    public void sharedHelperAdapterOrderIsStableAcrossFreshCompiles() throws IOException {
+        String[] fixture = {
+            "package Test",
+            "@extern native Callback(code c) returns int",
+            "function alpha() returns int",
+            "    return 1",
+            "function mike() returns int",
+            "    return 2",
+            "function zebra() returns int",
+            "    return 3",
+            "int array counters",
+            "tuple Point(int x, int y)",
+            "module M",
+            "    function reg()",
+            "        Callback(() -> skip)",
+            "class A",
+            "    use M",
+            "class B",
+            "    use M",
+            "init",
+            "    Callback(function zebra)",
+            "    Callback(function alpha)",
+            "    Callback(function mike)",
+            "    counters[0] = 1",
+            "    Point p = Point(1, 2)",
+            "    new A().reg()",
+            "    new B().reg()"
+        };
+        String first = compileIncrementalToString(fixture);
+        perturbAllocator();
+        String second = compileIncrementalToString(fixture);
+        perturbAllocator();
+        String third = compileIncrementalToString(fixture);
+        AssertJUnit.assertTrue("fixture must exercise the shared-helper pre-scan",
+            first.contains("__wurst_callback_"));
+        AssertJUnit.assertEquals("second fresh compile must agree byte-for-byte", first, second);
+        AssertJUnit.assertEquals("third fresh compile must agree byte-for-byte", first, third);
+    }
+
+    /** An unrelated compile plus a GC in between so fresh identity hashes cannot repeat trivially. */
+    private void perturbAllocator() {
+        testAssertOkLines(false,
+            "package Perturb",
+            "native testSuccess()",
+            "function p(int x) returns int",
+            "    return x * 2",
+            "init",
+            "    if p(21) == 42",
+            "        testSuccess()");
+        System.gc();
+    }
+
+    private String compileIncrementalToString(String... lines) throws IOException {
+        File cacheDir = java.nio.file.Files.createTempDirectory("wurst_det_").toFile();
+        try {
+            RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
+                "-incremental", "-cachePath", cacheDir.getAbsolutePath());
+            WurstGui gui = new WurstGuiCliImpl();
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(
+                new TimeTaker.Default(), null, gui, null, runArgs);
+            compiler.loadReader("Det.wurst", new StringReader(String.join("\n", lines)));
+            WurstModel model = compiler.parseFiles();
+            AssertJUnit.assertNotNull("parse failed: " + gui.getErrorList(), model);
+            AssertJUnit.assertTrue("parse errors: " + gui.getErrorList(),
+                gui.getErrorList().isEmpty());
+            compiler.checkProg(model);
+            AssertJUnit.assertTrue("check errors: " + gui.getErrorList(),
+                gui.getErrorList().isEmpty());
+            compiler.translateProgToIm(model);
+            compiler.runCompiletime(org.wurstscript.projectconfig.WurstProjectConfigData.empty(),
+                false, false);
+            compiler.transformProgToLua();
+            String script = compiler.getCompiledLuaScript();
+            AssertJUnit.assertNotNull("incremental build produced no script", script);
+            return script;
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(cacheDir);
+        }
     }
 
 }

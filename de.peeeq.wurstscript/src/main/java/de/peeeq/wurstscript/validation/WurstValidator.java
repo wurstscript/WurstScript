@@ -25,6 +25,7 @@ import io.vavr.Tuple2;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,14 +56,20 @@ public class WurstValidator {
     private final WurstModel prog;
     private int functionCount;
     private int visitedFunctions;
-    private final Multimap<WScope, WScope> calledFunctions = HashMultimap.create();
     private @Nullable Element lastElement = null;
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
     private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
     private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
-    private NamePreservation.RuntimeNameIndex runtimeNameIndex;
+    private NamePreservation.@Nullable RuntimeNameIndex runtimeNameIndex = null;
+
+    private NamePreservation.RuntimeNameIndex getRuntimeNameIndex() {
+        if (runtimeNameIndex == null) {
+            runtimeNameIndex = NamePreservation.indexGlobals(prog);
+        }
+        return runtimeNameIndex;
+    }
     private boolean moduleFieldCopiesIndexed;
 
     /**
@@ -81,27 +88,67 @@ public class WurstValidator {
         this.legacyJassTypeChecks = legacyJassTypeChecks;
     }
 
+    private boolean quickMode = false;
+    private @Nullable File cacheDir = null;
+    private @Nullable ValidationCache validationCache = null;
+    private @Nullable Set<CompilationUnit> cachedUnitsToWalk = null;
+
+    public void setQuickMode(boolean quickMode) {
+        this.quickMode = quickMode;
+    }
+
+    public void setCacheDir(@Nullable File cacheDir) {
+        this.cacheDir = cacheDir;
+        this.validationCache = (cacheDir != null) ? new ValidationCache(cacheDir) : null;
+    }
+
+    public @Nullable Set<CompilationUnit> getUnitsToWalk(Collection<CompilationUnit> toCheck) {
+        if (cachedUnitsToWalk == null && quickMode && validationCache != null) {
+            cachedUnitsToWalk = validationCache.filterUnitsToWalk(toCheck);
+        }
+        return cachedUnitsToWalk;
+    }
+
     public void validate(Collection<CompilationUnit> toCheck) {
         try {
-            functionCount = countFunctions(toCheck);
+            functionCount = quickMode ? 1 : countFunctions(toCheck);
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
             guaranteedClassFieldInitCache.clear();
             moduleFieldCopiesCache.clear();
             moduleFieldCopiesIndexed = false;
+            long tPre0 = System.currentTimeMillis();
             trveWrapperFuncs.clear();
             wrapperCalls.clear();
             NamePreservation.clearSyntheticMarkers(prog);
             runtimeNameIndex = NamePreservation.indexGlobals(prog);
             recomputeTrvePreservation();
 
+            long t0 = System.currentTimeMillis();
             lightValidation(toCheck);
+            long tLight = System.currentTimeMillis();
 
             heavyValidation();
+            long tHeavy = System.currentTimeMillis();
 
             prog.getErrorHandler().setProgress("Post checks", 0.55);
             postChecks(toCheck);
+            long tPost = System.currentTimeMillis();
+
+            if (quickMode && validationCache != null && prog.getErrorHandler().getErrorCount() == 0) {
+                Collection<CompilationUnit> toUpdate = (cachedUnitsToWalk != null) ? cachedUnitsToWalk : toCheck;
+                for (CompilationUnit cu : toUpdate) {
+                    if (!cu.getCuInfo().isLibrary()) {
+                        validationCache.update(cu);
+                    }
+                }
+                validationCache.save();
+            }
+            long tEnd = System.currentTimeMillis();
+
+            WLogger.info(String.format("WurstValidator timings: pre=%dms, light=%dms, heavy=%dms, postChecks=%dms, cacheSave=%dms, total=%dms (toCheck=%d)",
+                t0 - tPre0, tLight - t0, tHeavy - tLight, tPost - tHeavy, tEnd - tPost, tEnd - tPre0, toCheck.size()));
 
         } catch (RuntimeException e) {
             WLogger.severe(e);
@@ -126,11 +173,14 @@ public class WurstValidator {
             // returns + DFA
             checkUninitializedVars(f);
 
-            // reachability: walk only the function body statements
-            Element body = (f instanceof FunctionImplementation)
-                ? ((FunctionImplementation) f).getBody()
-                : f; // closures use ExprStatementsBlock path below
-            walkReachability(body);
+            boolean isAbstract = (f instanceof FuncDef) && ((FuncDef) f).attrIsAbstract();
+            if (!isAbstract) {
+                // reachability: walk only the function body statements
+                Element body = (f instanceof FunctionImplementation)
+                    ? ((FunctionImplementation) f).getBody()
+                    : f; // closures use ExprStatementsBlock path below
+                walkReachability(body);
+            }
         }
 
         // closure blocks collected for DFA
@@ -146,7 +196,20 @@ public class WurstValidator {
         prog.getErrorHandler().setProgress("Validation (light)",
             ProgressHelper.getValidatorPercent(0, Math.max(1, functionCount)));
 
-        for (CompilationUnit cu : toCheck) {
+        Collection<CompilationUnit> unitsToWalk = (quickMode && validationCache != null)
+            ? getUnitsToWalk(toCheck)
+            : toCheck;
+
+        if (unitsToWalk == null) {
+            unitsToWalk = toCheck;
+        }
+
+        if (quickMode && validationCache != null) {
+            WLogger.info(String.format("Incremental validation: walking %d of %d CUs", unitsToWalk.size(), toCheck.size()));
+        }
+
+        // No library exemption: the filter already excludes unchanged units.
+        for (CompilationUnit cu : unitsToWalk) {
             walkTree(cu);
         }
     }
@@ -1723,10 +1786,11 @@ public class WurstValidator {
     }
 
     private void visit(FuncDef func) {
-        visitedFunctions++;
-        func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-
-        checkFunctionName(func);
+        if (!quickMode) {
+            visitedFunctions++;
+            func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
+            checkFunctionName(func);
+        }
         if (func.attrIsAbstract()) {
             if (!func.attrHasEmptyBody()) {
                 func.addError("Abstract function " + func.getName() + " must not have a body.");
@@ -2574,7 +2638,7 @@ public class WurstValidator {
     private void visit(ExprMemberMethod stmtCall) {
         // calculating the exprType should reveal all errors:
         stmtCall.attrTyp();
-        if (stmtCall.attrCompilationUnit().getCuInfo().isLibrary()) {
+        if (quickMode || stmtCall.attrCompilationUnit().getCuInfo().isLibrary()) {
             return;
         }
         if (!(stmtCall instanceof ExprMemberMethodDot)
@@ -2737,7 +2801,7 @@ public class WurstValidator {
     }
 
     private void checkTypeName(Element source, String name) {
-        if (!Character.isUpperCase(name.charAt(0))) {
+        if (!quickMode && !Character.isUpperCase(name.charAt(0))) {
             source.addWarning("Type names should start with upper case characters.");
         }
     }
@@ -2779,7 +2843,6 @@ public class WurstValidator {
         if (c.isStaticRef()) {
             stmtDestroy.addError("Cannot destroy class " + c);
         }
-        calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy());
     }
 
     private void visit(ExprVarAccess e) {
@@ -3296,13 +3359,6 @@ public class WurstValidator {
             return;
         }
         checkJassAccessingWurstSymbol(ref, called.getDef());
-        WScope scope = ref.attrNearestFuncDef();
-        if (scope == null) {
-            scope = ref.attrNearestScope();
-        }
-        if (!(ref instanceof ExprFuncRef)) { // ExprFuncRef is not a direct call
-            calledFunctions.put(scope, called.getDef());
-        }
     }
 
     /**
@@ -3331,7 +3387,7 @@ public class WurstValidator {
     }
 
     private void checkNameRefDeprecated(Element trace, NameDef def) {
-        if (def != null && def.hasAnnotation("@deprecated")) {
+        if (!quickMode && def != null && def.hasAnnotation("@deprecated")) {
             Annotation annotation = def.getAnnotation("@deprecated");
             String msg = annotation.getAnnotationMessage();
             msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg;
@@ -3649,7 +3705,6 @@ public class WurstValidator {
     private void checkNewObj(ExprNewObject e) {
         ConstructorDef constr = e.attrConstructorDef();
         if (constr != null) {
-            calledFunctions.put(e.attrNearestScope(), constr);
             if (constr.attrNearestClassDef().attrIsAbstract()) {
                 e.addError("Cannot create an instance of the abstract class " + constr.attrNearestClassDef().getName());
                 return;
@@ -3854,7 +3909,7 @@ public class WurstValidator {
     }
 
     private void preserveVariableName(String variableName) {
-        runtimeNameIndex.preserve(variableName);
+        getRuntimeNameIndex().preserve(variableName);
     }
 
     private boolean isViableSwitchtype(Expr expr) {

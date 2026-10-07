@@ -135,7 +135,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         } else {
             this.w3data = getBestW3InstallationData();
         }
-        if (runArgs.isMeasureTimes()) {
+        if (runArgs.isMeasureTimes() || runArgs.isIncremental()) {
             this.timeTaker = new TimeTaker.Recording();
         } else {
             this.timeTaker = new TimeTaker.Default();
@@ -172,7 +172,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             purgeUnimportedFiles(modelManager, model);
 
             gui.sendProgress("Check program");
-            compiler.checkProg(model);
+            timeTaker.measure("Check program", () -> compiler.checkProg(model));
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
@@ -203,10 +203,14 @@ public abstract class MapRequest extends UserRequest<Object> {
                     throw new RuntimeException("Could not compile project (error in LUA translation)");
                 }
 
-                StringBuilder sb = new StringBuilder();
-                luaCode.get().print(sb, 0);
-
-                String compiledMapScript = sb.toString();
+                String compiledMapScript;
+                if (compiler.getCompiledLuaScript() != null) {
+                    compiledMapScript = compiler.getCompiledLuaScript();
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    luaCode.get().print(sb, 0);
+                    compiledMapScript = sb.toString();
+                }
                 LuaTranslator.assertNoLeakedHashtableNativeCalls(compiledMapScript);
                 LuaTranslator.assertNoLeakedGetHandleIdCalls(compiledMapScript);
                 File buildDir = getBuildDir();
@@ -257,6 +261,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new RuntimeException(e);
         }
     }
+
+
 
     protected File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
         File buildDir = getBuildDir();
@@ -386,12 +392,20 @@ public abstract class MapRequest extends UserRequest<Object> {
             WLogger.debug("dep: " + dep.getPath());
         }
         print("Dependencies done.");
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && rebuildModelBeforeCompile) {
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && rebuildModelBeforeCompile && !runArgs.isIncremental()) {
             // it is safer to rebuild the project, instead of taking the current editor state
             gui.sendProgress("Cleaning project");
             modelManager.clean();
             gui.sendProgress("Building project");
             modelManager.buildProject();
+        } else if (runArgs.isIncremental()) {
+            if (modelManager.getModel() == null) {
+                gui.sendProgress("Building project");
+                modelManager.buildProject(false);
+            } else {
+                gui.sendProgress("Syncing project files");
+                modelManager.syncProjectFiles();
+            }
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
@@ -749,7 +763,6 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
             }
 
-            // CRITICAL: Import files into THIS mpq editor instance
             gui.sendProgress("Importing resource files");
             timeTaker.beginPhase("Importing files");
             try {
@@ -794,18 +807,25 @@ public abstract class MapRequest extends UserRequest<Object> {
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
         java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        gui.sendProgress("Finalizing map");
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
-            if (mpq != null) {
-                // Strip internal Wurst cache files — they are dev-only metadata and should
-                // not be present in the distributed map.
-                if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
-                if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
-                mpq.closeWithCompression();
+        if (isProductionBuild() && !runArgs.isIncremental()) {
+            gui.sendProgress("Finalizing map");
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
+                if (mpq != null) {
+                    if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
+                    if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    timeTaker.measure("MPQ finalize", () -> {
+                        try {
+                            mpq.closeWithCompression();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
             }
         }
 
         gui.sendProgress("Done.");
+        timeTaker.printReport();
         return targetMapFile;
     }
 

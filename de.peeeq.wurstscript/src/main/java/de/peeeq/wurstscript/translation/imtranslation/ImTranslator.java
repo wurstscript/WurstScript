@@ -2656,6 +2656,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return runArgs;
     }
 
+    public boolean isIncremental() {
+        return runArgs != null && runArgs.isIncremental();
+    }
+
     private final Map<ImMethod, String> dispatchSegments = new IdentityHashMap<>();
 
     /**

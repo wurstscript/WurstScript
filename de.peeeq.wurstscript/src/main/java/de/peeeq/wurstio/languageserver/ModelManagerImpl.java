@@ -145,6 +145,11 @@ public class ModelManagerImpl implements ModelManager {
      */
     @Override
     public void buildProject() {
+        buildProject(true);
+    }
+
+    @Override
+    public void buildProject(boolean doTypeCheck) {
         try {
             WurstGui gui = new WurstGuiLogger();
             readDependencies();
@@ -162,7 +167,9 @@ public class ModelManagerImpl implements ModelManager {
 
             resolveImports(gui);
 
-            doTypeCheck(gui);
+            if (doTypeCheck) {
+                doTypeCheck(gui);
+            }
         } catch (Exception e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
@@ -234,6 +241,49 @@ public class ModelManagerImpl implements ModelManager {
         }
 
         return changes;
+    }
+
+    @Override
+    public synchronized Changes syncProjectFiles() {
+        if (model == null) {
+            buildProject();
+            return Changes.empty();
+        }
+        Changes changes = Changes.empty();
+        File wurstFolder = new File(projectPath, "wurst");
+        Set<WFile> expectedProjectFiles = new HashSet<>();
+        if (wurstFolder.exists()) {
+            collectWurstFiles(wurstFolder, expectedProjectFiles);
+        }
+
+        WurstModel model2 = model;
+        if (model2 != null) {
+            List<WFile> loadedProjectFiles = model2.stream()
+                .map(this::wFile)
+                .filter(this::isUnderWurstFolder)
+                .collect(Collectors.toList());
+
+            for (WFile loadedFile : loadedProjectFiles) {
+                if (!expectedProjectFiles.contains(loadedFile)) {
+                    changes = changes.mergeWith(removeCompilationUnit(loadedFile));
+                }
+            }
+        }
+
+        for (WFile f : expectedProjectFiles) {
+            changes = changes.mergeWith(syncCompilationUnit(f));
+        }
+        return changes;
+    }
+
+    private void collectWurstFiles(File dir, Set<WFile> result) {
+        for (File f : getFiles(dir)) {
+            if (f.isDirectory()) {
+                collectWurstFiles(f, result);
+            } else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j")) {
+                result.add(WFile.create(f));
+            }
+        }
     }
 
     private String getCanonicalPath(File f) {
@@ -980,6 +1030,18 @@ public class ModelManagerImpl implements ModelManager {
                 .toAbsolutePath()
                 .normalize();
             return filePath.startsWith(dependencyRoot) && Utils.isWurstFile(filePath.toString());
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+    }
+
+    private boolean isUnderWurstFolder(WFile file) {
+        try {
+            Path filePath = file.getPath().toAbsolutePath().normalize();
+            Path wurstRoot = Paths.get(projectPath.getAbsolutePath(), "wurst")
+                .toAbsolutePath()
+                .normalize();
+            return filePath.startsWith(wurstRoot) && Utils.isWurstFile(filePath.toString());
         } catch (FileNotFoundException e) {
             return false;
         }

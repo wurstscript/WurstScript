@@ -60,33 +60,35 @@ public final class NamePreservation {
      * The index is scoped to one validation run; the preservation marker itself remains attached to
      * the AST definition and is copied to the corresponding IM variables through their trace.
      */
-    public static RuntimeNameIndex indexGlobals(WurstModel model) {
-        RuntimeNameIndex result = new RuntimeNameIndex();
+    public static void forEachGlobal(WurstModel model, java.util.function.Consumer<GlobalVarDef> consumer) {
         model.accept(new Element.DefaultVisitor() {
             @Override
-            public void visit(GlobalVarDef variable) {
-                super.visit(variable);
-                String name = runtimeName(variable);
-                result.add(name, variable);
-                addTupleComponentNames(result, name, variable.attrTyp(), variable,
-                    Collections.newSetFromMap(new IdentityHashMap<>()));
+            public void visit(GlobalVarDef gv) {
+                super.visit(gv);
+                consumer.accept(gv);
             }
+        });
+    }
+
+    public static RuntimeNameIndex indexGlobals(WurstModel model) {
+        RuntimeNameIndex result = new RuntimeNameIndex();
+        forEachGlobal(model, variable -> {
+            String name = runtimeName(variable);
+            result.add(name, variable);
+            addTupleComponentNames(result, name, variable.attrTyp(), variable,
+                Collections.newSetFromMap(new IdentityHashMap<>()));
         });
         return result;
     }
 
     /** Removes markers synthesized for TRVE during an earlier validation run. */
     public static void clearSyntheticMarkers(WurstModel model) {
-        model.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(GlobalVarDef variable) {
-                super.visit(variable);
-                variable.getModifiers().removeIf(modifier -> modifier instanceof Annotation annotation
-                    && annotation.getAnnotationType().equalsIgnoreCase(ANNOTATION)
-                    && annotation.getArgs().size() == 1
-                    && annotation.getArgs().get(0) instanceof ExprStringVal value
-                    && value.getValS().equals(SYNTHETIC_MARKER));
-            }
+        forEachGlobal(model, variable -> {
+            variable.getModifiers().removeIf(modifier -> modifier instanceof Annotation annotation
+                && annotation.getAnnotationType().equalsIgnoreCase(ANNOTATION)
+                && annotation.getArgs().size() == 1
+                && annotation.getArgs().get(0) instanceof ExprStringVal value
+                && value.getValS().equals(SYNTHETIC_MARKER));
         });
     }
 

@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
@@ -30,6 +31,8 @@ import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkEmitter;
+import de.peeeq.wurstscript.translation.lua.modular.PackageChunkResult;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -71,6 +74,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private final List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
     private final TimeTaker timeTaker;
+    private @Nullable String compiledLuaScript = null;
+
+    public @Nullable String getCompiledLuaScript() {
+        return compiledLuaScript;
+    }
+
+    private File resolveCacheDir() {
+        if (runArgs.getCachePath() != null) {
+            return new File(runArgs.getCachePath());
+        }
+        if (runArgs.getWorkspaceroot() != null) {
+            return new File(runArgs.getWorkspaceroot(), "_build/cache/lua");
+        }
+        return new File("./_build/cache/lua");
+    }
 
     public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
         this(new TimeTaker.Default(), projectFolder, gui, mapFileMpq, runArgs);
@@ -83,7 +101,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.runArgs = runArgs;
         this.errorHandler = new ErrorHandler(gui);
         this.parser = new WurstParser(errorHandler, gui);
-        this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks());
+        File cacheDir = runArgs.getCachePath() != null ? new File(runArgs.getCachePath()) : null;
+        this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks(), runArgs.isIncremental(), cacheDir);
         this.mapFileMpq = mapFileMpq;
     }
 
@@ -824,16 +843,30 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public CompilationUnit parse(String fileName, Reader reader) {
+        // Capture the exact source snapshot being compiled (file or unsaved buffer)
+        // so downstream caches hash what the compiler saw, not a possibly-stale disk file.
+        // The reader is consumed fully and the parser re-reads from the snapshot copy.
+        final String sourceContent;
+        final Reader parseReader;
+        try {
+            sourceContent = CharStreams.toString(reader);
+            parseReader = new StringReader(sourceContent);
+        } catch (IOException e) {
+            throw new Error("Could not read source for " + fileName, e);
+        }
+        CompilationUnit cu;
         if (fileName.endsWith(".j")) {
-            return parser.parseJass(reader, fileName, hasCommonJ);
+            cu = parser.parseJass(parseReader, fileName, hasCommonJ);
+        } else if (fileName.endsWith(".jurst")) {
+            cu = parser.parseJurst(parseReader, fileName, hasCommonJ);
+        } else {
+            if (runArgs.isPrettyPrint()) {
+                parser.setRemoveSugar(false);
+            }
+            cu = parser.parse(parseReader, fileName, hasCommonJ);
         }
-        if (fileName.endsWith(".jurst")) {
-            return parser.parseJurst(reader, fileName, hasCommonJ);
-        }
-        if (runArgs.isPrettyPrint()) {
-            parser.setRemoveSugar(false);
-        }
-        return parser.parse(reader, fileName, hasCommonJ);
+        cu.getCuInfo().setSourceContent(sourceContent);
+        return cu;
     }
 
     private CompilationUnit emptyCompilationUnit() {
@@ -996,9 +1029,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imTranslator2.assertProperties(AssertProperty.NOTUPLES);
         timeTaker.endPhase();
 
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-        timeTaker.endPhase();
+        if (!runArgs.isIncremental()) {
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+            timeTaker.endPhase();
+        }
         stage = 10;
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");
@@ -1017,13 +1052,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
 
-        boolean garbageChanged = optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-
-        // Re-run to avoid #883
-        if (garbageChanged) {
-            optimizer.removeGarbage();
+        if (!runArgs.isIncremental()) {
+            boolean garbageChanged = optimizer.removeGarbage();
             imProg.flatten(imTranslator);
+
+            // Re-run to avoid #883
+            if (garbageChanged) {
+                optimizer.removeGarbage();
+                imProg.flatten(imTranslator);
+            }
         }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
@@ -1033,15 +1070,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(12, "froptimize");
             optimizer.optimize();
 
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
+            if (!runArgs.isIncremental()) {
+                optimizer.removeGarbage();
+                imProg.flatten(imTranslator);
+            }
             printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
             timeTaker.endPhase();
         }
-        beginPhase(13, "lua remove garbage");
-        RemoveGarbage.removeGarbage(imProg, imTranslator);
-        imProg.flatten(imTranslator);
-        timeTaker.endPhase();
+        if (!runArgs.isIncremental()) {
+            beginPhase(13, "lua remove garbage");
+            RemoveGarbage.removeGarbage(imProg, imTranslator);
+            imProg.flatten(imTranslator);
+            timeTaker.endPhase();
+        }
 
         beginPhase(13, "prepare lua dispatch");
         LuaDispatchPreparation.prepare(imProg, imTranslator);
@@ -1053,8 +1094,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         timeTaker.endPhase();
 
         beginPhase(14, "translate to lua");
-        LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
-        LuaCompilationUnit luaCode = luaTranslator.translate();
+        LuaCompilationUnit luaCode;
+        if (runArgs.isIncremental()) {
+            File cacheDir = resolveCacheDir();
+            PackageChunkResult chunkResult = PackageChunkEmitter.emitAndAssemble(imProg, imTranslator, cacheDir);
+            this.compiledLuaScript = chunkResult.getAssembledScript();
+            luaCode = chunkResult.getAssembledCu();
+        } else {
+            LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
+            luaCode = luaTranslator.translate();
+            this.compiledLuaScript = null;
+        }
         ImAttrType.setWurstClassType(TypesHelper.imInt());
         timeTaker.endPhase();
         return luaCode;

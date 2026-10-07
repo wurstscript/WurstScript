@@ -125,6 +125,9 @@ public class ImOptimizer {
     }
 
     public boolean removeGarbage() {
+        if (trans.isIncremental()) {
+            return false;
+        }
         boolean changes = true;
         boolean anyChanges = false;
         int iterations = 0;

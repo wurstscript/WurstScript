@@ -4958,7 +4958,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     private static String functionBody(String compiled, String functionName) {
-        int start = compiled.indexOf("function " + functionName + "(");
+        int start = indexOfEmittedFunction(compiled, functionName, true);
         assertTrue("expected function " + functionName, start >= 0);
         int end = compiled.indexOf("\nend", start);
         assertTrue("unterminated function " + functionName, end >= 0);
@@ -4966,13 +4966,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     private static String topLevelFunctionBodyWithPrefix(String compiled, String functionNamePrefix) {
-        int start = compiled.indexOf("function " + functionNamePrefix);
+        int start = indexOfEmittedFunction(compiled, functionNamePrefix, false);
         assertTrue("expected function starting with " + functionNamePrefix, start >= 0);
         int end = compiled.indexOf("\nfunction ", start + 1);
         if (end < 0) {
             end = compiled.length();
         }
         return compiled.substring(start, end);
+    }
+
+    /**
+     * Stdlib programs qualify functions as {@code Package__name}. An exact {@code function name}
+     * match wins, so a bare helper is unchanged; the qualified form is used only when the bare
+     * name is absent.
+     */
+    private static int indexOfEmittedFunction(String compiled, String name, boolean requireParen) {
+        String exact = "function " + name + (requireParen ? "(" : "");
+        int start = compiled.indexOf(exact);
+        if (start >= 0) {
+            return start;
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("function \\w+__" + java.util.regex.Pattern.quote(name) + (requireParen ? "\\(" : ""))
+            .matcher(compiled);
+        return matcher.find() ? matcher.start() : -1;
     }
 
     private static String topLevelFunctionContaining(String compiled, String text) {

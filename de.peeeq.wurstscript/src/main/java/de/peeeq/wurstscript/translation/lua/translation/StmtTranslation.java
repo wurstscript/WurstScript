@@ -143,8 +143,8 @@ public class StmtTranslation {
         // 'for ... do' / 'end' lines: the printer stops printing a statement list
         // after a return/break (Lua forbids trailing statements), which would
         // truncate a literal closing 'end' and produce unparseable output.
-        LuaVariable args = LuaAst.LuaVariable(tr.uniqueName("__args"), LuaAst.LuaLiteral("table.pack(...)"));
-        LuaVariable i = LuaAst.LuaVariable(tr.uniqueName("__i"), LuaAst.LuaExprIntVal("0"));
+        LuaVariable args = LuaAst.LuaVariable(tr.uniqueLocalName("__args"), LuaAst.LuaLiteral("table.pack(...)"));
+        LuaVariable i = LuaAst.LuaVariable(tr.uniqueLocalName("__i"), LuaAst.LuaExprIntVal("0"));
         res.add(args);
         res.add(i);
         LuaStatements body = LuaAst.LuaStatements();
