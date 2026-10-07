@@ -6557,7 +6557,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      */
     @Test
     public void closureMethodsWithUnderscoresKeepTheirSemanticNames() throws IOException {
-        test().testLua(true).luaOnly(false).executeProg().lines(
+        test().imDump().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Under",

@@ -109,6 +109,8 @@ The Gradle wrapper lives inside `de.peeeq.wurstscript/` (not the repo root); run
 
 * **Run the test classes you touched, not the suite.** The full suite takes 7-13 minutes (`build.gradle`, `testForkCount`) and needs memory for every fork. CI (`.github/workflows/build.yml`) runs it on pull requests and on pushes to master only, so a branch push alone tests nothing.
 * To repeat a test use `--rerun --no-build-cache`: a cached result shows identical timings. The real stack trace is in `build/test-results/test/TEST-<class>.xml` when the console summary lacks it. Do not pipe gradle into `tail`: the pipe hides its exit code; read the XML.
+* The harness writes an IM dump (`test-output/<name>.jim`) only for a test which asks with `test().imDump()`; a test which reads one must ask. `./gradlew test -PimDumps` writes them for every test, to read a failing test's IM.
+* The test JVMs run ParallelGC (`-PtestGc='-XX:+UseG1GC'` or another flag overrides it): G1 spent 9-11% of a serial run in pauses, mostly mixed collections of data which lives for one test, and ParallelGC about 3%.
 * Tests fetch the pinned stdlib first (`ensureStdLib`, about a minute on a fresh checkout). `InitialBuildProgressTest` and `LanguageWorkerTest` are in package `de.peeeq.wurstio.languageserver`, so a `--tests` filter needs that prefix.
 
 ### Runtime-executing tests

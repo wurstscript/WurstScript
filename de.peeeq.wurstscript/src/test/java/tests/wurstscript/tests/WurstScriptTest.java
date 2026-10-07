@@ -52,6 +52,14 @@ public class WurstScriptTest {
 
     public static final String TEST_OUTPUT_PATH = "./test-output/";
 
+    /**
+     * Every translated program writes its IM as a {@code .jim} file, twice per optimisation setting, and only a
+     * handful of tests read one: the rest paid for printing it. A test which reads one asks for it with
+     * {@link TestConfig#imDump()}; {@code ./gradlew test -PimDumps} writes them all, to read a failing test's IM.
+     */
+    private static final boolean IM_DUMPS_FOR_ALL_TESTS = Boolean.getBoolean("wurst.test.imDumps");
+    private boolean writeImDumps;
+
     /** Generous enough for the slowest test program, short enough that a loop fails the run. */
     private static final int LUA_EXECUTION_TIMEOUT_SECONDS = 60;
 
@@ -124,6 +132,7 @@ public class WurstScriptTest {
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
         private boolean legacyJassTypeChecks = false;
+        private boolean imDump = false;
 
         TestConfig(String name) {
             this.name = name;
@@ -222,6 +231,12 @@ public class WurstScriptTest {
             return this;
         }
 
+        /** Writes the translated IM to {@code test-output/<name>.jim}, for a test which reads it. */
+        public TestConfig imDump() {
+            this.imDump = true;
+            return this;
+        }
+
         public TestConfig legacyJassTypeChecks() {
             return legacyJassTypeChecks(true);
         }
@@ -294,6 +309,7 @@ public class WurstScriptTest {
         }
 
         private CompilationResult testScript() {
+            writeImDumps = imDump || IM_DUMPS_FOR_ALL_TESTS;
             RunArgs runArgs = new RunArgs();
             RecycleCodeGeneratorQueue.setTestMode = true;
             if (withStdLib) {
@@ -1315,9 +1331,12 @@ public class WurstScriptTest {
     }
 
     /**
-     * writes a jass prog to a file
+     * writes the IM of a program to a file, if the test or the run asked for IM dumps
      */
-    private File writeJassImProg(String name, WurstGui gui, ImProg prog) throws Error {
+    private void writeJassImProg(String name, WurstGui gui, ImProg prog) throws Error {
+        if (!writeImDumps) {
+            return;
+        }
         File outputFile = new File(TEST_OUTPUT_PATH + name + ".jim");
         new File(TEST_OUTPUT_PATH).mkdirs();
         try {
@@ -1327,7 +1346,6 @@ public class WurstScriptTest {
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }
-        return outputFile;
     }
 
 
