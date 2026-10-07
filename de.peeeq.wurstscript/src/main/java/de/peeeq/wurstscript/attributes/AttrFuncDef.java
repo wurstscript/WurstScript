@@ -247,8 +247,10 @@ public class AttrFuncDef {
                 methSigs = (java.util.ArrayList<FunctionSignature>) keepMostSpecificReceivers(
                     methSigs, FunctionSignature::getReceiverType, node
                 );
-                // pick the first of the survivors
-                var chosenSig = methSigs.get(0);
+                // A module's implementation and the interface function it implements both match, and
+                // neither receiver is more specific. The implementation is what runs, and it is what
+                // the type checker resolves the call to, so take it rather than whichever came first.
+                var chosenSig = AttrFunctionSignature.filterPreferNonAbstract(methSigs).get(0);
                 // find corresponding link
                 for (int i = 0; i < exactSigs.size(); i++) {
                     if (exactSigs.get(i) == chosenSig) {

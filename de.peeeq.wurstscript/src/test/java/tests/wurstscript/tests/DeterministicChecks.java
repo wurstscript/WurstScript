@@ -3,16 +3,25 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 
 /**
@@ -228,6 +237,144 @@ public class DeterministicChecks extends WurstScriptTest {
             .collect(java.util.stream.Collectors.toList());
         assertEquals(2, globals1.size());
         assertEquals(globals1, globals2);
+    }
+
+    /**
+     * A class which implements an interface through a module resolves {@code v.write(x)} to the same
+     * function whatever order the compiler happens to see its candidates in. The candidates are the
+     * module's implementation and the interface's declaration, and they live in hash sets keyed by
+     * identity, so the order differs between compilations of the same source.
+     */
+    @Test
+    public void interfaceImplementedByModuleResolvesTheSameCallEveryCompilation() throws IOException {
+        File outFile = new File("test-output/lua/DeterministicChecks_moduleImplementedInterface.lua");
+        String first = null;
+        for (int run = 0; run < 3; run++) {
+            moduleImplementedInterface();
+            String output = Files.toString(outFile, Charsets.UTF_8);
+            if (first == null) {
+                first = output;
+            } else {
+                assertEquals(output, first, "compilation " + run + " of the same source must emit the same Lua");
+            }
+        }
+    }
+
+    private void moduleImplementedInterface() {
+        int classes = 14;
+        List<String> lines = new ArrayList<>(List.of(
+            "package test",
+            "native testSuccess()",
+            "interface Codec",
+            "    function write(int x) returns int",
+            "    function read(int x) returns int",
+            "module Lifecycle",
+            "    abstract function write(int x) returns int",
+            "    abstract function read(int x) returns int",
+            "    function roundTrip(int x) returns int",
+            "        return read(write(x))",
+            "module Fields",
+            "    use Lifecycle",
+            "    int stored = 0",
+            "    override function write(int x) returns int",
+            "        stored = x",
+            "        return x + 1",
+            "    override function read(int x) returns int",
+            "        return x - 1 + stored"));
+        for (int i = 0; i < classes; i++) {
+            lines.add("class C" + i + " implements Codec");
+            lines.add("    use Fields");
+            lines.add("function call" + i + "(C" + i + " v) returns int");
+            lines.add("    return v.write(" + i + ") + v.read(" + i + ")");
+        }
+        lines.add("init");
+        lines.add("    int sum = 0");
+        for (int i = 0; i < classes; i++) {
+            lines.add("    sum += call" + i + "(new C" + i + "())");
+        }
+        lines.add("    if sum != 0");
+        lines.add("        testSuccess()");
+        test().testLua(true).executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    /**
+     * A call on a class type binds to the module's implementation rather than to the interface
+     * function, which is what the type checker chooses. The call must still reach an override in a
+     * subclass, through the class type as well as through the interface, on both targets.
+     */
+    @Test
+    public void callBoundToModuleImplementationStillReachesSubclassOverride() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Codec",
+            "    function write(int x) returns int",
+            "module Lifecycle",
+            "    abstract function write(int x) returns int",
+            "module Fields",
+            "    use Lifecycle",
+            "    override function write(int x) returns int",
+            "        return x + 1",
+            "class Base implements Codec",
+            "    use Fields",
+            "class Derived extends Base",
+            "    override function write(int x) returns int",
+            "        return x + 100",
+            "function viaBase(Base b) returns int",
+            "    return b.write(1)",
+            "function viaInterface(Codec c) returns int",
+            "    return c.write(1)",
+            "init",
+            "    if viaBase(new Base()) == 2 and viaBase(new Derived()) == 101",
+            "        if viaInterface(new Base()) == 2 and viaInterface(new Derived()) == 101",
+            "            testSuccess()"
+        );
+    }
+
+    /**
+     * The sub-methods of a method are the overrides in the classes which extend or implement its
+     * owner, and the backends bind dispatch slots in their order. The classes of one owner were kept
+     * in hash sets keyed by identity, so the same source listed them in a different order every time
+     * it was compiled.
+     */
+    @Test
+    public void subMethodOrderIsTheSameEveryCompilation() {
+        List<String> first = subMethodOrder();
+        for (int run = 1; run < 3; run++) {
+            assertEquals(subMethodOrder(), first, "compilation " + run + " of the same source must order sub-methods alike");
+        }
+    }
+
+    private List<String> subMethodOrder() {
+        int classes = 14;
+        List<String> lines = new ArrayList<>(List.of(
+            "package test",
+            "interface Shape",
+            "    function area() returns int",
+            "class Base",
+            "    function size() returns int",
+            "        return 0"));
+        for (int i = 0; i < classes; i++) {
+            lines.add("class Shape" + i + " implements Shape");
+            lines.add("    override function area() returns int");
+            lines.add("        return " + i);
+            lines.add("class Derived" + i + " extends Base");
+            lines.add("    override function size() returns int");
+            lines.add("        return " + i);
+        }
+        CompilationResult res = test().setStopOnFirstError(false).executeProg(false).lines(lines.toArray(new String[0]));
+        ImProg prog = new ImTranslator(res.getModel(), false, new RunArgs()).translateProg();
+        List<String> order = new ArrayList<>();
+        for (ImClass c : prog.getClasses()) {
+            for (ImMethod m : c.getMethods()) {
+                if (!m.getSubMethods().isEmpty()) {
+                    order.add(c.getName() + "." + m.getName() + " -> "
+                        + m.getSubMethods().stream().map(ImMethod::getName).collect(Collectors.joining(", ")));
+                }
+            }
+        }
+        assertTrue(order.size() >= 2, "expected sub-methods for Shape.area and Base.size: " + order);
+        return order;
     }
 
     @Test

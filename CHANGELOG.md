@@ -1,5 +1,14 @@
 ## 1.9 (in progress)
 
+- The same source now compiles to the same script however the identity hashes of the compiler's syntax nodes
+  happen to fall. A class which gets a function from a module and implements an interface declaring the same
+  function made calls like `value.write(x)` bind to the module's implementation or to the interface's
+  declaration according to the order of a hash set, so one build had a direct call where the next had a
+  dispatched one, and the two scripts held a different number of functions. The call now always binds to the
+  implementation, as the type checker already resolved it, and the candidate functions of a class, the
+  subclasses of a class and the classes implementing an interface are kept in declaration order instead of hash
+  order, which fixes the order of each method's sub-methods.
+
 - The bundled pjass is updated on all three platforms to lep/pjass master (`378a1ca`) plus its `--each` option
   (lep/pjass#20). Windows had a December 2022 build and Linux and macOS a January 2019 one, so the three did not
   check the same things. The 2022 Windows build also got slower the more files were in the directory of the script

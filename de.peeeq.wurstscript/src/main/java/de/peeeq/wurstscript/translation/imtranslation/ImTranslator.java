@@ -1823,7 +1823,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void calculateInterfaceInstances() {
-        interfaceInstances = HashMultimap.create();
+        // Insertion order, not hash order: the classes of one interface become the sub-methods of its
+        // methods in this order, which the backends bind dispatch slots in.
+        interfaceInstances = LinkedHashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
                 for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
@@ -1857,7 +1859,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (directSubclasses != null) {
             return;
         }
-        directSubclasses = HashMultimap.create();
+        // Insertion order, not hash order: the subclasses of a class become the sub-methods of its
+        // methods in this order, which the backends bind dispatch slots in.
+        directSubclasses = LinkedHashMultimap.create();
         for (ClassDef c : classes()) {
             WurstTypeClass extendedClass = c.attrTypC().extendedClass();
             if (extendedClass != null) {
