@@ -70,6 +70,7 @@ public class GenAbilities {
             }
             usedFuncs.add(funcName);
 
+            print(setterDocumentation());
             print("\t");
             if (inheritedFuncs.contains(funcName)) {
                 print("override ");
@@ -105,6 +106,16 @@ public class GenAbilities {
                     .append("(\"").append(id).append("\", lvls, ").append(data).append(", lc)\n");
             result.append("\t\taddTooltipProperty(\"").append(escapeWurstString(displayName)).append("\", lc)\n");
             return result.toString();
+        }
+
+        String setterDocumentation() {
+            // camelize preserves words, including spelled-out units, but loses numeric/symbol notation.
+            if (displayName.equals(id) || !Pattern.compile("[0-9%+/*]").matcher(displayName).find()) return "";
+            return "\t/** " + documentationLabel() + " / '" + id + "' */\n";
+        }
+
+        private String documentationLabel() {
+            return displayName.replace("*/", "* /").replaceAll("[\\r\\n]+", " ");
         }
 
         private String levelClosureType() {
@@ -245,6 +256,7 @@ public class GenAbilities {
         }
         System.err.println("Inherited specific fields for: " + inherited + " abilities");
 
+        println("/** Create ability object data at compile time. Levels start at 1; generated field presets set all levels and add tooltip properties. */");
         println("package AbilityObjEditing");
         println("import public ObjEditingNatives");
         println("import public AbilityIds");
@@ -318,7 +330,7 @@ public class GenAbilities {
                 String funcName = camelize(fd.displayName);
                 int i2 = 0;
                 while (!addUsedNames.add(funcName)) { i2++; funcName = camelize(fd.displayName) + i2; }
-                classesBlock.append("\n\t");
+                classesBlock.append("\n").append(fd.setterDocumentation()).append("\t");
                 if (commonFunctionNames.contains(funcName)) classesBlock.append("override ");
                 classesBlock.append("function set").append(funcName).append("(");
                 if (fd.useLevels) classesBlock.append("int level, ");

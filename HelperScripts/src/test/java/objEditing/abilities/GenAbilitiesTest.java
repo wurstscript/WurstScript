@@ -17,6 +17,34 @@ import static org.testng.Assert.assertTrue;
 
 public class GenAbilitiesTest {
     @Test
+    public void setterDocumentationUsesMetadataAndStaysAttachedToOverrides() {
+        GenAbilities.sb.setLength(0);
+        GenAbilities.FieldData field = new GenAbilities.FieldData("abcd", "Attack Speed Increase (%) ", "unreal", 1, true);
+        field.printFunc(new java.util.HashSet<>(), java.util.Set.of("AttackSpeedIncrease"), java.util.Set.of(), false);
+        assertTrue(GenAbilities.sb.toString().contains(
+                "\t/** Attack Speed Increase (%) / 'abcd' */\n"
+                        + "\toverride function setAttackSpeedIncrease(int level, real value)\n"));
+    }
+
+    @Test
+    public void nonLevelDocumentationDoesNotInventUnitsOrRanges() {
+        GenAbilities.sb.setLength(0);
+        GenAbilities.FieldData field = new GenAbilities.FieldData("ansf", "Editor Suffix", "string", 0, false);
+        field.printFunc(new java.util.HashSet<>(), java.util.Set.of(), java.util.Set.of(), false);
+        assertEquals(field.setterDocumentation(), "");
+        assertEquals(new GenAbilities.FieldData("abcd", "Delay (seconds)", "real", 0, true)
+                .setterDocumentation(), "", "Spelled-out units already survive in the method name");
+        assertTrue(!GenAbilities.sb.toString().contains("/**"), "Do not repeat self-explanatory setter names");
+    }
+
+    @Test
+    public void metadataLabelCannotCloseTheDocumentationComment() {
+        GenAbilities.FieldData field = new GenAbilities.FieldData("abcd", "Power 2 */\nOther", "real", 0, true);
+        assertEquals(field.setterDocumentation(),
+                "\t/** Power 2 * / Other / 'abcd' */\n");
+    }
+
+    @Test
     public void classHeaderDocumentsRawcodeAndUsesNamedId() {
         assertEquals(GenAbilities.abilityClassHeader("AbilityDefinitionArchMageBlizzard", "blizzard", "AHbz"),
                 "\n\n\n/** 'AHbz' / AbilityIds.blizzard */\n"
@@ -74,6 +102,12 @@ public class GenAbilitiesTest {
             }
             assertEquals(count, ids.size(), "Every ability must have a documented wrapper using its named ID");
             assertTrue(!source.contains("super(newAbilityId, '"), "Raw ability ID in constructor");
+            Matcher fields = Pattern.compile("(?m)^\\t/\\*\\* [^\\n]+ / '([^']+)' \\*/\\n"
+                    + "\\t(?:override )?function set\\w+\\([^\\n]*\\)\\n"
+                    + "\\t\\tdef\\.setLvlData\\w+\\(\"([^\"]+)\"").matcher(source);
+            while (fields.find()) {
+                assertEquals(fields.group(1), fields.group(2), "Field documentation attached to the wrong setter");
+            }
         }
     }
 
