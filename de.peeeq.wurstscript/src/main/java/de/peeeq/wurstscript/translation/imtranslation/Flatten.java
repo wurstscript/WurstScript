@@ -233,28 +233,26 @@ public class Flatten {
     }
 
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
-        if (e instanceof ImFunctionCall) {
-            Result res = flatten((ImFunctionCall) e, t, f);
+        if (e instanceof ImFunctionCall imFunctionCall) {
+            Result res = flatten(imFunctionCall, t, f);
             result.addAll(res.stmts);
             result.add(res.expr);
-        } else if (e instanceof ImDealloc) {
-            Result res = flatten((ImDealloc) e, t, f);
+        } else if (e instanceof ImDealloc imDealloc) {
+            Result res = flatten(imDealloc, t, f);
             result.addAll(res.stmts);
             result.add(res.expr);
-        } else if (e instanceof ImMethodCall) {
-            Result res = flatten((ImMethodCall) e, t, f);
+        } else if (e instanceof ImMethodCall imMethodCall) {
+            Result res = flatten(imMethodCall, t, f);
             result.addAll(res.stmts);
             result.add(res.expr);
-        } else if (e instanceof ImStatementExpr) {
-            ImStatementExpr e2 = (ImStatementExpr) e;
+        } else if (e instanceof ImStatementExpr e2) {
             flattenStatementsInto(result, e2.getStatements(), t, f);
             exprToStatements(result, e2, t, f);
-        } else if (e instanceof ImOperatorCall &&
-            (((ImOperatorCall) e).getOp() == WurstOperator.AND
-                || ((ImOperatorCall) e).getOp() == WurstOperator.OR)) {
+        } else if (e instanceof ImOperatorCall oc &&
+            (oc.getOp() == WurstOperator.AND
+                || oc.getOp() == WurstOperator.OR)) {
             // short circuiting operators have to be handled in a special way:
             // we translate them to if statements when necessary
-            ImOperatorCall oc = (ImOperatorCall) e;
             ImStmts rightStmts = JassIm.ImStmts();
             ImExpr right = oc.getArguments().get(1);
             ImExpr left = oc.getArguments().get(0);
@@ -454,8 +452,8 @@ public class Flatten {
         Result r = e.getTupleExpr().flatten(t, f);
         ImLExpr tupleExpr;
         List<ImStmt> stmts;
-        if (r.expr instanceof ImLExpr) {
-            tupleExpr = (ImLExpr) r.expr;
+        if (r.expr instanceof ImLExpr imLExpr) {
+            tupleExpr = imLExpr;
             stmts = r.stmts;
         } else {
             // in the unlikely event that this is not an l-value (e.g. foo().x)

@@ -508,8 +508,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
     public void runProgram() {
         for (JassVar var : prog.getGlobals()) {
-            if (var instanceof JassInitializedVar) {
-                JassInitializedVar iVar = (JassInitializedVar) var;
+            if (var instanceof JassInitializedVar iVar) {
                 if (iVar.getIsBj()) {
                     // Evaluated on first read, as the IM interpreter does, so that an initialiser without
                     // a native mock only matters to a program that reads the global.

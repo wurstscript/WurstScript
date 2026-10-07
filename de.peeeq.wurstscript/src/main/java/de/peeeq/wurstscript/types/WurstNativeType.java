@@ -17,8 +17,7 @@ public class WurstNativeType extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstNativeType) {
-            WurstNativeType nt = (WurstNativeType) other;
+        if (other instanceof WurstNativeType nt) {
             if (nt.name.equals(name)) {
                 return mapping;
             }

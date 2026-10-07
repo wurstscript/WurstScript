@@ -64,8 +64,7 @@ public class EliminateCallFunctionsWithAnnotation {
             throw new CompileError(fc.attrTrace().attrSource(), "wrong number of arguments");
         }
         ImExpr arg = fc.getArguments().get(0);
-        if (arg instanceof ImStringVal) {
-            ImStringVal sArg = (ImStringVal) arg;
+        if (arg instanceof ImStringVal sArg) {
             return sArg.getValS();
         } else {
             throw new CompileError(fc.attrTrace().attrSource(), "argument must be a constant string");

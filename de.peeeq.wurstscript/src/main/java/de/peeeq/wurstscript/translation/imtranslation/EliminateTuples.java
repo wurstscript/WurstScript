@@ -402,8 +402,7 @@ public class EliminateTuples {
 
 
     private static ImType getFirstType(ImType t) {
-        if (t instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) t;
+        if (t instanceof ImTupleType tt) {
             return getFirstType(tt.getTypes().get(0));
         }
         return t;
@@ -439,8 +438,7 @@ public class EliminateTuples {
             public void visit(ImNull n) {
                 // Expand null<⦅T1, T2, ...⦆>  ==>  <null<T1>, null<T2>, ...>
                 ImType t = n.getType(); // or n.attrTyp() if that's the established source of truth
-                if (t instanceof ImTupleType) {
-                    ImTupleType tt = (ImTupleType) t;
+                if (t instanceof ImTupleType tt) {
 
                     ImExprs parts = JassIm.ImExprs();
                     for (ImType elemT : tt.getTypes()) {
@@ -753,19 +751,16 @@ public class EliminateTuples {
         for (int i = 0; i < elem.size(); i++) {
             Element child = elem.get(i);
 
-            if (child instanceof ImTupleExpr) {
-                ImTupleExpr tupleExpr = (ImTupleExpr) child;
+            if (child instanceof ImTupleExpr tupleExpr) {
 
                 Element newElem;
-                if (elem instanceof ImTupleSelection) {
-                    newElem = inTupleSelection((ImTupleSelection) elem, tupleExpr, f);
-                } else if (elem instanceof ImReturn) {
-                    newElem = inReturn((ImReturn) elem, tupleExpr, translator, f);
-                } else if (elem instanceof ImSet) {
-                    ImSet imSet = (ImSet) elem;
+                if (elem instanceof ImTupleSelection imTupleSelection) {
+                    newElem = inTupleSelection(imTupleSelection, tupleExpr, f);
+                } else if (elem instanceof ImReturn imReturn) {
+                    newElem = inReturn(imReturn, tupleExpr, translator, f);
+                } else if (elem instanceof ImSet imSet) {
                     newElem = inSet(imSet, translator, f);
-                } else if (elem instanceof ImExprs) {
-                    ImExprs exprs = (ImExprs) elem;
+                } else if (elem instanceof ImExprs exprs) {
                     if (exprs.getParent() instanceof ImOperatorCall) {
                         ImOperatorCall opCall = (ImOperatorCall) exprs.getParent();
                         handleTupleInOpCall(replacer, opCall, f, discardEvaluation);
@@ -784,8 +779,7 @@ public class EliminateTuples {
                         i--;
                     }
                     continue;
-                } else if (elem instanceof ImStmts) {
-                    ImStmts stmts = (ImStmts) elem;
+                } else if (elem instanceof ImStmts stmts) {
                     stmts.remove(i);
                     List<ImExpr> tupleExprs = tupleExpr.getExprs().removeAll();
                     stmts.addAll(i, tupleExprs);
@@ -1014,20 +1008,20 @@ public class EliminateTuples {
             ImExpr expanded = translator.getVarsForTuple(access.getVar()).<ImExpr>map(
                 parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                 JassIm::ImVarAccess);
-            return expanded instanceof ImTupleExpr ? (ImTupleExpr) expanded : null;
+            return expanded instanceof ImTupleExpr imTupleExpr ? imTupleExpr : null;
         }
         if (left instanceof ImVarArrayAccess access) {
             ImExpr expanded = translator.getVarsForTuple(access.getVar()).<ImExpr>map(
                 parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                 var -> JassIm.ImVarArrayAccess(access.getTrace(), var, access.getIndexes().copy()));
-            return expanded instanceof ImTupleExpr ? (ImTupleExpr) expanded : null;
+            return expanded instanceof ImTupleExpr imTupleExpr ? imTupleExpr : null;
         }
         if (left instanceof ImMemberAccess access) {
             ImExpr expanded = translator.getVarsForTuple(access.getVar()).<ImExpr>map(
                 parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                 var -> JassIm.ImMemberAccess(access.getTrace(), access.getReceiver().copy(),
                     access.getTypeArguments().copy(), var, access.getIndexes().copy()));
-            return expanded instanceof ImTupleExpr ? (ImTupleExpr) expanded : null;
+            return expanded instanceof ImTupleExpr imTupleExpr ? imTupleExpr : null;
         }
         return null;
     }
@@ -1035,8 +1029,8 @@ public class EliminateTuples {
     /** Flatten LHS recursively into addressable leaves (ImLExpr), hoisting side-effects */
     private static void flattenLhsTuple(ImExpr e, List<ImLExpr> out, ImStmts sideStmts, ImFunction f) {
         ImExpr x = extractSideEffect(e, sideStmts);
-        if (x instanceof ImTupleExpr) {
-            for (ImExpr sub : ((ImTupleExpr) x).getExprs()) {
+        if (x instanceof ImTupleExpr imTupleExpr) {
+            for (ImExpr sub : imTupleExpr.getExprs()) {
                 flattenLhsTuple(sub, out, sideStmts, f);
             }
         } else {
@@ -1234,8 +1228,7 @@ public class EliminateTuples {
      * extracts all side effects into the list of statements
      */
     private static ImExpr extractSideEffect(ImExpr e, List<ImStmt> into) {
-        if (e instanceof ImStatementExpr) {
-            ImStatementExpr se = (ImStatementExpr) e;
+        if (e instanceof ImStatementExpr se) {
             for (ImStmt s : se.getStatements()) {
                 s.setParent(null);
                 into.add(s);
@@ -1243,8 +1236,7 @@ public class EliminateTuples {
             ImExpr expr = se.getExpr();
             expr.setParent(null);
             return extractSideEffect(expr, into);
-        } else if (e instanceof ImTupleExpr) {
-            ImTupleExpr te = (ImTupleExpr) e;
+        } else if (e instanceof ImTupleExpr te) {
             if (!te.getExprs().isEmpty()) {
                 ImExpr firstExpr = te.getExprs().get(0);
                 ImExpr newFirstExpr = extractSideEffect(firstExpr, into);

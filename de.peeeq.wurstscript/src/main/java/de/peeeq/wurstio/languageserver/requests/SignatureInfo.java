@@ -53,8 +53,7 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 
 		while (e.isPresent()) {
 			Optional<Element> parent = e.flatMap(el -> Optional.ofNullable(el.getParent()));
-			if (parent.isPresent() && parent.get() instanceof Arguments) {
-				Arguments args = (Arguments) parent.get();
+			if (parent.isPresent() && parent.get() instanceof Arguments args) {
                 if (parent.get().getParent() instanceof StmtCall) {
                     StmtCall call = (StmtCall) parent.get().getParent();
                     SignatureHelp info = forCall(call);
@@ -62,8 +61,7 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
                     return info;
                 }
 				break;
-			} else if (parent.isPresent() && parent.get() instanceof StmtCall) {
-				StmtCall call = (StmtCall) parent.get();
+			} else if (parent.isPresent() && parent.get() instanceof StmtCall call) {
 				return forCall(call);
 			}
 			e = parent;
@@ -77,8 +75,7 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 		SignatureHelp help = new SignatureHelp();
 		SignatureInformation info = new SignatureInformation();
 		String docs = null;
-		if (call instanceof FunctionCall) {
-			FunctionCall fc = (FunctionCall) call;
+		if (call instanceof FunctionCall fc) {
 			FuncLink funcLink = fc.attrFuncLink();
 			if (funcLink != null) {
 				docs = JassDocService.getInstance().documentationForFunction(funcLink.getDef());
@@ -86,11 +83,9 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 		}
 		String signatureDoc = "(" + sig.getParameterDescription() + ")";
 		info.setDocumentation(docs == null || docs.isEmpty() ? signatureDoc : docs + "\n" + signatureDoc);
-		if (call instanceof FunctionCall) {
-			FunctionCall fc = (FunctionCall) call;
+		if (call instanceof FunctionCall fc) {
 			info.setLabel(fc.getFuncName());
-		} else if (call instanceof ExprNewObject) {
-			ExprNewObject n = (ExprNewObject) call;
+		} else if (call instanceof ExprNewObject n) {
 			info.setLabel(n.getTypeName());
 		}
 		int i = 0;

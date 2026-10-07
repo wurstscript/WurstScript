@@ -93,8 +93,7 @@ public final class GlobalCaches {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof ArgumentKey)) return false;
-            ArgumentKey that = (ArgumentKey) o;
+            if (!(o instanceof ArgumentKey that)) return false;
             return hash == that.hash && Arrays.equals(args, that.args);
         }
     }
@@ -190,8 +189,7 @@ public final class GlobalCaches {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof CacheKey)) return false;
-            CacheKey that = (CacheKey) o;
+            if (!(o instanceof CacheKey that)) return false;
             return element == that.element && name.equals(that.name) && type == that.type;
         }
 

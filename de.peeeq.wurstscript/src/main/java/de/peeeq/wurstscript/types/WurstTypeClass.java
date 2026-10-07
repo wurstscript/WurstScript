@@ -36,8 +36,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
             return superMapping;
         }
         // check module instantiations:
-        if (obj instanceof WurstTypeModuleInstanciation) {
-            WurstTypeModuleInstanciation mi = (WurstTypeModuleInstanciation) obj;
+        if (obj instanceof WurstTypeModuleInstanciation mi) {
             @Nullable ClassDef nearestClass = mi.getDef().attrNearestClassDef();
             if (nearestClass == this.classDef) {
                 return extendMapping(mapping, getTypeArgBinding(), location);
@@ -105,8 +104,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
             return null;
         }
         WurstType t = extendedClass.attrTyp();
-        if (t instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) t;
+        if (t instanceof WurstTypeClass ct) {
             if (ct.level() >= level()) {
                 // cyclic dependency
                 return null;

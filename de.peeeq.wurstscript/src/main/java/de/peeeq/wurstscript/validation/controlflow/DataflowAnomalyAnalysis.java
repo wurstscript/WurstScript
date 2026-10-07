@@ -335,21 +335,20 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                         : handleExprInCompound(incoming, expr);
                 }
             }
-            if (s instanceof SwitchStmt) {
-                SwitchStmt swi = (SwitchStmt) s;
+            if (s instanceof SwitchStmt swi) {
                 // switch statement must be handled separately, because expressions are not direct children:
                 for (SwitchCase switchCase : swi.getCases()) {
                     for (Expr switchCaseExpr : switchCase.getExpressions()) {
                         incoming = handleExprInCompound(incoming, switchCaseExpr);
                     }
                 }
-            } else if (s instanceof LoopStatementWithVarDef) {
+            } else if (s instanceof LoopStatementWithVarDef loopStatementWithVarDef) {
                 // Same reason: for "for i = a downto 0" the start expression belongs to the loop
                 // variable's LocalVarDef, not to the loop statement, so the loop above never sees
                 // it and a local read only appearing there looked like a dead assignment.
                 // StmtForFrom binds its loop variable from the "in" expression and has no initial
                 // expression of its own, which the instanceof guard covers.
-                LocalVarDef loopVar = ((LoopStatementWithVarDef) s).getLoopVar();
+                LocalVarDef loopVar = loopStatementWithVarDef.getLoopVar();
                 if (loopVar.getInitialExpr() instanceof Expr) {
                     incoming = handleLoopHeaderExpr(incoming, (Expr) loopVar.getInitialExpr(), s);
                 }
@@ -366,8 +365,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             }
         }
 
-        if (s instanceof ExprDestroy) {
-            ExprDestroy destr = (ExprDestroy) s;
+        if (s instanceof ExprDestroy destr) {
             if (destr.getDestroyedObj() instanceof ExprVarAccess) {
                 ExprVarAccess destroyed = (ExprVarAccess) destr.getDestroyedObj();
                 NameDef destroyedVar = destroyed.attrNameDef();
@@ -412,13 +410,13 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         if (s instanceof ExprThis) {
             reportError(s, "Cannot access 'this' because it might already have been destroyed.");
             return true;
-        } if (s instanceof FunctionCall) {
-            if (((FunctionCall) s).attrImplicitParameter() instanceof ExprThis) {
+        } if (s instanceof FunctionCall functionCall) {
+            if (functionCall.attrImplicitParameter() instanceof ExprThis) {
                 reportError(s, "Cannot access 'this' because it might already have been destroyed.");
                 return true;
             }
-        } else if (s instanceof NameRef) {
-            if (((NameRef) s).attrImplicitParameter() instanceof ExprThis) {
+        } else if (s instanceof NameRef nameRef) {
+            if (nameRef.attrImplicitParameter() instanceof ExprThis) {
                 reportError(s, "Cannot access 'this' because it might already have been destroyed.");
                 return true;
             }
@@ -457,8 +455,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     private @Nullable NameDef getInitializedVar(WStatement s) {
         NameDef n = null;
-        if (s instanceof StmtSet) {
-            StmtSet s2 = (StmtSet) s;
+        if (s instanceof StmtSet s2) {
             NameLink link = s2.getUpdatedExpr().attrNameLink();
             if (link != null && !(link instanceof OtherLink)) {
                 n = link.getDef();
@@ -469,8 +466,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             if (l.getInitialExpr() instanceof Expr) {
                 n = l;
             }
-        } else if (s instanceof LoopStatementWithVarDef) {
-            LoopStatementWithVarDef s2 = (LoopStatementWithVarDef) s;
+        } else if (s instanceof LoopStatementWithVarDef s2) {
             n = s2.getLoopVar();
         }
         return n;
@@ -501,8 +497,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
      * checks if this is a local variable and not an array
      */
     private boolean isLocalVarDef(Element e) {
-        if (e instanceof LocalVarDef) {
-            LocalVarDef l = (LocalVarDef) e;
+        if (e instanceof LocalVarDef l) {
             return !l.attrTyp().isArray();
         }
         return false;
@@ -541,8 +536,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     private @Nullable HasReadVariables findRead(Element e, NameDef v) {
         HasReadVariables result = null;
-        if (e instanceof HasReadVariables) {
-            HasReadVariables r = (HasReadVariables) e;
+        if (e instanceof HasReadVariables r) {
             if (!r.attrReadVariables().contains(v)) {
                 return null;
             }
@@ -563,8 +557,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     private boolean isLeftOfStmtSet(HasReadVariables r) {
         Element parent = r.getParent();
-        if (parent instanceof StmtSet) {
-            StmtSet stmtSet = (StmtSet) parent;
+        if (parent instanceof StmtSet stmtSet) {
             return stmtSet.getUpdatedExpr() == r;
         }
         return false;
@@ -602,8 +595,8 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 }
 
                 Element errorPos = ur;
-                if (ur instanceof StmtSet) {
-                    errorPos = ((StmtSet) ur).getUpdatedExpr();
+                if (ur instanceof StmtSet stmtSet) {
+                    errorPos = stmtSet.getUpdatedExpr();
                 }
                 @Nullable ExprClosure exprClosure = errorPos.attrNearestExprClosure();
                 @Nullable ExprClosure exprClosure1 = var.attrNearestExprClosure();

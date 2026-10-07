@@ -139,14 +139,13 @@ public class JassPrinter {
 
         // first print all the initalized vars:
         for (JassVar v : f.getLocals()) {
-            if (v instanceof JassInitializedVar) {
+            if (v instanceof JassInitializedVar ji) {
                 printIndent(sb, 1, withSpace);
                 sb.append("local ");
                 sb.append(v.getType());
                 sb.append(" ");
                 sb.append(v.getName());
 
-                JassInitializedVar ji = (JassInitializedVar) v;
                 sb.append(assign(withSpace));
                 ji.getVal().print(sb, withSpace);
                 sb.append("\n");

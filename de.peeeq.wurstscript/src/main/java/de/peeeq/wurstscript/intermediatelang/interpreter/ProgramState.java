@@ -87,8 +87,7 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
     private String instantiationKey(ImType t) {
-        if (t instanceof ImClassType) {
-            ImClassType ct = (ImClassType) t;
+        if (t instanceof ImClassType ct) {
             StringBuilder sb = new StringBuilder();
             sb.append(ct.getClassDef().getName());
             if (!ct.getTypeArguments().isEmpty()) {
@@ -309,8 +308,8 @@ public class ProgramState extends State implements AutoCloseable {
         for (Map.Entry<ImTypeVar, ImType> e : typeSubstitutions.entrySet()) {
             ImType rhs = resolveType(e.getValue()); // resolve through existing frames
             // skip self-maps (T -> T)
-            if (rhs instanceof ImTypeVarRef &&
-                ((ImTypeVarRef) rhs).getTypeVariable() == e.getKey()) {
+            if (rhs instanceof ImTypeVarRef imTypeVarRef &&
+                imTypeVarRef.getTypeVariable() == e.getKey()) {
                 continue;
             }
             normalized.put(e.getKey(), rhs);
@@ -388,8 +387,8 @@ public class ProgramState extends State implements AutoCloseable {
         ImClassType rt = top.receiver.getType();
         // resolve possible type vars inside type args
         ImType resolved = resolveType(rt);
-        if (resolved instanceof ImClassType) {
-            rt = (ImClassType) resolved;
+        if (resolved instanceof ImClassType imClassType) {
+            rt = imClassType;
         }
 
         ImClassType adapted = adaptToSuperclass(rt, owner);
@@ -644,12 +643,12 @@ public class ProgramState extends State implements AutoCloseable {
 
     public ILconstObject toObject(ILconst val, @Nullable ImType expectedType) {
         ImType resolved = expectedType == null ? null : resolveType(expectedType);
-        ImClassType expectedClass = resolved instanceof ImClassType ? (ImClassType) resolved : null;
+        ImClassType expectedClass = resolved instanceof ImClassType imClassType ? imClassType : null;
 
-        if (val instanceof ILconstObject) {
-            return (ILconstObject) val;
-        } else if (val instanceof ILconstInt) {
-            int objectId = ((ILconstInt) val).getVal();
+        if (val instanceof ILconstObject iLconstObject) {
+            return iLconstObject;
+        } else if (val instanceof ILconstInt iLconstInt) {
+            int objectId = iLconstInt.getVal();
             return expectedClass != null
                 ? getObjectByIndex(objectId, expectedClass)
                 : getObjectByIndex(objectId);

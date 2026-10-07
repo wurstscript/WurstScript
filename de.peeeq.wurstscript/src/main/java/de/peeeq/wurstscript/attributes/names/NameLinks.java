@@ -45,8 +45,8 @@ public class NameLinks {
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         addNamesFromUsedModuleInstantiations(c, result, overrideCheckResults);
 
-        if (c instanceof ClassDef) {
-            WurstTypeClass classType = ((ClassDef) c).attrTypC();
+        if (c instanceof ClassDef classDef) {
+            WurstTypeClass classType = classDef.attrTypC();
             addNamesFromSuperClass(result, classType, overrideCheckResults);
             addNamesFromImplementedInterfaces(result, classType, overrideCheckResults);
         }
@@ -61,10 +61,10 @@ public class NameLinks {
         // iterates this map, so insertion order beats hash order for reproducible diagnostics.
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = new LinkedHashMap<>();
         for (DefLink link : result.values()) {
-            if (link instanceof FuncLink) {
+            if (link instanceof FuncLink funcLink) {
                 Map<FuncLink, OverrideCheckResult> map = overrideCheckResults.computeIfAbsent(link.getName(),
                     s -> new HashMap<>());
-                map.put((FuncLink) link, new OverrideCheckResult());
+                map.put(funcLink, new OverrideCheckResult());
             }
         }
         return overrideCheckResults;
@@ -201,8 +201,8 @@ public class NameLinks {
         }
         if (currentClass != null) {
             DefLink adapted = funcLink.adaptToReceiverType(currentClass.attrTyp());
-            if (adapted instanceof FuncLink) {
-                funcLink = (FuncLink) adapted;
+            if (adapted instanceof FuncLink funcLink2) {
+                funcLink = funcLink2;
             }
         }
         Map<FuncLink, OverrideCheckResult> map = overrideCheckResults.computeIfAbsent(name, s -> new HashMap<>());
@@ -232,8 +232,7 @@ public class NameLinks {
 
 
     private static void addVarDefIfAny(Builder<String, DefLink> result, WScope s) {
-        if (s instanceof LoopStatementWithVarDef) {
-            LoopStatementWithVarDef l = (LoopStatementWithVarDef) s;
+        if (s instanceof LoopStatementWithVarDef l) {
             result.put(l.getLoopVar().getName(), VarLink.create(l.getLoopVar(), s));
         }
     }
@@ -283,15 +282,13 @@ public class NameLinks {
     public static ImmutableMultimap<String, DefLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
-            if (e instanceof NameDef) {
-                NameDef n = (NameDef) e;
+            if (e instanceof NameDef n) {
                 addNameDefDefLink(result, n, wEntities);
             }
-            if (e instanceof WScope && !(e instanceof ModuleDef)) {
-                WScope scope = (WScope) e;
+            if (e instanceof WScope scope && !(e instanceof ModuleDef)) {
                 List<TypeParamDef> typeParams;
-                if (scope instanceof AstElementWithTypeParameters) {
-                    typeParams = ((AstElementWithTypeParameters) scope).getTypeParameters();
+                if (scope instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+                    typeParams = astElementWithTypeParameters.getTypeParameters();
                 } else {
                     typeParams = Collections.emptyList();
                 }
@@ -312,8 +309,7 @@ public class NameLinks {
     public static ImmutableMultimap<String, DefLink> calculate(WStatements statements) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         for (WStatement s : statements) {
-            if (s instanceof LocalVarDef) {
-                LocalVarDef var = (LocalVarDef) s;
+            if (s instanceof LocalVarDef var) {
                 result.put(var.getName(), VarLink.create(var, statements));
             }
         }
@@ -321,8 +317,7 @@ public class NameLinks {
     }
 
     private static void addParametersIfAny(Builder<String, DefLink> result, WScope s) {
-        if (s instanceof AstElementWithParameters) {
-            AstElementWithParameters withParams = (AstElementWithParameters) s;
+        if (s instanceof AstElementWithParameters withParams) {
             for (WParameter p : withParams.getParameters()) {
                 result.put(p.getName(), VarLink.create(p, s));
             }
@@ -338,11 +333,9 @@ public class NameLinks {
 
     private static void addJassNames(Builder<String, DefLink> result, CompilationUnit cu) {
         for (JassToplevelDeclaration jd : cu.getJassDecls()) {
-            if (jd instanceof NameDef) {
-                NameDef def = (NameDef) jd;
+            if (jd instanceof NameDef def) {
                 addNameDefDefLink(result, def, cu);
-            } else if (jd instanceof JassGlobalBlock) {
-                JassGlobalBlock jassGlobalBlock = (JassGlobalBlock) jd;
+            } else if (jd instanceof JassGlobalBlock jassGlobalBlock) {
                 addDefinedNames(result, cu, jassGlobalBlock);
             }
         }
@@ -350,16 +343,16 @@ public class NameLinks {
 
 
     private static void addNameDefDefLink(Consumer<DefLink> result, NameDef def, WScope scope) {
-        if (def instanceof VarDef) {
-            result.accept(VarLink.create(((VarDef) def), scope));
-        } else if (def instanceof FunctionDefinition) {
-            result.accept(FuncLink.create(((FunctionDefinition) def), scope));
-        } else if (def instanceof WPackage) {
-            result.accept(PackageLink.create(((WPackage) def), scope));
-        } else if (def instanceof TypeDef) {
-            result.accept(TypeDefLink.create(((TypeDef) def), scope));
-        } else if (def instanceof EnumMember) {
-            result.accept(VarLink.create(((EnumMember) def), scope));
+        if (def instanceof VarDef varDef) {
+            result.accept(VarLink.create(varDef, scope));
+        } else if (def instanceof FunctionDefinition functionDefinition) {
+            result.accept(FuncLink.create(functionDefinition, scope));
+        } else if (def instanceof WPackage wPackage) {
+            result.accept(PackageLink.create(wPackage, scope));
+        } else if (def instanceof TypeDef typeDef) {
+            result.accept(TypeDefLink.create(typeDef, scope));
+        } else if (def instanceof EnumMember enumMember) {
+            result.accept(VarLink.create(enumMember, scope));
         }
     }
 

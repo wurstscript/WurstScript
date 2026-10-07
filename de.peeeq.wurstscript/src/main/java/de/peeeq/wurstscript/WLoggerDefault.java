@@ -114,8 +114,8 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void setLevel(Level level) {
-        if (logger instanceof Logger) {
-            ((Logger) logger).setLevel(level);
+        if (logger instanceof Logger logger2) {
+            logger2.setLevel(level);
         }
     }
 

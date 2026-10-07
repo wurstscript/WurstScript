@@ -28,7 +28,7 @@ public class Flow {
         List<WStatement> r;
         if (s instanceof StmtLoop) {
             r = Lists.newArrayList();
-        } else if (s instanceof StmtWhile && isConstantBool(((StmtWhile) s).getCond(), true)) {
+        } else if (s instanceof StmtWhile stmtWhile && isConstantBool(stmtWhile.getCond(), true)) {
             r = Lists.newArrayList();
         } else {
             r = getFollowingStatements(s);
@@ -71,7 +71,7 @@ public class Flow {
     }
 
     private static boolean isConstantBool(Expr cond, boolean value) {
-        return cond instanceof ExprBoolVal && ((ExprBoolVal) cond).getValB() == value;
+        return cond instanceof ExprBoolVal exprBoolVal && exprBoolVal.getValB() == value;
     }
 
 
@@ -112,12 +112,11 @@ public class Flow {
         if (n == null) {
             return null;
         }
-        if (n instanceof WStatements) {
-            WStatements stmts = (WStatements) n;
+        if (n instanceof WStatements stmts) {
             if (!stmts.isEmpty()) {
                 WStatement last = stmts.get(stmts.size() - 1);
-                if (last instanceof EndFunctionStatement) {
-                    return (EndFunctionStatement) last;
+                if (last instanceof EndFunctionStatement endFunctionStatement) {
+                    return endFunctionStatement;
                 }
             }
         }
@@ -175,8 +174,8 @@ public class Flow {
     }
 
     private static @Nullable CompoundStatement getParentStatement(Element node) {
-        if (node instanceof CompoundStatement) {
-            return (CompoundStatement) node;
+        if (node instanceof CompoundStatement compoundStatement) {
+            return compoundStatement;
         } else if (node instanceof WEntity) {
             return null;
         }

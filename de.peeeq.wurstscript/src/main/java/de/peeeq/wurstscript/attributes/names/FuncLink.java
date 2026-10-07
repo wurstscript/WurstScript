@@ -81,8 +81,7 @@ public class FuncLink extends DefLink {
 
 
     private static @Nullable WurstType calcReceiverType(WScope definedIn, NameDef nameDef) {
-        if (nameDef instanceof ExtensionFuncDef) {
-            ExtensionFuncDef exF = (ExtensionFuncDef) nameDef;
+        if (nameDef instanceof ExtensionFuncDef exF) {
             return exF.getExtendedType().attrTyp().dynamic();
         } else if (nameDef instanceof FuncDef) {
             return getReceiverType(definedIn);

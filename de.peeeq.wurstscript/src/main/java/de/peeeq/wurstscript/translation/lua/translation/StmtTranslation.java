@@ -13,8 +13,7 @@ public class StmtTranslation {
 
     public static void translate(ImExpr e, List<LuaStatement> res, LuaTranslator tr) {
         // In Lua mode, package init functions are called directly and wrapped with xpcall.
-        if (e instanceof ImFunctionCall) {
-            ImFunctionCall call = (ImFunctionCall) e;
+        if (e instanceof ImFunctionCall call) {
             if (tr.imTr.luaInitFunctions.containsKey(call.getFunc())) {
                 emitLuaInitXpcall(call.getFunc(), res, tr);
                 return;

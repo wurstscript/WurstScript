@@ -55,8 +55,8 @@ public class ReflectionNativeProvider implements NativesProvider {
     }
 
     private void addProvider(Provider provider) {
-        if (provider instanceof OutputProvider) {
-            outputProviders.add((OutputProvider) provider);
+        if (provider instanceof OutputProvider outputProvider) {
+            outputProviders.add(outputProvider);
         }
         for (Method method : provider.getClass().getMethods()) {
             Implements annotation = method.getAnnotation(Implements.class);

@@ -35,9 +35,8 @@ public class ModifiersHelper {
     }
 
     public static boolean isAbstract(HasModifier e) {
-        if (e instanceof FuncDef
+        if (e instanceof FuncDef f
                 && e.attrNearestStructureDef() instanceof InterfaceDef) {
-            FuncDef f = (FuncDef) e;
             // functions in interfaces are always abstract if they have no implementation ...
             return f.attrHasEmptyBody();
         }
@@ -80,8 +79,7 @@ public class ModifiersHelper {
         String searchName = normalizeAnnotation(name);
 
         for (Modifier m : modifiers) {
-            if (m instanceof Annotation) {
-                Annotation annotation = (Annotation) m;
+            if (m instanceof Annotation annotation) {
                 if (normalizeAnnotation(annotation.getAnnotationType()).equals(searchName)) {
                     return annotation;
                 }
@@ -94,8 +92,7 @@ public class ModifiersHelper {
         String searchName = normalizeAnnotation(name);
 
         for (Modifier m : modifiers) {
-            if (m instanceof Annotation) {
-                Annotation annotation = (Annotation) m;
+            if (m instanceof Annotation annotation) {
                 if (normalizeAnnotation(annotation.getAnnotationType()).equals(searchName)) {
                     return true;
                 }

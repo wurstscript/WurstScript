@@ -28,14 +28,14 @@ public class UsedVariables {
 
     // Fastest: Direct recursive collection without visitor overhead
     private static void collectAllVars(Element e, Set<ImVar> result) {
-        if (e instanceof ImVarAccess) {
-            result.add(((ImVarAccess) e).getVar());
-        } else if (e instanceof ImVarArrayAccess) {
-            result.add(((ImVarArrayAccess) e).getVar());
-        } else if (e instanceof ImMemberAccess) {
-            result.add(((ImMemberAccess) e).getVar());
-        } else if (e instanceof ImVarargLoop) {
-            ((ImVarargLoop) e).getLoopVars().forEach(v -> result.add(v.getVar()));
+        if (e instanceof ImVarAccess imVarAccess) {
+            result.add(imVarAccess.getVar());
+        } else if (e instanceof ImVarArrayAccess imVarArrayAccess) {
+            result.add(imVarArrayAccess.getVar());
+        } else if (e instanceof ImMemberAccess imMemberAccess) {
+            result.add(imMemberAccess.getVar());
+        } else if (e instanceof ImVarargLoop imVarargLoop) {
+            imVarargLoop.getLoopVars().forEach(v -> result.add(v.getVar()));
         }
 
         // Continue traversal
@@ -71,20 +71,18 @@ public class UsedVariables {
             // Use type checks in order of frequency (optimize for common case)
             if (expr instanceof ImVarAccess) {
                 // Write only, skip
-            } else if (expr instanceof ImMemberAccess) {
-                ImMemberAccess memberAccess = (ImMemberAccess) expr;
+            } else if (expr instanceof ImMemberAccess memberAccess) {
                 memberAccess.getReceiver().accept(this);
                 memberAccess.getIndexes().accept(this);
-            } else if (expr instanceof ImVarArrayAccess) {
-                ((ImVarArrayAccess) expr).getIndexes().accept(this);
-            } else if (expr instanceof ImTupleSelection) {
-                handleLExprReads((ImLExpr) ((ImTupleSelection) expr).getTupleExpr());
-            } else if (expr instanceof ImStatementExpr) {
-                ImStatementExpr se = (ImStatementExpr) expr;
+            } else if (expr instanceof ImVarArrayAccess imVarArrayAccess) {
+                imVarArrayAccess.getIndexes().accept(this);
+            } else if (expr instanceof ImTupleSelection imTupleSelection) {
+                handleLExprReads((ImLExpr) imTupleSelection.getTupleExpr());
+            } else if (expr instanceof ImStatementExpr se) {
                 se.getStatements().accept(this);
                 handleLExprReads((ImLExpr) se.getExpr());
-            } else if (expr instanceof ImTupleExpr) {
-                for (ImExpr ie : ((ImTupleExpr) expr).getExprs()) {
+            } else if (expr instanceof ImTupleExpr imTupleExpr) {
+                for (ImExpr ie : imTupleExpr.getExprs()) {
                     handleLExprReads((ImLExpr) ie);
                 }
             }

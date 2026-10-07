@@ -165,8 +165,7 @@ public class StmtTranslation {
             // Materialize a concrete IM class type for the iterator local (Iterator<S>)
             ImType iteratorImType;
             WurstType retWT = iteratorFunc.getReturnType().normalize();
-            if (retWT instanceof de.peeeq.wurstscript.types.WurstTypeClass) {
-                de.peeeq.wurstscript.types.WurstTypeClass rtc = (de.peeeq.wurstscript.types.WurstTypeClass) retWT;
+            if (retWT instanceof de.peeeq.wurstscript.types.WurstTypeClass rtc) {
                 de.peeeq.wurstscript.ast.ClassDef rtClassDef = rtc.getClassDef();
                 ImClass imIterClass = t.getClassFor(rtClassDef);
                 iteratorImType = JassIm.ImClassType(imIterClass, iterTypeArgs.copy());
@@ -453,17 +452,15 @@ public class StmtTranslation {
                 // Continue inside nested loops should not trigger guarding for the outer loop.
                 continue;
             }
-            if (statement instanceof WBlock && hasContinueForCurrentLoop(((WBlock) statement).getBody())) {
+            if (statement instanceof WBlock wBlock && hasContinueForCurrentLoop(wBlock.getBody())) {
                 return true;
             }
-            if (statement instanceof StmtIf) {
-                StmtIf stmtIf = (StmtIf) statement;
+            if (statement instanceof StmtIf stmtIf) {
                 if (hasContinueForCurrentLoop(stmtIf.getThenBlock()) || hasContinueForCurrentLoop(stmtIf.getElseBlock())) {
                     return true;
                 }
             }
-            if (statement instanceof SwitchStmt) {
-                SwitchStmt switchStmt = (SwitchStmt) statement;
+            if (statement instanceof SwitchStmt switchStmt) {
                 for (SwitchCase switchCase : switchStmt.getCases()) {
                     if (hasContinueForCurrentLoop(switchCase.getStmts())) {
                         return true;

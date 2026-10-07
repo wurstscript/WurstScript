@@ -78,11 +78,10 @@ public class NullSetter {
                                      final de.peeeq.wurstscript.ast.Element trace, Element parent) {
         for (int i = 0; i < parent.size(); i++) {
             Element elem = parent.get(i);
-            if (elem instanceof ImReturn) {
-                handleReturnStmt(f, handleVars, nullSetStmts, trace, (ImReturn) elem);
+            if (elem instanceof ImReturn imReturn) {
+                handleReturnStmt(f, handleVars, nullSetStmts, trace, imReturn);
                 return true;
-            } else if (elem instanceof ImIf) {
-                ImIf imIf = (ImIf) elem;
+            } else if (elem instanceof ImIf imIf) {
                 boolean returnsThen = optimizeChildren(f, handleVars, nullSetStmts, trace, imIf.getThenBlock());
                 boolean returnsElse = optimizeChildren(f, handleVars, nullSetStmts, trace, imIf.getElseBlock());
                 if (returnsThen && returnsElse) {
@@ -159,8 +158,7 @@ public class NullSetter {
     }
 
     private boolean isHandleType(ImType type) {
-        if (type instanceof ImSimpleType) {
-            ImSimpleType imSimpleType = (ImSimpleType) type;
+        if (type instanceof ImSimpleType imSimpleType) {
             return !primitiveTypes.contains(imSimpleType.getTypename());
         }
         return false;

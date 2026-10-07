@@ -63,9 +63,9 @@ public class NameResolution {
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
-                if (n instanceof FuncLink && n.getReceiverType() == null) {
+                if (n instanceof FuncLink funcLink && n.getReceiverType() == null) {
                     if (seen.add(n.getDef())) {
-                        result.add((FuncLink) n);
+                        result.add(funcLink);
                     }
                 }
             }
@@ -124,8 +124,7 @@ public class NameResolution {
             return null;
         }
         WScope currentScope = scope;
-        if (currentScope instanceof ModuleInstanciation) {
-            ModuleInstanciation moduleInstanciation = (ModuleInstanciation) currentScope;
+        if (currentScope instanceof ModuleInstanciation moduleInstanciation) {
             return nextScope(moduleInstanciation.attrModuleOrigin());
         }
         return parent.attrNearestScope();
@@ -156,8 +155,8 @@ public class NameResolution {
         addMemberMethods(node, receiverType, name, fromType);
         for (FuncLink cand : fromType) {
             DefLink m = matchDefLinkReceiver(cand.withConfigDef(), receiverType, node, showErrors);
-            if (m instanceof FuncLink) {
-                result.add((FuncLink) m);
+            if (m instanceof FuncLink funcLink) {
+                result.add(funcLink);
             }
         }
 
@@ -182,10 +181,10 @@ public class NameResolution {
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
-                if (!(n instanceof FuncLink)) {
+                if (!(n instanceof FuncLink funcLink)) {
                     continue;
                 }
-                DefLink n2 = matchDefLinkReceiver(((FuncLink) n).withConfigDef(), receiverType, node, false);
+                DefLink n2 = matchDefLinkReceiver(funcLink.withConfigDef(), receiverType, node, false);
                 if (n2 != null) {
                     FuncLink f = (FuncLink) n2;
                     result.add(f);
@@ -232,15 +231,13 @@ public class NameResolution {
         }
 
         for (WScope s : scopes) {
-            if (s instanceof LoopStatementWithVarDef) {
-                LoopStatementWithVarDef loop = (LoopStatementWithVarDef) s;
+            if (s instanceof LoopStatementWithVarDef loop) {
                 if (!Utils.elementContained(Optional.of(node), loop.getBody())) {
                     continue;
                 }
             }
 
-            if (s instanceof StructureDef) {
-                StructureDef nearestStructureDef = (StructureDef) s;
+            if (s instanceof StructureDef nearestStructureDef) {
                 WurstTypeNamedScope receiverType = (WurstTypeNamedScope) nearestStructureDef.attrTyp();
                 for (DefLink link : receiverType.nameLinks(name)) {
                     if (!(link instanceof FuncLink)) {
@@ -342,8 +339,7 @@ public class NameResolution {
             return bestMatch.link;
         }
 
-        if (receiverType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
+        if (receiverType instanceof WurstTypeClassOrInterface ct) {
             Collection<DefLink> typeNameLinks = ct.nameLinks().get(name);
             DefLinkMatch candidate = findBestMemberVarMatch(typeNameLinks, receiverType, node, showErrors);
             if (candidate != null && candidate.link.getVisibility().isPublic()) {
@@ -416,14 +412,14 @@ public class NameResolution {
                 return distance;
             }
             OptTypeExpr extended = current.getExtendedClass();
-            if (!(extended instanceof TypeExpr)) {
+            if (!(extended instanceof TypeExpr typeExpr)) {
                 break;
             }
-            WurstType extendedType = ((TypeExpr) extended).attrTyp();
-            if (!(extendedType instanceof WurstTypeClass)) {
+            WurstType extendedType = typeExpr.attrTyp();
+            if (!(extendedType instanceof WurstTypeClass wurstTypeClass)) {
                 break;
             }
-            current = ((WurstTypeClass) extendedType).getClassDef();
+            current = wurstTypeClass.getClassDef();
             distance++;
         }
         return -1;
@@ -449,22 +445,22 @@ public class NameResolution {
     }
 
     private static @Nullable ClassDef owningClass(WurstType type) {
-        if (type instanceof WurstTypeClass) {
-            return ((WurstTypeClass) type).getClassDef();
+        if (type instanceof WurstTypeClass wurstTypeClass) {
+            return wurstTypeClass.getClassDef();
         }
-        if (type instanceof WurstTypeClassOrInterface) {
-            ClassOrInterface def = ((WurstTypeClassOrInterface) type).getDef();
-            if (def instanceof ClassDef) {
-                return (ClassDef) def;
+        if (type instanceof WurstTypeClassOrInterface wurstTypeClassOrInterface) {
+            ClassOrInterface def = wurstTypeClassOrInterface.getDef();
+            if (def instanceof ClassDef classDef) {
+                return classDef;
             }
             return null;
         }
-        if (type instanceof WurstTypeModuleInstanciation) {
-            NamedScope inst = ((WurstTypeModuleInstanciation) type).getDef();
+        if (type instanceof WurstTypeModuleInstanciation wurstTypeModuleInstanciation) {
+            NamedScope inst = wurstTypeModuleInstanciation.getDef();
             return inst.attrNearestClassDef();
         }
-        if (type instanceof WurstTypeModule) {
-            ModuleDef moduleDef = ((WurstTypeModule) type).getDef();
+        if (type instanceof WurstTypeModule wurstTypeModule) {
+            ModuleDef moduleDef = wurstTypeModule.getDef();
             return moduleDef.attrNearestClassDef();
         }
         return null;
@@ -488,11 +484,11 @@ public class NameResolution {
         VariableBinding mapping = receiverType.matchAgainstSupertype(candRecv, node, seed, VariablePosition.RIGHT);
         if (mapping == null) return null;
 
-        WLogger.trace(() -> "[MATCHRECV] def=" + ((n instanceof FuncLink) ? ((FuncLink) n).getDef().getName() : n.getDef().getName())
+        WLogger.trace(() -> "[MATCHRECV] def=" + ((n instanceof FuncLink funcLink) ? funcLink.getDef().getName() : n.getDef().getName())
             + " left=" + receiverType
             + " candRecv=" + candRecv
             + " linkTypeParams=" + n.getTypeParams()
-            + (n instanceof FuncLink ? (" linkVB=" + ((FuncLink) n).getVariableBinding()) : ""));
+            + (n instanceof FuncLink funcLink ? (" linkVB=" + funcLink.getVariableBinding()) : ""));
 
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
@@ -506,14 +502,14 @@ public class NameResolution {
     }
 
     private static Iterable<TypeParamDef> typeParamsOfReceiverType(WurstType t) {
-        if (t instanceof WurstTypeClassOrInterface) {
-            return ((WurstTypeClassOrInterface) t).getDef().getTypeParameters();
+        if (t instanceof WurstTypeClassOrInterface wurstTypeClassOrInterface) {
+            return wurstTypeClassOrInterface.getDef().getTypeParameters();
         }
-        if (t instanceof WurstTypeClass) {
-            return ((WurstTypeClass) t).getClassDef().getTypeParameters();
+        if (t instanceof WurstTypeClass wurstTypeClass) {
+            return wurstTypeClass.getClassDef().getTypeParameters();
         }
-        if (t instanceof WurstTypeInterface) {
-            return ((WurstTypeInterface) t).getInterfaceDef().getTypeParameters();
+        if (t instanceof WurstTypeInterface wurstTypeInterface) {
+            return wurstTypeInterface.getInterfaceDef().getTypeParameters();
         }
         return java.util.Collections.emptyList();
     }
@@ -584,8 +580,8 @@ public class NameResolution {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (NameLink n : scopeNameLinks(scope, name)) {
-                if (n instanceof PackageLink) {
-                    return (PackageLink) n;
+                if (n instanceof PackageLink packageLink) {
+                    return packageLink;
                 }
             }
             scope = nextScope(scope);

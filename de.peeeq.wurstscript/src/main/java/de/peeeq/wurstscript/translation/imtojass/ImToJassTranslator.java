@@ -178,8 +178,7 @@ public class ImToJassTranslator {
         for (ImVar v : imFunc.getParameters()) {
             f.getParams().add((JassSimpleVar) getJassVarFor(v));
         }
-        if (f instanceof JassFunction) {
-            JassFunction jf = (JassFunction) f;
+        if (f instanceof JassFunction jf) {
             // translate locals
             for (ImVar v : imFunc.getLocals()) {
                 jf.getLocals().add(getJassVarFor(v));

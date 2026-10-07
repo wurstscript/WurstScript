@@ -76,8 +76,7 @@ public class TypeNameLinks {
     public static ImmutableMultimap<String, TypeLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
-            if (e instanceof TypeDef) {
-                TypeDef n = (TypeDef) e;
+            if (e instanceof TypeDef n) {
                 result.put(n.getName(), TypeLink.create(n, wEntities));
             }
         }
@@ -122,8 +121,7 @@ public class TypeNameLinks {
 
     private static void addJassTypes(ImmutableMultimap.Builder<String, TypeLink> result, CompilationUnit cu) {
         for (JassToplevelDeclaration jd : cu.getJassDecls()) {
-            if (jd instanceof TypeDef) {
-                TypeDef def = (TypeDef) jd;
+            if (jd instanceof TypeDef def) {
                 result.put(def.getName(), TypeLink.create(def, cu));
             }
         }

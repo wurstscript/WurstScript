@@ -40,8 +40,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
         if (superMapping != null) {
             return superMapping;
         }
-        if (obj instanceof WurstTypeModuleInstanciation) {
-            WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
+        if (obj instanceof WurstTypeModuleInstanciation n) {
             if (n.isParent(this)) {
                 return mapping;
             }

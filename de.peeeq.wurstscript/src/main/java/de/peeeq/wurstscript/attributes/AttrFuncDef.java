@@ -440,9 +440,8 @@ public class AttrFuncDef {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
             WurstType argType;
-            if (arg instanceof ExprClosure) {
+            if (arg instanceof ExprClosure closure) {
                 // for closures, we only calculate the type, if all argument types are specified:
-                ExprClosure closure = (ExprClosure) arg;
                 boolean b = true;
                 for (WShortParameter wShortParameter : closure.getShortParameters()) {
                     if (!(wShortParameter.getTypOpt() instanceof TypeExpr)) {
@@ -494,9 +493,8 @@ public class AttrFuncDef {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
             WurstType argType;
-            if (arg instanceof ExprClosure) {
+            if (arg instanceof ExprClosure closure) {
                 // for closures, we only calculate the type, if all argument types are specified:
-                ExprClosure closure = (ExprClosure) arg;
                 boolean b = true;
                 for (WShortParameter wShortParameter : closure.getShortParameters()) {
                     if (!(wShortParameter.getTypOpt() instanceof TypeExpr)) {
@@ -562,8 +560,8 @@ public class AttrFuncDef {
             return null;
         }
         ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
-        if (node instanceof ExprFunctionCall
-            && hasApplicableUserFunction((ExprFunctionCall) node)) {
+        if (node instanceof ExprFunctionCall exprFunctionCall
+            && hasApplicableUserFunction(exprFunctionCall)) {
             ImmutableList<FuncLink> ordinaryFunctions = funcs1.stream()
                 .filter(f -> !CompilerIntrinsics.isDeclaration(f.getDef()))
                 .collect(Utils.toImmutableList());

@@ -28,17 +28,13 @@ public abstract class DefLink extends NameLink {
 
 
     protected static @Nullable WurstType getReceiverType(WScope definedIn) {
-        if (definedIn instanceof ClassDef) {
-            ClassDef classDef = (ClassDef) definedIn;
+        if (definedIn instanceof ClassDef classDef) {
             return classDef.attrTyp();
-        } else if (definedIn instanceof InterfaceDef) {
-            InterfaceDef interfaceDef = (InterfaceDef) definedIn;
+        } else if (definedIn instanceof InterfaceDef interfaceDef) {
             return interfaceDef.attrTyp();
-        } else if (definedIn instanceof ModuleInstanciation) {
-            ModuleInstanciation moduleInstanciation = (ModuleInstanciation) definedIn;
+        } else if (definedIn instanceof ModuleInstanciation moduleInstanciation) {
             return moduleInstanciation.attrTyp();
-        } else if (definedIn instanceof ModuleDef) {
-            ModuleDef moduleDef = (ModuleDef) definedIn;
+        } else if (definedIn instanceof ModuleDef moduleDef) {
             return moduleDef.attrTyp();
         }
         return null;
@@ -46,8 +42,8 @@ public abstract class DefLink extends NameLink {
 
 
     protected static Stream<TypeParamDef> typeParams(Element scope) {
-        if (scope instanceof AstElementWithTypeParameters) {
-            return ((AstElementWithTypeParameters) scope).getTypeParameters().stream();
+        if (scope instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            return astElementWithTypeParameters.getTypeParameters().stream();
         }
         return Stream.of();
     }

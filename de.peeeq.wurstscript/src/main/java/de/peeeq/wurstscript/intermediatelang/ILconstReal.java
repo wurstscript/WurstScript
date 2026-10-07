@@ -40,10 +40,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstNum add(ILconstAddable other) {
-        if (other instanceof ILconstInt) {
-            return create(val + ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return create(val + ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return create(val + iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return create(val + iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -51,10 +51,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstNum sub(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return create(val - ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return create(val - ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return create(val - iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return create(val - iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -62,10 +62,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstNum mul(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return create(val * ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return create(val * ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return create(val * iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return create(val * iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -73,10 +73,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstNum div(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return create(val / ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return create(val / ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return create(val / iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return create(val / iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -88,10 +88,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstBool less(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return ILconstBool.instance(val < ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return ILconstBool.instance(val < ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return ILconstBool.instance(val < iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return ILconstBool.instance(val < iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -99,10 +99,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstBool lessEq(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return ILconstBool.instance(val <= ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return ILconstBool.instance(val <= ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return ILconstBool.instance(val <= iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return ILconstBool.instance(val <= iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -110,10 +110,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstBool greater(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return ILconstBool.instance(val > ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return ILconstBool.instance(val > ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return ILconstBool.instance(val > iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return ILconstBool.instance(val > iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -121,10 +121,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public ILconstBool greaterEq(ILconstNum other) {
-        if (other instanceof ILconstInt) {
-            return ILconstBool.instance(val >= ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return ILconstBool.instance(val >= ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return ILconstBool.instance(val >= iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return ILconstBool.instance(val >= iLconstReal.getVal());
         } else {
             throw new Error();
         }
@@ -132,10 +132,10 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
     @Override
     public boolean isEqualTo(ILconst other) {
-        if (other instanceof ILconstInt) {
-            return (val == ((ILconstInt) other).getVal());
-        } else if (other instanceof ILconstReal) {
-            return (val == ((ILconstReal) other).getVal());
+        if (other instanceof ILconstInt iLconstInt) {
+            return (val == iLconstInt.getVal());
+        } else if (other instanceof ILconstReal iLconstReal) {
+            return (val == iLconstReal.getVal());
         } else {
             return false;
         }

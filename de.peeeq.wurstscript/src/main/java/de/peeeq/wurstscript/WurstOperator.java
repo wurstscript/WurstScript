@@ -266,10 +266,10 @@ public enum WurstOperator {
     }
 
     private static float getReal(ILconst c) {
-        if (c instanceof ILconstReal) {
-            return ((ILconstReal) c).getVal();
-        } else if (c instanceof ILconstInt) {
-            return ((ILconstInt) c).getVal();
+        if (c instanceof ILconstReal iLconstReal) {
+            return iLconstReal.getVal();
+        } else if (c instanceof ILconstInt iLconstInt) {
+            return iLconstInt.getVal();
         }
         throw new Error();
     }

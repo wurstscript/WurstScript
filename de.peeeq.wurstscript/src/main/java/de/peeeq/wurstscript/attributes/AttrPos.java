@@ -14,8 +14,7 @@ public class AttrPos {
      * @return
      */
     public static WPos getPos(Element e) {
-        if (e instanceof AstElementWithSource) {
-            AstElementWithSource ws = (AstElementWithSource) e;
+        if (e instanceof AstElementWithSource ws) {
             return ws.getSource();
         }
         if (e.size() > 0) { // try to find the position by examining the childs

@@ -291,8 +291,8 @@ public class ModelManagerImpl implements ModelManager {
         // clear module instantiations
         for (WPackage p : cu.getPackages()) {
             for (WEntity elem : p.getElements()) {
-                if (elem instanceof ClassOrModuleInstanciation) {
-                    clearModuleInstantiation(((ClassOrModuleInstanciation) elem));
+                if (elem instanceof ClassOrModuleInstanciation classOrModuleInstanciation) {
+                    clearModuleInstantiation(classOrModuleInstanciation);
                 }
             }
         }

@@ -276,8 +276,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         } else {
             ImFunction f = e.getRight();
             for (FunctionFlag flag : f.getFlags()) {
-                if (flag instanceof FunctionFlagCompiletime) {
-                    FunctionFlagCompiletime cflag = (FunctionFlagCompiletime) flag;
+                if (flag instanceof FunctionFlagCompiletime cflag) {
                     return cflag.getOrderIndex();
 
                 }
@@ -323,14 +322,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     newExpr = ImHelper.nullExpr();
                 } else {
                     @Nullable ImType exprType = null;
-                    if(expr instanceof ImFunctionCall) {
-                        exprType = ((ImFunctionCall) expr).getFunc().getReturnType();
-                    } else if(expr instanceof ImVarAccess) {
-                        exprType = ((ImVarAccess)expr).getVar().getType();
-                    } else if(expr instanceof ImVarArrayAccess) {
-                        ImType type = ((ImVarArrayAccess)expr).getVar().getType();
-                        if(type instanceof ImArrayLikeType) {
-                            exprType = ((ImArrayLikeType) type).getEntryType();
+                    if(expr instanceof ImFunctionCall imFunctionCall) {
+                        exprType = imFunctionCall.getFunc().getReturnType();
+                    } else if(expr instanceof ImVarAccess imVarAccess) {
+                        exprType = imVarAccess.getVar().getType();
+                    } else if(expr instanceof ImVarArrayAccess imVarArrayAccess) {
+                        ImType type = imVarArrayAccess.getVar().getType();
+                        if(type instanceof ImArrayLikeType imArrayLikeType) {
+                            exprType = imArrayLikeType.getEntryType();
                         }
                     }
                     if(exprType != null && !TypesHelper.isIntType(exprType) && !TypesHelper.isRealType(exprType)) {
@@ -408,8 +407,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImExpr init;
 
             Object obj = a.getObj();
-            if (obj instanceof HashtableProvider.WurstHashtable) {
-                HashtableProvider.WurstHashtable map = (HashtableProvider.WurstHashtable) obj;
+            if (obj instanceof HashtableProvider.WurstHashtable map) {
                 ImType type = TypesHelper.imHashTable();
                 ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
                 imProg.getGlobals().add(res);
@@ -449,21 +447,21 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
-        if (value instanceof ILconstBool) {
-            return JassIm.ImBoolVal(((ILconstBool) value).getVal());
-        } else if (value instanceof ILconstInt) {
-            return JassIm.ImIntVal(((ILconstInt) value).getVal());
-        } else if (value instanceof ILconstReal) {
-            return JassIm.ImRealVal("" + ((ILconstReal) value).getVal());
-        } else if (value instanceof ILconstString) {
-            return JassIm.ImStringVal(literalText((ILconstString) value, trace));
+        if (value instanceof ILconstBool iLconstBool) {
+            return JassIm.ImBoolVal(iLconstBool.getVal());
+        } else if (value instanceof ILconstInt iLconstInt) {
+            return JassIm.ImIntVal(iLconstInt.getVal());
+        } else if (value instanceof ILconstReal iLconstReal) {
+            return JassIm.ImRealVal("" + iLconstReal.getVal());
+        } else if (value instanceof ILconstString iLconstString) {
+            return JassIm.ImStringVal(literalText(iLconstString, trace));
         } else if (value instanceof ILconstNull) {
             return expectedType == null ? ImHelper.nullExpr() : JassIm.ImNull(expectedType.copy());
-        } else if (value instanceof ILconstTuple) {
+        } else if (value instanceof ILconstTuple iLconstTuple) {
             List<ImExpr> list = new ArrayList<>();
-            ImTupleType tupleType = expectedType instanceof ImTupleType ? (ImTupleType) expectedType : null;
+            ImTupleType tupleType = expectedType instanceof ImTupleType imTupleType ? imTupleType : null;
             int index = 0;
-            for (ILconst e : ((ILconstTuple) value).values()) {
+            for (ILconst e : iLconstTuple.values()) {
                 ImType elementType = tupleType != null && index < tupleType.getTypes().size()
                     ? tupleType.getTypes().get(index) : null;
                 ImExpr imExpr = constantToExpr(trace, e, elementType);
@@ -475,8 +473,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                         list
                     )
             );
-        } else if (value instanceof IlConstHandle) {
-            IlConstHandle h = (IlConstHandle) value;
+        } else if (value instanceof IlConstHandle h) {
             ImVar hVar = globalForHandle.getFor(h);
             return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
@@ -599,8 +596,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImFunctionCall call = JassIm.ImFunctionCall(trace, res, JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
             while (iterator.hasNext()) {
                 ImStmt stmt = iterator.next();
-                if (stmt instanceof ImFunctionCall) {
-                    ImFunctionCall fc = (ImFunctionCall) stmt;
+                if (stmt instanceof ImFunctionCall fc) {
                     if (fc.getFunc() == globalInitFunc) {
                         // call initCompiletimeState right after globalInitFunc
                         iterator.add(call);
@@ -703,7 +699,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (stateInit != null) {
                 for (int i = 0; i < mainBody.size(); i++) {
                     ImStmt stmt = mainBody.get(i);
-                    if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == stateInit) {
+                    if (stmt instanceof ImFunctionCall imFunctionCall && imFunctionCall.getFunc() == stateInit) {
                         mainBody.add(i + 1, newCompiletimeStateInitCall(mainReplay));
                         return;
                     }
@@ -711,7 +707,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
             for (int i = 0; i < mainBody.size(); i++) {
                 ImStmt stmt = mainBody.get(i);
-                if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == globalInitFunction) {
+                if (stmt instanceof ImFunctionCall imFunctionCall && imFunctionCall.getFunc() == globalInitFunction) {
                     mainBody.add(i + 1, newCompiletimeStateInitCall(mainReplay));
                     return;
                 }
@@ -902,9 +898,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
             List<Integer> nextIndexes = new ArrayList<>(indexes);
             nextIndexes.add(entry.getIntKey());
-            if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
+            if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType imArrayLikeType) {
                 emitCompiletimeArrayEntries(target, var, (ILconstArray) entry.getValue(), nextIndexes,
-                    ((ImArrayLikeType) entryType).getEntryType(), runtimeArrayWrites, modifiedIndexes,
+                    imArrayLikeType.getEntryType(), runtimeArrayWrites, modifiedIndexes,
                     unsupportedEntries);
             } else if (!modifiedIndexes.contains(nextIndexes)) {
                 continue;
@@ -970,7 +966,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                         ImVarArrayAccess access = (ImVarArrayAccess) set.getLeft();
                         List<Integer> indexes = new ArrayList<>();
                         for (ImExpr index : access.getIndexes()) {
-                            indexes.add(index instanceof ImIntVal ? ((ImIntVal) index).getValI() : null);
+                            indexes.add(index instanceof ImIntVal imIntVal ? imIntVal.getValI() : null);
                         }
                         runtimeArrayWrites.add(new RuntimeArrayWrite(access.getVar(), indexes));
                     }
@@ -1006,8 +1002,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
         @Override
         public boolean equals(Object other) {
-            if (!(other instanceof RuntimeArrayWrite)) return false;
-            RuntimeArrayWrite that = (RuntimeArrayWrite) other;
+            if (!(other instanceof RuntimeArrayWrite that)) return false;
             return var == that.var && indexes.equals(that.indexes);
         }
 
@@ -1020,7 +1015,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private static RuntimeArrayWrite runtimeArrayWrite(ImVar var, List<ImExpr> indexes) {
         List<Integer> constantIndexes = new ArrayList<>();
         for (ImExpr index : indexes) {
-            constantIndexes.add(index instanceof ImIntVal ? ((ImIntVal) index).getValI() : null);
+            constantIndexes.add(index instanceof ImIntVal imIntVal ? imIntVal.getValI() : null);
         }
         return new RuntimeArrayWrite(var, constantIndexes);
     }
@@ -1030,14 +1025,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             || value instanceof ILconstString || value instanceof ILconstNull || value instanceof ILconstObject) {
             return true;
         }
-        if (value instanceof ILconstTuple) {
-            for (ILconst element : ((ILconstTuple) value).values()) {
+        if (value instanceof ILconstTuple iLconstTuple) {
+            for (ILconst element : iLconstTuple.values()) {
                 if (!isPersistableCompiletimeValue(element)) return false;
             }
             return true;
         }
-        if (value instanceof IlConstHandle) {
-            Object obj = ((IlConstHandle) value).getObj();
+        if (value instanceof IlConstHandle ilConstHandle) {
+            Object obj = ilConstHandle.getObj();
             return obj instanceof HashtableProvider.WurstHashtable;
         }
         return false;
@@ -1063,44 +1058,40 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 int parentKey = entry.parentKey;
                 int childKey = entry.childKey;
                 Object v = entry.value;
-                if (v instanceof ILconstInt) {
+                if (v instanceof ILconstInt iv) {
                     if (saveInteger == null) {
                         saveInteger = findNative("SaveInteger", errorPos);
                     }
-                    ILconstInt iv = (ILconstInt) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(parentKey),
                             JassIm.ImIntVal(childKey),
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstReal) {
+                } else if (v instanceof ILconstReal iv) {
                     if (saveReal == null) {
                         saveReal = findNative("SaveReal", errorPos);
                     }
-                    ILconstReal iv = (ILconstReal) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(parentKey),
                             JassIm.ImIntVal(childKey),
                             JassIm.ImRealVal("" + iv.getVal())
                     ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstString) {
+                } else if (v instanceof ILconstString iv) {
                     if (saveStr == null) {
                         saveStr = findNative("SaveStr", errorPos);
                     }
-                    ILconstString iv = (ILconstString) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(parentKey),
                             JassIm.ImIntVal(childKey),
                             JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstBool) {
+                } else if (v instanceof ILconstBool iv) {
                     if (saveBoolean == null) {
                         saveBoolean = findNative("SaveBoolean", errorPos);
                     }
-                    ILconstBool iv = (ILconstBool) v;
                     batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
                         JassIm.ImVarAccess(htVar),
                         JassIm.ImIntVal(parentKey),

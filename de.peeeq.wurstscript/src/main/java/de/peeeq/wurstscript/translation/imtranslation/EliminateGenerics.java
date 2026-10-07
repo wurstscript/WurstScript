@@ -1067,7 +1067,7 @@ public class EliminateGenerics {
                 super.visit(s);
 
                 ImExpr rhs = s.getRight();
-                if (!(rhs instanceof ImNull)) return;
+                if (!(rhs instanceof ImNull imNull)) return;
 
                 // determine expected type from the LHS (already typechecked in IM)
                 ImType lhsType = s.getLeft().attrTyp();
@@ -1081,7 +1081,7 @@ public class EliminateGenerics {
                     s.setRight(safe);
                 } else {
                     // keep IM consistent: null<T> should have the correct concrete type
-                    ((ImNull) rhs).setType(expected);
+                    imNull.setType(expected);
                 }
             }
         });
@@ -1178,8 +1178,8 @@ public class EliminateGenerics {
                 if (methodIsGeneric && mc.getTypeArguments().isEmpty()) {
                     ImClass owning = m.attrClass();
                     ImType rt = mc.getReceiver().attrTyp();
-                    if (owning != null && rt instanceof ImClassType) {
-                        ImClassType adapted = adaptToSuperclass((ImClassType) rt, owning);
+                    if (owning != null && rt instanceof ImClassType imClassType) {
+                        ImClassType adapted = adaptToSuperclass(imClassType, owning);
                         if (adapted != null && !adapted.getTypeArguments().isEmpty()) {
                             List<ImTypeArgument> copied = new ArrayList<>(adapted.getTypeArguments().size());
                             for (ImTypeArgument ta : adapted.getTypeArguments()) copied.add(ta.copy());
@@ -2338,13 +2338,13 @@ public class EliminateGenerics {
     }
 
     private ImExpr specializeNullInitializer(ImExpr rhs, ImType specializedType) {
-        if (!(rhs instanceof ImNull)) {
+        if (!(rhs instanceof ImNull imNull)) {
             return rhs;
         }
 
         // IMPORTANT: for concrete primitives, pjass forbids setting to null.
-        if (specializedType instanceof ImSimpleType) {
-            String n = ((ImSimpleType) specializedType).getTypename();
+        if (specializedType instanceof ImSimpleType imSimpleType) {
+            String n = imSimpleType.getTypename();
             switch (n) {
                 case "integer":
                     return JassIm.ImIntVal(0);
@@ -2355,13 +2355,13 @@ public class EliminateGenerics {
                     return JassIm.ImBoolVal(false);
                 default:
                     // string/handle-like types can stay null
-                    ((ImNull) rhs).setType(specializedType);
+                    imNull.setType(specializedType);
                     return rhs;
             }
         }
 
         // For everything else, keep null but correct the type (so later passes are consistent).
-        ((ImNull) rhs).setType(specializedType);
+        imNull.setType(specializedType);
         return rhs;
     }
 
@@ -2851,8 +2851,8 @@ public class EliminateGenerics {
             // target field using that type information.
             if (generics.containsTypeVariable()) {
                 ImType receiverType = specializeType(ma.getReceiver().attrTyp());
-                if (receiverType instanceof ImClassType) {
-                    ImClass specializedClass = ((ImClassType) receiverType).getClassDef();
+                if (receiverType instanceof ImClassType imClassType) {
+                    ImClass specializedClass = imClassType.getClassDef();
                     int fieldIndex = owningClass.getFields().indexOf(f);
                     ImVar newVar = specializedClass.getFields().get(fieldIndex);
                     ma.setVar(newVar);
@@ -2974,8 +2974,7 @@ public class EliminateGenerics {
 
                 if (!func.getParameters().isEmpty()) {
                     ImType rt = func.getParameters().get(0).getType();
-                    if (rt instanceof ImClassType) {
-                        ImClassType ct = (ImClassType) rt;
+                    if (rt instanceof ImClassType ct) {
                         ImClass raw = ct.getClassDef();
 
                         ImClass canonicalRaw = translator.canonical(raw);
@@ -3080,12 +3079,10 @@ public class EliminateGenerics {
         public void eliminate() {
             ImType returnType = mc.getReturnType();
 
-            if (containsTypeVariable(returnType) && returnType instanceof ImClassType && !mc.getParameters().isEmpty()) {
-                ImClassType retClassType = (ImClassType) returnType;
+            if (containsTypeVariable(returnType) && returnType instanceof ImClassType retClassType && !mc.getParameters().isEmpty()) {
                 ImType receiverType = mc.getParameters().get(0).getType();
 
-                if (receiverType instanceof ImClassType) {
-                    ImClassType receiverClassType = (ImClassType) receiverType;
+                if (receiverType instanceof ImClassType receiverClassType) {
                     ImClassType adapted = adaptToSuperclass(receiverClassType, retClassType.getClassDef());
 
                     if (adapted != null) {

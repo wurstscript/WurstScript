@@ -20,8 +20,7 @@ public class ValidateGlobalsUsage {
 
     private static void checkJassGlobals(JassToplevelDeclarations jassDecls, Map<NameDef, Element> usedGlobals) {
         for (JassToplevelDeclaration jassDecl : jassDecls) {
-            if (jassDecl instanceof JassGlobalBlock) {
-                JassGlobalBlock globals = (JassGlobalBlock) jassDecl;
+            if (jassDecl instanceof JassGlobalBlock globals) {
                 for (GlobalVarDef glob : globals) {
                     if (!glob.getSource().getFile().endsWith("common.j") && !glob.getSource().getFile().endsWith("blizzard.j")
                       && !glob.getSource().getFile().endsWith("war3map.j")) {
@@ -56,8 +55,7 @@ public class ValidateGlobalsUsage {
             public void visit(ExprVarAccess e) {
                 super.visit(e);
                 NameDef nameDef = e.attrNameDef();
-                if (nameDef instanceof GlobalVarDef) {
-                    GlobalVarDef g = (GlobalVarDef) nameDef;
+                if (nameDef instanceof GlobalVarDef g) {
                     if (!definedVars.contains(g)
                             && !g.attrIsDynamicClassMember()
                             && g.attrNearestNamedScope() == p) {

@@ -139,23 +139,19 @@ public class GlobalsInliner implements OptimizerPass {
     @Nullable
     private ImExpr findReplacement(ImExpr right, ImVarWrite obs) {
         ImExpr replacement;
-        if (right instanceof ImIntVal) {
-            ImIntVal val = (ImIntVal) right;
+        if (right instanceof ImIntVal val) {
             replacement = (JassIm.ImIntVal(val.getValI()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
-        } else if (right instanceof ImRealVal) {
-            ImRealVal val = (ImRealVal) right;
+        } else if (right instanceof ImRealVal val) {
             replacement = (JassIm.ImRealVal(val.getValR()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
-        } else if (right instanceof ImStringVal) {
-            ImStringVal val = (ImStringVal) right;
+        } else if (right instanceof ImStringVal val) {
             replacement = (JassIm.ImStringVal(val.getValS()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
-        } else if (right instanceof ImBoolVal) {
-            ImBoolVal val = (ImBoolVal) right;
+        } else if (right instanceof ImBoolVal val) {
             replacement = (JassIm.ImBoolVal(val.getValB()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());

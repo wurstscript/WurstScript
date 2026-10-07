@@ -45,8 +45,7 @@ public class AttrVarDefType {
     }
 
     public static WurstType getParameterTypeFromClosureType(WShortParameter p, int paramIndex, WurstType expectedTyp, boolean addError) {
-        if (expectedTyp instanceof WurstTypeUnion) {
-            WurstTypeUnion union = (WurstTypeUnion) expectedTyp;
+        if (expectedTyp instanceof WurstTypeUnion union) {
             WurstType t1 = getParameterTypeFromClosureType(p, paramIndex, union.getTypeA(), addError);
             if (t1 instanceof WurstTypeInfer) {
                 return t1;
@@ -91,15 +90,14 @@ public class AttrVarDefType {
         if (typ instanceof TypeExpr) {
             return typ.attrTyp().dynamic();
         } else {
-            if (initialExpr instanceof Expr) {
-                WurstType result = ((Expr) initialExpr).attrTyp();
+            if (initialExpr instanceof Expr expr) {
+                WurstType result = expr.attrTyp();
                 if (result instanceof WurstTypeIntLiteral) {
                     // let a = 1 // we want an int here
                     return WurstTypeInt.instance();
                 }
                 return result.normalize();
-            } else if (initialExpr instanceof ArrayInitializer) {
-                ArrayInitializer ai = (ArrayInitializer) initialExpr;
+            } else if (initialExpr instanceof ArrayInitializer ai) {
                 ExprList values = ai.getValues();
                 if (values.isEmpty()) {
                     v.addError("Could not infer the type of variable '" + v.getName() + "' because the array is empty.");

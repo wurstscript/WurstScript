@@ -28,8 +28,7 @@ public class WurstTypeTuple extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstTypeTuple) {
-            WurstTypeTuple otherTuple = (WurstTypeTuple) other;
+        if (other instanceof WurstTypeTuple otherTuple) {
             if (tupleDef == otherTuple.tupleDef) {
                 return mapping;
             }

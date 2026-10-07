@@ -128,8 +128,8 @@ public class AttrForEachStatement {
         WurstType iteratorType = WurstTypeUnknown.instance();
         if (forEach instanceof StmtForFrom) {
             iteratorType = forEach.getIn().attrTyp();
-        } else if (forEach instanceof StmtForIn) {
-            Optional<FuncLink> nameLink = calcIterator((StmtForIn) forEach);
+        } else if (forEach instanceof StmtForIn stmtForIn) {
+            Optional<FuncLink> nameLink = calcIterator(stmtForIn);
             if (nameLink.isPresent()) {
                 FuncLink iteratorFunc = nameLink.get();
                 iteratorType = iteratorFunc.getReturnType().normalize();

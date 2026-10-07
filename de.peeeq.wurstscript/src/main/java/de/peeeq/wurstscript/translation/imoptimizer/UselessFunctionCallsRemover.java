@@ -82,12 +82,10 @@ public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPas
     }
 
     private boolean isDivisionByZero(ImExpr e) {
-        if (e instanceof ImOperatorCall) {
-            ImOperatorCall oc = (ImOperatorCall) e;
+        if (e instanceof ImOperatorCall oc) {
             if (oc.getOp() == WurstOperator.DIV_INT) {
                 ImExpr dividend = oc.getArguments().get(1);
-                if (dividend instanceof ImIntVal) {
-                    ImIntVal v = (ImIntVal) dividend;
+                if (dividend instanceof ImIntVal v) {
                     return v.getValI() == 0;
                 }
             }
@@ -102,8 +100,7 @@ public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPas
     }
 
     private void optimizeElement(Element e) {
-        if (e instanceof ImStmts) {
-            ImStmts stmts = (ImStmts) e;
+        if (e instanceof ImStmts stmts) {
             optimizeStmts(stmts);
         } else {
             optimizeChildren(e);

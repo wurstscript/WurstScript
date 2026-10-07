@@ -316,8 +316,8 @@ public class FunctionSplitter {
     }
 
     private int estimateFuelOpt(ImExprOpt returnValue) {
-        if (returnValue instanceof ImExpr) {
-            return estimateFuel((ImExpr) returnValue);
+        if (returnValue instanceof ImExpr imExpr) {
+            return estimateFuel(imExpr);
         }
         return 0;
     }

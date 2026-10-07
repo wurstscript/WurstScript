@@ -168,8 +168,7 @@ public class HoverInfo extends UserRequest<Hover> {
             String functionDescription = "";
 
             String funcName = f.getName();
-            if (f instanceof ExtensionFuncDef) {
-                ExtensionFuncDef exf = (ExtensionFuncDef) f;
+            if (f instanceof ExtensionFuncDef exf) {
                 funcName = type(exf.getExtendedType().attrTyp()) + "." + funcName;
             }
             functionDescription += "function " + funcName + "(" + params + ") ";
@@ -193,11 +192,11 @@ public class HoverInfo extends UserRequest<Hover> {
             if (directDoc != null && !directDoc.isEmpty()) {
                 return directDoc;
             }
-            if (!(f instanceof FunctionImplementation)) {
+            if (!(f instanceof FunctionImplementation functionImplementation)) {
                 return null;
             }
             Set<FunctionDefinition> callees = new LinkedHashSet<>();
-            ((FunctionImplementation) f).getBody().accept(new Element.DefaultVisitor() {
+            functionImplementation.getBody().accept(new Element.DefaultVisitor() {
                 @Override
                 public void visit(ExprFunctionCall exprFunctionCall) {
                     addCallee(exprFunctionCall.attrFuncDef());
@@ -255,8 +254,7 @@ public class HoverInfo extends UserRequest<Hover> {
             }
 
             String initializer = "";
-            if (n instanceof GlobalOrLocalVarDef) {
-                GlobalOrLocalVarDef v = (GlobalOrLocalVarDef) n;
+            if (n instanceof GlobalOrLocalVarDef v) {
                 VarInitialization initialExpr = v.getInitialExpr();
                 if (!(initialExpr instanceof NoExpr)) {
                     initializer = " = " + Utils.prettyPrint(initialExpr);
@@ -686,8 +684,7 @@ public class HoverInfo extends UserRequest<Hover> {
             if (wt == null) {
                 return Collections.singletonList(Either.forRight(new MarkedString("wurst", "type " + t)));
             }
-            if (wt instanceof WurstTypeNamedScope) {
-                WurstTypeNamedScope wtn = (WurstTypeNamedScope) wt;
+            if (wt instanceof WurstTypeNamedScope wtn) {
                 return description(wtn.getDef());
             }
             return Collections.singletonList(Either.forRight(new MarkedString("wurst", type(wt))));

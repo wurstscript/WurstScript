@@ -50,16 +50,14 @@ public class ControlFlowGraph {
             Node current = getNode(s);
             nodeList.add(current);
 
-            if (s instanceof ImLoop) {
-                ImLoop imLoop = (ImLoop) s;
+            if (s instanceof ImLoop imLoop) {
                 ImStmts body = imLoop.getBody();
                 buildCfg(body);
                 if (!body.isEmpty()) addSuccessor(current, getNode(body.get(0)));
                 Node endloopNode = getEndloopNode(imLoop);
                 nodeList.add(endloopNode);
                 addAllSuccessors(endloopNode, getSuccessorList(imLoop, i));
-            } else if (s instanceof ImVarargLoop) {
-                ImVarargLoop l = (ImVarargLoop) s;
+            } else if (s instanceof ImVarargLoop l) {
                 ImStmts body = l.getBody();
                 buildCfg(body);
                 if (!body.isEmpty()) addSuccessor(current, getNode(body.get(0)));
@@ -67,8 +65,7 @@ public class ControlFlowGraph {
                 addSuccessor(current, end);
                 nodeList.add(end);
                 addAllSuccessors(end, getSuccessorList(l, i));
-            } else if (s instanceof ImIf) {
-                ImIf imIf = (ImIf) s;
+            } else if (s instanceof ImIf imIf) {
                 ImStmts thenBlock = imIf.getThenBlock();
                 ImStmts elseBlock = imIf.getElseBlock();
                 buildCfg(thenBlock);
@@ -137,8 +134,8 @@ public class ControlFlowGraph {
                 // Successor depends on block container:
                 if (par instanceof ImLoop || par instanceof ImVarargLoop) {
                     result.add(getNode(par)); // back-edge to loop header
-                } else if (par instanceof ImIf) {
-                    result.add(getEndIfNode((ImIf) par));
+                } else if (par instanceof ImIf imIf) {
+                    result.add(getEndIfNode(imIf));
                 } else {
                     throw new Error("unhandled parent block: " + par);
                 }
@@ -154,8 +151,7 @@ public class ControlFlowGraph {
             result = new Node(s);
             nodes.put(s, result);
             // assign display / stmt view for compound statements
-            if (s instanceof ImIf) {
-                ImIf imIf = (ImIf) s;
+            if (s instanceof ImIf imIf) {
                 result.setName("if " + imIf.getCondition());
                 result.stmt = imIf.getCondition(); // condition is the node "stmt"
             } else if (s instanceof ImLoop) {

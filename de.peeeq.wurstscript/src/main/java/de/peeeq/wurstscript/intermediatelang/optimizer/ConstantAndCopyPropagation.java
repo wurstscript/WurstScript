@@ -69,14 +69,14 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
         public static Value tryValue(ImExpr e) {
             try {
-                if (e instanceof ImVarAccess) {
-                    return new Value(((ImVarAccess) e).getVar());
+                if (e instanceof ImVarAccess imVarAccess) {
+                    return new Value(imVarAccess.getVar());
                 }
-                if (e instanceof ImConst) {
-                    return new Value((ImConst) e);
+                if (e instanceof ImConst imConst) {
+                    return new Value(imConst);
                 }
-                if (e instanceof ImTupleExpr) {
-                    return new Value((ImTupleExpr) e);
+                if (e instanceof ImTupleExpr imTupleExpr) {
+                    return new Value(imTupleExpr);
                 }
             } catch (IllegalArgumentException ignored) {
             }
@@ -85,8 +85,8 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
         @Override
         public boolean equals(@Nullable Object obj) {
-            if (obj instanceof Value) {
-                return equalValue((Value) obj);
+            if (obj instanceof Value value) {
+                return equalValue(value);
             }
             return false;
         }
@@ -159,11 +159,9 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                 @Override
                 public void visit(ImSet imSet) {
                     ImLExpr e = imSet.getLeft();
-                    if (e instanceof ImMemberAccess) {
-                        ImMemberAccess ma = (ImMemberAccess) e;
+                    if (e instanceof ImMemberAccess ma) {
                         ma.accept(this);
-                    } else if (e instanceof ImVarArrayAccess) {
-                        ImVarArrayAccess vaa = (ImVarArrayAccess) e;
+                    } else if (e instanceof ImVarArrayAccess vaa) {
                         for (ImExpr ie : vaa.getIndexes()) {
                             ie.accept(this);
                         }
@@ -299,15 +297,14 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
             // --- APPLY TRANSFER FUNCTION ---
             HashMap<ImVar, Value> newOut = newKnowledge;
             ImStmt stmt = n.getStmt();
-            if (stmt instanceof ImSet) {
-                ImSet imSet = (ImSet) stmt;
+            if (stmt instanceof ImSet imSet) {
                 if (imSet.getLeft() instanceof ImVarAccess) {
                     ImVar var = ((ImVarAccess) imSet.getLeft()).getVar();
                     if (var != null && !var.isGlobal()) {
                         ImExpr right = imSet.getRight();
 
                         // Check if this is a no-op like 'set x = x'
-                        if (right instanceof ImVarAccess && ((ImVarAccess) right).getVar() == var) {
+                        if (right instanceof ImVarAccess imVarAccess && imVarAccess.getVar() == var) {
                             // Self-assignment: no-op, don't change knowledge
                         } else {
                             Value newValue = null;
@@ -322,8 +319,8 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                                 newValue = null;
                             } else if (right instanceof ImConst) {
                                 newValue = Value.tryValue(right);
-                            } else if (right instanceof ImVarAccess) {
-                                ImVar varRight = ((ImVarAccess) right).getVar();
+                            } else if (right instanceof ImVarAccess imVarAccess) {
+                                ImVar varRight = imVarAccess.getVar();
                                 if(newOut.containsKey(varRight)) {
                                     newValue = newOut.get(varRight).getOrNull();
                                 } else {

@@ -13,8 +13,7 @@ public class AttrTypeExprType {
     public static WurstType calculate(TypeExprSimple node) {
         WurstType baseType = getBaseType(node);
         if (node.getTypeArgs().size() > 0) {
-            if (baseType instanceof WurstTypeNamedScope) {
-                WurstTypeNamedScope ns = (WurstTypeNamedScope) baseType;
+            if (baseType instanceof WurstTypeNamedScope ns) {
                 return ns.replaceTypeVarsUsingTypeArgs(node.getTypeArgs());
             } else {
                 node.addError("Type " + baseType + " cannot have type args");
@@ -27,8 +26,7 @@ public class AttrTypeExprType {
     public static WurstType calculate(TypeExprThis node) {
         WurstType scopeType = node.getScopeType().attrTyp();
         Element scope;
-        if (scopeType instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope wtns = (WurstTypeNamedScope) scopeType;
+        if (scopeType instanceof WurstTypeNamedScope wtns) {
             scope = wtns.getDef();
         } else {
             scope = node;

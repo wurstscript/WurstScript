@@ -127,8 +127,7 @@ public class ImInliner {
 
     private ImFunction inlineFunctions(ImFunction f, Element parent, int parentI, Element e, boolean[] changed, Map<ImFunction, Integer> alreadyInlined) {
         // TODO maybe it would be smarter to first optimize the parameters and then try to optimize the call itself ...
-        if (e instanceof ImFunctionCall) {
-            ImFunctionCall call = (ImFunctionCall) e;
+        if (e instanceof ImFunctionCall call) {
             ImFunction called = call.getFunc();
             // a call to itself never runs the chain, as before
             Refusal refusal = f == called ? Refusal.RECURSIVE : refusal(f, call, called);
@@ -203,8 +202,8 @@ public class ImInliner {
 
     private static boolean hasAnnotation(ImFunction f, String annotation) {
         for (FunctionFlag flag : f.getFlags()) {
-            if (flag instanceof FunctionFlagAnnotation
-                && ((FunctionFlagAnnotation) flag).getAnnotation().equals(annotation)) {
+            if (flag instanceof FunctionFlagAnnotation functionFlagAnnotation
+                && functionFlagAnnotation.getAnnotation().equals(annotation)) {
                 return true;
             }
         }
@@ -298,8 +297,7 @@ public class ImInliner {
             stmts.addAll(copiedBody);
             if (!stmts.isEmpty()) {
                 ImStmt lastStmt = stmts.get(stmts.size() - 1);
-                if (lastStmt instanceof ImReturn) {
-                    ImReturn ret = (ImReturn) lastStmt;
+                if (lastStmt instanceof ImReturn ret) {
                     stmts.remove(stmts.size() - 1);
                     ImExprOpt valOpt = ret.getReturnValue();
                     if (valOpt instanceof ImExpr) {
@@ -711,8 +709,7 @@ public class ImInliner {
     }
 
     private ImStmts rewriteStmtForEarlyReturn(ImStmt s, ImVar doneVar, ImVar retVar) {
-        if (s instanceof ImReturn) {
-            ImReturn r = (ImReturn) s;
+        if (s instanceof ImReturn r) {
             ImStmts b = JassIm.ImStmts();
             if (retVar != null && r.getReturnValue() instanceof ImExpr) {
                 ImExpr rv = (ImExpr) r.getReturnValue();
@@ -721,19 +718,16 @@ public class ImInliner {
             }
             b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(doneVar), JassIm.ImBoolVal(true)));
             return b;
-        } else if (s instanceof ImIf) {
-            ImIf imIf = (ImIf) s;
+        } else if (s instanceof ImIf imIf) {
             ImStmts thenBlock = rewriteForEarlyReturns(imIf.getThenBlock().copy(), doneVar, retVar);
             ImStmts elseBlock = rewriteForEarlyReturns(imIf.getElseBlock().copy(), doneVar, retVar);
             return JassIm.ImStmts(JassIm.ImIf(imIf.getTrace(), imIf.getCondition().copy(), thenBlock, elseBlock));
-        } else if (s instanceof ImLoop) {
-            ImLoop l = (ImLoop) s;
+        } else if (s instanceof ImLoop l) {
             ImStmts loopBody = JassIm.ImStmts();
             loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
             loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
             return JassIm.ImStmts(JassIm.ImLoop(l.getTrace(), loopBody));
-        } else if (s instanceof ImVarargLoop) {
-            ImVarargLoop l = (ImVarargLoop) s;
+        } else if (s instanceof ImVarargLoop l) {
             ImStmts loopBody = JassIm.ImStmts();
             loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
             loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
@@ -770,10 +764,10 @@ public class ImInliner {
         }
 
         for (FunctionFlag flag : f.getFlags()) {
-            if (flag instanceof FunctionFlagAnnotation) {
-                if (((FunctionFlagAnnotation) flag).getAnnotation().equals(FORCEINLINE)) {
+            if (flag instanceof FunctionFlagAnnotation functionFlagAnnotation) {
+                if (functionFlagAnnotation.getAnnotation().equals(FORCEINLINE)) {
                     return 1;
-                } else if (((FunctionFlagAnnotation) flag).getAnnotation().equals(NOINLINE)) {
+                } else if (functionFlagAnnotation.getAnnotation().equals(NOINLINE)) {
                     return Double.MAX_VALUE;
                 }
             }
@@ -1167,8 +1161,7 @@ public class ImInliner {
     }
 
     private boolean containsCallTo(ImFunction f, Element e) {
-        if (e instanceof ImFunctionCall) {
-            ImFunctionCall call = (ImFunctionCall) e;
+        if (e instanceof ImFunctionCall call) {
             if (call.getFunc() == f) {
                 return true;
             }

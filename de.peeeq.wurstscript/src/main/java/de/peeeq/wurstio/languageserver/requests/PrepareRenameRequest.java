@@ -56,11 +56,11 @@ public class PrepareRenameRequest extends UserRequest<Either3<Range, PrepareRena
         if (nameDef != null) {
             return true;
         }
-        if (e instanceof TypeExpr) {
-            return ((TypeExpr) e).attrTypeDef() != null;
+        if (e instanceof TypeExpr typeExpr) {
+            return typeExpr.attrTypeDef() != null;
         }
-        if (e instanceof WImport) {
-            WPackage p = ((WImport) e).attrImportedPackage();
+        if (e instanceof WImport wImport) {
+            WPackage p = wImport.attrImportedPackage();
             return p != null;
         }
         return false;

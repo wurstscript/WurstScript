@@ -11,8 +11,7 @@ public class PurityLevels {
     private static PurityLevel mergeWithChildren(Element e, PurityLevel level) {
         for (int i = 0; i < e.size(); i++) {
             Element child = e.get(i);
-            if (child instanceof ImStmt) {
-                ImStmt imStmt = (ImStmt) child;
+            if (child instanceof ImStmt imStmt) {
                 level = level.merge(imStmt.attrPurity());
             } else {
                 level = mergeWithChildren(child, level);

@@ -672,8 +672,8 @@ public class ProgramStateIO extends ProgramState {
             StdlibObjectMappings.FieldMethodInfo info = fieldMethods.get(fieldKey(m, fileType));
             if (info != null && canUseWrapperForMod(m, info)) {
                 out.append("\t..").append(info.methodName()).append("(");
-                if (info.hasLevel() && m instanceof ObjMod.Obj.ExtendedMod) {
-                    out.append(String.valueOf(((ObjMod.Obj.ExtendedMod) m).getLevel())).append(", ");
+                if (info.hasLevel() && m instanceof ObjMod.Obj.ExtendedMod extendedMod) {
+                    out.append(String.valueOf(extendedMod.getLevel())).append(", ");
                 }
                 out.append(formatWrapperValue(m, info)).append(")\n");
             } else {

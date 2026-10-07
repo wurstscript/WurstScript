@@ -104,8 +104,8 @@ public class SemanticTokensRequest extends UserRequest<SemanticTokens> {
     }
 
     private void classify(TokenCollector collector, Element e) {
-        if (e instanceof WPackage) {
-            collector.add(((WPackage) e).getNameId(), tokenTypeIndex(SemanticTokenTypes.Namespace), DECLARATION_MOD);
+        if (e instanceof WPackage wPackage) {
+            collector.add(wPackage.getNameId(), tokenTypeIndex(SemanticTokenTypes.Namespace), DECLARATION_MOD);
             return;
         }
         if (e instanceof ClassDef || e instanceof ModuleDef || e instanceof TupleDef || e instanceof NativeType) {
@@ -124,8 +124,7 @@ public class SemanticTokensRequest extends UserRequest<SemanticTokens> {
             collector.add(e, tokenTypeIndex(SemanticTokenTypes.TypeParameter), DECLARATION_MOD);
             return;
         }
-        if (e instanceof FunctionDefinition) {
-            FunctionDefinition f = (FunctionDefinition) e;
+        if (e instanceof FunctionDefinition f) {
             int type = f.attrIsDynamicClassMember()
                     ? tokenTypeIndex(SemanticTokenTypes.Method)
                     : tokenTypeIndex(SemanticTokenTypes.Function);
@@ -140,8 +139,7 @@ public class SemanticTokensRequest extends UserRequest<SemanticTokens> {
             collector.add(e, tokenTypeIndex(SemanticTokenTypes.Parameter), DECLARATION_MOD);
             return;
         }
-        if (e instanceof GlobalVarDef) {
-            GlobalVarDef v = (GlobalVarDef) e;
+        if (e instanceof GlobalVarDef v) {
             int type = v.attrIsDynamicClassMember()
                     ? tokenTypeIndex(SemanticTokenTypes.Property)
                     : tokenTypeIndex(SemanticTokenTypes.Variable);
@@ -149,8 +147,7 @@ public class SemanticTokensRequest extends UserRequest<SemanticTokens> {
             collector.add(v, type, mods);
             return;
         }
-        if (e instanceof LocalVarDef) {
-            LocalVarDef v = (LocalVarDef) e;
+        if (e instanceof LocalVarDef v) {
             int mods = DECLARATION_MOD | (v.attrIsConstant() ? READONLY_MOD : 0);
             collector.add(v, tokenTypeIndex(SemanticTokenTypes.Variable), mods);
             return;
@@ -159,30 +156,30 @@ public class SemanticTokensRequest extends UserRequest<SemanticTokens> {
             collector.add(e, tokenTypeIndex(SemanticTokenTypes.EnumMember), DECLARATION_MOD);
             return;
         }
-        if (e instanceof FuncRef) {
-            FuncLink f = ((FuncRef) e).attrFuncLink();
+        if (e instanceof FuncRef funcRef) {
+            FuncLink f = funcRef.attrFuncLink();
             if (f != null) {
                 boolean isMethod = f.getDef() != null && f.getDef().attrIsDynamicClassMember();
                 collector.add(e, tokenTypeIndex(isMethod ? SemanticTokenTypes.Method : SemanticTokenTypes.Function), 0);
             }
             return;
         }
-        if (e instanceof NameRef) {
-            NameDef def = ((NameRef) e).tryGetNameDef();
+        if (e instanceof NameRef nameRef) {
+            NameDef def = nameRef.tryGetNameDef();
             if (def != null) {
                 collector.add(e, tokenTypeForDefinition(def), def.attrIsConstant() ? READONLY_MOD : 0);
             }
             return;
         }
-        if (e instanceof TypeExpr) {
-            TypeDef def = ((TypeExpr) e).attrTypeDef();
+        if (e instanceof TypeExpr typeExpr) {
+            TypeDef def = typeExpr.attrTypeDef();
             if (def != null) {
                 collector.add(e, tokenTypeForTypeDef(def), 0);
             }
             return;
         }
-        if (e instanceof WImport) {
-            collector.add(((WImport) e).getPackagenameId(), tokenTypeIndex(SemanticTokenTypes.Namespace), 0);
+        if (e instanceof WImport wImport) {
+            collector.add(wImport.getPackagenameId(), tokenTypeIndex(SemanticTokenTypes.Namespace), 0);
             return;
         }
         if (e instanceof ExprStringVal) {
@@ -198,18 +195,16 @@ public class SemanticTokensRequest extends UserRequest<SemanticTokens> {
         if (def instanceof WParameter) {
             return tokenTypeIndex(SemanticTokenTypes.Parameter);
         }
-        if (def instanceof FunctionDefinition) {
-            FunctionDefinition f = (FunctionDefinition) def;
+        if (def instanceof FunctionDefinition f) {
             return tokenTypeIndex(f.attrIsDynamicClassMember() ? SemanticTokenTypes.Method : SemanticTokenTypes.Function);
         }
-        if (def instanceof TypeDef) {
-            return tokenTypeForTypeDef((TypeDef) def);
+        if (def instanceof TypeDef typeDef) {
+            return tokenTypeForTypeDef(typeDef);
         }
         if (def instanceof EnumMember) {
             return tokenTypeIndex(SemanticTokenTypes.EnumMember);
         }
-        if (def instanceof GlobalVarDef) {
-            GlobalVarDef gv = (GlobalVarDef) def;
+        if (def instanceof GlobalVarDef gv) {
             return tokenTypeIndex(gv.attrIsDynamicClassMember() ? SemanticTokenTypes.Property : SemanticTokenTypes.Variable);
         }
         if (def instanceof LocalVarDef) {

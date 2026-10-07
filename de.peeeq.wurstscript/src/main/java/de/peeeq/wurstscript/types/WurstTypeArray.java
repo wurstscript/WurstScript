@@ -55,8 +55,8 @@ public class WurstTypeArray extends WurstType {
         // when there is an array size given, try to evaluate it:
         try {
             ILconst i = arSize.attrConstantValue();
-            if (i instanceof ILconstInt) {
-                int val = ((ILconstInt) i).getVal();
+            if (i instanceof ILconstInt iLconstInt) {
+                int val = iLconstInt.getVal();
                 sizes = new int[]{val};
                 if (val < 0) {
                     arSize.addError("Array size must be at least 0");
@@ -84,8 +84,7 @@ public class WurstTypeArray extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstTypeArray) {
-            WurstTypeArray otherArray = (WurstTypeArray) other;
+        if (other instanceof WurstTypeArray otherArray) {
             mapping = baseType.matchTypes(otherArray.baseType, location, mapping, VariablePosition.RIGHT);
             if (mapping == null) {
                 return null;

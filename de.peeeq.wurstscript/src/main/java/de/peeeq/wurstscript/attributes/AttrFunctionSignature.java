@@ -54,8 +54,8 @@ public class AttrFunctionSignature {
         // If any argument is a closure, let it be typed using the selected signature’s
         // expected parameter types before complaining about unbound type variables.
         boolean hasClosureArg = false;
-        if (fc instanceof AstElementWithArgs) {
-            for (Expr a : ((AstElementWithArgs) fc).getArgs()) {
+        if (fc instanceof AstElementWithArgs astElementWithArgs) {
+            for (Expr a : astElementWithArgs.getArgs()) {
                 if (a instanceof ExprClosure) {
                     hasClosureArg = true;
                     break;
@@ -78,13 +78,12 @@ public class AttrFunctionSignature {
         }
         for (int i = 0; i < fc.getArgs().size(); i++) {
             Expr arg = fc.getArgs().get(i);
-            if (!(arg instanceof ExprClosure)) {
+            if (!(arg instanceof ExprClosure closure)) {
                 continue;
             }
             if (!(sig.getParamType(i) instanceof WurstTypeCode)) {
                 continue;
             }
-            ExprClosure closure = (ExprClosure) arg;
             if (!closure.attrCapturedVariables().isEmpty()) {
                 String codeLambdaContext = codeLambdaContext(fc);
                 closure.attrCapturedVariables().entries().forEach(entry ->
@@ -106,12 +105,11 @@ public class AttrFunctionSignature {
             Collection<FunctionSignature> sigs,
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
-            if (location instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) location)) {
+            if (location instanceof ExprFunctionCall exprFunctionCall && isConstructorThisCall(exprFunctionCall)) {
                 return FunctionSignature.empty;
             }
             if (!isInitTrigFunc(location)) {
-                if (location instanceof ExprMemberMethodDot) {
-                    ExprMemberMethodDot emmd = (ExprMemberMethodDot) location;
+                if (location instanceof ExprMemberMethodDot emmd) {
                     WLogger.trace(() -> "[IMPLCONV] receiver typRaw=" + emmd.getLeft().attrTypRaw()
                         + " typ=" + emmd.getLeft().attrTyp()
                         + " for call ." + emmd.getFuncName());
@@ -222,19 +220,16 @@ public class AttrFunctionSignature {
     }
 
     private static boolean isInitTrigFunc(StmtCall e) {
-        if (e instanceof ExprFunctionCall) {
-            ExprFunctionCall e2 = (ExprFunctionCall) e;
+        if (e instanceof ExprFunctionCall e2) {
             return e2.getFuncName().startsWith("InitTrig_");
         }
         return false;
     }
 
     private static String name(StmtCall s) {
-        if (s instanceof ExprNewObject) {
-            ExprNewObject e = (ExprNewObject) s;
+        if (s instanceof ExprNewObject e) {
             return "constructor for " + e.getTypeName();
-        } else if (s instanceof FunctionCall) {
-            FunctionCall e = (FunctionCall) s;
+        } else if (s instanceof FunctionCall e) {
             return "function " + e.getFuncName();
         }
         return Utils.printElement(s);

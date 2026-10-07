@@ -65,15 +65,15 @@ public abstract class State {
     }
 
     static ILconstArray createArrayConstantFromType(ImType vType) {
-        if (!(vType instanceof ImArrayLikeType)) {
+        if (!(vType instanceof ImArrayLikeType imArrayLikeType)) {
             throw new InterpreterException("Cannot get array for variable of type " + vType);
         }
-        ImType componentType = ((ImArrayLikeType) vType).getEntryType();
+        ImType componentType = imArrayLikeType.getEntryType();
 
         // Use declared first dimension if present; otherwise use "unbounded" sentinel.
         int size = Integer.MAX_VALUE;
-        if (vType instanceof ImArrayTypeMulti) {
-            List<Integer> arraySize = ((ImArrayTypeMulti) vType).getArraySize();
+        if (vType instanceof ImArrayTypeMulti imArrayTypeMulti) {
+            List<Integer> arraySize = imArrayTypeMulti.getArraySize();
             if (!arraySize.isEmpty()) {
                 size = arraySize.get(0);
             }

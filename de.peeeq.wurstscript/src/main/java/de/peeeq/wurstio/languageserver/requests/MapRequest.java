@@ -144,8 +144,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     @Override
     public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
-        if (err instanceof RequestFailedException) {
-            RequestFailedException rfe = (RequestFailedException) err;
+        if (err instanceof RequestFailedException rfe) {
             languageClient.showMessage(new MessageParams(rfe.getMessageType(), rfe.getMessage()));
             resFut.complete(new Object());
         } else {

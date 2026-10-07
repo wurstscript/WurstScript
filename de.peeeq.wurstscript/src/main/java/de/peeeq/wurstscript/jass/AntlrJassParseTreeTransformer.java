@@ -135,10 +135,10 @@ public class AntlrJassParseTreeTransformer {
     }
 
     private boolean shouldDefaultLocalToNull(OptTypeExpr optTyp) {
-        if (!(optTyp instanceof TypeExprSimple)) {
+        if (!(optTyp instanceof TypeExprSimple typeExprSimple)) {
             return false;
         }
-        String typeName = ((TypeExprSimple) optTyp).getTypeName();
+        String typeName = typeExprSimple.getTypeName();
         return !JASS_PRIMITIVE_TYPES.contains(typeName);
     }
 
@@ -287,22 +287,18 @@ public class AntlrJassParseTreeTransformer {
 
 
     private int beginPos(ParseTree left) {
-        if (left instanceof ParserRuleContext) {
-            ParserRuleContext left2 = (ParserRuleContext) left;
+        if (left instanceof ParserRuleContext left2) {
             return left2.getStart().getStartIndex();
-        } else if (left instanceof TerminalNode) {
-            TerminalNode left2 = (TerminalNode) left;
+        } else if (left instanceof TerminalNode left2) {
             return left2.getSymbol().getStartIndex();
         }
         throw new Error("unhandled case: " + left.getClass() + "  // " + left);
     }
 
     private int stopPos(ParseTree left) {
-        if (left instanceof ParserRuleContext) {
-            ParserRuleContext left2 = (ParserRuleContext) left;
+        if (left instanceof ParserRuleContext left2) {
             return left2.getStop().getStopIndex();
-        } else if (left instanceof TerminalNode) {
-            TerminalNode left2 = (TerminalNode) left;
+        } else if (left instanceof TerminalNode left2) {
             return left2.getSymbol().getStopIndex();
         }
         throw new Error("unhandled case: " + left.getClass() + "  // " + left);

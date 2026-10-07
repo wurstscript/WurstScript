@@ -47,8 +47,8 @@ public class ValidateLocalUsage {
                         locals.remove(nameLink.getDef());
                     }
 
-                    if (updatedExpr instanceof ExprMemberVar) {
-                        checkLeftExpr((ExprMemberVar) updatedExpr);
+                    if (updatedExpr instanceof ExprMemberVar exprMemberVar) {
+                        checkLeftExpr(exprMemberVar);
                     }
                 }
             }

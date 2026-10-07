@@ -555,13 +555,13 @@ public class SideEffectAnalyzer {
                     if (left instanceof ImMemberAccess) {
                         return true;
                     }
-                    if (left instanceof ImTupleSelection) {
-                        ImExpr tupleExpr = ((ImTupleSelection) left).getTupleExpr();
-                        return tupleExpr instanceof ImLExpr && isMemberWrite((ImLExpr) tupleExpr);
+                    if (left instanceof ImTupleSelection imTupleSelection) {
+                        ImExpr tupleExpr = imTupleSelection.getTupleExpr();
+                        return tupleExpr instanceof ImLExpr imLExpr && isMemberWrite(imLExpr);
                     }
-                    if (left instanceof ImTupleExpr) {
-                        for (ImExpr expr : ((ImTupleExpr) left).getExprs()) {
-                            if (expr instanceof ImLExpr && isMemberWrite((ImLExpr) expr)) {
+                    if (left instanceof ImTupleExpr imTupleExpr) {
+                        for (ImExpr expr : imTupleExpr.getExprs()) {
+                            if (expr instanceof ImLExpr imLExpr && isMemberWrite(imLExpr)) {
                                 return true;
                             }
                         }
