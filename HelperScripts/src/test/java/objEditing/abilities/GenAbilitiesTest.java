@@ -19,7 +19,7 @@ public class GenAbilitiesTest {
     @Test
     public void classHeaderDocumentsRawcodeAndUsesNamedId() {
         assertEquals(GenAbilities.abilityClassHeader("AbilityDefinitionArchMageBlizzard", "blizzard", "AHbz"),
-                "\n\n\n/** WC3 ability ID: 'AHbz'. Base ability: AbilityIds.blizzard. */\n"
+                "\n\n\n/** 'AHbz' / AbilityIds.blizzard */\n"
                         + "public class AbilityDefinitionArchMageBlizzard extends AbilityDefinition\n"
                         + "\tconstruct(int newAbilityId)\n"
                         + "\t\tsuper(newAbilityId, AbilityIds.blizzard)\n");
@@ -65,8 +65,8 @@ public class GenAbilitiesTest {
             while (classes.find()) {
                 String constant = classes.group(2);
                 assertTrue(ids.containsKey(constant), "Missing AbilityIds." + constant);
-                String documentation = "/** WC3 ability ID: '" + ids.get(constant)
-                        + "'. Base ability: AbilityIds." + constant + ". */\n";
+                String documentation = "/** '" + ids.get(constant)
+                        + "' / AbilityIds." + constant + " */\n";
                 assertTrue(source.regionMatches(classes.start() - documentation.length(),
                                 documentation, 0, documentation.length()),
                         "Missing rawcode documentation for " + classes.group(1));

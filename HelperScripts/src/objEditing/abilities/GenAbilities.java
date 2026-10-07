@@ -361,7 +361,7 @@ public class GenAbilities {
     }
 
     static String abilityClassHeader(String className, String constantName, String rawId) {
-        return "\n\n\n/** WC3 ability ID: '" + rawId + "'. Base ability: AbilityIds." + constantName + ". */\n"
+        return "\n\n\n/** '" + rawId + "' / AbilityIds." + constantName + " */\n"
                 + "public class " + className + " extends AbilityDefinition\n"
                 + "\tconstruct(int newAbilityId)\n"
                 + "\t\tsuper(newAbilityId, AbilityIds." + constantName + ")\n";
