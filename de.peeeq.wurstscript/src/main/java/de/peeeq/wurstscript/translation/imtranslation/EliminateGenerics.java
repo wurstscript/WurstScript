@@ -257,6 +257,15 @@ public class EliminateGenerics {
 
     private void collectGenericNewRoots() {
         classByFunction = null;
+        specializationRelevantNodes = new IdentityHashMap<>();
+        try {
+            collectGenericNewRootsInProgram();
+        } finally {
+            specializationRelevantNodes = null;
+        }
+    }
+
+    private void collectGenericNewRootsInProgram() {
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
@@ -851,16 +860,29 @@ public class EliminateGenerics {
         if (!visitedFunctions.add(function)) {
             return false;
         }
+        Map<ImFunction, List<Element>> relevantNodes = specializationRelevantNodes;
+        if (relevantNodes != null) {
+            for (Element node : relevantNodes.computeIfAbsent(function, EliminateGenerics::specializationRelevantNodesOf)) {
+                if (nodeNeedsSpecialization(function, node, visitedFunctions, visitedMethods)) {
+                    return true;
+                }
+            }
+            return false;
+        }
         boolean[] found = {false};
         function.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
-                found[0] = true;
+                if (nodeNeedsSpecialization(function, dispatch, visitedFunctions, visitedMethods)) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(dispatch);
             }
 
             @Override
             public void visit(ImInstanceof instanceOf) {
-                if (typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments())) {
+                if (nodeNeedsSpecialization(function, instanceOf, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -869,10 +891,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImAlloc alloc) {
-                // Constructing a class whose methods dispatch has to be specialised as well:
-                // otherwise the constructor keeps a generic result type, and a method call on that
-                // result never becomes concrete enough to resolve.
-                if (classNeedsSpecialization(alloc.getClazz().getClassDef())) {
+                if (nodeNeedsSpecialization(function, alloc, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -881,14 +900,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImFunctionCall call) {
-                // Empty arguments may be supplied implicitly by the enclosing generic receiver.
-                // Only an explicit, already-concrete call is independent of the caller context.
-                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
-                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
-                if (constructsClassOwningGenericGlobals(function, call)
-                    || translator.isGenericNewMarker(call.getFunc())
-                    || (dependsOnCaller
-                    && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods))) {
+                if (nodeNeedsSpecialization(function, call, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -897,10 +909,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImMethodCall call) {
-                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
-                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
-                if (dependsOnCaller
-                    && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
+                if (nodeNeedsSpecialization(function, call, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -909,6 +918,84 @@ public class EliminateGenerics {
         });
         return found[0];
     }
+
+    /**
+     * The elements of a function, in the order of a walk over it, which {@link #nodeNeedsSpecialization}
+     * has anything to say about. A query asks this of every function it reaches from every call site,
+     * and a body is mostly variable accesses and constants.
+     */
+    private static List<Element> specializationRelevantNodesOf(ImFunction function) {
+        List<Element> nodes = new ArrayList<>();
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                nodes.add(dispatch);
+                super.visit(dispatch);
+            }
+
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                nodes.add(instanceOf);
+                super.visit(instanceOf);
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                nodes.add(alloc);
+                super.visit(alloc);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                nodes.add(call);
+                super.visit(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                nodes.add(call);
+                super.visit(call);
+            }
+        });
+        return nodes;
+    }
+
+    /** Whether this element of the function is enough to require the function to be specialised. */
+    private boolean nodeNeedsSpecialization(ImFunction function, Element node, Set<ImFunction> visitedFunctions,
+                                            Set<ImMethod> visitedMethods) {
+        if (node instanceof ImTypeVarDispatch) {
+            return true;
+        }
+        if (node instanceof ImInstanceof instanceOf) {
+            return typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
+        }
+        if (node instanceof ImAlloc alloc) {
+            // Constructing a class whose methods dispatch has to be specialised as well:
+            // otherwise the constructor keeps a generic result type, and a method call on that
+            // result never becomes concrete enough to resolve.
+            return classNeedsSpecialization(alloc.getClazz().getClassDef());
+        }
+        if (node instanceof ImFunctionCall call) {
+            // Empty arguments may be supplied implicitly by the enclosing generic receiver.
+            // Only an explicit, already-concrete call is independent of the caller context.
+            boolean dependsOnCaller = call.getTypeArguments().isEmpty()
+                || typeArgumentsContainTypeVariable(call.getTypeArguments());
+            return constructsClassOwningGenericGlobals(function, call)
+                || translator.isGenericNewMarker(call.getFunc())
+                || (dependsOnCaller
+                && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods));
+        }
+        if (node instanceof ImMethodCall call) {
+            boolean dependsOnCaller = call.getTypeArguments().isEmpty()
+                || typeArgumentsContainTypeVariable(call.getTypeArguments());
+            return dependsOnCaller
+                && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods);
+        }
+        return false;
+    }
+
+    /** Set while a collection pass runs, which changes no body: the relevant elements of each function reached. */
+    private @Nullable Map<ImFunction, List<Element>> specializationRelevantNodes;
 
     /**
      * A generic caller containing {@code new Box<T>()} must be revisited after {@code T} becomes
