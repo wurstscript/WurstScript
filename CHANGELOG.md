@@ -1,5 +1,12 @@
 ## 1.9 (in progress)
 
+- The bundled pjass is updated on all three platforms to lep/pjass master (`378a1ca`) plus its `--each` option
+  (lep/pjass#20). Windows had a December 2022 build and Linux and macOS a January 2019 one, so the three did not
+  check the same things. The 2022 Windows build also got slower the more files were in the directory of the script
+  and of the executable, because of its MinGW runtime: 69.2 ms against 49.5 ms to check a script with 10,000 files
+  beside it, and 37.6 against 25.2 ms to start from the temp directory. The new Windows build is not affected. The
+  Linux build needs glibc symbols up to 2.10 only, and the macOS build runs on macOS 10.14 or newer.
+
 - On Lua, joining two strings no longer checks for nil an operand which cannot be nil. Every `a + b` on
   strings went through a helper that checks both sides, which `-inline` then expanded into a nest of
   comparisons at each use. A literal and the result of `I2S` are always strings, so with both
