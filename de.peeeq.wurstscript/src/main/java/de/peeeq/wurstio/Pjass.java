@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -101,35 +103,113 @@ public class Pjass {
         return runPjass(outputFile, Utils.getResourceFile("common.j"), Utils.getResourceFile("blizzard.j"));
     }
 
+    private static List<String> command(String commonJPath, String blizzardJPath, List<String> files) {
+        List<String> args = new ArrayList<>();
+        args.add(Utils.getResourceFile("pjass.exe"));
+        args.add(commonJPath);
+        args.add(blizzardJPath);
+        args.addAll(files);
+        if (Orient.isLinuxSystem()) {
+            File fileName = Utils.getResourceFileF("pjass");
+            boolean success = fileName.setExecutable(true);
+            if (!success) {
+                throw new RuntimeException("Could not make pjass executable.");
+            }
+            args.set(0, fileName.getAbsolutePath());
+        } else if (Orient.isMacSystem()) {
+            File fileName = Utils.getResourceFileF("pjass_osx");
+            boolean success = fileName.setExecutable(true);
+            if (!success) {
+                throw new RuntimeException("Could not make pjass_osx executable.");
+            }
+            args.set(0, fileName.getAbsolutePath());
+        } else if (!Orient.isWindowsSystem()) {
+            WLogger.info("Unknown operating system detected.");
+            WLogger.info("Trying to run with wine ...");
+            // try to run with wine
+            args.add(0, "wine");
+        }
+        return args;
+    }
+
+    /**
+     * Checks each file on its own, against common.j and blizzard.j, with one pjass process.
+     * The results are in the order of the files.
+     */
+    public static List<Result> runPjassEach(List<File> files) {
+        List<String> paths = new ArrayList<>();
+        paths.add("--each");
+        for (File file : files) {
+            paths.add(file.getPath());
+        }
+        List<String> args = command(Utils.getResourceFile("common.j"), Utils.getResourceFile("blizzard.j"), paths);
+        WLogger.info("Starting pjass for " + files.size() + " files");
+        Process p;
+        try {
+            p = Runtime.getRuntime().exec(args.toArray(new String[0]));
+        } catch (IOException e) {
+            return failed(files, "Pjass execution error: \n" + e);
+        }
+        StringBuilder output = new StringBuilder();
+        try {
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = input.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            }
+            p.waitFor();
+        } catch (IOException e) {
+            WLogger.severe("Could not run pjass:");
+            WLogger.severe(e);
+            return failed(files, "IO Exception");
+        } catch (InterruptedException e) {
+            return failed(files, "Interrupted");
+        }
+        return resultsPerFile(files, output.toString());
+    }
+
+    private static List<Result> failed(List<File> files, String message) {
+        List<Result> results = new ArrayList<>();
+        for (File file : files) {
+            results.add(new Result(file, false, message));
+        }
+        return results;
+    }
+
+    private static final Pattern fileDone = Pattern.compile("Parse successful: +\\d+ lines: (.*)|(.*) failed with \\d+ errors?");
+
+    private static List<Result> resultsPerFile(List<File> files, String output) {
+        Map<String, Result> byPath = new HashMap<>();
+        StringBuilder messages = new StringBuilder();
+        for (String line : output.split("\n")) {
+            Matcher done = fileDone.matcher(line);
+            if (!done.matches()) {
+                messages.append(line).append("\n");
+                continue;
+            }
+            boolean ok = done.group(1) != null;
+            String path = ok ? done.group(1) : done.group(2);
+            for (File file : files) {
+                if (file.getPath().equals(path)) {
+                    byPath.put(path, new Result(file, ok, ok ? line : "pjass errors: \n" + messages + line));
+                }
+            }
+            messages.setLength(0);
+        }
+        List<Result> results = new ArrayList<>();
+        for (File file : files) {
+            Result result = byPath.get(file.getPath());
+            results.add(result != null ? result : new Result(file, false, "pjass did not report " + file.getPath() + ":\n" + output));
+        }
+        return results;
+    }
+
     public static Result runPjass(File outputFile, String commonJPath, String blizzardJPath) {
         try {
             Process p;
             WLogger.info("Starting pjass");
-            List<String> args = new ArrayList<>();
-            args.add(Utils.getResourceFile("pjass.exe"));
-            args.add(commonJPath);
-            args.add(blizzardJPath);
-            args.add(outputFile.getPath());
-            if (Orient.isLinuxSystem()) {
-                File fileName = Utils.getResourceFileF("pjass");
-                boolean success = fileName.setExecutable(true);
-                if (!success) {
-                    throw new RuntimeException("Could not make pjass executable.");
-                }
-                args.set(0, fileName.getAbsolutePath());
-            } else if (Orient.isMacSystem()) {
-                File fileName = Utils.getResourceFileF("pjass_osx");
-                boolean success = fileName.setExecutable(true);
-                if (!success) {
-                    throw new RuntimeException("Could not make pjass_osx executable.");
-                }
-                args.set(0, fileName.getAbsolutePath());
-            } else if (!Orient.isWindowsSystem()) {
-                WLogger.info("Unknown operating system detected.");
-                WLogger.info("Trying to run with wine ...");
-                // try to run with wine
-                args.add(0, "wine");
-            }
+            List<String> args = command(commonJPath, blizzardJPath, Collections.singletonList(outputFile.getPath()));
 
             try {
                 p = Runtime.getRuntime().exec(args.toArray(new String[0]));
