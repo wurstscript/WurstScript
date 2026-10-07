@@ -310,6 +310,7 @@ public class WurstScriptTest {
 
         private CompilationResult testScript() {
             writeImDumps = imDump || IM_DUMPS_FOR_ALL_TESTS;
+            pjassPending.clear();
             RunArgs runArgs = new RunArgs();
             RecycleCodeGeneratorQueue.setTestMode = true;
             if (withStdLib) {
@@ -377,6 +378,8 @@ public class WurstScriptTest {
                 testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
                 testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+                runPendingPjass();
             }
 
             if (testLua) {
@@ -1145,8 +1148,7 @@ public class WurstScriptTest {
 
         File outputFile = writeJassProg(name, gui, prog);
 
-        // run pjass:
-        runPjass(outputFile);
+        pjassPending.add(outputFile);
 
         if (executeProg) {
             String currentEnv = currentTestEnv;
@@ -1195,34 +1197,53 @@ public class WurstScriptTest {
     /**
      * Scripts already checked by pjass in this JVM, by content hash.
      *
-     * <p>pjass parses every file it is given as one program, so independent test scripts cannot be
-     * batched into a single invocation - each one costs a process spawn plus a re-parse of
-     * common.j and blizzard.j (~15k lines). About a third of the scripts this suite emits are
-     * byte-identical to one already checked (the same source compiled under several optimisation
-     * levels, and near-identical fixtures within a test class), and pjass is a pure function of its
-     * input, so checking those again cannot tell us anything new. Spawning is the dominant cost on
-     * Windows, where CreateProcess is an order of magnitude dearer than fork/exec.
+     * <p>About a third of the scripts this suite emits are byte-identical to one already checked
+     * (the same source compiled under several optimisation levels, and near-identical fixtures
+     * within a test class), and pjass is a pure function of its input, so checking those again
+     * cannot tell us anything new.
      *
      * <p>Only successes are recorded: a failure re-runs so the reported message names the file the
      * caller actually passed.
      */
     private static final Set<String> pjassCheckedScripts = ConcurrentHashMap.newKeySet();
 
-    private void runPjass(File outputFile) throws Error {
-        String digest = scriptDigest(outputFile);
-        if (digest != null && pjassCheckedScripts.contains(digest)) {
+    /** The scripts a test has emitted and pjass has not checked yet. */
+    private final List<File> pjassPending = new ArrayList<>();
+
+    /**
+     * Checks the scripts the test has emitted so far with one pjass process. Starting pjass and
+     * parsing common.j and blizzard.j (~15k lines) once per script was most of what the tests that
+     * emit little spend, and most of that on Windows, where CreateProcess is an order of magnitude
+     * dearer than fork/exec.
+     */
+    private void runPendingPjass() throws Error {
+        List<File> files = new ArrayList<>();
+        List<String> digests = new ArrayList<>();
+        for (File file : pjassPending) {
+            String digest = scriptDigest(file);
+            if (digest != null && (pjassCheckedScripts.contains(digest) || digests.contains(digest))) {
+                continue;
+            }
+            files.add(file);
+            digests.add(digest);
+        }
+        pjassPending.clear();
+        if (files.isEmpty()) {
             return;
         }
-        Result pJassResult = Pjass.runPjass(outputFile);
-        WLogger.info(pJassResult.getMessage());
-        if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
-            throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
-        }
-        // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
-        // it means pjass never validated this script - caching it would make every later identical
-        // script skip validation too, after a failure that may well have been transient.
-        if (digest != null && pJassResult.isOk()) {
-            pjassCheckedScripts.add(digest);
+        List<Result> results = Pjass.runPjassEach(files);
+        for (int i = 0; i < files.size(); i++) {
+            Result pJassResult = results.get(i);
+            WLogger.info(pJassResult.getMessage());
+            if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
+                throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
+            }
+            // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
+            // it means pjass never validated this script - caching it would make every later identical
+            // script skip validation too, after a failure that may well have been transient.
+            if (digests.get(i) != null && pJassResult.isOk()) {
+                pjassCheckedScripts.add(digests.get(i));
+            }
         }
     }
 
