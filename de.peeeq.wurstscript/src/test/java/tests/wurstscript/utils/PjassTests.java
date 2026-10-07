@@ -71,6 +71,34 @@ public class PjassTests {
         Assert.assertTrue(results.get(2).isOk(), results.get(2).getMessage());
     }
 
+    @Test
+    public void eachFailsEveryFileWhenABaseFileDoesNotParse() throws IOException {
+        Path dir = Files.createTempDirectory("pjass-each");
+        File common = script(dir, "common.j", "this is not jass\n");
+        File blizzard = script(dir, "blizzard.j", "");
+        File good = script(dir, "good.j", "function a takes nothing returns nothing\nendfunction\n");
+
+        List<Result> results = Pjass.runPjassEach(common.getPath(), blizzard.getPath(), Arrays.asList(good, good));
+
+        Assert.assertEquals(results.size(), 2);
+        for (Result result : results) {
+            Assert.assertFalse(result.isOk(), result.getMessage());
+            Assert.assertTrue(result.getMessage().contains("common.j:1"), result.getMessage());
+        }
+    }
+
+    @Test
+    public void eachFailsEveryFileWhenABaseFileIsMissing() throws IOException {
+        Path dir = Files.createTempDirectory("pjass-each");
+        File common = script(dir, "common.j", "");
+        File good = script(dir, "good.j", "function a takes nothing returns nothing\nendfunction\n");
+
+        List<Result> results = Pjass.runPjassEach(common.getPath(), dir.resolve("blizzard.j").toString(), Arrays.asList(good));
+
+        Assert.assertFalse(results.get(0).isOk(), results.get(0).getMessage());
+        Assert.assertTrue(results.get(0).getMessage().contains("blizzard.j"), results.get(0).getMessage());
+    }
+
     public static void main(String[] args) {
 
         WurstGuiImpl gui = new WurstGuiImpl();

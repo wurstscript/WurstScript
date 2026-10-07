@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -137,12 +138,21 @@ public class Pjass {
      * The results are in the order of the files.
      */
     public static List<Result> runPjassEach(List<File> files) {
+        return runPjassEach(Utils.getResourceFile("common.j"), Utils.getResourceFile("blizzard.j"), files);
+    }
+
+    /** If common.j or blizzard.j is not reported as parsed, every file fails with that report. */
+    public static List<Result> runPjassEach(String commonJPath, String blizzardJPath, List<File> files) {
+        File commonJ = new File(commonJPath);
+        File blizzardJ = new File(blizzardJPath);
+        List<File> reported = new ArrayList<>(Arrays.asList(commonJ, blizzardJ));
+        reported.addAll(files);
         List<String> paths = new ArrayList<>();
         paths.add("--each");
         for (File file : files) {
             paths.add(file.getPath());
         }
-        List<String> args = command(Utils.getResourceFile("common.j"), Utils.getResourceFile("blizzard.j"), paths);
+        List<String> args = command(commonJ.getPath(), blizzardJ.getPath(), paths);
         WLogger.info("Starting pjass for " + files.size() + " files");
         Process p;
         try {
@@ -166,7 +176,13 @@ public class Pjass {
         } catch (InterruptedException e) {
             return failed(files, "Interrupted");
         }
-        return resultsPerFile(files, output.toString());
+        List<Result> results = resultsPerFile(reported, output.toString());
+        for (Result base : results.subList(0, 2)) {
+            if (!base.isOk()) {
+                return failed(files, base.getMessage());
+            }
+        }
+        return results.subList(2, results.size());
     }
 
     private static List<Result> failed(List<File> files, String message) {
