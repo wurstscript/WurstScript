@@ -365,6 +365,18 @@ test {
     // workers next to the daemon's own three and be killed for it. Override with -PtestForks=N.
     maxParallelForks = testForkCount()
 
+    // Gradle deals the test classes to the forks one after another, in the order it finds them, and a
+    // fork keeps what it was dealt. In alphabetical order one fork ended up with the long classes at the
+    // back while the others sat idle, so the heaviest classes come first. -PtestAlphabetical turns this off.
+    if (!project.hasProperty('testAlphabetical')) {
+        def weights = providers.fileContents(layout.projectDirectory.file('test-class-weights.txt')).asText.get()
+        def heaviestFirst = weights.readLines().findAll { it && !it.startsWith('#') }
+                .collect { it.split(/\s+/)[1].replace('.', '/') + '.class' }
+        def classesDir = sourceSets.test.output.classesDirs.singleFile
+        testClassesDirs = files(fileTree(classesDir) { exclude heaviestFirst },
+                heaviestFirst.collect { path -> fileTree(classesDir) { include path } })
+    }
+
     // IM dumps (.jim) are written only for the tests which read one; -PimDumps writes them for all.
     if (project.hasProperty('imDumps')) {
         systemProperty 'wurst.test.imDumps', 'true'
@@ -384,6 +396,26 @@ test {
             // test about three times slower and gave back only a third of the parallelism.
             '-XX:ActiveProcessorCount=2',
     )
+}
+
+tasks.register('updateTestClassWeights') {
+    description "Updates test-class-weights.txt with the classes of the last test run, and keeps the others"
+    def results = fileTree(layout.buildDirectory.dir('test-results/test')) { include 'TEST-*.xml' }
+    def target = layout.projectDirectory.file('test-class-weights.txt').asFile
+    doLast {
+        def lines = target.readLines()
+        def weights = [:]
+        lines.findAll { it && !it.startsWith('#') }.each { line ->
+            def parts = line.split(/\s+/)
+            weights[parts[1]] = parts[0].toLong()
+        }
+        results.files.each { f ->
+            def suite = new groovy.xml.XmlSlurper().parse(f)
+            weights[suite.@name.toString()] = Math.round(suite.@time.toDouble())
+        }
+        def rows = weights.sort { a, b -> b.value <=> a.value ?: a.key <=> b.key }.collect { name, seconds -> "$seconds $name" }
+        target.text = (lines.takeWhile { it.startsWith('#') } + rows).join('\n') + '\n'
+    }
 }
 
 /** -------- Clean generated sources -------- */
