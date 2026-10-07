@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.collection.Set;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
@@ -363,14 +364,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         idx.defaultReturnValue(-1);
         for (int i = 0; i < N; i++) idx.put(nodes.get(i), i);
 
+        // The sets below hold numbers of locals, as sorted arrays without repeats. Most statements
+        // neither read nor assign a local, so most sets are shared rather than copied.
+        final VariableNumbering variables = new VariableNumbering();
+
         // 2. Calculate USE and DEF sets for each node
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] use = new ObjectOpenHashSet[N];
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] def = new ObjectOpenHashSet[N];
+        final int[][] use = new int[N][];
+        final int[][] def = new int[N][];
 
         for (int i = 0; i < N; i++) {
             Node node = nodes.get(i);
-            use[i] = new ObjectOpenHashSet<>();
-            def[i] = new ObjectOpenHashSet<>();
+            final IntArrayList used = new IntArrayList();
+            final IntArrayList defined = new IntArrayList();
+            use[i] = NO_VARIABLES;
+            def[i] = NO_VARIABLES;
 
             ImStmt stmt = node.getStmt();
             if (stmt == null) continue;
@@ -378,20 +385,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             if (stmt instanceof ImVarargLoop loop) {
                 for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
                     if (!loopVar.getVar().isGlobal()) {
-                        def[i].add(loopVar.getVar());
+                        defined.add(variables.numberOf(loopVar.getVar()));
                     }
                 }
+                def[i] = sortedWithoutRepeats(defined);
                 // The loop body has its own CFG nodes. Visiting it here would incorrectly
                 // classify all body reads as uses at the loop header.
                 continue;
             }
 
-            final int ii = i;
             stmt.accept(new ImStmt.DefaultVisitor() {
                 @Override public void visit(ImVarAccess va) {
                     super.visit(va);
                     ImVar v = va.getVar();
-                    if (!v.isGlobal()) use[ii].add(v);
+                    if (!v.isGlobal()) used.add(variables.numberOf(v));
                 }
                 @Override public void visit(ImSet set) {
                     set.getRight().accept(this);
@@ -415,9 +422,11 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             if (stmt instanceof ImSet set) {
                 if (set.getLeft() instanceof ImVarAccess) {
                     ImVar v = ((ImVarAccess) set.getLeft()).getVar();
-                    if (!v.isGlobal()) def[i].add(v);
+                    if (!v.isGlobal()) defined.add(variables.numberOf(v));
                 }
             }
+            use[i] = sortedWithoutRepeats(used);
+            def[i] = sortedWithoutRepeats(defined);
         }
 
         // 3. Find SCCs on the REVERSED graph for backward analysis
@@ -437,9 +446,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         Collections.reverse(sccs);
 
         // 4. Initialize IN and OUT sets for the data-flow analysis
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] in  = new ObjectOpenHashSet[N];
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] out = new ObjectOpenHashSet[N];
-        for (int i = 0; i < N; i++) { in[i] = new ObjectOpenHashSet<>(); out[i] = new ObjectOpenHashSet<>(); }
+        final int[][] in = new int[N][];
+        final int[][] out = new int[N][];
+        Arrays.fill(in, NO_VARIABLES);
+        Arrays.fill(out, NO_VARIABLES);
 
         // 5. Iterate over SCCs in reverse topological order
         for (int sccIndex = 0; sccIndex < sccs.size(); sccIndex++) {
@@ -456,24 +466,21 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
                     // Recalculate OUT[u] from the IN sets of its successors.
                     // Any successor not in the current SCC has already been processed and its IN set is stable.
-                    final ObjectOpenHashSet<ImVar> newOut = new ObjectOpenHashSet<>();
+                    int[] newOut = NO_VARIABLES;
                     for (Node succ : u_node.getSuccessors()) {
                         int v_idx = idx.getInt(succ);
                         if (v_idx != -1) {
-                            newOut.addAll(in[v_idx]);
+                            newOut = union(newOut, in[v_idx]);
                         }
                     }
                     out[u_idx] = newOut;
 
                     // Recalculate IN[u] using the data-flow equation: in[u] = use[u] U (out[u] - def[u])
-                    final ObjectOpenHashSet<ImVar> oldIn = in[u_idx];
-                    final ObjectOpenHashSet<ImVar> newIn = new ObjectOpenHashSet<>();
-                    newIn.addAll(newOut);
-                    newIn.removeAll(def[u_idx]);
-                    newIn.addAll(use[u_idx]);
+                    final int[] oldIn = in[u_idx];
+                    final int[] newIn = union(difference(newOut, def[u_idx]), use[u_idx]);
 
                     // If IN[u] changed, update it and flag that we need another iteration for this SCC.
-                    if (!newIn.equals(oldIn)) {
+                    if (newIn != oldIn && !Arrays.equals(newIn, oldIn)) {
                         in[u_idx] = newIn;
                         changedInScc = true;
                     }
@@ -481,18 +488,136 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             }
         }
 
-        // 6. Collect results into the final map format
+        // 6. Collect results into the final map format. Statements that share a set share its copy.
         final java.util.LinkedHashMap<ImStmt, Set<ImVar>> result = new java.util.LinkedHashMap<>();
+        final IdentityHashMap<int[], Set<ImVar>> converted = new IdentityHashMap<>();
         for (int i = 0; i < N; i++) {
             ImStmt stmt = nodes.get(i).getStmt();
             if (stmt != null) {
-                result.put(stmt, io.vavr.collection.HashSet.ofAll(out[i]));
+                result.put(stmt, variables.toSet(out[i], converted));
             }
         }
         Set<ImVar> liveAtEntry = N == 0
             ? io.vavr.collection.HashSet.empty()
-            : io.vavr.collection.HashSet.ofAll(in[0]);
+            : variables.toSet(in[0], converted);
         return new LivenessAnalysis(result, liveAtEntry);
+    }
+
+    private static final int[] NO_VARIABLES = new int[0];
+
+    /** Numbers the locals met by one liveness analysis, from 0. */
+    private static final class VariableNumbering {
+        private final Object2IntOpenHashMap<ImVar> numbers = new Object2IntOpenHashMap<>();
+        private final List<ImVar> variables = new ArrayList<>();
+
+        private VariableNumbering() {
+            numbers.defaultReturnValue(-1);
+        }
+
+        private int numberOf(ImVar variable) {
+            int number = numbers.getInt(variable);
+            if (number < 0) {
+                number = variables.size();
+                variables.add(variable);
+                numbers.put(variable, number);
+            }
+            return number;
+        }
+
+        private Set<ImVar> toSet(int[] numbersInSet, IdentityHashMap<int[], Set<ImVar>> converted) {
+            if (numbersInSet.length == 0) {
+                return io.vavr.collection.HashSet.empty();
+            }
+            Set<ImVar> existing = converted.get(numbersInSet);
+            if (existing == null) {
+                List<ImVar> members = new ArrayList<>(numbersInSet.length);
+                for (int number : numbersInSet) {
+                    members.add(variables.get(number));
+                }
+                existing = io.vavr.collection.HashSet.ofAll(members);
+                converted.put(numbersInSet, existing);
+            }
+            return existing;
+        }
+    }
+
+    private static int[] sortedWithoutRepeats(IntArrayList numbers) {
+        if (numbers.isEmpty()) {
+            return NO_VARIABLES;
+        }
+        int[] sorted = numbers.toIntArray();
+        Arrays.sort(sorted);
+        int length = 1;
+        for (int i = 1; i < sorted.length; i++) {
+            if (sorted[i] != sorted[length - 1]) {
+                sorted[length++] = sorted[i];
+            }
+        }
+        return length == sorted.length ? sorted : Arrays.copyOf(sorted, length);
+    }
+
+    /** The union of two sorted sets, which is one of them when it holds the other. */
+    private static int[] union(int[] a, int[] b) {
+        if (a == b || b.length == 0) {
+            return a;
+        }
+        if (a.length == 0) {
+            return b;
+        }
+        int[] merged = new int[a.length + b.length];
+        int i = 0;
+        int j = 0;
+        int length = 0;
+        while (i < a.length && j < b.length) {
+            if (a[i] < b[j]) {
+                merged[length++] = a[i++];
+            } else if (a[i] > b[j]) {
+                merged[length++] = b[j++];
+            } else {
+                merged[length++] = a[i++];
+                j++;
+            }
+        }
+        while (i < a.length) {
+            merged[length++] = a[i++];
+        }
+        while (j < b.length) {
+            merged[length++] = b[j++];
+        }
+        if (length == a.length) {
+            return a;
+        }
+        if (length == b.length) {
+            return b;
+        }
+        return Arrays.copyOf(merged, length);
+    }
+
+    /** The members of a sorted set which a second one does not hold; the set itself when it holds none of them. */
+    private static int[] difference(int[] a, int[] removed) {
+        if (a.length == 0 || removed.length == 0) {
+            return a;
+        }
+        int[] kept = null;
+        int length = 0;
+        int j = 0;
+        for (int i = 0; i < a.length; i++) {
+            while (j < removed.length && removed[j] < a[i]) {
+                j++;
+            }
+            boolean isRemoved = j < removed.length && removed[j] == a[i];
+            if (isRemoved && kept == null) {
+                kept = new int[a.length - 1];
+                System.arraycopy(a, 0, kept, 0, i);
+                length = i;
+            } else if (!isRemoved && kept != null) {
+                kept[length++] = a[i];
+            }
+        }
+        if (kept == null) {
+            return a;
+        }
+        return length == 0 ? NO_VARIABLES : Arrays.copyOf(kept, length);
     }
 
     private static final class LivenessAnalysis {
