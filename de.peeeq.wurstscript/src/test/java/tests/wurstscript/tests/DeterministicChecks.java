@@ -3,12 +3,19 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -712,6 +719,104 @@ public class DeterministicChecks extends WurstScriptTest {
             }
         } finally {
             de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    /**
+     * The preamble pre-scan collects shared-helper triggers (array metatables, tuple
+     * helpers, callback adapters) in whole-program walk order and breaks sort-key ties
+     * by encounter order. It used to collect callbacks into an identity-hash set and
+     * sort by {@code package#function}, so targets sharing that key (generated same-name
+     * wrappers, e.g. Castle Fight's {@code AbilityFieldRegistry} adapters) were ordered by
+     * identity-hash iteration and two cold builds disagreed on adapter order and numeric
+     * suffixes. Fresh compilers with perturbed allocation histories in between must still
+     * agree byte-for-byte.
+     *
+     * <p>Verification boundary, stated plainly: HotSpot identity hashes repeat for
+     * identical allocation sequences, so same-key ties cannot be made to diverge within
+     * one JVM and this test locks the post-fix invariant rather than reproducing the old
+     * failure. The pre-fix divergence was demonstrated out-of-band by two cold builds of
+     * Castle Fight differing in adapter order and suffixes; re-measuring that map is the
+     * acceptance for this fix.
+     */
+    @Test
+    public void sharedHelperAdapterOrderIsStableAcrossFreshCompiles() throws IOException {
+        String[] fixture = {
+            "package Test",
+            "@extern native Callback(code c) returns int",
+            "function alpha() returns int",
+            "    return 1",
+            "function mike() returns int",
+            "    return 2",
+            "function zebra() returns int",
+            "    return 3",
+            "int array counters",
+            "tuple Point(int x, int y)",
+            "module M",
+            "    function reg()",
+            "        Callback(() -> skip)",
+            "class A",
+            "    use M",
+            "class B",
+            "    use M",
+            "init",
+            "    Callback(function zebra)",
+            "    Callback(function alpha)",
+            "    Callback(function mike)",
+            "    counters[0] = 1",
+            "    Point p = Point(1, 2)",
+            "    new A().reg()",
+            "    new B().reg()"
+        };
+        String first = compileIncrementalToString(fixture);
+        perturbAllocator();
+        String second = compileIncrementalToString(fixture);
+        perturbAllocator();
+        String third = compileIncrementalToString(fixture);
+        AssertJUnit.assertTrue("fixture must exercise the shared-helper pre-scan",
+            first.contains("__wurst_callback_"));
+        AssertJUnit.assertEquals("second fresh compile must agree byte-for-byte", first, second);
+        AssertJUnit.assertEquals("third fresh compile must agree byte-for-byte", first, third);
+    }
+
+    /** An unrelated compile plus a GC in between so fresh identity hashes cannot repeat trivially. */
+    private void perturbAllocator() {
+        testAssertOkLines(false,
+            "package Perturb",
+            "native testSuccess()",
+            "function p(int x) returns int",
+            "    return x * 2",
+            "init",
+            "    if p(21) == 42",
+            "        testSuccess()");
+        System.gc();
+    }
+
+    private String compileIncrementalToString(String... lines) throws IOException {
+        File cacheDir = java.nio.file.Files.createTempDirectory("wurst_det_").toFile();
+        try {
+            RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
+                "-incremental", "-cachePath", cacheDir.getAbsolutePath());
+            WurstGui gui = new WurstGuiCliImpl();
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(
+                new TimeTaker.Default(), null, gui, null, runArgs);
+            compiler.loadReader("Det.wurst", new StringReader(String.join("\n", lines)));
+            WurstModel model = compiler.parseFiles();
+            AssertJUnit.assertNotNull("parse failed: " + gui.getErrorList(), model);
+            AssertJUnit.assertTrue("parse errors: " + gui.getErrorList(),
+                gui.getErrorList().isEmpty());
+            compiler.checkProg(model);
+            AssertJUnit.assertTrue("check errors: " + gui.getErrorList(),
+                gui.getErrorList().isEmpty());
+            compiler.translateProgToIm(model);
+            compiler.runCompiletime(org.wurstscript.projectconfig.WurstProjectConfigData.empty(),
+                false, false);
+            compiler.transformProgToLua();
+            String script = compiler.getCompiledLuaScript();
+            AssertJUnit.assertNotNull("incremental build produced no script", script);
+            return script;
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(cacheDir);
         }
     }
 

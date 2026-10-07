@@ -519,17 +519,26 @@ public class LuaTranslator {
     private void precreateSharedHelpers() {
         Map<String, ImType> entryTypes = new TreeMap<>();
         Map<String, ImTupleType> tupleTypes = new TreeMap<>();
-        Set<ImFunction> callbackTargets = Collections.newSetFromMap(new IdentityHashMap<>());
-        collectSharedHelperTriggers(entryTypes, tupleTypes, callbackTargets);
+        // Encounter order of the whole-program walk below is deterministic for a given
+        // program, so keep it: the sort key (package#function) ties on specialization copies
+        // sharing one trace, and breaking those ties by identity-hash iteration order would
+        // make adapter emission order vary run to run.
+        Set<ImFunction> callbackTargetSeen = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<ImFunction> callbackTargets = new ArrayList<>();
+        collectSharedHelperTriggers(entryTypes, tupleTypes, callbackTargets, callbackTargetSeen);
         for (ImType entryType : entryTypes.values()) {
             newDefaultArray(entryType);
         }
         for (ImTupleType tt : tupleTypes.values()) {
             ExprTranslation.precreateTupleFuncs(tt, this);
         }
-        List<ImFunction> sortedCallbacks = new ArrayList<>(callbackTargets);
-        sortedCallbacks.sort(Comparator.comparing(this::callbackTargetKey));
-        for (ImFunction target : sortedCallbacks) {
+        Map<ImFunction, Integer> callbackEncounter = new IdentityHashMap<>();
+        for (int i = 0; i < callbackTargets.size(); i++) {
+            callbackEncounter.putIfAbsent(callbackTargets.get(i), i);
+        }
+        callbackTargets.sort(Comparator.comparing(this::callbackTargetKey)
+            .thenComparingInt(callbackEncounter::get));
+        for (ImFunction target : callbackTargets) {
             callbackAdapterFor(target);
         }
         List<ImClass> sortedClasses = new ArrayList<>(prog.getClasses());
@@ -598,7 +607,8 @@ public class LuaTranslator {
 
     /** Whole-program walk for array/tuple/funcref triggers; nested types are harvested explicitly. */
     private void collectSharedHelperTriggers(
-        Map<String, ImType> arraysOut, Map<String, ImTupleType> tuplesOut, Set<ImFunction> callbacksOut
+        Map<String, ImType> arraysOut, Map<String, ImTupleType> tuplesOut,
+        List<ImFunction> callbacksOut, Set<ImFunction> callbacksSeen
     ) {
         de.peeeq.wurstscript.jassIm.Element.DefaultVisitor visitor =
             new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
@@ -633,7 +643,7 @@ public class LuaTranslator {
                 public void visit(ImFuncRef ref) {
                     super.visit(ref);
                     try {
-                        if (ref.getFunc() != null) {
+                        if (ref.getFunc() != null && callbacksSeen.add(ref.getFunc())) {
                             callbacksOut.add(ref.getFunc());
                         }
                     } catch (Exception ignored) {
