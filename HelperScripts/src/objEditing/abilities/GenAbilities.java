@@ -1,7 +1,7 @@
 package objEditing.abilities;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 import utils.WEStrings;
 
 public class GenAbilities {
-    static WEStrings strings = new WEStrings().parseFile(new File("./gamedata/WorldEditStrings.txt"));
+    static WEStrings strings;
     static StringBuilder sb = new StringBuilder();
 
     static void println(String s) {
@@ -165,6 +165,8 @@ public class GenAbilities {
     }
 
     public static void main(String[] args) throws IOException {
+        sb.setLength(0);
+        strings = new WEStrings().parseFile(new File("./gamedata/WorldEditStrings.txt"));
         // Load ability names and parent codes from abilitydata.slk
         Map<String, String> abilityNames = new HashMap<>();
         Map<String, String> abilityParent = new HashMap<>(); // alias -> code (base ability)
@@ -172,7 +174,7 @@ public class GenAbilities {
         System.err.println("Loaded " + abilityNames.size() + " ability names from abilitydata.slk");
 
         List<FieldData> commonData = Lists.newArrayList();
-        Multimap<String, FieldData> specificData = HashMultimap.create();
+        Multimap<String, FieldData> specificData = LinkedHashMultimap.create();
 
         // Parse abilitymetadata.slk via wc3libs
         AbilityMetaSLK metaSlk = new AbilityMetaSLK();
@@ -245,6 +247,7 @@ public class GenAbilities {
 
         println("package AbilityObjEditing");
         println("import public ObjEditingNatives");
+        println("import public AbilityIds");
         println("");
         println("public class AbilityDefinition");
         println("\tprotected ObjectDefinition def");
@@ -283,6 +286,12 @@ public class GenAbilities {
         // Abilities with specific fields (including inherited ones) — output to main wurst file
         // and to the additions file (for stdlib integration), both using AbilityIds.xxx
         StringBuilder idsBlock = new StringBuilder();
+        StringBuilder completeIds = new StringBuilder("package AbilityIds\nimport NoWurst\n\npublic class AbilityIds\n");
+        Set<String> completeAddedIds = Sets.newHashSet();
+        for (String spell : new java.util.TreeSet<>(spellToConstant.keySet())) {
+            appendIdConstant(completeIds, completeAddedIds, java.util.Collections.emptyMap(),
+                    spellToConstant.get(spell), spell);
+        }
         StringBuilder classesBlock = new StringBuilder();
         Set<String> addedIds = Sets.newHashSet();
 
@@ -293,23 +302,15 @@ public class GenAbilities {
             String className = spellToClassName.getOrDefault(spell, resolveClassName("AbilityDefinition" + spellName,
                     spell, existingAbilityData.classNameToId, existingAbilityData.classNameById));
 
-            // Main HelperScripts output (standalone, uses raw id)
-            println("");
-            println("");
-            println("");
-            println("public class " + className + " extends AbilityDefinition");
-            println("\tconstruct(int newAbilityId)");
-            println("\t\tsuper(newAbilityId, '" + spell + "')");
+            // Both outputs share the documented named-ID constructor.
+            print(abilityClassHeader(className, constantName, spell));
             for (FieldData fd : specificData.get(spell)) {
                 fd.printFunc(usedNames, commonFunctionNames, commonPresetFunctionNames, false);
             }
 
             // Additions file (for stdlib) uses AbilityIds reference
             appendIdConstant(idsBlock, addedIds, existingAbilityData.originalConstantToId, constantName, spell);
-            classesBlock.append("\n\n\npublic class ").append(className)
-                    .append(" extends AbilityDefinition\n");
-            classesBlock.append("\tconstruct(int newAbilityId)\n");
-            classesBlock.append("\t\tsuper(newAbilityId, AbilityIds.").append(constantName).append(")\n");
+            classesBlock.append(abilityClassHeader(className, constantName, spell));
             // Copy field methods
             Set<String> addUsedNames = Sets.newHashSet();
             for (FieldData fd : specificData.get(spell)) {
@@ -342,30 +343,28 @@ public class GenAbilities {
             String className = spellToClassName.getOrDefault(spell, "AbilityDefinition" + spellName);
 
             appendIdConstant(idsBlock, addedIds, existingAbilityData.originalConstantToId, constantName, spell);
-            classesBlock.append("\n\n\npublic class ").append(className)
-                    .append(" extends AbilityDefinition\n");
-            classesBlock.append("\tconstruct(int newAbilityId)\n");
-            classesBlock.append("\t\tsuper(newAbilityId, AbilityIds.").append(constantName).append(")\n");
-
-            // Main HelperScripts output (standalone, uses raw id)
-            println("");
-            println("");
-            println("");
-            println("public class " + className + " extends AbilityDefinition");
-            println("\tconstruct(int newAbilityId)");
-            println("\t\tsuper(newAbilityId, '" + spell + "')");
+            classesBlock.append(abilityClassHeader(className, constantName, spell));
+            print(abilityClassHeader(className, constantName, spell));
             commonOnly++;
         }
         System.err.println("Common-only ability classes generated: " + commonOnly);
 
+        Files.write(completeIds.toString().getBytes(Charsets.UTF_8), new File("./AbilityIds.wurst"));
         Files.write(idsBlock.toString().getBytes(Charsets.UTF_8),
                 new File("./AbilityIds_additions.wurst"));
         Files.write(classesBlock.toString().getBytes(Charsets.UTF_8),
                 new File("./AbilityObjEditing_additions.wurst"));
-        System.err.println("Wrote AbilityIds_additions.wurst and AbilityObjEditing_additions.wurst");
+        System.err.println("Wrote AbilityIds.wurst, AbilityIds_additions.wurst and AbilityObjEditing_additions.wurst");
 
         System.out.println(sb.toString());
         Files.write(sb, new File("./AbilityObjEditing.wurst"), Charsets.UTF_8);
+    }
+
+    static String abilityClassHeader(String className, String constantName, String rawId) {
+        return "\n\n\n/** WC3 ability ID: '" + rawId + "'. Base ability: AbilityIds." + constantName + ". */\n"
+                + "public class " + className + " extends AbilityDefinition\n"
+                + "\tconstruct(int newAbilityId)\n"
+                + "\t\tsuper(newAbilityId, AbilityIds." + constantName + ")\n";
     }
 
     private static class ExistingAbilityData {
