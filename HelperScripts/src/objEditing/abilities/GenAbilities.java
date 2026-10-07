@@ -256,11 +256,11 @@ public class GenAbilities {
         }
         System.err.println("Inherited specific fields for: " + inherited + " abilities");
 
-        println("/** Create ability object data at compile time. Levels start at 1; generated field presets set all levels and add tooltip properties. */");
         println("package AbilityObjEditing");
         println("import public ObjEditingNatives");
         println("import public AbilityIds");
         println("");
+        println("/** Create ability object data at compile time. Levels start at 1; generated field presets set all levels and add tooltip properties. */");
         println("public class AbilityDefinition");
         println("\tprotected ObjectDefinition def");
         println("\t");

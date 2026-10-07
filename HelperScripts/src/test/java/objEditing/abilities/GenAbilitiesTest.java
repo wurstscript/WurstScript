@@ -75,6 +75,7 @@ public class GenAbilitiesTest {
         }
 
         String standalone = Files.readString(Path.of("AbilityObjEditing.wurst"));
+        assertTrue(standalone.startsWith("package AbilityObjEditing\n"), "Keep the package declaration first");
         assertTrue(standalone.contains("import public AbilityIds\n"));
         String idsSource = Files.readString(Path.of("AbilityIds.wurst"));
         assertTrue(idsSource.startsWith("package AbilityIds\n"));
