@@ -97,10 +97,8 @@ public final class LocalPlayerContextAnalyzer {
     /** Functions whose return value is derived from a client-local value by data flow alone. */
     private final Set<ImFunction> localPlayerDataDependentReturns =
         Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Set<Element> indexedElements =
-        Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Set<Object> activeFacts =
-        Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<Element> indexedElements;
+    private final Set<Object> activeFacts;
     private final Map<Object, List<Object>> dependents = new IdentityHashMap<>();
     /** The subset of {@link #dependents} reached without any control edge. */
     private final Map<Object, List<Object>> dataDependents = new IdentityHashMap<>();
@@ -108,12 +106,19 @@ public final class LocalPlayerContextAnalyzer {
     private final Map<ImFunction, Fact> returnFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> useFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> entryControlFacts = new IdentityHashMap<>();
-    private final Map<Element, Boolean> containsReturnCache = new IdentityHashMap<>();
+    /** The returns of the indexed function bodies and every element above one, up to the body. */
+    private final Set<Element> returnsAndTheirAncestors =
+        Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<Object> sourceFacts =
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Fact unknownDispatchSource = new Fact(FactKind.SOURCE, null);
 
     public LocalPlayerContextAnalyzer(ImProg prog) {
+        // Every element of every body is indexed, and most are reached by the propagation, so these
+        // sets are sized for them rather than grown through some twenty rehashes of a million entries.
+        int elements = markReturnsAndTheirAncestors(prog);
+        indexedElements = Collections.newSetFromMap(new IdentityHashMap<>(elements));
+        activeFacts = Collections.newSetFromMap(new IdentityHashMap<>(elements));
         analyze(prog);
     }
 
@@ -268,10 +273,11 @@ public final class LocalPlayerContextAnalyzer {
                 continue;
             }
 
-            work.addFirst(new IndexTask(element, task.controlContext(), true));
+            if (hasIndexingAfterChildren(element)) {
+                work.addFirst(new IndexTask(element, task.controlContext(), true));
+            }
             for (int i = element.size() - 1; i >= 0; i--) {
                 Element child = element.get(i);
-                addDependency(child, element);
                 if (element instanceof ImOperatorCall operator
                     && operator.getOp().isLazy()
                     && child == operator.getArguments()) {
@@ -288,6 +294,17 @@ public final class LocalPlayerContextAnalyzer {
                 work.addFirst(new IndexTask(child, childControl, false));
             }
         }
+    }
+
+    private static boolean hasIndexingAfterChildren(Element element) {
+        return element instanceof ImVarAccess
+            || element instanceof ImVarArrayAccess
+            || element instanceof ImMemberAccess
+            || element instanceof ImVarargLoop
+            || element instanceof ImSet
+            || element instanceof ImReturn
+            || element instanceof ImFunctionCall
+            || element instanceof ImMethodCall;
     }
 
     private void indexElementAfterChildren(Element element, ImFunction owner, Object controlContext) {
@@ -333,7 +350,6 @@ public final class LocalPlayerContextAnalyzer {
         Object continuationControl = controlContext;
         for (int i = 0; i < statements.size(); i++) {
             ImStmt statement = statements.get(i);
-            addDependency(statement, statements);
             tasks.add(new IndexTask(statement, continuationControl, false));
 
             if (containsFunctionReturn(statement)) {
@@ -352,42 +368,46 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     private boolean containsFunctionReturn(Element root) {
-        Boolean cached = containsReturnCache.get(root);
-        if (cached != null) {
-            return cached;
+        return returnsAndTheirAncestors.contains(root);
+    }
+
+    /** Marks the returns of every body to be indexed, and returns the number of elements the bodies hold. */
+    private int markReturnsAndTheirAncestors(ImProg prog) {
+        int elements = markReturnsAndTheirAncestors(prog.getFunctions());
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            elements += markReturnsAndTheirAncestors(classes.get(i).getFunctions());
         }
-        Deque<ReturnTask> work = new ArrayDeque<>();
-        work.addFirst(new ReturnTask(root, false));
-        while (!work.isEmpty()) {
-            ReturnTask task = work.removeFirst();
-            Element element = task.element();
-            if (containsReturnCache.containsKey(element)) {
+        return elements;
+    }
+
+    private int markReturnsAndTheirAncestors(List<ImFunction> functions) {
+        int elements = 0;
+        Deque<Element> work = new ArrayDeque<>();
+        for (int f = 0; f < functions.size(); f++) {
+            ImFunction function = functions.get(f);
+            if (function.isNative()) {
                 continue;
             }
-            if (element instanceof ImReturn) {
-                containsReturnCache.put(element, true);
-                continue;
-            }
-            if (!task.afterChildren()) {
-                work.addFirst(new ReturnTask(element, true));
-                for (int i = element.size() - 1; i >= 0; i--) {
-                    Element child = element.get(i);
-                    if (!containsReturnCache.containsKey(child)) {
-                        work.addFirst(new ReturnTask(child, false));
+            Element body = function.getBody();
+            work.addFirst(body);
+            while (!work.isEmpty()) {
+                Element element = work.removeFirst();
+                elements++;
+                if (element instanceof ImReturn) {
+                    for (Element e = element; e != null && e != function; e = e.getParent()) {
+                        if (!returnsAndTheirAncestors.add(e)) {
+                            break;
+                        }
                     }
+                    continue;
                 }
-                continue;
-            }
-            boolean containsReturn = false;
-            for (int i = 0; i < element.size(); i++) {
-                if (Boolean.TRUE.equals(containsReturnCache.get(element.get(i)))) {
-                    containsReturn = true;
-                    break;
+                for (int i = element.size() - 1; i >= 0; i--) {
+                    work.addFirst(element.get(i));
                 }
             }
-            containsReturnCache.put(element, containsReturn);
         }
-        return Boolean.TRUE.equals(containsReturnCache.get(root));
+        return elements;
     }
 
     private void scheduleShortCircuitArguments(ImExprs arguments,
@@ -398,7 +418,6 @@ public final class LocalPlayerContextAnalyzer {
         Object operandControl = controlContext;
         for (int i = 0; i < arguments.size(); i++) {
             ImExpr argument = arguments.get(i);
-            addDependency(argument, arguments);
             tasks.add(new IndexTask(argument, operandControl, false));
 
             if (i + 1 < arguments.size()) {
@@ -599,6 +618,10 @@ public final class LocalPlayerContextAnalyzer {
         }
         while (!worklist.isEmpty()) {
             Object fact = worklist.removeFirst();
+            Element parent = indexedParent(fact);
+            if (parent != null) {
+                activateFact(parent, worklist);
+            }
             List<Object> factDependents = dependents.get(fact);
             if (factDependents != null) {
                 for (int i = 0; i < factDependents.size(); i++) {
@@ -609,12 +632,26 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     /**
+     * What an element makes dependent through the tree itself: a value or statement is part of
+     * its parent. The roots of the indexed bodies are not part of an indexed element.
+     */
+    private Element indexedParent(Object fact) {
+        if (fact instanceof Element element) {
+            Element parent = element.getParent();
+            if (parent != null && indexedElements.contains(parent)) {
+                return parent;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Second pass over the data-only graph. Publishes just the RETURN facts, which is what the
      * inlining barrier needs: whether a return value is derived from a client-local value regardless
      * of where the function happens to be called from.
      */
     private void propagateDataFacts() {
-        Set<Object> reached = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<Object> reached = Collections.newSetFromMap(new IdentityHashMap<>(activeFacts.size()));
         Deque<Object> worklist = new ArrayDeque<>();
         for (Object source : sourceFacts) {
             if (reached.add(source)) {
@@ -625,6 +662,10 @@ public final class LocalPlayerContextAnalyzer {
             Object fact = worklist.removeFirst();
             if (fact instanceof Fact typedFact && typedFact.kind == FactKind.RETURN) {
                 localPlayerDataDependentReturns.add((ImFunction) typedFact.subject);
+            }
+            Element parent = indexedParent(fact);
+            if (parent != null && reached.add(parent)) {
+                worklist.addLast(parent);
             }
             List<Object> factDependents = dataDependents.get(fact);
             if (factDependents != null) {
