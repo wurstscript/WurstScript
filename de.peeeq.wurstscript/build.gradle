@@ -365,6 +365,14 @@ test {
     // workers next to the daemon's own three and be killed for it. Override with -PtestForks=N.
     maxParallelForks = testForkCount()
 
+    // IM dumps (.jim) are written only for the tests which read one; -PimDumps writes them for all.
+    if (project.hasProperty('imDumps')) {
+        systemProperty 'wurst.test.imDumps', 'true'
+    }
+
+    // The collector for the test JVMs; -PtestGc='-XX:+UseG1GC' (or another flag) overrides it.
+    jvmArgs((project.findProperty('testGc') ?: '-XX:+UseParallelGC').toString().split(' '))
+
     jvmArgs(
             '-Xmx2g',                         // local: give it room to finish and dump
             '-XX:MaxMetaspaceSize=256m',

@@ -2229,7 +2229,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void fullArrayListTest() throws IOException {
-        test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
+        test().imDump().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
 
         String compiled = Files.toString(new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullArrayListTest_no_opts.jim"), Charsets.UTF_8);
         // Count 2 occurences of integer ArrayList_MAX_ARRAY_SIZE
@@ -2250,7 +2250,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void fullArrayListTestUncheckedDispatch() throws IOException {
-        test().withStdLib().uncheckedDispatch().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
+        test().imDump().withStdLib().uncheckedDispatch().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
 
         String compiled = Files.toString(
             new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullArrayListTestUncheckedDispatch_no_opts.jim"),
@@ -2263,7 +2263,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void fullReactiveGenericDispatchTest() throws IOException {
-        test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
+        test().imDump().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
 
         String compiled = Files.toString(
             new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullReactiveGenericDispatchTest_no_opts.jim"),
@@ -2277,7 +2277,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void fullReactiveGenericDispatchTestUncheckedDispatch() throws IOException {
-        test().withStdLib().uncheckedDispatch().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
+        test().imDump().withStdLib().uncheckedDispatch().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
 
         String compiled = Files.toString(
             new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullReactiveGenericDispatchTestUncheckedDispatch_no_opts.jim"),
