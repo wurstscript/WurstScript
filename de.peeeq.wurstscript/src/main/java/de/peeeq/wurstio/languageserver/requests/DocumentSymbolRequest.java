@@ -59,8 +59,8 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
     @NotNull
     private DocumentSymbol makeDocumentSymbol(Element p, SymbolKind kind, String name, List<DocumentSymbol> children) {
         String detail = null;
-        if (p instanceof AstElementWithParameters) {
-            detail = "(" + HoverInfo.getParameterString((AstElementWithParameters) p) + ")";
+        if (p instanceof AstElementWithParameters astElementWithParameters) {
+            detail = "(" + HoverInfo.getParameterString(astElementWithParameters) + ")";
         }
         Range fullRange = Convert.range(p);
         Range selectionRange = sanitizeSelectionRange(fullRange, Convert.errorRange(p));

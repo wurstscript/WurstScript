@@ -237,10 +237,10 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private boolean shouldDefaultJassLocalToNull(OptTypeExpr optTyp) {
-        if (!(optTyp instanceof TypeExprSimple)) {
+        if (!(optTyp instanceof TypeExprSimple typeExprSimple)) {
             return false;
         }
-        String typeName = ((TypeExprSimple) optTyp).getTypeName();
+        String typeName = typeExprSimple.getTypeName();
         return !JASS_PRIMITIVE_TYPES.contains(typeName);
     }
 
@@ -494,23 +494,23 @@ public class AntlrWurstParseTreeTransformer {
         if (slots != null && slots.slots != null) {
             for (ClassSlotContext slot : slots.slots) {
                 ClassSlot s = transformClassSlot(slot);
-                if (s instanceof ConstructorDef) {
-                    result.constructors.add((ConstructorDef) s);
-                } else if (s instanceof FuncDef) {
-                    result.methods.add((FuncDef) s);
-                } else if (s instanceof ModuleUse) {
-                    result.moduleUses.add((ModuleUse) s);
-                } else if (s instanceof OnDestroyDef) {
+                if (s instanceof ConstructorDef constructorDef) {
+                    result.constructors.add(constructorDef);
+                } else if (s instanceof FuncDef funcDef) {
+                    result.methods.add(funcDef);
+                } else if (s instanceof ModuleUse moduleUse) {
+                    result.moduleUses.add(moduleUse);
+                } else if (s instanceof OnDestroyDef onDestroyDef) {
                     if (result.onDestroy == null) {
-                        result.onDestroy = (OnDestroyDef) s;
+                        result.onDestroy = onDestroyDef;
                     } else {
                         throw new CompileError(s.attrSource(),
                                 "ondestroy already defined.");
                     }
-                } else if (s instanceof GlobalVarDef) {
-                    result.vars.add((GlobalVarDef) s);
-                } else if (s instanceof ClassDef) {
-                    result.innerClasses.add((ClassDef) s);
+                } else if (s instanceof GlobalVarDef globalVarDef) {
+                    result.vars.add(globalVarDef);
+                } else if (s instanceof ClassDef classDef) {
+                    result.innerClasses.add(classDef);
                 } else if (s != null) {
                     throw error(slot, "unexpected classslot: "
                             + s.getClass().getSimpleName());
@@ -760,8 +760,8 @@ public class AntlrWurstParseTreeTransformer {
             return transformLocalVarDef(s.localVarDef());
         } else if (s.expr() != null) {
             Expr e = transformExpr(s.expr());
-            if (e instanceof WStatement) {
-                return (WStatement) e;
+            if (e instanceof WStatement wStatement) {
+                return wStatement;
             } else {
                 cuErrorHandler.sendError(new CompileError(source(s), Utils.printElement(e) + " cannot be used here. A full statement is required."));
                 return Ast.StmtErr(source(s));
@@ -1172,22 +1172,18 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private int beginPos(ParseTree left) {
-        if (left instanceof ParserRuleContext) {
-            ParserRuleContext left2 = (ParserRuleContext) left;
+        if (left instanceof ParserRuleContext left2) {
             return left2.getStart().getStartIndex();
-        } else if (left instanceof TerminalNode) {
-            TerminalNode left2 = (TerminalNode) left;
+        } else if (left instanceof TerminalNode left2) {
             return left2.getSymbol().getStartIndex();
         }
         throw new Error("unhandled case: " + left.getClass() + "  // " + left);
     }
 
     private int stopPos(ParseTree left) {
-        if (left instanceof ParserRuleContext) {
-            ParserRuleContext left2 = (ParserRuleContext) left;
+        if (left instanceof ParserRuleContext left2) {
             return left2.getStop().getStopIndex();
-        } else if (left instanceof TerminalNode) {
-            TerminalNode left2 = (TerminalNode) left;
+        } else if (left instanceof TerminalNode left2) {
             return left2.getSymbol().getStopIndex();
         }
         throw new Error("unhandled case: " + left.getClass() + "  // " + left);

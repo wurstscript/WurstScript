@@ -155,8 +155,7 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
         ILconst tupleE = e.getTupleExpr().evaluate(globalState, localState);
-        if (tupleE instanceof ILconstTuple) {
-            ILconstTuple t = (ILconstTuple) tupleE;
+        if (tupleE instanceof ILconstTuple t) {
             if (e.getTupleIndex() >= t.values().size()) {
                 throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
             }
@@ -199,8 +198,7 @@ public class EvaluateExpr {
             VarDef varDef = (VarDef) var.getTrace();
             if (varDef.getName().equals("compiletime")) {
                 PackageOrGlobal nearestPackage = varDef.attrNearestPackage();
-                if (nearestPackage instanceof WPackage) {
-                    WPackage p = (WPackage) nearestPackage;
+                if (nearestPackage instanceof WPackage p) {
                     return p.getName().equals("MagicFunctions");
                 }
             }
@@ -233,8 +231,8 @@ public class EvaluateExpr {
     public static @Nullable ILconst eval(ImMethodCall mc,
                                          ProgramState globalState, LocalState localState) {
         ImType receiverType = globalState.resolveType(mc.getReceiver().attrTyp());
-        ImClassType receiverClassType = receiverType instanceof ImClassType
-            ? (ImClassType) receiverType
+        ImClassType receiverClassType = receiverType instanceof ImClassType imClassType
+            ? imClassType
             : mc.getMethod().getMethodClass();
         ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState), receiverClassType);
         globalState.assertAllocated(receiver, mc.attrTrace());
@@ -273,7 +271,7 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
         ImType receiverType = globalState.resolveType(ma.getReceiver().attrTyp());
-        ImClassType receiverClassType = receiverType instanceof ImClassType ? (ImClassType) receiverType : null;
+        ImClassType receiverClassType = receiverType instanceof ImClassType imClassType ? imClassType : null;
         if (receiverClassType == null) {
             de.peeeq.wurstscript.jassIm.Element parent = ma.getVar().getParent();
             while (parent != null && !(parent instanceof ImClass)) {
@@ -395,8 +393,8 @@ public class EvaluateExpr {
     public static ILaddress evaluateLvalue(ImTupleSelection ts, ProgramState globalState, LocalState localState) {
         ImExpr tupleExpr = ts.getTupleExpr();
         int tupleIndex = ts.getTupleIndex();
-        if (tupleExpr instanceof ImLExpr) {
-            ILaddress addr = ((ImLExpr) tupleExpr).evaluateLvalue(globalState, localState);
+        if (tupleExpr instanceof ImLExpr imLExpr) {
+            ILaddress addr = imLExpr.evaluateLvalue(globalState, localState);
             return new ILaddress() {
                 @Override
                 public void set(ILconst value) {
@@ -431,11 +429,11 @@ public class EvaluateExpr {
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
         ImType receiverType = globalState.resolveType(va.getReceiver().attrTyp());
-        ImClassType receiverClassType = receiverType instanceof ImClassType ? (ImClassType) receiverType : null;
+        ImClassType receiverClassType = receiverType instanceof ImClassType imClassType ? imClassType : null;
         ILconst receiverVal = va.getReceiver().evaluate(globalState, localState);
         ILconstObject receiver = globalState.toObject(receiverVal, receiverClassType);
-        if (receiver == null && receiverVal instanceof ILconstInt && receiverClassType != null) {
-            int objectId = ((ILconstInt) receiverVal).getVal();
+        if (receiver == null && receiverVal instanceof ILconstInt iLconstInt && receiverClassType != null) {
+            int objectId = iLconstInt.getVal();
             if (objectId != 0) {
                 receiver = globalState.ensureObject(receiverClassType, objectId, va.attrTrace());
             }
@@ -473,8 +471,7 @@ public class EvaluateExpr {
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
-                if (value instanceof ILconstTuple) {
-                    ILconstTuple te = (ILconstTuple) value;
+                if (value instanceof ILconstTuple te) {
                     for (int i = 0; i < addresses.size(); i++) {
                         addresses.get(i).set(te.getValue(i));
                     }
@@ -520,23 +517,23 @@ public class EvaluateExpr {
         ImType targetType = globalState.resolveType(imCast.getToType());
 
         if (TypesHelper.isIntType(targetType)) {
-            if (res instanceof ILconstObject) {
-                return ILconstInt.create(((ILconstObject) res).getObjectId());
+            if (res instanceof ILconstObject iLconstObject) {
+                return ILconstInt.create(iLconstObject.getObjectId());
             }
-            if (res instanceof IlConstHandle) {
+            if (res instanceof IlConstHandle ilConstHandle) {
                 int id = globalState.getHandleMap().size() + 1;
-                globalState.getHandleMap().put(id, (IlConstHandle) res);
+                globalState.getHandleMap().put(id, ilConstHandle);
                 return ILconstInt.create(id);
             }
         }
-        if (res instanceof ILconstInt) {
-            if (targetType instanceof ImClassType) {
+        if (res instanceof ILconstInt iLconstInt) {
+            if (targetType instanceof ImClassType imClassType) {
                 // 0 is the null reference, and an id without a live object stays the integer, as on Jass.
-                ILconstObject obj = globalState.getObjectByIndex(((ILconstInt) res).getVal(), (ImClassType) targetType);
+                ILconstObject obj = globalState.getObjectByIndex(iLconstInt.getVal(), imClassType);
                 return obj == null ? res : obj;
             }
             if (targetType instanceof IlConstHandle) {
-                return globalState.getHandleByIndex(((ILconstInt) res).getVal());
+                return globalState.getHandleByIndex(iLconstInt.getVal());
             }
         }
         return res;

@@ -5,16 +5,14 @@ import de.peeeq.wurstscript.jassIm.*;
 public class TypeEquality {
 
     public static boolean isEqualType(ImArrayType a, ImType b) {
-        if (b instanceof ImArrayType) {
-            ImArrayType at = (ImArrayType) b;
+        if (b instanceof ImArrayType at) {
             return at.getEntryType().equalsType(a.getEntryType());
         }
         return false;
     }
 
     public static boolean isEqualType(ImArrayTypeMulti a, ImType b) {
-        if (b instanceof ImArrayTypeMulti) {
-            ImArrayTypeMulti at = (ImArrayTypeMulti) b;
+        if (b instanceof ImArrayTypeMulti at) {
             // TODO check dimensions
             return at.getEntryType().equalsType(a.getEntryType());
         }
@@ -22,8 +20,7 @@ public class TypeEquality {
     }
 
     public static boolean isEqualType(ImSimpleType a, ImType b) {
-        if (b instanceof ImSimpleType) {
-            ImSimpleType at = (ImSimpleType) b;
+        if (b instanceof ImSimpleType at) {
             // TODO check dimensions
             return at.getTypename().equals(a.getTypename());
         }
@@ -32,8 +29,7 @@ public class TypeEquality {
 
 
     public static boolean isEqualType(ImTupleType a, ImType b) {
-        if (b instanceof ImTupleType) {
-            ImTupleType at = (ImTupleType) b;
+        if (b instanceof ImTupleType at) {
             if (at.getTypes().size() != a.getTypes().size()) {
                 return false;
             }
@@ -53,16 +49,14 @@ public class TypeEquality {
 
 
     public static boolean isEqualType(ImTypeVarRef t, ImType other) {
-        if (other instanceof ImTypeVarRef) {
-            ImTypeVarRef o = (ImTypeVarRef) other;
+        if (other instanceof ImTypeVarRef o) {
             return t.getTypeVariable() == o.getTypeVariable();
         }
         return false;
     }
 
     public static boolean isEqualType(ImClassType c, ImType other) {
-        if (other instanceof ImClassType) {
-            ImClassType oc = (ImClassType) other;
+        if (other instanceof ImClassType oc) {
             if (c.getClassDef() != oc.getClassDef()) {
                 return false;
             }

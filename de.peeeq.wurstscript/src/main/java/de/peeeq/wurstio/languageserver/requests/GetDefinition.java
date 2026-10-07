@@ -84,39 +84,31 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
         if (indexOpDecl != null) {
             return linkTo(indexOpDecl);
         }
-        if (e instanceof FuncRef) {
-            FuncRef funcRef = (FuncRef) e;
+        if (e instanceof FuncRef funcRef) {
             FunctionDefinition decl = funcRef.attrFuncDef();
             return linkTo(decl);
-        } else if (e instanceof NameRef) {
-            NameRef nameRef = (NameRef) e;
+        } else if (e instanceof NameRef nameRef) {
             NameDef decl = nameRef.attrNameDef();
             return linkTo(decl);
-        } else if (e instanceof TypeExpr) {
-            TypeExpr typeExpr = (TypeExpr) e;
+        } else if (e instanceof TypeExpr typeExpr) {
             TypeDef decl = typeExpr.attrTypeDef();
             return linkTo(decl);
-        } else if (e instanceof WImport) {
-            WImport wImport = (WImport) e;
+        } else if (e instanceof WImport wImport) {
             WPackage p = wImport.attrImportedPackage();
             if (p == null) {
                 return Collections.emptyList();
             }
             return linkTo(p);
-        } else if (e instanceof ExprNewObject) {
-            ExprNewObject exprNew = (ExprNewObject) e;
+        } else if (e instanceof ExprNewObject exprNew) {
             ConstructorDef def = exprNew.attrConstructorDef();
             return linkTo(def);
-        } else if (e instanceof ModuleUse) {
-            ModuleUse use = (ModuleUse) e;
+        } else if (e instanceof ModuleUse use) {
             ModuleDef def = use.attrModuleDef();
             return linkTo(def);
-        } else if (e instanceof ExprBinary) {
-            ExprBinary eb = (ExprBinary) e;
+        } else if (e instanceof ExprBinary eb) {
             FunctionDefinition def = eb.attrFuncDef();
             return linkTo(def);
-        } else if (e instanceof SomeSuperConstructorCall) {
-            SomeSuperConstructorCall sc = (SomeSuperConstructorCall) e;
+        } else if (e instanceof SomeSuperConstructorCall sc) {
             ConstructorDef constructor = (ConstructorDef) sc.getParent();
             ConstructorDef superConstructor = constructor.attrSuperConstructor();
             return linkTo(superConstructor);
@@ -156,39 +148,38 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
     }
 
     private List<? extends Location> typeDefinitionFor(Element e) {
-        if (e instanceof TypeExpr) {
-            TypeExpr typeExpr = (TypeExpr) e;
+        if (e instanceof TypeExpr typeExpr) {
             return linkTo(typeExpr.attrTypeDef());
         }
-        if (e instanceof NameRef) {
-            NameDef def = ((NameRef) e).attrNameDef();
+        if (e instanceof NameRef nameRef) {
+            NameDef def = nameRef.attrNameDef();
             if (def != null) {
                 return linkToType(def.attrTyp());
             }
         }
-        if (e instanceof FuncRef) {
-            FunctionDefinition def = ((FuncRef) e).attrFuncDef();
+        if (e instanceof FuncRef funcRef) {
+            FunctionDefinition def = funcRef.attrFuncDef();
             if (def != null) {
                 return linkToType(def.attrReturnTyp());
             }
         }
-        if (e instanceof Expr) {
-            return linkToType(((Expr) e).attrTyp());
+        if (e instanceof Expr expr) {
+            return linkToType(expr.attrTyp());
         }
         return Collections.emptyList();
     }
 
     private List<? extends Location> linkToType(WurstType type) {
-        if (type instanceof WurstTypeNamedScope) {
-            AstElementWithSource def = ((WurstTypeNamedScope) type).getDef();
+        if (type instanceof WurstTypeNamedScope wurstTypeNamedScope) {
+            AstElementWithSource def = wurstTypeNamedScope.getDef();
             return linkTo(def);
         }
         return Collections.emptyList();
     }
 
     private NameDef getConfiguredDeclarationAtPos(Element e) {
-        if (e instanceof NameDef) {
-            return (NameDef) e;
+        if (e instanceof NameDef nameDef) {
+            return nameDef;
         }
         Element current = e;
         while (current != null) {
@@ -205,10 +196,9 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
             return null;
         }
         PackageOrGlobal nearestPackage = nameDef.attrNearestPackage();
-        if (!(nearestPackage instanceof WPackage)) {
+        if (!(nearestPackage instanceof WPackage configPackage)) {
             return null;
         }
-        WPackage configPackage = (WPackage) nearestPackage;
         if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
             return null;
         }

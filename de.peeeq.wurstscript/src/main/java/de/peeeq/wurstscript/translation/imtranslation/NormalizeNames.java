@@ -34,8 +34,8 @@ public class NormalizeNames {
 //            }
             for (ImMethod m : c.getMethods()) {
                 Element trace = m.attrTrace();
-                if (trace instanceof AstElementWithNameId) {
-                    m.setName(((AstElementWithNameId) trace).getNameId().getName());
+                if (trace instanceof AstElementWithNameId astElementWithNameId) {
+                    m.setName(astElementWithNameId.getNameId().getName());
                 }
                 if (trace instanceof OnDestroyDef) {
                     m.setName("__onDestroy");
@@ -59,8 +59,8 @@ public class NormalizeNames {
 
     private static void normalizeName(ImVar g) {
         Element trace = g.attrTrace();
-        if (trace instanceof AstElementWithNameId) {
-            g.setName(((AstElementWithNameId) trace).getNameId().getName());
+        if (trace instanceof AstElementWithNameId astElementWithNameId) {
+            g.setName(astElementWithNameId.getNameId().getName());
         }
     }
 

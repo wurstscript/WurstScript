@@ -96,14 +96,12 @@ public class ImOptimizer {
         LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
         for (OptimizerPass pass : localPasses) {
             int count;
-            if (pass instanceof LocalPlayerAwareOptimizerPass) {
+            if (pass instanceof LocalPlayerAwareOptimizerPass localPlayerAwarePass) {
                 if (localPlayerContextAnalyzer == null) {
                     localPlayerContextAnalyzer =
                         new LocalPlayerContextAnalyzer(trans.getImProg());
                 }
                 LocalPlayerContextAnalyzer analyzer = localPlayerContextAnalyzer;
-                LocalPlayerAwareOptimizerPass localPlayerAwarePass =
-                    (LocalPlayerAwareOptimizerPass) pass;
                 count = timeTaker.measure(
                     pass.getName(),
                     () -> localPlayerAwarePass.optimize(trans, analyzer));
@@ -269,26 +267,25 @@ public class ImOptimizer {
     }
 
     private boolean mayTrapAtRuntime(Element elem, Map<ImFunction, Boolean> functionCache, Set<ImFunction> inProgress) {
-        if (elem instanceof ImFunctionCall) {
-            ImFunction calledFunc = ((ImFunctionCall) elem).getFunc();
+        if (elem instanceof ImFunctionCall imFunctionCall) {
+            ImFunction calledFunc = imFunctionCall.getFunc();
             if (functionMayTrapAtRuntime(calledFunc, functionCache, inProgress)) {
                 return true;
             }
-        } else if (elem instanceof ImMethodCall) {
-            ImFunction calledFunc = ((ImMethodCall) elem).getMethod().getImplementation();
+        } else if (elem instanceof ImMethodCall imMethodCall) {
+            ImFunction calledFunc = imMethodCall.getMethod().getImplementation();
             if (calledFunc == null || functionMayTrapAtRuntime(calledFunc, functionCache, inProgress)) {
                 return true;
             }
         }
 
-        if (elem instanceof ImOperatorCall) {
-            ImOperatorCall opCall = (ImOperatorCall) elem;
+        if (elem instanceof ImOperatorCall opCall) {
             WurstOperator op = opCall.getOp();
             if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT || op == WurstOperator.JASS_MOD_INT)
                 && opCall.getArguments().size() >= 2) {
                 ImExpr denominator = opCall.getArguments().get(1);
                 // Preserve integer div/mod unless denominator is provably non-zero.
-                if (!(denominator instanceof ImIntVal) || ((ImIntVal) denominator).getValI() == 0) {
+                if (!(denominator instanceof ImIntVal imIntVal) || imIntVal.getValI() == 0) {
                     return true;
                 }
             }

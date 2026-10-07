@@ -40,8 +40,7 @@ public class BranchMerger implements LocalPlayerAwareOptimizerPass {
                 ListIterator<ImStmt> it = stmts.listIterator();
                 while (it.hasNext()) {
                     ImStmt s = it.next();
-                    if (s instanceof ImIf) {
-                        ImIf ifStmt = (ImIf) s;
+                    if (s instanceof ImIf ifStmt) {
                         // first optimize inner statements
                         ifStmt.getThenBlock().accept(this);
                         ifStmt.getElseBlock().accept(this);

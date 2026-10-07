@@ -25,28 +25,22 @@ public class AttrExprExpectedType {
     public static @NonNull WurstType calculate(Expr expr) {
         try {
             Element parent = expr.getParent();
-            if (parent instanceof Arguments) {
-                Arguments args = (Arguments) parent;
+            if (parent instanceof Arguments args) {
                 Element parent2 = args.getParent();
-                if (parent2 instanceof StmtCall) {
-                    StmtCall stmtCall = (StmtCall) parent2;
+                if (parent2 instanceof StmtCall stmtCall) {
                     return expectedType(expr, args, stmtCall);
-                } else if (parent2 instanceof SuperConstructorCall) {
-                    SuperConstructorCall constructorDef = (SuperConstructorCall) parent2;
+                } else if (parent2 instanceof SuperConstructorCall constructorDef) {
                     return expectedTypeSuperCall(constructorDef, expr);
                 }
-            } else if (parent instanceof StmtSet) {
-                StmtSet stmtSet = (StmtSet) parent;
+            } else if (parent instanceof StmtSet stmtSet) {
                 if (stmtSet.getRight() == expr) {
                     return stmtSet.getUpdatedExpr().attrTypRaw();
                 } else if (stmtSet.getUpdatedExpr() == expr) {
                     return WurstTypeUnknown.instance();
                 }
-            } else if (parent instanceof VarDef) {
-                VarDef varDef = (VarDef) parent;
+            } else if (parent instanceof VarDef varDef) {
                 return varDef.attrTyp();
-            } else if (parent instanceof ExprBinary) {
-                ExprBinary exprBinary = (ExprBinary) parent;
+            } else if (parent instanceof ExprBinary exprBinary) {
                 if (exprBinary.attrFuncLink() != null) {
                     FunctionSignature signature = FunctionSignature.fromNameLink(exprBinary.attrFuncLink());
                     if (exprBinary.getLeft() == expr && signature.getReceiverType() != null) {
@@ -70,8 +64,7 @@ public class AttrExprExpectedType {
                 }
                 // no type is more specific. Not really clear what we want here...
                 return WurstTypeUnknown.instance();
-            } else if (parent instanceof ExprUnary) {
-                ExprUnary exprUnary = (ExprUnary) parent;
+            } else if (parent instanceof ExprUnary exprUnary) {
                 if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
                     return WurstTypeInt.instance();
                 } else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
@@ -79,8 +72,7 @@ public class AttrExprExpectedType {
                 } else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeBool.instance(), expr)) {
                     return WurstTypeBool.instance();
                 }
-            } else if (parent instanceof StmtReturn) {
-                StmtReturn stmtReturn = (StmtReturn) parent;
+            } else if (parent instanceof StmtReturn stmtReturn) {
                 if (stmtReturn.getParent() instanceof ExprStatementsBlock) {
                     ExprStatementsBlock block = (ExprStatementsBlock) stmtReturn.getParent();
                     WurstType expectedType = block.attrExpectedTypRaw();
@@ -97,20 +89,17 @@ public class AttrExprExpectedType {
                 if (nearestFuncDef != null) {
                     return nearestFuncDef.attrReturnTyp();
                 }
-            } else if (parent instanceof StmtForRange) {
-                StmtForRange forRange = (StmtForRange) parent;
+            } else if (parent instanceof StmtForRange forRange) {
                 if (forRange.getTo() == expr || forRange.getStep() == expr) {
                     return WurstTypeInt.instance();
                 }
-            } else if (parent instanceof ExprStatementsBlock) {
-                ExprStatementsBlock block = (ExprStatementsBlock) parent;
+            } else if (parent instanceof ExprStatementsBlock block) {
                 if (block.getReturnStmt() != null && block.getReturnStmt().getReturnedObj() == expr) {
                     return block.attrExpectedTypRaw();
                 }
             } else if (parent instanceof Indexes) {
                 return WurstTypeInt.instance();
-            } else if (parent instanceof SwitchStmt) {
-                SwitchStmt switchStmt = (SwitchStmt) parent;
+            } else if (parent instanceof SwitchStmt switchStmt) {
                 if (switchStmt.getExpr() == expr) {
                     for (SwitchCase switchCase : switchStmt.getCases()) {
                         for (Expr caseExpr : switchCase.getExpressions()) {
@@ -119,19 +108,16 @@ public class AttrExprExpectedType {
                         }
                     }
                 }
-            } else if (parent instanceof SwitchCase) {
-                SwitchCase sc = (SwitchCase) parent;
+            } else if (parent instanceof SwitchCase sc) {
                 SwitchStmt s = (SwitchStmt) sc.getParent().getParent();
                 return s.getExpr().attrTyp();
-            } else if (parent instanceof ExprIfElse) {
-                ExprIfElse ie = (ExprIfElse) parent;
+            } else if (parent instanceof ExprIfElse ie) {
                 if (expr == ie.getCond()) {
                     return WurstTypeBool.instance();
                 } else {
                     return ie.attrExpectedTypRaw();
                 }
-            } else if (parent instanceof ExprMemberMethod) {
-                ExprMemberMethod m = (ExprMemberMethod) parent;
+            } else if (parent instanceof ExprMemberMethod m) {
                 if (m.getLeft() == expr) {
                     WurstType receiverType = m.attrFunctionSignature().getReceiverType();
                     if (receiverType == null) {
@@ -192,8 +178,8 @@ public class AttrExprExpectedType {
         int lastParameterIndex = constructor.getParameters().size() - 1;
         WurstType parameterType = constructor.getParameters()
             .get(Math.min(argumentIndex, lastParameterIndex)).attrTyp();
-        if (argumentIndex >= lastParameterIndex && parameterType instanceof WurstTypeVararg) {
-            return ((WurstTypeVararg) parameterType).getBaseType();
+        if (argumentIndex >= lastParameterIndex && parameterType instanceof WurstTypeVararg wurstTypeVararg) {
+            return wurstTypeVararg.getBaseType();
         }
         return argumentIndex <= lastParameterIndex ? parameterType : WurstTypeUnknown.instance();
     }
@@ -229,11 +215,9 @@ public class AttrExprExpectedType {
 
     public static WurstType afterOverloading(Expr e) {
         Element parent = e.getParent();
-        if (parent instanceof Arguments) {
-            Arguments args = (Arguments) parent;
+        if (parent instanceof Arguments args) {
             Element parent2 = args.getParent();
-            if (parent2 instanceof StmtCall) {
-                StmtCall stmtCall = (StmtCall) parent2;
+            if (parent2 instanceof StmtCall stmtCall) {
                 return expectedTypeAfterOverloading(e, args, stmtCall).normalize();
             }
         }

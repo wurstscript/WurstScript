@@ -19,8 +19,7 @@ public class OverrideUtils {
         Element e = exprClosure;
 
 
-        if (expected instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) expected;
+        if (expected instanceof WurstTypeClassOrInterface t) {
             VariableBinding typeBinding = t.getTypeArgBinding();
 
             addOverride(tr, superMethod, m.attrClass(), m, e, typeBinding);
@@ -49,8 +48,8 @@ public class OverrideUtils {
             WParameter param = superMethod.getParameters().get(i);
             WurstType paramType = param.getTyp().attrTyp();
 
-            if (paramType instanceof WurstTypeTypeParam) {
-                WurstTypeTypeParam bt = (WurstTypeTypeParam) paramType; // TODO also bound type params?
+            if (paramType instanceof WurstTypeTypeParam bt) {
+                 // TODO also bound type params?
                 TypeParamDef tpDef = bt.getDef();
                 if (typeBinding.contains(tpDef)) {
                     WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).get();
@@ -65,8 +64,7 @@ public class OverrideUtils {
         }
 
         WurstType retType = superMethod.attrReturnTyp();
-        if (retType instanceof WurstTypeTypeParam) {
-            WurstTypeTypeParam bt = (WurstTypeTypeParam) retType;
+        if (retType instanceof WurstTypeTypeParam bt) {
             TypeParamDef tpDef = bt.getDef();
             if (typeBinding.contains(tpDef)) {
                 WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).get();

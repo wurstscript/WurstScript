@@ -63,8 +63,7 @@ public class AttrNameDef {
     }
 
     public static @Nullable NameLink lookupEnumConst(String varName, WurstType t) {
-        if (t instanceof WurstTypeEnum) {
-            WurstTypeEnum e = (WurstTypeEnum) t;
+        if (t instanceof WurstTypeEnum e) {
             // if we expect an enum type we can as well directly look into the enum
             EnumDef eDef = e.getDef();
             return eDef.lookupMemberVar(e, varName, false);
@@ -214,8 +213,7 @@ public class AttrNameDef {
                     receiverType + ".");
 
         }
-        if (receiverType instanceof WurstTypeModule) {
-            WurstTypeModule wurstTypeModule = (WurstTypeModule) receiverType;
+        if (receiverType instanceof WurstTypeModule wurstTypeModule) {
             ModuleDef module = wurstTypeModule.getDef();
             if (!left.isSubtreeOf(module)) {
                 node.addError("Can only reference module variables from within the module.");

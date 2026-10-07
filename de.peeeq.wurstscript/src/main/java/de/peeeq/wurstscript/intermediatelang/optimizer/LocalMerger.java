@@ -271,23 +271,22 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
         for (ImStmt s : livenessInfo.keySet()) {
-            if (!(s instanceof ImSet)) continue;
+            if (!(s instanceof ImSet set)) continue;
 
-            ImSet set = (ImSet) s;
             ImLExpr lhs = set.getLeft();
 
-            if (lhs instanceof ImVarAccess && set.getRight() instanceof ImVarAccess) {
-                if (((ImVarAccess) lhs).getVar() == ((ImVarAccess) set.getRight()).getVar()) {
+            if (lhs instanceof ImVarAccess imVarAccess && set.getRight() instanceof ImVarAccess) {
+                if (imVarAccess.getVar() == ((ImVarAccess) set.getRight()).getVar()) {
                     s.replaceBy(ImHelper.nullExpr());
                     continue;
                 }
             }
 
             ImVar v = null;
-            if (lhs instanceof ImVarAccess) {
-                v = ((ImVarAccess) lhs).getVar();
-            } else if (lhs instanceof ImTupleSelection) {
-                v = TypesHelper.getSimpleAndPureTupleVar((ImTupleSelection) lhs);
+            if (lhs instanceof ImVarAccess imVarAccess) {
+                v = imVarAccess.getVar();
+            } else if (lhs instanceof ImTupleSelection imTupleSelection) {
+                v = TypesHelper.getSimpleAndPureTupleVar(imTupleSelection);
             }
 
             if (v == null || v.isGlobal()) continue;
@@ -413,8 +412,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 }
             });
 
-            if (stmt instanceof ImSet) {
-                ImSet set = (ImSet) stmt;
+            if (stmt instanceof ImSet set) {
                 if (set.getLeft() instanceof ImVarAccess) {
                     ImVar v = ((ImVarAccess) set.getLeft()).getVar();
                     if (!v.isGlobal()) def[i].add(v);

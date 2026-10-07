@@ -353,14 +353,13 @@ public class StackTraceInjector2 {
         for (ImStmt v : body) {
             if (v instanceof ImReturn) {
                 return true;
-            } else if (v instanceof ImIf) {
-                ImIf imIf = (ImIf) v;
+            } else if (v instanceof ImIf imIf) {
                 if (returnsOnAllPaths(imIf.getThenBlock())
                     && returnsOnAllPaths(imIf.getElseBlock())) {
                     return true;
                 }
-            } else if (v instanceof ImStatementExpr) {
-                if (returnsOnAllPaths(((ImStatementExpr) v).getStatements())) {
+            } else if (v instanceof ImStatementExpr imStatementExpr) {
+                if (returnsOnAllPaths(imStatementExpr.getStatements())) {
                     return true;
                 }
             }

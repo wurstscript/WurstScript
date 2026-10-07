@@ -36,8 +36,7 @@ public class SwitchStatements {
                                 .stream()
                                 .flatMap(c -> c.getExpressions().stream())
                                 .noneMatch(cExpr -> {
-                                    if (cExpr instanceof NameRef) {
-                                        NameRef exprVarAccess = (NameRef) cExpr;
+                                    if (cExpr instanceof NameRef exprVarAccess) {
                                         return exprVarAccess.attrNameDef() == e;
                                     }
                                     return false;

@@ -45,14 +45,13 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
 
     private void optimizeStmts(ImStmts stmts) {
         for (ImStmt s : new ArrayList<>(stmts)) {
-            if (s instanceof ImIf) {
-                ImIf imIf = (ImIf) s;
+            if (s instanceof ImIf imIf) {
                 optimizeStmts(imIf.getThenBlock());
                 optimizeStmts(imIf.getElseBlock());
-            } else if (s instanceof ImLoop) {
-                optimizeStmts(((ImLoop) s).getBody());
-            } else if (s instanceof ImVarargLoop) {
-                optimizeStmts(((ImVarargLoop) s).getBody());
+            } else if (s instanceof ImLoop imLoop) {
+                optimizeStmts(imLoop.getBody());
+            } else if (s instanceof ImVarargLoop imVarargLoop) {
+                optimizeStmts(imVarargLoop.getBody());
             }
         }
 
@@ -95,29 +94,28 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         if (mayWriteTypeIdFromElement(s, guard.failedCond.typeIdVar)) {
             return true;
         }
-        if (s instanceof ImSet) {
-            ImSet set = (ImSet) s;
+        if (s instanceof ImSet set) {
             ImLExpr left = set.getLeft();
-            if (left instanceof ImVarAccess) {
-                ImVar v = ((ImVarAccess) left).getVar();
+            if (left instanceof ImVarAccess imVarAccess) {
+                ImVar v = imVarAccess.getVar();
                 return v == guard.failedCond.receiverVar || v == guard.failedCond.typeIdVar;
             }
-            if (left instanceof ImVarArrayAccess) {
-                ImVar v = ((ImVarArrayAccess) left).getVar();
+            if (left instanceof ImVarArrayAccess imVarArrayAccess) {
+                ImVar v = imVarArrayAccess.getVar();
                 return v == guard.failedCond.typeIdVar;
             }
-            if (left instanceof ImMemberAccess) {
-                ImVar v = ((ImMemberAccess) left).getVar();
+            if (left instanceof ImMemberAccess imMemberAccess) {
+                ImVar v = imMemberAccess.getVar();
                 return v == guard.failedCond.typeIdVar;
             }
             return false;
         }
-        if (s instanceof ImFunctionCall) {
-            ImFunction f = ((ImFunctionCall) s).getFunc();
+        if (s instanceof ImFunctionCall imFunctionCall) {
+            ImFunction f = imFunctionCall.getFunc();
             return mayWriteTypeId(f, guard.failedCond.typeIdVar);
         }
-        if (s instanceof ImMethodCall) {
-            ImMethod m = ((ImMethodCall) s).getMethod();
+        if (s instanceof ImMethodCall imMethodCall) {
+            ImMethod m = imMethodCall.getMethod();
             return mayWriteTypeId(m.getImplementation(), guard.failedCond.typeIdVar);
         }
         if (s instanceof ImDealloc || s instanceof ImAlloc) {
@@ -190,10 +188,9 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     }
 
     private GuardPattern extractDispatchGuard(ImStmt stmt) {
-        if (!(stmt instanceof ImIf)) {
+        if (!(stmt instanceof ImIf outer)) {
             return null;
         }
-        ImIf outer = (ImIf) stmt;
         if (!outer.getElseBlock().isEmpty() || outer.getThenBlock().size() != 1) {
             return null;
         }
@@ -203,10 +200,9 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         }
 
         ImStmt innerStmt = outer.getThenBlock().get(0);
-        if (!(innerStmt instanceof ImIf)) {
+        if (!(innerStmt instanceof ImIf inner)) {
             return null;
         }
-        ImIf inner = (ImIf) innerStmt;
         if (inner.getThenBlock().size() != 1 || inner.getElseBlock().size() != 1) {
             return null;
         }
@@ -224,10 +220,9 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     }
 
     private static GuardCond parseTypeIdZeroCond(ImExpr expr) {
-        if (!(expr instanceof ImOperatorCall)) {
+        if (!(expr instanceof ImOperatorCall op)) {
             return null;
         }
-        ImOperatorCall op = (ImOperatorCall) expr;
         if (op.getOp() != WurstOperator.EQ || op.getArguments().size() != 2) {
             return null;
         }
@@ -241,13 +236,12 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     }
 
     private static GuardCond parseTypeIdEqZero(ImExpr left, ImExpr right) {
-        if (!(right instanceof ImIntVal) || ((ImIntVal) right).getValI() != 0) {
+        if (!(right instanceof ImIntVal imIntVal) || imIntVal.getValI() != 0) {
             return null;
         }
-        if (!(left instanceof ImVarArrayAccess)) {
+        if (!(left instanceof ImVarArrayAccess aa)) {
             return null;
         }
-        ImVarArrayAccess aa = (ImVarArrayAccess) left;
         if (aa.getIndexes().size() != 1 || !(aa.getIndexes().get(0) instanceof ImVarAccess)) {
             return null;
         }
@@ -256,10 +250,9 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     }
 
     private static boolean isReceiverZeroCond(ImExpr expr, ImVar receiver) {
-        if (!(expr instanceof ImOperatorCall)) {
+        if (!(expr instanceof ImOperatorCall op)) {
             return false;
         }
-        ImOperatorCall op = (ImOperatorCall) expr;
         if (op.getOp() != WurstOperator.EQ || op.getArguments().size() != 2) {
             return false;
         }
@@ -268,17 +261,16 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     }
 
     private static boolean isReceiverEqZero(ImExpr left, ImExpr right, ImVar receiver) {
-        return left instanceof ImVarAccess
-            && ((ImVarAccess) left).getVar() == receiver
-            && right instanceof ImIntVal
-            && ((ImIntVal) right).getValI() == 0;
+        return left instanceof ImVarAccess imVarAccess
+            && imVarAccess.getVar() == receiver
+            && right instanceof ImIntVal imIntVal
+            && imIntVal.getValI() == 0;
     }
 
     private static ErrorCall parseSingleErrorCall(ImStmt stmt) {
-        if (!(stmt instanceof ImFunctionCall)) {
+        if (!(stmt instanceof ImFunctionCall fc)) {
             return null;
         }
-        ImFunctionCall fc = (ImFunctionCall) stmt;
         if (fc.getArguments().size() != 1 || !(fc.getArguments().get(0) instanceof ImStringVal)) {
             return null;
         }

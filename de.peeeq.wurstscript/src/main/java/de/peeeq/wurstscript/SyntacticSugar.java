@@ -601,8 +601,7 @@ public class SyntacticSugar {
                 // OPTIMIZATION 2: Check operator first (cheapest check)
                 if (e.getOpU() == WurstOperator.UNARY_MINUS) {
                     Expr right = e.getRight();
-                    if (right instanceof ExprIntVal) {
-                        ExprIntVal iv = (ExprIntVal) right;
+                    if (right instanceof ExprIntVal iv) {
                         ExprIntVal newExpr = Ast.ExprIntVal(e.getSource(), "-" + iv.getValIraw());
                         replacements.put(e, newExpr);
                     }

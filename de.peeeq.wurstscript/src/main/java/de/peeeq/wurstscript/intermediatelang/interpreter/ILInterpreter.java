@@ -290,13 +290,13 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                     needsTypeSubstitution = true;
                 } else if (!f.getParameters().isEmpty()) {
                     ImType p0t = f.getParameters().get(0).getType();
-                    if (p0t instanceof ImClassType) {
-                        needsTypeSubstitution = !((ImClassType) p0t).getClassDef().getTypeVariables().isEmpty();
+                    if (p0t instanceof ImClassType imClassType) {
+                        needsTypeSubstitution = !imClassType.getClassDef().getTypeVariables().isEmpty();
                     }
                 }
             }
-            if (!needsTypeSubstitution && caller instanceof ImFunctionCall) {
-                needsTypeSubstitution = !((ImFunctionCall) caller).getTypeArguments().isEmpty();
+            if (!needsTypeSubstitution && caller instanceof ImFunctionCall imFunctionCall) {
+                needsTypeSubstitution = !imFunctionCall.getTypeArguments().isEmpty();
             }
 
             Map<ImTypeVar, ImType> normalized = Collections.emptyMap();
@@ -310,8 +310,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 // A) Bind class type vars from receiver (for instance methods / funcs with this as first param)
                 if (receiverObj != null && !f.getParameters().isEmpty()) {
                     ImType p0t = f.getParameters().get(0).getType();
-                    if (p0t instanceof ImClassType) {
-                        ImClassType sigThisType = (ImClassType) p0t;
+                    if (p0t instanceof ImClassType sigThisType) {
                         ImClass cls = sigThisType.getClassDef();
                         ImTypeVars tvars = cls.getTypeVariables();
                         ImTypeArguments concreteArgs = receiverObj.getType().getTypeArguments();
@@ -324,8 +323,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 }
 
                 // B) Bind type vars from explicit call type arguments.
-                if (caller instanceof ImFunctionCall) {
-                    ImFunctionCall fc = (ImFunctionCall) caller;
+                if (caller instanceof ImFunctionCall fc) {
                     ImTypeArguments targs = fc.getTypeArguments();
 
                     // 1) If the function itself is generic, bind those first
@@ -364,7 +362,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                     Map<ImTypeVar, ImType> normalizedTmp = new HashMap<>();
                     for (Map.Entry<ImTypeVar, ImType> e : subst.entrySet()) {
                         ImType rhs = globalState.resolveType(e.getValue());
-                        if (rhs instanceof ImTypeVarRef && ((ImTypeVarRef) rhs).getTypeVariable() == e.getKey()) {
+                        if (rhs instanceof ImTypeVarRef imTypeVarRef && imTypeVarRef.getTypeVariable() == e.getKey()) {
                             continue; // skip self-maps
                         }
                         normalizedTmp.put(e.getKey(), rhs);
@@ -491,8 +489,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     }
 
     private static boolean isTypeReal(ImType t) {
-        if (t instanceof ImSimpleType) {
-            ImSimpleType st = (ImSimpleType) t;
+        if (t instanceof ImSimpleType st) {
             return st.getTypename().equals("real");
         }
         return false;
@@ -708,8 +705,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         if (f.getTrace() instanceof HasModifier) {
             HasModifier f2 = (HasModifier) f.getTrace();
             for (Modifier m : f2.getModifiers()) {
-                if (m instanceof Annotation) {
-                    Annotation annotation = (Annotation) m;
+                if (m instanceof Annotation annotation) {
                     if (annotation.getAnnotationType().equals("@compiletimenative")) {
                         return true;
                     }

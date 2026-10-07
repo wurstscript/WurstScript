@@ -51,8 +51,7 @@ public class WurstParser {
             final CharStream[] inputRef = new CharStream[1];
 
             WurstAntlrErrorListener.MessageRewriter rewriter = in -> {
-                if (in.exception instanceof NoViableAltException) {
-                    NoViableAltException ne = (NoViableAltException) in.exception;
+                if (in.exception instanceof NoViableAltException ne) {
                     if (ne.getStartToken().getType() == de.peeeq.wurstscript.antlr.WurstLexer.HOTDOC_COMMENT) {
                         return new WurstAntlrErrorListener.RewriteResult(
                             ne.getStartToken(),

@@ -73,8 +73,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (obj instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope other = (WurstTypeNamedScope) obj;
+        if (obj instanceof WurstTypeNamedScope other) {
             if (other.getDef() == this.getDef()) {
                 return matchTypeParams(getTypeParameters(), other.getTypeParameters(), location, mapping, variablePosition);
             }
@@ -223,8 +222,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
     public void addMemberMethods(Element node, String name,
                                  List<FuncLink> result) {
         for (DefLink defLink : nameLinks(name)) {
-            if (defLink instanceof FuncLink) {
-                FuncLink f = (FuncLink) defLink;
+            if (defLink instanceof FuncLink f) {
                 if (f.getVisibility().isPublic()) {
                     result.add(f);
                 } else if (f.getVisibility().isInherited()) {
@@ -257,8 +255,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     public boolean isNestedInside(WurstType other) {
-        if (other instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;
+        if (other instanceof WurstTypeNamedScope wtns) {
             NamedScope scope = wtns.getDef();
             Element node = this.getDef();
             while (node != null) {

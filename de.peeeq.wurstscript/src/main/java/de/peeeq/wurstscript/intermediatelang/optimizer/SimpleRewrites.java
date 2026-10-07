@@ -68,17 +68,15 @@ public class SimpleRewrites implements OptimizerPass {
                 // Check various ways code becomes unreachable
                 if (s instanceof ImReturn) {
                     reachable = false;
-                } else if (s instanceof ImExitwhen) {
-                    ImExitwhen exitwhen = (ImExitwhen) s;
+                } else if (s instanceof ImExitwhen exitwhen) {
                     if (exitwhen.getCondition() instanceof ImBoolVal) {
                         boolean exits = ((ImBoolVal) exitwhen.getCondition()).getValB();
                         if (exits) {
                             reachable = false;
                         }
                     }
-                } else if (s instanceof ImIf) {
+                } else if (s instanceof ImIf ifStmt) {
                     // Check for "if true then return" patterns
-                    ImIf ifStmt = (ImIf) s;
                     if (ifStmt.getCondition() instanceof ImBoolVal) {
                         boolean condition = ((ImBoolVal) ifStmt.getCondition()).getValB();
                         if (condition && endsWithReturn(ifStmt.getThenBlock())) {
@@ -108,23 +106,20 @@ public class SimpleRewrites implements OptimizerPass {
             optimizeElement(elem.get(i));
             if (i > 0) {
                 Element lookback = elem.get(i - 1);
-                if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen) {
-                    optimizeConsecutiveExitWhen((ImExitwhen) lookback, (ImExitwhen) elem.get(i));
+                if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen imExitwhen) {
+                    optimizeConsecutiveExitWhen(imExitwhen, (ImExitwhen) elem.get(i));
                 }
 
-                if (elem.get(i) instanceof ImSet && lookback instanceof ImSet) {
-                    optimizeConsecutiveSet((ImSet) lookback, (ImSet) elem.get(i));
+                if (elem.get(i) instanceof ImSet && lookback instanceof ImSet imSet) {
+                    optimizeConsecutiveSet(imSet, (ImSet) elem.get(i));
                 }
             }
         }
-        if (elem instanceof ImOperatorCall) {
-            ImOperatorCall opc = (ImOperatorCall) elem;
+        if (elem instanceof ImOperatorCall opc) {
             optimizeOpCall(opc);
-        } else if (elem instanceof ImIf) {
-            ImIf imIf = (ImIf) elem;
+        } else if (elem instanceof ImIf imIf) {
             optimizeIf(imIf);
-        } else if (elem instanceof ImExitwhen) {
-            ImExitwhen imExitwhen = (ImExitwhen) elem;
+        } else if (elem instanceof ImExitwhen imExitwhen) {
             optimizeExitwhen(imExitwhen);
         }
 
@@ -139,8 +134,8 @@ public class SimpleRewrites implements OptimizerPass {
 
     private void optimizeExitwhen(ImExitwhen imExitwhen) {
         ImExpr expr = imExitwhen.getCondition();
-        if (expr instanceof ImBoolVal) {
-            boolean b = ((ImBoolVal) expr).getValB();
+        if (expr instanceof ImBoolVal imBoolVal) {
+            boolean b = imBoolVal.getValB();
             if (!b) {
                 imExitwhen.replaceBy(ImHelper.nullExpr());
                 totalRewrites++;
@@ -177,9 +172,9 @@ public class SimpleRewrites implements OptimizerPass {
         if (opc.getArguments().size() > 1) {
             ImExpr left = opc.getArguments().get(0);
             ImExpr right = opc.getArguments().get(1);
-            if (left instanceof ImBoolVal && right instanceof ImBoolVal) {
-                boolean b1 = ((ImBoolVal) left).getValB();
-                boolean b2 = ((ImBoolVal) right).getValB();
+            if (left instanceof ImBoolVal leftBool && right instanceof ImBoolVal rightBool) {
+                boolean b1 = leftBool.getValB();
+                boolean b2 = rightBool.getValB();
                 boolean result;
                 switch (opc.getOp()) {
                     case OR:
@@ -199,11 +194,11 @@ public class SimpleRewrites implements OptimizerPass {
                         break;
                 }
                 opc.replaceBy(JassIm.ImBoolVal(result));
-            } else if (left instanceof ImBoolVal) {
-                boolean b1 = ((ImBoolVal) left).getValB();
+            } else if (left instanceof ImBoolVal imBoolVal) {
+                boolean b1 = imBoolVal.getValB();
                 wasViable = replaceBoolTerm(opc, right, b1, true);
-            } else if (right instanceof ImBoolVal) {
-                boolean b2 = ((ImBoolVal) right).getValB();
+            } else if (right instanceof ImBoolVal imBoolVal) {
+                boolean b2 = imBoolVal.getValB();
                 wasViable = replaceBoolTerm(opc, left, b2, false);
             } else if (isNumberLiteral(left) && isNumberLiteral(right)) {
                 // If any side is real (or the op is a real op), fold as real; otherwise fold as int.
@@ -215,25 +210,25 @@ public class SimpleRewrites implements OptimizerPass {
 
                 if (foldAsReal) {
                     wasViable = optimizeRealRealMixed(opc, wasViable, left, right);
-                } else if (left instanceof ImIntVal && right instanceof ImIntVal) {
-                    wasViable = optimizeIntInt(opc, wasViable, (ImIntVal) left, (ImIntVal) right);
+                } else if (left instanceof ImIntVal leftInt && right instanceof ImIntVal rightInt) {
+                    wasViable = optimizeIntInt(opc, wasViable, leftInt, rightInt);
                 } else {
                     wasViable = false; // unknown numeric combo
                 }
-            } else if (left instanceof ImStringVal) {
+            } else if (left instanceof ImStringVal imStringVal) {
                 // Fold "" + expr  =>  expr
                 if (opc.getOp() == WurstOperator.PLUS
-                    && ((ImStringVal) left).getValS().isEmpty()) {
+                    && imStringVal.getValS().isEmpty()) {
                     right.setParent(null);
                     opc.replaceBy(right);
                     wasViable = true;
                 } else {
                     wasViable = false;
                 }
-            } else if (right instanceof ImStringVal) {
-                if (left instanceof ImStringVal) {
-                    wasViable = optimizeStringString(opc, (ImStringVal) left, (ImStringVal) right);
-                } else if (((ImStringVal) right).getValS().equalsIgnoreCase("") && opc.getOp() == WurstOperator.PLUS) {
+            } else if (right instanceof ImStringVal rightString) {
+                if (left instanceof ImStringVal leftString) {
+                    wasViable = optimizeStringString(opc, leftString, rightString);
+                } else if (rightString.getValS().equalsIgnoreCase("") && opc.getOp() == WurstOperator.PLUS) {
                     left.setParent(null);
                     opc.replaceBy(left);
                     wasViable = true;
@@ -248,15 +243,15 @@ public class SimpleRewrites implements OptimizerPass {
         // Unary
         else {
             ImExpr expr = opc.getArguments().get(0);
-            if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal) {
-                int v = ((ImIntVal) expr).getValI();
+            if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal imIntVal) {
+                int v = imIntVal.getValI();
                 if (v != Integer.MIN_VALUE && v <= 0) {
                     opc.replaceBy(JassIm.ImIntVal(-v));
                 } else {
                     wasViable = false;
                 }
-            } else if (expr instanceof ImBoolVal) {
-                boolean b1 = ((ImBoolVal) expr).getValB();
+            } else if (expr instanceof ImBoolVal imBoolVal) {
+                boolean b1 = imBoolVal.getValB();
                 boolean result;
                 switch (opc.getOp()) {
                     case NOT:
@@ -267,9 +262,8 @@ public class SimpleRewrites implements OptimizerPass {
                         break;
                 }
                 opc.replaceBy(JassIm.ImBoolVal(result));
-            } else if (opc.getOp() == WurstOperator.NOT && expr instanceof ImOperatorCall) {
+            } else if (opc.getOp() == WurstOperator.NOT && expr instanceof ImOperatorCall inner) {
                 // optimize negation of some operators
-                ImOperatorCall inner = (ImOperatorCall) expr;
                 switch (inner.getOp()) {
                     case NOT:
                         opc.replaceBy(inner.getArguments().remove(0));
@@ -650,8 +644,7 @@ public class SimpleRewrites implements OptimizerPass {
         ImExpr rightExpr2 = imSet2.getRight();
 
         if (leftVar1 == leftVar2) {
-            if (rightExpr2 instanceof ImOperatorCall) {
-                ImOperatorCall rightOpCall2 = (ImOperatorCall) rightExpr2;
+            if (rightExpr2 instanceof ImOperatorCall rightOpCall2) {
                 if (rightOpCall2.getArguments().size() == 2) {
                     if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);

@@ -22,8 +22,7 @@ public class WurstTypeClosure extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstTypeClosure) {
-            WurstTypeClosure o = (WurstTypeClosure) other;
+        if (other instanceof WurstTypeClosure o) {
             if (paramTypes.size() != o.paramTypes.size()) {
                 return null;
             }

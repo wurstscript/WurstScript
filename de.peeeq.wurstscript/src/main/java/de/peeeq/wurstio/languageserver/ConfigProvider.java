@@ -93,8 +93,7 @@ public class ConfigProvider {
         try {
             List<Object> config = res.get(FETCH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             for (Object c : config) {
-                if (c instanceof JsonObject) {
-                    JsonObject cfg = (JsonObject) c;
+                if (c instanceof JsonObject cfg) {
 
                     // Update cache with full config
                     cachedConfig.set(new CachedConfig(cfg));
@@ -134,8 +133,7 @@ public class ConfigProvider {
         languageClient.configuration(new ConfigurationParams(Collections.singletonList(ci)))
             .thenAccept(config -> {
                 for (Object c : config) {
-                    if (c instanceof JsonObject) {
-                        JsonObject cfg = (JsonObject) c;
+                    if (c instanceof JsonObject cfg) {
                         cachedConfig.set(new CachedConfig(cfg));
                         WLogger.trace("Config cache refreshed successfully");
                         return;

@@ -64,8 +64,7 @@ public class TempMerger implements OptimizerPass {
             // this terminates, because each replacement eliminates one set-statement
             // FIXME this is no longer true, because assignments which are used more than once are not removed
             for (ImStmt s : stmts) {
-                if (s instanceof ImSet) {
-                    ImSet imSet = (ImSet) s;
+                if (s instanceof ImSet imSet) {
                     if (imSet.getRight() instanceof ImVarAccess
                             && imSet.getLeft() instanceof ImVarAccess) {
                         ImVarAccess right = (ImVarAccess) imSet.getRight();
@@ -91,15 +90,12 @@ public class TempMerger implements OptimizerPass {
 
         // process nested statements:
         for (ImStmt s : stmts) {
-            if (s instanceof ImIf) {
-                ImIf imIf = (ImIf) s;
+            if (s instanceof ImIf imIf) {
                 optimizeStatements(imIf.getThenBlock());
                 optimizeStatements(imIf.getElseBlock());
-            } else if (s instanceof ImLoop) {
-                ImLoop imLoop = (ImLoop) s;
+            } else if (s instanceof ImLoop imLoop) {
                 optimizeStatements(imLoop.getBody());
-            } else if (s instanceof ImVarargLoop) {
-                ImVarargLoop imVarargLoop = (ImVarargLoop) s;
+            } else if (s instanceof ImVarargLoop imVarargLoop) {
                 optimizeStatements(imVarargLoop.getBody());
             }
         }
@@ -116,8 +112,7 @@ public class TempMerger implements OptimizerPass {
         if (readsGlobal(s)) {
             kn.invalidateMutatingExpressions();
         }
-        if (s instanceof ImSet) {
-            ImSet imSet = (ImSet) s;
+        if (s instanceof ImSet imSet) {
             if (imSet.getLeft() instanceof ImVarAccess) {
                 ImVarAccess va = (ImVarAccess) imSet.getLeft();
                 // update the knowledge with the new set statement
@@ -143,8 +138,7 @@ public class TempMerger implements OptimizerPass {
         if (kn.isEmpty()) {
             return null;
         }
-        if (elem instanceof ImVarAccess) {
-            ImVarAccess va = (ImVarAccess) elem;
+        if (elem instanceof ImVarAccess va) {
             if (!va.isUsedAsLValue()) {
                 return kn.getReplacementIfPossible(va);
             }
@@ -152,11 +146,9 @@ public class TempMerger implements OptimizerPass {
             return null;
         } else if (elem instanceof ImVarargLoop) {
             return null;
-        } else if (elem instanceof ImIf) {
-            ImIf imIf = (ImIf) elem;
+        } else if (elem instanceof ImIf imIf) {
             return getPossibleReplacement(imIf.getCondition(), kn);
-        } else if (elem instanceof ImOperatorCall) {
-            ImOperatorCall opCall = (ImOperatorCall) elem;
+        } else if (elem instanceof ImOperatorCall opCall) {
             if (opCall.getOp().isLazy()) {
                 // for lazy operators (and, or) we only search the left expression for possible replacements
                 return getPossibleReplacement(opCall.getArguments().get(0), kn);
@@ -182,8 +174,7 @@ public class TempMerger implements OptimizerPass {
         } else if (elem instanceof ImMethodCall) {
             // method call invalidates globals
             kn.invalidateGlobals();
-        } else if (elem instanceof ImVarRead) { // this already covers member access as well
-            ImVarRead va = (ImVarRead) elem;
+        } else if (elem instanceof ImVarRead va) { // this already covers member access as well
             if (va.getVar().isGlobal()) {
                 // in case we read a global variable
                 kn.invalidateMutatingExpressions();
@@ -210,14 +201,13 @@ public class TempMerger implements OptimizerPass {
 
 
     private boolean readsVar(Element elem, ImVar left) {
-        if (elem instanceof ImVarRead) {
-            ImVarRead va = (ImVarRead) elem;
+        if (elem instanceof ImVarRead va) {
             if (va.getVar() == left) {
                 return true;
             }
         }
-        if (elem instanceof ImMemberAccess) {
-            if(((ImMemberAccess) elem).getVar() == left) {
+        if (elem instanceof ImMemberAccess imMemberAccess) {
+            if(imMemberAccess.getVar() == left) {
                 return true;
             }
         }
@@ -232,8 +222,7 @@ public class TempMerger implements OptimizerPass {
 
 
     private boolean readsGlobal(Element elem) {
-        if (elem instanceof ImVarRead) {
-            ImVarRead va = (ImVarRead) elem;
+        if (elem instanceof ImVarRead va) {
             if (va.getVar().isGlobal()) {
                 return true;
             }
@@ -305,8 +294,8 @@ public class TempMerger implements OptimizerPass {
 
 
     private void collectReadVariables(Collection<ImVarRead> result, Element e) {
-        if (e instanceof ImVarRead) {
-            result.add((ImVarRead) e);
+        if (e instanceof ImVarRead imVarRead) {
+            result.add(imVarRead);
         }
         for (int i = 0; i < e.size(); i++) {
             collectReadVariables(result, e.get(i));
@@ -338,11 +327,11 @@ public class TempMerger implements OptimizerPass {
             }
 
             private void collectReadVariables(Collection<ImVar> result, Element e) {
-                if (e instanceof ImVarRead) {
-                    result.add(((ImVarRead) e).getVar());
+                if (e instanceof ImVarRead imVarRead) {
+                    result.add(imVarRead.getVar());
                 }
-                if (e instanceof ImMemberAccess) {
-                    result.add(((ImMemberAccess) e).getVar());
+                if (e instanceof ImMemberAccess imMemberAccess) {
+                    result.add(imMemberAccess.getVar());
                 }
                 for (int i = 0; i < e.size(); i++) {
                     collectReadVariables(result, e.get(i));
@@ -419,8 +408,7 @@ public class TempMerger implements OptimizerPass {
             }
             // --- FIX END ---
 
-            if (e instanceof ImVarAccess) {
-                ImVarAccess va = (ImVarAccess) e;
+            if (e instanceof ImVarAccess va) {
                 if (va.getVar() == left) {
                     // this is a stupid assignment, ignore it
                     return false;
@@ -464,9 +452,8 @@ public class TempMerger implements OptimizerPass {
         if (e instanceof ImConst) {
             // constants are ok
             return true;
-        } else if (e instanceof ImVarAccess) {
+        } else if (e instanceof ImVarAccess va) {
             // local variables are ok
-            ImVarAccess va = (ImVarAccess) e;
             return !va.getVar().isGlobal();
         }
         return false;

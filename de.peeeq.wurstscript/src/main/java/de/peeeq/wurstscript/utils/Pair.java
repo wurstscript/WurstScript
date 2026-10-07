@@ -36,9 +36,7 @@ final public class Pair<A, B> {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Pair) {
-            @SuppressWarnings("rawtypes")
-            Pair otherPair = (Pair) obj;
+        if (obj instanceof Pair<?,?> otherPair) {
             return
                     ((this.a == otherPair.a ||
                             (this.a != null && otherPair.a != null &&

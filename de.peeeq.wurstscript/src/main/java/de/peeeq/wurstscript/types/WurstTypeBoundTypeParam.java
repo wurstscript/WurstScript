@@ -166,8 +166,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
                 // if type does support generics natively, try to find implicit conversion functions
                 fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
                 toIndex = ImplicitFuncs.findToIndexFunc(baseType, context);
-            } else if (baseType instanceof WurstTypeBoundTypeParam) {
-                WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
+            } else if (baseType instanceof WurstTypeBoundTypeParam bt) {
                 fromIndex = bt.getFromIndex();
                 toIndex = bt.getToIndex();
             }

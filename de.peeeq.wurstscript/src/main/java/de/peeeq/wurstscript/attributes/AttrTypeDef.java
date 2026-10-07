@@ -27,8 +27,7 @@ public class AttrTypeDef {
             return null;
         }
 
-        if (scope instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) scope;
+        if (scope instanceof WurstTypeClass ct) {
             TypeDef r = ct.lookupInnerType(typeName);
             if (r == null) {
                 node.addError("Could not find type " + typeName + " in class " + ct + ".");
@@ -44,8 +43,7 @@ public class AttrTypeDef {
     }
 
     private static WurstType getTypeScope(TypeRef node) {
-        if (node instanceof TypeExprSimple) {
-            TypeExprSimple t = (TypeExprSimple) node;
+        if (node instanceof TypeExprSimple t) {
             OptTypeExpr scopeType = t.getScopeType();
             if (scopeType instanceof TypeExpr) {
                 return scopeType.attrTyp();

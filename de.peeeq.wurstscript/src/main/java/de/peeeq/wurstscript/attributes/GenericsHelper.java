@@ -30,8 +30,8 @@ public class GenericsHelper {
     }
 
     public static List<TypeParamDef> typeParameters(StructureDef struct) {
-        if (struct instanceof AstElementWithTypeParameters) {
-            return ((AstElementWithTypeParameters) struct).getTypeParameters();
+        if (struct instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            return astElementWithTypeParameters.getTypeParameters();
         }
         return Collections.emptyList();
     }

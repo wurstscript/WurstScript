@@ -223,8 +223,7 @@ public class LanguageWorker implements Runnable {
             return new Workitem(change.toString(), () -> {
                 ModelManager.Changes affected = null;
                 if (isWurstDependencyFile(change)) {
-                    if (change instanceof FileReconcile) {
-                        FileReconcile fr = (FileReconcile) change;
+                    if (change instanceof FileReconcile fr) {
                         affected = modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
                     } else if (change instanceof FileSystemUpdated || change instanceof FileDeleted) {
                         // Dependency roots may have changed (e.g. grill install), sync full dependency state.
@@ -239,8 +238,7 @@ public class LanguageWorker implements Runnable {
                     affected = modelManager.syncCompilationUnit(change.getFilename());
                 } else if (change instanceof FileUpdated) {
                     affected = modelManager.syncCompilationUnit(change.getFilename());
-                } else if (change instanceof FileReconcile) {
-                    FileReconcile fr = (FileReconcile) change;
+                } else if (change instanceof FileReconcile fr) {
                     affected = modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
                 } else {
                     WLogger.info("unhandled change request: " + change);

@@ -43,18 +43,15 @@ public abstract class WurstType {
         } else if (other instanceof WurstTypeInfer || this instanceof WurstTypeInfer) {
             // assume everything can match a type that is inferred later
             return mapping;
-        } else if (other instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
+        } else if (other instanceof WurstTypeBoundTypeParam btp) {
             return matchAgainstSupertype(btp.getBaseType(), location, mapping, NONE);
-        } else if (other instanceof WurstTypeUnion) {
-            WurstTypeUnion wtu = (WurstTypeUnion) other;
+        } else if (other instanceof WurstTypeUnion wtu) {
             mapping = matchAgainstSupertype(wtu.getTypeA(), location, mapping, variablePosition);
             if (mapping == null) {
                 return null;
             }
             return matchAgainstSupertype(wtu.getTypeB(), location, mapping, variablePosition);
-        } else if (other instanceof WurstTypeTypeParam) {
-            WurstTypeTypeParam tp = (WurstTypeTypeParam) other;
+        } else if (other instanceof WurstTypeTypeParam tp) {
 
             if (variablePosition == RIGHT) {
                 Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());
@@ -67,8 +64,7 @@ public abstract class WurstType {
                 }
             }
 
-            if (this instanceof WurstTypeTypeParam) {
-                WurstTypeTypeParam this2 = (WurstTypeTypeParam) this;
+            if (this instanceof WurstTypeTypeParam this2) {
                 if (this2.getDef() == tp.getDef()) {
                     // same type variable --> match without binding
                     return mapping;

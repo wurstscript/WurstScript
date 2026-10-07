@@ -88,10 +88,9 @@ public final class JassDocService {
             if (this == obj) {
                 return true;
             }
-            if (!(obj instanceof LookupKey)) {
+            if (!(obj instanceof LookupKey other)) {
                 return false;
             }
-            LookupKey other = (LookupKey) obj;
             return symbolName.equals(other.symbolName)
                 && symbolKind == other.symbolKind
                 && sourceFile.equals(other.sourceFile);

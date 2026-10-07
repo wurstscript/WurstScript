@@ -5,24 +5,21 @@ import de.peeeq.wurstscript.jassIm.*;
 public class Equality {
 
     public static boolean equalValue(ImBoolVal v, ImConst other) {
-        if (other instanceof ImBoolVal) {
-            ImBoolVal ov = (ImBoolVal) other;
+        if (other instanceof ImBoolVal ov) {
             return v.getValB() == ov.getValB();
         }
         return false;
     }
 
     public static boolean equalValue(ImFuncRef v, ImConst other) {
-        if (other instanceof ImFuncRef) {
-            ImFuncRef ov = (ImFuncRef) other;
+        if (other instanceof ImFuncRef ov) {
             return v.getFunc() == ov.getFunc();
         }
         return false;
     }
 
     public static boolean equalValue(ImIntVal v, ImConst other) {
-        if (other instanceof ImIntVal) {
-            ImIntVal ov = (ImIntVal) other;
+        if (other instanceof ImIntVal ov) {
             return v.getValI() == ov.getValI();
         }
         return false;
@@ -33,16 +30,14 @@ public class Equality {
     }
 
     public static boolean equalValue(ImRealVal v, ImConst other) {
-        if (other instanceof ImRealVal) {
-            ImRealVal ov = (ImRealVal) other;
+        if (other instanceof ImRealVal ov) {
             return v.getValR().equals(ov.getValR());
         }
         return false;
     }
 
     public static boolean equalValue(ImStringVal v, ImConst other) {
-        if (other instanceof ImStringVal) {
-            ImStringVal ov = (ImStringVal) other;
+        if (other instanceof ImStringVal ov) {
             return v.getValS().equals(ov.getValS());
         }
         return false;

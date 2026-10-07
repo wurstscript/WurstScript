@@ -181,8 +181,7 @@ public class ClassTranslator {
             addOnDestroyActions(f, addTo, mi, thisVar);
         }
 
-        if (c instanceof ClassDef) {
-            ClassDef cd = (ClassDef) c;
+        if (c instanceof ClassDef cd) {
             WurstTypeClass ct = cd.attrTypC();
             WurstTypeClass extended = ct.extendedClass();
             if (extended != null) {
@@ -312,8 +311,7 @@ public class ClassTranslator {
             return null;
         }
         WurstType t = subC.getExtendedClass().attrTyp();
-        if (t instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) t;
+        if (t instanceof WurstTypeClass ct) {
             ClassDef superClass = ct.getClassDef();
             if (superClass == classDef) {
                 return ct;
@@ -423,8 +421,7 @@ public class ClassTranslator {
                 ClassDef classDef = constr.attrNearestClassDef();
                 assert classDef != null;
                 WurstType extendedType = classDef.getExtendedClass().attrTyp();
-                if (extendedType instanceof WurstTypeClass) {
-                    WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
+                if (extendedType instanceof WurstTypeClass extendedTypeC) {
                     for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
                         if (bt.isTemplateTypeParameter()) {
                             typeArgs.add(bt.imTranslateToTypeArgument(translator));

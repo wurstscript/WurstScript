@@ -412,8 +412,8 @@ public final class LuaNativeLowering {
         if (e instanceof ImStringVal) {
             return true;
         }
-        if (e instanceof ImFunctionCall) {
-            ImFunction f = ((ImFunctionCall) e).getFunc();
+        if (e instanceof ImFunctionCall imFunctionCall) {
+            ImFunction f = imFunctionCall.getFunc();
             // a lowered concatenation always has two strings to join
             return f == translator.luaRawConcatFunc
                 || f == translator.luaRawOrEmptyFunc
@@ -477,7 +477,7 @@ public final class LuaNativeLowering {
                     // keeps the helper so the optimizer can still fold the whole expression.
                     ImExpr dividend = call.getArguments().get(0);
                     ImExpr divisor = call.getArguments().get(1);
-                    if (divisor instanceof ImIntVal && ((ImIntVal) divisor).getValI() > 0
+                    if (divisor instanceof ImIntVal imIntVal && imIntVal.getValI() > 0
                         && !(dividend instanceof ImIntVal)) {
                         target = funcs.rawFloorModInt();
                     } else {
@@ -562,10 +562,10 @@ public final class LuaNativeLowering {
     private static boolean isIntentionalThreadAbortDivByZero(ImOperatorCall call) {
         ImExpr left = call.getArguments().get(0);
         ImExpr right = call.getArguments().get(1);
-        if (!(left instanceof ImIntVal) || ((ImIntVal) left).getValI() != 1) {
+        if (!(left instanceof ImIntVal leftInt) || leftInt.getValI() != 1) {
             return false;
         }
-        if (!(right instanceof ImIntVal) || ((ImIntVal) right).getValI() != 0) {
+        if (!(right instanceof ImIntVal rightInt) || rightInt.getValI() != 0) {
             return false;
         }
         // call's direct parent is the ImExprs argument-list container, not
@@ -574,10 +574,9 @@ public final class LuaNativeLowering {
         // list-contained IM/AST elements).
         Element argsList = call.getParent();
         Element parent = argsList == null ? null : argsList.getParent();
-        if (!(parent instanceof ImFunctionCall)) {
+        if (!(parent instanceof ImFunctionCall parentCall)) {
             return false;
         }
-        ImFunctionCall parentCall = (ImFunctionCall) parent;
         return parentCall.getArguments().size() == 1
             && parentCall.getArguments().get(0) == call
             && "I2S".equals(parentCall.getFunc().getName());
@@ -867,10 +866,10 @@ public final class LuaNativeLowering {
 
     /** Returns true for WC3 handle types (ImSimpleType that is not int/real/boolean/string). */
     public static boolean isHandleType(ImType type) {
-        if (!(type instanceof ImSimpleType)) {
+        if (!(type instanceof ImSimpleType imSimpleType)) {
             return false;
         }
-        String n = ((ImSimpleType) type).getTypename();
+        String n = imSimpleType.getTypename();
         return !n.equals("integer") && !n.equals("real") && !n.equals("boolean") && !n.equals("string");
     }
 
@@ -883,10 +882,10 @@ public final class LuaNativeLowering {
      * mean "no callback".
      */
     static boolean isNullableHandleType(ImType type) {
-        if (!(type instanceof ImSimpleType)) {
+        if (!(type instanceof ImSimpleType imSimpleType)) {
             return false;
         }
-        String n = ((ImSimpleType) type).getTypename();
+        String n = imSimpleType.getTypename();
         return n.equals("boolexpr") || n.equals("code");
     }
 
@@ -898,10 +897,10 @@ public final class LuaNativeLowering {
     }
 
     public static boolean usesLuaObjectIdentityHandleId(ImType type) {
-        if (!(type instanceof ImSimpleType)) {
+        if (!(type instanceof ImSimpleType imSimpleType)) {
             return false;
         }
-        String typeName = ((ImSimpleType) type).getTypename();
+        String typeName = imSimpleType.getTypename();
         return OPAQUE_RUNTIME_HANDLE_TYPES.contains(typeName);
     }
 
@@ -918,8 +917,8 @@ public final class LuaNativeLowering {
 
     /** Returns an IM expression representing the safe default for the given return type. */
     private static ImExpr defaultValueExpr(ImType returnType) {
-        if (returnType instanceof ImSimpleType) {
-            String n = ((ImSimpleType) returnType).getTypename();
+        if (returnType instanceof ImSimpleType imSimpleType) {
+            String n = imSimpleType.getTypename();
             switch (n) {
                 case "integer": return JassIm.ImIntVal(0);
                 case "real":    return JassIm.ImRealVal("0.0");

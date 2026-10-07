@@ -32,8 +32,8 @@ public class Utils {
 
     @SuppressWarnings("rawtypes")
     public static int size(Iterable<?> i) {
-        if (i instanceof Collection) {
-            return ((Collection) i).size();
+        if (i instanceof Collection<?> collection) {
+            return collection.size();
         }
         int size = 0;
         for (@SuppressWarnings("unused")
@@ -251,30 +251,24 @@ public class Utils {
         return el.map(e -> {
             String type = makeReadableTypeName(e);
             String name = "";
-            if (e instanceof ExprFunctionCall) {
-                ExprFunctionCall fc = (ExprFunctionCall) e;
+            if (e instanceof ExprFunctionCall fc) {
                 return "function call " + fc.getFuncName() + "()";
-            } else if (e instanceof FuncDef) {
-                FuncDef fd = (FuncDef) e;
+            } else if (e instanceof FuncDef fd) {
                 return "function " + fd.getName();
             } else if (e instanceof OnDestroyDef) {
                 return "destroy function for "
                         + e.attrNearestStructureDef().getName();
             } else if (e instanceof ConstructorDef) {
                 return "constructor for " + e.attrNearestStructureDef().getName();
-            } else if (e instanceof LocalVarDef) {
-                LocalVarDef l = (LocalVarDef) e;
+            } else if (e instanceof LocalVarDef l) {
                 return "local variable " + l.getName();
-            } else if (e instanceof VarDef) {
-                VarDef l = (VarDef) e;
+            } else if (e instanceof VarDef l) {
                 return "variable " + l.getName();
-            } else if (e instanceof AstElementWithNameId) {
-                name = ((AstElementWithNameId) e).getNameId().getName();
-            } else if (e instanceof WImport) {
-                WImport wImport = (WImport) e;
+            } else if (e instanceof AstElementWithNameId astElementWithNameId) {
+                name = astElementWithNameId.getNameId().getName();
+            } else if (e instanceof WImport wImport) {
                 return "import " + wImport.getPackagename();
-            } else if (e instanceof TypeExprSimple) {
-                TypeExprSimple t = (TypeExprSimple) e;
+            } else if (e instanceof TypeExprSimple t) {
                 name = t.getTypeName();
                 if (t.getTypeArgs().size() > 0) {
                     name += "{";
@@ -985,8 +979,8 @@ public class Utils {
     public static String printTypeExpr(TypeExpr t) {
         WurstType wt = t.attrTyp();
         if (wt instanceof WurstTypeUnknown) {
-            if (t instanceof TypeExprSimple) {
-                return ((TypeExprSimple) t).getTypeName();
+            if (t instanceof TypeExprSimple typeExprSimple) {
+                return typeExprSimple.getTypeName();
             }
             return "???";
         }

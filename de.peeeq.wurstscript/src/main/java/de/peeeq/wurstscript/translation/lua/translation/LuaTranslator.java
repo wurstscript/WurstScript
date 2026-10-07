@@ -334,8 +334,7 @@ public class LuaTranslator {
         this.getProg().getFunctions().stream()
             .flatMap(f -> {
                 de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
-                if (trace instanceof FuncDef) {
-                    FuncDef fd = (FuncDef) trace;
+                if (trace instanceof FuncDef fd) {
                     if (fd.getName().equals("error")
                         && fd.attrNearestPackage() instanceof WPackage) {
                         WPackage p = (WPackage) fd.attrNearestPackage();
@@ -630,8 +629,8 @@ public class LuaTranslator {
 
     private void setNameFromTrace(JassImElementWithName named) {
         de.peeeq.wurstscript.ast.Element trace = named.attrTrace();
-        if (trace instanceof NameDef) {
-            named.setName(((NameDef) trace).getName());
+        if (trace instanceof NameDef nameDef) {
+            named.setName(nameDef.getName());
         }
     }
 
@@ -822,10 +821,9 @@ public class LuaTranslator {
             LuaStatement s = it.next();
             if (s instanceof LuaExprNull) {
                 it.remove();
-            } else if (s instanceof LuaExpr) {
-                LuaExpr e = (LuaExpr) s;
-                boolean parenthesisedCall = e instanceof LuaExprFunctionCallE
-                    && !LuaPrinter.startsWithName(((LuaExprFunctionCallE) e).getFuncExpr());
+            } else if (s instanceof LuaExpr e) {
+                boolean parenthesisedCall = e instanceof LuaExprFunctionCallE luaExprFunctionCallE
+                    && !LuaPrinter.startsWithName(luaExprFunctionCallE.getFuncExpr());
                 if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || parenthesisedCall) {
                     e.setParent(null);
                     LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", e);
@@ -1059,8 +1057,8 @@ public class LuaTranslator {
         if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
             return;
         }
-        if (e instanceof LuaFor) {
-            out.add((LuaFor) e);
+        if (e instanceof LuaFor luaFor) {
+            out.add(luaFor);
         }
         e.forEachElement(child -> collectForLoops(child, out));
     }
@@ -1128,10 +1126,10 @@ public class LuaTranslator {
             return;
         }
         boolean childInsideLoop = insideLoop || element instanceof LuaWhile || element instanceof LuaFor;
-        if (childInsideLoop && element instanceof LuaExprArrayAccess) {
-            LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
-            if (left instanceof LuaExprVarAccess) {
-                LuaVariable storage = ((LuaExprVarAccess) left).getVar();
+        if (childInsideLoop && element instanceof LuaExprArrayAccess luaExprArrayAccess) {
+            LuaExpr left = luaExprArrayAccess.getLeft();
+            if (left instanceof LuaExprVarAccess luaExprVarAccess) {
+                LuaVariable storage = luaExprVarAccess.getVar();
                 if (localizableStorageTables.contains(storage)) {
                     counts.merge(storage, 1, Integer::sum);
                 }
@@ -1146,10 +1144,10 @@ public class LuaTranslator {
             || element instanceof LuaFunction || element instanceof LuaMethod) {
             return;
         }
-        if (element instanceof LuaExprArrayAccess) {
-            LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
-            if (left instanceof LuaExprVarAccess) {
-                LuaVariable alias = aliases.get(((LuaExprVarAccess) left).getVar());
+        if (element instanceof LuaExprArrayAccess luaExprArrayAccess) {
+            LuaExpr left = luaExprArrayAccess.getLeft();
+            if (left instanceof LuaExprVarAccess luaExprVarAccess) {
+                LuaVariable alias = aliases.get(luaExprVarAccess.getVar());
                 if (alias != null) {
                     left.replaceBy(LuaAst.LuaExprVarAccess(alias));
                 }
@@ -1208,8 +1206,7 @@ public class LuaTranslator {
 
         // Rewrite accesses first, then replace declarations with table init assignments.
         forEachElementRec(body, e -> {
-            if (e instanceof LuaExprVarAccess) {
-                LuaExprVarAccess va = (LuaExprVarAccess) e;
+            if (e instanceof LuaExprVarAccess va) {
                 LuaVariable var = va.getVar();
                 Integer slot = localSlots.get(var);
                 if (slot != null) {
@@ -1234,8 +1231,7 @@ public class LuaTranslator {
 
     private LuaVariable findTopLevelLocalsTable(LuaStatements body) {
         for (LuaStatement stmt : body) {
-            if (stmt instanceof LuaVariable) {
-                LuaVariable v = (LuaVariable) stmt;
+            if (stmt instanceof LuaVariable v) {
                 if (v.getName().startsWith("__wurst_locals") && v.getInitialValue() instanceof LuaTableConstructor) {
                     return v;
                 }
@@ -1254,8 +1250,7 @@ public class LuaTranslator {
         ListIterator<LuaStatement> it = stmts.listIterator();
         while (it.hasNext()) {
             LuaStatement stmt = it.next();
-            if (stmt instanceof LuaVariable && localSet.contains(stmt)) {
-                LuaVariable localDecl = (LuaVariable) stmt;
+            if (stmt instanceof LuaVariable localDecl && localSet.contains(stmt)) {
                 Integer slot = localSlots.get(localDecl);
                 if (slot == null) {
                     continue;
@@ -1265,15 +1260,13 @@ public class LuaTranslator {
                 LuaExprOpt initVal = localDecl.getInitialValue();
                 LuaExpr right = initVal instanceof LuaExpr ? (LuaExpr) initVal.copy() : LuaAst.LuaExprNull();
                 it.set(LuaAst.LuaAssignment(left, right));
-            } else if (stmt instanceof LuaIf) {
-                LuaIf luaIf = (LuaIf) stmt;
+            } else if (stmt instanceof LuaIf luaIf) {
                 rewriteLocalDeclarationsToTableAssignments(luaIf.getThenStmts(), localSet, localSlots, tableVar);
                 rewriteLocalDeclarationsToTableAssignments(luaIf.getElseStmts(), localSet, localSlots, tableVar);
-            } else if (stmt instanceof LuaWhile) {
-                LuaWhile luaWhile = (LuaWhile) stmt;
+            } else if (stmt instanceof LuaWhile luaWhile) {
                 rewriteLocalDeclarationsToTableAssignments(luaWhile.getBody(), localSet, localSlots, tableVar);
-            } else if (stmt instanceof LuaFor) {
-                rewriteLocalDeclarationsToTableAssignments(((LuaFor) stmt).getBody(), localSet, localSlots, tableVar);
+            } else if (stmt instanceof LuaFor luaFor) {
+                rewriteLocalDeclarationsToTableAssignments(luaFor.getBody(), localSet, localSlots, tableVar);
             }
         }
     }
@@ -1282,8 +1275,8 @@ public class LuaTranslator {
         if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
             return;
         }
-        if (e instanceof LuaVariable) {
-            out.add((LuaVariable) e);
+        if (e instanceof LuaVariable luaVariable) {
+            out.add(luaVariable);
         }
         e.forEachElement(child -> collectFunctionScopeLocalsRec(child, out));
     }
@@ -2384,8 +2377,8 @@ public class LuaTranslator {
             // An untouched Lua table key already reads as nil - no metatable needed.
             return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
         }
-        if (entryType instanceof ImSimpleType) {
-            return setmetatableCall(getOrCreatePrimitiveArrayMetatable((ImSimpleType) entryType));
+        if (entryType instanceof ImSimpleType imSimpleType) {
+            return setmetatableCall(getOrCreatePrimitiveArrayMetatable(imSimpleType));
         }
         // Table-typed default (tuple / nested array): each slot needs its own,
         // separately mutable default value, materialized lazily on first read.
@@ -2404,11 +2397,10 @@ public class LuaTranslator {
         if (t instanceof ImClassType || t instanceof ImAnyType || t instanceof ImTypeVarRef || t instanceof ImVoid) {
             return true;
         }
-        if (t instanceof ImSimpleType) {
+        if (t instanceof ImSimpleType st) {
             // WC3 handle types (unit, player, timer, ...) are ImSimpleType too,
             // and default to nil just like user classes - only the four true
             // primitives below have a non-nil default.
-            ImSimpleType st = (ImSimpleType) t;
             return !TypesHelper.isIntType(st) && !TypesHelper.isBoolType(st)
                 && !TypesHelper.isRealType(st) && !TypesHelper.isStringType(st);
         }
@@ -2488,8 +2480,7 @@ public class LuaTranslator {
     }
 
     public LuaExprOpt translateOptional(ImExprOpt e) {
-        if (e instanceof ImExpr) {
-            ImExpr imExpr = (ImExpr) e;
+        if (e instanceof ImExpr imExpr) {
             return imExpr.translateToLua(this);
         }
         return LuaAst.LuaNoExpr();

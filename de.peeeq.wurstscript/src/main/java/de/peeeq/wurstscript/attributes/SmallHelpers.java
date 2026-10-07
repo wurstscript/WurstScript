@@ -19,8 +19,8 @@ public class SmallHelpers {
             return null;
         }
         WStatement lastStatement = e.getBody().get(e.getBody().size() - 2);
-        if (lastStatement instanceof StmtReturn) {
-            return (StmtReturn) lastStatement;
+        if (lastStatement instanceof StmtReturn stmtReturn) {
+            return stmtReturn;
         }
         return null;
     }
@@ -43,8 +43,8 @@ public class SmallHelpers {
         if (!sDef.isPresent()) {
             return false;
         }
-        if (sDef.get() instanceof AstElementWithTypeParameters) {
-            return tp.isSubtreeOf(((AstElementWithTypeParameters) sDef.get()).getTypeParameters());
+        if (sDef.get() instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            return tp.isSubtreeOf(astElementWithTypeParameters.getTypeParameters());
         }
         return false;
     }

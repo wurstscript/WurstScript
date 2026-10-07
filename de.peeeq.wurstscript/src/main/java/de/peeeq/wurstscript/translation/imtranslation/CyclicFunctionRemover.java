@@ -140,8 +140,7 @@ public class CyclicFunctionRemover {
             replaceVars(e.get(i), oldToNewVar);
         }
 
-        if (e instanceof ImVarAccess) {
-            ImVarAccess va = (ImVarAccess) e;
+        if (e instanceof ImVarAccess va) {
             ImVar newVar = oldToNewVar.get(va.getVar());
             if (newVar != null) {
                 va.setVar(newVar);
@@ -156,10 +155,10 @@ public class CyclicFunctionRemover {
         stack.push(e);
         while (!stack.isEmpty()) {
             Element current = stack.pop();
-            if (current instanceof ImFuncRef) {
-                replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, proxyByOriginal, (ImFuncRef) current);
-            } else if (current instanceof ImFunctionCall) {
-                replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFunctionCall) current);
+            if (current instanceof ImFuncRef imFuncRef) {
+                replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, proxyByOriginal, imFuncRef);
+            } else if (current instanceof ImFunctionCall imFunctionCall) {
+                replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, imFunctionCall);
             }
             for (int i = current.size() - 1; i >= 0; i--) {
                 stack.push(current.get(i));
@@ -246,8 +245,7 @@ public class CyclicFunctionRemover {
         }
 
 
-        if (e instanceof ImReturn) {
-            ImReturn r = (ImReturn) e;
+        if (e instanceof ImReturn r) {
 
             ImExprOpt returnValue = r.getReturnValue();
             returnValue.setParent(null);

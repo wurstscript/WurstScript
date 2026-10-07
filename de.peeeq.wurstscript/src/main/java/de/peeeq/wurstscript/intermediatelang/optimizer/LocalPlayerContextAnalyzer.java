@@ -124,23 +124,20 @@ public final class LocalPlayerContextAnalyzer {
         if (indexedElements.contains(element)) {
             return activeFacts.contains(element);
         }
-        if (element instanceof ImVarAccess) {
-            return localPlayerDependentVars.contains(((ImVarAccess) element).getVar());
+        if (element instanceof ImVarAccess imVarAccess) {
+            return localPlayerDependentVars.contains(imVarAccess.getVar());
         }
-        if (element instanceof ImVarArrayAccess) {
-            ImVarArrayAccess access = (ImVarArrayAccess) element;
+        if (element instanceof ImVarArrayAccess access) {
             if (localPlayerDependentVars.contains(access.getVar())) {
                 return true;
             }
         }
-        if (element instanceof ImMemberAccess) {
-            ImMemberAccess access = (ImMemberAccess) element;
+        if (element instanceof ImMemberAccess access) {
             if (localPlayerDependentVars.contains(access.getVar())) {
                 return true;
             }
         }
-        if (element instanceof ImFunctionCall) {
-            ImFunctionCall call = (ImFunctionCall) element;
+        if (element instanceof ImFunctionCall call) {
             if (isClientLocalValueSource(call.getFunc())
                 || localPlayerDependentReturns.contains(call.getFunc())) {
                 return true;
@@ -148,8 +145,7 @@ public final class LocalPlayerContextAnalyzer {
             // Conservatively assume a return value can depend on any argument.
             return isLocalPlayerDependent(call.getArguments());
         }
-        if (element instanceof ImMethodCall) {
-            ImMethodCall call = (ImMethodCall) element;
+        if (element instanceof ImMethodCall call) {
             return methodReturnsLocalPlayerDependentValue(call.getMethod())
                 || isLocalPlayerDependent(call.getReceiver())
                 || isLocalPlayerDependent(call.getArguments());
@@ -295,14 +291,13 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     private void indexElementAfterChildren(Element element, ImFunction owner, Object controlContext) {
-        if (element instanceof ImVarAccess) {
-            addDependency(variableFact(((ImVarAccess) element).getVar()), element);
-        } else if (element instanceof ImVarArrayAccess) {
-            addDependency(variableFact(((ImVarArrayAccess) element).getVar()), element);
-        } else if (element instanceof ImMemberAccess) {
-            addDependency(variableFact(((ImMemberAccess) element).getVar()), element);
-        } else if (element instanceof ImVarargLoop) {
-            ImVarargLoop loop = (ImVarargLoop) element;
+        if (element instanceof ImVarAccess imVarAccess) {
+            addDependency(variableFact(imVarAccess.getVar()), element);
+        } else if (element instanceof ImVarArrayAccess imVarArrayAccess) {
+            addDependency(variableFact(imVarArrayAccess.getVar()), element);
+        } else if (element instanceof ImMemberAccess imMemberAccess) {
+            addDependency(variableFact(imMemberAccess.getVar()), element);
+        } else if (element instanceof ImVarargLoop loop) {
             ImVar varargParameter = varargParameter(owner);
             if (varargParameter != null) {
                 List<ImVarargLoopVar> loopVars = loop.getLoopVars();
@@ -313,23 +308,21 @@ public final class LocalPlayerContextAnalyzer {
             }
         }
 
-        if (element instanceof ImSet) {
-            ImSet set = (ImSet) element;
+        if (element instanceof ImSet set) {
             forEachAssignedVariable(set.getLeft(), variable -> {
                 addDependency(set.getLeft(), variableFact(variable));
                 addDependency(set.getRight(), variableFact(variable));
                 addEnclosingControlDependency(controlContext, variableFact(variable));
             });
-        } else if (element instanceof ImReturn) {
-            ImReturn returnStmt = (ImReturn) element;
+        } else if (element instanceof ImReturn returnStmt) {
             if (returnStmt.getReturnValue() instanceof ImExpr) {
                 addDependency(returnStmt.getReturnValue(), returnFact(owner));
                 addEnclosingControlDependency(controlContext, returnFact(owner));
             }
-        } else if (element instanceof ImFunctionCall) {
-            indexFunctionCall((ImFunctionCall) element, owner, controlContext);
-        } else if (element instanceof ImMethodCall) {
-            indexMethodCall((ImMethodCall) element, owner, controlContext);
+        } else if (element instanceof ImFunctionCall imFunctionCall) {
+            indexFunctionCall(imFunctionCall, owner, controlContext);
+        } else if (element instanceof ImMethodCall imMethodCall) {
+            indexMethodCall(imMethodCall, owner, controlContext);
         }
     }
 
@@ -552,29 +545,29 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     private void forEachAssignedVariable(ImLExpr left, Consumer<ImVar> consumer) {
-        if (left instanceof ImVarAccess) {
-            consumer.accept(((ImVarAccess) left).getVar());
-        } else if (left instanceof ImVarArrayAccess) {
-            consumer.accept(((ImVarArrayAccess) left).getVar());
-        } else if (left instanceof ImMemberAccess) {
-            consumer.accept(((ImMemberAccess) left).getVar());
-        } else if (left instanceof ImTupleSelection) {
-            ImExpr tupleExpr = ((ImTupleSelection) left).getTupleExpr();
-            if (tupleExpr instanceof ImLExpr) {
-                forEachAssignedVariable((ImLExpr) tupleExpr, consumer);
+        if (left instanceof ImVarAccess imVarAccess) {
+            consumer.accept(imVarAccess.getVar());
+        } else if (left instanceof ImVarArrayAccess imVarArrayAccess) {
+            consumer.accept(imVarArrayAccess.getVar());
+        } else if (left instanceof ImMemberAccess imMemberAccess) {
+            consumer.accept(imMemberAccess.getVar());
+        } else if (left instanceof ImTupleSelection imTupleSelection) {
+            ImExpr tupleExpr = imTupleSelection.getTupleExpr();
+            if (tupleExpr instanceof ImLExpr imLExpr) {
+                forEachAssignedVariable(imLExpr, consumer);
             }
-        } else if (left instanceof ImTupleExpr) {
-            ImExprs exprs = ((ImTupleExpr) left).getExprs();
+        } else if (left instanceof ImTupleExpr imTupleExpr) {
+            ImExprs exprs = imTupleExpr.getExprs();
             for (int i = 0; i < exprs.size(); i++) {
                 ImExpr expr = exprs.get(i);
                 if (expr instanceof ImLExpr lExpr) {
                     forEachAssignedVariable(lExpr, consumer);
                 }
             }
-        } else if (left instanceof ImStatementExpr) {
-            ImExpr expr = ((ImStatementExpr) left).getExpr();
-            if (expr instanceof ImLExpr) {
-                forEachAssignedVariable((ImLExpr) expr, consumer);
+        } else if (left instanceof ImStatementExpr imStatementExpr) {
+            ImExpr expr = imStatementExpr.getExpr();
+            if (expr instanceof ImLExpr imLExpr) {
+                forEachAssignedVariable(imLExpr, consumer);
             }
         }
     }
@@ -653,10 +646,9 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     private void publishFact(Object fact) {
-        if (!(fact instanceof Fact)) {
+        if (!(fact instanceof Fact typedFact)) {
             return;
         }
-        Fact typedFact = (Fact) fact;
         switch (typedFact.kind) {
             case VARIABLE:
                 localPlayerDependentVars.add((ImVar) typedFact.subject);

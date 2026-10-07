@@ -73,13 +73,11 @@ public class VarLink extends DefLink {
             Preconditions.checkNotNull(parent);
             Element grandParent = parent.getParent();
             if (nameDef instanceof WParameter) {
-                if (grandParent instanceof TupleDef) {
-                    TupleDef tupleDef = (TupleDef) grandParent;
+                if (grandParent instanceof TupleDef tupleDef) {
                     return tupleDef.attrTyp();
                 }
             } else if (nameDef instanceof EnumMember) {
-                if (grandParent instanceof EnumDef) {
-                    EnumDef enumDef = (EnumDef) grandParent;
+                if (grandParent instanceof EnumDef enumDef) {
                     return enumDef.attrTyp();
                 }
             }

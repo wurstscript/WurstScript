@@ -88,8 +88,7 @@ public class MultiArrayEliminator {
 
     private void replaceVars(Element e, Map<ImVar, GetSetPair> oldToNewVar) {
 
-        if (e instanceof ImSet) {
-            ImSet set = (ImSet) e;
+        if (e instanceof ImSet set) {
 
             // normalize statement expression on left hand side
             ImStmts stmts = JassIm.ImStmts();
@@ -145,8 +144,7 @@ public class MultiArrayEliminator {
             replaceVars(e.get(i), oldToNewVar);
         }
 
-        if (e instanceof ImVarArrayAccess) {
-            ImVarArrayAccess am = (ImVarArrayAccess) e;
+        if (e instanceof ImVarArrayAccess am) {
             if (am.getIndexes().size() > 1) {
                 if (am.isUsedAsLValue()) {
                     throw new CompileError(am.attrTrace().attrSource(), "Invalid multi array access " + e);

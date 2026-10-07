@@ -23,8 +23,7 @@ public class FlattenImOperatorCalls {
         }
 
         // Now check if the current element is an operator we need to flatten
-        if (e instanceof ImOperatorCall) {
-            ImOperatorCall opCall = (ImOperatorCall) e;
+        if (e instanceof ImOperatorCall opCall) {
             WurstOperator op = opCall.getOp();
 
             if (op == WurstOperator.AND || op == WurstOperator.OR) {

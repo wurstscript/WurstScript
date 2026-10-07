@@ -283,10 +283,9 @@ public class ExprTranslation {
             return false;
         }
         ImExpr arg = e.getArguments().get(0);
-        if (!(arg instanceof ImOperatorCall)) {
+        if (!(arg instanceof ImOperatorCall op)) {
             return false;
         }
-        ImOperatorCall op = (ImOperatorCall) arg;
         if (op.getOp() != WurstOperator.DIV_INT) {
             return false;
         }
@@ -295,8 +294,8 @@ public class ExprTranslation {
         }
         ImExpr left = op.getArguments().get(0);
         ImExpr right = op.getArguments().get(1);
-        return (left instanceof ImIntVal && ((ImIntVal) left).getValI() == 1)
-            && (right instanceof ImIntVal && ((ImIntVal) right).getValI() == 0);
+        return (left instanceof ImIntVal leftInt && leftInt.getValI() == 1)
+            && (right instanceof ImIntVal rightInt && rightInt.getValI() == 0);
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
@@ -489,8 +488,7 @@ public class ExprTranslation {
                     LuaAst.LuaExprVarAccess(t1),
                     LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))
                 );
-                if (type instanceof ImTupleType) {
-                    ImTupleType tt = (ImTupleType) type;
+                if (type instanceof ImTupleType tt) {
                     v = LuaAst.LuaExprFunctionCall(getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(v));
                 }
                 fields.add(LuaAst.LuaTableSingleField(v));
@@ -505,9 +503,9 @@ public class ExprTranslation {
     }
 
     private static LuaExpr conjunction(LuaExpr left, LuaExpr right) {
-        if (left instanceof LuaExprBoolVal && ((LuaExprBoolVal) left).getValB()) {
+        if (left instanceof LuaExprBoolVal luaExprBoolVal && luaExprBoolVal.getValB()) {
             return right;
-        } else if (right instanceof LuaExprBoolVal && ((LuaExprBoolVal) right).getValB()) {
+        } else if (right instanceof LuaExprBoolVal luaExprBoolVal && luaExprBoolVal.getValB()) {
             return left;
         }
         return LuaAst.LuaExprBinary(left, LuaAst.LuaOpAnd(), right);
@@ -554,8 +552,7 @@ public class ExprTranslation {
     }
 
     private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
-        if (t instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) t;
+        if (t instanceof ImTupleType tt) {
             LuaFunction ef = getTupleEqualsFunc(tt, tr);
             return LuaAst.LuaExprFunctionCall(ef, LuaAst.LuaExprlist(leftExpr, rightExpr));
         }

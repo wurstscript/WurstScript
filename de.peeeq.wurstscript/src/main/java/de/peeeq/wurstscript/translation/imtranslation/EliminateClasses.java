@@ -184,8 +184,7 @@ public class EliminateClasses {
 
     public static String calculateClassName(ImClass c) {
         Element trace = c.attrTrace();
-        if (trace instanceof ClassOrInterface) {
-            ClassOrInterface t = (ClassOrInterface) trace;
+        if (trace instanceof ClassOrInterface t) {
             return makeName(t);
         }
         return c.getName();
@@ -197,8 +196,8 @@ public class EliminateClasses {
             return makeName(parent) + "." + t.getName();
         }
         PackageOrGlobal p = t.attrNearestPackage();
-        if (p instanceof WPackage) {
-            return ((WPackage) p).getName() + "." + t.getName();
+        if (p instanceof WPackage wPackage) {
+            return wPackage.getName() + "." + t.getName();
         }
         return t.getName();
     }
@@ -339,8 +338,8 @@ public class EliminateClasses {
     private String getMethodName(ImMethod m) {
         Element trace = m.attrTrace();
         String methodName = m.getName();
-        if (trace instanceof AstElementWithNameId) {
-            methodName = ((AstElementWithNameId) trace).getNameId().getName();
+        if (trace instanceof AstElementWithNameId astElementWithNameId) {
+            methodName = astElementWithNameId.getNameId().getName();
         }
         return methodName;
     }
@@ -391,8 +390,7 @@ public class EliminateClasses {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof DispatchKey)) return false;
-            DispatchKey that = (DispatchKey) o;
+            if (!(o instanceof DispatchKey that)) return false;
             return method == that.method && receiverClass == that.receiverClass;
         }
 
@@ -805,8 +803,8 @@ public class EliminateClasses {
         }
 
         ImFunction dispatch = null;
-        if (receiverType instanceof ImClassType) {
-            ImClass receiverClass = ((ImClassType) receiverType).getClassDef();
+        if (receiverType instanceof ImClassType imClassType) {
+            ImClass receiverClass = imClassType.getClassDef();
             ImClass methodClass = method.getMethodClass().getClassDef();
             if (receiverClass != methodClass && receiverClass.isSubclassOf(methodClass)) {
                 dispatch = getOrCreateNarrowedDispatch(method, receiverClass);

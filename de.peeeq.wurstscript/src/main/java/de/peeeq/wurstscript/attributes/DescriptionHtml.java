@@ -34,8 +34,7 @@ public class DescriptionHtml {
         }
 
         String funcName = f.getName();
-        if (f instanceof ExtensionFuncDef) {
-            ExtensionFuncDef exf = (ExtensionFuncDef) f;
+        if (f instanceof ExtensionFuncDef exf) {
             funcName = htmlType(exf.getExtendedType().attrTyp()) + "." + funcName;
         }
         functionDescription += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + funcName + "(" + params + ") ";

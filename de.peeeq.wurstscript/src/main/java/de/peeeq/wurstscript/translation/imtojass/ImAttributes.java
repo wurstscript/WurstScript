@@ -92,8 +92,8 @@ public class ImAttributes {
             for (int i = 0; i < e.size(); i++) {
                 q.add(e.get(i));
             }
-            if (e instanceof ElementWithTrace) {
-                return ((ElementWithTrace) e).getTrace();
+            if (e instanceof ElementWithTrace elementWithTrace) {
+                return elementWithTrace.getTrace();
             }
         }
         return Ast.NoExpr();

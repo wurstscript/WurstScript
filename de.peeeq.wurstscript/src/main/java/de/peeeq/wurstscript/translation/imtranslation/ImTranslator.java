@@ -430,14 +430,14 @@ public class ImTranslator implements SpecialisationLookup {
             return false;
         }
         ImStmt stmt = initFunc.getBody().get(0);
-        if (!(stmt instanceof ImReturn)) {
+        if (!(stmt instanceof ImReturn imReturn)) {
             return false;
         }
-        ImExprOpt returnValue = ((ImReturn) stmt).getReturnValue();
+        ImExprOpt returnValue = imReturn.getReturnValue();
         if (returnValue instanceof ImNoExpr) {
             return true;
         }
-        return returnValue instanceof ImBoolVal && ((ImBoolVal) returnValue).getValB();
+        return returnValue instanceof ImBoolVal imBoolVal && imBoolVal.getValB();
     }
 
     private void removeInitCallsFromMain(Set<ImFunction> emptyInitFunctions, Map<ImVar, ImFunction> initFuncRefs) {
@@ -453,8 +453,7 @@ public class ImTranslator implements SpecialisationLookup {
         ImStmts mainBody = main.getBody();
         for (int i = 0; i < mainBody.size(); i++) {
             ImStmt stmt = mainBody.get(i);
-            if (stmt instanceof ImFunctionCall) {
-                ImFunctionCall call = (ImFunctionCall) stmt;
+            if (stmt instanceof ImFunctionCall call) {
                 if (emptyInitFunctions.contains(call.getFunc())) {
                     mainBody.remove(i--);
                     continue;
@@ -482,11 +481,11 @@ public class ImTranslator implements SpecialisationLookup {
         ImStmts body = globalInit.getBody();
         for (int i = 0; i < body.size(); i++) {
             ImStmt stmt = body.get(i);
-            if (!(stmt instanceof ImSet)) {
+            if (!(stmt instanceof ImSet imSet)) {
                 continue;
             }
-            ImExpr right = ((ImSet) stmt).getRight();
-            if (right instanceof ImFuncRef && emptyInitFunctions.contains(((ImFuncRef) right).getFunc())) {
+            ImExpr right = imSet.getRight();
+            if (right instanceof ImFuncRef imFuncRef && emptyInitFunctions.contains(imFuncRef.getFunc())) {
                 body.remove(i--);
             }
         }
@@ -501,10 +500,9 @@ public class ImTranslator implements SpecialisationLookup {
         ImStmts body = globalInit.getBody();
         for (int i = 0; i < body.size(); i++) {
             ImStmt stmt = body.get(i);
-            if (!(stmt instanceof ImSet)) {
+            if (!(stmt instanceof ImSet set)) {
                 continue;
             }
-            ImSet set = (ImSet) stmt;
             if (!(set.getLeft() instanceof ImVarAccess)) {
                 continue;
             }
@@ -522,10 +520,9 @@ public class ImTranslator implements SpecialisationLookup {
             return false;
         }
         ImExpr conditionExpr = call.getArguments().get(1);
-        if (!(conditionExpr instanceof ImFunctionCall)) {
+        if (!(conditionExpr instanceof ImFunctionCall conditionCall)) {
             return false;
         }
-        ImFunctionCall conditionCall = (ImFunctionCall) conditionExpr;
         if (conditionCall.getFunc() != nativeCondition) {
             return false;
         }
@@ -533,12 +530,11 @@ public class ImTranslator implements SpecialisationLookup {
             return false;
         }
         ImExpr argument = conditionCall.getArguments().get(0);
-        if (argument instanceof ImFuncRef) {
-            ImFuncRef funcRef = (ImFuncRef) argument;
+        if (argument instanceof ImFuncRef funcRef) {
             return emptyInitFunctions.contains(funcRef.getFunc());
         }
-        if (argument instanceof ImVarAccess) {
-            ImVar var = ((ImVarAccess) argument).getVar();
+        if (argument instanceof ImVarAccess imVarAccess) {
+            ImVar var = imVarAccess.getVar();
             ImFunction target = initFuncRefs.get(var);
             return target != null && emptyInitFunctions.contains(target);
         }
@@ -549,7 +545,7 @@ public class ImTranslator implements SpecialisationLookup {
         if (nativeClearTrigger == null) {
             return false;
         }
-        return stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == nativeClearTrigger;
+        return stmt instanceof ImFunctionCall imFunctionCall && imFunctionCall.getFunc() == nativeClearTrigger;
     }
 
     /**
@@ -650,22 +646,18 @@ public class ImTranslator implements SpecialisationLookup {
         if (!scope.isEmpty()) {
             sb.append(scope).append("_");
         }
-        if (c instanceof ImFunction) {
-            ImFunction f = (ImFunction) c;
+        if (c instanceof ImFunction f) {
             sb.append("fn::").append(f.getName()).append("(");
             for (int i = 0; i < f.getParameters().size(); i++) {
                 if (i > 0) sb.append(",");
                 sb.append(f.getParameters().get(i).getType());
             }
             sb.append(")->").append(f.getReturnType());
-        } else if (c instanceof ImVar) {
-            ImVar v = (ImVar) c;
+        } else if (c instanceof ImVar v) {
             sb.append("var::").append(v.getName()).append(":").append(v.getType());
-        } else if (c instanceof ImClass) {
-            ImClass cls = (ImClass) c;
+        } else if (c instanceof ImClass cls) {
             sb.append("class::").append(cls.getName());
-        } else if (c instanceof ImMethod) {
-            ImMethod m = (ImMethod) c;
+        } else if (c instanceof ImMethod m) {
             sb.append("method::").append(m.getName());
         } else {
             sb.append(c.getClass().getSimpleName());
@@ -687,7 +679,7 @@ public class ImTranslator implements SpecialisationLookup {
         if (cached != null) {
             return cached;
         }
-        NamedScope ns = e instanceof NamedScope ? (NamedScope) e : e.attrNearestNamedScope();
+        NamedScope ns = e instanceof NamedScope namedScope ? namedScope : e.attrNearestNamedScope();
         if (ns == null) {
             scopePrefixCache.put(e, "");
             return "";
@@ -953,15 +945,13 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
         ImFunction f;
-        if (packageOrGlobal instanceof WPackage) {
-            WPackage p = (WPackage) packageOrGlobal;
+        if (packageOrGlobal instanceof WPackage p) {
             f = getInitFuncFor(p);
         } else {
             f = globalInitFunc;
         }
         de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
-        if (initialExpr instanceof Expr) {
-            Expr expr = (Expr) initialExpr;
+        if (initialExpr instanceof Expr expr) {
             ImExpr translated = expr.imTranslateExpr(this, f);
             ImSet imSet = ImSet(trace, ImVarAccess(v), translated);
             if (!v.getIsBJ()) {
@@ -970,8 +960,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 f.getBody().add(imSet);
             }
             imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
-        } else if (initialExpr instanceof ArrayInitializer) {
-            ArrayInitializer arInit = (ArrayInitializer) initialExpr;
+        } else if (initialExpr instanceof ArrayInitializer arInit) {
             List<ImExpr> translatedExprs = new ArrayList<>();
             for (Expr expr : arInit.getValues()) {
                 ImExpr imExpr = expr.imTranslateExpr(this, f);
@@ -998,13 +987,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
     public ImExpr getDefaultValueForJassType(ImType type) {
-        if (type instanceof ImSimpleType) {
-            ImSimpleType imSimpleType = (ImSimpleType) type;
+        if (type instanceof ImSimpleType imSimpleType) {
             return ImHelper.defaultValueForType(imSimpleType);
         } else if (type instanceof ImAnyType) {
             return JassIm.ImIntVal(0);
-        } else if (type instanceof ImTupleType) {
-            ImTupleType imTupleType = (ImTupleType) type;
+        } else if (type instanceof ImTupleType imTupleType) {
             return getDefaultValueForJassType(imTupleType.getTypes().get(0));
         } else {
             throw new IllegalArgumentException("could not get default value for type " + type);
@@ -1149,8 +1136,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (isExtern(funcDef)) {
             flags.add(FunctionFlagEnum.IS_EXTERN);
         }
-        if (funcDef instanceof FuncDef) {
-            FuncDef funcDef2 = (FuncDef) funcDef;
+        if (funcDef instanceof FuncDef funcDef2) {
             if (funcDef2.attrIsCompiletime()) {
                 FunctionFlagCompiletime flag = compiletimeFlags.get(funcDef);
                 if (flag == null) {
@@ -1167,19 +1153,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         }
 
         // Check if last parameter is vararg
-        if (funcDef instanceof AstElementWithParameters) {
-            WParameters params = ((AstElementWithParameters) funcDef).getParameters();
+        if (funcDef instanceof AstElementWithParameters astElementWithParameters) {
+            WParameters params = astElementWithParameters.getParameters();
             if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
                 flags.add(IS_VARARG);
             }
         }
 
 
-        if (funcDef instanceof HasModifier) {
-            HasModifier awm = (HasModifier) funcDef;
+        if (funcDef instanceof HasModifier awm) {
             for (Modifier m : awm.getModifiers()) {
-                if (m instanceof Annotation) {
-                    Annotation annotation = (Annotation) m;
+                if (m instanceof Annotation annotation) {
                     flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
                     if (NamePreservation.isPreserveAnnotation(annotation.getAnnotationType())) {
                         flags.add(PRESERVE_NAME);
@@ -1318,11 +1302,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
     private boolean isExtern(TranslatedToImFunction funcDef) {
-        if (funcDef instanceof HasModifier) {
-            HasModifier f = (HasModifier) funcDef;
+        if (funcDef instanceof HasModifier f) {
             for (Modifier m : f.getModifiers()) {
-                if (m instanceof Annotation) {
-                    Annotation a = (Annotation) m;
+                if (m instanceof Annotation a) {
                     if (a.getAnnotationType().equals("@extern")) {
                         return true;
                     }
@@ -1354,30 +1336,24 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      * the returned name is a valid jass identifier
      */
     public String getNameFor(de.peeeq.wurstscript.ast.Element e) {
-        if (e instanceof FuncDef) {
-            FuncDef f = (FuncDef) e;
+        if (e instanceof FuncDef f) {
             if (f.attrNearestStructureDef() != null) {
                 return getNameFor(f.attrNearestStructureDef()) + "_" + f.getName();
             }
-        } else if (e instanceof ExtensionFuncDef) {
-            ExtensionFuncDef f = (ExtensionFuncDef) e;
+        } else if (e instanceof ExtensionFuncDef f) {
             return getNameFor(f.getExtendedType()) + "_" + f.getName();
-        } else if (e instanceof TypeExprSimple) {
-            TypeExprSimple t = (TypeExprSimple) e;
+        } else if (e instanceof TypeExprSimple t) {
             return t.getTypeName();
         } else if (e instanceof TypeExprThis) {
             return "thistype";
-        } else if (e instanceof TypeExprArray) {
-            TypeExprArray t = (TypeExprArray) e;
+        } else if (e instanceof TypeExprArray t) {
             return getNameFor(t.getBase()) + "Array";
-        } else if (e instanceof ModuleInstanciation) {
-            ModuleInstanciation mi = (ModuleInstanciation) e;
+        } else if (e instanceof ModuleInstanciation mi) {
             return getNameFor(mi.getParent().attrNearestNamedScope()) + "_" + mi.getName();
         }
 
 
-        if (e instanceof AstElementWithNameId) {
-            AstElementWithNameId wn = (AstElementWithNameId) e;
+        if (e instanceof AstElementWithNameId wn) {
             return wn.getNameId().getName();
         } else if (e instanceof ConstructorDef) {
             return "new_" + e.attrNearestClassDef().getName();
@@ -1474,8 +1450,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             return Collections.emptyMap();
         }
         Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
-        if (owner instanceof AstElementWithTypeParameters) {
-            for (TypeParamDef tp : ((AstElementWithTypeParameters) owner).getTypeParameters()) {
+        if (owner instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            for (TypeParamDef tp : astElementWithTypeParameters.getTypeParameters()) {
                 if (tp.getTypeParamConstraints() instanceof TypeExprList) {
                     result.put(tp, typeVariable.getFor(tp));
                 }
@@ -1698,10 +1674,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         FuncLink best = null;
         int bestDistance = Integer.MAX_VALUE;
         for (NameLink candidateLink : c.attrNameLinks().get(target.getName())) {
-            if (!(candidateLink instanceof FuncLink)) {
+            if (!(candidateLink instanceof FuncLink candidate)) {
                 continue;
             }
-            FuncLink candidate = (FuncLink) candidateLink;
             if (!WurstValidator.canOverride(candidate, target, false)) {
                 continue;
             }
@@ -1900,8 +1875,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         for (CompilationUnit cu : wurstProg) {
             for (WPackage p : cu.getPackages()) {
                 for (WEntity e : p.getElements()) {
-                    if (e instanceof ClassDef) {
-                        ClassDef c = (ClassDef) e;
+                    if (e instanceof ClassDef c) {
                         classesAdd(result, c);
                     }
                 }
@@ -1912,8 +1886,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void classesAdd(List<ClassDef> result, ClassOrModuleInstanciation c) {
-        if (c instanceof ClassDef) {
-            result.add(((ClassDef) c));
+        if (c instanceof ClassDef classDef) {
+            result.add(classDef);
         }
         for (ClassDef ic : c.getInnerClasses()) {
             classesAdd(result, ic);
@@ -2215,8 +2189,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         Preconditions.checkNotNull(type);
         Preconditions.checkNotNull(result);
         // TODO handle names
-        if (type instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) type;
+        if (type instanceof ImTupleType tt) {
             int i = 0;
             for (ImType t : tt.getTypes()) {
                 addVarsForType(result, name + "_" + tt.getNames().get(i), t, tr);
@@ -2272,8 +2245,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     public void assertProperties(Set<AssertProperty> properties, Element e) {
-        if (e instanceof ElementWithVar) {
-            checkVar(((ElementWithVar) e).getVar(), properties);
+        if (e instanceof ElementWithVar elementWithVar) {
+            checkVar(elementWithVar.getVar(), properties);
         }
         for (AssertProperty p : properties) {
             p.check(e);
@@ -2341,7 +2314,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     // inside ImTranslator
 
     private static boolean isIteratorLike(ClassOrInterface s) {
-        return (s instanceof NamedScope) && ((NamedScope) s).getName().contains("Iterator");
+        return (s instanceof NamedScope namedScope) && namedScope.getName().contains("Iterator");
     }
 
     private void addCapturedTypeVarsFromOwningGeneric(ImTypeVars typeVariables, ClassOrInterface s) {
@@ -2351,11 +2324,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 + " parent=" + (s.getParent() == null ? "null" : s.getParent().getClass().getSimpleName()));
         }
 
-        if (!(s instanceof ClassDef)) {
+        if (!(s instanceof ClassDef cd)) {
             if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] not a ClassDef -> skip");
             return;
         }
-        ClassDef cd = (ClassDef) s;
 
         boolean isStatic = cd.attrIsStatic();
         if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] isStatic=" + isStatic);
@@ -2367,17 +2339,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         AstElementWithTypeParameters owner = null;
         String ownerInfo = null;
 
-        if (parent2 instanceof ModuleInstanciation) {
-            ModuleInstanciation mi = (ModuleInstanciation) parent2;
+        if (parent2 instanceof ModuleInstanciation mi) {
             ClassDef o = mi.attrNearestClassDef();
             owner = o;
             ownerInfo = "moduleInst=" + mi.getName() + " owner=" + (o == null ? "null" : o.getName());
-        } else if (parent2 instanceof ClassDef) {
-            ClassDef o = (ClassDef) parent2;
+        } else if (parent2 instanceof ClassDef o) {
             owner = o;
             ownerInfo = "outerClass=" + o.getName();
-        } else if (parent2 instanceof InterfaceDef) {
-            InterfaceDef o = (InterfaceDef) parent2;
+        } else if (parent2 instanceof InterfaceDef o) {
             owner = o;
             ownerInfo = "outerInterface=" + o.getName();
         } else {
@@ -2440,8 +2409,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             ImTypeVars typeVariables = JassIm.ImTypeVars();
 
             // 1) class' own type parameters (unchanged idea, but use name-based uniqueness)
-            if (s1 instanceof AstElementWithTypeParameters) {
-                for (TypeParamDef tp : ((AstElementWithTypeParameters) s1).getTypeParameters()) {
+            if (s1 instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+                for (TypeParamDef tp : astElementWithTypeParameters.getTypeParameters()) {
                     if (tp.getTypeParamConstraints() instanceof TypeExprList) {
                         ImTypeVar tv = getTypeVar(tp); // now context-aware (override stack)
                         if (!hasTypeVarNamed(typeVariables, tv.getName())) {

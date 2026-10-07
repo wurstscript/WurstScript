@@ -44,8 +44,8 @@ public class TypesHelper {
 
     public static boolean typeContainsTuples(ImType vt) {
         return vt instanceof ImTupleType
-                || vt instanceof ImArrayType && typeContainsTuples(((ImArrayType) vt).getEntryType())
-                || vt instanceof ImArrayTypeMulti && typeContainsTuples(((ImArrayTypeMulti) vt).getEntryType());
+                || vt instanceof ImArrayType imArrayType && typeContainsTuples(imArrayType.getEntryType())
+                || vt instanceof ImArrayTypeMulti imArrayTypeMulti && typeContainsTuples(imArrayTypeMulti.getEntryType());
     }
     
     public static ImVar getSimpleAndPureTupleVar(ImTupleSelection ts) {
@@ -81,29 +81,29 @@ public class TypesHelper {
     }
 
     public static boolean isIntType(ImType t) {
-        if (t instanceof ImSimpleType) {
-            return ((ImSimpleType) t).getTypename().equals("integer");
+        if (t instanceof ImSimpleType imSimpleType) {
+            return imSimpleType.getTypename().equals("integer");
         }
         return false;
     }
 
     public static boolean isRealType(ImType t) {
-        if (t instanceof ImSimpleType) {
-            return ((ImSimpleType) t).getTypename().equals("real");
+        if (t instanceof ImSimpleType imSimpleType) {
+            return imSimpleType.getTypename().equals("real");
         }
         return false;
     }
 
     public static boolean isBoolType(ImType t) {
-        if (t instanceof ImSimpleType) {
-            return ((ImSimpleType) t).getTypename().equals("boolean");
+        if (t instanceof ImSimpleType imSimpleType) {
+            return imSimpleType.getTypename().equals("boolean");
         }
         return false;
     }
 
     public static boolean isStringType(ImType t) {
-        if (t instanceof ImSimpleType) {
-            return ((ImSimpleType) t).getTypename().equals("string");
+        if (t instanceof ImSimpleType imSimpleType) {
+            return imSimpleType.getTypename().equals("string");
         }
         return false;
     }

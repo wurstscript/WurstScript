@@ -31,10 +31,10 @@ public class EliminateLocalTypes {
     private static void eliminateLocalTypesFunc(ImFunction f, final ImTranslator translator) {
         for(ImVar local : f.getLocals()) {
             ImType t = local.getType();
-            if(t instanceof ImSimpleType) {
+            if(t instanceof ImSimpleType imSimpleType) {
                 // Keep primitive domains separate so later local merging cannot
                 // unify e.g. number/bool/string temporaries into one slot.
-                local.setType(canonicalizeSimpleLocalType((ImSimpleType) t));
+                local.setType(canonicalizeSimpleLocalType(imSimpleType));
             }
         }
     }

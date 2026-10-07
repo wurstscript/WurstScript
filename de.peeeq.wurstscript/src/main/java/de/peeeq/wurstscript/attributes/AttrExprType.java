@@ -108,8 +108,8 @@ public class AttrExprType {
         }
 
         WurstType varDefType = varDef.getTyp();
-        if (varDefType instanceof WurstTypeArray) {
-            return ((WurstTypeArray) varDefType).getBaseType();
+        if (varDefType instanceof WurstTypeArray wurstTypeArray) {
+            return wurstTypeArray.getBaseType();
         }
         if (term.getIndexes().size() == 1) {
             WurstType indexType = term.getIndexes().get(0).attrTyp();
@@ -150,8 +150,7 @@ public class AttrExprType {
 
         // check if we are in an extension function
         FunctionImplementation func = term.attrNearestFuncDef();
-        if (func instanceof ExtensionFuncDef) {
-            ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
+        if (func instanceof ExtensionFuncDef extensionFuncDef) {
             return extensionFuncDef.getExtendedType().attrTyp().dynamic();
         }
         if (dynamic && !term.attrIsDynamicContext()) {
@@ -464,8 +463,7 @@ public class AttrExprType {
             term.addError("Cannot access static array variable " + term.getVarName() + " via a dynamic reference.");
         }
         WurstType typ = varDef.getTyp();
-        if (typ instanceof WurstTypeArray) {
-            WurstTypeArray ar = (WurstTypeArray) typ;
+        if (typ instanceof WurstTypeArray ar) {
             return ar.getBaseType();
         }
         if (term.getIndexes().size() == 1) {
@@ -561,8 +559,7 @@ public class AttrExprType {
 
     public static WurstType calculate(ExprTypeId e) {
         WurstType exprTyp = e.getLeft().attrTyp();
-        if (exprTyp instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) exprTyp;
+        if (exprTyp instanceof WurstTypeClassOrInterface t) {
             if (t.isStaticRef()) {
                 // static reference to a type --> only concrete classes allowed
                 if (t instanceof WurstTypeClass) {

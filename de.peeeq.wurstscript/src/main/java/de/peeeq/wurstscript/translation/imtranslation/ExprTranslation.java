@@ -113,8 +113,7 @@ public class ExprTranslation {
         // its primitive default when represented in Lua.  Keep the
         // normalization available to callers which explicitly cross an
         // external boundary; ordinary Wurst expressions must not pay for it.
-        if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+        if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam wtb) {
 
             @Nullable ImFunction ensureType = null;
             switch (wtb.getName()) {
@@ -160,15 +159,13 @@ public class ExprTranslation {
                                           boolean indexContext) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
-        if (actualType instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+        if (actualType instanceof WurstTypeBoundTypeParam wtb) {
             FuncDef fromIndexFunc = wtb.getFromIndex();
             if (fromIndexFunc != null) {
                 fromIndex = t.getFuncFor(fromIndexFunc);
             }
         }
-        if (expectedTypRaw instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) expectedTypRaw;
+        if (expectedTypRaw instanceof WurstTypeBoundTypeParam wtb) {
             FuncDef toIndexFunc = wtb.getToIndex();
             if (toIndexFunc != null) {
                 toIndex = t.getFuncFor(toIndexFunc);
@@ -282,10 +279,10 @@ public class ExprTranslation {
         FunctionDefinition calledFunc = toString.getDef().attrRealFuncDef();
         FunctionSignature signature = FunctionSignature.fromNameLink(toString);
         translated = wrapTranslation(operand, t, translated, operand.attrTypRaw(), signature.getReceiverType());
-        if (calledFunc instanceof FuncDef
-                && !((FuncDef) calledFunc).attrIsStatic()
+        if (calledFunc instanceof FuncDef funcDef
+                && !funcDef.attrIsStatic()
                 && operand.attrTyp().allowsDynamicDispatch()) {
-            ImMethod method = t.getMethodFor((FuncDef) calledFunc);
+            ImMethod method = t.getMethodFor(funcDef);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(
                 t, signature, operand, method.getImplementation().getTypeVariables());
             return ImMethodCall(operand, method, typeArguments, translated, ImExprs(), false);
@@ -346,8 +343,8 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(NameRef e, ImTranslator t, ImFunction f) {
-        if (e instanceof ExprMemberVarQuestionDot) {
-            return translateNullSafeMemberVar((ExprMemberVarQuestionDot) e, t, f);
+        if (e instanceof ExprMemberVarQuestionDot exprMemberVarQuestionDot) {
+            return translateNullSafeMemberVar(exprMemberVarQuestionDot, t, f);
         }
         return translateNameDef(e, t, f);
     }
@@ -371,8 +368,8 @@ public class ExprTranslation {
 
     private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
         NameLink link = e.attrNameLink();
-        if (link instanceof OtherLink) {
-            return ((OtherLink) link).translate(e, t, f);
+        if (link instanceof OtherLink otherLink) {
+            return otherLink.translate(e, t, f);
         }
         NameDef decl = link == null ? null : link.getDef();
         if (decl == null) {
@@ -382,8 +379,7 @@ public class ExprTranslation {
             }
             return ImHelper.nullExpr();
         }
-        if (decl instanceof VarDef) {
-            VarDef varDef = (VarDef) decl;
+        if (decl instanceof VarDef varDef) {
 
             ImVar v = t.getVarFor(varDef);
             @Nullable FuncLink indexGetOverload = getIndexGetOverload(e, link);
@@ -395,24 +391,22 @@ public class ExprTranslation {
 
                 if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
                     WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
-                    if (e instanceof ExprMemberVar) {
-                        ExprMemberVar e2 = (ExprMemberVar) e;
+                    if (e instanceof ExprMemberVar e2) {
                         return translateTupleSelection(t, f, e2);
                     } else {
                         throw new CompileError(e.getSource(), "Cannot create tuple access");
                     }
                 }
 
-                if (e instanceof AstElementWithIndexes) {
+                if (e instanceof AstElementWithIndexes withIndexes) {
                     if (indexGetOverload != null) {
-                        AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
                         ImExpr receiver = JassIm.ImMemberAccess(e, implicitParam.imTranslateExpr(t, f), JassIm.ImTypeArguments(), v, JassIm.ImExprs());
                         ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
                         ImFunction calledFunc = t.getFuncFor(indexGetOverload.getDef());
                         return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(receiver, index), false, CallType.NORMAL);
                     }
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
-                    ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
+                    ImExpr index2 = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
                     return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
@@ -420,16 +414,14 @@ public class ExprTranslation {
                 }
             } else {
                 // direct var access
-                if (e instanceof AstElementWithIndexes) {
+                if (e instanceof AstElementWithIndexes withIndexes) {
                     if (indexGetOverload != null) {
-                        AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
                         ImExpr receiver = ImVarAccess(v);
                         ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
                         ImFunction calledFunc = t.getFuncFor(indexGetOverload.getDef());
                         return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(receiver, index), false, CallType.NORMAL);
                     }
                     // direct access array var
-                    AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
                     if (withIndexes.getIndexes().size() > 1) {
                         throw new CompileError(e.getSource(), "More than one index is not supported.");
                     }
@@ -441,8 +433,7 @@ public class ExprTranslation {
 
                 }
             }
-        } else if (decl instanceof EnumMember) {
-            EnumMember enumMember = (EnumMember) decl;
+        } else if (decl instanceof EnumMember enumMember) {
             int id = t.getEnumMemberId(enumMember);
             return ImIntVal(id);
         } else {
@@ -552,8 +543,7 @@ public class ExprTranslation {
      * counts the components of a tuple (including nested)
      */
     private static int tupleSize(WurstType t) {
-        if (t instanceof WurstTypeTuple) {
-            WurstTypeTuple tt = (WurstTypeTuple) t;
+        if (t instanceof WurstTypeTuple tt) {
             int sum = 0;
             for (WParameter p : tt.getTupleDef().getParameters()) {
                 sum += tupleSize(p.getTyp().attrTyp());
@@ -678,8 +668,7 @@ public class ExprTranslation {
 
         // get real func def (override of module function)
         boolean useRealFuncDef = true;
-        if (e instanceof ExprMemberMethod) {
-            ExprMemberMethod exprMemberMethod = (ExprMemberMethod) e;
+        if (e instanceof ExprMemberMethod exprMemberMethod) {
             WurstType left = exprMemberMethod.getLeft().attrTyp();
             if (left instanceof WurstTypeModuleInstanciation) {
                 // if we have a call like A.foo() and A is a module,
@@ -849,8 +838,7 @@ public class ExprTranslation {
 
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
-        if (e instanceof ExprMemberMethod) {
-            ExprMemberMethod mm = (ExprMemberMethod) e;
+        if (e instanceof ExprMemberMethod mm) {
             return mm.getLeft().attrTyp().allowsDynamicDispatch();
         } else return e.attrIsDynamicContext();
     }
@@ -910,8 +898,8 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
         WurstType targetType = e.getTyp().attrTyp();
         ImType imTargetType = targetType.imTranslateType(translator);
-        if (imTargetType instanceof ImClassType) {
-            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), (ImClassType) imTargetType);
+        if (imTargetType instanceof ImClassType imClassType) {
+            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), imClassType);
         }
         throw new Error("Cannot compile instanceof " + targetType);
     }
@@ -919,10 +907,8 @@ public class ExprTranslation {
     public static ImExpr translate(ExprTypeId e, ImTranslator translator, ImFunction f) {
         WurstType leftType = e.getLeft().attrTyp();
         ImType imLeftType = leftType.imTranslateType(translator);
-        if (imLeftType instanceof ImClassType) {
-            ImClassType imLeftTypeC = (ImClassType) imLeftType;
-            if (leftType instanceof WurstTypeClassOrInterface) {
-                WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
+        if (imLeftType instanceof ImClassType imLeftTypeC) {
+            if (leftType instanceof WurstTypeClassOrInterface wtc) {
 
                 if (wtc.isStaticRef()) {
                     return JassIm.ImTypeIdOfClass(imLeftTypeC);
@@ -977,14 +963,11 @@ public class ExprTranslation {
 
     public static ImExpr translate(ExprDestroy s, ImTranslator t, ImFunction f) {
         WurstType typ = s.getDestroyedObj().attrTyp();
-        if (typ instanceof WurstTypeClass) {
-            WurstTypeClass classType = (WurstTypeClass) typ;
+        if (typ instanceof WurstTypeClass classType) {
             return destroyClass(s, t, f, classType.getClassDef());
-        } else if (typ instanceof WurstTypeInterface) {
-            WurstTypeInterface wti = (WurstTypeInterface) typ;
+        } else if (typ instanceof WurstTypeInterface wti) {
             return destroyClass(s, t, f, wti.getDef());
-        } else if (typ instanceof WurstTypeModuleInstanciation) {
-            WurstTypeModuleInstanciation minsType = (WurstTypeModuleInstanciation) typ;
+        } else if (typ instanceof WurstTypeModuleInstanciation minsType) {
             ClassDef classDef = minsType.getDef().attrNearestClassDef();
             return destroyClass(s, t, f, classDef);
         }
@@ -1023,14 +1006,13 @@ public class ExprTranslation {
     }
 
     static ImExpr translateWithExpectedType(Expr e, ImTranslator t, ImFunction f, WurstType expectedType) {
-        if (e instanceof ExprIfElse) {
-            return translateWithExpectedType((ExprIfElse) e, t, f, expectedType);
+        if (e instanceof ExprIfElse exprIfElse) {
+            return translateWithExpectedType(exprIfElse, t, f, expectedType);
         }
-        if (e instanceof ExprStatementsBlock) {
-            return translateStatementsBlock((ExprStatementsBlock) e, t, f, expectedType);
+        if (e instanceof ExprStatementsBlock exprStatementsBlock) {
+            return translateStatementsBlock(exprStatementsBlock, t, f, expectedType);
         }
-        if (e instanceof ExprUnary) {
-            ExprUnary unary = (ExprUnary) e;
+        if (e instanceof ExprUnary unary) {
             ImExpr right = translateWithExpectedType(unary.getRight(), t, f, expectedType);
             ImExpr translated = ImOperatorCall(unary.getOpU(), ImExprs(right));
             return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
@@ -1043,13 +1025,12 @@ public class ExprTranslation {
     }
 
     private static boolean isAlreadyTypeAssured(ImExpr translated, ImTranslator t) {
-        if (translated instanceof ImFunctionCall) {
-            ImFunction function = ((ImFunctionCall) translated).getFunc();
+        if (translated instanceof ImFunctionCall imFunctionCall) {
+            ImFunction function = imFunctionCall.getFunc();
             return function == t.ensureIntFunc || function == t.ensureRealFunc
                 || function == t.ensureStrFunc || function == t.ensureBoolFunc;
         }
-        if (translated instanceof ImOperatorCall) {
-            ImOperatorCall operator = (ImOperatorCall) translated;
+        if (translated instanceof ImOperatorCall operator) {
             return operator.getOp() == WurstOperator.EQ
                 && operator.getArguments().size() == 2
                 && operator.getArguments().get(1) instanceof ImBoolVal
@@ -1080,14 +1061,13 @@ public class ExprTranslation {
             // should only happen with gg_ variables
             throw new CompileError(e.getSource(), "Translation Error: Could not find definition of " + e.getVarName() + ".");
         }
-        if (decl instanceof VarDef) {
-            VarDef varDef = (VarDef) decl;
+        if (decl instanceof VarDef varDef) {
 
             ImVar v = t.getVarFor(varDef);
             NameLink link = e.attrNameLink();
-            @Nullable FuncLink indexGetOverload = (link == null || !(e instanceof NameRef))
+            @Nullable FuncLink indexGetOverload = (link == null || !(e instanceof NameRef nameRef))
                     ? null
-                    : getIndexGetOverload((NameRef) e, link);
+                    : getIndexGetOverload(nameRef, link);
 
             if (e.attrImplicitParameter() instanceof Expr) {
                 // we have implicit parameter
@@ -1096,8 +1076,7 @@ public class ExprTranslation {
 
                 if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
                     WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
-                    if (e instanceof ExprMemberVar && ((ExprMemberVar) e).getLeft() instanceof LExpr) {
-                        ExprMemberVar emv = (ExprMemberVar) e;
+                    if (e instanceof ExprMemberVar emv && emv.getLeft() instanceof LExpr) {
                         LExpr left = (LExpr) emv.getLeft();
                         ImLExpr lt = left.imTranslateExprLvalue(t, f);
                         return JassIm.ImTupleSelection(lt, tupleType.getTupleIndex(varDef));
@@ -1106,12 +1085,12 @@ public class ExprTranslation {
                     }
                 }
 
-                if (e instanceof AstElementWithIndexes) {
+                if (e instanceof AstElementWithIndexes astElementWithIndexes) {
                     if (indexGetOverload != null) {
                         throw new CompileError(e.getSource(), "Cannot assign to overloaded [] access without " + AttrFuncDef.overloadingIndexSet + ".");
                     }
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
-                    ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
+                    ImExpr index2 = astElementWithIndexes.getIndexes().get(0).imTranslateExpr(t, f);
                     return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
 
                 } else {
@@ -1120,12 +1099,11 @@ public class ExprTranslation {
                 }
             } else {
                 // direct var access
-                if (e instanceof AstElementWithIndexes) {
+                if (e instanceof AstElementWithIndexes withIndexes) {
                     if (indexGetOverload != null) {
                         throw new CompileError(e.getSource(), "Cannot assign to overloaded [] access without " + AttrFuncDef.overloadingIndexSet + ".");
                     }
                     // direct access array var
-                    AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
                     if (withIndexes.getIndexes().size() > 1) {
                         throw new CompileError(e.getSource(), "More than one index is not supported.");
                     }
@@ -1153,10 +1131,9 @@ public class ExprTranslation {
     }
 
     private static @Nullable FuncLink getIndexGetOverload(NameRef e, NameLink link) {
-        if (!(e instanceof AstElementWithIndexes)) {
+        if (!(e instanceof AstElementWithIndexes withIndexes)) {
             return null;
         }
-        AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
         if (withIndexes.getIndexes().size() != 1) {
             return null;
         }

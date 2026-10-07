@@ -75,8 +75,7 @@ public class ClosureTranslator {
 
     private void callSuperConstructor(ImVar clVar, ImStmts stmts, ImClass c) {
         WurstType t = e.attrExpectedTypAfterOverloading();
-        if (t instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) t;
+        if (t instanceof WurstTypeClass ct) {
             ClassDef cd = ct.getClassDef();
 
             for (ConstructorDef constr : cd.getConstructors()) {
@@ -412,8 +411,7 @@ public class ClosureTranslator {
         // in instance methods, the first parameter is typically "this"
         for (ImVar p : f.getParameters()) {
             ImType t = p.getType();
-            if (t instanceof ImClassType) {
-                ImClassType ct = (ImClassType) t;
+            if (t instanceof ImClassType ct) {
                 if (ct.getClassDef() == owner) {
                     return p;
                 }
@@ -451,10 +449,9 @@ public class ClosureTranslator {
     }
 
     private boolean isLocalToOtherFunc(ImLExpr e) {
-        if (e instanceof ImVarAccess) {
-            return isLocalToOtherFunc(((ImVarAccess) e).getVar());
-        } else if (e instanceof ImTupleSelection) {
-            ImTupleSelection ts = (ImTupleSelection) e;
+        if (e instanceof ImVarAccess imVarAccess) {
+            return isLocalToOtherFunc(imVarAccess.getVar());
+        } else if (e instanceof ImTupleSelection ts) {
             return isLocalToOtherFunc((ImLExpr) ts.getTupleExpr());
         }
         return false;

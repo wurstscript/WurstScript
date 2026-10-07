@@ -26,8 +26,7 @@ public class AttrPossibleFunctionSignatures {
             FunctionSignature sig = FunctionSignature.fromNameLink(f);
 
             OptExpr implicitParameterOpt = AttrImplicitParameter.getFunctionCallImplicitParameter(fc, f, false);
-            if (implicitParameterOpt instanceof Expr) {
-                Expr expr = (Expr) implicitParameterOpt;
+            if (implicitParameterOpt instanceof Expr expr) {
                 VariableBinding mapping = expr.attrTyp().matchAgainstSupertype(sig.getReceiverType(), fc, sig.getMapping(), VariablePosition.RIGHT);
                 if (mapping == null) {
                     // TODO error message? Or just ignore wrong parameter type?
@@ -344,11 +343,10 @@ public class AttrPossibleFunctionSignatures {
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {
         TypeDef typeDef = fc.attrTypeDef();
-        if (!(typeDef instanceof ClassDef)) {
+        if (!(typeDef instanceof ClassDef classDef)) {
             return ImmutableList.of();
         }
 
-        ClassDef classDef = (ClassDef) typeDef;
 
         List<ConstructorDef> constructors = classDef.getConstructors();
 

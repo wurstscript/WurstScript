@@ -17,7 +17,7 @@ public final class FlattenAttributes {
         // Recurse shallowly
         for (int i = 0, n = rhs.size(); i < n; i++) {
             Element child = rhs.get(i);
-            if (child instanceof ImExpr && rhsWouldEmitStatements((ImExpr) child)) return true;
+            if (child instanceof ImExpr imExpr && rhsWouldEmitStatements(imExpr)) return true;
         }
         return false;
     }

@@ -21,9 +21,9 @@ public class LuaPrinter {
     public static void print(LuaCompilationUnit cu, StringBuilder sb, int indent) {
         boolean statementBlock = false;
         for (LuaStatement d : cu) {
-            if (d instanceof LuaVariable) {
+            if (d instanceof LuaVariable luaVariable) {
                 // don't translate global variables as locals:
-                printVariable((LuaVariable) d, sb, indent);
+                printVariable(luaVariable, sb, indent);
                 sb.append("\n");
                 statementBlock = true;
             } else if(d instanceof LuaAssignment) {

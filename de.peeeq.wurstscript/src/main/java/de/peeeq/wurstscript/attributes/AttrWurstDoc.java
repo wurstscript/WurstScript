@@ -21,8 +21,7 @@ public class AttrWurstDoc {
             HasModifier HasModifier) {
         Modifiers modifiers = HasModifier.getModifiers();
         for (Modifier m : modifiers) {
-            if (m instanceof WurstDoc) {
-                WurstDoc wurstDoc = (WurstDoc) m;
+            if (m instanceof WurstDoc wurstDoc) {
                 return comment(wurstDoc);
             }
         }

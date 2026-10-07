@@ -82,8 +82,7 @@ public class ImAttrType {
     }
 
     private static boolean typeReal(ImType t) {
-        if (t instanceof ImSimpleType) {
-            ImSimpleType st = (ImSimpleType) t;
+        if (t instanceof ImSimpleType st) {
             return st.getTypename().equals("real");
         }
         return false;
@@ -116,11 +115,9 @@ public class ImAttrType {
 
     public static ImType getType(ImVarArrayAccess e) {
         ImType ar = e.getVar().getType();
-        if (ar instanceof ImArrayType) {
-            ImArrayType t = (ImArrayType) ar;
+        if (ar instanceof ImArrayType t) {
             return t.getEntryType();
-        } else if (ar instanceof ImArrayTypeMulti) {
-            ImArrayTypeMulti t = (ImArrayTypeMulti) ar;
+        } else if (ar instanceof ImArrayTypeMulti t) {
             return t.getEntryType();
         }
         return ar;
@@ -142,8 +139,7 @@ public class ImAttrType {
         ImType returnType = mc.getMethod().getImplementation().getReturnType();
         returnType = substituteType(returnType, mc.getTypeArguments(), mc.getMethod().getImplementation().getTypeVariables());
         ImType rt = mc.getReceiver().attrTyp();
-        if (rt instanceof ImClassType) {
-            ImClassType ct = (ImClassType) rt;
+        if (rt instanceof ImClassType ct) {
             returnType = substituteType(returnType, ct.getTypeArguments(), ct.getClassDef().getTypeVariables());
         }
         return returnType;
@@ -152,8 +148,7 @@ public class ImAttrType {
     public static ImType getType(ImMemberAccess e) {
         ImType t = e.getVar().getType();
         ImType receiverType1 = e.getReceiver().attrTyp();
-        if (receiverType1 instanceof ImClassType) {
-            ImClassType receiverType = (ImClassType) receiverType1;
+        if (receiverType1 instanceof ImClassType receiverType) {
             ImTypeArguments typeArgs = e.getTypeArguments();
             try {
                 if (typeArgs.isEmpty()) {

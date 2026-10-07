@@ -48,8 +48,8 @@ public class TypeId {
             return "global";
         }
         @Nullable PackageOrGlobal nearestPackage = c.attrNearestPackage();
-        if (nearestPackage instanceof WPackage) {
-            return ((WPackage) nearestPackage).getName();
+        if (nearestPackage instanceof WPackage wPackage) {
+            return wPackage.getName();
         }
         return "global";
     }

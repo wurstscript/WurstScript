@@ -26,8 +26,8 @@ public class ModuleExpander {
 
     private static void expandModules(WPackage p) {
         for (WEntity e : p.getElements()) {
-            if (e instanceof ClassOrModule) {
-                expandModules((ClassOrModule) e);
+            if (e instanceof ClassOrModule classOrModule) {
+                expandModules(classOrModule);
             }
         }
     }
@@ -151,8 +151,7 @@ public class ModuleExpander {
     }
 
     private static void calcReplacementsByPath(List<Pair<WurstType, WurstType>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, Element e, ImmutableList<Integer> pos) {
-        if (e instanceof TypeExpr) {
-            TypeExpr typeExpr = (TypeExpr) e;
+        if (e instanceof TypeExpr typeExpr) {
             for (Pair<WurstType, WurstType> rep : typeReplacements) {
                 if (typeExpr.attrTyp().equalsType(rep.getA(), e)) {
                     WPos source = typeExpr.getSource();

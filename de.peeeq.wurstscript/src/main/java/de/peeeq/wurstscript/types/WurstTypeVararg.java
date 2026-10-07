@@ -21,8 +21,7 @@ public class WurstTypeVararg extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstTypeVararg) {
-            WurstTypeVararg otherArray = (WurstTypeVararg) other;
+        if (other instanceof WurstTypeVararg otherArray) {
             return baseType.matchTypes(otherArray.baseType, location, mapping, variablePosition);
         }
         return null;
