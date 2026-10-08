@@ -1114,13 +1114,26 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         }
     }
 
-    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Succeed function not called.*")
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Lua testFail was called.*")
     public void stdlibTestFailAbortsBeforeTestSuccess() {
         test().testLua(true).withStdLib().executeProg().lines(
             "package Test",
             "import Wurstunit",
             "init",
             "    testFail(\"intentional assertion failure\")",
+            "    testSuccess()");
+    }
+
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Lua testFail was called.*")
+    public void stdlibTestFailInCallbackPreventsLaterTestSuccess() {
+        test().testLua(true).withStdLib().inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "@extern native pcall(code callback) returns bool",
+            "function failingCallback()",
+            "    testFail(\"intentional callback assertion failure\")",
+            "init",
+            "    pcall(function failingCallback)",
             "    testSuccess()");
     }
 

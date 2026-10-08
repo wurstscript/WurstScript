@@ -665,9 +665,9 @@ public class WurstScriptTest {
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
                 chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
-                // The stdlib's compile-time native has an empty runtime body too. A failed
-                // assertion must abort its test before a later testSuccess can report success.
-                chunk.append("testFail = function(message) error(message, 0) end;");
+                // Callback adapters can consume the error. Record an independent failure signal
+                // before raising it so a later testSuccess cannot make the Java harness pass.
+                chunk.append("testFail = function(message) print('__wurst_testFail'); error(message, 0) end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -696,6 +696,9 @@ public class WurstScriptTest {
                     throw new TestFailException(errors.toString());
                 }
 
+                if (output.toString().lines().anyMatch("__wurst_testFail"::equals)) {
+                    throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
+                }
                 if (!sawTestSuccess.get()) {
                     throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);
                 }
