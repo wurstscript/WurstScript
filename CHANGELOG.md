@@ -1,5 +1,13 @@
 ## 1.9 (in progress)
 
+- The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
+  slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
+  base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive
+  (`jlink --generate-cds-archive`) and fails when the runtime has none, and the dead archive task and its
+  `-languageServerAppCdsTrain` option are gone. With wurst4vscode starting the server with an archive of its own
+  (written next to the compiler jar when the first session ends), the language server of a small project is ready
+  after 3.7 s instead of 4.4 s, and castle fight after 17.3 s instead of 19.0 s (medians of four starts).
+
 - The language server checks every file it was meant to check. A check which cannot start, because an import
   does not resolve, used to forget the files it was planned for. A file edited in the meantime then got no
   diagnostics once the import was fixed, since nothing it imports had changed. Those files are kept and checked

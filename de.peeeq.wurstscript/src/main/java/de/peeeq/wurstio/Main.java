@@ -76,11 +76,6 @@ public class Main {
                 return;
             }
 
-            if (runArgs.isLanguageServerAppCdsTrain()) {
-                LanguageServerStarter.trainForAppCds();
-                return;
-            }
-
             if (runArgs.isLanguageServer()) {
                 LanguageServerStarter.start();
                 return;

@@ -152,6 +152,15 @@ This repository has multiple entry points that may trigger compilation/build beh
 * Model-dependent requests, including formatting, must use `LanguageWorker.handle` so progress negotiation, initialization, and the initial build complete before model access. Formatting keeps duplicate requests because separate documents must each receive an answer.
 * Run `InitialBuildProgressTest` and `LanguageWorkerTest` for startup changes; the extension's opt-in `scripts/test-lsp-readiness.js <compiler.jar>` verifies the actual stdio protocol.
 
+### Language server startup archive
+
+wurst4vscode starts the server with `-XX:+AutoCreateSharedArchive`: the JVM writes an AppCDS archive next to the
+compiler jar when the first session ends, and the sessions after it start from it. That archive sits on the
+runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-archive`; macOS copies a full JDK, which
+has one) and `assembleSlimCompilerDist` checks for. Without it the JVM silently runs without any archive, which is
+how the earlier attempt went unnoticed. The extension passes `-Xlog:disable` because the JVM reports archive trouble
+on stdout, which is the protocol stream: never print anything of your own there.
+
 ### Build-map pipeline (centralized)
 
 Map build behavior is centralized in:
