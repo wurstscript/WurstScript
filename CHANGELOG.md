@@ -1,5 +1,19 @@
 ## 1.9 (in progress)
 
+- The language server checks every file it was meant to check. A check which cannot start, because an import
+  does not resolve, used to forget the files it was planned for. A file edited in the meantime then got no
+  diagnostics once the import was fixed, since nothing it imports had changed. Those files are kept and checked
+  with the next check. Deleting one of two definitions of a package now also checks the other, which kept
+  its "defined multiple times" error. Editing a config package (`Foo_config`) now checks the package it
+  configures and everything importing that, which kept calling the function the config package used to
+  define until one of them was edited itself. The alternatives listed by a "call is ambiguous" error are sorted, where
+  they used to follow the order the files were loaded in.
+
+- Running a map no longer type checks again a model which the language server has checked completely and which
+  has not changed since. On castle fight without optimisations, building the same model again in one process took
+  14.6 and 12.6 s and takes 12.3 and 10.7 s, the script unchanged byte for byte. The first build of a model
+  still checks it, because it replaces the map script in the model with the one the project config was applied to.
+
 - The same source now compiles to the same script however the identity hashes of the compiler's syntax nodes
   happen to fall. A class which gets a function from a module and implements an interface declaring the same
   function made calls like `value.write(x)` bind to the module's implementation or to the interface's

@@ -143,10 +143,18 @@ public final class GlobalCaches {
      * Call this between tests (and after each compile)
      */
     public static void clearAll() {
-        LOCAL_STATE_CACHE.clear();
-        LOCAL_STATE_NOARG_CACHE.clear();
+        clearInterpreterCaches();
         lookupCache.clear();
         HasAnnotation.clearCaches();
+    }
+
+    /**
+     * The results the interpreter cached for native functions. They are keyed by the functions of one
+     * compilation's IM program, which nothing may keep alive after that compilation.
+     */
+    public static void clearInterpreterCaches() {
+        LOCAL_STATE_CACHE.clear();
+        LOCAL_STATE_NOARG_CACHE.clear();
     }
 
     /**

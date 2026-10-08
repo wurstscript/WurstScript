@@ -6,6 +6,26 @@ Notes; finished-work narrative does not.
 
 ## Open
 
+- **One model for run and build.** Run and build keep two ways to compile (`SafetyLevel`: the managed
+  model as it is, or a clean, rebuild and copy) because the incremental model was not trusted to be
+  complete. `IncrementalModelOracleTests` compares the model after random edits with a build from
+  scratch (`INCREMENTAL_ORACLE_SEEDS=100` runs 100 seeds) and found two propagation gaps, both fixed.
+  What is left: a `.j` change makes `calculateCUsToUpdate` return the whole model, and a compilation
+  swaps the map script with the project config applied into the model (`replaceBaseScriptWithConfig`).
+  The swap changes only function bodies (`config`, `InitCustomPlayerSlots`, ...) yet invalidates every
+  attribute, so the first compilation of a model checks all of it again; later ones skip the check. The
+  swap's own cost was not isolated: on castle fight without optimisations the first build of a model
+  takes 21 s and later ones 11 to 12 s in one JVM, and the stage samples show most of the difference
+  in passes the swap does not touch, so JIT warm-up. Next, in this order: feed the config-applied script
+  to the model before its first check (so the CLI checks once); keep the unchanged top-level
+  declarations of a changed Jass file and re-check only the units which mention a changed name; then
+  drop `SafetyLevel` (purging unimported units from the managed model in `compileMap` changes it for the
+  next run, and a build could compare file hashes instead of cleaning). Run and build both read the
+  open editor buffers today (`readCompilationUnitContents` prefers an open buffer, also in the rebuild after
+  `clean()`), so a build can contain text which is not on disk, while grill reads the disk. wurst4vscode
+  sends `wurst.buildmap` and `wurst.startmap` without saving the open files first. Whether a build should
+  save first, or refuse unsaved files, is open.
+
 - **A dead dispatch slot survives for overloads inside a specialised class.** Two overloads of one
   source method share a declared name, so a specialised class holding only overloads still composes
   one shared slot and binds it to whichever is reached first. Nothing calls it. A fix needs an

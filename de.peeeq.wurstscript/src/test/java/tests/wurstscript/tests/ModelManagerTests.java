@@ -7,6 +7,7 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
@@ -32,12 +33,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
@@ -1404,6 +1407,212 @@ public class ModelManagerTests {
         if (!didFindString.get()) throw new AssertionError("Did not find call to next() returning string.");
     }
 
+    /**
+     * A check which stops before it validates anything (an import which does not resolve) must not lose
+     * the files it was meant to check: once the import is fixed, their errors have to show up.
+     */
+    @Test
+    public void filesEditedWhileAnImportDoesNotResolveAreCheckedOnceItDoes() throws IOException {
+        File projectFolder = new File("./temp/testProject_uncheckedFiles/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
 
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileBroken = WFile.create(new File(wurstFolder, "Broken.wurst"));
+        WFile fileC = WFile.create(new File(wurstFolder, "C.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileBroken, "package Broken\n");
+        writeFile(fileC, string("package C", "public function c() returns int", "    return 1", ""));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> results = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertEquals(results.get(fileC), "");
+
+        // an import which does not resolve: nothing gets validated from now on
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileBroken, "package Broken\nimport Missing\n");
+        manager.reconcile(changes);
+        assertThat(results.get(fileBroken), containsString("severity = Error"));
+
+        // C gets an error meanwhile, which cannot be reported yet
+        changes = manager.syncCompilationUnitContent(fileC,
+            string("package C", "public function c() returns int", "    return \"text\"", ""));
+        manager.reconcile(changes);
+        assertFalse(manager.isFullyChecked(manager.getModel()));
+
+        // fixing the import must check C as well, which no dependency leads to
+        changes = manager.syncCompilationUnitContent(fileBroken, "package Broken\n");
+        manager.reconcile(changes);
+        assertThat(results.get(fileC), containsString("severity = Error"));
+        assertTrue(manager.isFullyChecked(manager.getModel()));
+    }
+
+    @Test
+    public void theManagerKnowsWhetherItsModelIsChecked() throws IOException {
+        File projectFolder = new File("./temp/testProject_checkedState/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        String packageB = string("package B", "public function b() returns int", "    return 1", "");
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileA, string("package A", "import B", "public function a() returns int", "    return b()", ""));
+        writeFile(fileB, packageB);
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        assertFalse(manager.isFullyChecked(manager.getModel()), "nothing is built yet");
+        manager.buildProject();
+        WurstModel model = manager.getModel();
+        assertTrue(manager.isFullyChecked(model), "a build checks everything");
+        assertFalse(manager.isFullyChecked(ModelManager.copy(model)), "a copy was not checked by the manager");
+
+        // a change is unchecked until it is reconciled
+        String changedB = packageB + "// changed\n";
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileB, changedB);
+        assertFalse(manager.isFullyChecked(model));
+        manager.reconcile(changes);
+        assertTrue(manager.isFullyChecked(model));
+
+        // the same content again is no change
+        assertTrue(manager.syncCompilationUnitContent(fileB, changedB).isEmpty());
+        assertTrue(manager.isFullyChecked(model));
+
+        // A imports what is gone: the check cannot validate, so the model is not checked
+        changes = manager.removeCompilationUnit(fileB);
+        assertFalse(manager.isFullyChecked(model));
+        manager.reconcile(changes);
+        assertFalse(manager.isFullyChecked(model));
+        changes = manager.syncCompilationUnitContent(fileB, packageB);
+        manager.reconcile(changes);
+        assertTrue(manager.isFullyChecked(model));
+
+        // what is purged may have been used by what is left
+        manager.retainCompilationUnits(model, cu -> !cu.getCuInfo().getFile().endsWith("B.wurst"));
+        assertFalse(manager.isFullyChecked(model));
+    }
+
+    @Test
+    public void aCompilationDoesNotCheckAModelThatIsAlreadyChecked() throws IOException {
+        File projectFolder = new File("./temp/testProject_compileSkipsCheck/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        String packageA = string("package A", "public function a() returns int", "    return 1", "");
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileA, packageA);
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        GlobalCaches.LOCAL_STATE_NOARG_CACHE.put("left over from an earlier compilation", null);
+        assertEquals(checksWhenCompiling(projectFolder, manager), 0, "nothing changed since the build");
+        assertTrue(GlobalCaches.LOCAL_STATE_NOARG_CACHE.isEmpty(), "the interpreter caches of the last compilation go");
+
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileA, packageA + "// changed\n");
+        manager.reconcile(changes);
+        assertEquals(checksWhenCompiling(projectFolder, manager), 0, "the change was checked by reconcile");
+
+        manager.syncCompilationUnitContent(fileA, packageA + "// changed again\n");
+        assertEquals(checksWhenCompiling(projectFolder, manager), 1, "the change was not checked yet");
+        assertEquals(checksWhenCompiling(projectFolder, manager), 0, "the compilation checked it");
+    }
+
+    /** The other definition of a package is not an importer of it, but it reports the duplicate. */
+    @Test
+    public void deletingOneDefinitionOfAPackageClearsTheErrorOfTheOther() throws IOException {
+        File projectFolder = new File("./temp/testProject_duplicatePackageDelete/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        newCleanFolder(new File(wurstFolder, "first"));
+        newCleanFolder(new File(wurstFolder, "second"));
+        WFile fileFirst = WFile.create(new File(wurstFolder, "first/Dup.wurst"));
+        WFile fileSecond = WFile.create(new File(wurstFolder, "second/Dup.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileFirst, "package Dup\n");
+        writeFile(fileSecond, "package Dup\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> results = keepErrorsInMap(manager);
+        manager.buildProject();
+        String allErrors = String.join("\n", results.values());
+        assertThat(allErrors, containsString("Package 'Dup' is defined multiple times."));
+
+        manager.reconcile(manager.removeCompilationUnit(fileFirst));
+
+        assertEquals(results.get(fileSecond), "", "the package is defined once now");
+    }
+
+    /**
+     * A config package replaces functions of the package it configures, which nothing imports it for:
+     * the package, and what imports the package, have to follow when only the config package changes.
+     */
+    @Test
+    public void editingAConfigPackageChecksThePackageItConfiguresAndItsImporters() throws IOException {
+        File projectFolder = new File("./temp/testProject_configPackage/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileFoo = WFile.create(new File(wurstFolder, "Foo.wurst"));
+        WFile fileFooConfig = WFile.create(new File(wurstFolder, "Foo_config.wurst"));
+        WFile fileBar = WFile.create(new File(wurstFolder, "Bar.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileFoo, string("package Foo", "public function foo() returns int", "    return 1", ""));
+        writeFile(fileBar, string("package Bar", "import Foo", "init", "    BJDebugMsg(I2S(foo()))", ""));
+        String configured = string("package Foo_config", "@config public function foo() returns int", "    return %s", "");
+        writeFile(fileFooConfig, String.format(configured, 4711));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        String before = luaOf(projectFolder, manager);
+        assertThat(before, containsString("4711"));
+
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileFooConfig, String.format(configured, 4712));
+        manager.reconcile(changes);
+
+        String after = luaOf(projectFolder, manager);
+        assertThat(after, containsString("4712"));
+        assertThat(after, new IsNot<>(containsString("4711")));
+    }
+
+    /** The Lua of a compilation of the managed model, checked the way a run checks it. */
+    private String luaOf(File projectFolder, ModelManagerImpl manager) {
+        WurstGui gui = new WurstGuiLogger();
+        RunArgs runArgs = new RunArgs("-lua");
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        WurstModel model = manager.getModel();
+        MapRequest.checkModel(manager, compiler, model, runArgs);
+        compiler.translateProgToIm(model);
+        assertEquals(gui.getErrorCount(), 0, "errors: " + gui.getErrorList());
+        StringBuilder sb = new StringBuilder();
+        compiler.transformProgToLua().print(sb, 0);
+        return sb.toString();
+    }
+
+    /** How often a compilation checks the model of the manager. */
+    private int checksWhenCompiling(File projectFolder, ModelManagerImpl manager) {
+        AtomicInteger checks = new AtomicInteger();
+        WurstGui gui = new WurstGuiLogger() {
+            @Override
+            public void sendProgress(String whatsRunningNow) {
+                if ("Checking Files".equals(whatsRunningNow)) {
+                    checks.incrementAndGet();
+                }
+            }
+        };
+        RunArgs runArgs = new RunArgs(java.util.Collections.emptyList());
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        WurstModel model = manager.getModel();
+        MapRequest.checkModel(manager, compiler, model, runArgs);
+        compiler.translateProgToIm(model);
+        assertEquals(gui.getErrorCount(), 0, "errors: " + gui.getErrorList());
+        return checks.get();
+    }
 
 }
