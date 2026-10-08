@@ -5,9 +5,10 @@
   function made calls like `value.write(x)` bind to the module's implementation or to the interface's
   declaration according to the order of a hash set, so one build had a direct call where the next had a
   dispatched one, and the two scripts held a different number of functions. The call now always binds to the
-  implementation, as the type checker already resolved it, and the candidate functions of a class, the
-  subclasses of a class and the classes implementing an interface are kept in declaration order instead of hash
-  order, which fixes the order of each method's sub-methods.
+  implementation, as the type checker already resolved it, and the candidate functions of a class are kept in
+  declaration order instead of hash order. The subclasses of a class and the classes implementing an interface,
+  which fix the order of each method's sub-methods, are ordered by package, name and source position, so neither
+  hash order nor the order the compilation units arrive in decides them.
 
 - The bundled pjass is updated on all three platforms to lep/pjass master (`378a1ca`) plus its `--each` option
   (lep/pjass#20). Windows had a December 2022 build and Linux and macOS a January 2019 one, so the three did not

@@ -1826,13 +1826,29 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         // Insertion order, not hash order: the classes of one interface become the sub-methods of its
         // methods in this order, which the backends bind dispatch slots in.
         interfaceInstances = LinkedHashMultimap.create();
+        List<ClassDef> allClasses = new ArrayList<>();
         for (CompilationUnit cu : wurstProg) {
-            for (ClassDef c : cu.attrGetByType().classes) {
-                for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
-                    interfaceInstances.put(i.getDef(), c);
-                }
+            allClasses.addAll(cu.attrGetByType().classes);
+        }
+        for (ClassDef c : inStableOrder(allClasses)) {
+            for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
+                interfaceInstances.put(i.getDef(), c);
             }
         }
+    }
+
+    /**
+     * The classes ordered by package and name, then by source position. The compilation units reach the
+     * compiler in the order the files were found, so the order of the units must not decide the order
+     * of sibling classes, which becomes the order of sub-methods and with it the dispatch slots.
+     */
+    private List<ClassDef> inStableOrder(List<ClassDef> classes) {
+        List<ClassDef> result = new ArrayList<>(classes);
+        result.sort(Comparator
+            .comparing((ClassDef c) -> getScopePrefix(c))
+            .thenComparingInt((ClassDef c) -> c.attrSource().getLine())
+            .thenComparingInt((ClassDef c) -> c.attrSource().getStartColumn()));
+        return result;
     }
 
 
@@ -1873,6 +1889,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     /**
      * calculates list of all classes
      * ignoring the ones in modules, only module instantiations
+     * in a stable order, see {@link #inStableOrder}
      */
     private List<ClassDef> classes() {
         List<ClassDef> result = new ArrayList<>();
@@ -1885,8 +1902,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 }
             }
         }
-        return result;
-
+        return inStableOrder(result);
     }
 
     private void classesAdd(List<ClassDef> result, ClassOrModuleInstanciation c) {

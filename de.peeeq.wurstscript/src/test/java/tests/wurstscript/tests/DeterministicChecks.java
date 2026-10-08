@@ -363,6 +363,10 @@ public class DeterministicChecks extends WurstScriptTest {
             lines.add("        return " + i);
         }
         CompilationResult res = test().setStopOnFirstError(false).executeProg(false).lines(lines.toArray(new String[0]));
+        return subMethodOrder(res);
+    }
+
+    private List<String> subMethodOrder(CompilationResult res) {
         ImProg prog = new ImTranslator(res.getModel(), false, new RunArgs()).translateProg();
         List<String> order = new ArrayList<>();
         for (ImClass c : prog.getClasses()) {
@@ -375,6 +379,44 @@ public class DeterministicChecks extends WurstScriptTest {
         }
         assertTrue(order.size() >= 2, "expected sub-methods for Shape.area and Base.size: " + order);
         return order;
+    }
+
+    /**
+     * Sibling implementors and subclasses which live in different compilation units are ordered by
+     * their package, name and position, not by the order the units were handed to the compiler: the
+     * sub-methods of a method, which the backends bind dispatch slots in, come out the same.
+     */
+    @Test
+    public void subMethodOrderDoesNotDependOnCompilationUnitOrder() {
+        CU shapes = compilationUnit("PkgShape.wurst",
+            "package PkgShape",
+            "public interface Shape",
+            "    function area() returns int",
+            "public class Base",
+            "    function size() returns int",
+            "        return 0");
+        List<CU> siblings = new ArrayList<>();
+        for (int i = 1; i <= 4; i++) {
+            siblings.add(compilationUnit("PkgS" + i + ".wurst",
+                "package PkgS" + i,
+                "import PkgShape",
+                "public class Shape" + i + " implements Shape",
+                "    override function area() returns int",
+                "        return " + i,
+                "public class Derived" + i + " extends Base",
+                "    override function size() returns int",
+                "        return " + i));
+        }
+        List<CU> forward = new ArrayList<>();
+        forward.add(shapes);
+        forward.addAll(siblings);
+        List<CU> shuffled = new ArrayList<>(List.of(siblings.get(3), siblings.get(1), shapes, siblings.get(2), siblings.get(0)));
+
+        List<String> inOrder = subMethodOrder(test().setStopOnFirstError(false).executeProg(false)
+            .compilationUnits(forward.toArray(new CU[0])));
+        List<String> reordered = subMethodOrder(test().setStopOnFirstError(false).executeProg(false)
+            .compilationUnits(shuffled.toArray(new CU[0])));
+        assertEquals(reordered, inOrder, "sub-method order must not depend on the order of the compilation units");
     }
 
     @Test
