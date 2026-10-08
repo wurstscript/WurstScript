@@ -1037,6 +1037,224 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_oldGenericsToInt") || compiled.contains("__wurst_oldGenericsFromInt"));
     }
 
+    @Test
+    public void oldGenericHashMapKeysWithoutOptimizations() throws IOException {
+        checkOldGenericHashMapKeys(false, false);
+    }
+
+    @Test
+    public void oldGenericHashMapKeysWithInlining() throws IOException {
+        checkOldGenericHashMapKeys(true, false);
+    }
+
+    @Test
+    public void oldGenericHashMapKeysWithLocalOptimizations() throws IOException {
+        checkOldGenericHashMapKeys(false, true);
+    }
+
+    @Test
+    public void oldGenericHashMapKeysWithInliningAndLocalOptimizations() throws IOException {
+        checkOldGenericHashMapKeys(true, true);
+    }
+
+    private void checkOldGenericHashMapKeys(boolean inline, boolean localOptimizations) throws IOException {
+        String testName = "oldGenericHashMapKeys_" + inline + "_" + localOptimizations;
+        // The baseline also runs the harness's Jass optimization matrix.
+        TestConfig config = testNamed(testName).testLua(true).luaOnly(inline || localOptimizations)
+            .withStdLib().executeProg();
+        if (inline) config.inline();
+        if (localOptimizations) config.localOptimizations();
+        String[] source = {
+            "package Test",
+            "import HashMap",
+            "@noinline function checkInt(HashMap<int, int> map, int key) returns bool",
+            "    map.put(key, 37)",
+            "    if not map.has(key) or map.get(key) != 37",
+            "        return false",
+            "    if map.getAndRemove(key) != 37 or map.has(key)",
+            "        return false",
+            "    map.put(key, 42)",
+            "    map.remove(key)",
+            "    return not map.has(key) and map.size() == 0",
+            "@noinline function checkUnit(HashMap<unit, int> map, unit key) returns bool",
+            "    map.put(key, 37)",
+            "    if not map.has(key) or map.get(key) != 37",
+            "        return false",
+            "    if map.getAndRemove(key) != 37 or map.has(key)",
+            "        return false",
+            "    map.put(key, 42)",
+            "    map.remove(key)",
+            "    return not map.has(key) and map.size() == 0",
+            "init",
+            "    let ints = new HashMap<int, int>()",
+            "    let units = new HashMap<unit, int>()",
+            "    unit u = null",
+            "    if checkInt(ints, 0) and checkInt(ints, 17) and checkInt(ints, -9) and checkUnit(units, u)",
+            "        testSuccess()"
+        };
+        config.lines(source);
+        String compiled = compiledLua(testName);
+        String intProbe = topLevelFunctionBodyWithPrefix(compiled, "checkInt");
+        assertFalse("integer keys must never enter the object registry:\n" + intProbe,
+            intProbe.contains("__wurst_objectToIndex"));
+        String unitProbe = topLevelFunctionBodyWithPrefix(compiled, "checkUnit");
+        assertTrue("unit keys must still enter the object registry:\n" + unitProbe,
+            unitProbe.contains("__wurst_objectToIndex"));
+        if (inline) {
+            assertTrue("the regression must exercise an inlined hashtable probe:\n" + intProbe,
+                intProbe.contains("__wurst_HaveSavedInteger"));
+            assertTrue("an inlined integer key must retain the zero sentinel:\n" + intProbe,
+                intProbe.contains("== 0") && intProbe.contains("__wurst_oldGenericsZero"));
+            assertTrue("an inlined handle index must retain the zero sentinel:\n" + unitProbe,
+                unitProbe.contains("__wurst_oldGenericsZero"));
+        }
+        if (inline && localOptimizations) {
+            testNamed(testName).testLua(true).withStdLib().inline().localOptimizations().lines(source);
+            assertEquals("cast lowering must be deterministic", compiled, compiledLua(testName));
+        }
+    }
+
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Lua testFail was called.*")
+    public void stdlibTestFailAbortsBeforeTestSuccess() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "init",
+            "    testFail(\"intentional assertion failure\")",
+            "    testSuccess()");
+    }
+
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Lua testFail was called.*")
+    public void stdlibTestFailInCallbackPreventsLaterTestSuccess() {
+        test().testLua(true).withStdLib().inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "@extern native pcall(code callback) returns bool",
+            "function failingCallback()",
+            "    testFail(\"intentional callback assertion failure\")",
+            "init",
+            "    pcall(function failingCallback)",
+            "    testSuccess()");
+    }
+
+    /**
+     * The harness keeps only the first 64 KiB of what the program prints, so a failure which is
+     * reported after more output than that has to be recognised as it is printed, like a success.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Lua testFail was called.*")
+    public void stdlibTestFailAfterMoreOutputThanTheHarnessKeepsStillFails() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "@extern native pcall(code callback) returns bool",
+            "function failingCallback()",
+            "    for i = 1 to 6000",
+            "        print(\"padding which fills the output the harness is willing to keep\")",
+            "    testFail(\"intentional failure after a lot of output\")",
+            "init",
+            "    pcall(function failingCallback)",
+            "    testSuccess()");
+    }
+
+    /** Fixed-seed model checking also varies the expression substituted for an old-generic key. */
+    @Test
+    public void randomizedOldGenericMapOperationsMatchReferenceModel() {
+        List<String> source = new ArrayList<>(List.of(
+            "package Test", "import HashMap", "int reads = 0", "class Key"));
+        String[] types = {"int", "string", "bool", "real", "Key", "timer"};
+        String[][] keys = {
+            {"0", "17", "-9", "123456"},
+            {"\"\"", "\"a\"", "\"b\"", "\"other\""},
+            {"false", "true"},
+            {"0.", "0.5", "-0.5", "2."},
+            {"null", "new Key()", "new Key()", "new Key()"},
+            {"null", "CreateTimer()", "CreateTimer()", "CreateTimer()"}
+        };
+        long seed = 0xCA5701DL;
+        for (int domain = 0; domain < types.length; domain++) {
+            String type = types[domain];
+            String suffix = Integer.toString(domain);
+            source.add("class Holder" + suffix);
+            source.add("    " + type + " value");
+            source.add(type + " array keys" + suffix);
+            source.add("@noinline function read" + suffix + "(" + type + " value) returns " + type);
+            source.add("    reads++");
+            source.add("    return value");
+            source.add("@noinline function verify" + suffix + "(HashMap<" + type
+                + ", int> map, " + type + " key, int value, bool exists)");
+            source.add("    if map.has(key) != exists or map.get(key) != value");
+            source.add("        testFail(\"stored entry: seed " + seed + ", type " + type + "\")");
+            source.add("@noinline function exercise" + suffix + "()");
+            source.add("    let map = new HashMap<" + type + ", int>()");
+            source.add("    let holder = new Holder" + suffix + "()");
+            source.add("    let initialReads = reads");
+            for (int key = 0; key < keys[domain].length; key++) {
+                source.add("    keys" + suffix + "[" + key + "] = " + keys[domain][key]);
+            }
+            source.add("    " + type + " key = keys" + suffix + "[0]");
+            Random random = new Random(seed + domain);
+            Map<Integer, Integer> expected = new HashMap<>();
+            int reads = 0;
+            for (int step = 0; step < 32; step++) {
+                int key = random.nextInt(keys[domain].length);
+                source.add("    key = keys" + suffix + "[" + key + "]");
+                source.add("    holder.value = key");
+                int shape = random.nextInt(4);
+                String operand = switch (shape) {
+                    case 0 -> "key";
+                    case 1 -> "keys" + suffix + "[" + key + "]";
+                    case 2 -> "holder.value";
+                    default -> "read" + suffix + "(key)";
+                };
+                if (shape == 3) reads++;
+                String condition = null;
+                // Every operation occurs; the remaining choices and operand shapes are seeded.
+                switch (step % 5) {
+                    case 0 -> {
+                        int value = random.nextInt(7) - 3;
+                        source.add("    map.put(" + operand + ", " + value + ")");
+                        expected.put(key, value);
+                    }
+                    case 1 -> condition = "map.has(" + operand + ") != " + expected.containsKey(key);
+                    case 2 -> condition = "map.get(" + operand + ") != " + expected.getOrDefault(key, 0);
+                    case 3 -> {
+                        source.add("    map.remove(" + operand + ")");
+                        expected.remove(key);
+                    }
+                    case 4 -> {
+                        condition = "map.getAndRemove(" + operand + ") != " + expected.getOrDefault(key, 0);
+                        expected.remove(key);
+                    }
+                }
+                String context = "seed " + seed + ", type " + type + ", step " + step;
+                if (condition != null) {
+                    source.add("    if " + condition);
+                    source.add("        testFail(\"" + context + "\")");
+                }
+                source.add("    if map.size() != " + expected.size());
+                source.add("        testFail(\"size: " + context + "\")");
+                source.add("    verify" + suffix + "(map, key, " + expected.getOrDefault(key, 0)
+                    + ", " + expected.containsKey(key) + ")");
+            }
+            source.add("    if reads != initialReads + " + reads);
+            source.add("        testFail(\"operand evaluation count: " + type + "\")");
+            source.add("    destroy map");
+            source.add("    destroy holder");
+        }
+        source.add("init");
+        for (int domain = 0; domain < types.length; domain++) source.add("    exercise" + domain + "()");
+        source.add("    testSuccess()");
+        for (boolean inline : new boolean[]{false, true}) {
+            for (boolean local : new boolean[]{false, true}) {
+                TestConfig config = testNamed("randomizedOldGenericMaps_" + inline + "_" + local)
+                    .testLua(true).withStdLib().executeProg();
+                if (inline) config.inline();
+                if (local) config.localOptimizations();
+                config.lines(source.toArray(new String[0]));
+            }
+        }
+    }
+
     /** The round trip keeps every value, 0 and negative numbers included, and null stays null. */
     @Test
     public void oldGenericsIntRoundTripKeepsValuesAndNull() throws IOException {
@@ -1154,7 +1372,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /** Handles still round-trip: the call site indexes them, and the generic code keeps the index. */
     @Test
     public void oldGenericsHandleRoundTripKeepsIdentityAndNull() throws IOException {
-        test().testLua(true).withStdLib().executeProg().lines(
+        test().testLua(true).inline().localOptimizations().withStdLib().executeProg().lines(
             "package Test",
             "import TypeCasting",
             "int array slots",
