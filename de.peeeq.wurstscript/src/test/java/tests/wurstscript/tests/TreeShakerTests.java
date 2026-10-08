@@ -214,6 +214,95 @@ public class TreeShakerTests extends WurstScriptTest {
         test().executeProg().lines(RUNTIME_HELPERS);
     }
 
+    private static final String[] TYPE_CLASS_PROGRAM = {
+        "package test",
+        "native testSuccess()",
+        "interface ToIndex<T:>",
+        "    function toIndex(T x) returns int",
+        "class A",
+        "implements ToIndex<A>",
+        "    function toIndex(A x) returns int",
+        "        return 42",
+        "class Unused",
+        "implements ToIndex<Unused>",
+        "    function toIndex(Unused x) returns int",
+        "        return 7",
+        "function foo<Q: ToIndex>(Q x) returns int",
+        "    return Q.toIndex(x)",
+        "function neverCalled() returns int",
+        "    return 1",
+        "init",
+        "    if foo(new A) == 42",
+        "        testSuccess()"};
+
+    /**
+     * Before the generics are specialised nothing calls the implementation of a type class: the generic body
+     * dispatches through the binding which the call of {@code foo} carries in its type argument.
+     */
+    @Test
+    public void beforeTheGenericsTheBindingOfATypeArgumentKeepsItsImplementation() {
+        WurstCompilerJassImpl compiler = translate(true, TYPE_CLASS_PROGRAM);
+        Set<String> before = functionNames(compiler);
+        assertTrue(before.toString(), before.stream().filter(name -> name.contains("toIndex")).count() >= 2);
+
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+
+        Set<String> after = functionNames(compiler);
+        assertTrue("the implementation which the type argument binds stays: " + after,
+            after.stream().anyMatch(name -> name.contains("toIndex")));
+        assertFalse("what nothing calls goes: " + after, anyNameStartsWith(after, "neverCalled"));
+    }
+
+    @Test
+    public void typeClassDispatchRunsOnBothBackendsWithTheShake() {
+        test().testLua(true).luaOnly(false).executeProg().lines(TYPE_CLASS_PROGRAM);
+    }
+
+    private static final String[] GENERIC_NEW_PROGRAM = {
+        "package MagicFunctions",
+        "    @annotation function annotation()",
+        "    @annotation function compilerintrinsic()",
+        "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+        "        return null",
+        "endpackage",
+        "package Test",
+        "    import MagicFunctions",
+        "    native testSuccess()",
+        "    class State",
+        "        int value = 4",
+        "    class Unused",
+        "        int value = 9",
+        "    function make<T:>() returns T",
+        "        return wurstNewInstance<T>()",
+        "    function neverCalled() returns int",
+        "        return new Unused().value",
+        "    init",
+        "        State s = make<State>()",
+        "        if s.value == 4",
+        "            testSuccess()",
+        "endpackage"};
+
+    /**
+     * {@code wurstNewInstance<T>()} becomes a call of the function which constructs {@code T} when the generics are
+     * specialised, so before that nothing calls the function which constructs the class named by the type argument.
+     */
+    @Test
+    public void beforeTheGenericsAClassGivenAsATypeArgumentKeepsItsConstruction() {
+        WurstCompilerJassImpl compiler = translate(true, GENERIC_NEW_PROGRAM);
+        assertTrue(functionNames(compiler).toString(), functionNames(compiler).contains("new_State"));
+
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+
+        Set<String> after = functionNames(compiler);
+        assertTrue("the construction of State stays: " + after, after.contains("new_State"));
+        assertFalse("the construction of a class nothing names goes: " + after, after.contains("new_Unused"));
+    }
+
+    @Test
+    public void genericConstructionRunsOnBothBackendsWithTheShake() {
+        test().testLua(true).luaOnly(false).executeProg().lines(GENERIC_NEW_PROGRAM);
+    }
+
     @Test
     public void luaAndJassRunWithOverridesAndReferences() {
         String[] program = {

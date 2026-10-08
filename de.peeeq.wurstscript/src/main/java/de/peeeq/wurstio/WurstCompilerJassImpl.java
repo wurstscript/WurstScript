@@ -925,6 +925,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
+        // Before anything walks the whole program: the generics below, and the checks which decide whether they run.
+        beginPhase(2, "remove unreachable functions before generics");
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(getImTranslator());
+        timeTaker.endPhase();
         boolean specializeTupleValueTypes = containsTupleTypeArgument();
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
         if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes

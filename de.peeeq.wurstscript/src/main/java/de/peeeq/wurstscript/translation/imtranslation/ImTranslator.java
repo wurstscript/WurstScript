@@ -1910,6 +1910,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return function == genericNewMarker;
     }
 
+    /** The function which constructs with this constructor, if the program has one already: nothing is created. */
+    public @Nullable ImFunction constructNewFuncIfTranslated(ConstructorDef constr) {
+        return constrNewFuncs.get(constr);
+    }
+
     public ImFunction getConstructNewFunc(ConstructorDef constr) {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {

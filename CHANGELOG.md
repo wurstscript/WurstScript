@@ -1,12 +1,15 @@
 ## 1.9 (in progress)
 
-- The Lua build drops the functions nothing reaches right after the generics are specialised, and no longer after the
-  tuples are eliminated. The passes between the two (keyed tables, varargs, native lowering, local types, tuples)
-  used to walk four times the functions which end up in the script. The helper functions which these passes call
-  themselves are kept. The script is the same except for the order of generated globals and the numbers in
-  generated names, and the passes no longer report a problem in a function nothing calls. A warm castle fight build
-  without optimisations takes 9.3 s instead of 10.3 s, and the first one of a session 20.2 s instead of 21.7 s (medians
-  of three, interleaved, in one JVM per run, on Java 25).
+- The Lua build drops the functions nothing reaches before the generics are specialised and again after them, and no
+  longer only after the tuples are eliminated. The passes after it (keyed tables, varargs, native lowering, local
+  types, tuples) used to walk four times the functions which end up in the script, and the specialisation of generics
+  all of them. What a type argument binds (the implementations of a type class, the constructor of a class given to
+  `wurstNewInstance`) counts as reached, and so do the helper functions which the passes call themselves. The script is
+  the same except for the order of independent global initialisers and the numbers in generated names, and the passes no
+  longer report a problem in a function nothing calls. A warm castle fight build without optimisations takes 9.3 s
+  instead of 10.3 s, and the first one of a session 20.2 s instead of 21.7 s (medians of three, interleaved, in one
+  JVM per run, on Java 25); dropping the unreachable functions before the generics rather than after them takes
+  another 0.6 s off a warm build on Java 27 (10.0 s to 9.4 s).
 
 - A command line build (`-build`, used by grill) checks the project once. It used to check it after reading it, then
   swap in the map script with the project config applied, which invalidates everything the check computed, and check

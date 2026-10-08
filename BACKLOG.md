@@ -42,13 +42,12 @@ Notes; finished-work narrative does not.
 
 - **Shake the unreachable functions earlier.** Most of what a project imports is never called: on castle fight
   34,000 functions come out of the translation, specialising the generics makes it 43,000, and 10,500 reach the Lua
-  translation. The Lua pipeline now drops the unreachable ones (`TreeShaker`) right after the generics, so the
-  passes from keyed tables to tuples walk about a quarter of what they did; everything before it still walks
-  all of it: the translation (1.2 s of a warm run), the compile-time functions and the specialisation of generics
-  (1.2 s). Before the generics the reachability has to follow the type-class bindings of every type argument
-  (`ImTypeArgument.typeClassBinding`) and the constructors a `wurstNewInstance` names, and the methods of a
-  generic class which nothing calls have to leave the class, since a specialisation copies every method with its
-  body and a body which calls a removed function dangles. Better still, translate only what is reachable.
+  translation. The Lua pipeline now drops the unreachable ones (`TreeShaker`) before the generics and again after
+  them, so the passes from keyed tables to tuples walk about a quarter of what they did and the specialisation of
+  generics works on what is reachable (the reachability follows the type-class bindings of every type argument and
+  the constructor of a class given as a type argument, which `wurstNewInstance` becomes a call of). What still
+  walks all of it: the translation (1.3 s of a warm run) and the compile-time functions (1.4 s); the generics
+  still take 1.0 s on the reachable program. Translating only what is reachable is the next step.
   The Jass pipeline cannot take the shake after its generics as it is, each of these showed up as a failing test:
   `JassKeyOfLowering` and `JassKeyedMapLowering` look up the functions of the package which declares an intrinsic by
   name, called or not; `EliminateClasses` builds a dispatch function over every override of a method (tuple
