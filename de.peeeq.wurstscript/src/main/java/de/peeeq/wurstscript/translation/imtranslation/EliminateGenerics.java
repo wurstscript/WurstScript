@@ -258,10 +258,12 @@ public class EliminateGenerics {
     private void collectGenericNewRoots() {
         classByFunction = null;
         specializationRelevantNodes = new IdentityHashMap<>();
+        methodAnswers = new IdentityHashMap<>();
         try {
             collectGenericNewRootsInProgram();
         } finally {
             specializationRelevantNodes = null;
+            methodAnswers = null;
         }
     }
 
@@ -744,6 +746,7 @@ public class EliminateGenerics {
         if (specializedCallSites.contains(call)) {
             return;
         }
+        boolean dependedOnCaller = dependsOnCaller(call.getTypeArguments());
         ImMethod method = call.getMethod();
         ImTranslator.Specialisation existing = translator.specialisationOf(method);
         if (existing != null && existing.original() instanceof ImMethod) {
@@ -752,6 +755,7 @@ public class EliminateGenerics {
             // boundary with no type variables and loses the phase invariant.
             call.getTypeArguments().removeAll();
             specializedCallSites.add(call);
+            forgetAnswersIfCallChanged(call, dependedOnCaller);
             return;
         }
         if (isMissingClassTypeArguments(call, method)) {
@@ -762,9 +766,8 @@ public class EliminateGenerics {
             // from that construction before deciding between specialization and fixed-body scan.
             useConstructionTypeArguments(call);
         }
-        boolean needsSpecialization = methodNeedsSpecialization(method,
-            Collections.newSetFromMap(new IdentityHashMap<>()),
-            Collections.newSetFromMap(new IdentityHashMap<>()));
+        forgetAnswersIfCallChanged(call, dependedOnCaller);
+        boolean needsSpecialization = methodNeedsSpecializationAnswer(method);
         if (!shouldSpecializeTupleArguments(call.getTypeArguments()) && !needsSpecialization) {
             if (!call.getTypeArguments().isEmpty()
                 && !typeArgumentsContainTypeVariable(call.getTypeArguments())
@@ -978,20 +981,68 @@ public class EliminateGenerics {
         if (node instanceof ImFunctionCall call) {
             // Empty arguments may be supplied implicitly by the enclosing generic receiver.
             // Only an explicit, already-concrete call is independent of the caller context.
-            boolean dependsOnCaller = call.getTypeArguments().isEmpty()
-                || typeArgumentsContainTypeVariable(call.getTypeArguments());
             return constructsClassOwningGenericGlobals(function, call)
                 || translator.isGenericNewMarker(call.getFunc())
-                || (dependsOnCaller
+                || (dependsOnCaller(call.getTypeArguments())
                 && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods));
         }
         if (node instanceof ImMethodCall call) {
-            boolean dependsOnCaller = call.getTypeArguments().isEmpty()
-                || typeArgumentsContainTypeVariable(call.getTypeArguments());
-            return dependsOnCaller
+            return dependsOnCaller(call.getTypeArguments())
                 && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods);
         }
         return false;
+    }
+
+    /**
+     * Whether a call takes its type arguments from the function it is in: it has none, or they mention
+     * its type variables. Only a call which does can need specialising because of what it calls.
+     */
+    private boolean dependsOnCaller(ImTypeArguments typeArguments) {
+        return typeArguments.isEmpty() || typeArgumentsContainTypeVariable(typeArguments);
+    }
+
+    /**
+     * Set while a collection pass runs: what {@link #methodNeedsSpecialization} answered for a method.
+     * <p>
+     * A query shares its visited sets, so it explores everything the method reaches, or stops at the first
+     * element which needs specialising: its answer is whether something it reaches does. That is a fact for the
+     * method asked about, and when it is "no" a fact for every method the query visited too, because what they
+     * reach was explored. Nothing else is kept: a method the search merely stopped at, because it was being
+     * visited, would be given a "no" which holds for that search only (see {@link #classNeedsSpecialization}).
+     * <p>
+     * The answers hold while no call changes whether it {@link #dependsOnCaller}, which is all a query reads
+     * of the type arguments; the pass completes the type arguments of calls as it goes, and clears the answers
+     * when one of them does.
+     */
+    private @Nullable Map<ImMethod, Boolean> methodAnswers;
+
+    /** The answer for a query of its own, which a collection pass remembers. */
+    private boolean methodNeedsSpecializationAnswer(ImMethod method) {
+        Map<ImMethod, Boolean> answers = methodAnswers;
+        if (answers == null) {
+            return methodNeedsSpecialization(method, Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+        }
+        Boolean known = answers.get(method);
+        if (known != null) {
+            return known;
+        }
+        Set<ImMethod> visitedMethods = Collections.newSetFromMap(new IdentityHashMap<>());
+        boolean needsSpecialization = methodNeedsSpecialization(method,
+            Collections.newSetFromMap(new IdentityHashMap<>()), visitedMethods);
+        answers.put(method, needsSpecialization);
+        if (!needsSpecialization) {
+            for (ImMethod visited : visitedMethods) {
+                answers.put(visited, false);
+            }
+        }
+        return needsSpecialization;
+    }
+
+    private void forgetAnswersIfCallChanged(ImMethodCall call, boolean dependedOnCaller) {
+        if (methodAnswers != null && dependsOnCaller(call.getTypeArguments()) != dependedOnCaller) {
+            methodAnswers.clear();
+        }
     }
 
     /** Set while a collection pass runs, which changes no body: the relevant elements of each function reached. */

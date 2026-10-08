@@ -673,7 +673,7 @@ public class ExprTranslation {
      */
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
-        ImType fromType = imCast.getExpr().attrTyp();
+        ImType fromType = imCast.getFromType();
         if (TypesHelper.isIntType(imCast.getToType())) {
             if (TypesHelper.isStringType(fromType)) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
@@ -686,7 +686,7 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType) {
-            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+            if (fromType instanceof ImClassType) {
                 // Both sides are integer ids (or nil); nothing to normalise.
                 return translated;
             }

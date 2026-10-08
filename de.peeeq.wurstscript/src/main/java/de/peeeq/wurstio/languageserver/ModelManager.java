@@ -28,7 +28,27 @@ public interface ModelManager {
 
     void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
 
-    void buildProject();
+    void reportBuildDiagnostics(List<CompileError> diagnostics);
+
+    /**
+     * does a full build, reading the whole project and checking it
+     */
+    default void buildProject() {
+        loadProject();
+        checkProject();
+    }
+
+    /**
+     * Reads the whole project into the model, and does not check it: every unit of the model counts as unchecked
+     * until {@link #checkProject()}. For a caller which changes the model before its first check, so that the
+     * model is checked once and not once for each version of it.
+     */
+    void loadProject();
+
+    /**
+     * Resolves the imports of the loaded model, checks all of it and reports the errors.
+     */
+    void checkProject();
 
     /**
      * refresh discovered dependency roots (e.g. _build/dependencies after grill install)
@@ -64,6 +84,22 @@ public interface ModelManager {
     void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep);
 
     boolean hasErrors();
+
+    /**
+     * Whether the model is the managed one and every compilation unit in it was validated since it last
+     * changed, so that checking it again would only repeat the result. A manager which does not track
+     * this answers false.
+     */
+    default boolean isFullyChecked(WurstModel model) {
+        return false;
+    }
+
+    /**
+     * Tells the manager that someone else's check of the whole model validated every unit of it and found
+     * no error, with the same checks the manager makes. Nothing may have changed the model meanwhile.
+     */
+    default void markFullyChecked(WurstModel model) {
+    }
 
     static WurstModel copy(WurstModel model) {
         WurstModel m = model.copy();

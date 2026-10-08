@@ -506,6 +506,10 @@ public class LanguageWorkerTest {
     }
 
     private static class CountingModelManager implements ModelManager {
+        @Override
+        public void reportBuildDiagnostics(List<CompileError> diagnostics) {
+            throw new UnsupportedOperationException("This worker test does not run map builds.");
+        }
         final AtomicInteger cleanCalls = new AtomicInteger();
         final AtomicInteger buildCalls = new AtomicInteger();
         final AtomicInteger syncFileCalls = new AtomicInteger();
@@ -545,6 +549,16 @@ public class LanguageWorkerTest {
         @Override
         public void buildProject() {
             buildCalls.incrementAndGet();
+        }
+
+        @Override
+        public void loadProject() {
+            throw new UnsupportedOperationException("The worker builds the project in one go.");
+        }
+
+        @Override
+        public void checkProject() {
+            throw new UnsupportedOperationException("The worker builds the project in one go.");
         }
 
         @Override

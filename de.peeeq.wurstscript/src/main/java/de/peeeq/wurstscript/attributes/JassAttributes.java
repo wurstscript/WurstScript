@@ -10,6 +10,10 @@ import java.util.Set;
 
 public class JassAttributes {
 
+    public static Map<Element, de.peeeq.wurstscript.parser.WPos> attrSourceMap(JassProg prog) {
+        return Maps.newLinkedHashMap();
+    }
+
     public static Set<JassVar> attrIgnoredVariables(JassProg jassProgImpl) {
         return Sets.newLinkedHashSet();
     }

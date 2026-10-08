@@ -6,6 +6,28 @@ Notes; finished-work narrative does not.
 
 ## Open
 
+- **One model for run and build.** Run and build keep two ways to compile (`SafetyLevel`: the managed
+  model as it is, or a clean, rebuild and copy) because the incremental model was not trusted to be
+  complete. `IncrementalModelOracleTests` compares the model after random edits with a build from
+  scratch (`INCREMENTAL_ORACLE_SEEDS=100` runs 100 seeds) and found two propagation gaps, both fixed.
+  What is left: a `.j` change makes `calculateCUsToUpdate` return the whole model, and a compilation
+  swaps the map script with the project config applied into the model (`replaceBaseScriptWithConfig`).
+  The swap changes only function bodies (`config`, `InitCustomPlayerSlots`, ...) yet invalidates every
+  attribute, so the first compilation of a model checks all of it again; later ones skip the check. The
+  CLI loads the project without checking it, swaps the script in and checks once (`ModelManager.loadProject`,
+  `checkProject`); the language server has checked its model before it knows the map, so its first
+  run still checks again. The swap's own cost in the language server was not isolated: on castle fight
+  without optimisations the first build of a model takes 21 s and later ones 11 to 12 s in one JVM, and
+  the stage samples show most of the difference in passes the swap does not touch, so JIT warm-up. Next,
+  in this order: keep the unchanged top-level
+  declarations of a changed Jass file and re-check only the units which mention a changed name; then
+  drop `SafetyLevel` (purging unimported units from the managed model in `compileMap` changes it for the
+  next run, and a build could compare file hashes instead of cleaning). Run and build both read the
+  open editor buffers today (`readCompilationUnitContents` prefers an open buffer, also in the rebuild after
+  `clean()`), so a build can contain text which is not on disk, while grill reads the disk. wurst4vscode
+  sends `wurst.buildmap` and `wurst.startmap` without saving the open files first. Whether a build should
+  save first, or refuse unsaved files, is open.
+
 - **A dead dispatch slot survives for overloads inside a specialised class.** Two overloads of one
   source method share a declared name, so a specialised class holding only overloads still composes
   one shared slot and binds it to whichever is reached first. Nothing calls it. A fix needs an
@@ -17,6 +39,45 @@ Notes; finished-work narrative does not.
 - **Implement `RawHashMap<K, V>` from [docs/NATIVE_KEYED_STORE_DESIGN.md](docs/NATIVE_KEYED_STORE_DESIGN.md).**
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
   requirements, and regression cases; the data structure itself is not implemented.
+
+- **Shake what is left, and earlier.** `TreeShaker` drops the functions (and the methods whose implementation goes
+  with them) which nothing reaches, and the globals which no reachable code reads together with the assignments of
+  constants to them (not a call, and a division only by a constant: those may have an effect), on both targets, in
+  front of the compile-time functions, before the generics and after them. On castle fight (Lua) that takes the 34,200
+  functions of the translation to 10,500 and the statements from 258,000 to 110,000 before the generics, and the script
+  has 92,000. What it leaves is the weight which is neither: 3,512 classes of which 1,611 reach the script (the
+  specialisation of generics adds 220 more, and the class elimination on Jass builds an allocator, a deallocator and
+  field arrays for every one), and the fields of the classes. Next, in this order, each its own change with its own
+  proof: (1) classes which no live code allocates, names in a type, or inherits from, taking care that type ids are
+  numbered over the classes in the program and that a dead class can be the supertype of a live one; (2) globals
+  and fields which only assignments with an effect write, which keeps the effect and drops the variable (what
+  `ImOptimizer.removeGarbage` does late); (3) the work before the IM exists, which no pass over the IM can reach:
+  about 2.6 s of a warm castle fight build is outside the phases the IM passes cover, and the translation takes 1.3 s
+  to produce 34,000 functions of which 10,500 are used. Translating only function bodies which are reachable saves
+  about 0.17 s of that (measured), because the cost is per class and per method (`getClassesWithImplementation`,
+  0.5 s), so the proposal is to translate by demand from `main`, the compile-time functions and what they name. A
+  type check of the dependencies only as far as the compilation needs it is the larger prize (the check is the
+  largest block of a cold build), but the validator also marks things the translation reads
+  (`NamePreservation.preserve`), so it needs its own investigation.
+  Whole-program analyses which look at every function now see less, and a dead function can no longer make them
+  conservative: `LuaTypedValues` proves more values non-nil without the dead writers (a read of a static which only
+  dead code wrote loses its `__wurst_ensureInt`), `GlobalsInliner` inlines a constant of a package initialiser which
+  a read in a dead assignment used to keep it from proving safe (`Angle_RADTODEG` in the object recycler tests, so
+  the package initialiser disappears too), and `EliminateGenerics.allocatedClasses` decides where a
+  specialised method goes from the allocations in the program, so a dead `new_Parent` no longer keeps it on the erased
+  class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
+
+- **Run `ImOptimizer.removeGarbage` fewer times, or have it do less when the shaker has run.** The shaker and the
+  garbage removal both compute reachability, so a build pays for it twice, but not for the same thing: the shaker drops
+  what nothing reaches, the garbage removal also drops the variables only assignments with an effect write and replaces
+  those assignments by their effect, and it runs between four and nine times (`transformProgToLua`, `doInlining`,
+  `localOptimizations`). The walk over the bodies is now one (`FunctionFactsCollector`: the used functions, the read
+  variables and the assignments, asserted equal to the three separate walks in a unit test), which took 201 ms to
+  138 ms of an opt-less castle fight build and 624 ms to 375 ms of an optimised one, measured in one JVM with the two
+  alternating on the same functions. The rest is the number of calls: after the shaker most of them remove almost
+  nothing (the second and third call of an opt-less build spend about 0.35 s to remove three globals). Dropping one
+  changes what the inliner sees, because it decides by function size, so each candidate needs a byte for byte
+  comparison of the scripts of the whole suite first.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that

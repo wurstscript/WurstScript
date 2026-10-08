@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imoptimizer.TreeShaker;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
@@ -123,6 +124,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     @Override
     public void runCompiletime(WurstProjectConfigData projectConfigData, boolean isProd, boolean cache) {
         if (runArgs.runCompiletimeFunctions()) {
+            removeUnreachableFunctionsBeforeCompiletime();
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
@@ -402,11 +404,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public void checkProg(WurstModel model) {
-        checkProg(model, model);
+    public boolean checkProg(WurstModel model) {
+        return checkProg(model, model);
     }
 
-    public void checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
+    /** @return whether the units were validated, see {@link WurstChecker#checkProg} */
+    public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
         for (CompilationUnit cu : toCheck) {
             Preconditions.checkNotNull(cu);
             if (!model.contains(cu)) {
@@ -415,7 +418,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             }
         }
 
-        checker.checkProg(model, toCheck);
+        return checker.checkProg(model, toCheck);
+    }
+
+    /** Takes over a model which was checked completely and has not changed since, instead of checking it again. */
+    public void adoptCheckedModel(WurstModel model) {
+        checker.adoptCheckedModel(model);
     }
 
     public JassProg transformProgToJass() {
@@ -424,11 +432,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imTranslator2.assertProperties();
         checkNoCompiletimeExpr(imProg2);
         int stage = 2;
+        // Before anything walks the whole program: the generics below specialise whatever they are given.
+        beginPhase(2, "remove unreachable functions before generics");
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(imTranslator2);
+        timeTaker.endPhase();
         // eliminate
         beginPhase(2, "Eliminate generics");
         new EliminateGenerics(imTranslator2, imProg2).transform();
         imTranslator2.clearStaleClassManagementVars();
         printDebugImProg("./test-output/im " + stage++ + "_genericsEliminated.im");
+        timeTaker.endPhase();
+        // The specialisation copies functions nothing calls as well, and the passes from here on walk all of them.
+        beginPhase(2, "remove unreachable functions");
+        TreeShaker.removeUnreachableFunctions(imTranslator2);
         timeTaker.endPhase();
         // eliminate classes
         beginPhase(2, "translate classes");
@@ -689,7 +705,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     private void beginPhase(int phase, String description) {
-        errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description, 0.6 + 0.01 * phase);
+        errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description);
         timeTaker.beginPhase(description);
     }
 
@@ -914,10 +930,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return mapFileMpq;
     }
 
+    /**
+     * Drops the functions nothing reaches ({@link TreeShaker}) in front of the compile-time functions. The run walks
+     * the whole program (to find the expressions it evaluates), and splitting the state it replays analyses the whole
+     * program once per function it splits, so every function nothing calls is paid for there as well.
+     */
+    private void removeUnreachableFunctionsBeforeCompiletime() {
+        beginPhase(2, "remove unreachable functions before compiletime");
+        TreeShaker.removeUnreachableFunctionsBeforeCompiletime(getImTranslator(),
+            CompiletimeFunctionRunner.functionsOfTheRun(getImProg(), CompiletimeFunctions));
+        timeTaker.endPhase();
+    }
+
     public LuaCompilationUnit transformProgToLua() {
 
         ImAttrType.setWurstClassType(null);
         int stage;
+        // Before anything walks the whole program: the generics below, and the checks which decide whether they run.
+        beginPhase(2, "remove unreachable functions before generics");
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(getImTranslator());
+        timeTaker.endPhase();
         boolean specializeTupleValueTypes = containsTupleTypeArgument();
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
         if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
@@ -929,6 +961,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
             timeTaker.endPhase();
         }
+        // What nothing calls (most of the imported libraries) would go through every pass below, and the garbage
+        // removal after the tuples is the first thing to drop it. The helpers the passes below call are pinned.
+        beginPhase(2, "remove unreachable functions");
+        TreeShaker.removeUnreachableFunctions(getImTranslator());
+        timeTaker.endPhase();
         // Before stack traces: that pass appends a parameter to every affected function, and on
         // Lua every non-native function is affected, so the exact signatures the keyed-table
         // operations are recognised by would stop matching - silently leaving their Jass bodies on

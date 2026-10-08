@@ -123,6 +123,16 @@ public class ImOptimizer {
     }
 
     public boolean removeGarbage() {
+        // The rounds change one function at a time and say which, so the analysis keeps what it read of the others.
+        trans.rememberFunctionFacts();
+        try {
+            return removeGarbageInRounds();
+        } finally {
+            trans.forgetFunctionFacts();
+        }
+    }
+
+    private boolean removeGarbageInRounds() {
         boolean changes = true;
         boolean anyChanges = false;
         int iterations = 0;
@@ -172,41 +182,37 @@ public class ImOptimizer {
             for (ImFunction f : allFunctions) {
                 // remove set statements to unread variables
                 final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
-                f.accept(new ImFunction.DefaultVisitor() {
-                    @Override
-                    public void visit(ImSet e) {
-                        super.visit(e);
-                        if (e.getLeft() instanceof ImVarAccess) {
-                            ImVarAccess va = (ImVarAccess) e.getLeft();
-                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                                replacements.add(Pair.create(e, sideEffects));
+                for (ImSet e : trans.setStatementsOf(f)) {
+                    if (e.getLeft() instanceof ImVarAccess) {
+                        ImVarAccess va = (ImVarAccess) e.getLeft();
+                        if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                            replacements.add(Pair.create(e, sideEffects));
+                        }
+                    } else if (e.getLeft() instanceof ImVarArrayAccess) {
+                        ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
+                        if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                            List<ImExpr> exprs = new ArrayList<>();
+                            for (ImExpr index : va.getIndexes()) {
+                                exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
                             }
-                        } else if (e.getLeft() instanceof ImVarArrayAccess) {
-                            ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
-                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                                List<ImExpr> exprs = new ArrayList<>();
-                                for (ImExpr index : va.getIndexes()) {
-                                    exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
-                                }
-                                exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer));
-                                replacements.add(Pair.create(e, exprs));
-                            }
-                        } else if (e.getLeft() instanceof ImTupleSelection) {
-                            ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
-                            if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
-                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                                replacements.add(Pair.create(e, sideEffects));
-                            }
-                        } else if(e.getLeft() instanceof ImMemberAccess) {
-                            ImMemberAccess va = ((ImMemberAccess) e.getLeft());
-                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                                replacements.add(Pair.create(e, sideEffects));
-                            }
+                            exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer));
+                            replacements.add(Pair.create(e, exprs));
+                        }
+                    } else if (e.getLeft() instanceof ImTupleSelection) {
+                        ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
+                        if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
+                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                            replacements.add(Pair.create(e, sideEffects));
+                        }
+                    } else if(e.getLeft() instanceof ImMemberAccess) {
+                        ImMemberAccess va = ((ImMemberAccess) e.getLeft());
+                        if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                            replacements.add(Pair.create(e, sideEffects));
                         }
                     }
-                });
+                }
 
                 Replacer replacer = new Replacer();
                 for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
@@ -229,6 +235,9 @@ public class ImOptimizer {
                         r = ImHelper.statementExprVoid(JassIm.ImStmts(stmts));
                     }
                     replacer.replace(pair.getA(), r);
+                }
+                if (!replacements.isEmpty()) {
+                    trans.functionChanged(f);
                 }
 
                 // keep only read local variables

@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.SyntacticSugar;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
@@ -35,6 +36,23 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class ModelManagerImpl implements ModelManager {
 
+    @Override
+    public void reportBuildDiagnostics(List<CompileError> diagnostics) {
+        Set<WFile> affected = new LinkedHashSet<>(buildDiagnostics.keySet());
+        buildDiagnostics.clear();
+        for (CompileError diagnostic : diagnostics) {
+            WFile file = WFile.create(diagnostic.getSource().getFile());
+            buildDiagnostics.computeIfAbsent(file, ignored -> new ArrayList<>()).add(diagnostic);
+            affected.add(file);
+        }
+        for (WFile file : affected) {
+            List<CompileError> combined = new ArrayList<>(otherErrors.getOrDefault(file,
+                parseErrors.getOrDefault(file, Collections.emptyList())));
+            combined.addAll(buildDiagnostics.getOrDefault(file, Collections.emptyList()));
+            publishDiagnostics(file, combined);
+        }
+    }
+
     private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
     private final File projectPath;
@@ -46,6 +64,8 @@ public class ModelManagerImpl implements ModelManager {
     private final Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();
     // other errors for each file
     private final Map<WFile, List<CompileError>> otherErrors = new LinkedHashMap<>();
+    // Map-build diagnostics must not change the editor model's typecheck/error state.
+    private final Map<WFile, List<CompileError>> buildDiagnostics = new LinkedHashMap<>();
 
     // hashcode for each compilation unit content as string
     private final Map<WFile, Integer> fileHashcodes = new HashMap<>();
@@ -57,6 +77,11 @@ public class ModelManagerImpl implements ModelManager {
     // units while other threads look them up (getCompilationUnit). Every change to that list is made here,
     // under this lock, and the lock is held only around the list operations.
     private final Object modelLock = new Object();
+
+    // The compilation units which were added, replaced or invalidated, or whose check was planned, and which
+    // no check has validated since. A check which stops before validation (an import which does not resolve)
+    // leaves its units here, so the next check takes them along. Guarded by modelLock.
+    private final Set<CompilationUnit> uncheckedUnits = Collections.newSetFromMap(new IdentityHashMap<>());
 
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
@@ -111,8 +136,21 @@ public class ModelManagerImpl implements ModelManager {
             }
             GlobalCaches.clearLookupCacheFor(toRemove);
             toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
+            Set<String> removedPackages = toRemove.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .map(WPackage::getName)
+                .collect(Collectors.toSet());
+            Set<CompilationUnit> dependents = toRemove.isEmpty() ? Collections.emptySet()
+                : calculateCUsToUpdate(Collections.emptyList(), removedPackages, model2);
             synchronized (modelLock) {
                 model2.removeAll(toRemove);
+                uncheckedUnits.removeAll(toRemove);
+                dependents.removeAll(toRemove);
+                uncheckedUnits.addAll(dependents);
+                if (toRemove.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
+                    // Jass names are visible everywhere
+                    uncheckedUnits.addAll(model2);
+                }
             }
         }
 
@@ -136,17 +174,19 @@ public class ModelManagerImpl implements ModelManager {
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;
+        synchronized (modelLock) {
+            uncheckedUnits.clear();
+        }
         dependencies.clear();
         WLogger.info("Clean done.");
     }
 
     /**
-     * does a full build, reading whole directory
+     * reads the whole directory, which leaves every unit unchecked
      */
     @Override
-    public void buildProject() {
+    public void loadProject() {
         try {
-            WurstGui gui = new WurstGuiLogger();
             readDependencies();
 
             if (!projectPath.exists()) {
@@ -159,7 +199,16 @@ public class ModelManagerImpl implements ModelManager {
                 wurstFolder = projectPath;
             }
             processWurstFiles(wurstFolder);
+        } catch (Exception e) {
+            WLogger.severe(e);
+            throw new ModelManagerException(e);
+        }
+    }
 
+    @Override
+    public void checkProject() {
+        try {
+            WurstGui gui = new WurstGuiLogger();
             resolveImports(gui);
 
             doTypeCheck(gui);
@@ -358,7 +407,14 @@ public class ModelManagerImpl implements ModelManager {
         try {
             model2.clearAttributes();
             comp.addImportedLibs(model2, this::addCompilationUnit);
-            comp.checkProg(model2);
+            synchronized (modelLock) {
+                uncheckedUnits.addAll(model2);
+            }
+            if (comp.checkProg(model2)) {
+                synchronized (modelLock) {
+                    uncheckedUnits.clear();
+                }
+            }
         } catch (CompileError e) {
             gui.sendError(e);
         }
@@ -409,8 +465,13 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void reportErrors(String extra, WFile filename, List<CompileError> errors) {
-        PublishDiagnosticsParams cr = Convert.createDiagnostics(extra, filename, errors);
+        buildDiagnostics.remove(filename);
         otherErrors.put(filename, ImmutableList.copyOf(errors));
+        publishDiagnostics(filename, errors);
+    }
+
+    private void publishDiagnostics(WFile filename, List<CompileError> errors) {
+        PublishDiagnosticsParams cr = Convert.createDiagnostics("", filename, errors);
         for (Consumer<PublishDiagnosticsParams> consumer : onCompilationResultListeners) {
             consumer.accept(cr);
         }
@@ -430,6 +491,9 @@ public class ModelManagerImpl implements ModelManager {
         WurstModel model2 = model;
         if (model2 == null) {
             model = newModel(cu, gui);
+            synchronized (modelLock) {
+                uncheckedUnits.addAll(model);
+            }
         } else {
             ListIterator<CompilationUnit> it = model2.listIterator();
             boolean updated = false;
@@ -445,6 +509,8 @@ public class ModelManagerImpl implements ModelManager {
                     // replace old compilationunit with new one:
                     synchronized (modelLock) {
                         it.set(cu);
+                        uncheckedUnits.remove(c);
+                        uncheckedUnits.addAll(mustUpdate);
                     }
                     updated = true;
                     break;
@@ -453,6 +519,11 @@ public class ModelManagerImpl implements ModelManager {
             if (!updated) {
                 synchronized (modelLock) {
                     model2.add(cu);
+                }
+                // what imports the new packages (or sees the new Jass names) has to be checked again
+                Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                synchronized (modelLock) {
+                    uncheckedUnits.addAll(mustUpdate);
                 }
             }
         }
@@ -715,7 +786,28 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
         synchronized (modelLock) {
-            model.removeIf(cu -> !keep.test(cu));
+            boolean removed = model.removeIf(cu -> !keep.test(cu));
+            if (removed && model == this.model) {
+                uncheckedUnits.removeIf(cu -> !keep.test(cu));
+                // what is left may have used what went: it all has to be checked again
+                uncheckedUnits.addAll(model);
+            }
+        }
+    }
+
+    @Override
+    public void markFullyChecked(WurstModel checkedModel) {
+        synchronized (modelLock) {
+            if (checkedModel != null && checkedModel == model) {
+                uncheckedUnits.clear();
+            }
+        }
+    }
+
+    @Override
+    public boolean isFullyChecked(WurstModel checkedModel) {
+        synchronized (modelLock) {
+            return checkedModel != null && checkedModel == model && uncheckedUnits.isEmpty();
         }
     }
 
@@ -801,18 +893,43 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void partialTypecheck(WurstModel model2, Collection<CompilationUnit> toCheckRec, WurstGui gui, WurstCompilerJassImpl comp) {
+        Collection<CompilationUnit> toCheck = withUncheckedUnits(model2, toCheckRec);
+        boolean validated = false;
         try {
-            clearCompilationUnits(toCheckRec);
+            clearCompilationUnits(toCheck);
             comp.addImportedLibs(model2, this::addCompilationUnit);
-            comp.checkProg(model2, toCheckRec);
+            // the libraries which were just loaded are not checked either
+            toCheck = withUncheckedUnits(model2, toCheck);
+            validated = comp.checkProg(model2, toCheck);
         } catch (ModelChangedException e) {
             // model changed, early return
             return;
         } catch (CompileError e) {
             gui.sendError(e);
         }
-        List<WFile> fileNames = getfileNames(toCheckRec);
+        if (validated) {
+            synchronized (modelLock) {
+                uncheckedUnits.removeAll(toCheck);
+            }
+        }
+        List<WFile> fileNames = getfileNames(toCheck);
         reportErrorsForFiles(fileNames, gui);
+    }
+
+    /**
+     * The given units, which are unchecked from now on, and every other unit of the model which still is
+     * unchecked, because an earlier check did not get to validate it.
+     */
+    private Collection<CompilationUnit> withUncheckedUnits(WurstModel model2, Collection<CompilationUnit> units) {
+        Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
+        synchronized (modelLock) {
+            uncheckedUnits.addAll(units);
+            Set<CompilationUnit> inModel = Collections.newSetFromMap(new IdentityHashMap<>());
+            inModel.addAll(model2);
+            uncheckedUnits.retainAll(inModel);
+            result.addAll(uncheckedUnits);
+        }
+        return result;
     }
 
 
@@ -851,12 +968,30 @@ public class ModelManagerImpl implements ModelManager {
         // affected packages are new ones and old ones
         Set<String> affectedPackages = Stream.concat(providedPackages, oldPackages.stream())
                 .collect(Collectors.toSet());
+        affectedPackages.addAll(configRelatives(affectedPackages));
 
         addPossiblyAffectedPackages(affectedPackages, model, result);
 
         return result;
     }
 
+
+    /**
+     * A config package replaces definitions of the package it configures, and that package decides which of its
+     * definitions are replaced, though neither imports the other. What changes in one changes what the other,
+     * and so everything importing the configured package, resolves to.
+     */
+    private static Set<String> configRelatives(Set<String> packageNames) {
+        Set<String> result = new HashSet<>();
+        for (String name : packageNames) {
+            if (name.endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
+                result.add(name.substring(0, name.length() - CofigOverridePackages.CONFIG_POSTFIX.length()));
+            } else {
+                result.add(name + CofigOverridePackages.CONFIG_POSTFIX);
+            }
+        }
+        return result;
+    }
 
     /**
      * Add all packages that directly or indirectly depend on the providedPackages
@@ -869,6 +1004,11 @@ public class ModelManagerImpl implements ModelManager {
                 continue;
             }
             for (WPackage p : compilationUnit.getPackages()) {
+                if (providedPackages.contains(p.getName())) {
+                    // declares the same package: one of the files is reported for defining it twice
+                    result.add(compilationUnit);
+                    continue nextCu;
+                }
                 for (WImport imp : p.getImports()) {
                     String importedPackage = imp.getPackagenameId().getName();
                     if (providedPackages.contains(importedPackage)) {
@@ -880,6 +1020,34 @@ public class ModelManagerImpl implements ModelManager {
         }
 
         addTransitiveDeps(result, model);
+        // a config package is checked with the package it configures, and what follows from either
+        while (addConfigRelatives(result, model)) {
+            addTransitiveDeps(result, model);
+        }
+    }
+
+    /**
+     * Adds the units declaring the config package of a package in result, or the package a config package in result
+     * configures, see {@link #configRelatives}.
+     *
+     * @return whether a unit was added
+     */
+    private boolean addConfigRelatives(Set<CompilationUnit> result, WurstModel model) {
+        Set<String> declared = new HashSet<>();
+        for (CompilationUnit cu : result) {
+            for (WPackage p : cu.getPackages()) {
+                declared.add(p.getName());
+            }
+        }
+        Set<String> relatives = configRelatives(declared);
+        boolean added = false;
+        for (CompilationUnit cu : model) {
+            if (!result.contains(cu) && cu.getPackages().stream().anyMatch(p -> relatives.contains(p.getName()))) {
+                result.add(cu);
+                added = true;
+            }
+        }
+        return added;
     }
 
     /**

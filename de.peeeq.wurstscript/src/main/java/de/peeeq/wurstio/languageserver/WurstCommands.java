@@ -92,7 +92,9 @@ public class WurstCommands {
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, true);
-        return server.worker().handle(new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        BuildMap request = new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs);
+        request.setWorkDoneToken(params.getWorkDoneToken());
+        return server.worker().handle(request).thenApply(x -> x);
     }
 
     private static CompletableFuture<Object> startMap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {
@@ -107,7 +109,9 @@ public class WurstCommands {
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
-        return server.worker().handle(new RunMap(server, workspaceRoot, wc3Path, map, compileArgs, gameExePath)).thenApply(x -> x);
+        RunMap request = new RunMap(server, workspaceRoot, wc3Path, map, compileArgs, gameExePath);
+        request.setWorkDoneToken(params.getWorkDoneToken());
+        return server.worker().handle(request).thenApply(x -> x);
     }
 
     private static Optional<String> getString(JsonObject options, String key) {

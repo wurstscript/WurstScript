@@ -89,6 +89,10 @@ JassScope = JassFunction | JassProg
 
 attributes:
 
+JassProg.attrSourceMap
+    returns java.util.Map<Element, de.peeeq.wurstscript.parser.WPos>
+    implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrSourceMap
+
 JassProgs.getExtendsMap
 	returns java.util.Map<String, String>
 	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.getExtendsMap

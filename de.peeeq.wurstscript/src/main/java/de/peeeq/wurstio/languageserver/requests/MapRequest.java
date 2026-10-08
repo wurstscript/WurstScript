@@ -13,6 +13,7 @@ import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.languageserver.WurstGuiLsp;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -39,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -67,6 +69,15 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final WurstBuildConfig buildConfig;
     protected final W3InstallationData w3data;
     protected final TimeTaker timeTaker;
+    private Either<String, Integer> workDoneToken;
+
+    public void setWorkDoneToken(Either<String, Integer> workDoneToken) {
+        this.workDoneToken = workDoneToken;
+    }
+
+    protected WurstGui createGui(ModelManager modelManager, String title) {
+        return new WurstGuiLsp(modelManager, langServer.getLanguageClient(), workDoneToken, title);
+    }
 
     public static long mapLastModified = 0L;
     public static String mapPath = "";
@@ -144,11 +155,34 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     @Override
     public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
-        if (err instanceof RequestFailedException rfe) {
+        if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() == MessageType.Info)) {
+            // The requesting editor owns the failure notification for this progress operation.
+            resFut.completeExceptionally(err);
+        } else if (err instanceof RequestFailedException rfe) {
             languageClient.showMessage(new MessageParams(rfe.getMessageType(), rfe.getMessage()));
             resFut.complete(new Object());
         } else {
             super.handleException(languageClient, err, resFut);
+        }
+    }
+
+    /**
+     * Checks the model for a compilation, unless the model manager has validated every unit of it since it
+     * last changed. Then the model only takes over the compilation's error handler. A check which finds
+     * the model free of errors is reported to the manager, which would otherwise check it again for the
+     * next compilation.
+     */
+    public static void checkModel(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
+                                  RunArgs runArgs) {
+        // the manager checks without the legacy Jass type checks
+        boolean sameChecks = !runArgs.isLegacyJassTypeChecks();
+        if (sameChecks && modelManager.isFullyChecked(model)) {
+            compiler.adoptCheckedModel(model);
+            return;
+        }
+        boolean validated = compiler.checkProg(model);
+        if (sameChecks && validated && compiler.getErrorHandler().getErrorCount() == 0) {
+            modelManager.markFullyChecked(model);
         }
     }
 
@@ -171,7 +205,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             purgeUnimportedFiles(modelManager, model);
 
             gui.sendProgress("Check program");
-            compiler.checkProg(model);
+            checkModel(modelManager, compiler, model, runArgs);
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
@@ -237,10 +271,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                         new File(buildDir, "common.j").getAbsolutePath(),
                         new File(buildDir, "blizzard.j").getAbsolutePath());
                     WLogger.info(pJassResult.getLogMessage());
+                    for (CompileError diagnostic : pJassResult.getDiagnostics(printer.getSourceMap())) {
+                        gui.sendBuildDiagnostic(diagnostic);
+                    }
                     if (!pJassResult.isOk()) {
-                        for (CompileError err : pJassResult.getErrors()) {
-                            gui.sendError(err);
-                        }
                         throw new RuntimeException("Could not compile project (PJass error)");
                     }
                     timeTaker.endPhase();
@@ -394,6 +428,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
+        checkModelWithMapScript(modelManager);
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -410,6 +445,14 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         return compileMap(modelManager, modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
+    }
+
+    /**
+     * Called when the map script with the project config applied is in the model, before anything is compiled.
+     * The swap of the script invalidates every attribute of the model, so a request which loaded the project
+     * without checking it checks it here, once, and the compilation takes that check over.
+     */
+    protected void checkModelWithMapScript(ModelManager modelManager) {
     }
 
     private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {
@@ -932,10 +975,14 @@ public abstract class MapRequest extends UserRequest<Object> {
         return MapRequest.mapLastModified > scriptFile.lastModified();
     }
 
-    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) {
+    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) throws IOException {
         CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
         if (compilationUnit == null) {
-            modelManager.syncCompilationUnit(WFile.create(scriptFile));
+            // Into the model only, without a check: the script is replaced by the one with the project config applied
+            // before the model is checked, and a check of this one finds errors in code which calls what the config
+            // adds (and checks the whole model, since every unit may use a Jass function).
+            modelManager.syncCompilationUnitContent(WFile.create(scriptFile),
+                java.nio.file.Files.readString(scriptFile.toPath()));
         }
     }
 

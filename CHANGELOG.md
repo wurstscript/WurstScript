@@ -1,5 +1,64 @@
 ## 1.9 (in progress)
 
+- Lua and Jass builds drop the functions nothing reaches (and the methods which go with them), and the globals which
+  nothing reachable reads (with the assignments of constants to them), in three places: in front of the compile-time
+  functions, before the generics are specialised, and after them. They used to be dropped only after the tuples were
+  eliminated, so the compile-time functions, the generics and the passes in between (keyed tables, varargs, native
+  lowering, local types, tuples, class elimination) walked about four times the functions, and about five times the
+  globals, which end up in the script. What a type argument binds (the implementations of a type class, the
+  constructor of a class given to `wurstNewInstance`) counts as reached, and so do the compile-time functions, any
+  function holding a compile-time expression (evaluated whether anything calls the function or not), the helper
+  functions which the passes call themselves and, on Jass, the declarations of the compiler's own intrinsics. The scripts are the same
+  except for the order of independent global initialisers and the numbers in generated names and type ids, and the
+  passes no longer report a problem in a function nothing calls: a vararg call which would need more than 31 Jass
+  parameters in dead code now compiles. With the dead assignments gone, more constants of package initialisers are
+  inlined and the initialisers which held only those disappear. Opt-less builds of castle fight take 32.4 s instead
+  of 34.6 s on Lua and 31.8 s instead of 35.0 s on Jass, and zombie defense 36.0 s instead of 37.6 s and 37.4 s
+  instead of 39.8 s (command line builds, medians of three, interleaved, Java 27; one of the three zombie defense Jass
+  pairs went the other way).
+
+- A command line build (`-build`, used by grill) checks the project once. It used to check it after reading it, then
+  swap in the map script with the project config applied, which invalidates everything the check computed, and check
+  it again. It now reads the project, swaps the script in and checks once, with the script the map is compiled with.
+  Code which calls a function the config adds to the map script no longer fails the first check. Castle fight without
+  optimisations builds in 36.0 s instead of 41.3 s and zombie defense in 28.2 s instead of 31.3 s (medians of three,
+  interleaved); the script of castle fight is byte for byte the same.
+- The compiler and bundled runtime now use Java 27, with compact object headers enabled by default.
+  Tests retain ParallelGC; the shipped runtime uses Java 27's default G1 collector.
+
+- The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
+  slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
+  base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive
+  (`jlink --generate-cds-archive`) and fails when the runtime has none, and the dead archive task and its
+  `-languageServerAppCdsTrain` option are gone. With wurst4vscode starting the server with an archive of its own
+  (written next to the compiler jar when the first session ends), the language server of a small project is ready
+  after 3.7 s instead of 4.4 s, and castle fight after 17.3 s instead of 19.0 s (medians of four starts).
+
+- The language server checks every file it was meant to check. A check which cannot start, because an import
+  does not resolve, used to forget the files it was planned for. A file edited in the meantime then got no
+  diagnostics once the import was fixed, since nothing it imports had changed. Those files are kept and checked
+  with the next check. Deleting one of two definitions of a package now also checks the other, which kept
+  its "defined multiple times" error. Editing a config package (`Foo_config`) now checks the package it
+  configures and everything importing that, which kept calling the function the config package used to
+  define until one of them was edited itself. The alternatives listed by a "call is ambiguous" error are sorted, where
+  they used to follow the order the files were loaded in.
+
+- Running a map no longer type checks again a model which the language server has checked completely and which
+  has not changed since. On castle fight without optimisations, building the same model again in one process took
+  14.6 and 12.6 s and takes 12.3 and 10.7 s, the script unchanged byte for byte. The first build of a model
+  still checks it, because it replaces the map script in the model with the one the project config was applied to.
+
+- The same source now compiles to the same script however the identity hashes of the compiler's syntax nodes
+  happen to fall. A class which gets a function from a module and implements an interface declaring the same
+  function made calls like `value.write(x)` bind to the module's implementation or to the interface's
+  declaration according to the order of a hash set, so one build had a direct call where the next had a
+  dispatched one, and the two scripts held a different number of functions. The call now always binds to the
+  implementation, as the type checker already resolved it, and the candidate functions of a class are kept in
+  declaration order instead of hash order. The sub-methods of each method, which the backends bind dispatch slots
+  in, are sorted by package, name and source position like the classes and functions already were, so neither
+  hash order nor the order the compilation units arrive in decides them. That covers the overrides in subclasses,
+  in the classes implementing an interface and in closures.
+
 - The bundled pjass is updated on all three platforms to lep/pjass master (`378a1ca`) plus its `--each` option
   (lep/pjass#20). Windows had a December 2022 build and Linux and macOS a January 2019 one, so the three did not
   check the same things. The 2022 Windows build also got slower the more files were in the directory of the script

@@ -29,7 +29,10 @@ public class TypeRewriter {
             case ImFunction f -> f.setReturnType(rewriteFunc.apply(f.getReturnType()));
             case ImNull n -> n.setType(rewriteFunc.apply(n.getType()));
             case ImTypeArgument ta -> ta.setType(rewriteFunc.apply(ta.getType()));
-            case ImCast c -> c.setToType(rewriteFunc.apply(c.getToType()));
+            case ImCast c -> {
+                c.setFromType(rewriteFunc.apply(c.getFromType()));
+                c.setToType(rewriteFunc.apply(c.getToType()));
+            }
             case ImAlloc a -> a.setClazz((ImClassType) rewriteFunc.apply(a.getClazz()));
             case ImDealloc d -> d.setClazz((ImClassType) rewriteFunc.apply(d.getClazz()));
             case ImInstanceof i -> i.setClazz((ImClassType) rewriteFunc.apply(i.getClazz()));

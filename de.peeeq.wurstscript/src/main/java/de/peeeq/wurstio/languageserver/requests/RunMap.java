@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
-import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
@@ -67,24 +66,25 @@ public class RunMap extends MapRequest {
                 "Please install your project using grill or the wurst setup tool.");
         }
         // TODO use normal compiler for this, avoid code duplication
-        WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
+        WurstGui gui = createGui(modelManager, "Running Wurst map");
         try {
             warnAboutRunOptimizations(gui);
             String ok = compileMap(modelManager, gui, projectConfig);
             if (ok != null) return ok;
         } catch (CompileError e) {
             WLogger.info(e);
-            throw new RequestFailedException(MessageType.Error, "A compilation error occurred when running the map:\n" + e);
+            gui.sendError(e);
+            throw new RequestFailedException(MessageType.Error, "Map compilation failed. See the Problems panel for details.");
         } catch (RequestFailedException e) {
             // Already carries an actionable message and the intended MessageType; don't bury it in a generic wrapper.
             throw e;
         } catch (Exception e) {
             WLogger.warning("Exception occurred", e);
-            throw new RequestFailedException(MessageType.Error, "An exception was thrown when running the map:\n" + e);
+            throw new RequestFailedException(MessageType.Error, gui.getErrorCount() > 0
+                ? "Map compilation failed. See the Problems panel for details."
+                : "Could not run the map: " + e.getMessage());
         } finally {
-            if (gui.getErrorCount() == 0) {
-                gui.sendFinished();
-            }
+            gui.sendFinished();
         }
         return "ok"; // TODO
     }

@@ -250,6 +250,49 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;
 
+    /**
+     * The functions this translator created for passes which run later and call them through the handle it keeps
+     * (the Lua helpers above, the error and debug-print functions), not through a call that already is in the program:
+     * no body calls them yet, and a function which nothing reaches is removed. A new field of this kind has to be
+     * listed here ({@code ImTranslatorPinnedFunctionsTests} fails until it is).
+     */
+    public List<ImFunction> pinnedFunctions() {
+        List<ImFunction> result = new ArrayList<>();
+        for (ImFunction f : new ImFunction[]{
+            ensureIntFunc, ensureBoolFunc, ensureRealFunc, ensureStrFunc, stringConcatFunc,
+            luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFmodRealFunc, luaRawFloorModIntFunc, luaRawConcatFunc,
+            luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
+            luaRawToStringFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
+            debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
+            if (f != null) {
+                result.add(f);
+            }
+        }
+        result.addAll(luaKeyedStubs.values());
+        return result;
+    }
+
+    /**
+     * The globals this translator created for passes which run later and reach them through its handle, not through
+     * an access in a body: the variables which manage the instances of a class, which the class elimination builds
+     * the allocators and the dispatch from. A new field of this kind has to be listed here.
+     */
+    public List<ImVar> pinnedGlobals() {
+        List<ImVar> result = new ArrayList<>();
+        if (classManagementVars != null) {
+            Set<ClassManagementVars> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ClassManagementVars vars : classManagementVars.values()) {
+                if (seen.add(vars)) {
+                    result.add(vars.free);
+                    result.add(vars.freeCount);
+                    result.add(vars.maxIndex);
+                    result.add(vars.typeId);
+                }
+            }
+        }
+        return result;
+    }
+
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;
@@ -601,6 +644,13 @@ public class ImTranslator implements SpecialisationLookup {
         for (ImClass c : imProg.getClasses()) {
             sortList(c.getFields());
             sortList(c.getMethods());
+            // The sub-methods of a method are appended by whichever translator reaches an override: the
+            // subclasses of a class, the classes implementing an interface and each closure, the last
+            // in the order the compilation units are translated in. The backends bind dispatch slots
+            // in the order of this list, so it is fixed here rather than by the order of its producers.
+            for (ImMethod m : c.getMethods()) {
+                sortList(m.getSubMethods());
+            }
         }
     }
 
@@ -1610,11 +1660,12 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
             // Only computed once per function thanks to usedFunctions.add() gate
             if (includeUsedVariables) {
-                usedVariables.addAll(f.calcUsedVariables());
+                usedVariables.addAll(usedVariablesOf(f));
             }
-            readVariables.addAll(f.calcReadVariables());
+            final FunctionFacts facts = relationFactsOf(f);
+            readVariables.addAll(facts.readVariables);
 
-            final Set<ImFunction> called = f.calcUsedFunctions();
+            final Set<ImFunction> called = facts.usedFunctions;
             // Avoid streams/alloc; avoid pushing functions we've already seen
             for (ImFunction g : called) {
                 if (g == null) continue;
@@ -1625,6 +1676,128 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                     work.add(g);
                 }
             }
+        }
+    }
+
+    /**
+     * What the analysis read out of the body of a function, and its assignments, kept while garbage is removed.
+     * <p>
+     * The removal analyses the program once per round, and each of the three questions about a function is a walk
+     * over its whole body, which is not cached. A round changes a few functions only, and says which
+     * ({@link #functionChanged}); the rest keep their answers until {@link #forgetFunctionFacts}.
+     */
+    private @Nullable Map<ImFunction, FunctionFacts> functionFacts;
+
+    private static final class FunctionFacts {
+        @Nullable Set<ImVar> usedVariables;
+        @Nullable Set<ImVar> readVariables;
+        @Nullable Set<ImFunction> usedFunctions;
+        @Nullable List<ImSet> sets;
+    }
+
+    /** From now on the analysis keeps what it learns of a function, until it is told that the function changed. */
+    public void rememberFunctionFacts() {
+        functionFacts = new IdentityHashMap<>();
+    }
+
+    public void forgetFunctionFacts() {
+        functionFacts = null;
+    }
+
+    /** The body of the function was changed: the analysis has to look at it again. */
+    public void functionChanged(ImFunction function) {
+        if (functionFacts != null) {
+            functionFacts.remove(function);
+        }
+    }
+
+    private @Nullable FunctionFacts factsOf(ImFunction function) {
+        return functionFacts == null ? null : functionFacts.computeIfAbsent(function, f -> new FunctionFacts());
+    }
+
+    private Set<ImVar> usedVariablesOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts == null) {
+            return function.calcUsedVariables();
+        }
+        if (facts.usedVariables == null) {
+            facts.usedVariables = function.calcUsedVariables();
+        }
+        return facts.usedVariables;
+    }
+
+    /**
+     * The functions a function uses and the variables it reads, from one walk over its body. While facts are kept
+     * the assignments of the function come out of the same walk, which the removal asks for next.
+     */
+    private FunctionFacts relationFactsOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        boolean kept = facts != null;
+        if (facts == null) {
+            facts = new FunctionFacts();
+        }
+        if (facts.usedFunctions == null || facts.readVariables == null) {
+            FunctionFactsCollector collector = FunctionFactsCollector.collect(function, kept && facts.sets == null);
+            if (isUnitTestMode) {
+                assertSameAsSeparateWalks(function, collector);
+            }
+            facts.usedFunctions = collector.usedFunctions;
+            facts.readVariables = collector.readVariables;
+            if (collector.sets != null) {
+                facts.sets = collector.sets;
+            }
+        }
+        return facts;
+    }
+
+    /** The assignments in a function, the ones inside another assignment before it. */
+    public List<ImSet> setStatementsOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts != null && facts.sets != null) {
+            return facts.sets;
+        }
+        List<ImSet> sets = referenceSetStatementsOf(function);
+        if (facts != null) {
+            facts.sets = sets;
+        }
+        return sets;
+    }
+
+    private static List<ImSet> referenceSetStatementsOf(ImFunction function) {
+        List<ImSet> sets = new ArrayList<>();
+        function.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImSet e) {
+                super.visit(e);
+                sets.add(e);
+            }
+        });
+        return sets;
+    }
+
+    /**
+     * What the single walk answers has to be what the separate walks answer, in the same order: unit tests compare
+     * every function the analysis meets, with the walks which {@link FunctionFactsCollector} replaces.
+     */
+    private static void assertSameAsSeparateWalks(ImFunction function, FunctionFactsCollector collector) {
+        List<ImFunction> expectedUsed = new ArrayList<>(function.calcUsedFunctions());
+        List<ImFunction> actualUsed = new ArrayList<>(collector.usedFunctions);
+        assertSameElements("functions used by " + function.getName(), expectedUsed, actualUsed);
+        assertSameElements("variables read by " + function.getName(),
+            new ArrayList<>(function.calcReadVariables()), new ArrayList<>(collector.readVariables));
+        if (collector.sets != null) {
+            assertSameElements("assignments in " + function.getName(), referenceSetStatementsOf(function), collector.sets);
+        }
+    }
+
+    private static void assertSameElements(String what, List<?> expected, List<?> actual) {
+        boolean same = expected.size() == actual.size();
+        for (int i = 0; same && i < expected.size(); i++) {
+            same = expected.get(i) == actual.get(i);
+        }
+        if (!same) {
+            throw new AssertionError("The walk over the body found other " + what + " than the separate walks: expected "
+                + expected + ", found " + actual);
         }
     }
 
@@ -1792,6 +1965,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return function == genericNewMarker;
     }
 
+    /** The function which constructs with this constructor, if the program has one already: nothing is created. */
+    public @Nullable ImFunction constructNewFuncIfTranslated(ConstructorDef constr) {
+        return constrNewFuncs.get(constr);
+    }
+
     public ImFunction getConstructNewFunc(ConstructorDef constr) {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {
@@ -1823,7 +2001,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void calculateInterfaceInstances() {
-        interfaceInstances = HashMultimap.create();
+        // Insertion order, not hash order. The order of the compilation units still shows in it;
+        // sortEverything fixes the order of the sub-methods which are made from it.
+        interfaceInstances = LinkedHashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
                 for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
@@ -1857,7 +2037,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (directSubclasses != null) {
             return;
         }
-        directSubclasses = HashMultimap.create();
+        // Insertion order, not hash order. The order of the compilation units still shows in it;
+        // sortEverything fixes the order of the sub-methods which are made from it.
+        directSubclasses = LinkedHashMultimap.create();
         for (ClassDef c : classes()) {
             WurstTypeClass extendedClass = c.attrTypC().extendedClass();
             if (extendedClass != null) {

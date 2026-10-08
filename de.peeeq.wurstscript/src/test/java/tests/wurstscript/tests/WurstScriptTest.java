@@ -665,6 +665,9 @@ public class WurstScriptTest {
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
                 chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
+                // Callback adapters can consume the error. Record an independent failure signal
+                // before raising it so a later testSuccess cannot make the Java harness pass.
+                chunk.append("testFail = function(message) print('__wurst_testFail'); error(message, 0) end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -678,7 +681,10 @@ public class WurstScriptTest {
                 // and one that fills the stdout pipe would deadlock against a stderr-first read.
                 java.util.concurrent.atomic.AtomicBoolean sawTestSuccess =
                     new java.util.concurrent.atomic.AtomicBoolean(false);
-                Thread outCollector = collectStreamAsync(p.getInputStream(), output, "testSuccess", sawTestSuccess);
+                java.util.concurrent.atomic.AtomicBoolean sawTestFail =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                Thread outCollector = collectStreamAsync(p.getInputStream(), output,
+                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail));
                 Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
                 if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
                     p.destroyForcibly();
@@ -693,8 +699,11 @@ public class WurstScriptTest {
                     throw new TestFailException(errors.toString());
                 }
 
+                if (sawTestFail.get()) {
+                    throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
+                }
                 if (!sawTestSuccess.get()) {
-                    throw new Error(currentTestEnv + ": Succeed function not called");
+                    throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);
                 }
             }
 
@@ -742,7 +751,7 @@ public class WurstScriptTest {
     }
 
     private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
-        return collectStreamAsync(stream, out, null, null);
+        return collectStreamAsync(stream, out, java.util.Collections.emptyMap());
     }
 
     /**
@@ -752,10 +761,16 @@ public class WurstScriptTest {
      * <p>
      * Whatever the caller is looking for is recognised here rather than read back out of
      * {@code out} afterwards, because it may arrive after the limit: a program that prints a
-     * million lines and then succeeds has still succeeded.
+     * million lines and then succeeds has still succeeded, and one that prints them and then fails
+     * has still failed. Each line in {@code watchedLines} sets its flag when the program prints it.
      */
     private Thread collectStreamAsync(InputStream stream, StringBuilder out,
-                                      String watchedLine, java.util.concurrent.atomic.AtomicBoolean sawWatchedLine) {
+                                      java.util.Map<String, java.util.concurrent.atomic.AtomicBoolean> watchedLines) {
+        int longestWatchedLine = 0;
+        for (String watched : watchedLines.keySet()) {
+            longestWatchedLine = Math.max(longestWatchedLine, watched.length());
+        }
+        final int maxWatchedLength = longestWatchedLine;
         Thread t = new Thread(() -> {
             // Fixed-size chunks rather than lines: a line is only bounded by what the program
             // chose to print, and reading one materialises all of it before any limit here could
@@ -767,20 +782,22 @@ public class WurstScriptTest {
             try (Reader input = new InputStreamReader(stream)) {
                 int read;
                 while ((read = input.read(chunk)) >= 0) {
-                    if (watchedLine != null) {
+                    if (!watchedLines.isEmpty()) {
                         for (int i = 0; i < read; i++) {
                             char c = chunk[i];
                             if (c == '\n') {
-                                if (!lineIsLongerThanWatched && pendingLine.length() == watchedLine.length()
-                                    && watchedLine.contentEquals(pendingLine)) {
-                                    sawWatchedLine.set(true);
+                                if (!lineIsLongerThanWatched) {
+                                    java.util.concurrent.atomic.AtomicBoolean saw = watchedLines.get(pendingLine.toString());
+                                    if (saw != null) {
+                                        saw.set(true);
+                                    }
                                 }
                                 pendingLine.setLength(0);
                                 lineIsLongerThanWatched = false;
                             } else if (c != '\r' && !lineIsLongerThanWatched) {
-                                // Only ever as long as what is being looked for; past that the
-                                // line cannot be it, so there is no reason to keep any of it.
-                                if (pendingLine.length() == watchedLine.length()) {
+                                // Only ever as long as the longest line being looked for; past that
+                                // the line cannot be any of them, so there is no reason to keep it.
+                                if (pendingLine.length() == maxWatchedLength) {
                                     lineIsLongerThanWatched = true;
                                     pendingLine.setLength(0);
                                 } else {
