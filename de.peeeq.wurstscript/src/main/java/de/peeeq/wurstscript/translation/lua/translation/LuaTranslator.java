@@ -88,6 +88,11 @@ public class LuaTranslator {
     private final Set<String> emittedDispatchSlots = new HashSet<>();
     private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
     private final Map<ImClass, Map<String, Set<DispatchGroupIdentity>>> emittedDispatchSlotGroupsByClass = new IdentityHashMap<>();
+    /**
+     * The receiver sets below are iterated to emit descriptor slots, and classes can share an IM name
+     * (every closure of one interface method in one function does), so a name sort cannot order them:
+     * they are insertion ordered, filled in program order, and never identity-hash ordered.
+     */
     private final Map<DispatchGroupIdentity, Set<ImClass>> concreteReceiverClassesByGroup = new HashMap<>();
     private final Map<ImClass, Set<ImClass>> concreteReceiverClassesByNominalType = new IdentityHashMap<>();
     private final Map<ImMethod, DispatchGroupIdentity> dispatchGroups = new IdentityHashMap<>();
@@ -1800,12 +1805,12 @@ public class LuaTranslator {
                 hasConcreteMethod = true;
                 DispatchGroupIdentity group = dispatchGroups.get(candidate);
                 if (group != null) {
-                    concreteReceiverClassesByGroup.computeIfAbsent(group, ignored -> new HashSet<>()).add(receiver);
+                    concreteReceiverClassesByGroup.computeIfAbsent(group, ignored -> new LinkedHashSet<>()).add(receiver);
                 }
             }
             if (hasConcreteMethod && !isInterfaceClass(receiver)) {
                 for (ImClass nominalType : collectClassesInHierarchy(receiver)) {
-                    concreteReceiverClassesByNominalType.computeIfAbsent(nominalType, ignored -> new HashSet<>()).add(receiver);
+                    concreteReceiverClassesByNominalType.computeIfAbsent(nominalType, ignored -> new LinkedHashSet<>()).add(receiver);
                 }
             }
         }
@@ -1821,7 +1826,7 @@ public class LuaTranslator {
         if (cached != null) {
             return cached;
         }
-        Set<ImClass> receivers = new HashSet<>(concreteReceiverClassesByGroup.getOrDefault(
+        Set<ImClass> receivers = new LinkedHashSet<>(concreteReceiverClassesByGroup.getOrDefault(
             dispatchGroupOf(method), Collections.emptySet()));
         ImClass owner = method.attrClass();
         if (owner != null) {
@@ -1863,7 +1868,7 @@ public class LuaTranslator {
 
     /** Install the fallback only for descriptors that can actually receive a dynamic destroy call. */
     private void ensureDestroyFallbackSlots() {
-        Set<ImClass> fallbackReceivers = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<ImClass> fallbackReceivers = new LinkedHashSet<>();
         for (PendingDispatch pending : pendingDispatches) {
             if (!isDestroyDispatchMethod(pending.method)) {
                 continue;
