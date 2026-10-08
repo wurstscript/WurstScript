@@ -212,8 +212,8 @@ tasks.register("jlinkRuntime27", Exec) {
     doLast {
         // checked on the image itself: the dist folder is only added to, and may still hold an archive of an earlier build
         def image = jreImageDir.get().asFile
-        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(image, it).exists() }) {
-            throw new GradleException("jlink made no base CDS archive (classes.jsa under bin/server or lib/server) in " + image)
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(image, it).exists() }) {
+            throw new GradleException("jlink made no base CDS archive (classes.jsa or classes_coh.jsa under bin/server or lib/server) in " + image)
         }
     }
 }
@@ -250,7 +250,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
         def java = new File(runtime, "bin/" + javaExecutableName)
         // jlink made the archive of the slim runtime, and a full JDK (macOS) normally brings its own, but not every
         // build does: the Temurin for macOS x64 on CI has none. -Xshare:dump writes it next to the JVM library.
-        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(runtime, it).exists() }) {
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(runtime, it).exists() }) {
             logger.lifecycle("[dist] The runtime has no base CDS archive, dumping it")
             RuntimeJava.run(java, ["-Xshare:dump"])
         }
