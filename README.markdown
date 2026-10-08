@@ -43,7 +43,7 @@ The source for the wurstscript website can be found here: https://github.com/wur
 
 ## Compiler Build Process
 
-For **contributing/developing the compiler**, Java 25 is required.  
+For **contributing/developing the compiler**, Java 27 is required.  
 End users normally do not need to install/configure Java manually for the standard Wurst setup flow.
 
 Clone the repository and open the `de.peeeq.wurstscript` folder which contains the compiler project.

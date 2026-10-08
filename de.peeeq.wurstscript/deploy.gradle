@@ -30,7 +30,7 @@ def plat = os.isWindows() ? "win-x64"
 def versionString = project.version.toString()
 
 // Allow adding modules if reflection/ServiceLoader pulls them in:
-//   ./gradlew jlinkRuntime25 -PextraJdkModules=java.desktop,jdk.crypto.ec
+//   ./gradlew jlinkRuntime27 -PextraJdkModules=java.desktop,jdk.crypto.ec
 def extraJdkModulesProvider = providers.gradleProperty("extraJdkModules").orElse("")
 
 def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
@@ -38,7 +38,7 @@ def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
 def jlinkWorkDir  = layout.buildDirectory.dir("jlink")
 def modulesRawTxt  = jlinkWorkDir.map { it.file("modules.raw.txt") }
 def modulesTxt     = jlinkWorkDir.map { it.file("modules.txt") }
-def jreImageDir    = layout.buildDirectory.dir("jre-wurst-25")
+def jreImageDir    = layout.buildDirectory.dir("jre-wurst-27")
 
 def distRoot    = layout.buildDirectory.dir("dist/slim-${plat}")
 def releasesDir = layout.buildDirectory.dir("releases")
@@ -47,11 +47,10 @@ def releasesDir = layout.buildDirectory.dir("releases")
 def toolchainSvc = extensions.getByType(JavaToolchainService)
 def launcherProvider = toolchainSvc.launcherFor(java.toolchain)
 
-// Prefer JAVA_HOME if set, otherwise toolchain
-def javaHomeProvider =
-        providers.environmentVariable("JAVA_HOME")
-                .map { new File(it) }   // <-- no file()
-                .orElse(launcherProvider.map { it.metadata.installationPath.asFile })
+// Build the runtime with the same Java 27 toolchain as the compiler, even when
+// Gradle itself was launched with an older JAVA_HOME. CI pins the portable JDK
+// through org.gradle.java.installations.paths.
+def javaHomeProvider = launcherProvider.map { it.metadata.installationPath.asFile }
 
 def jdepsPathProvider = javaHomeProvider.map { home ->
     new File(home, "bin/jdeps${os.isWindows() ? '.exe' : ''}").absolutePath
@@ -87,7 +86,7 @@ abstract class JdepsRawTask extends DefaultTask {
         def outBuf = new ByteArrayOutputStream()
         execOps.exec {
             executable = jdepsPath.get()
-            args "--multi-release", "25",
+            args "--multi-release", "27",
                     "--ignore-missing-deps",
                     "--print-module-deps",
                     "--ignore-missing-deps",
@@ -100,8 +99,8 @@ abstract class JdepsRawTask extends DefaultTask {
 
 /**
  * Runs the java of a runtime image without the JVM option variables of the build machine: CI exports JAVA_TOOL_OPTIONS
- * for its tests, and a base class data sharing archive takes on the options of the JVM which writes it (compact
- * object headers make it classes_coh.jsa, which a JVM started without them cannot use).
+ * for its tests, and a base class data sharing archive takes on the options of the JVM which writes it.
+ * Use Java 27's default compact-header mode when making and validating the shipped archive.
  */
 class RuntimeJava {
     static String run(File java, List<String> options) {
@@ -167,8 +166,8 @@ tasks.register("jdepsModules") {
 }
 
 // 2) Build slim runtime with jlink (output dir must not exist)
-tasks.register("jlinkRuntime25", Exec) {
-    description = "Builds a slim Java 25 runtime image containing only the needed modules"
+tasks.register("jlinkRuntime27", Exec) {
+    description = "Builds a slim Java 27 runtime image containing only the needed modules"
     group = "distribution"
 
     dependsOn("jdepsModules")
@@ -194,9 +193,7 @@ tasks.register("jlinkRuntime25", Exec) {
         logger.lifecycle("[jlink] Modules: ${mods}")
 
         executable = jlinkPathProvider.get()
-        // The base archive is written by a JVM which jlink starts, and takes on the object header mode of the options
-        // that JVM is given. CI exports JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders for the tests, which would
-        // leave only classes_coh.jsa, which a runtime started without that option cannot use.
+        // Generate the archive with the shipped JVM defaults, independently of the build machine's JVM options.
         ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { environment.remove(it) }
         args "--verbose",
                 "--module-path", jmodsDirProvider.get(),
@@ -215,8 +212,8 @@ tasks.register("jlinkRuntime25", Exec) {
     doLast {
         // checked on the image itself: the dist folder is only added to, and may still hold an archive of an earlier build
         def image = jreImageDir.get().asFile
-        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(image, it).exists() }) {
-            throw new GradleException("jlink made no base CDS archive (classes.jsa under bin/server or lib/server) in " + image)
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(image, it).exists() }) {
+            throw new GradleException("jlink made no base CDS archive (classes.jsa or classes_coh.jsa under bin/server or lib/server) in " + image)
         }
     }
 }
@@ -227,7 +224,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
     group = "distribution"
 
     if (os.isMacOsX()) {
-        // On macOS, skip jlink entirely. Copying the original Temurin JDK preserves
+        // On macOS, skip jlink entirely. Copying the original signed JDK preserves
         // Apple's codesignatures on dylibs/executables, which jlink would invalidate.
         // jmods/ (jlink inputs, ~150 MB) and include/ (C headers) are dev-only.
         dependsOn("shadowJar")
@@ -236,7 +233,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
             exclude("jmods/**", "include/**")
         }
     } else {
-        dependsOn("jlinkRuntime25", "shadowJar")
+        dependsOn("jlinkRuntime27", "shadowJar")
         from(jreImageDir) {
             into("wurst-runtime")
             // for heaps above 32 GB, which this does not run with; it would add 14 MB to the download
@@ -253,7 +250,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
         def java = new File(runtime, "bin/" + javaExecutableName)
         // jlink made the archive of the slim runtime, and a full JDK (macOS) normally brings its own, but not every
         // build does: the Temurin for macOS x64 on CI has none. -Xshare:dump writes it next to the JVM library.
-        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(runtime, it).exists() }) {
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(runtime, it).exists() }) {
             logger.lifecycle("[dist] The runtime has no base CDS archive, dumping it")
             RuntimeJava.run(java, ["-Xshare:dump"])
         }

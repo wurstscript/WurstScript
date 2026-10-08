@@ -1,5 +1,8 @@
 ## 1.9 (in progress)
 
+- The compiler and bundled runtime now use Java 27, with compact object headers enabled by default.
+  Tests retain ParallelGC; the shipped runtime uses Java 27's default G1 collector.
+
 - The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
   slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
   base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive
