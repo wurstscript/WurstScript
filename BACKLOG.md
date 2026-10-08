@@ -67,6 +67,18 @@ Notes; finished-work narrative does not.
   specialised method goes from the allocations in the program, so a dead `new_Parent` no longer keeps it on the erased
   class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
 
+- **Run `ImOptimizer.removeGarbage` fewer times, or have it do less when the shaker has run.** The shaker and the
+  garbage removal both compute reachability, so a build pays for it twice, but not for the same thing: the shaker drops
+  what nothing reaches, the garbage removal also drops the variables only assignments with an effect write and replaces
+  those assignments by their effect, and it runs between four and nine times (`transformProgToLua`, `doInlining`,
+  `localOptimizations`). The walk over the bodies is now one (`FunctionFactsCollector`: the used functions, the read
+  variables and the assignments, asserted equal to the three separate walks in a unit test), which took 201 ms to
+  138 ms of an opt-less castle fight build and 624 ms to 375 ms of an optimised one, measured in one JVM with the two
+  alternating on the same functions. The rest is the number of calls: after the shaker most of them remove almost
+  nothing (the second and third call of an opt-less build spend about 0.35 s to remove three globals). Dropping one
+  changes what the inliner sees, because it decides by function size, so each candidate needs a byte for byte
+  comparison of the scripts of the whole suite first.
+
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
