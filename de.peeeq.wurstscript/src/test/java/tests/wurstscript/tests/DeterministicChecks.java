@@ -363,7 +363,9 @@ public class DeterministicChecks extends WurstScriptTest {
             lines.add("        return " + i);
         }
         CompilationResult res = test().setStopOnFirstError(false).executeProg(false).lines(lines.toArray(new String[0]));
-        return subMethodOrder(res);
+        List<String> order = subMethodOrder(res);
+        assertTrue(order.size() >= 2, "expected sub-methods for Shape.area and Base.size: " + order);
+        return order;
     }
 
     private List<String> subMethodOrder(CompilationResult res) {
@@ -373,12 +375,24 @@ public class DeterministicChecks extends WurstScriptTest {
             for (ImMethod m : c.getMethods()) {
                 if (!m.getSubMethods().isEmpty()) {
                     order.add(c.getName() + "." + m.getName() + " -> "
-                        + m.getSubMethods().stream().map(ImMethod::getName).collect(Collectors.joining(", ")));
+                        + m.getSubMethods().stream().map(sm -> sm.getImplementation().getName()).collect(Collectors.joining(", ")));
                 }
             }
         }
-        assertTrue(order.size() >= 2, "expected sub-methods for Shape.area and Base.size: " + order);
         return order;
+    }
+
+    /**
+     * The sub-methods which the units listed in {@code forward} give each method, compared with the
+     * ones the same units give in {@code shuffled}, which holds them in another order.
+     */
+    private void assertSubMethodOrderIgnoresUnitOrder(List<CU> forward, List<CU> shuffled, int expectedMethods) {
+        List<String> inOrder = subMethodOrder(test().setStopOnFirstError(false).executeProg(false)
+            .compilationUnits(forward.toArray(new CU[0])));
+        assertTrue(inOrder.size() >= expectedMethods, "expected " + expectedMethods + " methods with sub-methods: " + inOrder);
+        List<String> reordered = subMethodOrder(test().setStopOnFirstError(false).executeProg(false)
+            .compilationUnits(shuffled.toArray(new CU[0])));
+        assertEquals(reordered, inOrder, "sub-method order must not depend on the order of the compilation units");
     }
 
     /**
@@ -410,13 +424,39 @@ public class DeterministicChecks extends WurstScriptTest {
         List<CU> forward = new ArrayList<>();
         forward.add(shapes);
         forward.addAll(siblings);
-        List<CU> shuffled = new ArrayList<>(List.of(siblings.get(3), siblings.get(1), shapes, siblings.get(2), siblings.get(0)));
+        List<CU> shuffled = List.of(siblings.get(3), siblings.get(1), shapes, siblings.get(2), siblings.get(0));
+        assertSubMethodOrderIgnoresUnitOrder(forward, shuffled, 2);
+    }
 
-        List<String> inOrder = subMethodOrder(test().setStopOnFirstError(false).executeProg(false)
-            .compilationUnits(forward.toArray(new CU[0])));
-        List<String> reordered = subMethodOrder(test().setStopOnFirstError(false).executeProg(false)
-            .compilationUnits(shuffled.toArray(new CU[0])));
-        assertEquals(reordered, inOrder, "sub-method order must not depend on the order of the compilation units");
+    /**
+     * A closure is a class which implements the interface it is used as, and each closure adds itself
+     * to the sub-methods of the interface's function while its unit is translated. Closures in
+     * different units must not be listed in the order the units were handed to the compiler.
+     */
+    @Test
+    public void closureSubMethodOrderDoesNotDependOnCompilationUnitOrder() {
+        CU transformer = compilationUnit("PkgTransformer.wurst",
+            "package PkgTransformer",
+            "public interface Transformer",
+            "    function transform(int x) returns int",
+            "public function applyTransformer(int val, Transformer t) returns int",
+            "    return t.transform(val)");
+        List<CU> users = new ArrayList<>();
+        for (int i = 1; i <= 4; i++) {
+            users.add(compilationUnit("PkgUser" + i + ".wurst",
+                "package PkgUser" + i,
+                "import PkgTransformer",
+                "public function compute" + i + "(int val) returns int",
+                "    Transformer t = (int x) -> begin",
+                "        return x * " + i,
+                "    end",
+                "    return applyTransformer(val, t)"));
+        }
+        List<CU> forward = new ArrayList<>();
+        forward.add(transformer);
+        forward.addAll(users);
+        List<CU> shuffled = List.of(users.get(3), users.get(1), transformer, users.get(2), users.get(0));
+        assertSubMethodOrderIgnoresUnitOrder(forward, shuffled, 1);
     }
 
     @Test
