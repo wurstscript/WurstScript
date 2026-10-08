@@ -13,6 +13,7 @@ import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.languageserver.WurstGuiLsp;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -39,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -67,6 +69,15 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final WurstBuildConfig buildConfig;
     protected final W3InstallationData w3data;
     protected final TimeTaker timeTaker;
+    private Either<String, Integer> workDoneToken;
+
+    public void setWorkDoneToken(Either<String, Integer> workDoneToken) {
+        this.workDoneToken = workDoneToken;
+    }
+
+    protected WurstGui createGui(ModelManager modelManager, String title) {
+        return new WurstGuiLsp(modelManager, langServer.getLanguageClient(), workDoneToken, title);
+    }
 
     public static long mapLastModified = 0L;
     public static String mapPath = "";
@@ -144,7 +155,10 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     @Override
     public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
-        if (err instanceof RequestFailedException rfe) {
+        if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() != MessageType.Error)) {
+            // The requesting editor owns the failure notification for this progress operation.
+            resFut.completeExceptionally(err);
+        } else if (err instanceof RequestFailedException rfe) {
             languageClient.showMessage(new MessageParams(rfe.getMessageType(), rfe.getMessage()));
             resFut.complete(new Object());
         } else {
@@ -237,10 +251,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                         new File(buildDir, "common.j").getAbsolutePath(),
                         new File(buildDir, "blizzard.j").getAbsolutePath());
                     WLogger.info(pJassResult.getLogMessage());
+                    for (CompileError diagnostic : pJassResult.getDiagnostics(printer.getSourceMap())) {
+                        gui.sendError(diagnostic);
+                    }
                     if (!pJassResult.isOk()) {
-                        for (CompileError err : pJassResult.getErrors()) {
-                            gui.sendError(err);
-                        }
                         throw new RuntimeException("Could not compile project (PJass error)");
                     }
                     timeTaker.endPhase();

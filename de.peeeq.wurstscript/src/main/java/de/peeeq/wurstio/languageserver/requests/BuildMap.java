@@ -2,7 +2,6 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
-import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
@@ -41,19 +40,22 @@ public class BuildMap extends MapRequest {
         }
 
         WLogger.info("buildMap " + map + " " + compileArgs);
-        WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
+        WurstGui gui = createGui(modelManager, "Building Wurst map");
         try {
             executeBuildMapPipeline(modelManager, gui, projectConfig);
         } catch (CompileError e) {
             WLogger.info(e);
-            throw new RequestFailedException(MessageType.Error, "A compilation error occurred when building the map:\n" + e);
+            gui.sendError(e);
+            throw new RequestFailedException(MessageType.Error, "Map build failed. See the Problems panel for details.");
+        } catch (RequestFailedException e) {
+            throw e;
         } catch (Exception e) {
             WLogger.warning("Exception occurred", e);
-            throw new RequestFailedException(MessageType.Error, "An exception was thrown when building the map:\n" + e);
+            throw new RequestFailedException(MessageType.Error, gui.getErrorCount() > 0
+                ? "Map build failed. See the Problems panel for details."
+                : "Map build failed: " + e.getMessage());
         } finally {
-            if (gui.getErrorCount() == 0) {
-                gui.sendFinished();
-            }
+            gui.sendFinished();
         }
         return "ok"; // TODO
     }

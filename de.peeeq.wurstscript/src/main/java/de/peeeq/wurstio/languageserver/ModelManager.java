@@ -28,6 +28,8 @@ public interface ModelManager {
 
     void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
 
+    void reportBuildDiagnostics(List<CompileError> diagnostics);
+
     void buildProject();
 
     /**

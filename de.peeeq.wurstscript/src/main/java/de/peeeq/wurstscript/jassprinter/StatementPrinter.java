@@ -46,6 +46,7 @@ public class StatementPrinter {
             printIndent(sb, indent, withSpace);
             if (s.getElseBlock().size() == 1 && s.getElseBlock().get(0) instanceof JassStmtIf) {
                 sb.append("else");
+                recordElement(sb, s.getElseBlock().get(0));
                 s.getElseBlock().get(0).print(sb, indent, withSpace);
                 return;
             } else {
