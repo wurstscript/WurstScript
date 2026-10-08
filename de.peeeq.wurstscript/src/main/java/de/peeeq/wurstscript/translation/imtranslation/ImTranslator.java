@@ -1617,11 +1617,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
             // Only computed once per function thanks to usedFunctions.add() gate
             if (includeUsedVariables) {
-                usedVariables.addAll(f.calcUsedVariables());
+                usedVariables.addAll(usedVariablesOf(f));
             }
-            readVariables.addAll(f.calcReadVariables());
+            readVariables.addAll(readVariablesOf(f));
 
-            final Set<ImFunction> called = f.calcUsedFunctions();
+            final Set<ImFunction> called = usedFunctionsOf(f);
             // Avoid streams/alloc; avoid pushing functions we've already seen
             for (ImFunction g : called) {
                 if (g == null) continue;
@@ -1633,6 +1633,95 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 }
             }
         }
+    }
+
+    /**
+     * What the analysis read out of the body of a function, and its assignments, kept while garbage is removed.
+     * <p>
+     * The removal analyses the program once per round, and each of the three questions about a function is a walk
+     * over its whole body, which is not cached. A round changes a few functions only, and says which
+     * ({@link #functionChanged}); the rest keep their answers until {@link #forgetFunctionFacts}.
+     */
+    private @Nullable Map<ImFunction, FunctionFacts> functionFacts;
+
+    private static final class FunctionFacts {
+        @Nullable Set<ImVar> usedVariables;
+        @Nullable Set<ImVar> readVariables;
+        @Nullable Set<ImFunction> usedFunctions;
+        @Nullable List<ImSet> sets;
+    }
+
+    /** From now on the analysis keeps what it learns of a function, until it is told that the function changed. */
+    public void rememberFunctionFacts() {
+        functionFacts = new IdentityHashMap<>();
+    }
+
+    public void forgetFunctionFacts() {
+        functionFacts = null;
+    }
+
+    /** The body of the function was changed: the analysis has to look at it again. */
+    public void functionChanged(ImFunction function) {
+        if (functionFacts != null) {
+            functionFacts.remove(function);
+        }
+    }
+
+    private @Nullable FunctionFacts factsOf(ImFunction function) {
+        return functionFacts == null ? null : functionFacts.computeIfAbsent(function, f -> new FunctionFacts());
+    }
+
+    private Set<ImVar> usedVariablesOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts == null) {
+            return function.calcUsedVariables();
+        }
+        if (facts.usedVariables == null) {
+            facts.usedVariables = function.calcUsedVariables();
+        }
+        return facts.usedVariables;
+    }
+
+    private Set<ImVar> readVariablesOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts == null) {
+            return function.calcReadVariables();
+        }
+        if (facts.readVariables == null) {
+            facts.readVariables = function.calcReadVariables();
+        }
+        return facts.readVariables;
+    }
+
+    private Set<ImFunction> usedFunctionsOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts == null) {
+            return function.calcUsedFunctions();
+        }
+        if (facts.usedFunctions == null) {
+            facts.usedFunctions = function.calcUsedFunctions();
+        }
+        return facts.usedFunctions;
+    }
+
+    /** The assignments in a function, the ones inside another assignment before it. */
+    public List<ImSet> setStatementsOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts != null && facts.sets != null) {
+            return facts.sets;
+        }
+        List<ImSet> sets = new ArrayList<>();
+        function.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImSet e) {
+                super.visit(e);
+                sets.add(e);
+            }
+        });
+        if (facts != null) {
+            facts.sets = sets;
+        }
+        return sets;
     }
 
     private Multimap<ImFunction, ImFunction> getCallRelations() {
