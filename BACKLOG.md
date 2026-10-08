@@ -40,6 +40,33 @@ Notes; finished-work narrative does not.
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
   requirements, and regression cases; the data structure itself is not implemented.
 
+- **Shake what is left, and earlier.** `TreeShaker` drops the functions (and the methods whose implementation goes
+  with them) which nothing reaches, and the globals which no reachable code reads together with the assignments of
+  constants to them (not a call, and a division only by a constant: those may have an effect), on both targets, in
+  front of the compile-time functions, before the generics and after them. On castle fight (Lua) that takes the 34,200
+  functions of the translation to 10,500 and the statements from 258,000 to 110,000 before the generics, and the script
+  has 92,000. What it leaves is the weight which is neither: 3,512 classes of which 1,611 reach the script (the
+  specialisation of generics adds 220 more, and the class elimination on Jass builds an allocator, a deallocator and
+  field arrays for every one), and the fields of the classes. Next, in this order, each its own change with its own
+  proof: (1) classes which no live code allocates, names in a type, or inherits from, taking care that type ids are
+  numbered over the classes in the program and that a dead class can be the supertype of a live one; (2) globals
+  and fields which only assignments with an effect write, which keeps the effect and drops the variable (what
+  `ImOptimizer.removeGarbage` does late); (3) the work before the IM exists, which no pass over the IM can reach:
+  about 2.6 s of a warm castle fight build is outside the phases the IM passes cover, and the translation takes 1.3 s
+  to produce 34,000 functions of which 10,500 are used. Translating only function bodies which are reachable saves
+  about 0.17 s of that (measured), because the cost is per class and per method (`getClassesWithImplementation`,
+  0.5 s), so the proposal is to translate by demand from `main`, the compile-time functions and what they name. A
+  type check of the dependencies only as far as the compilation needs it is the larger prize (the check is the
+  largest block of a cold build), but the validator also marks things the translation reads
+  (`NamePreservation.preserve`), so it needs its own investigation.
+  Whole-program analyses which look at every function now see less, and a dead function can no longer make them
+  conservative: `LuaTypedValues` proves more values non-nil without the dead writers (a read of a static which only
+  dead code wrote loses its `__wurst_ensureInt`), `GlobalsInliner` inlines a constant of a package initialiser which
+  a read in a dead assignment used to keep it from proving safe (`Angle_RADTODEG` in the object recycler tests, so
+  the package initialiser disappears too), and `EliminateGenerics.allocatedClasses` decides where a
+  specialised method goes from the allocations in the program, so a dead `new_Parent` no longer keeps it on the erased
+  class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
+
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

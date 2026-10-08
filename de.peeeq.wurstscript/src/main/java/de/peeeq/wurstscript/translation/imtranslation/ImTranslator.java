@@ -250,6 +250,49 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;
 
+    /**
+     * The functions this translator created for passes which run later and call them through the handle it keeps
+     * (the Lua helpers above, the error and debug-print functions), not through a call that already is in the program:
+     * no body calls them yet, and a function which nothing reaches is removed. A new field of this kind has to be
+     * listed here ({@code ImTranslatorPinnedFunctionsTests} fails until it is).
+     */
+    public List<ImFunction> pinnedFunctions() {
+        List<ImFunction> result = new ArrayList<>();
+        for (ImFunction f : new ImFunction[]{
+            ensureIntFunc, ensureBoolFunc, ensureRealFunc, ensureStrFunc, stringConcatFunc,
+            luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFmodRealFunc, luaRawFloorModIntFunc, luaRawConcatFunc,
+            luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
+            luaRawToStringFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
+            debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
+            if (f != null) {
+                result.add(f);
+            }
+        }
+        result.addAll(luaKeyedStubs.values());
+        return result;
+    }
+
+    /**
+     * The globals this translator created for passes which run later and reach them through its handle, not through
+     * an access in a body: the variables which manage the instances of a class, which the class elimination builds
+     * the allocators and the dispatch from. A new field of this kind has to be listed here.
+     */
+    public List<ImVar> pinnedGlobals() {
+        List<ImVar> result = new ArrayList<>();
+        if (classManagementVars != null) {
+            Set<ClassManagementVars> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ClassManagementVars vars : classManagementVars.values()) {
+                if (seen.add(vars)) {
+                    result.add(vars.free);
+                    result.add(vars.freeCount);
+                    result.add(vars.maxIndex);
+                    result.add(vars.typeId);
+                }
+            }
+        }
+        return result;
+    }
+
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;
@@ -1886,6 +1929,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public boolean isGenericNewMarker(ImFunction function) {
         return function == genericNewMarker;
+    }
+
+    /** The function which constructs with this constructor, if the program has one already: nothing is created. */
+    public @Nullable ImFunction constructNewFuncIfTranslated(ConstructorDef constr) {
+        return constrNewFuncs.get(constr);
     }
 
     public ImFunction getConstructNewFunc(ConstructorDef constr) {

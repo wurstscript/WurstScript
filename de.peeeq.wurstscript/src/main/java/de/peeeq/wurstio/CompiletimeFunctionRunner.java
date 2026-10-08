@@ -293,6 +293,40 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         }
     }
 
+    /**
+     * The functions a run with {@code flag} starts from or evaluates: the ones it executes, and the ones holding an
+     * expression it evaluates, which it does whether anything calls the function or not. A pass which removes the
+     * functions nothing reaches before the run takes these as roots, or the run misses code it would have executed.
+     */
+    public static Set<ImFunction> functionsOfTheRun(ImProg prog, FunctionFlagToRun flag) {
+        Set<ImFunction> result = new LinkedHashSet<>();
+        for (ImFunction f : prog.getFunctions()) {
+            if (flag.matches(f)) {
+                result.add(f);
+            }
+        }
+        // collectCompiletimeExpressions finds the expressions of the whole program, so this does too
+        ImFunction.DefaultVisitor holders = new ImFunction.DefaultVisitor() {
+            private ImFunction holder;
+
+            @Override
+            public void visit(ImFunction f) {
+                holder = f;
+                super.visit(f);
+            }
+
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+                super.visit(e);
+                result.add(holder);
+            }
+        };
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+            f.accept(holders);
+        }
+        return result;
+    }
+
     private void collectCompiletimeExpressions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
         imProg.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override

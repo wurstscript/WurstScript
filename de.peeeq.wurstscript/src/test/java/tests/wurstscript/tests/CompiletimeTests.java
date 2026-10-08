@@ -1004,4 +1004,106 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    if c == 1",
                         "        testSuccess()");
     }
+
+    // The Lua pipeline drops the functions nothing reaches before the compile-time functions run (TreeShaker). What
+    // the run executes or evaluates is not reached from main, and has to survive that.
+
+    private TestConfig luaAndJassCompiletime() {
+        return test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms()
+            .runCompiletimeFunctions(true);
+    }
+
+    @Test
+    public void compiletimeExpressionInAFunctionNothingCallsIsStillEvaluated() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "@compiletime int counter = 0",
+            "function bump() returns int",
+            "    counter++",
+            "    return counter",
+            "function neverCalled() returns int",
+            "    return compiletime(bump())",
+            "init",
+            "    if counter == 1",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeExpressionInAMethodOfAnUnusedClassIsStillEvaluated() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "@compiletime int counter = 0",
+            "function bump() returns int",
+            "    counter++",
+            "    return counter",
+            "class NeverCreated",
+            "    function neverCalled() returns int",
+            "        return compiletime(bump())",
+            "init",
+            "    if counter == 1",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeExpressionInAFunctionNothingCallsEvaluatesWhatOnlyItCalls() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "@compiletime int state = 0",
+            "function deepest() returns int",
+            "    state += 40",
+            "    return state",
+            "function middle() returns int",
+            "    return deepest() + 2",
+            "function neverCalled() returns int",
+            "    return compiletime(middle())",
+            "init",
+            "    if state == 40",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeFunctionRunsTheOverrideNothingNames() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "abstract class Base",
+            "    abstract function value() returns int",
+            "class Impl extends Base",
+            "    override function value() returns int",
+            "        return helper()",
+            "function helper() returns int",
+            "    return 42",
+            "@compiletime int result",
+            "@compiletime function fill()",
+            "    Base b = new Impl()",
+            "    result = b.value()",
+            "init",
+            "    if result == 42",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeFunctionRunsTheTypeClassImplementationOnlyItNames() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "class A",
+            "implements ToIndex<A>",
+            "    function toIndex(A x) returns int",
+            "        return 42",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "@compiletime int result",
+            "@compiletime function fill()",
+            "    result = foo(new A)",
+            "init",
+            "    if result == 42",
+            "        testSuccess()");
+    }
 }
