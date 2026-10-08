@@ -975,10 +975,14 @@ public abstract class MapRequest extends UserRequest<Object> {
         return MapRequest.mapLastModified > scriptFile.lastModified();
     }
 
-    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) {
+    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) throws IOException {
         CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
         if (compilationUnit == null) {
-            modelManager.syncCompilationUnit(WFile.create(scriptFile));
+            // Into the model only, without a check: the script is replaced by the one with the project config applied
+            // before the model is checked, and a check of this one finds errors in code which calls what the config
+            // adds (and checks the whole model, since every unit may use a Jass function).
+            modelManager.syncCompilationUnitContent(WFile.create(scriptFile),
+                java.nio.file.Files.readString(scriptFile.toPath()));
         }
     }
 

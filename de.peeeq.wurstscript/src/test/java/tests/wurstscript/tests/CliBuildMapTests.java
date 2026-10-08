@@ -87,6 +87,40 @@ public class CliBuildMapTests {
         assertTrue(modelManager.isFullyChecked(loaded), "and the compilation takes that check over");
     }
 
+    /**
+     * A project without a map script in its wurst folder (a fresh checkout) gets it from the map the first time.
+     * Taking it into the model must not check the model: the script is still the one of the map, the build is
+     * about to swap in the one with the project config applied, and a check of the unconfigured one finds errors
+     * in code which calls what the config adds.
+     */
+    @Test
+    public void extractingTheMapScriptDoesNotCheckTheModel() throws Exception {
+        File projectFolder = new File("./temp/testProject_cli_extract_script/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        wurstFolder.mkdirs();
+        Files.writeString(new File(wurstFolder, "Wurst.wurst").toPath(), "package Wurst\n");
+        Files.writeString(new File(wurstFolder, "Main.wurst").toPath(),
+            "package Main\nfunction callConfigured()\n    configuredByTheProject()\n");
+        File extracted = new File(wurstFolder, "war3map.j");
+        Files.deleteIfExists(extracted.toPath());
+        File mapFolder = new File(projectFolder, "input.w3x");
+        mapFolder.mkdirs();
+        Files.writeString(new File(mapFolder, "war3map.j").toPath(),
+            "function main takes nothing returns nothing\nendfunction\n");
+
+        CountingModelManager modelManager = new CountingModelManager(projectFolder);
+        modelManager.loadProject();
+        WurstModel loaded = modelManager.getModel();
+
+        new CapturingCliBuildMap(projectFolder).extractMapScript(modelManager, mapFolder);
+
+        assertTrue(extracted.exists(), "the script is taken from the map");
+        assertTrue(modelManager.getCompilationUnit(WFile.create(extracted)) != null, "and is in the model");
+        assertFalse(modelManager.isFullyChecked(loaded), "the model is not checked yet");
+        assertFalse(modelManager.hasErrors(),
+            "no check has run against the unconfigured script: " + modelManager.getFirstErrorDescription());
+    }
+
     private static final class CountingModelManager extends ModelManagerImpl {
         private int checks = 0;
 
@@ -107,6 +141,10 @@ public class CliBuildMapTests {
         private CapturingCliBuildMap(File projectFolder) {
             super(WFile.create(projectFolder), Optional.of(new File(projectFolder, "input.w3x")), List.of(),
                 Optional.empty(), new WurstGuiCliImpl());
+        }
+
+        private void extractMapScript(ModelManager modelManager, File mapFolder) throws Exception {
+            loadMapScript(Optional.of(mapFolder), modelManager, new WurstGuiCliImpl());
         }
 
         private void compile(ModelManager modelManager, File script) throws Exception {
