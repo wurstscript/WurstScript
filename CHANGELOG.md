@@ -1,5 +1,22 @@
 ## 1.9 (in progress)
 
+- Lua and Jass builds drop the functions nothing reaches (and the methods which go with them), and the globals which
+  nothing reachable reads (with the assignments of constants to them), in three places: in front of the compile-time
+  functions, before the generics are specialised, and after them. They used to be dropped only after the tuples were
+  eliminated, so the compile-time functions, the generics and the passes in between (keyed tables, varargs, native
+  lowering, local types, tuples, class elimination) walked about four times the functions, and about five times the
+  globals, which end up in the script. What a type argument binds (the implementations of a type class, the
+  constructor of a class given to `wurstNewInstance`) counts as reached, and so do the compile-time functions, any
+  function holding a compile-time expression (evaluated whether anything calls the function or not), the helper
+  functions which the passes call themselves and, on Jass, the declarations of the compiler's own intrinsics. The scripts are the same
+  except for the order of independent global initialisers and the numbers in generated names and type ids, and the
+  passes no longer report a problem in a function nothing calls: a vararg call which would need more than 31 Jass
+  parameters in dead code now compiles. With the dead assignments gone, more constants of package initialisers are
+  inlined and the initialisers which held only those disappear. Opt-less builds of castle fight take 32.4 s instead
+  of 34.6 s on Lua and 31.8 s instead of 35.0 s on Jass, and zombie defense 36.0 s instead of 37.6 s and 37.4 s
+  instead of 39.8 s (command line builds, medians of three, interleaved, Java 27; one of the three zombie defense Jass
+  pairs went the other way).
+
 - A command line build (`-build`, used by grill) checks the project once. It used to check it after reading it, then
   swap in the map script with the project config applied, which invalidates everything the check computed, and check
   it again. It now reads the project, swaps the script in and checks once, with the script the map is compiled with.
