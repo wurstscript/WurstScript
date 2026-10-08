@@ -59,6 +59,7 @@ def jdepsPathProvider = javaHomeProvider.map { home ->
 def jlinkPathProvider = javaHomeProvider.map { home ->
     new File(home, "bin/jlink${os.isWindows() ? '.exe' : ''}").absolutePath
 }
+def javaExecutableName = os.isWindows() ? "java.exe" : "java"
 def jmodsDirProvider = javaHomeProvider.map { home ->
     new File(home, "jmods").absolutePath
 }
@@ -94,6 +95,27 @@ abstract class JdepsRawTask extends DefaultTask {
             standardOutput = outBuf
         }
         outFile.get().asFile.text = outBuf.toString("UTF-8").trim() + "\n"
+    }
+}
+
+/**
+ * Runs the java of a runtime image without the JVM option variables of the build machine: CI exports JAVA_TOOL_OPTIONS
+ * for its tests, and a base class data sharing archive takes on the options of the JVM which writes it (compact
+ * object headers make it classes_coh.jsa, which a JVM started without them cannot use).
+ */
+class RuntimeJava {
+    static String run(File java, List<String> options) {
+        def command = [java.absolutePath] + options
+        def pb = new ProcessBuilder(command)
+        pb.redirectErrorStream(true)
+        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { pb.environment().remove(it) }
+        def process = pb.start()
+        def output = process.inputStream.getText("UTF-8")
+        def exit = process.waitFor()
+        if (exit != 0) {
+            throw new org.gradle.api.GradleException("`" + command.join(" ") + "` exited with " + exit + ": " + output)
+        }
+        return output
     }
 }
 
@@ -228,10 +250,16 @@ tasks.register("assembleSlimCompilerDist", Copy) {
     doLast {
         logger.lifecycle("[dist] Folder ready at: ${distRoot.get().asFile}")
         def runtime = new File(distRoot.get().asFile, "wurst-runtime")
+        def java = new File(runtime, "bin/" + javaExecutableName)
+        // jlink made the archive of the slim runtime, and a full JDK (macOS) normally brings its own, but not every
+        // build does: the Temurin for macOS x64 on CI has none. -Xshare:dump writes it next to the JVM library.
         if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(runtime, it).exists() }) {
-            throw new GradleException("The runtime has no base CDS archive (classes.jsa under bin/server or lib/server), " +
-                    "so the language server cannot start from an AppCDS archive.")
+            logger.lifecycle("[dist] The runtime has no base CDS archive, dumping it")
+            RuntimeJava.run(java, ["-Xshare:dump"])
         }
+        // -Xshare:on makes the JVM fail when it has no usable base archive, where it would otherwise run without one
+        // and nobody would notice
+        RuntimeJava.run(java, ["-Xshare:on", "-version"])
     }
 }
 
