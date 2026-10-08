@@ -16,7 +16,6 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
-import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
@@ -53,8 +52,6 @@ public class WurstValidator {
     private final ArrayList<ExprStatementsBlock> heavyBlocks = new ArrayList<>();
 
     private final WurstModel prog;
-    private int functionCount;
-    private int visitedFunctions;
     private final Multimap<WScope, WScope> calledFunctions = HashMultimap.create();
     private @Nullable Element lastElement = null;
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
@@ -83,8 +80,6 @@ public class WurstValidator {
 
     public void validate(Collection<CompilationUnit> toCheck) {
         try {
-            functionCount = countFunctions(toCheck);
-            visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
             guaranteedClassFieldInitCache.clear();
@@ -100,7 +95,7 @@ public class WurstValidator {
 
             heavyValidation();
 
-            prog.getErrorHandler().setProgress("Post checks", 0.55);
+            prog.getErrorHandler().setProgress("Post checks");
             postChecks(toCheck);
 
         } catch (RuntimeException e) {
@@ -118,8 +113,7 @@ public class WurstValidator {
     private void heavyValidation() {
         // ===== Phase 2: HEAVY (process only collected targets) =====
         phase = Phase.HEAVY;
-        visitedFunctions = 0;
-        prog.getErrorHandler().setProgress("Validation (control-flow + dataflow)", 0.5);
+        prog.getErrorHandler().setProgress("Validation (control-flow + dataflow)");
 
         // functions: returns + DFA + reachability walk inside the function body
         for (FunctionLike f : heavyFunctions) {
@@ -143,8 +137,7 @@ public class WurstValidator {
     private void lightValidation(Collection<CompilationUnit> toCheck) {
         // ===== Phase 1: LIGHT (all regular checks, collect heavy targets) =====
         phase = Phase.LIGHT;
-        prog.getErrorHandler().setProgress("Validation (light)",
-            ProgressHelper.getValidatorPercent(0, Math.max(1, functionCount)));
+        prog.getErrorHandler().setProgress("Validation (light)");
 
         for (CompilationUnit cu : toCheck) {
             walkTree(cu);
@@ -1179,22 +1172,6 @@ public class WurstValidator {
         // check range? ...
     }
 
-    private int countFunctions(Collection<CompilationUnit> toCheck) {
-        final int[] functionCount = new int[1];
-        Element.DefaultVisitor visitor = new Element.DefaultVisitor() {
-
-            @Override
-            public void visit(FuncDef f) {
-                super.visit(f);
-                functionCount[0]++;
-            }
-        };
-        for (CompilationUnit cu : toCheck) {
-            cu.accept(visitor);
-        }
-        return functionCount[0];
-    }
-
     private void checkStmtSet(StmtSet s) {
         NameLink nameLink = s.getUpdatedExpr().attrNameLink();
         if (nameLink == null) {
@@ -1697,9 +1674,6 @@ public class WurstValidator {
     }
 
     private void visit(FuncDef func) {
-        visitedFunctions++;
-        func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-
         checkFunctionName(func);
         if (func.attrIsAbstract()) {
             if (!func.attrHasEmptyBody()) {

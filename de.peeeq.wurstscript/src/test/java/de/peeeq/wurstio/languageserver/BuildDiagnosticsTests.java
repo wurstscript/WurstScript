@@ -36,6 +36,50 @@ import static org.testng.Assert.*;
 
 public class BuildDiagnosticsTests {
     @Test
+    public void validationThroughEditorGuiReportsNonNullPhaseMessages() throws Exception {
+        Path project = Files.createTempDirectory("wurst-lsp-validation-progress");
+        for (Either<String, Integer> token : java.util.Arrays.asList(null, Either.<String, Integer>forLeft("build-42"))) {
+            ModelManagerImpl manager = new ModelManagerImpl(project.toFile(), new BufferManager());
+            List<MessageParams> logs = new ArrayList<>();
+            List<ProgressParams> progress = new ArrayList<>();
+            LanguageClient client = (LanguageClient) Proxy.newProxyInstance(LanguageClient.class.getClassLoader(),
+                new Class<?>[]{LanguageClient.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("logMessage")) {
+                        logs.add((MessageParams) args[0]);
+                    } else if (method.getName().equals("notifyProgress")) {
+                        progress.add((ProgressParams) args[0]);
+                    }
+                    return null;
+                });
+            WurstGuiLsp gui = new WurstGuiLsp(manager, client, token, "Building Wurst map");
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs());
+            compiler.loadReader("blizzard.j", new StringReader(
+                "function BJDebugMsg takes string msg returns nothing\nendfunction\n"));
+            compiler.loadReader("Main.wurst", new StringReader(
+                "package Main\nfunction answer() returns int\n    return 42\n"));
+            var model = compiler.parseFiles();
+            compiler.checkProg(model);
+            assertEquals(gui.getErrorCount(), 0, gui.getErrors());
+
+            assertFalse(logs.isEmpty());
+            assertTrue(logs.stream().allMatch(log -> log.getMessage() != null));
+            List<String> phases = List.of("Validation (light)", "Validation (control-flow + dataflow)", "Post checks");
+            assertEquals(logs.stream().map(MessageParams::getMessage).filter(phases::contains).toList(), phases);
+            gui.sendFinished();
+            if (token == null) {
+                assertTrue(progress.isEmpty());
+            } else {
+                assertTrue(progress.get(0).getValue().getLeft() instanceof WorkDoneProgressBegin);
+                assertTrue(progress.get(progress.size() - 1).getValue().getLeft() instanceof WorkDoneProgressEnd);
+                List<String> reports = progress.stream().map(event -> event.getValue().getLeft())
+                    .filter(event -> event instanceof WorkDoneProgressReport)
+                    .map(event -> ((WorkDoneProgressReport) event).getMessage()).toList();
+                assertEquals(reports, logs.stream().map(MessageParams::getMessage).toList());
+            }
+        }
+    }
+
+    @Test
     public void buildWarningsFromDependenciesRemainVisibleWhileOrdinaryWarningsStaySuppressed() {
         WurstGuiLogger gui = new WurstGuiLogger();
         WPos dependency = new WPos("_build/dependencies/Library/Main.wurst", LineOffsets.dummy, 0, 4);

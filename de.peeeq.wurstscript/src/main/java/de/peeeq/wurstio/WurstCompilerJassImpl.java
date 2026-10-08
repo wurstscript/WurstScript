@@ -689,7 +689,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     private void beginPhase(int phase, String description) {
-        errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description, 0.6 + 0.01 * phase);
+        errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description);
         timeTaker.beginPhase(description);
     }
 

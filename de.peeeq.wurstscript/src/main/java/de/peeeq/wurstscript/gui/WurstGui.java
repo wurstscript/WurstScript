@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +15,8 @@ public abstract class WurstGui {
     private final List<CompileError> errors = Lists.newArrayList();
 
 
-    public abstract void sendProgress(String whatsRunningNow);
+    /** Reports the current task using a non-null message. */
+    public abstract void sendProgress(@NonNull String whatsRunningNow);
 
     public abstract void sendFinished();
 
