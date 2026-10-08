@@ -20,8 +20,11 @@ Notes; finished-work narrative does not.
   to the model before its first check (so the CLI checks once); keep the unchanged top-level
   declarations of a changed Jass file and re-check only the units which mention a changed name; then
   drop `SafetyLevel` (purging unimported units from the managed model in `compileMap` changes it for the
-  next run, and a build could compare file hashes instead of cleaning). A decision is needed for the
-  last: whether a release build ignores unsaved editor buffers, as the clean and rebuild does now.
+  next run, and a build could compare file hashes instead of cleaning). Run and build both read the
+  open editor buffers today (`readCompilationUnitContents` prefers an open buffer, also in the rebuild after
+  `clean()`), so a build can contain text which is not on disk, while grill reads the disk. wurst4vscode
+  sends `wurst.buildmap` and `wurst.startmap` without saving the open files first. Whether a build should
+  save first, or refuse unsaved files, is open.
 
 - **A dead dispatch slot survives for overloads inside a specialised class.** Two overloads of one
   source method share a declared name, so a specialised class holding only overloads still composes
