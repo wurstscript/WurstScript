@@ -38,6 +38,23 @@ Notes; finished-work narrative does not.
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
   requirements, and regression cases; the data structure itself is not implemented.
 
+- **Shake the unreachable functions earlier.** Most of what a project imports is never called: on castle fight
+  34,000 functions come out of the translation, specialising the generics makes it 43,000, and 10,500 reach the Lua
+  translation. The Lua pipeline now drops the unreachable ones (`TreeShaker`) right after the generics, so the
+  passes from keyed tables to tuples walk about a quarter of what they did; everything before it still walks
+  all of it: the translation (1.2 s of a warm run), the compile-time functions and the specialisation of generics
+  (1.2 s). Before the generics the reachability has to follow the type-class bindings of every type argument
+  (`ImTypeArgument.typeClassBinding`) and the constructors a `wurstNewInstance` names, and the methods of a
+  generic class which nothing calls have to leave the class, since a specialisation copies every method with its
+  body and a body which calls a removed function dangles. Better still, translate only what is reachable.
+  The Jass pipeline cannot take the shake after its generics as it is, each of these showed up as a failing test:
+  `JassKeyOfLowering` and `JassKeyedMapLowering` look up the functions of the package which declares an intrinsic by
+  name, called or not; `EliminateClasses` builds a dispatch function over every override of a method (tuple
+  variables stayed in `dispatch_*` functions in `RealWorldExamples` and the standard library tests); and
+  `VarargEliminator` reports a call which would need more than 31 Jass parameters in a function nothing calls
+  (`VarargTests.varargDelegatingConstructorCountsConstructedObject`). Each has to be given what it looks for
+  (a root, or a pass which finds it before the shake) before the shake can move there.
+
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

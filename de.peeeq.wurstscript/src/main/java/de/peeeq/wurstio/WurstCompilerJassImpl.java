@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imoptimizer.TreeShaker;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
@@ -935,6 +936,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
             timeTaker.endPhase();
         }
+        // What nothing calls (most of the imported libraries) would go through every pass below, and the garbage
+        // removal after the tuples is the first thing to drop it. The helpers the passes below call are pinned.
+        beginPhase(2, "remove unreachable functions");
+        TreeShaker.removeUnreachableFunctions(getImTranslator());
+        timeTaker.endPhase();
         // Before stack traces: that pass appends a parameter to every affected function, and on
         // Lua every non-native function is affected, so the exact signatures the keyed-table
         // operations are recognised by would stop matching - silently leaving their Jass bodies on

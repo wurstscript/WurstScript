@@ -1,5 +1,13 @@
 ## 1.9 (in progress)
 
+- The Lua build drops the functions nothing reaches right after the generics are specialised, and no longer after the
+  tuples are eliminated. The passes between the two (keyed tables, varargs, native lowering, local types, tuples)
+  used to walk four times the functions which end up in the script. The helper functions which these passes call
+  themselves are kept. The script is the same except for the order of generated globals and the numbers in
+  generated names, and the passes no longer report a problem in a function nothing calls. A warm castle fight build
+  without optimisations takes 9.3 s instead of 10.3 s, and the first one of a session 20.2 s instead of 21.7 s (medians
+  of three, interleaved, in one JVM per run).
+
 - The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
   slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
   base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive
