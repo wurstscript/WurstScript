@@ -182,12 +182,11 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     /**
-     * does a full build, reading whole directory
+     * reads the whole directory, which leaves every unit unchecked
      */
     @Override
-    public void buildProject() {
+    public void loadProject() {
         try {
-            WurstGui gui = new WurstGuiLogger();
             readDependencies();
 
             if (!projectPath.exists()) {
@@ -200,7 +199,16 @@ public class ModelManagerImpl implements ModelManager {
                 wurstFolder = projectPath;
             }
             processWurstFiles(wurstFolder);
+        } catch (Exception e) {
+            WLogger.severe(e);
+            throw new ModelManagerException(e);
+        }
+    }
 
+    @Override
+    public void checkProject() {
+        try {
+            WurstGui gui = new WurstGuiLogger();
             resolveImports(gui);
 
             doTypeCheck(gui);

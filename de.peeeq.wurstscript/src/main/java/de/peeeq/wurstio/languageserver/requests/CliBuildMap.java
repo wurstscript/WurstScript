@@ -34,7 +34,7 @@ public class CliBuildMap extends MapRequest {
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
         if (modelManager.hasErrors()) {
-            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.\n" + modelManager.getFirstErrorDescription());
+            throw errorsInTheModel(modelManager.getFirstErrorDescription());
         }
 
         WurstProjectConfigData projectConfig = WurstProjectConfigReader.load(workspaceRoot.getFile().toPath().resolve(FILE_NAME));
@@ -47,6 +47,8 @@ public class CliBuildMap extends MapRequest {
         try {
             File targetMapFile = executeBuildMapPipeline(modelManager, gui, projectConfig);
             return targetMapFile.getAbsolutePath();
+        } catch (ModelHasErrors e) {
+            throw errorsInTheModel(e.getMessage());
         } catch (CompileError e) {
             WLogger.info(e);
             throw new RequestFailedException(MessageType.Error, "A compilation error occurred when building the map:\n" + e);
@@ -58,6 +60,31 @@ public class CliBuildMap extends MapRequest {
                 gui.sendFinished();
             }
         }
+    }
+
+    /**
+     * The CLI loads the project and does not check it (see {@link ModelManager#loadProject()}): it is checked here,
+     * with the map script it is compiled with, and the compilation takes the check over.
+     */
+    @Override
+    protected void checkModelWithMapScript(ModelManager modelManager) {
+        if (!modelManager.isFullyChecked(modelManager.getModel())) {
+            modelManager.checkProject();
+        }
+        if (modelManager.hasErrors()) {
+            throw new ModelHasErrors(modelManager);
+        }
+    }
+
+    /** The check found errors; the build fails with the message it always had for errors in the model. */
+    private static final class ModelHasErrors extends RuntimeException {
+        private ModelHasErrors(ModelManager modelManager) {
+            super(modelManager.getFirstErrorDescription());
+        }
+    }
+
+    private static RequestFailedException errorsInTheModel(String firstError) {
+        return new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.\n" + firstError);
     }
 
     @Override

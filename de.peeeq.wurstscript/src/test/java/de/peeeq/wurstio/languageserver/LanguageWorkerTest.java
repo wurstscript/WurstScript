@@ -552,6 +552,16 @@ public class LanguageWorkerTest {
         }
 
         @Override
+        public void loadProject() {
+            throw new UnsupportedOperationException("The worker builds the project in one go.");
+        }
+
+        @Override
+        public void checkProject() {
+            throw new UnsupportedOperationException("The worker builds the project in one go.");
+        }
+
+        @Override
         public void refreshDependencies() {
             refreshDependencyCalls.incrementAndGet();
         }
