@@ -4,7 +4,9 @@
   does not resolve, used to forget the files it was planned for. A file edited in the meantime then got no
   diagnostics once the import was fixed, since nothing it imports had changed. Those files are kept and checked
   with the next check. Deleting one of two definitions of a package now also checks the other, which kept
-  its "defined multiple times" error. The alternatives listed by a "call is ambiguous" error are sorted, where
+  its "defined multiple times" error. Editing a config package (`Foo_config`) now checks the package it
+  configures and everything importing that, which kept calling the function the config package used to
+  define until one of them was edited itself. The alternatives listed by a "call is ambiguous" error are sorted, where
   they used to follow the order the files were loaded in.
 
 - Running a map no longer type checks again a model which the language server has checked completely and which

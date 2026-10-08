@@ -56,30 +56,51 @@ public class IncrementalModelOracleTests {
 
     /**
      * The seeds which found something once: 10, 24 and 40 (files edited while an import did not resolve were
-     * never checked) and 74 (the other definition of a duplicated package kept its error).
+     * never checked) and 74 (the other definition of a duplicated package kept its error). The config seeds
+     * (1, 5 and 7) found that a config package and the package it configures were not checked together.
      * INCREMENTAL_ORACLE_SEEDS=n runs seeds 1 to n instead, to look for more.
      */
     @DataProvider(name = "seeds")
     public Object[][] seeds() {
+        return seeds(new long[]{10, 24, 40, 74});
+    }
+
+    @DataProvider(name = "configSeeds")
+    public Object[][] configSeeds() {
+        return seeds(new long[]{1, 5, 7});
+    }
+
+    private static Object[][] seeds(long[] regressions) {
         String more = System.getenv("INCREMENTAL_ORACLE_SEEDS");
-        if (more == null) {
-            return new Object[][]{{10L}, {24L}, {40L}, {74L}};
-        }
-        int count = Integer.parseInt(more);
+        int count = more == null ? regressions.length : Integer.parseInt(more);
         Object[][] seeds = new Object[count][];
         for (int i = 0; i < count; i++) {
-            seeds[i] = new Object[]{(long) (i + 1)};
+            seeds[i] = new Object[]{more == null ? regressions[i] : (long) (i + 1)};
         }
         return seeds;
     }
 
     @Test(dataProvider = "seeds")
     public void incrementalModelMatchesFreshBuild(long seed) throws Exception {
-        File project = new File("./temp/incrementalOracle" + seed + "/");
+        check(seed, false);
+    }
+
+    /**
+     * The same with config packages ({@code Foo_config} replaces functions of {@code Foo}, which nothing
+     * imports it for) and with an init in every package calling its functions, so that what a call
+     * resolves to shows in the emitted Lua.
+     */
+    @Test(dataProvider = "configSeeds")
+    public void incrementalModelMatchesFreshBuildWithConfigPackages(long seed) throws Exception {
+        check(seed, true);
+    }
+
+    private void check(long seed, boolean configs) throws Exception {
+        File project = new File("./temp/incrementalOracle" + (configs ? "Config" : "") + seed + "/");
         newCleanFolder(project);
 
         // 1. what a build from scratch says about every state
-        Simulation sim = new Simulation(seed);
+        Simulation sim = new Simulation(seed, configs);
         Map<String, String> onDisk = new TreeMap<>();
         List<Observation> expected = new ArrayList<>();
         List<String> history = new ArrayList<>();
@@ -110,7 +131,7 @@ public class IncrementalModelOracleTests {
 
         // 2. the same sequence on one model, the way the language worker drives it
         newCleanFolder(project);
-        sim = new Simulation(seed);
+        sim = new Simulation(seed, configs);
         onDisk.clear();
         applyToDisk(project, onDisk, sim.render());
         ModelManagerImpl manager = new ModelManagerImpl(project, new BufferManager());
@@ -311,6 +332,8 @@ public class IncrementalModelOracleTests {
 
     private static final class Fn {
         int arity;
+        /** what the function returns, which tells which definition a call ended up in */
+        int result;
         final List<Use> uses = new ArrayList<>();
 
         Fn(int arity) {
@@ -346,13 +369,15 @@ public class IncrementalModelOracleTests {
         private static final String[] STEMS = {"PkgA", "PkgB", "PkgC", "PkgD", "PkgE", "Moved1", "Moved2"};
 
         private final Random rnd;
+        private final boolean configs;
         /** file stem -> the package declared in it */
         private final Map<String, Pkg> files = new TreeMap<>();
         private final Map<String, JassFile> jass = new TreeMap<>();
         String lastEdit = "initial project";
 
-        Simulation(long seed) {
+        Simulation(long seed, boolean configs) {
             rnd = new Random(seed);
+            this.configs = configs;
             Pkg a = new Pkg("PkgA");
             a.imports.add("PkgB");
             Fn fa = new Fn(0);
@@ -390,7 +415,7 @@ public class IncrementalModelOracleTests {
             Map<String, String> result = new TreeMap<>();
             result.put("wurst/Wurst.wurst", "package Wurst\n");
             for (Map.Entry<String, Pkg> e : files.entrySet()) {
-                result.put("wurst/" + e.getKey() + ".wurst", renderPackage(e.getValue()));
+                result.put("wurst/" + e.getKey() + ".wurst", renderPackage(e.getValue(), configs));
             }
             for (Map.Entry<String, JassFile> e : jass.entrySet()) {
                 result.put("wurst/" + e.getKey(), renderJass(e.getValue()));
@@ -398,7 +423,11 @@ public class IncrementalModelOracleTests {
             return result;
         }
 
-        private static String renderPackage(Pkg p) {
+        private static boolean isConfig(Pkg p) {
+            return p.name.endsWith("_config");
+        }
+
+        private static String renderPackage(Pkg p, boolean withInit) {
             StringBuilder sb = new StringBuilder("package " + p.name + "\n");
             for (String i : p.imports) {
                 sb.append("import ").append(i).append("\n");
@@ -408,7 +437,7 @@ public class IncrementalModelOracleTests {
                 sb.append("public int ").append(g).append(" = 0\n");
             }
             for (Map.Entry<String, Fn> f : p.funcs.entrySet()) {
-                sb.append("public function ").append(f.getKey()).append("(");
+                sb.append(isConfig(p) ? "@config " : "").append("public function ").append(f.getKey()).append("(");
                 for (int i = 0; i < f.getValue().arity; i++) {
                     sb.append(i > 0 ? ", " : "").append("int a").append(i);
                 }
@@ -425,7 +454,14 @@ public class IncrementalModelOracleTests {
                     sb.append("\n");
                     n++;
                 }
-                sb.append("    return 0\n");
+                sb.append("    return ").append(f.getValue().result).append("\n");
+            }
+            if (withInit && !isConfig(p) && !p.funcs.isEmpty()) {
+                sb.append("init\n");
+                for (Map.Entry<String, Fn> f : p.funcs.entrySet()) {
+                    sb.append("    BJDebugMsg(I2S(").append(f.getKey()).append("(")
+                        .append(String.join(", ", Collections.nCopies(f.getValue().arity, "0"))).append(")))\n");
+                }
             }
             return sb.toString();
         }
@@ -477,6 +513,9 @@ public class IncrementalModelOracleTests {
                 if (!names.containsAll(p.imports)) {
                     return false;
                 }
+                if (isConfig(p) && !names.contains(p.name.substring(0, p.name.length() - "_config".length()))) {
+                    return false;
+                }
             }
             return true;
         }
@@ -485,7 +524,7 @@ public class IncrementalModelOracleTests {
 
         void step() {
             for (int attempt = 0; attempt < 100; attempt++) {
-                String description = edit(rnd.nextInt(28));
+                String description = edit(rnd.nextInt(configs ? 31 : 28));
                 if (description != null) {
                     lastEdit = description;
                     return;
@@ -712,6 +751,43 @@ public class IncrementalModelOracleTests {
                     jass.remove(name);
                     return "delete jass file " + name;
                 }
+                case 28 -> {
+                    // a config package for a package with a function, which it replaces
+                    String stem = pickStem();
+                    if (stem == null || isConfig(files.get(stem)) || files.get(stem).funcs.isEmpty()) return null;
+                    String configName = files.get(stem).name + "_config";
+                    if (files.containsKey(configName)) return null;
+                    String f = pick(new ArrayList<>(files.get(stem).funcs.keySet()));
+                    Pkg config = new Pkg(configName);
+                    Fn replacement = new Fn(files.get(stem).funcs.get(f).arity);
+                    replacement.result = 1 + rnd.nextInt(9);
+                    config.funcs.put(f, replacement);
+                    files.put(configName, config);
+                    return "add config package " + configName + " replacing " + f;
+                }
+                case 29 -> {
+                    String stem = pickStem();
+                    if (stem == null) return null;
+                    String f = pick(new ArrayList<>(files.get(stem).funcs.keySet()));
+                    if (f == null) return null;
+                    Fn fn = files.get(stem).funcs.get(f);
+                    fn.result = (fn.result + 1 + rnd.nextInt(8)) % 10;
+                    return "change what " + f + " in " + stem + " returns to " + fn.result;
+                }
+                case 30 -> {
+                    // one more function replaced by an existing config package
+                    String stem = pick(files.keySet().stream().filter(k -> isConfig(files.get(k))).toList());
+                    if (stem == null) return null;
+                    Pkg config = files.get(stem);
+                    Pkg original = files.get(config.name.substring(0, config.name.length() - "_config".length()));
+                    if (original == null) return null;
+                    String f = pick(original.funcs.keySet().stream().filter(k -> !config.funcs.containsKey(k)).toList());
+                    if (f == null) return null;
+                    Fn replacement = new Fn(original.funcs.get(f).arity);
+                    replacement.result = 1 + rnd.nextInt(9);
+                    config.funcs.put(f, replacement);
+                    return "replace " + f + " in " + stem;
+                }
                 default -> {
                     return repair();
                 }
@@ -746,7 +822,15 @@ public class IncrementalModelOracleTests {
                 files.put(p.name, p);
                 byName.put(p.name, p);
             }
+            files.values().removeIf(p -> isConfig(p)
+                && !byName.containsKey(p.name.substring(0, p.name.length() - "_config".length())));
+            byName.values().removeIf(p -> !files.containsValue(p));
             for (Pkg p : files.values()) {
+                if (isConfig(p)) {
+                    Pkg original = byName.get(p.name.substring(0, p.name.length() - "_config".length()));
+                    p.funcs.entrySet().removeIf(e -> !original.funcs.containsKey(e.getKey())
+                        || original.funcs.get(e.getKey()).arity != e.getValue().arity);
+                }
                 p.imports.removeIf(i -> !byName.containsKey(i) || i.equals(p.name));
                 for (Fn fn : p.funcs.values()) {
                     fn.uses.removeIf(u -> !resolves(p, byName, jassArity, jassGlobals, u));

@@ -1548,6 +1548,53 @@ public class ModelManagerTests {
         assertEquals(results.get(fileSecond), "", "the package is defined once now");
     }
 
+    /**
+     * A config package replaces functions of the package it configures, which nothing imports it for:
+     * the package, and what imports the package, have to follow when only the config package changes.
+     */
+    @Test
+    public void editingAConfigPackageChecksThePackageItConfiguresAndItsImporters() throws IOException {
+        File projectFolder = new File("./temp/testProject_configPackage/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileFoo = WFile.create(new File(wurstFolder, "Foo.wurst"));
+        WFile fileFooConfig = WFile.create(new File(wurstFolder, "Foo_config.wurst"));
+        WFile fileBar = WFile.create(new File(wurstFolder, "Bar.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileFoo, string("package Foo", "public function foo() returns int", "    return 1", ""));
+        writeFile(fileBar, string("package Bar", "import Foo", "init", "    BJDebugMsg(I2S(foo()))", ""));
+        String configured = string("package Foo_config", "@config public function foo() returns int", "    return %s", "");
+        writeFile(fileFooConfig, String.format(configured, 4711));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        String before = luaOf(projectFolder, manager);
+        assertThat(before, containsString("4711"));
+
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileFooConfig, String.format(configured, 4712));
+        manager.reconcile(changes);
+
+        String after = luaOf(projectFolder, manager);
+        assertThat(after, containsString("4712"));
+        assertThat(after, new IsNot<>(containsString("4711")));
+    }
+
+    /** The Lua of a compilation of the managed model, checked the way a run checks it. */
+    private String luaOf(File projectFolder, ModelManagerImpl manager) {
+        WurstGui gui = new WurstGuiLogger();
+        RunArgs runArgs = new RunArgs("-lua");
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        WurstModel model = manager.getModel();
+        MapRequest.checkModel(manager, compiler, model, runArgs);
+        compiler.translateProgToIm(model);
+        assertEquals(gui.getErrorCount(), 0, "errors: " + gui.getErrorList());
+        StringBuilder sb = new StringBuilder();
+        compiler.transformProgToLua().print(sb, 0);
+        return sb.toString();
+    }
+
     /** How often a compilation checks the model of the manager. */
     private int checksWhenCompiling(File projectFolder, ModelManagerImpl manager) {
         AtomicInteger checks = new AtomicInteger();

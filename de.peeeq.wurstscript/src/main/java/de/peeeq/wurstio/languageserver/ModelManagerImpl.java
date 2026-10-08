@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.SyntacticSugar;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
@@ -935,12 +936,30 @@ public class ModelManagerImpl implements ModelManager {
         // affected packages are new ones and old ones
         Set<String> affectedPackages = Stream.concat(providedPackages, oldPackages.stream())
                 .collect(Collectors.toSet());
+        affectedPackages.addAll(configRelatives(affectedPackages));
 
         addPossiblyAffectedPackages(affectedPackages, model, result);
 
         return result;
     }
 
+
+    /**
+     * A config package replaces definitions of the package it configures, and that package decides which of its
+     * definitions are replaced, though neither imports the other. What changes in one changes what the other,
+     * and so everything importing the configured package, resolves to.
+     */
+    private static Set<String> configRelatives(Set<String> packageNames) {
+        Set<String> result = new HashSet<>();
+        for (String name : packageNames) {
+            if (name.endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
+                result.add(name.substring(0, name.length() - CofigOverridePackages.CONFIG_POSTFIX.length()));
+            } else {
+                result.add(name + CofigOverridePackages.CONFIG_POSTFIX);
+            }
+        }
+        return result;
+    }
 
     /**
      * Add all packages that directly or indirectly depend on the providedPackages
@@ -969,6 +988,34 @@ public class ModelManagerImpl implements ModelManager {
         }
 
         addTransitiveDeps(result, model);
+        // a config package is checked with the package it configures, and what follows from either
+        while (addConfigRelatives(result, model)) {
+            addTransitiveDeps(result, model);
+        }
+    }
+
+    /**
+     * Adds the units declaring the config package of a package in result, or the package a config package in result
+     * configures, see {@link #configRelatives}.
+     *
+     * @return whether a unit was added
+     */
+    private boolean addConfigRelatives(Set<CompilationUnit> result, WurstModel model) {
+        Set<String> declared = new HashSet<>();
+        for (CompilationUnit cu : result) {
+            for (WPackage p : cu.getPackages()) {
+                declared.add(p.getName());
+            }
+        }
+        Set<String> relatives = configRelatives(declared);
+        boolean added = false;
+        for (CompilationUnit cu : model) {
+            if (!result.contains(cu) && cu.getPackages().stream().anyMatch(p -> relatives.contains(p.getName()))) {
+                result.add(cu);
+                added = true;
+            }
+        }
+        return added;
     }
 
     /**
