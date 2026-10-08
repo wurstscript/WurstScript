@@ -3347,4 +3347,100 @@ public class OptimizerTests extends WurstScriptTest {
         }
         assertTrue(callSurvives[0], "the call's side effect must survive the dead assignment");
     }
+
+    /**
+     * A local is live after a statement when something reads it before it is assigned again, along
+     * some path. The loop shows the fixed point: the counter is live around it, the temporary only
+     * between its assignment and its read.
+     */
+    @Test
+    public void localMergerLivenessFollowsAssignmentsAndLoops() {
+        Element trace = Ast.NoExpr();
+        LocalMerger localMerger = new LocalMerger();
+        ImVar a = JassIm.ImVar(trace, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(trace, TypesHelper.imInt(), "b", false);
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
+        ImVar sinkA = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkA", false);
+        ImVar sinkB = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkB", false);
+        ImFunction sink = JassIm.ImFunction(trace, "sink", JassIm.ImTypeVars(), JassIm.ImVars(sinkA, sinkB),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+
+        ImSet setA = JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImIntVal(1));
+        ImSet setB = JassIm.ImSet(trace, JassIm.ImVarAccess(b), JassIm.ImIntVal(2));
+        ImSet setC = JassIm.ImSet(trace, JassIm.ImVarAccess(c), JassIm.ImOperatorCall(
+            de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))));
+        ImSet copyC = JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImVarAccess(c));
+        ImFunctionCall call = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImVarAccess(b)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction straight = JassIm.ImFunction(trace, "straight", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(a, b, c), JassIm.ImStmts(setA, setB, setC, copyC, call),
+            Collections.emptyList());
+
+        Map<ImStmt, Set<ImVar>> straightLiveness = localMerger.calculateLiveness(straight);
+
+        assertEquals(straightLiveness.get(setA), HashSet.of(a));
+        assertEquals(straightLiveness.get(setB), HashSet.of(a, b));
+        assertEquals(straightLiveness.get(setC), HashSet.of(b, c));
+        assertEquals(straightLiveness.get(copyC), HashSet.of(a, b));
+        assertEquals(straightLiveness.get(call), HashSet.empty());
+
+        ImVar i = JassIm.ImVar(trace, TypesHelper.imInt(), "i", false);
+        ImVar t = JassIm.ImVar(trace, TypesHelper.imInt(), "t", false);
+        ImSet init = JassIm.ImSet(trace, JassIm.ImVarAccess(i), JassIm.ImIntVal(0));
+        ImExitwhen exit = JassIm.ImExitwhen(trace, JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(i), JassIm.ImIntVal(3))));
+        ImSet copy = JassIm.ImSet(trace, JassIm.ImVarAccess(t), JassIm.ImVarAccess(i));
+        ImSet step = JassIm.ImSet(trace, JassIm.ImVarAccess(i), JassIm.ImOperatorCall(
+            de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(t), JassIm.ImIntVal(1))));
+        ImFunction looping = JassIm.ImFunction(trace, "looping", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(i, t),
+            JassIm.ImStmts(init, JassIm.ImLoop(trace, JassIm.ImStmts(exit, copy, step))), Collections.emptyList());
+
+        Map<ImStmt, Set<ImVar>> loopLiveness = localMerger.calculateLiveness(looping);
+
+        assertEquals(loopLiveness.get(init), HashSet.of(i));
+        assertEquals(loopLiveness.get(exit), HashSet.of(i));
+        assertEquals(loopLiveness.get(copy), HashSet.of(t));
+        assertEquals(loopLiveness.get(step), HashSet.of(i));
+    }
+
+    /**
+     * An element is dependent when anything in it is: the value and every element around it, up to the
+     * body of its function, which then uses the local player. Siblings which do not take part stay clean.
+     */
+    @Test
+    public void localPlayerDependenceReachesTheEnclosingElementsAndNothingElse() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction localPlayer = nativeIntFunction(model, "GetLocalPlayer");
+        ImVar tainted = JassIm.ImVar(model, TypesHelper.imInt(), "tainted", false);
+        ImVar clean = JassIm.ImVar(model, TypesHelper.imInt(), "clean", false);
+        ImFunctionCall source = JassIm.ImFunctionCall(model, localPlayer, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(), false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImExprs operands = JassIm.ImExprs(source, JassIm.ImIntVal(1));
+        ImOperatorCall sum = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS, operands);
+        ImSet taintedAssignment = JassIm.ImSet(model, JassIm.ImVarAccess(tainted), sum);
+        ImIntVal constant = JassIm.ImIntVal(2);
+        ImSet cleanAssignment = JassIm.ImSet(model, JassIm.ImVarAccess(clean), constant);
+        ImFunction function = JassIm.ImFunction(model, "function", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(tainted, clean),
+            JassIm.ImStmts(taintedAssignment, cleanAssignment), Collections.emptyList());
+        prog.getFunctions().add(localPlayer);
+        prog.getFunctions().add(function);
+
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+
+        assertTrue(analyzer.isLocalPlayerDependent(source));
+        assertTrue(analyzer.isLocalPlayerDependent(operands));
+        assertTrue(analyzer.isLocalPlayerDependent(sum));
+        assertTrue(analyzer.isLocalPlayerDependent(taintedAssignment));
+        assertTrue(analyzer.isLocalPlayerDependent(function.getBody()));
+        assertTrue(analyzer.isLocalPlayerDependent(tainted));
+        assertTrue(analyzer.functionUsesLocalPlayer(function));
+        assertFalse(analyzer.isLocalPlayerDependent(constant));
+        assertFalse(analyzer.isLocalPlayerDependent(cleanAssignment));
+        assertFalse(analyzer.isLocalPlayerDependent(clean));
+    }
 }
