@@ -158,7 +158,9 @@ wurst4vscode starts the server with `-XX:+AutoCreateSharedArchive`: the JVM writ
 compiler jar when the first session ends, and the sessions after it start from it. That archive sits on the
 runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-archive`; macOS copies a full JDK, which
 has one) and `assembleSlimCompilerDist` checks for. Without it the JVM silently runs without any archive, which is
-how the earlier attempt went unnoticed. The extension passes `-Xlog:disable` because the JVM reports archive trouble
+how the earlier attempt went unnoticed. jlink writes the archive with a JVM of its own, which takes on the options it is started with: the
+CI exports `JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders`, so `deploy.gradle` removes it (and the other JVM option variables) for that
+step, or only `classes_coh.jsa` is made, which a runtime started without that option cannot use. The extension passes `-Xlog:disable` because the JVM reports archive trouble
 on stdout, which is the protocol stream: never print anything of your own there.
 
 ### Build-map pipeline (centralized)

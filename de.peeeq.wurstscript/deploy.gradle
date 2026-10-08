@@ -172,6 +172,10 @@ tasks.register("jlinkRuntime25", Exec) {
         logger.lifecycle("[jlink] Modules: ${mods}")
 
         executable = jlinkPathProvider.get()
+        // The base archive is written by a JVM which jlink starts, and takes on the object header mode of the options
+        // that JVM is given. CI exports JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders for the tests, which would
+        // leave only classes_coh.jsa, which a runtime started without that option cannot use.
+        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { environment.remove(it) }
         args "--verbose",
                 "--module-path", jmodsDirProvider.get(),
                 "--add-modules", mods,
@@ -184,6 +188,14 @@ tasks.register("jlinkRuntime25", Exec) {
                 // of the runtime; without one the JVM silently runs without any.
                 "--generate-cds-archive",
                 "--output", outDir.absolutePath
+    }
+
+    doLast {
+        // checked on the image itself: the dist folder is only added to, and may still hold an archive of an earlier build
+        def image = jreImageDir.get().asFile
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(image, it).exists() }) {
+            throw new GradleException("jlink made no base CDS archive (classes.jsa under bin/server or lib/server) in " + image)
+        }
     }
 }
 
