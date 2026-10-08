@@ -1,75 +1,168 @@
-name: Release slim runtimes (jlink)
+name: Release versioned compiler
 
 on:
   push:
-    tags:
-      - 'v*' 
-  workflow_dispatch:
+    tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate release tag on master
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Test release gate
+        run: python scripts/test-release.py
+      - name: Validate tag and version
+        id: version
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          git fetch origin master
+          version=$(python scripts/validate-release.py "$RELEASE_REF")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   build:
-    name: Build ${{ matrix.plat }}
+    name: Test and package ${{ matrix.plat }}
+    needs: validate
+    permissions:
+      contents: read
+      checks: write
     strategy:
       fail-fast: false
-    # keep four platforms as you had
       matrix:
         include:
           - os: windows-latest
             plat: win-x64
           - os: ubuntu-latest
             plat: linux-x64
-          - os: macos-13
+          - os: macos-15-intel
             plat: macos-x64
           - os: macos-14
             plat: macos-arm64
-
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
+      JAVA_TOOL_OPTIONS: --enable-native-access=ALL-UNNAMED
+      RELEASE_VERSION: ${{ needs.validate.outputs.version }}
     defaults:
       run:
         working-directory: de.peeeq.wurstscript
-
+        shell: bash
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # your version task uses git describe
-
-      - name: Setup Temurin JDK 25
-        uses: actions/setup-java@v4
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
-
-      - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v4
-
-      - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v4
-
-      # Build fat jar + jdeps + jlink + package + checksum for this OS
-      - name: Package slim runtime (per-OS)
-        run: ./gradlew --no-daemon --stacktrace packageSlimCompilerDist
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          # Attaches the per-OS files produced on this runner
-          files: |
-            de.peeeq.wurstscript/build/releases/wurst-compiler-*-*.zip
-            de.peeeq.wurstscript/build/releases/wurst-compiler-*-*.tar.gz
-            de.peeeq.wurstscript/build/releases/*.sha256
-          tag_name: ${{ github.ref_name }}   # ensures assets attach to the pushed v* tag
-          name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+      # Ubuntu's system-modified JDK cannot always serve as a jlink input.
+      - name: Install portable Temurin for Linux packaging
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/temurin25"
+          curl -fsSL 'https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz' -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
+          tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
+          PORTABLE_JAVA_HOME=$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)
+          echo "JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
+          echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Lua 5.3 for Linux tests
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lua5.3
+          chmod +x src/test/resources/lua53 src/test/resources/luac53
+      - name: Install Lua for macOS tests
+        if: runner.os == 'macOS'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: brew install lua
+      - name: Test game-data helpers
+        run: ./gradlew -p ../HelperScripts test --no-daemon --stacktrace --quiet
+      - name: Test compiler and package runtime
+        run: ./gradlew test packageSlimCompilerDist --no-daemon --stacktrace
+      - name: Verify packaged compiler version
+        run: |
+          set -euo pipefail
+          JAVA_BIN=build/dist/slim-${{ matrix.plat }}/wurst-runtime/bin/java
+          if [[ "$RUNNER_OS" == "Windows" ]]; then JAVA_BIN="$JAVA_BIN.exe"; fi
+          actual=$("$JAVA_BIN" -jar build/dist/slim-${{ matrix.plat }}/wurst-compiler/wurstscript.jar -version)
+          test "$actual" = "$RELEASE_VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.plat }}
+          path: de.peeeq.wurstscript/build/releases/wurst-compiler-${{ needs.validate.outputs.version }}-${{ matrix.plat }}.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Report test results
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: de.peeeq.wurstscript/build/test-results/**/*.xml
+          check_name: Release tests (${{ matrix.plat }})
 
+  publish:
+    name: Publish complete versioned release
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Revalidate release commit
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          git fetch origin master
+          python scripts/validate-release.py "$RELEASE_REF"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify complete platform set and checksum assets
+        working-directory: release-assets
+        run: |
+          set -euo pipefail
+          for platform in win-x64 linux-x64 macos-x64 macos-arm64; do
+            file="wurst-compiler-$RELEASE_VERSION-$platform.zip"
+            test -s "$file"
+            sha256sum "$file" > "$file.sha256"
+          done
+      # Publish only after every platform passed; never update a published release.
+      - name: Publish release
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --json isDraft > release-state.json; then
+            if ! python -c 'import json,sys; sys.exit(0 if json.load(open("release-state.json"))["isDraft"] else 1)'; then
+              echo "Release $RELEASE_TAG is already published; refusing to replace its assets."
+              exit 1
+            fi
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest
