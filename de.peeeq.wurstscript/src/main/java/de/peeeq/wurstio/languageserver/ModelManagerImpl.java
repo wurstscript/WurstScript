@@ -35,6 +35,23 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class ModelManagerImpl implements ModelManager {
 
+    @Override
+    public void reportBuildDiagnostics(List<CompileError> diagnostics) {
+        Set<WFile> affected = new LinkedHashSet<>(buildDiagnostics.keySet());
+        buildDiagnostics.clear();
+        for (CompileError diagnostic : diagnostics) {
+            WFile file = WFile.create(diagnostic.getSource().getFile());
+            buildDiagnostics.computeIfAbsent(file, ignored -> new ArrayList<>()).add(diagnostic);
+            affected.add(file);
+        }
+        for (WFile file : affected) {
+            List<CompileError> combined = new ArrayList<>(otherErrors.getOrDefault(file,
+                parseErrors.getOrDefault(file, Collections.emptyList())));
+            combined.addAll(buildDiagnostics.getOrDefault(file, Collections.emptyList()));
+            publishDiagnostics(file, combined);
+        }
+    }
+
     private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
     private final File projectPath;
@@ -46,6 +63,8 @@ public class ModelManagerImpl implements ModelManager {
     private final Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();
     // other errors for each file
     private final Map<WFile, List<CompileError>> otherErrors = new LinkedHashMap<>();
+    // Map-build diagnostics must not change the editor model's typecheck/error state.
+    private final Map<WFile, List<CompileError>> buildDiagnostics = new LinkedHashMap<>();
 
     // hashcode for each compilation unit content as string
     private final Map<WFile, Integer> fileHashcodes = new HashMap<>();
@@ -409,8 +428,13 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void reportErrors(String extra, WFile filename, List<CompileError> errors) {
-        PublishDiagnosticsParams cr = Convert.createDiagnostics(extra, filename, errors);
+        buildDiagnostics.remove(filename);
         otherErrors.put(filename, ImmutableList.copyOf(errors));
+        publishDiagnostics(filename, errors);
+    }
+
+    private void publishDiagnostics(WFile filename, List<CompileError> errors) {
+        PublishDiagnosticsParams cr = Convert.createDiagnostics("", filename, errors);
         for (Consumer<PublishDiagnosticsParams> consumer : onCompilationResultListeners) {
             consumer.accept(cr);
         }

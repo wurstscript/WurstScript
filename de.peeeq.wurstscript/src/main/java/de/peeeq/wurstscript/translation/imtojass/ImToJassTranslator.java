@@ -31,6 +31,12 @@ public class ImToJassTranslator {
     private final Set<String> usedNames = Sets.newLinkedHashSet();
     private final Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
+    void recordSource(de.peeeq.wurstscript.jassAst.Element element, WPos source) {
+        if (!source.getFile().isEmpty()) {
+            prog.attrSourceMap().put(element, source);
+        }
+    }
+
     public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions,
                               ImFunction mainFunc, ImFunction confFunction) {
         this.imProg = imProg;
@@ -235,6 +241,7 @@ public class ImToJassTranslator {
                 prog.getGlobals().add(result);
             }
             jassVars.put(v, result);
+            recordSource(result, v.attrTrace().attrSource());
         }
         return result;
     }
@@ -316,6 +323,7 @@ public class ImToJassTranslator {
                 }
             }
             jassFuncs.put(func, f);
+            recordSource(f, func.attrTrace().attrSource());
         }
         return f;
     }
