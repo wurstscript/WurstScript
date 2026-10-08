@@ -1,5 +1,12 @@
 ## 1.9 (in progress)
 
+- A command line build (`-build`, used by grill) checks the project once. It used to check it after reading it, then
+  swap in the map script with the project config applied, which invalidates everything the check computed, and check
+  it again. It now reads the project, swaps the script in and checks once, with the script the map is compiled with.
+  Code which calls a function the config adds to the map script no longer fails the first check. Castle fight without
+  optimisations builds in 36.0 s instead of 41.3 s and zombie defense in 28.2 s instead of 31.3 s (medians of three,
+  interleaved); the script of castle fight is byte for byte the same.
+
 - The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
   slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
   base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive

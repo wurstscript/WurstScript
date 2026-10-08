@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -49,6 +50,55 @@ public class CliBuildMapTests {
         request.compile(modelManager, script);
 
         assertTrue(request.compiledModel == built, "the CLI compiled a copy of the model it had built");
+    }
+
+    /**
+     * The map script is swapped for the one with the project config applied, and the swap invalidates every
+     * attribute of the model. So the CLI loads the project without checking it, swaps the script in and checks
+     * once: the model is checked with the script it is compiled with, and no check is repeated.
+     */
+    @Test
+    public void theCliChecksTheModelOnceWithTheScriptTheConfigWasAppliedTo() throws Exception {
+        File projectFolder = new File("./temp/testProject_cli_single_check/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        wurstFolder.mkdirs();
+        Files.writeString(new File(wurstFolder, "Wurst.wurst").toPath(), "package Wurst\n");
+        // calls a function which only the script with the config applied declares
+        Files.writeString(new File(wurstFolder, "Main.wurst").toPath(),
+            "package Main\nfunction callConfigured()\n    configuredByTheProject()\n");
+        Files.writeString(new File(wurstFolder, "war3map.j").toPath(),
+            "function main takes nothing returns nothing\nendfunction\n");
+        File configured = new File(projectFolder, "configured.j");
+        Files.writeString(configured.toPath(),
+            "function main takes nothing returns nothing\nendfunction\n"
+                + "function configuredByTheProject takes nothing returns nothing\nendfunction\n");
+
+        CountingModelManager modelManager = new CountingModelManager(projectFolder);
+        modelManager.loadProject();
+        assertFalse(modelManager.hasErrors(), "loading does not check: " + modelManager.getFirstErrorDescription());
+        assertEquals(modelManager.checks, 0);
+        WurstModel loaded = modelManager.getModel();
+
+        CapturingCliBuildMap request = new CapturingCliBuildMap(projectFolder);
+        request.compile(modelManager, configured);
+
+        assertFalse(modelManager.hasErrors(), modelManager.getFirstErrorDescription());
+        assertEquals(modelManager.checks, 1, "the model is checked once");
+        assertTrue(modelManager.isFullyChecked(loaded), "and the compilation takes that check over");
+    }
+
+    private static final class CountingModelManager extends ModelManagerImpl {
+        private int checks = 0;
+
+        private CountingModelManager(File projectFolder) {
+            super(projectFolder, new BufferManager());
+        }
+
+        @Override
+        public void checkProject() {
+            checks++;
+            super.checkProject();
+        }
     }
 
     private static final class CapturingCliBuildMap extends CliBuildMap {

@@ -30,7 +30,25 @@ public interface ModelManager {
 
     void reportBuildDiagnostics(List<CompileError> diagnostics);
 
-    void buildProject();
+    /**
+     * does a full build, reading the whole project and checking it
+     */
+    default void buildProject() {
+        loadProject();
+        checkProject();
+    }
+
+    /**
+     * Reads the whole project into the model, and does not check it: every unit of the model counts as unchecked
+     * until {@link #checkProject()}. For a caller which changes the model before its first check, so that the
+     * model is checked once and not once for each version of it.
+     */
+    void loadProject();
+
+    /**
+     * Resolves the imports of the loaded model, checks all of it and reports the errors.
+     */
+    void checkProject();
 
     /**
      * refresh discovered dependency roots (e.g. _build/dependencies after grill install)

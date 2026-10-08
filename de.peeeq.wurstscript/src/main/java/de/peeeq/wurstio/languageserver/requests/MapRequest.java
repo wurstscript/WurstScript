@@ -428,6 +428,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
+        checkModelWithMapScript(modelManager);
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -444,6 +445,14 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         return compileMap(modelManager, modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
+    }
+
+    /**
+     * Called when the map script with the project config applied is in the model, before anything is compiled.
+     * The swap of the script invalidates every attribute of the model, so a request which loaded the project
+     * without checking it checks it here, once, and the compilation takes that check over.
+     */
+    protected void checkModelWithMapScript(ModelManager modelManager) {
     }
 
     private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {
