@@ -10,6 +10,7 @@ import org.eclipse.lsp4j.WorkDoneProgressEnd;
 import org.eclipse.lsp4j.WorkDoneProgressNotification;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class WurstGuiLsp extends WurstGui {
     }
 
     @Override
-    public void sendProgress(String message) {
+    public void sendProgress(@NonNull String message) {
         if (finished) {
             return;
         }
