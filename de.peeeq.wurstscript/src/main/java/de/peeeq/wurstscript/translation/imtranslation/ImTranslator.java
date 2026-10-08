@@ -1662,9 +1662,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             if (includeUsedVariables) {
                 usedVariables.addAll(usedVariablesOf(f));
             }
-            readVariables.addAll(readVariablesOf(f));
+            final FunctionFacts facts = relationFactsOf(f);
+            readVariables.addAll(facts.readVariables);
 
-            final Set<ImFunction> called = usedFunctionsOf(f);
+            final Set<ImFunction> called = facts.usedFunctions;
             // Avoid streams/alloc; avoid pushing functions we've already seen
             for (ImFunction g : called) {
                 if (g == null) continue;
@@ -1725,26 +1726,28 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return facts.usedVariables;
     }
 
-    private Set<ImVar> readVariablesOf(ImFunction function) {
+    /**
+     * The functions a function uses and the variables it reads, from one walk over its body. While facts are kept
+     * the assignments of the function come out of the same walk, which the removal asks for next.
+     */
+    private FunctionFacts relationFactsOf(ImFunction function) {
         FunctionFacts facts = factsOf(function);
+        boolean kept = facts != null;
         if (facts == null) {
-            return function.calcReadVariables();
+            facts = new FunctionFacts();
         }
-        if (facts.readVariables == null) {
-            facts.readVariables = function.calcReadVariables();
+        if (facts.usedFunctions == null || facts.readVariables == null) {
+            FunctionFactsCollector collector = FunctionFactsCollector.collect(function, kept && facts.sets == null);
+            if (isUnitTestMode) {
+                assertSameAsSeparateWalks(function, collector);
+            }
+            facts.usedFunctions = collector.usedFunctions;
+            facts.readVariables = collector.readVariables;
+            if (collector.sets != null) {
+                facts.sets = collector.sets;
+            }
         }
-        return facts.readVariables;
-    }
-
-    private Set<ImFunction> usedFunctionsOf(ImFunction function) {
-        FunctionFacts facts = factsOf(function);
-        if (facts == null) {
-            return function.calcUsedFunctions();
-        }
-        if (facts.usedFunctions == null) {
-            facts.usedFunctions = function.calcUsedFunctions();
-        }
-        return facts.usedFunctions;
+        return facts;
     }
 
     /** The assignments in a function, the ones inside another assignment before it. */
@@ -1753,6 +1756,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (facts != null && facts.sets != null) {
             return facts.sets;
         }
+        List<ImSet> sets = referenceSetStatementsOf(function);
+        if (facts != null) {
+            facts.sets = sets;
+        }
+        return sets;
+    }
+
+    private static List<ImSet> referenceSetStatementsOf(ImFunction function) {
         List<ImSet> sets = new ArrayList<>();
         function.accept(new ImFunction.DefaultVisitor() {
             @Override
@@ -1761,10 +1772,33 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 sets.add(e);
             }
         });
-        if (facts != null) {
-            facts.sets = sets;
-        }
         return sets;
+    }
+
+    /**
+     * What the single walk answers has to be what the separate walks answer, in the same order: unit tests compare
+     * every function the analysis meets, with the walks which {@link FunctionFactsCollector} replaces.
+     */
+    private static void assertSameAsSeparateWalks(ImFunction function, FunctionFactsCollector collector) {
+        List<ImFunction> expectedUsed = new ArrayList<>(function.calcUsedFunctions());
+        List<ImFunction> actualUsed = new ArrayList<>(collector.usedFunctions);
+        assertSameElements("functions used by " + function.getName(), expectedUsed, actualUsed);
+        assertSameElements("variables read by " + function.getName(),
+            new ArrayList<>(function.calcReadVariables()), new ArrayList<>(collector.readVariables));
+        if (collector.sets != null) {
+            assertSameElements("assignments in " + function.getName(), referenceSetStatementsOf(function), collector.sets);
+        }
+    }
+
+    private static void assertSameElements(String what, List<?> expected, List<?> actual) {
+        boolean same = expected.size() == actual.size();
+        for (int i = 0; same && i < expected.size(); i++) {
+            same = expected.get(i) == actual.get(i);
+        }
+        if (!same) {
+            throw new AssertionError("The walk over the body found other " + what + " than the separate walks: expected "
+                + expected + ", found " + actual);
+        }
     }
 
     private Multimap<ImFunction, ImFunction> getCallRelations() {
