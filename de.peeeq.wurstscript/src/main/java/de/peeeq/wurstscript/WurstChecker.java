@@ -29,23 +29,29 @@ public class WurstChecker {
         this.legacyJassTypeChecks = legacyJassTypeChecks;
     }
 
-    public void checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
+    /**
+     * Checks the given compilation units of the model.
+     *
+     * @return whether the units were validated. Errors found before validation stop the check, and
+     * then nothing is known about the units.
+     */
+    public boolean checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
         Preconditions.checkNotNull(root);
         Preconditions.checkNotNull(toCheck);
         if (root.isEmpty()) {
-            return;
+            return true;
         }
         new DesugarArrayLength().run(root);
         gui.sendProgress("Checking Files");
 
-        if (errorHandler.getErrorCount() > 0) return;
+        if (errorHandler.getErrorCount() > 0) return false;
 
         attachErrorHandler(root);
         clearGlobalCaches(root, toCheck);
 
         expandModules(root);
 
-        if (errorHandler.getErrorCount() > 0) return;
+        if (errorHandler.getErrorCount() > 0) return false;
 
         SyntacticSugar syntacticSugar = new SyntacticSugar();
         List<SyntacticSugar.DeferredModuleCall> detachedTemplates = new ArrayList<>();
@@ -65,6 +71,7 @@ public class WurstChecker {
         } finally {
             syntacticSugar.restoreModuleTemplateFieldIterations(detachedTemplates);
         }
+        return true;
     }
 
     private void clearGlobalCaches(WurstModel root, Collection<CompilationUnit> toCheck) {

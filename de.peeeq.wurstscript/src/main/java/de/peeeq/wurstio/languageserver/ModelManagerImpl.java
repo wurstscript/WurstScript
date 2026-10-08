@@ -58,6 +58,11 @@ public class ModelManagerImpl implements ModelManager {
     // under this lock, and the lock is held only around the list operations.
     private final Object modelLock = new Object();
 
+    // The compilation units which were added, replaced or invalidated, or whose check was planned, and which
+    // no check has validated since. A check which stops before validation (an import which does not resolve)
+    // leaves its units here, so the next check takes them along. Guarded by modelLock.
+    private final Set<CompilationUnit> uncheckedUnits = Collections.newSetFromMap(new IdentityHashMap<>());
+
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
         this.bufferManager = bufferManager;
@@ -111,8 +116,21 @@ public class ModelManagerImpl implements ModelManager {
             }
             GlobalCaches.clearLookupCacheFor(toRemove);
             toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
+            Set<String> removedPackages = toRemove.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .map(WPackage::getName)
+                .collect(Collectors.toSet());
+            Set<CompilationUnit> dependents = toRemove.isEmpty() ? Collections.emptySet()
+                : calculateCUsToUpdate(Collections.emptyList(), removedPackages, model2);
             synchronized (modelLock) {
                 model2.removeAll(toRemove);
+                uncheckedUnits.removeAll(toRemove);
+                dependents.removeAll(toRemove);
+                uncheckedUnits.addAll(dependents);
+                if (toRemove.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
+                    // Jass names are visible everywhere
+                    uncheckedUnits.addAll(model2);
+                }
             }
         }
 
@@ -136,6 +154,9 @@ public class ModelManagerImpl implements ModelManager {
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;
+        synchronized (modelLock) {
+            uncheckedUnits.clear();
+        }
         dependencies.clear();
         WLogger.info("Clean done.");
     }
@@ -358,7 +379,14 @@ public class ModelManagerImpl implements ModelManager {
         try {
             model2.clearAttributes();
             comp.addImportedLibs(model2, this::addCompilationUnit);
-            comp.checkProg(model2);
+            synchronized (modelLock) {
+                uncheckedUnits.addAll(model2);
+            }
+            if (comp.checkProg(model2)) {
+                synchronized (modelLock) {
+                    uncheckedUnits.clear();
+                }
+            }
         } catch (CompileError e) {
             gui.sendError(e);
         }
@@ -430,6 +458,9 @@ public class ModelManagerImpl implements ModelManager {
         WurstModel model2 = model;
         if (model2 == null) {
             model = newModel(cu, gui);
+            synchronized (modelLock) {
+                uncheckedUnits.addAll(model);
+            }
         } else {
             ListIterator<CompilationUnit> it = model2.listIterator();
             boolean updated = false;
@@ -445,6 +476,8 @@ public class ModelManagerImpl implements ModelManager {
                     // replace old compilationunit with new one:
                     synchronized (modelLock) {
                         it.set(cu);
+                        uncheckedUnits.remove(c);
+                        uncheckedUnits.addAll(mustUpdate);
                     }
                     updated = true;
                     break;
@@ -453,6 +486,11 @@ public class ModelManagerImpl implements ModelManager {
             if (!updated) {
                 synchronized (modelLock) {
                     model2.add(cu);
+                }
+                // what imports the new packages (or sees the new Jass names) has to be checked again
+                Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                synchronized (modelLock) {
+                    uncheckedUnits.addAll(mustUpdate);
                 }
             }
         }
@@ -715,7 +753,19 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
         synchronized (modelLock) {
-            model.removeIf(cu -> !keep.test(cu));
+            boolean removed = model.removeIf(cu -> !keep.test(cu));
+            if (removed && model == this.model) {
+                uncheckedUnits.removeIf(cu -> !keep.test(cu));
+                // what is left may have used what went: it all has to be checked again
+                uncheckedUnits.addAll(model);
+            }
+        }
+    }
+
+    @Override
+    public boolean isFullyChecked(WurstModel checkedModel) {
+        synchronized (modelLock) {
+            return checkedModel != null && checkedModel == model && uncheckedUnits.isEmpty();
         }
     }
 
@@ -801,18 +851,43 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void partialTypecheck(WurstModel model2, Collection<CompilationUnit> toCheckRec, WurstGui gui, WurstCompilerJassImpl comp) {
+        Collection<CompilationUnit> toCheck = withUncheckedUnits(model2, toCheckRec);
+        boolean validated = false;
         try {
-            clearCompilationUnits(toCheckRec);
+            clearCompilationUnits(toCheck);
             comp.addImportedLibs(model2, this::addCompilationUnit);
-            comp.checkProg(model2, toCheckRec);
+            // the libraries which were just loaded are not checked either
+            toCheck = withUncheckedUnits(model2, toCheck);
+            validated = comp.checkProg(model2, toCheck);
         } catch (ModelChangedException e) {
             // model changed, early return
             return;
         } catch (CompileError e) {
             gui.sendError(e);
         }
-        List<WFile> fileNames = getfileNames(toCheckRec);
+        if (validated) {
+            synchronized (modelLock) {
+                uncheckedUnits.removeAll(toCheck);
+            }
+        }
+        List<WFile> fileNames = getfileNames(toCheck);
         reportErrorsForFiles(fileNames, gui);
+    }
+
+    /**
+     * The given units, which are unchecked from now on, and every other unit of the model which still is
+     * unchecked, because an earlier check did not get to validate it.
+     */
+    private Collection<CompilationUnit> withUncheckedUnits(WurstModel model2, Collection<CompilationUnit> units) {
+        Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
+        synchronized (modelLock) {
+            uncheckedUnits.addAll(units);
+            Set<CompilationUnit> inModel = Collections.newSetFromMap(new IdentityHashMap<>());
+            inModel.addAll(model2);
+            uncheckedUnits.retainAll(inModel);
+            result.addAll(uncheckedUnits);
+        }
+        return result;
     }
 
 
@@ -869,6 +944,11 @@ public class ModelManagerImpl implements ModelManager {
                 continue;
             }
             for (WPackage p : compilationUnit.getPackages()) {
+                if (providedPackages.contains(p.getName())) {
+                    // declares the same package: one of the files is reported for defining it twice
+                    result.add(compilationUnit);
+                    continue nextCu;
+                }
                 for (WImport imp : p.getImports()) {
                     String importedPackage = imp.getPackagenameId().getName();
                     if (providedPackages.contains(importedPackage)) {

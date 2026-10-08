@@ -150,11 +150,12 @@ public class AttrFunctionSignature {
         }
         if (b) {
             // only show overloading error, if type for all arguments could be determined
+            // sorted, because the candidates come in the order of the compilation units in the model
             StringBuilder alternatives = new StringBuilder();
-            for (FunctionSignature s : candidates) {
+            candidates.stream().map(FunctionSignature::toString).sorted().forEach(s -> {
                 alternatives.append("\n");
-                alternatives.append(s.toString());
-            }
+                alternatives.append(s);
+            });
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
