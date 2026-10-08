@@ -601,6 +601,13 @@ public class ImTranslator implements SpecialisationLookup {
         for (ImClass c : imProg.getClasses()) {
             sortList(c.getFields());
             sortList(c.getMethods());
+            // The sub-methods of a method are appended by whichever translator reaches an override: the
+            // subclasses of a class, the classes implementing an interface and each closure, the last
+            // in the order the compilation units are translated in. The backends bind dispatch slots
+            // in the order of this list, so it is fixed here rather than by the order of its producers.
+            for (ImMethod m : c.getMethods()) {
+                sortList(m.getSubMethods());
+            }
         }
     }
 
@@ -1823,7 +1830,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void calculateInterfaceInstances() {
-        interfaceInstances = HashMultimap.create();
+        // Insertion order, not hash order. The order of the compilation units still shows in it;
+        // sortEverything fixes the order of the sub-methods which are made from it.
+        interfaceInstances = LinkedHashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
                 for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
@@ -1857,7 +1866,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (directSubclasses != null) {
             return;
         }
-        directSubclasses = HashMultimap.create();
+        // Insertion order, not hash order. The order of the compilation units still shows in it;
+        // sortEverything fixes the order of the sub-methods which are made from it.
+        directSubclasses = LinkedHashMultimap.create();
         for (ClassDef c : classes()) {
             WurstTypeClass extendedClass = c.attrTypC().extendedClass();
             if (extendedClass != null) {

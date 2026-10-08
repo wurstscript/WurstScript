@@ -1,9 +1,9 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -39,8 +39,19 @@ public class NameLinks {
         }
     }
 
+    /**
+     * The links of one name come out in the order they were added: the structure's own names, then
+     * those of its module instantiations, its superclass and its interfaces. Callers which find
+     * several equally good candidates take the first one, so this order decides which function a
+     * call binds to. A link is hashed by the identity of its definition, so a hash set would hand
+     * them out in a different order in every compilation of the same source.
+     */
+    private static Multimap<String, DefLink> newLinkSet() {
+        return LinkedHashMultimap.create();
+    }
+
     public static ImmutableMultimap<String, DefLink> calculate(ClassOrModuleOrModuleInstanciation c) {
-        Multimap<String, DefLink> result = HashMultimap.create();
+        Multimap<String, DefLink> result = newLinkSet();
         addDefinedNames(result, c);
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         addNamesFromUsedModuleInstantiations(c, result, overrideCheckResults);
@@ -103,13 +114,13 @@ public class NameLinks {
      * are not inherited by anything, so no super-scope merging is required here.
      */
     public static ImmutableMultimap<String, DefLink> calculate(InstanceDecl i) {
-        Multimap<String, DefLink> result = HashMultimap.create();
+        Multimap<String, DefLink> result = newLinkSet();
         addDefinedNames(result, i, i.getMethods());
         return ImmutableMultimap.copyOf(result);
     }
 
     public static ImmutableMultimap<String, DefLink> calculate(InterfaceDef i) {
-        Multimap<String, DefLink> result = HashMultimap.create();
+        Multimap<String, DefLink> result = newLinkSet();
         addDefinedNames(result, i, i.getMethods());
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         addNamesFromExtendedInterfaces(result, i.attrTypI(), overrideCheckResults);

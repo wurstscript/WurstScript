@@ -184,7 +184,7 @@ public class AttrFunctionSignature {
         return list;
     }
 
-    private static List<FunctionSignature> filterPreferNonAbstract(List<FunctionSignature> candidates) {
+    static List<FunctionSignature> filterPreferNonAbstract(List<FunctionSignature> candidates) {
         List<FunctionSignature> nonAbstract = new ArrayList<>();
         for (FunctionSignature sig : candidates) {
             FunctionDefinition def = sig.getDef();
