@@ -224,7 +224,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
     group = "distribution"
 
     if (os.isMacOsX()) {
-        // On macOS, skip jlink entirely. Copying the original Temurin JDK preserves
+        // On macOS, skip jlink entirely. Copying the original signed JDK preserves
         // Apple's codesignatures on dylibs/executables, which jlink would invalidate.
         // jmods/ (jlink inputs, ~150 MB) and include/ (C headers) are dev-only.
         dependsOn("shadowJar")
