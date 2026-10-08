@@ -26,7 +26,6 @@ jobs:
       contents: read
     env:
       JAVA_TOOL_OPTIONS: >-
-        -XX:+UseCompactObjectHeaders
         -XX:+UseStringDeduplication
         --enable-native-access=ALL-UNNAMED
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -40,24 +39,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Temurin JDK 25
+      - name: Setup Temurin JDK 27
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '27'
           cache: 'gradle'
 
-      # Linux only: use a portable, pristine Temurin 25 for jlink
-      - name: (Linux) Install portable Temurin 25
+      # Linux only: use a portable, pristine Temurin 27 for jlink
+      - name: (Linux) Install portable Temurin 27
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz"
-          mkdir -p "$RUNNER_TEMP/temurin25"
-          curl -fsSL "$URL" -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
-          tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
-          PORTABLE_JAVA_HOME="$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)"
+          URL="https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27%2B35/OpenJDK27U-jdk_x64_linux_hotspot_27_35.tar.gz"
+          mkdir -p "$RUNNER_TEMP/temurin27"
+          curl -fsSL "$URL" -o "$RUNNER_TEMP/temurin27/jdk.tar.gz"
+          tar -xzf "$RUNNER_TEMP/temurin27/jdk.tar.gz" -C "$RUNNER_TEMP/temurin27"
+          PORTABLE_JAVA_HOME="$(find "$RUNNER_TEMP/temurin27" -maxdepth 1 -type d -name 'jdk-27*' | head -n1)"
           echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
           echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
 
