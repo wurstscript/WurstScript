@@ -98,7 +98,7 @@ public class Flatten {
 
     public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {
         Result res = imCast.getExpr().flatten(translator, f);
-        return new Result(res.stmts, ImCast(res.expr, imCast.getToType()));
+        return new Result(res.stmts, ImCast(res.expr, imCast.getFromType(), imCast.getToType()));
     }
 
     public static Result flatten(ImTypeIdOfObj e, ImTranslator translator, ImFunction f) {

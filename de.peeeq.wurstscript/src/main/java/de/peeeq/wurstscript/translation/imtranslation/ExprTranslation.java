@@ -557,7 +557,7 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprCast e, ImTranslator t, ImFunction f) {
         ImExpr et = e.getExpr().imTranslateExpr(t, f);
         ImType toType = e.getTyp().attrTyp().imTranslateType(t);
-        return JassIm.ImCast(et, toType);
+        return JassIm.ImCast(et, et.attrTyp(), toType);
     }
 
     public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {

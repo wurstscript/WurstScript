@@ -665,6 +665,9 @@ public class WurstScriptTest {
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
                 chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
+                // The stdlib's compile-time native has an empty runtime body too. A failed
+                // assertion must abort its test before a later testSuccess can report success.
+                chunk.append("testFail = function(message) error(message, 0) end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -694,7 +697,7 @@ public class WurstScriptTest {
                 }
 
                 if (!sawTestSuccess.get()) {
-                    throw new Error(currentTestEnv + ": Succeed function not called");
+                    throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);
                 }
             }
 

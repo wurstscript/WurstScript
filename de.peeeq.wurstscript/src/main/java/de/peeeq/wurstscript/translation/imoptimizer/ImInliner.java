@@ -459,7 +459,7 @@ public class ImInliner {
      * convert without state.
      */
     private static boolean numbersItsOperand(ImCast cast) {
-        ImType from = cast.getExpr().attrTyp();
+        ImType from = cast.getFromType();
         return TypesHelper.isIntType(cast.getToType())
             && !(from instanceof ImClassType) && !(from instanceof ImAnyType);
     }
