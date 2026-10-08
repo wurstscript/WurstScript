@@ -42,7 +42,6 @@ def jreImageDir    = layout.buildDirectory.dir("jre-wurst-25")
 
 def distRoot    = layout.buildDirectory.dir("dist/slim-${plat}")
 def releasesDir = layout.buildDirectory.dir("releases")
-def appCdsArchive = distRoot.map { it.file("wurst-runtime/wurst-lsp.jsa") }
 
 // ----------------------- Toolchain / tool paths (providers) -------------------------
 def toolchainSvc = extensions.getByType(JavaToolchainService)
@@ -173,6 +172,10 @@ tasks.register("jlinkRuntime25", Exec) {
         logger.lifecycle("[jlink] Modules: ${mods}")
 
         executable = jlinkPathProvider.get()
+        // The base archive is written by a JVM which jlink starts, and takes on the object header mode of the options
+        // that JVM is given. CI exports JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders for the tests, which would
+        // leave only classes_coh.jsa, which a runtime started without that option cannot use.
+        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { environment.remove(it) }
         args "--verbose",
                 "--module-path", jmodsDirProvider.get(),
                 "--add-modules", mods,
@@ -180,7 +183,19 @@ tasks.register("jlinkRuntime25", Exec) {
                 "--no-man-pages",
                 "--strip-debug",
                 "--compress=zip-9",
+                // The language server starts from an AppCDS archive which the JVM writes next to the compiler
+                // jar (wurst4vscode, -XX:+AutoCreateSharedArchive). That archive sits on top of the base archive
+                // of the runtime; without one the JVM silently runs without any.
+                "--generate-cds-archive",
                 "--output", outDir.absolutePath
+    }
+
+    doLast {
+        // checked on the image itself: the dist folder is only added to, and may still hold an archive of an earlier build
+        def image = jreImageDir.get().asFile
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(image, it).exists() }) {
+            throw new GradleException("jlink made no base CDS archive (classes.jsa under bin/server or lib/server) in " + image)
+        }
     }
 }
 
@@ -200,7 +215,11 @@ tasks.register("assembleSlimCompilerDist", Copy) {
         }
     } else {
         dependsOn("jlinkRuntime25", "shadowJar")
-        from(jreImageDir) { into("wurst-runtime") }
+        from(jreImageDir) {
+            into("wurst-runtime")
+            // for heaps above 32 GB, which this does not run with; it would add 14 MB to the download
+            exclude("**/classes_nocoops*.jsa")
+        }
     }
 
     from(fatJar) { into("wurst-compiler") }
@@ -208,6 +227,11 @@ tasks.register("assembleSlimCompilerDist", Copy) {
 
     doLast {
         logger.lifecycle("[dist] Folder ready at: ${distRoot.get().asFile}")
+        def runtime = new File(distRoot.get().asFile, "wurst-runtime")
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(runtime, it).exists() }) {
+            throw new GradleException("The runtime has no base CDS archive (classes.jsa under bin/server or lib/server), " +
+                    "so the language server cannot start from an AppCDS archive.")
+        }
     }
 }
 
@@ -224,51 +248,11 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
     }
 }
 
-tasks.register("generateAppCdsArchive", Exec) {
-    description = "Best-effort AppCDS archive generation for language-server startup."
-    group = "distribution"
-    dependsOn("assembleSlimCompilerDist")
-
-    inputs.file(fatJar)
-    inputs.dir(distRoot)
-    outputs.file(appCdsArchive)
-    ignoreExitValue = true
-
-    doFirst {
-        def distDir = distRoot.get().asFile
-        def archiveFile = appCdsArchive.get().asFile
-        def runtimeJava = new File(distDir, "wurst-runtime/bin/java${os.isWindows() ? '.exe' : ''}")
-        def compilerJar = new File(distDir, "wurst-compiler/${fatJar.get().asFile.name}")
-
-        archiveFile.parentFile.mkdirs()
-        if (archiveFile.exists()) {
-            archiveFile.delete()
-        }
-
-        executable = runtimeJava.absolutePath
-        args "-Xshare:auto",
-            "-XX:ArchiveClassesAtExit=${archiveFile.absolutePath}",
-            "-jar", compilerJar.absolutePath,
-            "-languageServerAppCdsTrain"
-
-        logger.lifecycle("[appcds] Training LS startup with ${runtimeJava.absolutePath}")
-    }
-
-    doLast {
-        def archiveFile = appCdsArchive.get().asFile
-        if (executionResult.get().exitValue != 0 || !archiveFile.exists()) {
-            logger.warn("[appcds] Archive generation did not succeed on ${plat}; continuing without shipped AppCDS archive.")
-        } else {
-            logger.lifecycle("[appcds] Wrote ${archiveFile.absolutePath}")
-        }
-    }
-}
-
 // 4) Package ZIP on all platforms
 tasks.register("packageSlimCompilerDistZip", Zip) {
     description = "Packages slim dist as a ZIP archive (all platforms)."
     group = "distribution"
-    dependsOn("generateAppCdsArchive")
+    dependsOn("assembleSlimCompilerDist")
 
     from(distRoot)
     destinationDirectory.set(releasesDir)

@@ -38,7 +38,7 @@ public class RunArgsTests {
         RunArgs args = new RunArgs("-build", "-dev", "-stacktraces", "-nodebug", "-uncheckedDispatch",
             "-injectobjects", "-hotreload", "-hotstart", "-noPJass", "-legacyJassChecks",
             "-compactOutput", "-measure", "-compiletimeCache", "-noExtractMapScript",
-            "-prettyPrint", "-languageServer", "-languageServerAppCdsTrain");
+            "-prettyPrint", "-languageServer");
 
         Assert.assertTrue(args.isBuild());
         Assert.assertTrue(args.isDevBuild());
@@ -56,7 +56,6 @@ public class RunArgsTests {
         Assert.assertTrue(args.isNoExtractMapScript());
         Assert.assertTrue(args.isPrettyPrint());
         Assert.assertTrue(args.isLanguageServer());
-        Assert.assertTrue(args.isLanguageServerAppCdsTrain());
     }
 
     @Test
