@@ -219,7 +219,9 @@ tasks.register("jlinkRuntime25", Exec) {
 }
 
 // 3) Assemble folder layout: jre + compiler.jar (no manifest)
-tasks.register("assembleSlimCompilerDist", Copy) {
+// A Sync, not a Copy: the folder is packaged as it is, so a file of an earlier build (the base archive of another
+// header mode, say) must not stay in it.
+tasks.register("assembleSlimCompilerDist", Sync) {
     description = "Assembles dist folder with JRE and compiler.jar (no manifest)."
     group = "distribution"
 
@@ -250,7 +252,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
 }
 
 // Add launch scripts
-tasks.named("assembleSlimCompilerDist", Copy) { t ->
+tasks.named("assembleSlimCompilerDist", Sync) { t ->
     if (os.isWindows()) {
         from("launchers/wurstscript.cmd") { into(".") }
         from("launchers/wurstscript")     { into(".") }
