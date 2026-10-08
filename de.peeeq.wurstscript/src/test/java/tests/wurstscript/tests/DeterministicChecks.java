@@ -9,7 +9,9 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.testng.Assert.assertEquals;
@@ -298,6 +300,98 @@ public class DeterministicChecks extends WurstScriptTest {
 
         assertEquals(hashStd1, hashStd2, "SHA-256 hash must be identical across shuffled compilation unit order");
         assertEquals(outputStd1, outputStd2, "Output must be bit-for-bit identical across shuffled compilation unit order");
+    }
+
+    /**
+     * Every closure of one interface method written in one function becomes a class with the same IM
+     * name, so no name-based sort key tells those classes apart. The Lua backend binds one dispatch
+     * slot on each of them; the order of those assignments used to be the iteration order of a
+     * {@code HashSet} of identity-hashed classes, which differs between compilations (and JVMs), while
+     * every name and number in the script stayed the same. Compiling the same program repeatedly, with
+     * the compilation units in a different order each time, must give one script.
+     */
+    @Test
+    public void classesSharingAnImNameBindTheirDispatchSlotInProgramOrder() throws IOException {
+        String[] types = {"int", "real", "string", "boolean"};
+        String[] literals = {"1", "1.5", "\"s\"", "true"};
+        List<String> library = new ArrayList<>(List.of(
+            "package Shapes",
+            "public interface Predicate<T:>",
+            "    function test(T t) returns boolean",
+            "public class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function matches(Predicate<T> p) returns boolean",
+            "        let result = p.test(value)",
+            "        destroy p",
+            "        return result",
+            "public class Foo",
+            "public class Impl implements Predicate<Foo>",
+            "    function test(Foo value) returns boolean",
+            "        return value != null"));
+        // A class beside the closures makes the family heterogeneous, which is what gives the
+        // closures a canonical slot of their own.
+        List<String> main = new ArrayList<>(List.of(
+            "package Main",
+            "import Shapes",
+            "native testSuccess()",
+            "init",
+            "    int successes = 0",
+            "    let ordinary = new Box<Foo>(new Foo())",
+            "    if ordinary.matches(x -> x != null)",
+            "        successes++",
+            "    let ordinaryImpl = new Box<Foo>(new Foo())",
+            "    if ordinaryImpl.matches(new Impl())",
+            "        successes++"));
+        int count = 0;
+        for (int a = 0; a < types.length; a++) {
+            for (int b = 0; b < 2; b++) {
+                String tuple = "shape" + count;
+                library.add("public tuple " + tuple + "(" + types[a] + " a, " + types[b] + " b)");
+                main.add("    let box" + count + " = new Box<" + tuple + ">(" + tuple + "("
+                    + literals[a] + ", " + literals[b] + "))");
+                main.add("    if box" + count + ".matches(x -> x.a == " + literals[a] + ")");
+                main.add("        successes++");
+                count++;
+            }
+        }
+        main.add("    if successes == " + (count + 2));
+        main.add("        testSuccess()");
+        CU shapesUnit = new CU("Shapes.wurst", String.join("\n", library));
+        CU mainUnit = new CU("Main.wurst", String.join("\n", main));
+
+        compileClosureReceivers(shapesUnit, mainUnit);
+        String first = readClosureReceiversLua();
+        // the premise: the closures (one per tuple, one over Foo) and Impl are bound to one slot
+        assertEquals(countOccurrences(first, ".__wurst_dispatch_test = "), count + 2, first);
+
+        for (int pass = 0; pass < 5; pass++) {
+            if (pass % 2 == 0) {
+                compileClosureReceivers(mainUnit, shapesUnit);
+            } else {
+                compileClosureReceivers(shapesUnit, mainUnit);
+            }
+            assertEquals(readClosureReceiversLua(), first,
+                "Lua output must not depend on the identity hashes of the receiver classes (pass " + pass + ")");
+        }
+    }
+
+    private void compileClosureReceivers(CU... units) {
+        test().testLua(true).executeProg().compilationUnits(units);
+    }
+
+    private String readClosureReceiversLua() throws IOException {
+        return Files.toString(new File("test-output/lua/DeterministicChecks_compileClosureReceivers.lua"),
+            Charsets.UTF_8);
+    }
+
+    private static int countOccurrences(String text, String part) {
+        int n = 0;
+        for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
+            n++;
+        }
+        return n;
     }
 
 }
