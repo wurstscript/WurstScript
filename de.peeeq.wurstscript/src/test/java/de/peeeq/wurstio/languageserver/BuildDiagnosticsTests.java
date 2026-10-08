@@ -36,6 +36,19 @@ import static org.testng.Assert.*;
 
 public class BuildDiagnosticsTests {
     @Test
+    public void buildWarningsFromDependenciesRemainVisibleWhileOrdinaryWarningsStaySuppressed() {
+        WurstGuiLogger gui = new WurstGuiLogger();
+        WPos dependency = new WPos("_build/dependencies/Library/Main.wurst", LineOffsets.dummy, 0, 4);
+        CompileError ordinary = new CompileError(dependency, "Unused variable", CompileError.ErrorType.WARNING);
+        CompileError compatibility = new CompileError(dependency, "Jass save/load compatibility", CompileError.ErrorType.WARNING);
+        gui.sendError(ordinary);
+        assertTrue(gui.getWarningList().isEmpty());
+        gui.sendBuildDiagnostic(compatibility);
+        assertEquals(gui.getWarningList(), List.of(compatibility));
+        assertEquals(gui.getErrorCount(), 0);
+    }
+
+    @Test
     public void tokenRequestsLetEditorPresentFailuresAndPreserveInformationalMessages() throws Exception {
         Path project = Files.createTempDirectory("wurst-build-failure");
         Files.writeString(project.resolve("wurst.build"), "projectName: Test\nwc3Patch: v2.0\n");
@@ -59,6 +72,11 @@ public class BuildDiagnosticsTests {
         request.handleException(client, error, editor);
         assertTrue(editor.isCompletedExceptionally());
         assertEquals(messages.size(), 1, "the editor must receive only one failure notification");
+
+        CompletableFuture<Object> warningFailure = new CompletableFuture<>();
+        request.handleException(client, new RequestFailedException(MessageType.Warning, "On-disk compilation failed"), warningFailure);
+        assertTrue(warningFailure.isCompletedExceptionally(), "a warning-level failure must not report a successful build");
+        assertEquals(messages.size(), 1, "the editor owns the failure notification");
 
         CompletableFuture<Object> cancelled = new CompletableFuture<>();
         request.handleException(client, new RequestFailedException(MessageType.Info, "Run canceled."), cancelled);

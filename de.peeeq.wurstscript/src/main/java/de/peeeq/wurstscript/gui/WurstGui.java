@@ -27,6 +27,15 @@ public abstract class WurstGui {
         errors.add(err);
     }
 
+    /** Build validation diagnostics also affect maps whose source is a dependency. */
+    public void sendBuildDiagnostic(CompileError err) {
+        if (err.getErrorType() == ErrorType.WARNING) {
+            errors.add(err);
+        } else {
+            sendError(err);
+        }
+    }
+
     private boolean shouldSuppressWarning(CompileError err) {
         if (err.getErrorType() != ErrorType.WARNING) {
             return false;

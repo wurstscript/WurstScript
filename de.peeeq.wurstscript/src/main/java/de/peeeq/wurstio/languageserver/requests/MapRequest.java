@@ -155,7 +155,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     @Override
     public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
-        if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() != MessageType.Error)) {
+        if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() == MessageType.Info)) {
             // The requesting editor owns the failure notification for this progress operation.
             resFut.completeExceptionally(err);
         } else if (err instanceof RequestFailedException rfe) {
@@ -252,7 +252,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                         new File(buildDir, "blizzard.j").getAbsolutePath());
                     WLogger.info(pJassResult.getLogMessage());
                     for (CompileError diagnostic : pJassResult.getDiagnostics(printer.getSourceMap())) {
-                        gui.sendError(diagnostic);
+                        gui.sendBuildDiagnostic(diagnostic);
                     }
                     if (!pJassResult.isOk()) {
                         throw new RuntimeException("Could not compile project (PJass error)");
