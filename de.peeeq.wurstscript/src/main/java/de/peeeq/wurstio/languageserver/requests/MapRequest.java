@@ -152,6 +152,26 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
+    /**
+     * Checks the model for a compilation, unless the model manager has validated every unit of it since it
+     * last changed. Then the model only takes over the compilation's error handler. A check which finds
+     * the model free of errors is reported to the manager, which would otherwise check it again for the
+     * next compilation.
+     */
+    public static void checkModel(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
+                                  RunArgs runArgs) {
+        // the manager checks without the legacy Jass type checks
+        boolean sameChecks = !runArgs.isLegacyJassTypeChecks();
+        if (sameChecks && modelManager.isFullyChecked(model)) {
+            compiler.adoptCheckedModel(model);
+            return;
+        }
+        boolean validated = compiler.checkProg(model);
+        if (sameChecks && validated && compiler.getErrorHandler().getErrorCount() == 0) {
+            modelManager.markFullyChecked(model);
+        }
+    }
+
     protected File compileMap(ModelManager modelManager, File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs,
                               WurstModel model, WurstProjectConfigData projectConfigData, boolean isProd) {
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
@@ -171,7 +191,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             purgeUnimportedFiles(modelManager, model);
 
             gui.sendProgress("Check program");
-            compiler.checkProg(model);
+            checkModel(modelManager, compiler, model, runArgs);
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));

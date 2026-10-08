@@ -6,6 +6,7 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -115,7 +116,7 @@ public class IncrementalModelOracleTests {
         ModelManagerImpl manager = new ModelManagerImpl(project, new BufferManager());
         DiagnosticsLog log = new DiagnosticsLog(manager);
         manager.buildProject();
-        assertSameObservation(seed, 0, history, expected.get(0), observe(project, manager, log));
+        assertSameObservation(seed, 0, history, expected.get(0), observe(project, manager, log, true));
 
         Random how = new Random(seed * 31 + 7);
         for (int step = 1; step <= STEPS; step++) {
@@ -146,7 +147,7 @@ public class IncrementalModelOracleTests {
             onDisk.putAll(next);
             manager.reconcile(changes);
             if (expected.get(step) != null) {
-                assertSameObservation(seed, step, history, expected.get(step), observe(project, manager, log));
+                assertSameObservation(seed, step, history, expected.get(step), observe(project, manager, log, true));
             }
         }
     }
@@ -195,24 +196,32 @@ public class IncrementalModelOracleTests {
         ModelManagerImpl manager = new ModelManagerImpl(project, new BufferManager());
         DiagnosticsLog log = new DiagnosticsLog(manager);
         manager.buildProject();
-        return observe(project, manager, log);
+        return observe(project, manager, log, false);
     }
 
-    private static Observation observe(File project, ModelManagerImpl manager, DiagnosticsLog log) {
+    /**
+     * @param reuseCheck compile like a run does, which does not check a model again that the manager has
+     *                   checked completely; a fresh build is compiled with a check of its own as the reference
+     */
+    private static Observation observe(File project, ModelManagerImpl manager, DiagnosticsLog log, boolean reuseCheck) {
         Map<String, List<String>> diagnostics = log.current();
         boolean hasErrors = log.hasErrors();
-        return new Observation(diagnostics, hasErrors ? null : compile(project, manager));
+        return new Observation(diagnostics, hasErrors ? null : compile(project, manager, reuseCheck));
     }
 
     /** Compiles the managed model itself, as a run does. */
-    private static String compile(File project, ModelManagerImpl manager) {
+    private static String compile(File project, ModelManagerImpl manager, boolean reuseCheck) {
         try {
             WurstGui gui = new WurstGuiLogger();
             RunArgs runArgs = new RunArgs("-lua");
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), project, gui, null,
                 runArgs);
             WurstModel model = manager.getModel();
-            compiler.checkProg(model);
+            if (reuseCheck) {
+                MapRequest.checkModel(manager, compiler, model, runArgs);
+            } else {
+                compiler.checkProg(model);
+            }
             if (gui.getErrorCount() > 0) {
                 return "check errors: " + gui.getErrorList();
             }

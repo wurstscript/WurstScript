@@ -419,6 +419,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return checker.checkProg(model, toCheck);
     }
 
+    /** Takes over a model which was checked completely and has not changed since, instead of checking it again. */
+    public void adoptCheckedModel(WurstModel model) {
+        checker.adoptCheckedModel(model);
+    }
+
     public JassProg transformProgToJass() {
         ImTranslator imTranslator2 = getImTranslator();
         ImProg imProg2 = getImProg();

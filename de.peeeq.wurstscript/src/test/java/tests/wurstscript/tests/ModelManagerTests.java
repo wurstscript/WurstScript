@@ -7,6 +7,7 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -1491,6 +1493,34 @@ public class ModelManagerTests {
         assertFalse(manager.isFullyChecked(model));
     }
 
+    @Test
+    public void aCompilationDoesNotCheckAModelThatIsAlreadyChecked() throws IOException {
+        File projectFolder = new File("./temp/testProject_compileSkipsCheck/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        String packageA = string("package A", "public function a() returns int", "    return 1", "");
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileA, packageA);
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        GlobalCaches.LOCAL_STATE_NOARG_CACHE.put("left over from an earlier compilation", null);
+        assertEquals(checksWhenCompiling(projectFolder, manager), 0, "nothing changed since the build");
+        assertTrue(GlobalCaches.LOCAL_STATE_NOARG_CACHE.isEmpty(), "the interpreter caches of the last compilation go");
+
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileA, packageA + "// changed\n");
+        manager.reconcile(changes);
+        assertEquals(checksWhenCompiling(projectFolder, manager), 0, "the change was checked by reconcile");
+
+        manager.syncCompilationUnitContent(fileA, packageA + "// changed again\n");
+        assertEquals(checksWhenCompiling(projectFolder, manager), 1, "the change was not checked yet");
+        assertEquals(checksWhenCompiling(projectFolder, manager), 0, "the compilation checked it");
+    }
+
     /** The other definition of a package is not an importer of it, but it reports the duplicate. */
     @Test
     public void deletingOneDefinitionOfAPackageClearsTheErrorOfTheOther() throws IOException {
@@ -1516,6 +1546,26 @@ public class ModelManagerTests {
         manager.reconcile(manager.removeCompilationUnit(fileFirst));
 
         assertEquals(results.get(fileSecond), "", "the package is defined once now");
+    }
+
+    /** How often a compilation checks the model of the manager. */
+    private int checksWhenCompiling(File projectFolder, ModelManagerImpl manager) {
+        AtomicInteger checks = new AtomicInteger();
+        WurstGui gui = new WurstGuiLogger() {
+            @Override
+            public void sendProgress(String whatsRunningNow) {
+                if ("Checking Files".equals(whatsRunningNow)) {
+                    checks.incrementAndGet();
+                }
+            }
+        };
+        RunArgs runArgs = new RunArgs(java.util.Collections.emptyList());
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        WurstModel model = manager.getModel();
+        MapRequest.checkModel(manager, compiler, model, runArgs);
+        compiler.translateProgToIm(model);
+        assertEquals(gui.getErrorCount(), 0, "errors: " + gui.getErrorList());
+        return checks.get();
     }
 
 }

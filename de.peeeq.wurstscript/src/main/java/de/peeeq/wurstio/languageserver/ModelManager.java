@@ -74,6 +74,13 @@ public interface ModelManager {
         return false;
     }
 
+    /**
+     * Tells the manager that someone else's check of the whole model validated every unit of it and found
+     * no error, with the same checks the manager makes. Nothing may have changed the model meanwhile.
+     */
+    default void markFullyChecked(WurstModel model) {
+    }
+
     static WurstModel copy(WurstModel model) {
         WurstModel m = model.copy();
         // clear all module instantiations, since they might include old stuff

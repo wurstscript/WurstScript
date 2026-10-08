@@ -7,6 +7,11 @@
   its "defined multiple times" error. The alternatives listed by a "call is ambiguous" error are sorted, where
   they used to follow the order the files were loaded in.
 
+- Running a map no longer type checks again a model which the language server has checked completely and which
+  has not changed since. On castle fight without optimisations, building the same model again in one process took
+  14.6 and 12.6 s and takes 12.3 and 10.7 s, the script unchanged byte for byte. The first build of a model
+  still checks it, because it replaces the map script in the model with the one the project config was applied to.
+
 - The same source now compiles to the same script however the identity hashes of the compiler's syntax nodes
   happen to fall. A class which gets a function from a module and implements an interface declaring the same
   function made calls like `value.write(x)` bind to the module's implementation or to the interface's

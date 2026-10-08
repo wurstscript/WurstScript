@@ -763,6 +763,15 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
+    public void markFullyChecked(WurstModel checkedModel) {
+        synchronized (modelLock) {
+            if (checkedModel != null && checkedModel == model) {
+                uncheckedUnits.clear();
+            }
+        }
+    }
+
+    @Override
     public boolean isFullyChecked(WurstModel checkedModel) {
         synchronized (modelLock) {
             return checkedModel != null && checkedModel == model && uncheckedUnits.isEmpty();
