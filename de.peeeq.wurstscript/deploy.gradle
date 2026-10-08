@@ -59,6 +59,7 @@ def jdepsPathProvider = javaHomeProvider.map { home ->
 def jlinkPathProvider = javaHomeProvider.map { home ->
     new File(home, "bin/jlink${os.isWindows() ? '.exe' : ''}").absolutePath
 }
+def javaExecutableName = os.isWindows() ? "java.exe" : "java"
 def jmodsDirProvider = javaHomeProvider.map { home ->
     new File(home, "jmods").absolutePath
 }
@@ -94,6 +95,31 @@ abstract class JdepsRawTask extends DefaultTask {
             standardOutput = outBuf
         }
         outFile.get().asFile.text = outBuf.toString("UTF-8").trim() + "\n"
+    }
+}
+
+/**
+ * Runs the java of a runtime image the way the distribution starts it. The language server and the compiler run with
+ * compact object headers (the heap is millions of small objects), and a base class data sharing archive is made for
+ * the object header mode of the JVM which writes it, so the archive is made and checked with that option.
+ * The options of the build machine are removed: CI exports JAVA_TOOL_OPTIONS for its tests, and the archive must not
+ * depend on them.
+ */
+class RuntimeJava {
+    static final List<String> COMPACT_HEADERS = ["-XX:+UseCompactObjectHeaders"]
+
+    static String run(File java, List<String> options) {
+        def command = [java.absolutePath] + COMPACT_HEADERS + options
+        def pb = new ProcessBuilder(command)
+        pb.redirectErrorStream(true)
+        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { pb.environment().remove(it) }
+        def process = pb.start()
+        def output = process.inputStream.getText("UTF-8")
+        def exit = process.waitFor()
+        if (exit != 0) {
+            throw new org.gradle.api.GradleException("`" + command.join(" ") + "` exited with " + exit + ": " + output)
+        }
+        return output
     }
 }
 
@@ -172,10 +198,6 @@ tasks.register("jlinkRuntime25", Exec) {
         logger.lifecycle("[jlink] Modules: ${mods}")
 
         executable = jlinkPathProvider.get()
-        // The base archive is written by a JVM which jlink starts, and takes on the object header mode of the options
-        // that JVM is given. CI exports JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders for the tests, which would
-        // leave only classes_coh.jsa, which a runtime started without that option cannot use.
-        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { environment.remove(it) }
         args "--verbose",
                 "--module-path", jmodsDirProvider.get(),
                 "--add-modules", mods,
@@ -183,19 +205,16 @@ tasks.register("jlinkRuntime25", Exec) {
                 "--no-man-pages",
                 "--strip-debug",
                 "--compress=zip-9",
-                // The language server starts from an AppCDS archive which the JVM writes next to the compiler
-                // jar (wurst4vscode, -XX:+AutoCreateSharedArchive). That archive sits on top of the base archive
-                // of the runtime; without one the JVM silently runs without any.
-                "--generate-cds-archive",
                 "--output", outDir.absolutePath
     }
 
     doLast {
-        // checked on the image itself: the dist folder is only added to, and may still hold an archive of an earlier build
-        def image = jreImageDir.get().asFile
-        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(image, it).exists() }) {
-            throw new GradleException("jlink made no base CDS archive (classes.jsa under bin/server or lib/server) in " + image)
-        }
+        // The language server starts from an AppCDS archive which the JVM writes next to the compiler jar
+        // (wurst4vscode, -XX:+AutoCreateSharedArchive). That archive sits on top of the base archive of the runtime;
+        // without one the JVM silently runs without any. Only the archive for compact object headers is made: it is
+        // the mode every launcher uses, and a second archive would add 14 MB to the download. (jlink's own
+        // --generate-cds-archive writes the archive for the options of the JVM it starts, which is not under our control.)
+        RuntimeJava.run(new File(jreImageDir.get().asFile, "bin/" + javaExecutableName), ["-Xshare:dump"])
     }
 }
 
@@ -215,11 +234,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
         }
     } else {
         dependsOn("jlinkRuntime25", "shadowJar")
-        from(jreImageDir) {
-            into("wurst-runtime")
-            // for heaps above 32 GB, which this does not run with; it would add 14 MB to the download
-            exclude("**/classes_nocoops*.jsa")
-        }
+        from(jreImageDir) { into("wurst-runtime") }
     }
 
     from(fatJar) { into("wurst-compiler") }
@@ -227,11 +242,10 @@ tasks.register("assembleSlimCompilerDist", Copy) {
 
     doLast {
         logger.lifecycle("[dist] Folder ready at: ${distRoot.get().asFile}")
+        // -Xshare:on makes the JVM fail when it has no usable base archive for compact object headers, where it
+        // would otherwise run without one and nobody would notice
         def runtime = new File(distRoot.get().asFile, "wurst-runtime")
-        if (!["bin/server/classes.jsa", "lib/server/classes.jsa"].any { new File(runtime, it).exists() }) {
-            throw new GradleException("The runtime has no base CDS archive (classes.jsa under bin/server or lib/server), " +
-                    "so the language server cannot start from an AppCDS archive.")
-        }
+        RuntimeJava.run(new File(runtime, "bin/" + javaExecutableName), ["-Xshare:on", "-version"])
     }
 }
 

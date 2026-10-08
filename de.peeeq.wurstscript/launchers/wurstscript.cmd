@@ -29,7 +29,7 @@ if not exist "%JAVA%" (
     goto :restore
 )
 
-"%JAVA%" -Dfile.encoding=UTF-8 -jar "%JAR%" %*
+"%JAVA%" -XX:+UseCompactObjectHeaders -Dfile.encoding=UTF-8 -jar "%JAR%" %*
 
 :restore
 if defined _OLDCP chcp %_OLDCP% >NUL

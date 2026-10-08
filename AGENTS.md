@@ -154,14 +154,21 @@ This repository has multiple entry points that may trigger compilation/build beh
 
 ### Language server startup archive
 
+The compiler and the language server run with `-XX:+UseCompactObjectHeaders`: the heap is millions of small objects, and
+the 4 bytes saved in each header took 6% off the heap of the language server on castle fight (488 to 457 MB after a
+collection), at the same start time. Every launcher passes it (`launchers/*`, wurst4vscode, grill); a new one must too.
+
 wurst4vscode starts the server with `-XX:+AutoCreateSharedArchive`: the JVM writes an AppCDS archive next to the
 compiler jar when the first session ends, and the sessions after it start from it. That archive sits on the
-runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-archive`; macOS copies a full JDK, which
-has one) and `assembleSlimCompilerDist` checks for. Without it the JVM silently runs without any archive, which is
-how the earlier attempt went unnoticed. jlink writes the archive with a JVM of its own, which takes on the options it is started with: the
-CI exports `JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders`, so `deploy.gradle` removes it (and the other JVM option variables) for that
-step, or only `classes_coh.jsa` is made, which a runtime started without that option cannot use. The extension passes `-Xlog:disable` because the JVM reports archive trouble
-on stdout, which is the protocol stream: never print anything of your own there.
+runtime's own base archive, which must be the one for compact object headers (`classes_coh.jsa`): a JVM uses a base
+archive only for the object header mode it was started with. `deploy.gradle` makes it after jlink with
+`java -XX:+UseCompactObjectHeaders -Xshare:dump` (jlink's own `--generate-cds-archive` makes the archive for the options
+of the JVM it starts, which the `JAVA_TOOL_OPTIONS` of the build machine change) and ships only that one; macOS copies a
+full JDK, which has it. `assembleSlimCompilerDist` starts the runtime with `-Xshare:on`, which fails when there is no
+usable archive. Without one the JVM silently runs without any, which is how the earlier attempt went unnoticed. The
+build runs those JVMs without `JAVA_TOOL_OPTIONS`, `_JAVA_OPTIONS` and `JDK_JAVA_OPTIONS`. The extension passes
+`-Xlog:disable` because the JVM reports archive trouble on stdout, which is the protocol stream: never print anything
+of your own there.
 
 ### Build-map pipeline (centralized)
 

@@ -2,9 +2,11 @@
 
 - The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
   slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
-  base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive
-  (`jlink --generate-cds-archive`) and fails when the runtime has none, and the dead archive task and its
-  `-languageServerAppCdsTrain` option are gone. With wurst4vscode starting the server with an archive of its own
+  base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive and
+  fails when the runtime cannot start from it, and the dead archive task and its
+  `-languageServerAppCdsTrain` option are gone. The launchers (and wurst4vscode and grill) start the JVM with
+  compact object headers, which took 6% off the heap of the language server on castle fight, and the archive is
+  the one for that mode. With wurst4vscode starting the server with an archive of its own
   (written next to the compiler jar when the first session ends), the language server of a small project is ready
   after 3.7 s instead of 4.4 s, and castle fight after 17.3 s instead of 19.0 s (medians of four starts).
 
