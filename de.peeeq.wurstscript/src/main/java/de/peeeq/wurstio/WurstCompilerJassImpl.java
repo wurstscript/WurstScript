@@ -553,14 +553,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
 
-        beginPhase(13, "flatten");
+        // The program is flat here (the flatten before the local optimizations, and every sweep of them ends with one) and
+        // the removal keeps it flat, so no flatten follows it. A second removal used to follow (#883): the flatten after
+        // the first uncovered garbage which only the second removed. There is no such flatten any more, so what one
+        // removal does not remove is not there. A unit test makes the second removal and fails when it finds garbage.
+        beginPhase(13, "remove garbage");
         boolean garbageChanged = optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-
-        // Re-run to avoid #883
         if (garbageChanged) {
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
+            optimizer.assertNoGarbage("the removal ran on a flat program and kept it flat");
         }
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
@@ -572,9 +572,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isOptimize()) {
             beginPhase(13, "froptimize");
             optimizer.optimize();
-
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
             printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
         }
 
@@ -582,11 +579,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // translate flattened intermediate lang to jass:
 
         beginPhase(14, "translate to jass");
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        // the last removal was followed by nothing which makes garbage (the code for the hot reload only calls and sets)
+        optimizer.assertNoGarbage("only the code for the hot reload was added since the last removal");
+        // the package initialisers which are empty now are removed, and then the variables only they used
         imTranslator.removeEmptyPackageInits();
         optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        imTranslator.assertFlat("before it is translated to Jass, which has no statement expression");
         getImTranslator().calculateCallRelationsAndReadVariables();
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
@@ -1054,13 +1052,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
 
+        // The program is flat here (the flatten above, and every sweep of the local optimizations ends with one) and the
+        // removal keeps it flat, so no flatten follows it. A second removal used to follow (#883): the flatten after
+        // the first uncovered garbage which only the second removed. There is no such flatten any more, so what one
+        // removal does not remove is not there. A unit test makes the second removal and fails when it finds garbage.
         boolean garbageChanged = optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-
-        // Re-run to avoid #883
         if (garbageChanged) {
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
+            optimizer.assertNoGarbage("the removal ran on a flat program and kept it flat");
         }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
@@ -1069,15 +1067,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isOptimize()) {
             beginPhase(12, "froptimize");
             optimizer.optimize();
-
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
             printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
             timeTaker.endPhase();
         }
         beginPhase(13, "lua remove garbage");
         RemoveGarbage.removeGarbage(imProg, imTranslator);
-        imProg.flatten(imTranslator);
         timeTaker.endPhase();
 
         beginPhase(13, "prepare lua dispatch");
@@ -1089,6 +1083,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         LuaOldGenericsCasts.transform(imProg, imTranslator);
         timeTaker.endPhase();
 
+        imTranslator.assertFlat("before it is translated to Lua, which would make a closure of each statement expression");
         beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();

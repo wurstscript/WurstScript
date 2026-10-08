@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.validation.NamePreservation;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.stream.Collectors;
 
@@ -49,8 +50,9 @@ public class ImOptimizer {
         this.trans = trans;
     }
 
+    /** Shortens the names. The pipelines remove the garbage right before, and what runs between only calls and sets. */
     public void optimize() {
-        removeGarbage();
+        assertNoGarbage("optimize follows a removal");
         ImCompressor compressor = new ImCompressor(trans);
         compressor.compressNames();
     }
@@ -75,16 +77,15 @@ public class ImOptimizer {
 
         removeGarbage();
 
+        // Each sweep ends with a pass which flattens the program, and the removal keeps it flat.
         int optCount = runLocalOptimizationSweep();
         if (optCount > 0) {
             removeGarbage();
-            trans.getImProg().flatten(trans);
         }
 
         int cleanupCount = runLocalOptimizationSweep();
         if (cleanupCount > 0) {
             removeGarbage();
-            trans.getImProg().flatten(trans);
         }
 
         WLogger.info("=== Local optimization passes done! Opts: " + (optCount + cleanupCount) + " ===");
@@ -122,7 +123,35 @@ public class ImOptimizer {
         trans.assertProperties();
     }
 
+
+    /**
+     * Removes what nothing reads. A flat program stays flat: what an assignment to an unread variable leaves behind
+     * is put in its place in the statement list it was in, so the flatten which used to follow each removal has
+     * nothing to do. (In a unit test this is checked.)
+     *
+     * @return whether anything was removed
+     */
     public boolean removeGarbage() {
+        boolean wasFlat = trans.isUnitTestMode() && trans.isFlat();
+        boolean changed = removeGarbageWithFacts();
+        if (wasFlat && !trans.isFlat()) {
+            throw new AssertionError("The garbage removal made a flat program not flat");
+        }
+        return changed;
+    }
+
+    /**
+     * For a place where a garbage removal would find nothing, because nothing which can make garbage ran since the
+     * last one. The removal is not run: in a unit test it is, and a program for which it removes something is a bug
+     * in this claim, which fails the test.
+     */
+    public void assertNoGarbage(String why) {
+        if (trans.isUnitTestMode() && removeGarbage()) {
+            throw new AssertionError("The garbage removal found garbage where " + why);
+        }
+    }
+
+    private boolean removeGarbageWithFacts() {
         // The rounds change one function at a time and say which, so the analysis keeps what it read of the others.
         trans.rememberFunctionFacts();
         try {
@@ -132,40 +161,124 @@ public class ImOptimizer {
         }
     }
 
+    /**
+     * A bound only for a program which never settles, which is a bug: every round which changes something removes an
+     * assignment, a variable or a function. The real programs measured take up to ten rounds (castle fight: nine).
+     */
+    private static final int MAX_ROUNDS = 100_000;
+
+    /** The functions the rounds look at: the program's, then those of the classes. Fixed while no function is removed. */
+    private List<ImFunction> roundFunctions = List.of();
+    /** The functions in which the last round replaced assignments, which is all the program has lost since; null before the first round. */
+    private @Nullable List<ImFunction> changedInLastRound;
+
+    /**
+     * Removes what nothing reads, until there is nothing left to remove.
+     * <p>
+     * The first round analyses the whole program. A later round starts from what the round before it replaced: the
+     * assignments it dropped are all the program lost, so the functions it changed are looked at again and the
+     * variables they read no more are the only ones which can have become unread (a chain of assignments to unread
+     * variables takes a round for each link). It analyses the program again only when a changed function lost a call.
+     * That is the result of analysing the whole program every round, without the walk over the program: the removal
+     * of a program like castle fight takes 6 to 9 rounds, most of which removed a handful of assignments.
+     * <p>
+     * It runs until nothing is left: a chain of assignments to unread variables is as long as it is (a small program
+     * of tuples has one of more than ten), and a removal which stopped early left the rest for a second removal. A
+     * round which changes something removes an assignment, a variable or a function, so the rounds end.
+     */
     private boolean removeGarbageInRounds() {
         boolean changes = true;
         boolean anyChanges = false;
-        int iterations = 0;
-        while (changes && iterations++ < 10) {
-            ImProg prog = trans.imProg();
+        int rounds = 0;
+        // whether the analysis of the translator is that of the program as it is now
+        boolean currentAnalysis = false;
+        changedInLastRound = null;
+        while (changes) {
+            if (++rounds > MAX_ROUNDS) {
+                throw new IllegalStateException("The garbage removal does not end: it still changes something in round " + MAX_ROUNDS);
+            }
+            List<ImVar> newlyUnread = changedInLastRound == null ? null : trans.refreshReadVariables(changedInLastRound);
+            boolean incremental = newlyUnread != null;
+            if (!incremental) {
+                trans.calculateCallRelationsAndReadVariables();
+            }
+            changes = garbageRound(incremental, newlyUnread);
+            currentAnalysis = !incremental && !changes;
+            anyChanges |= changes;
+        }
+        if (!currentAnalysis) {
+            // The call relation and the sets the translator keeps are the ones of an earlier round.
+            Set<ImVar> maintainedReads = null;
+            Set<ImFunction> maintainedUsed = null;
+            if (trans.isUnitTestMode()) {
+                maintainedReads = new HashSet<>(trans.getReadVariables());
+                maintainedUsed = new HashSet<>(trans.getUsedFunctions());
+            }
             trans.calculateCallRelationsAndReadVariables();
-            final Set<ImVar> readVars = trans.getReadVariables();
-            final Set<ImFunction> usedFuncs = trans.getUsedFunctions();
-            SideEffectAnalyzer sideEffectAnalyzer = new SideEffectAnalyzer(prog);
+            if (maintainedReads != null) {
+                // The rounds after the first only look at what the round before changed: what they leave is
+                // what a round over the whole program leaves.
+                if (!maintainedReads.equals(trans.getReadVariables()) || !maintainedUsed.equals(trans.getUsedFunctions())) {
+                    throw new AssertionError("The rounds which looked at the changed functions only ended with other read variables"
+                        + " or used functions than an analysis of the program");
+                }
+                if (garbageRound(false, null)) {
+                    throw new AssertionError("The rounds which looked at the changed functions only left garbage which a"
+                        + " round over the whole program removes");
+                }
+            }
+        }
+        return anyChanges;
+    }
 
+
+    /**
+     * One round: removes the variables and functions which nothing reads or reaches, and replaces the assignments to
+     * unread variables by what they do besides assigning.
+     *
+     * @param incremental     the translator's read variables were brought in line with the functions which the round
+     *                        before changed, rather than calculated again: nothing is unreachable which was not, and
+     *                        only the variables in newlyUnread are unread which were not
+     * @param newlyUnread     the variables which nothing reads since the round before (incremental only)
+     * @return whether anything was removed or replaced
+     */
+    private boolean garbageRound(boolean incremental, @Nullable List<ImVar> newlyUnread) {
+        ImProg prog = trans.imProg();
+        final Set<ImVar> readVars = trans.getReadVariables();
+        final Set<ImFunction> usedFuncs = trans.getUsedFunctions();
+        SideEffectAnalyzer sideEffectAnalyzer = new SideEffectAnalyzer(prog);
+        boolean changes = false;
+        boolean variablesLost = !incremental || !newlyUnread.isEmpty();
+
+        if (variablesLost) {
             // keep only used variables
             int globalsBefore = prog.getGlobals().size();
-            changes = prog.getGlobals().retainAll(readVars);
-            int globalsAfter = prog.getGlobals().size();
-            int globalsRemoved = globalsBefore - globalsAfter;
+            changes |= prog.getGlobals().retainAll(readVars);
+            int globalsRemoved = globalsBefore - prog.getGlobals().size();
             totalGlobalsRemoved += globalsRemoved;
+        }
 
+        if (!incremental) {
             // keep only functions reachable from main and config
             int functionsBefore = prog.getFunctions().size();
             changes |= prog.getFunctions().retainAll(usedFuncs);
-            int functionsAfter = prog.getFunctions().size();
-            int functionsRemoved = functionsBefore - functionsAfter;
+            int functionsRemoved = functionsBefore - prog.getFunctions().size();
             totalFunctionsRemoved += functionsRemoved;
 
             // also consider class functions
-            Set<ImFunction> allFunctions = new LinkedHashSet<>(prog.getFunctions());
+            List<ImFunction> allFunctions = new ArrayList<>(prog.getFunctions());
             for (ImClass c : prog.getClasses()) {
                 int classFunctionsBefore = c.getFunctions().size();
                 changes |= c.getFunctions().retainAll(usedFuncs);
                 int classFunctionsAfter = c.getFunctions().size();
                 totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
+            }
+            roundFunctions = allFunctions;
+        }
 
+        if (variablesLost) {
+            for (ImClass c : prog.getClasses()) {
                 // A field of a specialised class is a copy which nothing refers to, an access made
                 // before specialisation still naming the original's variable. It is live exactly
                 // when the field it was copied from is; dropping it leaves an instance allocated
@@ -178,74 +291,101 @@ public class ImOptimizer {
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
+        }
 
-            for (ImFunction f : allFunctions) {
-                // remove set statements to unread variables
-                final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
-                for (ImSet e : trans.setStatementsOf(f)) {
-                    if (e.getLeft() instanceof ImVarAccess) {
-                        ImVarAccess va = (ImVarAccess) e.getLeft();
-                        if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                            replacements.add(Pair.create(e, sideEffects));
+        // Functions which can have an assignment to replace: all of them in the first round, and in a later one the
+        // changed ones, and every other function only when a variable became unread.
+        Set<ImFunction> changedFunctions = null;
+        if (incremental) {
+            changedFunctions = Collections.newSetFromMap(new IdentityHashMap<>());
+            changedFunctions.addAll(changedInLastRound);
+        }
+        boolean scanAllFunctions = !incremental || !newlyUnread.isEmpty();
+        List<ImFunction> replacedIn = new ArrayList<>();
+        for (ImFunction f : roundFunctions) {
+            boolean changedBefore = changedFunctions != null && changedFunctions.contains(f);
+            if (!scanAllFunctions && !changedBefore) {
+                continue;
+            }
+            // remove set statements to unread variables
+            final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
+            for (ImSet e : trans.setStatementsOf(f)) {
+                if (e.getLeft() instanceof ImVarAccess) {
+                    ImVarAccess va = (ImVarAccess) e.getLeft();
+                    if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                        List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                        replacements.add(Pair.create(e, sideEffects));
+                    }
+                } else if (e.getLeft() instanceof ImVarArrayAccess) {
+                    ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
+                    if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                        List<ImExpr> exprs = new ArrayList<>();
+                        for (ImExpr index : va.getIndexes()) {
+                            exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
                         }
-                    } else if (e.getLeft() instanceof ImVarArrayAccess) {
-                        ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
-                        if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                            List<ImExpr> exprs = new ArrayList<>();
-                            for (ImExpr index : va.getIndexes()) {
-                                exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
-                            }
-                            exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer));
-                            replacements.add(Pair.create(e, exprs));
-                        }
-                    } else if (e.getLeft() instanceof ImTupleSelection) {
-                        ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
-                        if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
-                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                            replacements.add(Pair.create(e, sideEffects));
-                        }
-                    } else if(e.getLeft() instanceof ImMemberAccess) {
-                        ImMemberAccess va = ((ImMemberAccess) e.getLeft());
-                        if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                            replacements.add(Pair.create(e, sideEffects));
-                        }
+                        exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer));
+                        replacements.add(Pair.create(e, exprs));
+                    }
+                } else if (e.getLeft() instanceof ImTupleSelection) {
+                    ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
+                    if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
+                        List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                        replacements.add(Pair.create(e, sideEffects));
+                    }
+                } else if(e.getLeft() instanceof ImMemberAccess) {
+                    ImMemberAccess va = ((ImMemberAccess) e.getLeft());
+                    if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                        List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                        replacements.add(Pair.create(e, sideEffects));
                     }
                 }
+            }
 
-                Replacer replacer = new Replacer();
-                for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
-                    changes = true;
-                    ImExpr r;
-                    if (pair.getB().isEmpty()) {
-                        r = ImHelper.statementExprVoid(JassIm.ImStmts());
-                    } else if (pair.getB().size() == 1) {
-                        r = pair.getB().get(0);
-                        // CRITICAL: Clear parent before reusing the node
-                        r.setParent(null);
-                    } else {
-                        // CRITICAL: Create proper list wrapper for multiple expressions
-                        List<ImStmt> stmts = new ArrayList<>();
-                        for (ImExpr expr : pair.getB()) {
-                            // Clear parent for each expression
-                            expr.setParent(null);
-                            stmts.add(expr);
-                        }
-                        r = ImHelper.statementExprVoid(JassIm.ImStmts(stmts));
-                    }
-                    replacer.replace(pair.getA(), r);
-                }
-                if (!replacements.isEmpty()) {
-                    trans.functionChanged(f);
-                }
-
-                // keep only read local variables
+            // keep only read local variables. A local is read by the function it belongs to only, so after the first
+            // round it can only be unread in a function which lost code. This is before the replacements, which can
+            // make locals of their own (a flatten saves the arguments in front of one which has statements): the
+            // variables which were read when the round was analysed are the ones to keep, those are not among them.
+            if (!incremental || changedBefore) {
                 changes |= f.getLocals().retainAll(readVars);
             }
-            anyChanges |= changes;
+
+            if (!replacements.isEmpty()) {
+                changes = true;
+                replaceByEffects(f, replacements);
+                trans.functionChanged(f);
+                replacedIn.add(f);
+            }
         }
-        return anyChanges;
+        changedInLastRound = replacedIn;
+        return changes;
+    }
+
+    /**
+     * Puts what each of the assignments does besides assigning in its place, in the statement list it is in, as
+     * statements. A function which was flat stays flat: nothing is wrapped in a statement expression for a later
+     * flatten to unwrap, and the effects which are not statements are made into some as a flatten makes them.
+     */
+    private void replaceByEffects(ImFunction f, List<Pair<ImStmt, List<ImExpr>>> replacements) {
+        // one pass over each statement list, however many of its assignments go (the initialiser of a large package
+        // is a list of thousands)
+        Map<ImStmts, Map<ImStmt, List<ImStmt>>> byList = new IdentityHashMap<>();
+        for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
+            if (!(pair.getA().getParent() instanceof ImStmts list)) {
+                throw new IllegalStateException("An assignment which is not in a statement list: " + pair.getA());
+            }
+            // The effects are parts of the assignment, which goes, and they are statements now: an expression which is
+            // one (`a and f()`, a call with a statement expression for an argument) becomes what a flatten makes of it,
+            // the statements which the backends translate (an if, the call with its arguments in variables).
+            List<ImStmt> statements = new ArrayList<>(pair.getB().size());
+            for (ImExpr effect : pair.getB()) {
+                effect.setParent(null);
+                effect.flatten(trans, f).intoStatements(statements, trans, f);
+            }
+            byList.computeIfAbsent(list, l -> new IdentityHashMap<>()).put(pair.getA(), statements);
+        }
+        for (Map.Entry<ImStmts, Map<ImStmt, List<ImStmt>>> entry : byList.entrySet()) {
+            entry.getKey().replaceEach(entry.getValue());
+        }
     }
 
     private List<ImExpr> collectSideEffects(ImExpr expr, SideEffectAnalyzer analyzer) {

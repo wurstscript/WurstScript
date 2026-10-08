@@ -1,5 +1,15 @@
 ## 1.9 (in progress)
 
+- The garbage removal runs until nothing is left. It stopped after ten rounds and a second removal finished what a long
+  chain of assignments had left, and it replaced each assignment to an unread variable by an empty statement
+  expression, for the next flatten to unwrap. It puts what the assignment does besides assigning in its place as
+  statements now, so no flatten and no second removal follow it. Those statement expressions made `GlobalsInliner` take the package initialisers
+  for code which may abort, so it did not inline their constants; it does now: of the 5,304 scripts of the test suite
+  358 are different and none is longer. The scripts of castle fight are the same apart from the numbers in
+  temporary names (6 of 360,423 lines of the optimised Jass one name another merged local). A round after the first
+  looks only at the functions the round before changed, and the removal walks the body of a function once, not three
+  times.
+
 - Lua and Jass builds drop the functions nothing reaches (and the methods which go with them), and the globals which
   nothing reachable reads (with the assignments of constants to them), in three places: in front of the compile-time
   functions, before the generics are specialised, and after them. They used to be dropped only after the tuples were

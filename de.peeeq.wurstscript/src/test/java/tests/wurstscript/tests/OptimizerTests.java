@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -27,7 +28,9 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.testng.Assert.*;
@@ -1886,6 +1889,64 @@ public class OptimizerTests extends WurstScriptTest {
 
         assertEquals(timeTaker.measurements, 16,
             "the optimizer should run two fixed sweeps rather than iterating to convergence");
+    }
+
+    @Test
+    public void garbageRemovalKeepsTheVariableWhichFlatteningAnEffectMakes() {
+        // An assignment to an unread variable of `sink(tick(), (tock(); 2))` leaves the call, and the statements of its
+        // second argument come before the call: the first one, which has an effect, is saved in a variable of the
+        // function first. That variable is declared, and the removal does not take it for one nothing reads.
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), JassIm.ImVars(a, b), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        CallType normal = CallType.NORMAL;
+        ImExpr first = JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal);
+        ImExpr second = JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2));
+        ImVar unread = JassIm.ImVar(model, TypesHelper.imInt(), "unread", false);
+        ImSet assignment = JassIm.ImSet(model, JassIm.ImVarAccess(unread),
+            JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), JassIm.ImExprs(first, second), false, normal));
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(unread), JassIm.ImStmts(assignment), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(tock);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        // the unread variable is gone, the saved argument is declared, and every variable which is used is attached
+        assertEquals(main.getLocals().size(), 1, "the variable which saves the first argument: " + main.getLocals());
+        ImVar saved = main.getLocals().get(0);
+        assertNotSame(saved, unread);
+        List<ImVar> used = new ArrayList<>();
+        main.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess e) {
+                used.add(e.getVar());
+            }
+        });
+        assertTrue(used.size() >= 2, "the variable is set and read: " + used);
+        for (ImVar v : used) {
+            assertSame(v, saved, "a variable of main which is not a local of main");
+            assertNotNull(v.getParent(), "a variable which is used is not attached");
+        }
+        assertEquals(main.getBody().size(), 3, "the saved argument, the statement of the second, the call: " + main.getBody());
+        assertTrue(translator.isFlat(), "what is left is flat: " + main.getBody());
     }
 
     @Test
