@@ -1137,6 +1137,25 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    testSuccess()");
     }
 
+    /**
+     * The harness keeps only the first 64 KiB of what the program prints, so a failure which is
+     * reported after more output than that has to be recognised as it is printed, like a success.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Lua testFail was called.*")
+    public void stdlibTestFailAfterMoreOutputThanTheHarnessKeepsStillFails() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "@extern native pcall(code callback) returns bool",
+            "function failingCallback()",
+            "    for i = 1 to 6000",
+            "        print(\"padding which fills the output the harness is willing to keep\")",
+            "    testFail(\"intentional failure after a lot of output\")",
+            "init",
+            "    pcall(function failingCallback)",
+            "    testSuccess()");
+    }
+
     /** Fixed-seed model checking also varies the expression substituted for an old-generic key. */
     @Test
     public void randomizedOldGenericMapOperationsMatchReferenceModel() {
