@@ -30,16 +30,15 @@ version = "1.9.0.0"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(27)
     }
 }
 
 def toolchainSvc = extensions.getByType(JavaToolchainService)
-def j25Launcher = toolchainSvc.launcherFor(java.toolchain)
+def j27Launcher = toolchainSvc.launcherFor(java.toolchain)
 
 tasks.withType(JavaExec).configureEach {
-    javaLauncher.set(j25Launcher)
-    jvmArgs('-XX:+UnlockExperimentalVMOptions', '-XX:+UseCompactObjectHeaders')
+    javaLauncher.set(j27Launcher)
 }
 
 /** -------- Compilation and static analysis --------
@@ -51,7 +50,7 @@ tasks.withType(JavaExec).configureEach {
 def errorProneEnabled = !project.hasProperty('skipErrorProne')
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 25
+    options.release = 27
     // 'serial'/'this-escape' are noisy against this codebase's AST and visitor style.
     // 'auxiliaryclass' fires ~86 times purely on the multi-class-per-file layout - structural, not a defect.
     options.compilerArgs += ['-Xlint:all', '-Xlint:-serial', '-Xlint:-this-escape',
@@ -81,7 +80,7 @@ tasks.withType(JavaCompile).configureEach {
 tasks.named('compileTestJava') { options.errorprone.enabled = false }
 
 jacoco {
-    toolVersion = "0.8.13"
+    toolVersion = "0.8.15"
 }
 
 tasks.named("jacocoTestReport", JacocoReport) {
@@ -389,8 +388,6 @@ test {
             '-Xmx2g',                         // local: give it room to finish and dump
             '-XX:MaxMetaspaceSize=256m',
             '-XX:+HeapDumpOnOutOfMemoryError',
-            '-XX:+UnlockExperimentalVMOptions', // needed for UseCompactObjectHeaders until it graduates
-            '-XX:+UseCompactObjectHeaders',    // Java 24+: 8-byte headers (vs 16) — big win for AST-heavy workloads
             // Each fork otherwise sizes its garbage collector and compiler threads for the whole
             // machine, so running several at once oversubscribes it badly: eight forks made every
             // test about three times slower and gave back only a third of the parallelism.

@@ -73,8 +73,8 @@ Two incompatible generic systems coexist. The syntax of the type parameter picks
 
 ### Language and tooling
 
-* **Java 25**
-* **Gradle (9.2.1)**
+* **Java 27**
+* **Gradle (9.8.1)**
 
 ---
 
@@ -160,10 +160,9 @@ runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-a
 usually has one, and `assembleSlimCompilerDist` dumps one with `java -Xshare:dump` when the JDK has none: the Temurin
 for macOS x64 on CI does not). `assembleSlimCompilerDist` then starts the runtime with `-Xshare:on`, which fails when
 there is no usable archive. Without one the JVM silently runs without any, which is how the earlier attempt went
-unnoticed. A base archive is written by a JVM which takes on the options it is started with: the CI exports
-`JAVA_TOOL_OPTIONS=-XX:+UseCompactObjectHeaders`, so `deploy.gradle` removes it (and the other JVM option variables) for
-the JVMs it starts, or only `classes_coh.jsa` is made, which a runtime started without that option cannot use. Pull-request
-CI packages nothing (only pushes to master do, on every host), so a change here is not tested on macOS before it merges.
+unnoticed. Pull-request CI packages nothing (only pushes to master do, on every host), so a change here is not tested
+on macOS before it merges. Java 27 enables compact object headers by default. The build clears the JVM option
+environment variables when making and validating the base archive so it matches the shipped runtime defaults.
 The extension passes `-Xlog:disable` because the JVM reports archive trouble on stdout, which is the protocol stream:
 never print anything of your own there.
 

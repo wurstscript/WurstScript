@@ -6,6 +6,8 @@
   Code which calls a function the config adds to the map script no longer fails the first check. Castle fight without
   optimisations builds in 36.0 s instead of 41.3 s and zombie defense in 28.2 s instead of 31.3 s (medians of three,
   interleaved); the script of castle fight is byte for byte the same.
+- The compiler and bundled runtime now use Java 27, with compact object headers enabled by default.
+  Tests retain ParallelGC; the shipped runtime uses Java 27's default G1 collector.
 
 - The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
   slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
