@@ -70,9 +70,11 @@ public class LanguageWorkerTest {
         try {
             System.setProperty("WURST_JASSDOC_DB_PATH", database.toString());
             worker.setRootPath(WFile.create(root));
+            // only guards against a hang: the completion waits for the initial build, which takes 8 s when the JVM
+            // is cold and the machine busy
             CompletionList completions = service.completion(new CompletionParams(
                     new TextDocumentIdentifier(source.toUri().toString()), new Position(2, 4 + prefix.length())))
-                    .get(10, TimeUnit.SECONDS).getRight();
+                    .get(60, TimeUnit.SECONDS).getRight();
             CompletionItem item = completions.getItems().stream().filter(candidate -> symbol.equals(candidate.getLabel()))
                     .findFirst().orElseThrow();
             java.util.concurrent.CompletableFuture<CompletionItem> pending;
