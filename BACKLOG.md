@@ -107,13 +107,14 @@ Notes; finished-work narrative does not.
   not a cost of a real build; master stopped after ten rounds and left the rest. Linear time needs the reads of each
   variable counted per function and the assignments removed from a worklist inside the round (taking the reads of the
   operands which go with an assignment off the count), which the facts, a set of variables per function, do not hold.
-- **Load the model without reconciling it for each file.** `ModelManagerImpl.replaceCompilationUnit` puts each file into
-  the model with `updateModel`, which looks for the unit it replaces among all units and works out which units import
-  what the new one provides (`calculateCUsToUpdate`), so a load of n files does n scans of the model. A fresh load has
-  nothing to reconcile, every unit is unchecked anyway. In a profile of castle fight without optimisations (4,072
-  samples of the compiler's thread) `updateModel` is 5.1% and `calculateCUsToUpdate` 3.2% of them. The files are parsed
-  ahead by several threads now, so this is what is left sequential in loading a project: add the files of a load as a
-  batch, reconcile once.
+- **What is left of `ModelManagerImpl.updateModel` in a load.** A new unit is not reconciled with the model any more
+  while every unit is unchecked (a load of a project and of the libraries it imports): `calculateCUsToUpdate` searched
+  the whole model for what imports the unit and added what the set held already. `updateModel` fell from 4.1% to 1.6% of
+  the samples of the compiler's thread (castle fight without optimisations, 1,697 and 1,671 samples). What remains is
+  the scan for the unit a file replaces (`wFile(c).equals(wFile(cu))` over all units, once for each file) and
+  `wFile`, which canonicalises the path of each unit once. An index from file to unit would remove the scan, but the
+  list of the model has several writers (`updateModel`, `removeCompilationUnit`, `retainCompilationUnits`, the
+  incremental checks), so it has to stay in step with all of them; that is about 0.25 s of a castle fight build.
 - **Parallel type check and per-function IM passes.** Parsing is parallel (above); the rest of a build is not, and
   JFR of fresh master says where the time is (shares of the compiler thread's samples, castle fight without
   optimisations / optimised / zombie defense): type check light and heavy phases (attribute evaluation, per unit and per

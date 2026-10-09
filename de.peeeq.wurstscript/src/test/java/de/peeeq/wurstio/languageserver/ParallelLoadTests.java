@@ -44,7 +44,7 @@ public class ParallelLoadTests {
      * files which import two later ones, so that the libraries are reached over several levels, and a library file
      * which provides two packages, the second of which a project file imports without a file of its name.
      */
-    private static Path project(boolean withSyntaxError) throws IOException {
+    static Path project(boolean withSyntaxError) throws IOException {
         Path root = Files.createTempDirectory("wurst-parallel-load");
         for (int i = 0; i < LIBRARY_FILES; i++) {
             StringBuilder source = new StringBuilder("package Dep" + two(i) + "\nimport NoWurst\n");

@@ -705,6 +705,20 @@ public class ModelManagerImpl implements ModelManager {
         return comp;
     }
 
+    /** How many times a unit put into the model was reconciled with the units which are there, for the tests. */
+    private int reconciliations = 0;
+
+    int reconciliations() {
+        return reconciliations;
+    }
+
+    /** How many units are unchecked, for the tests. */
+    int uncheckedCount() {
+        synchronized (modelLock) {
+            return uncheckedUnits.size();
+        }
+    }
+
     private void updateModel(CompilationUnit cu, WurstGui gui) {
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
@@ -722,6 +736,7 @@ public class ModelManagerImpl implements ModelManager {
                 if (wFile(c).equals(wFile(cu))) {
                     // get old provided packages:
                     Set<String> oldPackages = providedPackages(c);
+                    reconciliations++;
                     Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
 
                     GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
@@ -737,13 +752,24 @@ public class ModelManagerImpl implements ModelManager {
                 }
             }
             if (!updated) {
+                // Reconciling a new unit with the others only ever makes units of the model unchecked, and the unit.
+                // While every unit is unchecked, as in a load of a project and of the libraries it imports, there is
+                // nothing to find: the search of the whole model would add what is in the set already.
+                boolean everyUnitUnchecked;
                 synchronized (modelLock) {
+                    everyUnitUnchecked = uncheckedUnits.containsAll(model2);
                     model2.add(cu);
+                    if (everyUnitUnchecked) {
+                        uncheckedUnits.add(cu);
+                    }
                 }
-                // what imports the new packages (or sees the new Jass names) has to be checked again
-                Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
-                synchronized (modelLock) {
-                    uncheckedUnits.addAll(mustUpdate);
+                if (!everyUnitUnchecked) {
+                    // what imports the new packages (or sees the new Jass names) has to be checked again
+                    reconciliations++;
+                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                    synchronized (modelLock) {
+                        uncheckedUnits.addAll(mustUpdate);
+                    }
                 }
             }
         }
