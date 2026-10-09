@@ -1,11 +1,5 @@
 ## 1.9 (in progress)
 
-- The garbage removal keeps the calls in the target of an assignment it removes. An assignment to a field which
-  nothing reads, `getC().x = 5` or `c.arr[nextIndex()] = 7`, kept only the effects of its value, so `getC()` and
-  `nextIndex()` were not called on Lua, and with `-inline` the index call of `points[nextIndex()].y = 1.` was dropped
-  on both targets. The receiver and the indexes are kept now, in the order the assignment evaluates them, as they
-  already were for an array element. Castle fight compiles to the same script.
-
 - The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
   exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
   return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
