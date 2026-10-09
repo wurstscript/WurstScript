@@ -1,10 +1,5 @@
 ## 1.9 (in progress)
 
-- A map build or run from the editor no longer lists every warning of the project twice in the Problems panel. The
-  build checks the code again (a copy of the model, or the model with the map script swapped in), and the build
-  diagnostics, which are shown together with the editor's own, repeated what the editor's check had found. Each
-  diagnostic of a file is listed once now.
-
 - The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
   exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
   return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
