@@ -67,18 +67,6 @@ Notes; finished-work narrative does not.
   specialised method goes from the allocations in the program, so a dead `new_Parent` no longer keeps it on the erased
   class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
 
-- **Run `ImOptimizer.removeGarbage` fewer times, or have it do less when the shaker has run.** The shaker and the
-  garbage removal both compute reachability, so a build pays for it twice, but not for the same thing: the shaker drops
-  what nothing reaches, the garbage removal also drops the variables only assignments with an effect write and replaces
-  those assignments by their effect, and it runs between four and nine times (`transformProgToLua`, `doInlining`,
-  `localOptimizations`). The walk over the bodies is now one (`FunctionFactsCollector`: the used functions, the read
-  variables and the assignments, asserted equal to the three separate walks in a unit test), which took 201 ms to
-  138 ms of an opt-less castle fight build and 624 ms to 375 ms of an optimised one, measured in one JVM with the two
-  alternating on the same functions. The rest is the number of calls: after the shaker most of them remove almost
-  nothing (the second and third call of an opt-less build spend about 0.35 s to remove three globals). Dropping one
-  changes what the inliner sees, because it decides by function size, so each candidate needs a byte for byte
-  comparison of the scripts of the whole suite first.
-
 - **Build the local-player analysis fewer times, or incrementally.** An optimised Lua build of castle fight
   constructs `LocalPlayerContextAnalyzer` five times: for the compile-time state function the splitter optimises
   (`FunctionSplitter`, once per split target), for `ImInliner.doInlining`, once per `ImOptimizer.runLocalOptimizationSweep`
@@ -91,6 +79,34 @@ Notes; finished-work narrative does not.
   node (`indexElement`, `isInert`, `markReturns`) is about half of the samples, so the cost follows the size of the IM
   and a flatter IM would help more than another rewrite of the analysis.
 
+- **Fewer whole-program passes between the optimiser's phases.** The garbage removal and the flatten each walk the
+  whole program, and a build runs them many times (castle fight: the removal 3 to 8 times with 11 to 29 rounds, the
+  flatten 6 to 16 times) while each of them changes a few percent of the functions. Done: the walk over a body is
+  one (`FunctionFactsCollector`), a round after the first looks at what the round before changed
+  (`ImTranslator.refreshReadVariables`) and the removal runs until nothing is left, the removal puts the effects of
+  an assignment in its place as statements (it left a statement expression for the next flatten to unwrap, which
+  was 5 of the flatten calls of a build, and which `GlobalsInliner` took for a statement which may abort, so it did
+  not inline the constants of a package initialiser), so no flatten and no second removal (#883) follows it, and a flatten
+  leaves the functions which were not modified since the last one (`ImFunction.modificationCount()`, which the generator
+  keeps: `modification counts: ImFunction` in `jass_im.parseq`). Left:
+  (1) more removals which remove nothing: one which the test suite shows to find nothing becomes an `assertNoGarbage`,
+  as the second removal, the one in `optimize` and the one in front of the empty package initialisers did (the one in
+  front of the first local optimisation is a candidate); (2) the Jass
+  pipeline analyses the call relation once more after the last removal (`calculateCallRelationsAndReadVariables`
+  before `ImToJassTranslator`), which the removal has just done; (3) facts which live longer than one removal, valid
+  while `modificationCount()` of the function is the same (it replaces `ImTranslator.functionChanged`, which a pass
+  can forget to call), so that the first round of a removal does not walk the functions no pass touched; (4) `LocalPlayerContextAnalyzer`, built again for the whole program after each
+  pass which is not local-player aware (see "Build the local-player analysis fewer times" above); (5) the flatten after the tuples
+  are eliminated is the one which does work (about 565 to 800 functions of castle fight): the producers of
+  statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does;
+  (6) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
+  each link, and a round costs the functions which changed (a walk of each, the rewrite of its statement list, its
+  locals), so the cost grows with the square of the length. Measured in a unit test (the checks of unit-test mode on,
+  one removal): a chain inside one function takes 0.24 s for 1,000 links, 1.5 s for 4,000 and 16.7 s for 16,000; with
+  each link in a function of its own 0.05, 0.9 and 19.4 s. The programs measured need at most ten rounds, so this is
+  not a cost of a real build; master stopped after ten rounds and left the rest. Linear time needs the reads of each
+  variable counted per function and the assignments removed from a worklist inside the round (taking the reads of the
+  operands which go with an assignment off the count), which the facts, a set of variables per function, do not hold.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

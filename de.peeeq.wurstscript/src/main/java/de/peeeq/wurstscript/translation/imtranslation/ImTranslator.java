@@ -21,9 +21,11 @@ import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.validation.WurstValidator;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -1598,6 +1600,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         usedFunctions = new ReferenceOpenHashSet<>(funcEstimate);
         usedVariables = includeUsedVariables ? new ObjectOpenHashSet<>(varEstimate) : null;
         readVariables = new ObjectOpenHashSet<>(varEstimate);
+        readCounts = null;
+        readByBjInitialisers = new ObjectOpenHashSet<>();
+        retiredFacts = functionFacts == null ? null : new IdentityHashMap<>();
 
         final ImFunction main = getMainFunc();
         if (main != null) calculateCallRelations(main, includeUsedVariables);
@@ -1632,6 +1637,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                     if (includeUsedVariables) {
                         usedVariables.add(read);
                     }
+                    readByBjInitialisers.add(read);
                     if (readVariables.add(read)) {
                         bjGlobals.add(read);
                     }
@@ -1702,13 +1708,116 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public void forgetFunctionFacts() {
         functionFacts = null;
+        retiredFacts = null;
+        readCounts = null;
     }
+
+    /**
+     * The facts of the functions which changed since the last call relation analysis, as that analysis saw them.
+     * {@link #refreshReadVariables} compares them with what the functions read now.
+     */
+    private @Nullable Map<ImFunction, FunctionFacts> retiredFacts;
+    /** For each variable, the number of reachable functions which read it, once {@link #refreshReadVariables} needs it. */
+    private @Nullable Object2IntOpenHashMap<ImVar> readCounts;
+    /** The variables which the initialisers of the common.j and blizzard.j globals which are read, read. */
+    private @Nullable Set<ImVar> readByBjInitialisers;
 
     /** The body of the function was changed: the analysis has to look at it again. */
     public void functionChanged(ImFunction function) {
         if (functionFacts != null) {
-            functionFacts.remove(function);
+            FunctionFacts old = functionFacts.remove(function);
+            if (old != null && retiredFacts != null) {
+                retiredFacts.putIfAbsent(function, old);
+            }
         }
+    }
+
+    /**
+     * Brings the read variables of the last call relation analysis in line with functions which changed, without
+     * analysing the program again. A function which still calls the same functions leaves the reachable functions as
+     * they are, and what the program reads is what the functions read: a variable is
+     * read while one reachable function reads it, the preserved globals are read, and so are those which the
+     * initialisers of the common.j and blizzard.j globals read.
+     *
+     * @return the variables which nothing reads now, or null when the program has to be analysed again: a function
+     * lost a call (functions it called may be unreachable now), a variable of common.j or blizzard.j is not read any
+     * more (so what its initialiser read may not be read any more), or the analysis does not know what a function
+     * read before. The call relation is not kept up to date.
+     */
+    public @Nullable List<ImVar> refreshReadVariables(Collection<ImFunction> changed) {
+        if (functionFacts == null || retiredFacts == null || usedFunctions == null || readVariables == null
+            || readByBjInitialisers == null) {
+            return null;
+        }
+        if (readCounts == null) {
+            Object2IntOpenHashMap<ImVar> counts = new Object2IntOpenHashMap<>(readVariables.size());
+            for (ImFunction function : usedFunctions) {
+                FunctionFacts facts = retiredFacts.get(function);
+                if (facts == null) {
+                    facts = functionFacts.get(function);
+                }
+                if (facts == null || facts.readVariables == null) {
+                    return null;
+                }
+                for (ImVar v : facts.readVariables) {
+                    counts.addTo(v, 1);
+                }
+            }
+            readCounts = counts;
+        }
+        // A function reads fewer variables than before, and may read some it did not: the effects an assignment leaves
+        // are flattened, which saves arguments in variables of its own.
+        List<ImVar> lostReads = new ArrayList<>();
+        for (ImFunction function : changed) {
+            FunctionFacts before = retiredFacts.remove(function);
+            if (before == null || before.usedFunctions == null || before.readVariables == null) {
+                return null;
+            }
+            FunctionFacts now = relationFactsOf(function);
+            if (!now.usedFunctions.equals(before.usedFunctions)) {
+                return null;
+            }
+            for (ImVar v : before.readVariables) {
+                if (!now.readVariables.contains(v)) {
+                    readCounts.addTo(v, -1);
+                    lostReads.add(v);
+                }
+            }
+            for (ImVar v : now.readVariables) {
+                if (!before.readVariables.contains(v)) {
+                    readCounts.addTo(v, 1);
+                    readVariables.add(v);
+                }
+            }
+        }
+        // what no function reads now, once every function is accounted for
+        List<ImVar> candidates = new ArrayList<>();
+        for (ImVar v : lostReads) {
+            if (readCounts.getInt(v) == 0) {
+                candidates.add(v);
+            }
+        }
+        List<ImVar> unread = new ArrayList<>();
+        for (ImVar v : candidates) {
+            if (isGlobalOf(v) && NamePreservation.isPreserved(v)) {
+                continue;
+            }
+            if (v.getIsBJ()) {
+                return null;
+            }
+            if (readByBjInitialisers.contains(v)) {
+                continue;
+            }
+            if (readVariables.remove(v)) {
+                unread.add(v);
+            }
+        }
+        return unread;
+    }
+
+    private boolean isGlobalOf(ImVar v) {
+        Element parent = v.getParent();
+        return parent != null && parent.getParent() instanceof ImProg;
     }
 
     private @Nullable FunctionFacts factsOf(ImFunction function) {
@@ -2484,6 +2593,51 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public boolean isUnitTestMode() {
         return isUnitTestMode;
+    }
+
+    /** What the modification count of each function was when a flatten left it, which is flat. */
+    private final Reference2IntOpenHashMap<ImFunction> flattenedAt = new Reference2IntOpenHashMap<>();
+
+    /** Whether the function is as a flatten left it: nothing in it was modified since. */
+    public synchronized boolean isUnmodifiedSinceFlatten(ImFunction function) {
+        return flattenedAt.containsKey(function) && flattenedAt.getInt(function) == function.modificationCount();
+    }
+
+    /** A flatten has left the function flat as it is now. */
+    public synchronized void flattened(ImFunction function) {
+        flattenedAt.put(function, function.modificationCount());
+    }
+
+    /**
+     * Whether the program holds no statement expression, which is what a flatten leaves and what the backends need: Jass
+     * has no such expression, and Lua would make a closure of each. A compile-time expression is not looked into, the
+     * interpreter evaluates it as it is.
+     */
+    public boolean isFlat() {
+        return isFlat(imProg);
+    }
+
+    /** Whether the element holds no statement expression (see {@link #isFlat()}). */
+    public static boolean isFlat(Element element) {
+        boolean[] flat = {true};
+        element.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImStatementExpr e) {
+                flat[0] = false;
+            }
+
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+            }
+        });
+        return flat[0];
+    }
+
+    /** In a unit test: fails when the program is not flat, which names where. */
+    public void assertFlat(String where) {
+        if (isUnitTestMode && !isFlat()) {
+            throw new AssertionError("The program is not flat " + where);
+        }
     }
 
     private final Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
