@@ -162,10 +162,13 @@ public class ImOptimizer {
     }
 
     /**
-     * A bound only for a program which never settles, which is a bug: every round which changes something removes an
-     * assignment, a variable or a function. The real programs measured take up to ten rounds (castle fight: nine).
+     * How many things the first round could remove: the global variables, fields, functions, locals and assignments
+     * which the program had. Every round which changes something removes one of them (an assignment which is replaced
+     * leaves statements which are not assignments to an unread variable: the variables a flatten makes are read), so
+     * the rounds cannot be more than that. A program which needs more never settles, which is a bug, and is reported.
+     * The real programs measured take up to ten rounds (castle fight: nine). -1 before the first round counted them.
      */
-    private static final int MAX_ROUNDS = 100_000;
+    private long removableThings = -1;
 
     /** The functions the rounds look at: the program's, then those of the classes. Fixed while no function is removed. */
     private List<ImFunction> roundFunctions = List.of();
@@ -184,7 +187,11 @@ public class ImOptimizer {
      * <p>
      * It runs until nothing is left: a chain of assignments to unread variables is as long as it is (a small program
      * of tuples has one of more than ten), and a removal which stopped early left the rest for a second removal. A
-     * round which changes something removes an assignment, a variable or a function, so the rounds end.
+     * round which changes something removes an assignment, a variable or a function, so the rounds end, and there are
+     * no more of them than the program had things to remove ({@link #removableThings}). A chain takes a round for each
+     * link, each of which looks at the functions which changed and no more, so the cost of a chain grows with the
+     * square of its length (the programs measured need at most ten rounds; see BACKLOG.md for the numbers of long chains
+     * and what would make them linear).
      */
     private boolean removeGarbageInRounds() {
         boolean changes = true;
@@ -193,9 +200,12 @@ public class ImOptimizer {
         // whether the analysis of the translator is that of the program as it is now
         boolean currentAnalysis = false;
         changedInLastRound = null;
+        removableThings = -1;
         while (changes) {
-            if (++rounds > MAX_ROUNDS) {
-                throw new IllegalStateException("The garbage removal does not end: it still changes something in round " + MAX_ROUNDS);
+            // the first round counts what there is to remove (garbageRound), which the rounds after it cannot exceed
+            if (++rounds > 1 && removableThings >= 0 && rounds > removableThings + 1) {
+                throw new IllegalStateException("The garbage removal does not end: it still changes something in round "
+                    + rounds + ", but the program had only " + removableThings + " things to remove");
             }
             List<ImVar> newlyUnread = changedInLastRound == null ? null : trans.refreshReadVariables(changedInLastRound);
             boolean incremental = newlyUnread != null;
@@ -249,6 +259,16 @@ public class ImOptimizer {
         SideEffectAnalyzer sideEffectAnalyzer = new SideEffectAnalyzer(prog);
         boolean changes = false;
         boolean variablesLost = !incremental || !newlyUnread.isEmpty();
+
+        // what the first round can remove, for the bound on the rounds (removableThings)
+        boolean countThings = removableThings < 0;
+        long things = 0;
+        if (countThings) {
+            things += prog.getGlobals().size() + prog.getFunctions().size();
+            for (ImClass c : prog.getClasses()) {
+                things += c.getFields().size() + c.getFunctions().size();
+            }
+        }
 
         if (variablesLost) {
             // keep only used variables
@@ -309,6 +329,9 @@ public class ImOptimizer {
             }
             // remove set statements to unread variables
             final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
+            if (countThings) {
+                things += trans.setStatementsOf(f).size() + f.getLocals().size();
+            }
             for (ImSet e : trans.setStatementsOf(f)) {
                 if (e.getLeft() instanceof ImVarAccess) {
                     ImVarAccess va = (ImVarAccess) e.getLeft();
@@ -357,6 +380,9 @@ public class ImOptimizer {
             }
         }
         changedInLastRound = replacedIn;
+        if (countThings) {
+            removableThings = things;
+        }
         return changes;
     }
 

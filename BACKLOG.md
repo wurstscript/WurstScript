@@ -86,7 +86,15 @@ Notes; finished-work narrative does not.
   can forget to call), so that the first round of a removal does not walk the functions no pass touched; (4) `LocalPlayerContextAnalyzer`, built again for the whole program after each
   pass which is not local-player aware: about a tenth of an optimised build (JFR); (5) the flatten after the tuples
   are eliminated is the one which does work (about 565 to 800 functions of castle fight): the producers of
-  statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does.
+  statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does;
+  (6) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
+  each link, and a round costs the functions which changed (a walk of each, the rewrite of its statement list, its
+  locals), so the cost grows with the square of the length. Measured in a unit test (the checks of unit-test mode on,
+  one removal): a chain inside one function takes 0.24 s for 1,000 links, 1.5 s for 4,000 and 16.7 s for 16,000; with
+  each link in a function of its own 0.05, 0.9 and 19.4 s. The programs measured need at most ten rounds, so this is
+  not a cost of a real build; master stopped after ten rounds and left the rest. Linear time needs the reads of each
+  variable counted per function and the assignments removed from a worklist inside the round (taking the reads of the
+  operands which go with an assignment off the count), which the facts, a set of variables per function, do not hold.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
