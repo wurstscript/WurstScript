@@ -713,12 +713,37 @@ public class ImInliner {
 
     private ImStmts rewriteForEarlyReturns(ImStmts body, ImVar doneVar, ImVar retVar) {
         ImStmts rewritten = JassIm.ImStmts();
+        ImStmts segment = JassIm.ImStmts();
+        // Blocks are entered only while live: their parent guards them, and a returning loop
+        // checks done at its header. Only a return within this block can require another guard.
+        boolean needsGuard = false;
         for (ImStmt s : body) {
-            ImStmts transformed = rewriteStmtForEarlyReturn(s, doneVar, retVar);
-            ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
-            rewritten.add(JassIm.ImIf(s.attrTrace(), notDone, transformed, JassIm.ImStmts()));
+            if (!hasReturn(s)) {
+                // Preserve whole return-free branches and loops, including their exitwhens.
+                segment.add(s.copy());
+                continue;
+            }
+            segment.addAll(rewriteStmtForEarlyReturn(s, doneVar, retVar).removeAll());
+            appendEarlyReturnSegment(rewritten, segment, needsGuard, doneVar);
+            segment = JassIm.ImStmts();
+            needsGuard = true;
         }
+        appendEarlyReturnSegment(rewritten, segment, needsGuard, doneVar);
         return rewritten;
+    }
+
+    /** A segment ends at the next possible return, so one entry check covers all its statements. */
+    private void appendEarlyReturnSegment(ImStmts rewritten, ImStmts segment, boolean needsGuard, ImVar doneVar) {
+        if (segment.isEmpty()) {
+            return;
+        }
+        if (needsGuard) {
+            ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT,
+                JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
+            rewritten.add(JassIm.ImIf(segment.get(0).attrTrace(), notDone, segment, JassIm.ImStmts()));
+        } else {
+            rewritten.addAll(segment.removeAll());
+        }
     }
 
     private ImStmts rewriteStmtForEarlyReturn(ImStmt s, ImVar doneVar, ImVar retVar) {
