@@ -1,5 +1,16 @@
 ## 1.9 (in progress)
 
+- A build parses the files of the project and of its libraries by several threads. It parsed them one after the other,
+  which was 13% (castle fight, optimised) to 18% (zombie defense) of the samples of the compiler's thread. The load
+  now parses the files of the project ahead, and the libraries which the imports need level by level (the imports of
+  the model, then those of the files they import), by as many threads as there are processors, up to 8. The model
+  takes the files in the order it did, and the imports resolve depth first as before, so the compilation units are
+  in the same order and the scripts are byte for byte the same (castle fight with and without optimisations, and
+  zombie defense, to Lua; nine pairs). Against `-Dwurst.parseThreads=1`, which parses nothing ahead, six interleaved
+  pairs of builds each were faster by a median of 1.4 s without optimisations (5 of 6 pairs, of about 31 s), 1.3 s
+  optimised (6 of 6, of about 42 s) and 1.6 s for zombie defense (6 of 6, of about 26 s). What is left of loading a
+  project is sequential (`BACKLOG.md`).
+
 - The analysis which tells the optimiser what depends on a client-local value (`GetLocalPlayer()`, the camera, the
   keyboard, ...) is built in less than half the time, and once less in an optimised Lua build. It kept every node in
   identity hash maps, with a list of edges per node and a second copy of the data edges, and grew them one doubling

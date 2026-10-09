@@ -107,6 +107,27 @@ Notes; finished-work narrative does not.
   not a cost of a real build; master stopped after ten rounds and left the rest. Linear time needs the reads of each
   variable counted per function and the assignments removed from a worklist inside the round (taking the reads of the
   operands which go with an assignment off the count), which the facts, a set of variables per function, do not hold.
+- **Load the model without reconciling it for each file.** `ModelManagerImpl.replaceCompilationUnit` puts each file into
+  the model with `updateModel`, which looks for the unit it replaces among all units and works out which units import
+  what the new one provides (`calculateCUsToUpdate`), so a load of n files does n scans of the model. A fresh load has
+  nothing to reconcile, every unit is unchecked anyway. In a profile of castle fight without optimisations (4,072
+  samples of the compiler's thread) `updateModel` is 5.1% and `calculateCUsToUpdate` 3.2% of them. The files are parsed
+  ahead by several threads now, so this is what is left sequential in loading a project: add the files of a load as a
+  batch, reconcile once.
+- **Parallel type check and per-function IM passes.** Parsing is parallel (above); the rest of a build is not, and
+  JFR of fresh master says where the time is (shares of the compiler thread's samples, castle fight without
+  optimisations / optimised / zombie defense): type check light and heavy phases (attribute evaluation, per unit and per
+  function) 37% / 17% / 22%, the whole-program parts of the type check 13% / 6% / 12%, flatten, local optimisations and
+  Lua translation (per function) 4% / 18% / 8%. Measured in one JVM, castle fight without optimisations: the first,
+  cold check takes 19.3 s, the same check with a warm JIT and cleared attributes 6.7 s, and with the attributes
+  cached 4.1 s (of which 1.0 s is whole-program). What stops parallel validation is shared mutable state, not the
+  work: the generated attributes (a second thread which finds the in-progress state throws a false
+  `CyclicDependencyError`, the caches are plain fields; the packed state words of the generator need atomic updates,
+  see its readme), `GlobalCaches` (static fastutil maps behind the name lookups), `ErrorHandler` (unsynchronised
+  lists and maps), the instance state of `WurstValidator` and `NamePreservation.clearSyntheticMarkers`, which changes
+  the tree while validating. The per-function IM passes need a translator whose caches and generated names are per
+  function and deterministic. Do not start with the attribute protocol: make the caches, the error handler and the
+  validator per unit first, and measure that against the 2.6 s of attribute evaluation in the warm check.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

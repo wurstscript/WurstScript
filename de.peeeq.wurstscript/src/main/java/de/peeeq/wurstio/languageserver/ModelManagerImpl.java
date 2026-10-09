@@ -24,6 +24,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -198,7 +202,12 @@ public class ModelManagerImpl implements ModelManager {
                 System.err.println("No wurst folder found, using complete directory instead.");
                 wurstFolder = projectPath;
             }
-            processWurstFiles(wurstFolder);
+            parseProjectFilesAhead(wurstFolder);
+            try {
+                processWurstFiles(wurstFolder);
+            } finally {
+                aheadParses.clear();
+            }
         } catch (Exception e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
@@ -222,9 +231,219 @@ public class ModelManagerImpl implements ModelManager {
         for (File f : getFiles(dir)) {
             if (f.isDirectory()) {
                 processWurstFiles(f);
-            } else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j")) {
+            } else if (isLoadedSource(f)) {
                 processWurstFile(WFile.create(f));
             }
+        }
+    }
+
+    private static boolean isLoadedSource(File f) {
+        return f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j");
+    }
+
+    // ---------------------------------------------------------------- parsing ahead
+
+    /**
+     * The files of a project and of its libraries are parsed by several threads before the load asks for them. Parsing
+     * is the part of a load which depends on nothing but the text of one file, so it is the only part which moves: the
+     * load stays the sequential walk it was (the files are added to the model in the same order, the imports are
+     * resolved depth first as before) and takes the parse of a file from here when the text it reads is the one which
+     * was parsed. A file which was not parsed ahead, or has another text now, is parsed when the load comes to it.
+     * <p>
+     * The number of threads is {@code -Dwurst.parseThreads=n}, by default the number of processors up to 8; 1 parses
+     * nothing ahead.
+     */
+    private record ParsedAhead(int hash, CompilationUnit cu, WurstGui gui) {
+    }
+
+    private int parseThreads = Integer.getInteger("wurst.parseThreads",
+        Math.min(8, Runtime.getRuntime().availableProcessors()));
+    private final Map<WFile, ParsedAhead> aheadParses = new HashMap<>();
+    private int parsesTakenAhead = 0;
+
+    /** 1 parses every file when the load comes to it, as a load did before files were parsed ahead. */
+    public void setParseThreads(int threads) {
+        this.parseThreads = Math.max(1, threads);
+    }
+
+    /** How many files the loads took the parse of from a parse made ahead, for the tests. */
+    int parsesTakenAhead() {
+        return parsesTakenAhead;
+    }
+
+    /** How many parses made ahead no load has taken (or dropped) yet, for the tests. */
+    int pendingAheadParses() {
+        return aheadParses.size();
+    }
+
+    private ParsedAhead parse(WFile file, String contents) {
+        WurstGui gui = new WurstGuiLogger();
+        WurstCompilerJassImpl comp = getCompiler(gui);
+        CompilationUnit cu = comp.parse(file.toString(), new StringReader(contents));
+        return new ParsedAhead(contentHash(contents), cu, gui);
+    }
+
+    /**
+     * Parses the sources by {@link #parseThreads} threads and keeps the results for the load. A source which the load
+     * would not parse again (the model has this text of the file already) is left out.
+     * A parse which fails fails the load, as it would when the load came to the file.
+     */
+    void parseAhead(Map<WFile, String> sources) {
+        if (parseThreads <= 1) {
+            return;
+        }
+        List<Map.Entry<WFile, String>> todo = new ArrayList<>();
+        for (Map.Entry<WFile, String> source : sources.entrySet()) {
+            Integer known = fileHashcodes.get(source.getKey());
+            if (known == null || known != contentHash(source.getValue())) {
+                todo.add(source);
+            }
+        }
+        int threads = Math.min(parseThreads, todo.size());
+        if (threads <= 1) {
+            for (Map.Entry<WFile, String> source : todo) {
+                aheadParses.put(source.getKey(), parse(source.getKey(), source.getValue()));
+            }
+            return;
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(threads, runnable -> {
+            Thread thread = new Thread(runnable, "wurst-parse");
+            thread.setDaemon(true);
+            return thread;
+        });
+        try {
+            List<Future<ParsedAhead>> parses = new ArrayList<>(todo.size());
+            for (Map.Entry<WFile, String> source : todo) {
+                parses.add(pool.submit(() -> parse(source.getKey(), source.getValue())));
+            }
+            for (int i = 0; i < todo.size(); i++) {
+                aheadParses.put(todo.get(i).getKey(), parses.get(i).get());
+            }
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw new ModelManagerException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ModelManagerException(e);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    private void collectLoadedSources(File dir, List<WFile> out) {
+        for (File f : getFiles(dir)) {
+            if (f.isDirectory()) {
+                collectLoadedSources(f, out);
+            } else if (isLoadedSource(f)) {
+                out.add(WFile.create(f));
+            }
+        }
+    }
+
+    /** The files of the project folder, in the order the load reads them. */
+    private void parseProjectFilesAhead(File wurstFolder) {
+        if (parseThreads <= 1) {
+            return;
+        }
+        List<WFile> files = new ArrayList<>();
+        collectLoadedSources(wurstFolder, files);
+        Map<WFile, String> sources = new LinkedHashMap<>();
+        for (WFile file : files) {
+            try {
+                String contents = readCompilationUnitContents(file, true);
+                if (contents != null) {
+                    sources.put(file, contents);
+                }
+            } catch (IOException e) {
+                // the load reads the file again, and reports what it finds
+                WLogger.debug("not parsing " + file + " ahead: " + e);
+            }
+        }
+        parseAhead(sources);
+    }
+
+    /**
+     * The libraries which the imports of the model need, level by level: the files of the packages which the model
+     * imports and does not have, then the files which those import. This is the closure the depth first resolution of
+     * the imports loads, found without loading anything. A package which a file provides besides the one it is named
+     * after is known only once the file is parsed, so a library may be parsed ahead which the resolution does not load;
+     * that is dropped with the others when the load is done.
+     */
+    private void parseLibrariesAhead(WurstCompilerJassImpl comp, WurstModel m) {
+        if (parseThreads <= 1) {
+            return;
+        }
+        Set<String> known = new HashSet<>();
+        List<String> wanted = new ArrayList<>();
+        for (CompilationUnit cu : m) {
+            for (WPackage p : cu.getPackages()) {
+                known.add(p.getName());
+                for (WImport imp : p.getImports()) {
+                    wanted.add(imp.getPackagename());
+                }
+            }
+        }
+        Set<String> scheduled = new HashSet<>();
+        Map<String, File> libs = null;
+        while (!wanted.isEmpty()) {
+            Map<WFile, String> level = new LinkedHashMap<>();
+            for (String name : wanted) {
+                if (known.contains(name) || !scheduled.add(name)) {
+                    continue;
+                }
+                if (libs == null) {
+                    // only when an import is missing, as the resolution does
+                    libs = comp.getLibs();
+                }
+                File file = libs.get(name);
+                if (file == null) {
+                    continue;
+                }
+                try {
+                    level.put(WFile.create(file), new String(java.nio.file.Files.readAllBytes(file.toPath()), UTF_8));
+                } catch (IOException e) {
+                    // the load reads the file again, and reports what it finds
+                    WLogger.debug("not parsing " + file + " ahead: " + e);
+                }
+            }
+            if (level.isEmpty()) {
+                return;
+            }
+            parseAhead(level);
+            wanted = new ArrayList<>();
+            for (WFile file : level.keySet()) {
+                ParsedAhead parsed = aheadParses.get(file);
+                if (parsed != null) {
+                    for (WPackage p : parsed.cu().getPackages()) {
+                        known.add(p.getName());
+                    }
+                }
+            }
+            for (WFile file : level.keySet()) {
+                ParsedAhead parsed = aheadParses.get(file);
+                if (parsed != null) {
+                    for (WPackage p : parsed.cu().getPackages()) {
+                        for (WImport imp : p.getImports()) {
+                            wanted.add(imp.getPackagename());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void addImportedLibs(WurstCompilerJassImpl comp, WurstModel m) {
+        try {
+            parseLibrariesAhead(comp, m);
+            comp.addImportedLibs(m, this::addCompilationUnit);
+        } finally {
+            aheadParses.clear();
         }
     }
 
@@ -406,7 +625,7 @@ public class ModelManagerImpl implements ModelManager {
 
         try {
             model2.clearAttributes();
-            comp.addImportedLibs(model2, this::addCompilationUnit);
+            addImportedLibs(comp, model2);
             synchronized (modelLock) {
                 uncheckedUnits.addAll(model2);
             }
@@ -604,7 +823,7 @@ public class ModelManagerImpl implements ModelManager {
                 return;
             }
             m.clearAttributes();
-            comp.addImportedLibs(m, this::addCompilationUnit);
+            addImportedLibs(comp, m);
         } catch (CompileError e) {
             gui.sendError(e);
         }
@@ -737,9 +956,14 @@ public class ModelManagerImpl implements ModelManager {
         }
 
         WLogger.trace(() -> "replace CU " + filename);
-        WurstGui gui = new WurstGuiLogger();
-        WurstCompilerJassImpl c = getCompiler(gui);
-        CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
+        ParsedAhead parsed = aheadParses.remove(filename);
+        if (parsed != null && parsed.hash() == newHash) {
+            parsesTakenAhead++;
+        } else {
+            parsed = parse(filename, contents);
+        }
+        WurstGui gui = parsed.gui();
+        CompilationUnit cu = parsed.cu();
         cu.getCuInfo().setFile(filename.toString());
         if (isUnderDependenciesFolder(filename)) {
             cu.getCuInfo().setLibrary(true);
@@ -897,7 +1121,7 @@ public class ModelManagerImpl implements ModelManager {
         boolean validated = false;
         try {
             clearCompilationUnits(toCheck);
-            comp.addImportedLibs(model2, this::addCompilationUnit);
+            addImportedLibs(comp, model2);
             // the libraries which were just loaded are not checked either
             toCheck = withUncheckedUnits(model2, toCheck);
             validated = comp.checkProg(model2, toCheck);
