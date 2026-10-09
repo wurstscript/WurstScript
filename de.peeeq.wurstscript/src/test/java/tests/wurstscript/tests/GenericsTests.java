@@ -296,6 +296,66 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** {@code I<real>} with the conversions of real, implemented by B and through B by its subclasses. */
+    private static final String[] BRIDGED_INTERFACE = {
+        "package test",
+        "native testSuccess()",
+        "@extern native R2I(real r) returns int",
+        "function realToIndex(real r) returns int",
+        "    return R2I(r * 10.)",
+        "function realFromIndex(int i) returns real",
+        "    return i / 10.",
+        "interface I<T>",
+        "    function foo(T t) returns int",
+        "interface J<T> extends I<T>",
+        "class B implements I<real>",
+        "    override function foo(real t) returns int",
+        "        return R2I(t * 100.)",
+        "function viaI(I<real> i) returns int",
+        "    return i.foo(1.5)"};
+
+    private static String[] bridged(String... rest) {
+        String[] result = java.util.Arrays.copyOf(BRIDGED_INTERFACE, BRIDGED_INTERFACE.length + rest.length);
+        System.arraycopy(rest, 0, result, BRIDGED_INTERFACE.length, rest.length);
+        return result;
+    }
+
+    /**
+     * The override in a subclass of the class which implements the interface is called through the interface with
+     * the argument converted from its index, as the implementation of the superclass is.
+     */
+    @Test
+    public void aSubclassOverrideIsCalledThroughTheInterfaceWithTheConvertedArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(bridged(
+            "class D extends B",
+            "    override function foo(real t) returns int",
+            "        return R2I(t * 1000.)",
+            "init",
+            "    if viaI(new B()) == 150 and viaI(new D()) == 1500",
+            "        testSuccess()"));
+    }
+
+    @Test
+    public void aSubclassWithoutAnOverrideIsCalledThroughTheInterfaceWithTheConvertedArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(bridged(
+            "class D extends B",
+            "init",
+            "    if viaI(new D()) == 150",
+            "        testSuccess()"));
+    }
+
+    /** The interface is implemented through one which extends it, with the type arguments of that one. */
+    @Test
+    public void anImplementationOfAnExtendingInterfaceIsCalledWithTheConvertedArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(bridged(
+            "class K implements J<real>",
+            "    override function foo(real t) returns int",
+            "        return R2I(t * 1000.)",
+            "init",
+            "    if viaI(new K()) == 1500",
+            "        testSuccess()"));
+    }
+
     @Test
     public void implicitConversionsFail() {
         testAssertErrorsLines(true, "Could not find function blaFromIndex",

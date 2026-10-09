@@ -1,5 +1,13 @@
 ## 1.9 (in progress)
 
+- A call through an interface with an old-style type parameter whose type converts to an index (`I<real>`) reaches
+  the implementation of a subclass, and of a class which implements an interface extending it, with the argument
+  converted back. Only a class which named the interface in its own `implements` got the bridge which converts it:
+  `class D extends B` with `B implements I<real>` got the index as its real (Jass, interpreter), or B's implementation
+  (Lua), whether D overrides the function or not, and so did a class implementing `J<real>` where `J<T> extends I<T>`.
+  The type arguments are taken from wherever the class implements the interface now. Castle fight and zombie defense
+  compile to the same scripts.
+
 - On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
   `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
   those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic

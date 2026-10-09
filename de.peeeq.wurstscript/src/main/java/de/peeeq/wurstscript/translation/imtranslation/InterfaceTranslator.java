@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -89,18 +88,19 @@ public class InterfaceTranslator {
 
 
         List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
-        // TODO also add extended interfaces
 
         // set sub methods
         Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
         for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
             ClassDef subC = subE.getKey();
             WurstTypeClass subCT = subC.attrTypC();
-            ImmutableCollection<WurstTypeInterface> interfaces = subCT.implementedInterfaces();
 
+            // The type arguments the class gives the interface, where it implements it: itself, through a superclass
+            // (the instances are the subclasses of an implementing class too) or through an interface which extends
+            // this one. The override converts its arguments from their index with them.
             VariableBinding typeBinding =
                 VariableBinding.emptyMapping();
-            for (WurstTypeInterface t : interfaces) {
+            for (WurstTypeInterface t : subCT.transitiveSuperInterfaces()) {
                 if (t.getDef() == interfaceDef) {
                     VariableBinding typeArgBinding = t.getTypeArgBinding();
                     typeBinding = typeArgBinding;
