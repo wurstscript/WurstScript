@@ -1,5 +1,21 @@
 ## 1.9 (in progress)
 
+- A file is parsed with ANTLR's SLL prediction first, and only a file which it does not accept is parsed again with the
+  full LL prediction. SLL ignores the context of the rule it is in, which makes it much cheaper, and it either returns
+  the tree the full prediction returns or reports a syntax error, so a valid file gives the same tree. A broken file is
+  parsed again from the first token with the error listener and the recovering strategy it always had, so it reports the
+  same diagnostics in the same order, each once (the lexer has run already and does not report twice). Of the 733 Wurst
+  files below castle fight (library sources included) 2 need the second parse. Parsing every one of them in a fresh
+  JVM, six alternating pairs: 5.7 s instead of 7.1 s on one thread (median, 5 of 6 pairs faster) and 2.9 s instead of
+  3.5 s on 8 threads (6 of 6), with 7 s less CPU of about 42 s. Whole builds are not told apart on this machine: the
+  median difference of six interleaved pairs was 1.7 s faster for castle fight without optimisations, 0.3 s slower
+  optimised and 0.4 s slower for zombie defense, against a scatter of several seconds, because parsing is already
+  parallel and what is left of it is a small part of a build. The scripts are byte for byte the same in all 28 pairs.
+  A file with a syntax error costs more than before, as it is parsed up to the error twice: 1.1 times as long with the
+  error in the middle of the largest library file, 1.2 to 1.3 times at its very end. `WurstParser.setSllFirst(false)`
+  restores the single pass. `SllParsingTests` compares trees and diagnostics of both on the standard library, `common.j`,
+  `blizzard.j` and about 40 broken sources.
+
 - Putting a file into the model while every unit is unchecked, as in the load of a project and of the libraries it
   imports, no longer searches the whole model for what imports it: that search only adds units to the set of unchecked
   ones, and they are all in it. `ModelManagerImpl.updateModel` was 4.1% of the samples of the compiler's thread in a
