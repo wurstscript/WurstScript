@@ -57,9 +57,12 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             }
             liveness = analyzeLiveness(func);
         }
-        Map<ImStmt, Set<ImVar>> livenessInfo = liveness.liveOut;
-        eliminateDeadCode(livenessInfo);
-        mergeLocals(livenessInfo, liveness.liveAtEntry, func);
+        if (eliminateDeadCode(liveness.liveOut, func)) {
+            // a flatten of an effect which replaced a dead assignment made a local, and an assignment to it which the
+            // liveness has not seen
+            liveness = analyzeLiveness(func);
+        }
+        mergeLocals(liveness.liveOut, liveness.liveAtEntry, func);
     }
 
     void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
@@ -281,7 +284,15 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         return Collections.emptyList();
     }
 
-    private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
+    /**
+     * Removes the assignments to locals which are dead after them, and puts what their value and target do besides
+     * that in their place.
+     *
+     * @return whether the statements which replaced an assignment assign a local which the flatten of an effect made
+     *         (the assignment of a division which may stop the thread)
+     */
+    private boolean eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
+        int locals = func.getLocals().size();
         for (ImStmt s : livenessInfo.keySet()) {
             if (!(s instanceof ImSet set)) continue;
 
@@ -312,16 +323,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 if (raw.isEmpty()) {
                     AstEdits.deleteStmt(s);  // remove the dead assignment entirely
                 } else {
-                    ImStmts block = JassIm.ImStmts();
-                    for (int i = 0; i < raw.size(); i++) {
-                        ImExpr e = raw.get(i);
-                        // wrap expression as a statement; add a *copy* to avoid re-parenting conflicts
-                        block.add(ImHelper.statementExprVoid(e.copy()));
+                    // The effects become the statements a flatten makes of them (a call statement, an assignment of
+                    // a division which may stop the thread, an if for and/or), not statement expressions: the local
+                    // optimisations work on flat IM (AGENTS.md section 7). A copy, to avoid re-parenting conflicts.
+                    List<ImStmt> statements = new ArrayList<>();
+                    for (ImExpr e : raw) {
+                        e.copy().flatten(translator, func).intoStatements(statements, translator, func);
                     }
+                    ImStmts block = JassIm.ImStmts();
+                    block.addAll(statements);
                     AstEdits.replaceStmtWithMany(s, block); // removes 's', then inserts the new stmts
                 }
             }
         }
+        return func.getLocals().size() != locals;
     }
 
     private void collectLhsSideEffects(ImLExpr lhs, List<ImExpr> out) {

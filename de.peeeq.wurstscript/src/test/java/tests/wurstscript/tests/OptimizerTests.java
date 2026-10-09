@@ -2471,6 +2471,64 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(f.getLocals().isEmpty(), "the local nothing reads any more: " + f.getLocals());
     }
 
+    /**
+     * The local merger replaces a dead assignment by what its value does besides producing it, and the IM stays flat
+     * while the local optimisations run: a call becomes a call statement and a division which may stop the thread
+     * inside an expression an assignment of it, not a statement expression.
+     */
+    @Test
+    public void localMergerKeepsTheEffectsOfADeadAssignmentAsFlatStatements() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar d = JassIm.ImVar(model, TypesHelper.imInt(), "d", false);
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImVar y = JassIm.ImVar(model, TypesHelper.imInt(), "y", false);
+        ImExpr division = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.DIV_INT,
+            JassIm.ImExprs(JassIm.ImIntVal(10), JassIm.ImVarAccess(d)));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(d), TypesHelper.imInt(),
+            JassIm.ImVars(x, y),
+            JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(x), JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS,
+                    JassIm.ImExprs(JassIm.ImIntVal(1), division))),
+                JassIm.ImSet(model, JassIm.ImVarAccess(y),
+                    JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL)),
+                JassIm.ImReturn(model, JassIm.ImIntVal(0))),
+            Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(f);
+
+        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+
+        List<ImStatementExpr> statementExprs = new ArrayList<>();
+        boolean[] divides = {false};
+        boolean[] calls = {false};
+        f.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImStatementExpr e) {
+                super.visit(e);
+                statementExprs.add(e);
+            }
+
+            @Override
+            public void visit(ImOperatorCall e) {
+                super.visit(e);
+                divides[0] |= e.getOp() == de.peeeq.wurstscript.WurstOperator.DIV_INT;
+            }
+
+            @Override
+            public void visit(ImFunctionCall e) {
+                super.visit(e);
+                calls[0] |= e.getFunc() == tick;
+            }
+        });
+        assertTrue(statementExprs.isEmpty(), "the IM stays flat: " + f.getBody());
+        assertTrue(divides[0], "the division which may stop the thread stays: " + f.getBody());
+        assertTrue(calls[0], "the call stays: " + f.getBody());
+    }
+
     @Test
     public void aFlattenLeavesTheFunctionsWhichWereNotModifiedSinceTheLastOne() {
         WurstModel model = Ast.WurstModel();
