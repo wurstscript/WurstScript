@@ -1450,6 +1450,65 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * Outside the generic class an old-generics result has its type argument's type, so a cast of
+     * it is a cast of an enum or int value: 0 stays 0 and is not stored as the generic zero sentinel.
+     */
+    @Test
+    public void oldGenericBoundEnumAndIntCastsKeepZero() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "enum Color",
+            "    RED",
+            "    GREEN",
+            "class Box<T>",
+            "    T elem",
+            "    construct(T e)",
+            "        elem = e",
+            "    function get() returns T",
+            "        return elem",
+            "init",
+            "    let colors = new Box<Color>(Color.RED)",
+            "    let ints = new Box<int>(0)",
+            "    let ordinal = colors.get() castTo int",
+            "    let asColor = ints.get() castTo Color",
+            "    if ordinal == 0 and asColor == Color.RED",
+            "        testSuccess()");
+        String init = topLevelFunctionBodyWithPrefix(compiledLua("oldGenericBoundEnumAndIntCastsKeepZero"), "init_Test");
+        assertFalse("a cast outside the generic class is not a generic storage cast:\n" + init,
+            init.contains("__wurst_oldGenericsZero"));
+    }
+
+    /** Such a cast still reads a missing entry as 0, the default of the type argument, as on Jass. */
+    @Test
+    public void oldGenericBoundCastOfMissingEntryIsZero() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "enum Color",
+            "    RED",
+            "    GREEN",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "init",
+            "    let colors = new Store<Color>()",
+            "    let ints = new Store<int>()",
+            "    colors.put(1, Color.GREEN)",
+            "    ints.put(2, 0)",
+            "    ints.put(3, 5)",
+            "    let missingOrdinal = colors.get(7) castTo int",
+            "    let missingColor = ints.get(7) castTo Color",
+            "    let zeroColor = ints.get(2) castTo Color",
+            "    let fiveColor = ints.get(3) castTo Color",
+            "    if missingOrdinal == 0 and missingColor == Color.RED and colors.get(1) castTo int == 1 and zeroColor == Color.RED and fiveColor castTo int == 5",
+            "        testSuccess()");
+    }
+
     /** An unset old-generics entry read as an enum is the enum's default, its first constant, as on Jass. */
     @Test
     public void oldGenericEnumDefaultIsFirstConstant() {

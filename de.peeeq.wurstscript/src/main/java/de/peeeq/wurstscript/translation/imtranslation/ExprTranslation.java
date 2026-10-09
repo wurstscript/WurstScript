@@ -551,9 +551,21 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(ExprCast e, ImTranslator t, ImFunction f) {
-        ImExpr et = e.getExpr().imTranslateExpr(t, f);
+        Expr operand = e.getExpr();
+        ImExpr et = operand.imTranslateExpr(t, f);
+        ImType fromType = et.attrTyp();
+        if (fromType instanceof ImAnyType && operand.attrTypRaw() instanceof WurstTypeBoundTypeParam bound) {
+            // An old-generics result is erased in the IM, but here it has its type argument's
+            // type: the cast converts a value of that type, not the generic storage encoding.
+            // The value leaves erased storage here, so on Lua it gets that type's default.
+            ImType argumentType = bound.imTranslateType(t);
+            if (!(argumentType instanceof ImAnyType)) {
+                et = wrapLua(operand, t, et, bound);
+                fromType = argumentType;
+            }
+        }
         ImType toType = e.getTyp().attrTyp().imTranslateType(t);
-        return JassIm.ImCast(et, et.attrTyp(), toType);
+        return JassIm.ImCast(et, fromType, toType);
     }
 
     public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {
