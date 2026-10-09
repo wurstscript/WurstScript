@@ -42,8 +42,7 @@ public class WurstParser {
     }
 
     private boolean sllFirst = true;
-    private int sllParses = 0;
-    private int fallbacks = 0;
+    private final AntlrTokenPipeline.Counts counts = new AntlrTokenPipeline.Counts();
 
     /** false parses every file with the full LL prediction only, which is what a parse did before SLL was tried first. */
     public void setSllFirst(boolean sllFirst) {
@@ -52,23 +51,12 @@ public class WurstParser {
 
     /** How many files this parser accepted in the SLL pass. */
     public int getSllParses() {
-        return sllParses;
+        return counts.sllParses;
     }
 
     /** How many files this parser had to parse again with the full LL prediction, because the SLL pass did not accept them. */
     public int getFallbacks() {
-        return fallbacks;
-    }
-
-    private void countParse(boolean fellBack) {
-        if (!sllFirst) {
-            return;
-        }
-        if (fellBack) {
-            fallbacks++;
-        } else {
-            sllParses++;
-        }
+        return counts.fallbacks;
     }
 
     public CompilationUnit parse(Reader reader, String source, boolean hasCommonJ) {
@@ -116,9 +104,9 @@ public class WurstParser {
                     de.peeeq.wurstscript.antlr.WurstParser::compilationUnit,
                     listener,
                     (lx, l) -> lx.setErrorListener(l), // <-- keep your existing API
-                    sllFirst
+                    sllFirst,
+                    counts
                 );
-            countParse(res.fellBack);
 
             if (lexerRef[0].getTabWarning() != null) {
                 CompileError warning = lexerRef[0].getTabWarning();
@@ -186,9 +174,9 @@ public class WurstParser {
                     JurstParser::compilationUnit,
                     listener,
                     (lx, l) -> lx.addErrorListener(l),
-                    sllFirst
+                    sllFirst,
+                    counts
                 );
-            countParse(res.fellBack);
 
             CompilationUnit root = new AntlrJurstParseTreeTransformer(
                 source,
@@ -244,9 +232,9 @@ public class WurstParser {
                     JassParser::compilationUnit,
                     listener,
                     (lx, l) -> lx.addErrorListener(l),
-                    sllFirst
+                    sllFirst,
+                    counts
                 );
-            countParse(res.fellBack);
 
             CompilationUnit root = new AntlrJassParseTreeTransformer(
                 source,

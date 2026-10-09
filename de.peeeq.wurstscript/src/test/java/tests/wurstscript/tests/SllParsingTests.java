@@ -162,8 +162,8 @@ public class SllParsingTests {
         for (int i = 0; i < wurst.length; i++) {
             all.add(new Broken(Language.WURST, "broken" + i + ".wurst", wurst[i]));
         }
-        // too many errors: the parse is given up
-        all.add(new Broken(Language.WURST, "many.wurst", "package P\n" + "function (\n".repeat(40)));
+        // too many syntax errors: the second parse is given up at the 16th, and the unit is empty (`TooManyErrorsException`)
+        all.add(new Broken(Language.WURST, "many.wurst", "package P\nfunction foo()\n" + "    int x = = 2\n".repeat(40)));
         // a long valid prefix and an error at the very end
         StringBuilder longFile = new StringBuilder("package P\n");
         for (int i = 0; i < 300; i++) {
@@ -212,6 +212,32 @@ public class SllParsingTests {
         }
         assertTrue(withErrors >= 20, "the broken sources report errors: " + withErrors);
         assertTrue(fellBack >= 15 && fellBack <= withErrors, "sources parsed again: " + fellBack + " of " + withErrors + " with errors");
+    }
+
+    @Test
+    public void aSourceWhichTheErrorLimitStopsIsStillCounted() {
+        String source = "package P\nfunction foo()\n" + "    int x = = 2\n".repeat(40);
+        Outcome full = parse(Language.WURST, "many.wurst", source, false);
+        Outcome sll = parse(Language.WURST, "many.wurst", source, true);
+
+        assertEquals(full.diagnostics.size(), 16, "the limit is reached, so the unit is empty");
+        assertEquals(sll.diagnostics, full.diagnostics);
+        assertEquals(sll.tree, full.tree);
+        assertEquals(sll.fallbacks, 1, "the SLL pass did not accept it and the second parse was started");
+        assertEquals(sll.sllParses, 0);
+    }
+
+    @Test
+    public void aSourceWhichTheLexerErrorLimitStopsInTheSllPassIsInNeitherCount() {
+        // the lexer reads while the SLL pass runs, and its 16th error ends the parse before the pass has decided
+        String source = "package P\nfunction foo()\n" + "    int x = 1 §\n".repeat(40);
+        Outcome full = parse(Language.WURST, "lexer-many.wurst", source, false);
+        Outcome sll = parse(Language.WURST, "lexer-many.wurst", source, true);
+
+        assertEquals(full.diagnostics.size(), 16);
+        assertEquals(sll.diagnostics, full.diagnostics);
+        assertEquals(sll.tree, full.tree);
+        assertEquals(sll.sllParses + sll.fallbacks, 0);
     }
 
     @Test

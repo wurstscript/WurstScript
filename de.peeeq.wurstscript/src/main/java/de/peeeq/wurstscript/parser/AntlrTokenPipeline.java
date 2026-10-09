@@ -15,17 +15,26 @@ public final class AntlrTokenPipeline {
         public final CommonTokenStream tokens;
         public final P parser;
         public final T parseTree;
-        /** Whether the SLL pass did not accept the input and it was parsed again with the full LL prediction. */
-        public final boolean fellBack;
 
-        Result(CharStream input, TS tokenSource, CommonTokenStream tokens, P parser, T parseTree, boolean fellBack) {
+        Result(CharStream input, TS tokenSource, CommonTokenStream tokens, P parser, T parseTree) {
             this.input = input;
             this.tokenSource = tokenSource;
             this.tokens = tokens;
             this.parser = parser;
             this.parseTree = parseTree;
-            this.fellBack = fellBack;
         }
+    }
+
+    /**
+     * How the SLL pass went, counted where it is decided: the parse which follows can leave by an exception (the
+     * limit of syntax errors), and a count made after it would miss exactly the files which were parsed again.
+     * A file which the limit stops while the lexer is still reading it in the SLL pass is in neither count.
+     */
+    public static final class Counts {
+        /** Files the SLL pass accepted. */
+        public int sllParses;
+        /** Files the SLL pass did not accept, which were parsed again with the full LL prediction. */
+        public int fallbacks;
     }
 
     @FunctionalInterface public interface TokenSourceFactory<TS extends TokenSource> { TS create(CharStream in); }
@@ -40,7 +49,8 @@ public final class AntlrTokenPipeline {
             EntryRule<P, T> entryRule,
             ANTLRErrorListener listener,
             java.util.function.BiConsumer<TS, ANTLRErrorListener> installLexerListener,
-            boolean sllFirst
+            boolean sllFirst,
+            Counts counts
     ) throws IOException {
 
         CharStream input = CharStreams.fromReader(reader);
@@ -58,7 +68,6 @@ public final class AntlrTokenPipeline {
         P parser = parserFactory.create(tokens);
         parser.removeErrorListeners();
         T tree;
-        boolean fellBack = false;
         if (sllFirst) {
             // The SLL prediction ignores the context of the rule it is in, which makes it much faster, and the parser
             // either returns the tree the full LL prediction returns or reports a syntax error. So it goes first, with
@@ -70,8 +79,9 @@ public final class AntlrTokenPipeline {
             parser.setErrorHandler(new BailErrorStrategy());
             try {
                 tree = entryRule.parse(parser);
+                counts.sllParses++;
             } catch (ParseCancellationException e) {
-                fellBack = true;
+                counts.fallbacks++;
                 parser.reset();
                 parser.setErrorHandler(new DefaultErrorStrategy());
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
@@ -82,7 +92,7 @@ public final class AntlrTokenPipeline {
             parser.addErrorListener(listener);
             tree = entryRule.parse(parser);
         }
-        return new Result<>(input, tokenSource, tokens, parser, tree, fellBack);
+        return new Result<>(input, tokenSource, tokens, parser, tree);
     }
 
     private AntlrTokenPipeline() {}
