@@ -197,4 +197,6 @@ Notes; finished-work narrative does not.
   Real stdlib changes belong in the WurstStdlib2 repo.
 - `WURST_LANGUAGE.md` ships as a compiler resource at
   `de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md`, not at the repository
-  root. Keep it and `CHANGELOG.md` current in the PR that changes the behaviour.
+  root. Keep it current in the PR that changes the behaviour.
+- Pull requests add no `CHANGELOG.md` entries: they all edit the top of the file, so every merge
+  left the open ones conflicting.
