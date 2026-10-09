@@ -1034,6 +1034,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
         timeTaker.endPhase();
+        // After the inlining an allocation is followed by the constructor's writes, so the local optimizations can
+        // drop the defaults those overwrite. The backend no longer writes them, so this runs in every mode.
+        LuaFieldDefaults.materialize(imProg, imTranslator2);
         stage = 10;
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");

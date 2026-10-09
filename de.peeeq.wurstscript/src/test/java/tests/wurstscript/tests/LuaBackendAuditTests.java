@@ -7153,4 +7153,97 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             luaFunctionsWithPrefix(lua, "Under_pass"));
         assertFalse(lua, lua.contains("passUnder_passUnder"));
     }
+
+    /**
+     * A new object's field defaults are IM writes after its allocation, so where the constructor sets a field the
+     * default is gone: the allocation writes no field, and each field is written once where the object is made.
+     */
+    @Test
+    public void aConstructedFieldIsWrittenOnceNotFirstWithItsDefault() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Hit",
+            "    int amount",
+            "    real factor",
+            "    boolean crit",
+            "    string label",
+            "    Hit next",
+            "    construct(int amount, real factor)",
+            "        this.amount = amount",
+            "        this.factor = factor",
+            "        this.crit = amount > 10",
+            "        this.label = \"hit\"",
+            "        this.next = null",
+            "@noinline function make(int amount) returns Hit",
+            "    return new Hit(amount, 1.5)",
+            "init",
+            "    let h = make(12)",
+            "    if h.amount == 12 and h.factor == 1.5 and h.crit and h.label == \"hit\" and h.next == null",
+            "        testSuccess()");
+        String compiled = compiledLua("aConstructedFieldIsWrittenOnceNotFirstWithItsDefault");
+        java.util.regex.Matcher create = java.util.regex.Pattern
+            .compile("function Hit:create\\d*\\(\\) \\n(.*?)\\nend", java.util.regex.Pattern.DOTALL).matcher(compiled);
+        assertTrue("the allocation:\n" + compiled, create.find());
+        assertFalse("the allocation writes no field:\n" + create.group(1), create.group(1).contains("_storage["));
+        for (String field : new String[] {"amount", "factor", "crit", "label", "next"}) {
+            int writes = compiled.split("Hit_" + field + "_storage(_local\\d*)?\\[[^\\]]+\\] = ", -1).length - 1;
+            assertEquals("Hit." + field + " is written once:\n" + compiled, 1, writes);
+        }
+    }
+
+    /**
+     * A field nothing sets before reading it still starts at its default, also on an id which an earlier object
+     * had: here the constructor reads count first, and the earlier object had set every field.
+     */
+    @Test
+    public void aFieldReadBeforeItIsSetStartsAtItsDefaultOnAReusedId() {
+        String[] lines = {
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "    int count",
+            "    string name",
+            "    A other",
+            "    construct()",
+            "        count += 1",
+            "init",
+            "    let a = new A()",
+            "    a.count = 41",
+            "    a.name = \"x\"",
+            "    a.other = a",
+            "    destroy a",
+            "    let b = new A()",
+            "    if b.count == 1 and b.name == \"\" and b.other == null",
+            "        testSuccess()"};
+        test().testLua(true).inline().localOptimizations().executeProg().lines(lines);
+        testNamed("aFieldReadBeforeItIsSetStartsAtItsDefaultOnAReusedId_unoptimised").testLua(true).executeProg()
+            .lines(lines);
+    }
+
+    /**
+     * A call between the allocation and the constructor's write can read the field, so the default before it stays:
+     * the observer sees 0 on an id whose earlier object had set the field to 7.
+     */
+    @Test
+    public void aDefaultACallCanReadBeforeTheConstructorSetsItStays() {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int seen = -1",
+            "class A",
+            "    int f",
+            "    construct()",
+            "        observe(this)",
+            "        f = 5",
+            "@noinline function observe(A a)",
+            "    seen = a.f",
+            "init",
+            "    let a = new A()",
+            "    a.f = 7",
+            "    destroy a",
+            "    let b = new A()",
+            "    if seen == 0 and b.f == 5",
+            "        testSuccess()");
+    }
 }

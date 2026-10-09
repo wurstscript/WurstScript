@@ -2113,7 +2113,7 @@ public class OptimizerTests extends WurstScriptTest {
 
         new ImOptimizer(timeTaker, translator).localOptimizations();
 
-        assertEquals(timeTaker.measurements, 16,
+        assertEquals(timeTaker.measurements, 18,
             "the optimizer should run two fixed sweeps rather than iterating to convergence");
     }
 

@@ -3979,10 +3979,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_subclassAllocationIncludesInheritedFieldsInLua.lua"), Charsets.UTF_8);
 
+        // Within Child's own allocation function (Window is never allocated, so its allocation writes nothing).
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorTop_storage\\[new_inst\\] = 0");
+            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorTop_storage\\[new_inst\\] = 0");
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorBottom_storage\\[new_inst\\] = 0");
+            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorBottom_storage\\[new_inst\\] = 0");
     }
 
     // ----- GetHandleId remapping -----

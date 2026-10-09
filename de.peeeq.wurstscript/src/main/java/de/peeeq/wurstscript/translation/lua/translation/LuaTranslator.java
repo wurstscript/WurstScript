@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaFieldDefaults;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
@@ -383,6 +384,7 @@ public class LuaTranslator {
     public LuaCompilationUnit translate() {
         collectPredefinedNames();
         assertNoDanglingFunctionReferences(prog);
+        fieldDefaultsOnAllocation = LuaFieldDefaults.moveSurvivorsToAllocations(prog, imTr);
 
         normalizeFieldNames();
 
@@ -747,6 +749,9 @@ public class LuaTranslator {
     private void createInstanceOfFunction() {
         LuaPolyfillSetup.createInstanceOfFunction(this);
     }
+
+    /** For each class, the fields whose default its allocation writes ({@link LuaFieldDefaults}). */
+    private Map<ImClass, Set<ImVar>> fieldDefaultsOnAllocation = Collections.emptyMap();
 
     LuaVariable fieldStorage(ImVar field) {
         return luaFieldStorage.getFor(imTr.canonical(field));
@@ -1360,38 +1365,18 @@ public class LuaTranslator {
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
             LuaAst.LuaExprVarAccess(classVar)));
-        for (ImVar field : collectFieldsForAllocation(c)) {
-            body.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
-                defaultValue(field.getType())));
-        }
-        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
-    }
-
-    private List<ImVar> collectFieldsForAllocation(ImClass c) {
-        List<ImVar> result = new ArrayList<>();
-        Set<ImClass> visitedClasses = Collections.newSetFromMap(new IdentityHashMap<>());
-        Set<ImVar> visitedFields = Collections.newSetFromMap(new IdentityHashMap<>());
-        collectFieldsForAllocation(c, result, visitedClasses, visitedFields);
-        return result;
-    }
-
-    private void collectFieldsForAllocation(ImClass c, List<ImVar> out,
-                                            Set<ImClass> visitedClasses, Set<ImVar> visitedFields) {
-        if (!visitedClasses.add(c)) {
-            return;
-        }
-        List<ImClassType> superClasses = new ArrayList<>(c.getSuperClasses());
-        superClasses.sort(Comparator.comparing(sc -> classSortKey(sc.getClassDef())));
-        for (ImClassType sc : superClasses) {
-            collectFieldsForAllocation(sc.getClassDef(), out, visitedClasses, visitedFields);
-        }
-        for (ImVar field : c.getFields()) {
-            if (visitedFields.add(imTr.canonical(field))) {
-                out.add(field);
+        // The defaults the optimiser did not remove at some allocation of this class (LuaFieldDefaults), and the
+        // table an array field needs per object, which only the backend can make.
+        Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(c, Collections.emptySet());
+        for (ImVar field : LuaFieldDefaults.fieldsOf(c, imTr)) {
+            if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
+                body.add(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+                    defaultValue(field.getType())));
             }
         }
+        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
     }
 
     private void initClassTables(ImClass c) {

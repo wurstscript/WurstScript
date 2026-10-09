@@ -465,6 +465,17 @@ public class ImTranslator implements SpecialisationLookup {
 
     private final List<Bridge> bridges = new ArrayList<>();
 
+    /** Whether {@link LuaFieldDefaults} wrote the field defaults after the allocations, which the Lua backend needs. */
+    private boolean luaFieldDefaultsMaterialized = false;
+
+    public boolean luaFieldDefaultsMaterialized() {
+        return luaFieldDefaultsMaterialized;
+    }
+
+    public void setLuaFieldDefaultsMaterialized() {
+        luaFieldDefaultsMaterialized = true;
+    }
+
     /**
      * Gives {@code bridge} the overrides of {@code inherited} which are below its class as sub-methods, once every
      * class is translated: the sub-methods of {@code inherited} come from the translation of its class, which may come
