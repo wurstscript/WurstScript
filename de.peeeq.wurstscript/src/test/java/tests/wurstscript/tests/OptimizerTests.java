@@ -3108,6 +3108,74 @@ public class OptimizerTests extends WurstScriptTest {
             "identical branches controlled by local-player data must remain separate");
     }
 
+    /**
+     * In front of the if, a statement runs before the condition: a return there means the condition is never
+     * evaluated, so its call must stay.
+     */
+    @Test
+    public void branchMergerKeepsTheConditionBeforeEqualReturns() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "@noinline function eff(int k) returns int",
+            "    trace += k",
+            "    return k",
+            "@noinline function f(int b)",
+            "    if eff(b) > 0",
+            "        return",
+            "    else",
+            "        return",
+            "init",
+            "    f(5)",
+            "    if trace == 5",
+            "        testSuccess()");
+    }
+
+    /** The same for an exit of the loop around the if. */
+    @Test
+    public void branchMergerKeepsTheConditionBeforeEqualExits() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "@noinline function eff(int k) returns int",
+            "    trace += k",
+            "    return k",
+            "@noinline function f(int b)",
+            "    while true",
+            "        if eff(b) > 0",
+            "            break",
+            "        else",
+            "            break",
+            "init",
+            "    f(5)",
+            "    if trace == 5",
+            "        testSuccess()");
+    }
+
+    /** A condition without effects is not missed, so equal returns are still merged and the if goes. */
+    @Test
+    public void branchMergerMergesEqualReturnsUnderAConditionWithoutEffects() throws Exception {
+        test().lines(
+            "package test",
+            "native print(int i)",
+            "@noinline function f(int b)",
+            "    if b > 0",
+            "        return",
+            "    else",
+            "        return",
+            "init",
+            "    f(5)",
+            "    print(1)");
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMergesEqualReturnsUnderAConditionWithoutEffects_opt.j"),
+            Charsets.UTF_8);
+        String f = optimized.substring(optimized.indexOf("function f takes"));
+        f = f.substring(0, f.indexOf("endfunction"));
+        assertFalse(f.contains("if "), "the equal returns are merged:\n" + f);
+    }
+
     @Test
     public void branchMergerMustTrackLocalPlayerThroughFunctionParameters() throws Exception {
         test().lines(
