@@ -215,9 +215,8 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
-    public void checkProject() {
+    public void checkProject(WurstGui gui) {
         try {
-            WurstGui gui = new WurstGuiLogger();
             resolveImports(gui);
 
             doTypeCheck(gui);

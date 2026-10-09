@@ -4,9 +4,11 @@ import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
@@ -64,12 +66,14 @@ public class CliBuildMap extends MapRequest {
 
     /**
      * The CLI loads the project and does not check it (see {@link ModelManager#loadProject()}): it is checked here,
-     * with the map script it is compiled with, and the compilation takes the check over.
+     * with the map script it is compiled with, and the compilation takes the check over. So the check reports to the
+     * gui of the compilation, whose warnings Main prints. A compilation with the legacy Jass type checks checks the
+     * model again and reports what it finds itself.
      */
     @Override
-    protected void checkModelWithMapScript(ModelManager modelManager) {
+    protected void checkModelWithMapScript(ModelManager modelManager, WurstGui gui, RunArgs runArgs) {
         if (!modelManager.isFullyChecked(modelManager.getModel())) {
-            modelManager.checkProject();
+            modelManager.checkProject(checksLikeTheModelManager(runArgs) ? gui : new WurstGuiLogger());
         }
         if (modelManager.hasErrors()) {
             throw new ModelHasErrors(modelManager);

@@ -174,8 +174,7 @@ public abstract class MapRequest extends UserRequest<Object> {
      */
     public static void checkModel(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
                                   RunArgs runArgs) {
-        // the manager checks without the legacy Jass type checks
-        boolean sameChecks = !runArgs.isLegacyJassTypeChecks();
+        boolean sameChecks = checksLikeTheModelManager(runArgs);
         if (sameChecks && modelManager.isFullyChecked(model)) {
             compiler.adoptCheckedModel(model);
             return;
@@ -428,7 +427,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
-        checkModelWithMapScript(modelManager);
+        checkModelWithMapScript(modelManager, gui, runArgs);
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -451,8 +450,19 @@ public abstract class MapRequest extends UserRequest<Object> {
      * Called when the map script with the project config applied is in the model, before anything is compiled.
      * The swap of the script invalidates every attribute of the model, so a request which loaded the project
      * without checking it checks it here, once, and the compilation takes that check over.
+     *
+     * @param gui     the gui the compilation reports to
+     * @param runArgs the arguments of the compilation
      */
-    protected void checkModelWithMapScript(ModelManager modelManager) {
+    protected void checkModelWithMapScript(ModelManager modelManager, WurstGui gui, RunArgs runArgs) {
+    }
+
+    /**
+     * Whether a compilation with these arguments checks the model as the model manager does, and so can take the
+     * manager's check over ({@link #checkModel}): the manager checks without the legacy Jass type checks.
+     */
+    static boolean checksLikeTheModelManager(RunArgs runArgs) {
+        return !runArgs.isLegacyJassTypeChecks();
     }
 
     private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {

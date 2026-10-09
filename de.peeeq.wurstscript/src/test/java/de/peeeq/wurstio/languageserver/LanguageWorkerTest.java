@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.*;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -557,7 +558,7 @@ public class LanguageWorkerTest {
         }
 
         @Override
-        public void checkProject() {
+        public void checkProject(WurstGui gui) {
             throw new UnsupportedOperationException("The worker builds the project in one go.");
         }
 

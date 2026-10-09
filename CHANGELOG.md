@@ -1,5 +1,11 @@
 ## 1.9 (in progress)
 
+- A command line build (`grill build`) prints the warnings of the project again. Since the build checks the project
+  once, with the map script it is compiled with, the compilation takes that check over, and the check reported to a
+  gui of its own, which nothing printed: castle fight said `warnings: 0` and now lists its 21. The check now reports
+  to the gui of the build. With `-legacyJassChecks` the compilation checks the model again and reports that, so the
+  warnings are printed once either way.
+
 - Putting a file into the model while every unit is unchecked, as in the load of a project and of the libraries it
   imports, no longer searches the whole model for what imports it: that search only adds units to the set of unchecked
   ones, and they are all in it. `ModelManagerImpl.updateModel` was 4.1% of the samples of the compiler's thread in a

@@ -4,6 +4,8 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ModuleInstanciations;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import io.vavr.collection.HashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -48,7 +50,15 @@ public interface ModelManager {
     /**
      * Resolves the imports of the loaded model, checks all of it and reports the errors.
      */
-    void checkProject();
+    default void checkProject() {
+        checkProject(new WurstGuiLogger());
+    }
+
+    /**
+     * The same, with the errors and warnings of the check sent to {@code gui}: for a caller which shows them itself,
+     * as the command line build does.
+     */
+    void checkProject(WurstGui gui);
 
     /**
      * refresh discovered dependency roots (e.g. _build/dependencies after grill install)
