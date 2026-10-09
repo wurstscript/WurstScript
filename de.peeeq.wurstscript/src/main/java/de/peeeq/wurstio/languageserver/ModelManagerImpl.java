@@ -247,13 +247,14 @@ public class ModelManagerImpl implements ModelManager {
      * The files of a project and of its libraries are parsed by several threads before the load asks for them. Parsing
      * is the part of a load which depends on nothing but the text of one file, so it is the only part which moves: the
      * load stays the sequential walk it was (the files are added to the model in the same order, the imports are
-     * resolved depth first as before) and takes the parse of a file from here when the text it reads is the one which
-     * was parsed. A file which was not parsed ahead, or has another text now, is parsed when the load comes to it.
+     * resolved depth first as before) and takes the parse of a file from here when the text it reads is the text which
+     * was parsed, compared character by character: a digest would take the parse of a text with the same digest. A file
+     * which was not parsed ahead, or has another text now, is parsed when the load comes to it.
      * <p>
      * The number of threads is {@code -Dwurst.parseThreads=n}, by default the number of processors up to 8; 1 parses
      * nothing ahead.
      */
-    private record ParsedAhead(int hash, CompilationUnit cu, WurstGui gui) {
+    private record ParsedAhead(String contents, CompilationUnit cu, WurstGui gui) {
     }
 
     private int parseThreads = Integer.getInteger("wurst.parseThreads",
@@ -280,7 +281,7 @@ public class ModelManagerImpl implements ModelManager {
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl comp = getCompiler(gui);
         CompilationUnit cu = comp.parse(file.toString(), new StringReader(contents));
-        return new ParsedAhead(contentHash(contents), cu, gui);
+        return new ParsedAhead(contents, cu, gui);
     }
 
     /**
@@ -957,7 +958,7 @@ public class ModelManagerImpl implements ModelManager {
 
         WLogger.trace(() -> "replace CU " + filename);
         ParsedAhead parsed = aheadParses.remove(filename);
-        if (parsed != null && parsed.hash() == newHash) {
+        if (parsed != null && parsed.contents().equals(contents)) {
             parsesTakenAhead++;
         } else {
             parsed = parse(filename, contents);

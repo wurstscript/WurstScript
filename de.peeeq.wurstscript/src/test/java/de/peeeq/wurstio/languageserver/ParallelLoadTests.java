@@ -197,6 +197,35 @@ public class ParallelLoadTests {
     }
 
     @Test
+    public void aParseOfOtherTextWithTheSameHashIsNotTaken() throws IOException {
+        // "Aa" and "BB" have the same hashCode, and so have two texts which differ only by them: a parse is taken for
+        // the text it was made from, not for a text with the hash of it
+        assertEquals("Aa".hashCode(), "BB".hashCode());
+        Path root = project(false);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        manager.setParseThreads(4);
+        manager.buildProject();
+        WFile file = WFile.create(root.resolve("wurst/P01.wurst").toFile());
+        String parsedAhead = "package P01\nimport NoWurst\npublic function Aa() returns int\n    return 1\n";
+        String synced = "package P01\nimport NoWurst\npublic function BB() returns int\n    return 1\n";
+        assertEquals(parsedAhead.replace("Aa", "BB"), synced);
+
+        Map<WFile, String> sources = new java.util.LinkedHashMap<>();
+        sources.put(file, parsedAhead);
+        manager.parseAhead(sources);
+        assertEquals(manager.pendingAheadParses(), 1);
+        int before = manager.parsesTakenAhead();
+        manager.syncCompilationUnitContent(file, synced);
+
+        CompilationUnit cu = manager.getCompilationUnit(file);
+        assertNotNull(cu);
+        assertTrue(cu.toString().contains("BB"), "the unit has the text which was synced: " + cu);
+        assertFalse(cu.toString().contains("Aa"), "the unit is the parse of another text: " + cu);
+        assertEquals(manager.parsesTakenAhead(), before, "a parse of other text is not taken");
+        assertEquals(manager.pendingAheadParses(), 0);
+    }
+
+    @Test
     public void aFileWhichDidNotChangeIsNotParsedAheadAgain() throws IOException {
         Path root = project(false);
         ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
