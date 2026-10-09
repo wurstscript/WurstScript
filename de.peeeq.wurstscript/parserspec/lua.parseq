@@ -18,6 +18,7 @@ LuaStatements * LuaStatement
 
 LuaStatement =
       LuaDefinition
+    | LuaChunkLocal(LuaDefinition definition) // a definition printed as a local of the main chunk
     | LuaAssignment(LuaExpr left, LuaExpr right)
     | LuaWhile(LuaExpr cond, LuaStatements body)
     | LuaFor(ref LuaVariable loopVar, LuaExpr from, LuaExpr to, LuaExprOpt step, LuaStatements body)

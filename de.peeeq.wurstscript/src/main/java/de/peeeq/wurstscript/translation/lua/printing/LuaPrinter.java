@@ -26,6 +26,10 @@ public class LuaPrinter {
                 printVariable(luaVariable, sb, indent);
                 sb.append("\n");
                 statementBlock = true;
+            } else if (d instanceof LuaChunkLocal local && local.getDefinition() instanceof LuaVariable) {
+                d.print(sb, indent);
+                sb.append("\n");
+                statementBlock = true;
             } else if(d instanceof LuaAssignment) {
                 // these are top level assignments that are not inside functions
                 d.print(sb, indent);
@@ -275,6 +279,27 @@ public class LuaPrinter {
 
     public static void print(LuaFunction f, StringBuilder sb, int indent) {
         printIndent(sb, indent);
+        printFunction(f, sb, indent);
+    }
+
+    /**
+     * A local of the main chunk. A function printed after it reaches it as an upvalue, one
+     * instruction, instead of looking its name up in _ENV, the table of every global.
+     */
+    public static void print(LuaChunkLocal l, StringBuilder sb, int indent) {
+        LuaDefinition definition = l.getDefinition();
+        if (definition instanceof LuaVariable v) {
+            print(v, sb, indent);
+        } else if (definition instanceof LuaFunction f) {
+            printIndent(sb, indent);
+            sb.append("local ");
+            printFunction(f, sb, indent);
+        } else {
+            throw new IllegalArgumentException("A method is a table field and cannot be a local: " + definition);
+        }
+    }
+
+    private static void printFunction(LuaFunction f, StringBuilder sb, int indent) {
         sb.append("function ");
         sb.append(f.getName());
         sb.append("(");

@@ -94,10 +94,14 @@ class LuaPolyfillSetup {
         }
     }
 
-    /** The sentinel an old-generics int value 0 is stored as (see ExprTranslation.translate(ImCast)). */
+    /**
+     * The sentinel an old-generics int value 0 is stored as (see ExprTranslation.translate(ImCast)),
+     * read by every such cast, so a main-chunk local. It stays {@code math.mininteger} rather than a
+     * literal: the integer width of the game's Lua need not be the test Lua's 64 bits.
+     */
     static LuaVariable createOldGenericsZero(LuaTranslator tr) {
         LuaVariable zero = LuaAst.LuaVariable("__wurst_oldGenericsZero", LuaAst.LuaLiteral("math.mininteger"));
-        tr.luaModel.add(zero);
+        tr.declareChunkLocal(zero);
         return zero;
     }
 

@@ -3654,20 +3654,21 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "__wurst_LoadAbilityHandle", "h.__wurst_ht_handle", true);
     }
 
+    /** A code value takes no parameters, so its adapter forwards none: no varargs at all. */
     @Test
-    public void luaFunctionRefWrapperForwardsVarargs() throws IOException {
+    public void luaFunctionRefWrapperOfNullaryTargetTakesNoVarargs() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
             "    let f = CreateForce()",
             "    ForForce(f, () -> skip)"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperOfNullaryTargetTakesNoVarargs.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\)");
+        assertDoesNotContainRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
         assertFalse(compiled.contains("xpcall(function (...)"));
         assertContainsRegex(compiled,
-            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*, \\.\\.\\.\\)");
-        assertTrue(compiled.contains(", ...)"));
+            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*\\)");
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
     }
@@ -3704,7 +3705,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         List<String> adapters = uniqueMatches(compiled,
-            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\.\\.\\.\\)", 1);
+            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\)", 1);
         assertEquals("one adapter must serve every reference to the same function:\n" + compiled,
             1, adapters.size());
         String adapter = adapters.get(0);

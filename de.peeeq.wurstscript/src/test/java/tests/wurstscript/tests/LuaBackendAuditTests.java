@@ -5900,6 +5900,173 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("create must not attach an instance metatable", compiled.contains("setmetatable(new_inst"));
     }
 
+    /** The globals a test's script reads or writes, as {@code luac -l} lists them: an access through _ENV. */
+    private java.util.Set<String> globalsAccessedBy(String testName) throws IOException, InterruptedException {
+        File luaFile = new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua");
+        Process luac = new ProcessBuilder(getLuacExecutable(), "-l", "-p", luaFile.getPath())
+            .redirectErrorStream(true).start();
+        String listing = new String(luac.getInputStream().readAllBytes(), Charsets.UTF_8);
+        assertTrue("luac did not finish", luac.waitFor(60, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(listing, 0, luac.exitValue());
+        java.util.Set<String> globals = new java.util.TreeSet<>();
+        java.util.regex.Matcher access = java.util.regex.Pattern.compile("; _ENV \"(\\w+)\"").matcher(listing);
+        while (access.find()) {
+            globals.add(access.group(1));
+        }
+        // The entry point is a global, so a listing which names none has changed its format.
+        assertTrue("the listing names no global:\n" + listing, globals.contains("main"));
+        return globals;
+    }
+
+    /**
+     * Every allocation and destroy reads the allocator's state and every destroy calls the
+     * deallocator, so they are locals of the main chunk, declared before any function: a function
+     * reaches them as upvalues, not by a lookup among the thousands of globals of a map.
+     */
+    @Test
+    public void objectRuntimeStateIsMainChunkLocal() throws IOException, InterruptedException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "abstract class Shape",
+            "    abstract function area() returns int",
+            "class Square extends Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "init",
+            "    Shape first = new Square(2)",
+            "    let firstId = first castTo int",
+            "    destroy first",
+            "    Shape second = new Square(3)",
+            "    if second castTo int == firstId and second.area() == 9 and second instanceof Square",
+            "        and second.typeId == Square.typeId",
+            "        testSuccess()");
+        String compiled = compiledLua("objectRuntimeStateIsMainChunkLocal");
+        assertTrue("the script opens with the allocator state and the deallocator as locals:\n" + compiled,
+            compiled.startsWith("local __wurst_objectClass = ({})\n"
+                + "local __wurst_objectFree = ({})\n"
+                + "local __wurst_objectMax = 0\n"
+                + "local __wurst_objectFreeCount = 0\n"
+                + "\n"
+                + "local function __wurst_deallocObject(object) \n"));
+        java.util.Set<String> globals = globalsAccessedBy("objectRuntimeStateIsMainChunkLocal");
+        for (String local : List.of("__wurst_objectClass", "__wurst_objectFree", "__wurst_objectMax",
+                "__wurst_objectFreeCount", "__wurst_deallocObject")) {
+            assertFalse(local + " is reached as a global: " + globals, globals.contains(local));
+        }
+    }
+
+    /**
+     * Allocation pops a recycled id without clearing its slot: a slot above the count is never read
+     * before a destroy writes it again, and it holds an integer, so clearing it retained nothing.
+     */
+    @Test
+    public void recycledIdIsPoppedWithoutClearingItsSlot() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Node",
+            "init",
+            "    let a = new Node()",
+            "    let b = new Node()",
+            "    let c = new Node()",
+            "    let ia = a castTo int",
+            "    let ib = b castTo int",
+            "    let ic = c castTo int",
+            "    destroy a",
+            "    destroy b",
+            "    destroy c",
+            "    let x = new Node() castTo int",
+            "    let y = new Node() castTo int",
+            "    let z = new Node() castTo int",
+            // The free stack is empty again and still holds the three ids above its count.
+            "    let fresh = new Node()",
+            "    let freshId = fresh castTo int",
+            "    destroy fresh",
+            "    let again = new Node() castTo int",
+            "    let following = new Node() castTo int",
+            "    if x == ic and y == ib and z == ia and freshId == ic + 1 and again == freshId",
+            "        and following == freshId + 1",
+            "        testSuccess()");
+        String create = topLevelFunctionBodyWithPrefix(
+            compiledLua("recycledIdIsPoppedWithoutClearingItsSlot"), "Node:create");
+        assertTrue("the id comes off the free stack:\n" + create,
+            create.contains("new_inst = __wurst_objectFree[__wurst_objectFreeCount]"));
+        assertFalse("the popped slot is not cleared:\n" + create,
+            create.contains("__wurst_objectFree[__wurst_objectFreeCount] = nil"));
+    }
+
+    /**
+     * Every old-generics cast reads the zero sentinel, so it is a main-chunk local too. It stays
+     * {@code math.mininteger}, never a literal: the game's integers need not have the test Lua's 64 bits.
+     */
+    @Test
+    public void oldGenericsZeroSentinelIsMainChunkLocal() throws IOException, InterruptedException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, 7)",
+            "    if ints.get(0) == 0 and ints.get(1) == 7",
+            "        testSuccess()");
+        String compiled = compiledLua("oldGenericsZeroSentinelIsMainChunkLocal");
+        String declaration = "\nlocal __wurst_oldGenericsZero = math.mininteger\n";
+        int at = compiled.indexOf(declaration);
+        assertTrue("the sentinel is declared as a local:\n" + compiled, at >= 0);
+        assertTrue("the sentinel is declared before the first function which is not a local:\n" + compiled,
+            at < compiled.indexOf("\nfunction "));
+        assertEquals("the sentinel is assigned once:\n" + compiled,
+            1, compiled.split("__wurst_oldGenericsZero = ", -1).length - 1);
+        assertTrue("the casts read the sentinel:\n" + compiled,
+            compiled.indexOf("__wurst_oldGenericsZero", at + declaration.length()) >= 0);
+        assertFalse("the sentinel is reached as a global",
+            globalsAccessedBy("oldGenericsZeroSentinelIsMainChunkLocal").contains("__wurst_oldGenericsZero"));
+    }
+
+    /**
+     * A Wurst code value takes no parameters, so the callback adapter of one takes no varargs: the
+     * target would drop anything it forwarded.
+     */
+    @Test
+    public void callbackAdapterOfANullaryTargetTakesNoVarargs() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native pcall(code callback) returns bool",
+            "int calls = 0",
+            "function tick()",
+            "    calls++",
+            "function tickAndAccept() returns boolean",
+            "    calls++",
+            "    return true",
+            "init",
+            "    if pcall(function tick) and pcall(function tickAndAccept) and calls == 2",
+            "        testSuccess()");
+        String compiled = compiledLua("callbackAdapterOfANullaryTargetTakesNoVarargs");
+        assertTrue("the adapter calls its target with nothing to forward:\n" + compiled,
+            java.util.regex.Pattern.compile(
+                "function __wurst_callback_tick\\w*\\(\\) \\n\\txpcall\\(tick\\w*, __wurst_callback_error\\w*\\)\\n")
+                .matcher(compiled).find());
+        assertTrue("a returning adapter keeps its single result:\n" + compiled,
+            java.util.regex.Pattern.compile(
+                "function __wurst_callback_tickAndAccept\\w*\\(\\) \\n(?:\\t.*\\n)*?"
+                    + "\\t_, result = xpcall\\(tickAndAccept\\w*, __wurst_callback_error\\w*\\)\\n")
+                .matcher(compiled).find());
+        assertFalse("no adapter takes varargs:\n" + compiled,
+            java.util.regex.Pattern.compile("function __wurst_callback_\\w+\\(\\.\\.\\.\\)").matcher(compiled).find());
+    }
+
     /**
      * Reading a never-written array slot must not permanently store an entry
      * for it - merely probing a sparse array would otherwise grow it
@@ -6232,12 +6399,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    shapes[1] = new Square()",
             "    consume(total(2))");
         String total = topLevelFunctionBodyWithPrefix(compiled, "total");
-        java.util.regex.Matcher alias = java.util.regex.Pattern
-            .compile("local (\\w+) = __wurst_objectClass\\R").matcher(total);
-        assertTrue("the descriptor table is aliased for the loop:\n" + total, alias.find());
+        // An upvalue table is indexed in one instruction, as a local one is, so an alias would only
+        // add a copy.
+        assertFalse("the descriptor table is an upvalue and needs no alias for the loop:\n" + total,
+            total.contains("= __wurst_objectClass\n"));
         assertTrue("the slot is read from the receiver's descriptor at the call site:\n" + total,
-            java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(alias.group(1))
-                + "\\[\\w+\\[i\\]\\]\\.\\w*area\\w*\\(").matcher(total).find());
+            java.util.regex.Pattern.compile("__wurst_objectClass\\[\\w+\\[i\\]\\]\\.\\w*area\\w*\\(")
+                .matcher(total).find());
         assertFalse("no dispatch stub is needed for a table-read receiver:\n" + compiled,
             compiled.contains("dispatch_"));
     }
