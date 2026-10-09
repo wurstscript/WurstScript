@@ -1,11 +1,5 @@
 ## 1.9 (in progress)
 
-- A command line build (`grill build`) prints the warnings of the project again. Since the build checks the project
-  once, with the map script it is compiled with, the compilation takes that check over, and the check reported to a
-  gui of its own, which nothing printed: castle fight said `warnings: 0` and now lists its 21. The check now reports
-  to the gui of the build. With `-legacyJassChecks` the compilation checks the model again and reports that, so the
-  warnings are printed once either way.
-
 - The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
   exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
   return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
