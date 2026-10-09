@@ -1,5 +1,11 @@
 ## 1.9 (in progress)
 
+- The error function of the ErrorHandling package survives the tree shake in a program without the trigger natives
+  of common.j. The allocators which the class elimination builds after the shake call it, but the translator named it
+  only when a package initialiser needed it, which those natives cause; without them the shake dropped it and the
+  allocator called a function which was gone (pjass: "Undeclared variable ErrorHandling_lastError"). It is named at
+  the end of the translation now. Real projects have the natives and are not affected.
+
 - A file is parsed with ANTLR's SLL prediction first, and only a file which it does not accept is parsed again with the
   full LL prediction. SLL ignores the context of the rule it is in, which makes it much cheaper, and it either returns
   the tree the full prediction returns or reports a syntax error, so a valid file gives the same tree. A broken file is

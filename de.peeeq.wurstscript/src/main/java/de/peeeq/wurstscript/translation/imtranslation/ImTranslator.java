@@ -433,6 +433,12 @@ public class ImTranslator implements SpecialisationLookup {
             }
 
             finishInitFunctions();
+            // Passes after the tree shake make calls of the error function (the allocators of the class
+            // elimination), so the one of the ErrorHandling package is named here, where the shake finds it
+            // pinned. The default one is made when it is first needed (imError).
+            if (errorFunc == null) {
+                errorFunc = findErrorFunc().map(this::getFuncFor).orElse(null);
+            }
             EliminateCallFunctionsWithAnnotation.process(imProg);
             removeDuplicateNatives(imProg);
             sortEverything();
