@@ -630,6 +630,46 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage");
     }
 
+    /**
+     * A compile-time expression runs the generic value intrinsics through their int fallback as well, which the
+     * interpreter finds by name. Nothing calls the fallback at run time, so the tree shake in front of the
+     * compile-time run must keep it on Lua too, where the backend does not need it.
+     */
+    @Test
+    public void genericValuesRunInACompiletimeExpression() {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package KeyedMap",
+            "import Table",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int map, handle key, int value)",
+            "    if key == null",
+            "        return",
+            "    (map castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int map, handle key) returns int",
+            "    return (map castTo Table).loadInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int map, K key, V value)",
+            "    if key == null",
+            "        return",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+            "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int map, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+            "    return null",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "function roundTrip() returns int",
+            "    let m = keyedMapCreate()",
+            "    let p = Player(0)",
+            "    keyedMapPutNative<player, int>(m, p, 42)",
+            "    return keyedMapGetNative<player, int>(m, p)",
+            "init",
+            "    if compiletime(roundTrip()) == 42",
+            "        testSuccess()",
+            "endpackage");
+    }
+
     /** A malformed intrinsic gets the lowering's diagnostic in the interpreter, not a crash on its arguments. */
     @Test
     public void malformedGenericPutIsReportedWhenInterpreted() {
