@@ -621,4 +621,139 @@ public class DeterministicChecks extends WurstScriptTest {
         return n;
     }
 
+    /** Compiles {@code units} to Lua, runs them, and returns the script, which is written under {@code name}. */
+    private String compileToLua(String name, List<CU> units) throws IOException {
+        testNamed(name).testLua(true).executeProg().compilationUnits(units.toArray(new CU[0]));
+        return Files.toString(new File("test-output/lua/DeterministicChecks_" + name + ".lua"), Charsets.UTF_8);
+    }
+
+    /**
+     * The FSM of AGENTS.md section 8 with each sibling state in a package of its own: every sibling binds the root
+     * slot FSM.update calls to its own update, never to NoOpState's, and the script is the same with the
+     * compilation units in the reverse order.
+     */
+    @Test
+    public void fsmSiblingsInSeparatePackagesBindRootSlotInAnyUnitOrder() throws IOException {
+        List<CU> units = new ArrayList<>();
+        units.add(compilationUnit("FsmLib.wurst",
+            "package FsmLib",
+            "public abstract class State<T:>",
+            "    function enter(T owner)",
+            "    function update(T owner, real dt)",
+            "    function exit(T owner)",
+            "public class NoOpState<T:> extends State<T>",
+            "    override function enter(T owner)",
+            "    override function update(T owner, real dt)",
+            "    override function exit(T owner)",
+            "public class FSM<T:>",
+            "    T owner",
+            "    State<T> currentState = null",
+            "    construct(T owner)",
+            "        this.owner = owner",
+            "    function setInitialState(State<T> st)",
+            "        currentState = st",
+            "        if currentState != null",
+            "            currentState.enter(owner)",
+            "    function update(real dt)",
+            "        if currentState != null",
+            "            currentState.update(owner, dt)"));
+        units.add(compilationUnit("FsmOwner.wurst",
+            "package FsmOwner",
+            "import FsmLib",
+            "public class Owner",
+            "    FSM<Owner> fsm = new FSM<Owner>(this)",
+            "    int ticks = 0"));
+        StringBuilder check = new StringBuilder("    if runOne(idle) == 0");
+        List<String> imports = new ArrayList<>();
+        for (int n = 1; n <= 5; n++) {
+            units.add(compilationUnit("FsmS" + n + ".wurst",
+                "package FsmS" + n,
+                "import FsmLib",
+                "import FsmOwner",
+                "public class St" + n + " extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += " + n,
+                "public constant st" + n + "State = new St" + n + "()"));
+            imports.add("import FsmS" + n);
+            check.append(" and runOne(st").append(n).append("State) == ").append(5 * n);
+        }
+        List<String> main = new ArrayList<>(List.of("package FsmMain", "import FsmLib", "import FsmOwner"));
+        main.addAll(imports);
+        main.addAll(List.of(
+            "native testSuccess()",
+            "public constant idle = new NoOpState<Owner>()",
+            "function runOne(State<Owner> st) returns int",
+            "    let o = new Owner()",
+            "    o.fsm.setInitialState(st)",
+            "    for i = 0 to 4",
+            "        o.fsm.update(0.1)",
+            "    return o.ticks",
+            "init",
+            check.toString(),
+            "        testSuccess()"));
+        units.add(compilationUnit("FsmMain.wurst", main.toArray(new String[0])));
+
+        String first = compileToLua("fsmSiblingsInSeparatePackages", units);
+        // the slot FSM.update calls, as in __wurst_objectClass[FSM_currentState_storage[this1]].State_update(..., dt)
+        java.util.regex.Matcher call = java.util.regex.Pattern
+            .compile("\\]\\.(\\w+)\\([^()\\n]*,\\s*dt\\w*\\)").matcher(first);
+        assertTrue(call.find(), first);
+        String slot = call.group(1);
+        for (int n = 1; n <= 5; n++) {
+            assertTrue(first.matches("(?s).*\\bSt" + n + "\\." + slot + " = St" + n + "_\\w*update\\b.*"),
+                "St" + n + " binds " + slot + " to its own update:\n" + first);
+        }
+        List<CU> reversed = new ArrayList<>(units);
+        java.util.Collections.reverse(reversed);
+        assertEquals(compileToLua("fsmSiblingsInSeparatePackages", reversed), first,
+            "Lua must not depend on the order of the compilation units");
+    }
+
+    /**
+     * Three packages each declare a class Node, extending a shared abstract class, and an implementor of a shared
+     * interface, with closures of it: receivers whose names are equal must bind their slots in an order which does
+     * not depend on the order of the compilation units.
+     */
+    @Test
+    public void sameNamedClassesInSeveralPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        List<CU> units = new ArrayList<>();
+        units.add(compilationUnit("Lib.wurst",
+            "package Lib",
+            "public interface Visitor",
+            "    function visit(int x) returns int",
+            "public abstract class Shape",
+            "    abstract function area() returns int",
+            "public function apply(Visitor v, int x) returns int",
+            "    return v.visit(x)",
+            "public function areaOf(Shape s) returns int",
+            "    return s.area()"));
+        for (String p : List.of("P1", "P2", "P3")) {
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "import Lib",
+                "public class Node extends Shape",
+                "    override function area() returns int",
+                "        return " + p.charAt(1) + "0",
+                "public class Impl implements Visitor",
+                "    override function visit(int x) returns int",
+                "        return x + 1",
+                "public function run" + p + "() returns int",
+                "    return areaOf(new Node()) + apply(new Impl(), 1) + apply((int x) -> x * 2, 3) + apply(x -> x * 3, 4)"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import P1",
+            "import P2",
+            "import P3",
+            "native testSuccess()",
+            "init",
+            // 10+2+6+12 + 20+2+6+12 + 30+2+6+12
+            "    if runP1() + runP2() + runP3() == 120",
+            "        testSuccess()"));
+        String first = compileToLua("sameNamedClassesInSeveralPackages", units);
+        List<CU> shuffled = List.of(units.get(4), units.get(2), units.get(0), units.get(3), units.get(1));
+        assertEquals(compileToLua("sameNamedClassesInSeveralPackages", shuffled), first,
+            "same-named receivers must bind in an order independent of the compilation units");
+    }
+
 }
