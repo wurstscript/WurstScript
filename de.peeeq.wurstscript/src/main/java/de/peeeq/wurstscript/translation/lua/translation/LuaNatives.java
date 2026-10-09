@@ -309,16 +309,10 @@ public class LuaNatives {
         // KeyedMap: one native table per map, keyed by the element itself. Typed reads answer the
         // Wurst default for a missing key so the caller needs no nil normalisation. Lowered by
         // LuaKeyedMap/LuaNativeLowering before the inliner runs, like KeyedTable. No iteration.
+        // Puts and removes have no body: they are printed as the store where they are called
+        // (StmtTranslation#translateKeyedMapWrite), as the reads are (ExprTranslation#keyedMapRead).
         addNative("__wurst_keyedMapCreate", f ->
             f.getBody().add(LuaAst.LuaLiteral("return {}")));
-        addNative("__wurst_keyedMapPut", f -> {
-            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("v", LuaAst.LuaNoExpr()));
-            // Writing under a nil key is an error in Lua, where reading one is only nil: a null
-            // element stores nothing and reads as absent.
-            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = v end"));
-        });
         addNative("__wurst_keyedMapGet", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
@@ -361,11 +355,6 @@ public class LuaNatives {
             // Re-reads the next slot each time, so a value added while the list runs is reached in the same run,
             // as it is behind a trigger.
             f.getBody().add(LuaAst.LuaLiteral("local i = 1 local c = t[1] while c do c() i = i + 1 c = t[i] end"));
-        });
-        addNative("__wurst_keyedMapRemove", f -> {
-            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = nil end"));
         });
         addNative("__wurst_keyedMapDestroy", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));

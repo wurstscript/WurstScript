@@ -139,6 +139,12 @@ public class ExprTranslation {
             return keyedMapRead(keyedRead, e.getArguments().get(0).translateToLua(tr),
                 e.getArguments().get(1).translateToLua(tr));
         }
+        if (LuaKeyedMap.writeStubName(tr.imTr, e.getFunc()) != null) {
+            // A store returns nothing, so it is always a statement of a flat program; see
+            // StmtTranslation#translateKeyedMapWrite. Its stub has no definition to call.
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: " + imFuncName + " used as an expression; a keyed-map store must be a statement.");
+        }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
@@ -173,8 +179,9 @@ public class ExprTranslation {
     }
 
     /**
-     * Compiler-synthesised natives which the backend prints as an operator instead of a call.
-     * Recognised by node identity: an ordinary function of the same name keeps its definition.
+     * Compiler-synthesised natives which the backend prints as an operator or a table store instead
+     * of a call, so they have no definition. Recognised by node identity: an ordinary function of the
+     * same name keeps its definition.
      */
     static boolean isBackendIntrinsic(ImFunction function, LuaTranslator tr) {
         return unaryIntrinsicName(function, tr) != null
@@ -184,7 +191,8 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc
             || function == tr.imTr.luaRawOrEmptyFunc
-            || LuaKeyedMap.readStubName(tr.imTr, function) != null;
+            || LuaKeyedMap.readStubName(tr.imTr, function) != null
+            || LuaKeyedMap.writeStubName(tr.imTr, function) != null;
     }
 
     /**
