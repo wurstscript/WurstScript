@@ -25,6 +25,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
@@ -422,6 +423,7 @@ public class ImTranslator implements SpecialisationLookup {
             for (CompilationUnit cu : wurstProg) {
                 translateCompilationUnit(cu);
             }
+            attachFunctionsAwaitingClass();
             linkBridgedOverrides();
             addBridgeFunctions();
 
@@ -1032,17 +1034,225 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void addFunction(ImFunction f, StructureDef s) {
-        ImClass c = getClassFor(s.attrNearestClassOrInterface());
-        c.getFunctions().add(f);
+        addClassFunction(getClassFor(s.attrNearestClassOrInterface()), f);
     }
 
     private void addFunction(ImFunction f, TranslatedToImFunction funcDef) {
         ImClass classForFunc = getClassForFunc(funcDef);
         if (classForFunc != null) {
-            classForFunc.getFunctions().add(f);
+            addClassFunction(classForFunc, f);
         } else {
             addFunction(f);
         }
+    }
+
+    /*
+     * The order of a class's functions. A function is made when something first asks for it, and the backends emit a
+     * class's functions, and Lua numbers its overloads, in the order of its function list. Packages are translated
+     * depth first from each compilation unit in turn, imports first, so whatever asks for a function in another
+     * package comes in an order which can depend on the order of the units: the imports of a package which do not
+     * import each other (two interfaces asking for the methods which implement them), and the packages of an import
+     * cycle, are translated in the order of the units. So a class's function waits until the elements of the class's
+     * package are translated, and the class then takes its functions in the order they get when that package is
+     * translated first: first those asked for by the packages translated before it in any order of the units (those it
+     * imports, directly or not, which do not import it back), in the order of their translation from it, then those
+     * asked for by the package itself, in the order of its definitions. What other packages ask for does not count.
+     * Where the order of the units made no difference, this is the order the class had before.
+     */
+
+    /** The rank of a request from the class's own package, after those of the packages it imports. */
+    private static final int OWN_PACKAGE_RANK = Integer.MAX_VALUE - 1;
+
+    /** A function of a class whose package is not translated yet, and the request for it which counts first. */
+    private static final class AwaitingFunction {
+        final ImFunction function;
+        final ImClass imClass;
+        final WPackage pack;
+        int rank = Integer.MAX_VALUE;
+        int position;
+        long request;
+
+        AwaitingFunction(ImFunction function, ImClass imClass, WPackage pack) {
+            this.function = function;
+            this.imClass = imClass;
+            this.pack = pack;
+        }
+    }
+
+    /** The functions waiting for their class's package, in the order they were made; null after the translation. */
+    private @Nullable Map<ImFunction, AwaitingFunction> awaitingFunctions = new LinkedHashMap<>();
+    private final Map<WPackage, List<AwaitingFunction>> awaitingByPackage = new IdentityHashMap<>();
+    private final Set<WPackage> packagesTranslated = new ReferenceOpenHashSet<>();
+    /** The top level definition being translated, and its package; null between packages. */
+    private @Nullable WPackage requestingPackage;
+    private @Nullable WEntity requestingDefinition;
+    private long requestCount;
+    private final Map<WPackage, Reference2IntMap<WPackage>> dependencyRanks = new IdentityHashMap<>();
+    private final Map<WPackage, Reference2IntMap<WEntity>> definitionPositions = new IdentityHashMap<>();
+
+    /** Adds {@code f} to its class {@code c}, or makes it wait for the class's package; making it asks for it. */
+    void addClassFunction(ImClass c, ImFunction f) {
+        if (awaitingFunctions != null && c.getTrace().attrNearestPackage() instanceof WPackage pack
+            && !packagesTranslated.contains(pack)) {
+            AwaitingFunction a = new AwaitingFunction(f, c, pack);
+            awaitingFunctions.put(f, a);
+            awaitingByPackage.computeIfAbsent(pack, p -> new ArrayList<>()).add(a);
+            requested(f);
+        } else {
+            c.getFunctions().add(f);
+        }
+    }
+
+    /** {@code f} is asked for: if it waits for its class's package, the request is kept when it counts first. */
+    private ImFunction requested(ImFunction f) {
+        if (awaitingFunctions == null || requestingPackage == null || requestingDefinition == null) {
+            return f;
+        }
+        AwaitingFunction a = awaitingFunctions.get(f);
+        if (a == null) {
+            return f;
+        }
+        int rank;
+        if (requestingPackage == a.pack) {
+            rank = OWN_PACKAGE_RANK;
+        } else {
+            rank = dependencyRanks(a.pack).getInt(requestingPackage);
+            if (rank < 0 || dependencyRanks(requestingPackage).containsKey(a.pack)) {
+                return f;
+            }
+        }
+        int position = definitionPositions(requestingPackage).getInt(requestingDefinition);
+        if (rank < a.rank || rank == a.rank && position < a.position) {
+            a.rank = rank;
+            a.position = position;
+            a.request = requestCount++;
+        }
+        return f;
+    }
+
+    /** Runs {@code translation}, the translation of the top level definition {@code e} of {@code pack}. */
+    void translateDefinition(WPackage pack, WEntity e, Runnable translation) {
+        WPackage packageBefore = requestingPackage;
+        WEntity definitionBefore = requestingDefinition;
+        requestingPackage = pack;
+        requestingDefinition = e;
+        try {
+            translation.run();
+        } finally {
+            requestingPackage = packageBefore;
+            requestingDefinition = definitionBefore;
+        }
+    }
+
+    /** The elements of {@code pack} are translated: its classes take the functions which wait for it. */
+    void endPackageElements(WPackage pack) {
+        packagesTranslated.add(pack);
+        List<AwaitingFunction> functions = awaitingByPackage.remove(pack);
+        if (functions != null) {
+            attachInRequestOrder(functions);
+        }
+    }
+
+    /** Every unit is translated: a function still waiting belongs to a class outside the translated packages. */
+    private void attachFunctionsAwaitingClass() {
+        attachInRequestOrder(new ArrayList<>(awaitingFunctions.values()));
+        awaitingFunctions = null;
+        awaitingByPackage.clear();
+    }
+
+    /**
+     * Gives the classes their functions in the order of the requests which count. The translation of a class asks for
+     * each of its functions, so none should be left without one; any such follows, in the order of {@link #sortList}.
+     */
+    private void attachInRequestOrder(List<AwaitingFunction> functions) {
+        List<AwaitingFunction> requested = new ArrayList<>();
+        Map<ImFunction, ImClass> unrequested = new LinkedHashMap<>();
+        for (AwaitingFunction a : functions) {
+            awaitingFunctions.remove(a.function);
+            if (a.rank == Integer.MAX_VALUE) {
+                unrequested.put(a.function, a.imClass);
+            } else {
+                requested.add(a);
+            }
+        }
+        requested.sort(Comparator.<AwaitingFunction>comparingInt(a -> a.rank)
+            .thenComparingInt(a -> a.position).thenComparingLong(a -> a.request));
+        for (AwaitingFunction a : requested) {
+            a.imClass.getFunctions().add(a.function);
+        }
+        List<ImFunction> rest = new ArrayList<>(unrequested.keySet());
+        sortList(rest);
+        for (ImFunction f : rest) {
+            unrequested.get(f).getFunctions().add(f);
+        }
+    }
+
+    /**
+     * The packages whose elements are translated before those of {@code pack} when it is translated first, numbered
+     * in that order: its imports, depth first, as {@link TLDTranslation} translates them.
+     */
+    private Reference2IntMap<WPackage> dependencyRanks(WPackage pack) {
+        Reference2IntMap<WPackage> ranks = dependencyRanks.get(pack);
+        if (ranks == null) {
+            ranks = new Reference2IntOpenHashMap<>();
+            ranks.defaultReturnValue(-1);
+            rankImports(pack, pack, new ReferenceOpenHashSet<>(), ranks);
+            dependencyRanks.put(pack, ranks);
+        }
+        return ranks;
+    }
+
+    private static void rankImports(WPackage first, WPackage p, Set<WPackage> visited, Reference2IntMap<WPackage> ranks) {
+        if (!visited.add(p)) {
+            return;
+        }
+        for (WImport imp : p.getImports()) {
+            WPackage imported = imp.attrImportedPackage();
+            if (imported != null) {
+                rankImports(first, imported, visited, ranks);
+            }
+        }
+        if (p != first) {
+            ranks.put(p, ranks.size());
+        }
+    }
+
+    /**
+     * The top level definitions of {@code pack} numbered in the order {@link TLDTranslation} translates them: that of
+     * the source, but a class after the superclass of the same package which it translates first.
+     */
+    private Reference2IntMap<WEntity> definitionPositions(WPackage pack) {
+        Reference2IntMap<WEntity> positions = definitionPositions.get(pack);
+        if (positions == null) {
+            positions = new Reference2IntOpenHashMap<>();
+            for (WEntity e : pack.getElements()) {
+                placeDefinition(pack, e, positions);
+            }
+            definitionPositions.put(pack, positions);
+        }
+        return positions;
+    }
+
+    private static void placeDefinition(WPackage pack, WEntity e, Reference2IntMap<WEntity> positions) {
+        if (positions.containsKey(e)) {
+            return;
+        }
+        if (e instanceof ClassDef c && c.attrTypC().extendedClass() != null) {
+            WEntity superclass = topLevelDefinition(c.attrTypC().extendedClass().getClassDef());
+            if (superclass.attrNearestPackage() == pack) {
+                placeDefinition(pack, superclass, positions);
+            }
+        }
+        positions.put(e, positions.size());
+    }
+
+    /** The top level definition of its package which {@code e} is or is part of. */
+    static WEntity topLevelDefinition(de.peeeq.wurstscript.ast.Element e) {
+        de.peeeq.wurstscript.ast.Element d = e;
+        while (!(d.getParent() instanceof WEntities)) {
+            d = d.getParent();
+        }
+        return (WEntity) d;
     }
 
     private void addFunction(ImFunction f) {
@@ -1118,6 +1328,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public GetAForB<StructureDef, ImFunction> destroyFunc = new GetAForB<StructureDef, ImFunction>() {
 
         @Override
+        public ImFunction getFor(StructureDef classDef) {
+            return requested(super.getFor(classDef));
+        }
+
+        @Override
         public ImFunction initFor(StructureDef classDef) {
             ImVars params = ImVars(JassIm.ImVar(classDef, selfType(classDef), "this", false));
 
@@ -1128,6 +1343,13 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     };
 
     public GetAForB<StructureDef, ImMethod> destroyMethod = new GetAForB<StructureDef, ImMethod>() {
+
+        @Override
+        public ImMethod getFor(StructureDef classDef) {
+            // asks for the destroy function each time, which may be waiting for its class's package
+            destroyFunc.getFor(classDef);
+            return super.getFor(classDef);
+        }
 
         @Override
         public ImMethod initFor(StructureDef classDef) {
@@ -1240,7 +1462,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
         if (functionMap.containsKey(funcDef)) {
-            return functionMap.get(funcDef);
+            return requested(functionMap.get(funcDef));
         }
         String name = getNameFor(funcDef);
         List<FunctionFlag> flags = flags();
@@ -1301,7 +1523,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
         addFunction(f, funcDef);
         functionMap.put(funcDef, f);
-        return f;
+        return requested(f);
     }
 
     private ImClass getClassForFunc(TranslatedToImFunction funcDef) {
@@ -2100,7 +2322,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             addFunction(f, constr);
             constructorFuncs.put(constr, f);
         }
-        return f;
+        return requested(f);
     }
 
 
@@ -2157,7 +2379,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }
-        return f;
+        return requested(f);
     }
 
     public ImProg getImProg() {
@@ -2841,10 +3063,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     Map<FuncDef, ImMethod> methodForFuncDef = Maps.newLinkedHashMap();
 
     public ImMethod getMethodFor(FuncDef f) {
-
+        // asks for the implementation each time, which may be waiting for its class's package
+        ImFunction imFunc = getFuncFor(f);
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
-            ImFunction imFunc = getFuncFor(f);
 
             // IMPORTANT: method name must match implementation function name,
             // otherwise EliminateClasses dispatch lookup can fail.

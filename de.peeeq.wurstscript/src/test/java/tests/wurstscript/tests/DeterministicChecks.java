@@ -813,4 +813,138 @@ public class DeterministicChecks extends WurstScriptTest {
             "same-named receivers must bind in an order independent of the compilation units");
     }
 
+    /** Compiles {@code units} for every backend, runs them, and returns the Lua script written under {@code name}. */
+    private String compileAndRunToLua(String name, CU... units) throws IOException {
+        testNamed(name).testLua(true).luaOnly(false).executeProg().compilationUnits(units);
+        return Files.toString(new File("test-output/lua/DeterministicChecks_" + name + ".lua"), Charsets.UTF_8);
+    }
+
+    /**
+     * The translation of an interface asks for the methods implementing it, which makes them before their class is
+     * translated. A class's overloads share a name, and the Lua backend numbers them in the order of the class's
+     * functions, so that order must not follow the order in which the interfaces were translated.
+     */
+    @Test
+    public void overloadsImplementingInterfacesOfOtherPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU intM = compilationUnit("IntM.wurst",
+            "package IntM",
+            "public interface IntM",
+            "    function m(int x) returns int");
+        CU strM = compilationUnit("StrM.wurst",
+            "package StrM",
+            "public interface StrM",
+            "    function m(string s) returns int");
+        CU lib = compilationUnit("Lib.wurst",
+            "package Lib",
+            "import IntM",
+            "import StrM",
+            "public class Base implements IntM, StrM",
+            "    function m(int x) returns int",
+            "        return x",
+            "    function m(string s) returns int",
+            "        return 7",
+            "public class C<T:> extends Base");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import IntM",
+            "import StrM",
+            "import Lib",
+            "native testSuccess()",
+            "function viaInt(IntM i) returns int",
+            "    return i.m(5)",
+            "function viaStr(StrM s) returns int",
+            "    return s.m(\"a\")",
+            "init",
+            "    if viaInt(new C<int>()) == 5 and viaStr(new C<int>()) == 7",
+            "        testSuccess()");
+        String name = "overloadsImplementingInterfacesOfOtherPackages";
+        String first = compileAndRunToLua(name, intM, strM, lib, main);
+        assertEquals(compileAndRunToLua(name, strM, intM, main, lib), first,
+            "the overloads of a class must be numbered in an order independent of the compilation units");
+    }
+
+    /**
+     * A superclass asks for the overrides in its subclasses, and an interface for the methods implementing it, each
+     * with the destroy function, when it is translated. Here they are in packages which do not import each other, so
+     * which of them asks first follows the order of the compilation units, and the Lua backend emits a class's
+     * functions in the order of the class's function list.
+     */
+    @Test
+    public void functionsAskedForByUnrelatedPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU supA = compilationUnit("SupA.wurst",
+            "package SupA",
+            "public abstract class Base",
+            "    abstract function b() returns int");
+        CU supB = compilationUnit("SupB.wurst",
+            "package SupB",
+            "public interface HasC",
+            "    function c() returns int");
+        CU sub = compilationUnit("Sub.wurst",
+            "package Sub",
+            "import SupA",
+            "import SupB",
+            "public class Sub extends Base implements HasC",
+            "    override function c() returns int",
+            "        return 1",
+            "    override function b() returns int",
+            "        return 2");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import SupA",
+            "import SupB",
+            "import Sub",
+            "native testSuccess()",
+            "init",
+            "    let s = new Sub()",
+            "    Base b = s",
+            "    HasC h = s",
+            "    if b.b() * 10 + h.c() == 21",
+            "        testSuccess()",
+            "    destroy s");
+        String name = "functionsAskedForByUnrelatedPackages";
+        String first = compileAndRunToLua(name, supA, supB, sub, main);
+        assertEquals(compileAndRunToLua(name, supB, supA, main, sub), first,
+            "a class's functions must be emitted in an order independent of the compilation units");
+    }
+
+    /**
+     * Of two packages which import each other, either can be translated first, depending on the order of the
+     * compilation units, so a call in one asks for a method of a class in the other before or after the class, and a
+     * subclass in one translates its superclass in the other first or finds it translated.
+     */
+    @Test
+    public void functionsAskedForAcrossAnImportCycleEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU cycA = compilationUnit("CycA.wurst",
+            "package CycA",
+            "import CycB",
+            "public class C",
+            "    function x() returns int",
+            "        return 1",
+            "    function y() returns int",
+            "        return twice(2)");
+        CU cycB = compilationUnit("CycB.wurst",
+            "package CycB",
+            "import initlater CycA",
+            "public function twice(int v) returns int",
+            "    return v * 2",
+            "public function useY(C c) returns int",
+            "    return c.y()",
+            "public class D extends C",
+            "    override function y() returns int",
+            "        return 3");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import CycA",
+            "import CycB",
+            "native testSuccess()",
+            "init",
+            "    let c = new C()",
+            "    if c.x() + useY(c) == 5 and useY(new D()) == 3",
+            "        testSuccess()");
+        String name = "functionsAskedForAcrossAnImportCycle";
+        String first = compileAndRunToLua(name, cycA, cycB, main);
+        assertEquals(compileAndRunToLua(name, cycB, cycA, main), first,
+            "a class's functions must be emitted in an order independent of the compilation units");
+    }
+
 }
