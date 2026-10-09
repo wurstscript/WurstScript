@@ -7591,6 +7591,45 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("a variable keeps its guard:\n" + greetAnyone, greetAnyone.contains("(name or \"\")"));
     }
 
+    /**
+     * An old-generics value read back as a handle goes through the TypeCasting fromIndex, which Lua
+     * prints as __wurst_objectFromIndex. That maps nil, 0 and an unknown index to nil and indexes its
+     * table with the integer it is given, so an int normalisation in front of it (tonumber,
+     * math.tointeger) answers the same and is not emitted. Jass has no such normalisation.
+     */
+    @Test
+    public void oldGenericHandleReadsNeedNoIntNormalisation() throws IOException {
+        test().withStdLib().testLua(true).executeProg().lines(
+            "package Test",
+            "class Box<T>",
+            "    T elem",
+            "    construct(T e)",
+            "        elem = e",
+            "    function get() returns T",
+            "        return elem",
+            "class Unset<T>",
+            "    T elem",
+            "init",
+            "    let t = CreateTimer()",
+            "    let other = CreateTimer()",
+            "    let full = new Box<timer>(t)",
+            "    let empty = new Box<timer>(null)",
+            "    let unset = new Unset<timer>()",
+            "    if full.get() != t",
+            "        testFail(\"the handle did not come back\")",
+            "    if full.get() == other",
+            "        testFail(\"another handle came back\")",
+            "    if empty.get() != null",
+            "        testFail(\"null (index 0) did not come back\")",
+            "    if unset.elem != null",
+            "        testFail(\"an unset slot (nil) did not read as null\")",
+            "    testSuccess()");
+        String init = topLevelFunctionBodyWithPrefix(compiledLua("oldGenericHandleReadsNeedNoIntNormalisation"),
+            "init_Test");
+        assertTrue(init, init.contains("__wurst_objectFromIndex(") || init.contains("timerFromIndex("));
+        assertFalse(init, init.contains("math.tointeger") || init.contains("tonumber") || init.contains("__wurst_ensureInt"));
+    }
+
     /** -0.0 stays -0.0 under Lua's % as under fmod and its correction: 1 / r is minus infinity. */
     @Test
     public void modKeepsTheSignOfANegativeZeroOnLua() throws IOException {
