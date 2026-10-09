@@ -403,6 +403,114 @@ public class TreeShakerTests extends WurstScriptTest {
         test().testLua(true).luaOnly(false).executeProg().lines(GENERIC_NEW_PROGRAM);
     }
 
+    /**
+     * {@code State} is named only inside the type argument {@code Loader<State>} which {@code make} is given, and
+     * {@code Loader<State>.load} constructs it once the generics are specialised: the type of a type argument is a
+     * reference, which a walk of the tree does not enter.
+     */
+    private static final String[] NESTED_NEW_INSTANCE_PROGRAM = {
+        "package MagicFunctions",
+        "    @annotation function annotation()",
+        "    @annotation function compilerintrinsic()",
+        "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+        "        return null",
+        "endpackage",
+        "package Test",
+        "    import MagicFunctions",
+        "    native testSuccess()",
+        "    class State",
+        "        int value = 7",
+        "    class Unused",
+        "        int value = 9",
+        "    class Loader<T:>",
+        "        function load() returns T",
+        "            return wurstNewInstance<T>()",
+        "    function make<H:>() returns H",
+        "        return wurstNewInstance<H>()",
+        "    function neverCalled() returns int",
+        "        return new Unused().value",
+        "    init",
+        "        let l = make<Loader<State>>()",
+        "        if l.load().value == 7",
+        "            testSuccess()",
+        "endpackage"};
+
+    @Test
+    public void beforeTheGenericsAClassNamedInsideATypeArgumentKeepsItsConstruction() {
+        WurstCompilerJassImpl compiler = translate(true, NESTED_NEW_INSTANCE_PROGRAM);
+
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+
+        Set<String> after = functionNames(compiler);
+        assertTrue("the construction of State, named inside Loader<State>, stays: " + after, after.contains("new_State"));
+        assertFalse("the construction of a class nothing names goes: " + after, after.contains("new_Unused"));
+    }
+
+    @Test
+    public void aClassNamedInsideATypeArgumentIsConstructedOnLua() {
+        test().testLua(true).executeProg().lines(NESTED_NEW_INSTANCE_PROGRAM);
+    }
+
+    /** The binding of {@code Show<Foo>} is only on the type argument nested in {@code Box<Foo>}. */
+    private static final String[] BINDING_ONLY_NESTED_PROGRAM = {
+        "package MagicFunctions",
+        "    @annotation function annotation()",
+        "    @annotation function compilerintrinsic()",
+        "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+        "        return null",
+        "endpackage",
+        "package Test",
+        "    import MagicFunctions",
+        "    native testSuccess()",
+        "    interface Show<T:>",
+        "        function show(T x) returns int",
+        "    class Foo",
+        "        int v = 42",
+        "    implements Show<Foo>",
+        "        function show(Foo x) returns int",
+        "            return x.v",
+        "    class Unused",
+        "    implements Show<Unused>",
+        "        function show(Unused x) returns int",
+        "            return 7",
+        "    class Box<T: Show>",
+        "        function describe(T x) returns int",
+        "            return T.show(x)",
+        "    function make<H:>() returns H",
+        "        return wurstNewInstance<H>()",
+        "    init",
+        "        let b = make<Box<Foo>>()",
+        "        if b.describe(new Foo()) == 42",
+        "            testSuccess()",
+        "endpackage"};
+
+    /** The types of the first parameter of the functions called {@code name}: the type an implementation is for. */
+    private static List<String> implementedFor(WurstCompilerJassImpl compiler, String name) {
+        List<String> types = new java.util.ArrayList<>();
+        for (ImFunction f : compiler.getImProg().getFunctions()) {
+            if (f.getName().equals(name)) {
+                types.add(f.getParameters().get(0).getType().toString());
+            }
+        }
+        return types;
+    }
+
+    @Test
+    public void beforeTheGenericsABindingInsideATypeArgumentKeepsItsImplementation() {
+        WurstCompilerJassImpl compiler = translate(true, BINDING_ONLY_NESTED_PROGRAM);
+        assertEquals(List.of("Foo", "Unused"), implementedFor(compiler, "show"));
+
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+
+        assertEquals("the implementation for Foo, bound inside Box<Foo>, stays and the one for Unused goes",
+            List.of("Foo"), implementedFor(compiler, "show"));
+    }
+
+    @Test
+    public void aBindingInsideATypeArgumentDispatchesOnLua() {
+        test().testLua(true).executeProg().lines(BINDING_ONLY_NESTED_PROGRAM);
+    }
+
     private static Set<String> globalNames(WurstCompilerJassImpl compiler) {
         Set<String> names = new TreeSet<>();
         for (ImVar global : compiler.getImProg().getGlobals()) {
