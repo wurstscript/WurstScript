@@ -103,9 +103,80 @@ public class InterfaceTranslator {
             ImMethod m = translator.getMethodFor(subM);
 
             ImClass mClass = translator.getClassFor(subC);
+            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())
+                && mClass.getTypeVariables().isEmpty() && m.attrClass().getTypeVariables().isEmpty()) {
+                FuncDef interfaceDefault = defaultOf(subCT, f);
+                m = methodOfItsOwn(mClass, m, interfaceDefault == null
+                    ? m.getImplementation() : translator.getFuncFor(interfaceDefault));
+            }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
 
+    }
+
+    /**
+     * A method of {@code imClass} itself for the abstract method of this interface, which the class implements with a
+     * method it inherits from a class outside the interface ({@code C extends Base implements Omega}). The dispatch
+     * over the implementations of the interface method follows the classes below the interface and takes at each the
+     * method declared in that class, and so does the interpreter: Base is not on that path, so C gets a method of its
+     * own with Base's implementation, which its subclasses inherit. The overrides below C are its sub-methods, as they
+     * are Base's ({@link ImTranslator#linkOverridesBelow}). Where another interface of C gives m a default, the
+     * default is the implementation: a default beats an inherited method (a call through that interface runs it on
+     * every backend), and Lua binds one implementation for C to both. Not for generic classes: a method of a generic
+     * class is specialised with the functions the class owns, and a generic class with an override in a non-generic
+     * subclass does not compile yet (EliminateGenerics.adaptSubmethods), so those keep what they did.
+     */
+    private ImMethod methodOfItsOwn(ImClass imClass, ImMethod inherited, ImFunction implementation) {
+        ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), inherited.getName(),
+            implementation, Lists.newArrayList(), new java.util.ArrayList<>(), "", false);
+        imClass.getMethods().add(own);
+        translator.linkOverridesBelow(own, inherited);
+        return own;
+    }
+
+
+    /**
+     * The default which another interface of the class gives {@code abstractMethod}: a method of an interface which
+     * is not generic, with the same name and parameter types and a body, the nearest first (the class's own
+     * interfaces before its superclass's, as in {@link #typeBindingOf}); null if there is none.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable FuncDef defaultOf(WurstTypeClass classType, FuncDef abstractMethod) {
+        ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
+        queue.add(classType);
+        while (!queue.isEmpty()) {
+            WurstTypeClassOrInterface type = queue.removeFirst();
+            if (type instanceof WurstTypeInterface i && i.getDef().getTypeParameters().isEmpty()) {
+                for (FuncDef candidate : i.getDef().getMethods()) {
+                    if (candidate != abstractMethod && !candidate.attrHasEmptyBody()
+                        && candidate.getName().equals(abstractMethod.getName())
+                        && sameParameterTypes(candidate, abstractMethod)) {
+                        return candidate;
+                    }
+                }
+            }
+            if (type instanceof WurstTypeClass c) {
+                queue.addAll(c.implementedInterfaces());
+                WurstTypeClass extended = c.extendedClass();
+                if (extended != null) {
+                    queue.add(extended);
+                }
+            } else {
+                queue.addAll(type.directSupertypes());
+            }
+        }
+        return null;
+    }
+
+    private static boolean sameParameterTypes(FuncDef a, FuncDef b) {
+        if (a.getParameters().size() != b.getParameters().size()) {
+            return false;
+        }
+        for (int i = 0; i < a.getParameters().size(); i++) {
+            if (!a.getParameters().get(i).attrTyp().equalsType(b.getParameters().get(i).attrTyp(), a)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

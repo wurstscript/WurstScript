@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.NamePreservation;
@@ -1595,6 +1596,10 @@ public class LuaTranslator {
                 setResolvedDispatchSlot(pending, "__wurst_destroy");
                 continue;
             }
+            if (needsOwnDispatchSlot(pending.method)) {
+                ensureOwnDispatchSlot(pending);
+                continue;
+            }
             Set<String> commonSlots = receivers.isEmpty()
                 ? Collections.emptySet()
                 : commonConcreteReceiverSlots(pending.method);
@@ -1657,25 +1662,12 @@ public class LuaTranslator {
         String canonicalName = semantic;
         String slot = canonicalDispatchSlots.computeIfAbsent(group,
             ignored -> uniqueName("__wurst_dispatch_" + canonicalName));
-        Set<String> semanticNames = new HashSet<>();
-        if (!imTr.dispatchSegmentOf(pending.method).isEmpty()) {
-            semanticNames.add(imTr.dispatchSegmentOf(pending.method));
-        }
-        String sourceName = sourceSemanticName(pending.method);
-        if (!sourceName.isEmpty()) {
-            semanticNames.add(sourceName);
-        }
+        Set<String> semanticNames = dispatchSemanticNames(pending.method);
         Set<ImClass> receivers = concreteReceiversFor(pending.method);
         List<ImClass> sortedReceivers = new ArrayList<>(receivers);
         sortedReceivers.sort(Comparator.comparing(this::classSortKey));
         for (ImClass receiver : sortedReceivers) {
-            List<ImMethod> candidates = new ArrayList<>();
-            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
-                if (sameDispatchFamily(pending.method, candidate)
-                    && sharesDispatchSemanticName(candidate, semanticNames)) {
-                    candidates.add(candidate);
-                }
-            }
+            List<ImMethod> candidates = dispatchCandidatesOf(receiver, pending.method, semanticNames);
             ImMethod implementation = chooseBestImplementationForClass(receiver, candidates);
             if (implementation == null) {
                 throw new RuntimeException("Wurst Lua backend assertion failed: no implementation for dispatch slot '"
@@ -1690,6 +1682,31 @@ public class LuaTranslator {
             }
         }
         pending.target.setFieldName(slot);
+    }
+
+    /** The names under which a method's family can be found in a class's hierarchy: its segment and its source name. */
+    private Set<String> dispatchSemanticNames(ImMethod method) {
+        Set<String> semanticNames = new HashSet<>();
+        if (!imTr.dispatchSegmentOf(method).isEmpty()) {
+            semanticNames.add(imTr.dispatchSegmentOf(method));
+        }
+        String sourceName = sourceSemanticName(method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        return semanticNames;
+    }
+
+    /** The methods of {@code receiver}'s hierarchy which can implement a call through {@code method}. */
+    private List<ImMethod> dispatchCandidatesOf(ImClass receiver, ImMethod method, Set<String> semanticNames) {
+        List<ImMethod> candidates = new ArrayList<>();
+        for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+            if (sameDispatchFamily(method, candidate)
+                && sharesDispatchSemanticName(candidate, semanticNames)) {
+                candidates.add(candidate);
+            }
+        }
+        return candidates;
     }
 
     private Set<String> dispatchCandidateSlots(ImMethod method) {
@@ -2137,25 +2154,37 @@ public class LuaTranslator {
         if (concrete.isEmpty()) {
             return null;
         }
-        concrete.sort((a, b) -> compareDispatchCandidates(receiverClass, a, b));
+        Set<ImMethod> passedOver = passedOverByAnInterfaceDefault(concrete);
+        concrete.sort((a, b) -> compareDispatchCandidates(receiverClass, a, b, passedOver));
         return concrete.get(0);
     }
 
     private int compareDispatchCandidates(ImClass receiverClass, ImMethod a, ImMethod b) {
+        return compareDispatchCandidates(receiverClass, a, b, passedOverByAnInterfaceDefault(List.of(a, b)));
+    }
+
+    /**
+     * Orders two implementations a class could bind for one slot, the better first: the class's own, then one no
+     * interface default among the candidates passes over ({@link #implementationsOutsideItsInterface}), then the
+     * nearer class. Two which are still tied come from different branches of the hierarchy at the same distance,
+     * where Jass and the interpreter take the one on the side of the method called through; the name order only
+     * makes that choice deterministic.
+     */
+    private int compareDispatchCandidates(ImClass receiverClass, ImMethod a, ImMethod b, Set<ImMethod> passedOver) {
         boolean aLocal = isImplementationFromClass(a, receiverClass);
         boolean bLocal = isImplementationFromClass(b, receiverClass);
         if (aLocal != bLocal) {
             return aLocal ? -1 : 1;
         }
+        boolean aPassedOver = passedOver.contains(a);
+        boolean bPassedOver = passedOver.contains(b);
+        if (aPassedOver != bPassedOver) {
+            return aPassedOver ? 1 : -1;
+        }
         int aDist = classDistance(receiverClass, a.attrClass());
         int bDist = classDistance(receiverClass, b.attrClass());
         if (aDist != bDist) {
             return Integer.compare(aDist, bDist);
-        }
-        boolean aNoOp = isNoOpImplementation(a);
-        boolean bNoOp = isNoOpImplementation(b);
-        if (aNoOp != bNoOp) {
-            return aNoOp ? 1 : -1;
         }
         return methodSortKey(a).compareTo(methodSortKey(b));
     }
@@ -2172,10 +2201,203 @@ public class LuaTranslator {
         return method.attrClass() == ownerClass;
     }
 
-    private boolean isNoOpImplementation(ImMethod method) {
-        return method != null
-            && method.getImplementation() != null
-            && method.getImplementation().getName().contains("NoOpState_");
+    /** The candidates which an interface default among them passes over, see {@link #implementationsOutsideItsInterface}. */
+    private Set<ImMethod> passedOverByAnInterfaceDefault(List<ImMethod> candidates) {
+        Set<ImMethod> result = null;
+        for (ImMethod interfaceDefault : candidates) {
+            Set<ImMethod> outside = implementationsOutsideItsInterface(interfaceDefault);
+            if (outside.isEmpty()) {
+                continue;
+            }
+            for (ImMethod candidate : candidates) {
+                if (candidate != interfaceDefault && outside.contains(candidate)) {
+                    if (result == null) {
+                        result = Collections.newSetFromMap(new IdentityHashMap<>());
+                    }
+                    result.add(candidate);
+                }
+            }
+        }
+        return result == null ? Collections.emptySet() : result;
+    }
+
+    private final Map<ImMethod, Set<ImMethod>> implementationsOutsideInterface = new IdentityHashMap<>();
+
+    /**
+     * The implementations which the sub-methods of an interface's default method list from classes outside that
+     * interface. A class which implements the interface and inherits the method from a superclass which does not
+     * ({@code C extends Base implements Omega}) has the superclass's method recorded as its implementation of the
+     * interface's. Jass and the interpreter never call it through the interface: the Jass dispatch of
+     * {@code Omega.m} only takes methods of the classes below Omega, and the interpreter only sub-methods of
+     * subclasses, so through the interface the default stands. Through the superclass it is the other way round
+     * (see {@link #needsOwnDispatchSlot}).
+     *
+     * <p>Asked of the IM classes, which the Jass dispatch walks, and of the source as well, because Lua's targeted
+     * specialisation moves implementations between erased and specialised classes, whose IM relation then no
+     * longer says whether the source class implements the interface.
+     */
+    private Set<ImMethod> implementationsOutsideItsInterface(ImMethod method) {
+        return implementationsOutsideInterface.computeIfAbsent(method, interfaceDefault -> {
+            ImClass owner = interfaceDefault.attrClass();
+            if (interfaceDefault.getIsAbstract() || interfaceDefault.getImplementation() == null || owner == null
+                || !(owner.attrTrace() instanceof InterfaceDef interfaceDef)) {
+                return Collections.emptySet();
+            }
+            Set<ImMethod> outside = Collections.newSetFromMap(new IdentityHashMap<>());
+            Set<ImMethod> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+            ArrayDeque<ImMethod> queue = new ArrayDeque<>(interfaceDefault.getSubMethods());
+            while (!queue.isEmpty()) {
+                ImMethod sub = queue.removeFirst();
+                if (!visited.add(sub)) {
+                    continue;
+                }
+                queue.addAll(sub.getSubMethods());
+                ImClass subClass = sub.attrClass();
+                if (subClass != null && !subClass.isSubclassOf(owner) && !declaredInAnImplementationOf(sub, interfaceDef)) {
+                    outside.add(sub);
+                }
+            }
+            return outside.isEmpty() ? Collections.emptySet() : outside;
+        });
+    }
+
+    /** Whether the source declares {@code method} in a class which implements {@code interfaceDef}; unknown counts as yes. */
+    private static boolean declaredInAnImplementationOf(ImMethod method, InterfaceDef interfaceDef) {
+        if (!(method.attrTrace() instanceof FuncDef funcDef)) {
+            return true;
+        }
+        ClassDef classDef = funcDef.attrNearestClassDef();
+        if (classDef == null) {
+            return true;
+        }
+        for (WurstTypeInterface implemented : classDef.attrTypC().transitiveSuperInterfaces()) {
+            if (implemented.getDef() == interfaceDef) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Set<ImMethod> passedOverAnywhere;
+
+    /** Every implementation some interface default passes over; almost always none. */
+    private Set<ImMethod> passedOverAnywhere() {
+        if (passedOverAnywhere == null) {
+            passedOverAnywhere = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImClass c : prog.getClasses()) {
+                for (ImMethod m : c.getMethods()) {
+                    passedOverAnywhere.addAll(implementationsOutsideItsInterface(m));
+                }
+            }
+        }
+        return passedOverAnywhere;
+    }
+
+    private final Map<ImMethod, Set<ImMethod>> reachedThroughCache = new IdentityHashMap<>();
+
+    /** The implementations a call through {@code method} can run on Jass: the method and its sub-methods. */
+    private Set<ImMethod> reachedThrough(ImMethod method) {
+        return reachedThroughCache.computeIfAbsent(method, root -> {
+            Set<ImMethod> reached = Collections.newSetFromMap(new IdentityHashMap<>());
+            ArrayDeque<ImMethod> queue = new ArrayDeque<>();
+            queue.add(root);
+            while (!queue.isEmpty()) {
+                ImMethod current = queue.removeFirst();
+                if (reached.add(current)) {
+                    queue.addAll(current.getSubMethods());
+                }
+            }
+            return reached;
+        });
+    }
+
+    /**
+     * The interface defaults among {@code candidates} which a call reaching {@code reached} must not run: they are no
+     * implementation it reaches, but pass over one which is.
+     */
+    private Set<ImMethod> defaultsBesideTheCall(List<ImMethod> candidates, Set<ImMethod> reached) {
+        Set<ImMethod> result = null;
+        for (ImMethod interfaceDefault : candidates) {
+            if (reached.contains(interfaceDefault)) {
+                continue;
+            }
+            Set<ImMethod> outside = implementationsOutsideItsInterface(interfaceDefault);
+            for (ImMethod candidate : candidates) {
+                if (outside.contains(candidate) && reached.contains(candidate)) {
+                    if (result == null) {
+                        result = Collections.newSetFromMap(new IdentityHashMap<>());
+                    }
+                    result.add(interfaceDefault);
+                    break;
+                }
+            }
+        }
+        return result == null ? Collections.emptySet() : result;
+    }
+
+    /**
+     * Whether calls through {@code method} need a slot of their own. A group has one slot, and a class binds one
+     * implementation to it. C extends Base implements Omega binds Omega's default, which is right through Omega; but
+     * through Base, Jass and the interpreter run Base.m on C, so where Base.m is dispatched (it has overrides), its
+     * calls cannot read the group's slot.
+     */
+    private boolean needsOwnDispatchSlot(ImMethod method) {
+        Set<ImMethod> passedOver = passedOverAnywhere();
+        if (passedOver.isEmpty()) {
+            return false;
+        }
+        return needsOwnDispatchSlotCache.computeIfAbsent(method, m -> {
+            Set<ImMethod> reached = reachedThrough(m);
+            if (reached.stream().noneMatch(passedOver::contains)) {
+                return false;
+            }
+            Set<String> semanticNames = dispatchSemanticNames(m);
+            for (ImClass receiver : concreteReceiversFor(m)) {
+                List<ImMethod> candidates = dispatchCandidatesOf(receiver, m, semanticNames);
+                ImMethod bound = chooseBestImplementationForClass(receiver, candidates);
+                if (bound != null && defaultsBesideTheCall(candidates, reached).contains(bound)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    private final Map<ImMethod, Boolean> needsOwnDispatchSlotCache = new IdentityHashMap<>();
+
+    private final Map<ImMethod, String> ownDispatchSlots = new IdentityHashMap<>();
+
+    /**
+     * Give calls through {@code pending.method} a slot of their own, which every receiver binds to the implementation
+     * the call reaches: the one the group binds, unless that is an interface default beside the call.
+     */
+    private void ensureOwnDispatchSlot(PendingDispatch pending) {
+        ImMethod method = pending.method;
+        String slot = ownDispatchSlots.get(method);
+        if (slot == null) {
+            String semantic = dispatchSlotName(imTr.dispatchSegmentOf(method));
+            slot = uniqueName("__wurst_dispatch_" + (semantic.isEmpty() ? "method" : semantic));
+            ownDispatchSlots.put(method, slot);
+            Set<ImMethod> reached = reachedThrough(method);
+            Set<String> semanticNames = dispatchSemanticNames(method);
+            List<ImClass> sortedReceivers = new ArrayList<>(concreteReceiversFor(method));
+            sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+            for (ImClass receiver : sortedReceivers) {
+                List<ImMethod> candidates = dispatchCandidatesOf(receiver, method, semanticNames);
+                Set<ImMethod> beside = defaultsBesideTheCall(candidates, reached);
+                candidates.removeIf(beside::contains);
+                ImMethod implementation = chooseBestImplementationForClass(receiver, candidates);
+                if (implementation == null) {
+                    throw new RuntimeException("Wurst Lua backend assertion failed: no implementation for dispatch slot '"
+                        + slot + "' in descriptor for " + receiver.getName() + ".");
+                }
+                registerDispatchSlot(receiver, slot, dispatchGroupOf(method));
+                deferMainInit(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), slot),
+                    LuaAst.LuaExprFuncRef(luaFunc.getFor(implementation.getImplementation()))));
+            }
+        }
+        pending.target.setFieldName(slot);
     }
 
     private int classDistance(ImClass from, ImClass to) {

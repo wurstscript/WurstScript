@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.Flatten;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -46,9 +47,22 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     void optimizeFunc(ImFunction func) {
         LivenessAnalysis liveness = analyzeLiveness(func);
-        Map<ImStmt, Set<ImVar>> livenessInfo = liveness.liveOut;
-        eliminateDeadCode(livenessInfo);
-        mergeLocals(livenessInfo, liveness.liveAtEntry, func);
+        // The liveness is that of the code which a path reaches: a local which only code no path reaches reads (after
+        // a loop which nothing leaves, say) is live nowhere, and eliminateDeadCode removes the assignments to it. That
+        // code goes too, so that no read is left with no assignment before it, which pjass rejects.
+        List<ImStmt> unreachable = liveness.cfg.unreachableStatements();
+        if (!unreachable.isEmpty()) {
+            for (ImStmt s : unreachable) {
+                AstEdits.deleteStmt(s);
+            }
+            liveness = analyzeLiveness(func);
+        }
+        if (eliminateDeadCode(liveness.liveOut, func)) {
+            // a flatten of an effect which replaced a dead assignment made a local, and an assignment to it which the
+            // liveness has not seen
+            liveness = analyzeLiveness(func);
+        }
+        mergeLocals(liveness.liveOut, liveness.liveAtEntry, func);
     }
 
     void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
@@ -121,8 +135,30 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         }
 
         applyMerges(func, merges);
+        removeSelfAssignments(func, merges);
         int removed = removeUnusedLocals(func);
         totalLocalsMerged += removed;
+    }
+
+    /**
+     * A copy between two locals which were merged is an assignment of the local to itself now, which does nothing.
+     * No pass after the last merge would remove it, so the script kept it.
+     */
+    private static void removeSelfAssignments(ImFunction func, Map<ImVar, ImVar> merges) {
+        if (merges.isEmpty()) return;
+        List<ImSet> selfAssignments = new ArrayList<>();
+        func.accept(new ImFunction.DefaultVisitor() {
+            @Override public void visit(ImSet set) {
+                super.visit(set);
+                if (set.getLeft() instanceof ImVarAccess left && set.getRight() instanceof ImVarAccess right
+                    && left.getVar() == right.getVar()) {
+                    selfAssignments.add(set);
+                }
+            }
+        });
+        for (ImSet set : selfAssignments) {
+            AstEdits.deleteStmt(set);
+        }
     }
 
     private static void applyMerges(ImFunction func, Map<ImVar, ImVar> merges) {
@@ -270,7 +306,15 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         return Collections.emptyList();
     }
 
-    private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
+    /**
+     * Removes the assignments to locals which are dead after them, and puts what their value and target do besides
+     * that in their place.
+     *
+     * @return whether the statements which replaced an assignment assign a local which the flatten of an effect made
+     *         (the assignment of a division which may stop the thread)
+     */
+    private boolean eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
+        int locals = func.getLocals().size();
         for (ImStmt s : livenessInfo.keySet()) {
             if (!(s instanceof ImSet set)) continue;
 
@@ -292,7 +336,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
             if (v == null || v.isGlobal()) continue;
 
-            if (!livenessInfo.get(s).contains(v)) {
+            if (!livenessInfo.get(s).contains(v) && !Flatten.mayStopTheThread(set.getRight())) {
+                // (an assignment of a division which may stop the thread is the statement which evaluates it)
                 final List<ImExpr> raw = new ArrayList<>();
                 collectLhsSideEffects(lhs, raw);
                 if (hasSideEffects(set.getRight())) raw.add(set.getRight());
@@ -300,16 +345,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 if (raw.isEmpty()) {
                     AstEdits.deleteStmt(s);  // remove the dead assignment entirely
                 } else {
-                    ImStmts block = JassIm.ImStmts();
-                    for (int i = 0; i < raw.size(); i++) {
-                        ImExpr e = raw.get(i);
-                        // wrap expression as a statement; add a *copy* to avoid re-parenting conflicts
-                        block.add(ImHelper.statementExprVoid(e.copy()));
+                    // The effects become the statements a flatten makes of them (a call statement, an assignment of
+                    // a division which may stop the thread, an if for and/or), not statement expressions: the local
+                    // optimisations work on flat IM (AGENTS.md section 7). A copy, to avoid re-parenting conflicts.
+                    List<ImStmt> statements = new ArrayList<>();
+                    for (ImExpr e : raw) {
+                        e.copy().flatten(translator, func).intoStatements(statements, translator, func);
                     }
+                    ImStmts block = JassIm.ImStmts();
+                    block.addAll(statements);
                     AstEdits.replaceStmtWithMany(s, block); // removes 's', then inserts the new stmts
                 }
             }
         }
+        return func.getLocals().size() != locals;
     }
 
     private void collectLhsSideEffects(ImLExpr lhs, List<ImExpr> out) {
@@ -341,6 +390,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         if (e instanceof ImMethodCall) return true;
         if (e instanceof ImFunctionCall call
             && (translator == null || !translator.isTrapFreeLuaIntrinsicCall(call))) return true;
+        if (e instanceof ImExpr expr && Flatten.mayStopTheThread(expr)) return true;
         for (int i = 0; i < e.size(); i++) if (hasSideEffects(e.get(i))) return true;
         return false;
     }
@@ -500,7 +550,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         Set<ImVar> liveAtEntry = N == 0
             ? io.vavr.collection.HashSet.empty()
             : variables.toSet(in[0], converted);
-        return new LivenessAnalysis(result, liveAtEntry);
+        return new LivenessAnalysis(cfg, result, liveAtEntry);
     }
 
     private static final int[] NO_VARIABLES = new int[0];
@@ -621,10 +671,12 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     }
 
     private static final class LivenessAnalysis {
+        private final ControlFlowGraph cfg;
         private final Map<ImStmt, Set<ImVar>> liveOut;
         private final Set<ImVar> liveAtEntry;
 
-        private LivenessAnalysis(Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+        private LivenessAnalysis(ControlFlowGraph cfg, Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+            this.cfg = cfg;
             this.liveOut = liveOut;
             this.liveAtEntry = liveAtEntry;
         }

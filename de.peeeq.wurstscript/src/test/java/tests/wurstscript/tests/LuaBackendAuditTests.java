@@ -1394,6 +1394,143 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** {@link #oldGenericsIntRoundTripKeepsValuesAndNull} with the optimiser, which inlines the casts. */
+    @Test
+    public void oldGenericsIntRoundTripKeepsValuesAndNullOptimized() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "    function isNull(int key) returns bool",
+            "        return get(key) == null",
+            "class C",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, -5)",
+            "    ints.put(2, 123456)",
+            "    let objs = new Store<C>()",
+            "    let c = new C(42)",
+            "    objs.put(10, c)",
+            "    objs.put(11, null)",
+            "    if ints.get(0) == 0 and ints.get(1) == -5 and ints.get(2) == 123456 and objs.get(10) == c and objs.get(10).v == 42 and objs.get(11) == null and objs.isNull(11) and objs.isNull(12) and not objs.isNull(10)",
+            "        testSuccess()");
+    }
+
+    /** {@link #oldGenericsIntZeroIsNotNull} with the optimiser, which inlines the casts. */
+    @Test
+    public void oldGenericsIntZeroIsNotNullOptimized() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "interface Visit<T>",
+            "    function run(T t) returns int",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function visit(int key, Visit<T> v) returns int",
+            "        return v.run(slots[key] castTo T)",
+            "    function isNull(int key) returns bool",
+            "        return (slots[key] castTo T) == null",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, 3)",
+            "    let total = ints.visit(0, x -> x + 10) + ints.visit(1, x -> x + 10)",
+            "    if total == 23 and not ints.isNull(0) and ints.isNull(7)",
+            "        testSuccess()");
+    }
+
+    /**
+     * Outside the generic class an old-generics result has its type argument's type, so a cast of
+     * it is a cast of an enum or int value: 0 stays 0 and is not stored as the generic zero sentinel.
+     */
+    @Test
+    public void oldGenericBoundEnumAndIntCastsKeepZero() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "enum Color",
+            "    RED",
+            "    GREEN",
+            "class Box<T>",
+            "    T elem",
+            "    construct(T e)",
+            "        elem = e",
+            "    function get() returns T",
+            "        return elem",
+            "init",
+            "    let colors = new Box<Color>(Color.RED)",
+            "    let ints = new Box<int>(0)",
+            "    let ordinal = colors.get() castTo int",
+            "    let asColor = ints.get() castTo Color",
+            "    if ordinal == 0 and asColor == Color.RED",
+            "        testSuccess()");
+        String init = topLevelFunctionBodyWithPrefix(compiledLua("oldGenericBoundEnumAndIntCastsKeepZero"), "init_Test");
+        assertFalse("a cast outside the generic class is not a generic storage cast:\n" + init,
+            init.contains("__wurst_oldGenericsZero"));
+    }
+
+    /** Such a cast still reads a missing entry as 0, the default of the type argument, as on Jass. */
+    @Test
+    public void oldGenericBoundCastOfMissingEntryIsZero() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "enum Color",
+            "    RED",
+            "    GREEN",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "init",
+            "    let colors = new Store<Color>()",
+            "    let ints = new Store<int>()",
+            "    colors.put(1, Color.GREEN)",
+            "    ints.put(2, 0)",
+            "    ints.put(3, 5)",
+            "    let missingOrdinal = colors.get(7) castTo int",
+            "    let missingColor = ints.get(7) castTo Color",
+            "    let zeroColor = ints.get(2) castTo Color",
+            "    let fiveColor = ints.get(3) castTo Color",
+            "    if missingOrdinal == 0 and missingColor == Color.RED and colors.get(1) castTo int == 1 and zeroColor == Color.RED and fiveColor castTo int == 5",
+            "        testSuccess()");
+    }
+
+    /** An unset old-generics entry read as an enum is the enum's default, its first constant, as on Jass. */
+    @Test
+    public void oldGenericEnumDefaultIsFirstConstant() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "enum Color",
+            "    RED",
+            "    GREEN",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "init",
+            "    let s = new Store<Color>()",
+            "    s.put(1, Color.GREEN)",
+            "    if s.get(1) == Color.GREEN and s.get(7) == Color.RED",
+            "        testSuccess()");
+    }
+
     @Test
     public void legacyGenericHandleCastsUseObjectIndexMap() throws IOException {
         // The stdlib's TypeCasting functions, which the Lua backend maps to the object index; a
@@ -4700,6 +4837,86 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                 "init",
                 "    if runOne(new Ticking()) == 5 and runOne(new NoOpState()) == 5",
                 "        testSuccess()"));
+    }
+
+    /**
+     * C inherits m from its superclass and a default m from an interface it implements. Through the interface, Jass
+     * and the interpreter run the interface's default: the dispatch of Omega.m only takes implementations from the
+     * subclasses of Omega, and Base is none. Lua bound whichever of the two sorted first by class name.
+     */
+    @Test
+    public void interfaceDefaultVersusInheritedMethodDoesNotDependOnClassNames() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+            "class Base", "    function m() returns int", "        return 1", "class C extends Base implements Omega",
+            "function viaOmega(Omega a) returns int", "    return a.m()",
+            "init", "    if viaOmega(new C()) == 2", "        testSuccess()");
+        String lua = compiledLua("interfaceDefaultVersusInheritedMethodDoesNotDependOnClassNames");
+        String slot = dispatchedSlot(lua, "viaOmega");
+        assertTrue("C binds " + slot + " to Omega's default:\n" + lua, lua.contains("C." + slot + " = Omega_Omega_m"));
+    }
+
+    /** The slot the dispatching call in {@code functionName} reads. */
+    private String dispatchedSlot(String lua, String functionName) {
+        java.util.regex.Matcher call = java.util.regex.Pattern.compile("__wurst_objectClass\\[\\w+\\]\\.(\\w+)\\(")
+            .matcher(luaFunctionBody(lua, functionName));
+        assertTrue("expected a dispatching call in " + functionName + ":\n" + lua, call.find());
+        return call.group(1);
+    }
+
+    /** The same with the superclass sorting after the interface. */
+    @Test
+    public void interfaceDefaultVersusInheritedMethodDoesNotDependOnClassNamesSortedTheOtherWay() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+            "class Zeta", "    function m() returns int", "        return 1", "class C extends Zeta implements Omega",
+            "function viaOmega(Omega a) returns int", "    return a.m()",
+            "init", "    if viaOmega(new C()) == 2", "        testSuccess()");
+    }
+
+    /** The default is also the one through an interface which C implements by an interface extending it. */
+    @Test
+    public void interfaceDefaultReachedThroughAnExtendingInterfaceBeatsTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+            "interface Omega2 extends Omega",
+            "class Base", "    function m() returns int", "        return 1", "class C extends Base implements Omega2",
+            "class D extends C",
+            "function viaOmega(Omega a) returns int", "    return a.m()",
+            "init", "    if viaOmega(new C()) == 2 and viaOmega(new D()) == 2", "        testSuccess()");
+    }
+
+    /**
+     * Through the superclass, C runs the method it inherits from there, also when that method has overrides, so
+     * that it is dispatched as well: one object answers 2 through the interface and 1 through the superclass, on
+     * Jass and in the interpreter. F, which overrides both, makes the two one dispatch family.
+     */
+    @Test
+    public void interfaceDefaultAndInheritedMethodEachDispatchThroughTheirOwnType() throws IOException {
+        for (String superclass : List.of("Base", "Zeta")) {
+            String name = "interfaceDefaultAndInheritedMethodEachDispatchThroughTheirOwnType_" + superclass;
+            testNamed(name)
+                .testLua(true).luaOnly(false).executeProg().lines(
+                    "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+                    "class " + superclass, "    function m() returns int", "        return 1",
+                    "class C extends " + superclass + " implements Omega",
+                    "class E extends " + superclass, "    override function m() returns int", "        return 5",
+                    "class F extends " + superclass + " implements Omega", "    override function m() returns int", "        return 3",
+                    "function viaOmega(Omega a) returns int", "    return a.m()",
+                    "function viaSuper(" + superclass + " a) returns int", "    return a.m()",
+                    "init",
+                    "    if viaOmega(new C()) == 2 and viaSuper(new C()) == 1 and viaSuper(new E()) == 5",
+                    "        if viaOmega(new F()) == 3 and viaSuper(new F()) == 3",
+                    "            testSuccess()");
+            // one class table cannot give C both answers under one key: the two calls read different slots
+            String lua = compiledLua(name);
+            String throughOmega = dispatchedSlot(lua, "viaOmega");
+            String throughSuper = dispatchedSlot(lua, "viaSuper");
+            assertTrue("C binds " + throughOmega + " to Omega's default:\n" + lua,
+                lua.contains("C." + throughOmega + " = Omega_Omega_m"));
+            assertTrue("C binds " + throughSuper + " to " + superclass + "'s method:\n" + lua,
+                lua.contains("C." + throughSuper + " = " + superclass + "_" + superclass + "_m"));
+        }
     }
 
     /**

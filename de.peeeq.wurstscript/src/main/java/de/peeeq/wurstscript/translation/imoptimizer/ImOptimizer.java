@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.TimeTaker;
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
@@ -13,6 +12,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.Flatten;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -164,7 +164,8 @@ public class ImOptimizer {
     /**
      * How many things the first round could remove: the global variables, fields, functions, locals and assignments
      * which the program had. Every round which changes something removes one of them (an assignment which is replaced
-     * leaves statements which are not assignments to an unread variable: the variables a flatten makes are read), so
+     * leaves statements which are not assignments to an unread variable which go: the variables a flatten makes are
+     * read, except the local of a division which may stop the thread, and an assignment of that to a local stays), so
      * the rounds cannot be more than that. A program which needs more never settles, which is a bug, and is reported.
      * The real programs measured take up to ten rounds (castle fight: nine). -1 before the first round counted them.
      */
@@ -329,6 +330,8 @@ public class ImOptimizer {
             }
             // remove set statements to unread variables
             final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
+            // the unread locals of the assignments which stay because they evaluate a division which may stop the thread
+            final Set<ImVar> keptLocals = new LinkedHashSet<>();
             if (countThings) {
                 things += trans.setStatementsOf(f).size() + f.getLocals().size();
             }
@@ -336,8 +339,14 @@ public class ImOptimizer {
                 if (e.getLeft() instanceof ImVarAccess) {
                     ImVarAccess va = (ImVarAccess) e.getLeft();
                     if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                        List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                        replacements.add(Pair.create(e, sideEffects));
+                        if (va.getVar().getParent() == f.getLocals() && Flatten.mayStopTheThread(e.getRight())) {
+                            // What it does besides assigning is the division, and the statement which evaluates
+                            // that is an assignment to a local (a flatten makes one): this one.
+                            keptLocals.add(va.getVar());
+                        } else {
+                            List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                            replacements.add(Pair.create(e, sideEffects));
+                        }
                     }
                 } else if (e.getLeft() instanceof ImVarArrayAccess) {
                     ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
@@ -362,7 +371,9 @@ public class ImOptimizer {
             // make locals of their own (a flatten saves the arguments in front of one which has statements): the
             // variables which were read when the round was analysed are the ones to keep, those are not among them.
             if (!incremental || changedBefore) {
-                changes |= f.getLocals().retainAll(readVars);
+                changes |= keptLocals.isEmpty()
+                    ? f.getLocals().retainAll(readVars)
+                    : f.getLocals().removeIf(v -> !readVars.contains(v) && !keptLocals.contains(v));
             }
 
             if (!replacements.isEmpty()) {
@@ -393,8 +404,9 @@ public class ImOptimizer {
                 throw new IllegalStateException("An assignment which is not in a statement list: " + pair.getA());
             }
             // The effects are parts of the assignment, which goes, and they are statements now: an expression which is
-            // one (`a and f()`, a call with a statement expression for an argument) becomes what a flatten makes of it,
-            // the statements which the backends translate (an if, the call with its arguments in variables).
+            // one (`a and f()`, a call with a statement expression for an argument, `10 div d`) becomes what a flatten
+            // makes of it, the statements which the backends translate (an if, the call with its arguments in
+            // variables, the assignment of the division to a local).
             List<ImStmt> statements = new ArrayList<>(pair.getB().size());
             for (ImExpr effect : pair.getB()) {
                 effect.setParent(null);
@@ -475,16 +487,9 @@ public class ImOptimizer {
             }
         }
 
-        if (elem instanceof ImOperatorCall opCall) {
-            WurstOperator op = opCall.getOp();
-            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT || op == WurstOperator.JASS_MOD_INT)
-                && opCall.getArguments().size() >= 2) {
-                ImExpr denominator = opCall.getArguments().get(1);
-                // Preserve integer div/mod unless denominator is provably non-zero.
-                if (!(denominator instanceof ImIntVal imIntVal) || imIntVal.getValI() == 0) {
-                    return true;
-                }
-            }
+        // Preserve integer div/mod unless the divisor is provably non-zero.
+        if (elem instanceof ImExpr expr && Flatten.mayStopTheThread(expr)) {
+            return true;
         }
         for (int i = 0; i < elem.size(); i++) {
             Element child = elem.get(i);

@@ -157,6 +157,26 @@ public class ParallelLoadTests {
         assertEquals(parallel.manager.parsesTakenAhead(), sources, "every file was parsed ahead");
     }
 
+    /** Jass and Jurst files go through other parsers than .wurst files, on the parse threads as well. */
+    @Test
+    public void jassAndJurstFilesOfTheProjectAreParsedAheadToTheSameUnits() throws IOException {
+        Path root = project(false);
+        write(root.resolve("wurst/war3map.j"),
+            "globals\n    integer jassG = 0\nendglobals\nfunction JassF takes nothing returns integer\n    return jassG\nendfunction\n");
+        write(root.resolve("wurst/sub/extra.j"), "function ExtraF takes nothing returns integer\n    return 2\nendfunction\n");
+        write(root.resolve("wurst/sub/Legacy.jurst"),
+            "function JurstF takes nothing returns integer\n    return ExtraF()\nendfunction\n"
+                + "package Legacy\nimport NoWurst\nimport P01\npublic function legacy() returns int\n    return p01() + JurstF()\nend\nendpackage\n");
+        Loaded sequential = new Loaded(root, 1);
+        Loaded parallel = new Loaded(root, 4);
+
+        assertSameLoad(sequential, parallel);
+        assertTrue(sequential.diagnostics.isEmpty(), sequential.diagnostics.toString());
+        assertTrue(sequential.files.stream().anyMatch(f -> f.endsWith("Legacy.jurst")), sequential.files.toString());
+        assertEquals(parallel.manager.parsesTakenAhead(), parallel.units.size() - 2,
+            "every source but common.j and blizzard.j, the .j and .jurst files included, was parsed ahead");
+    }
+
     @Test
     public void aSyntaxErrorIsReportedTheSameWay() throws IOException {
         Path root = project(true);

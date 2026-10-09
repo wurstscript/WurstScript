@@ -23,7 +23,9 @@ import java.util.Optional;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 
 public class CliBuildMapTests {
 
@@ -122,6 +124,35 @@ public class CliBuildMapTests {
         assertFalse(modelManager.isFullyChecked(loaded), "the model is not checked yet");
         assertFalse(modelManager.hasErrors(),
             "no check has run against the unconfigured script: " + modelManager.getFirstErrorDescription());
+    }
+
+    /**
+     * The CLI loads the project without checking it, so the check with the map script is the only gate: a type error it
+     * finds fails the build before anything is compiled.
+     */
+    @Test
+    public void theCliBuildFailsOnATypeErrorFoundByItsSingleCheck() throws Exception {
+        File projectFolder = new File("./temp/testProject_cli_single_check_error/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        wurstFolder.mkdirs();
+        Files.writeString(new File(wurstFolder, "Wurst.wurst").toPath(), "package Wurst\n");
+        Files.writeString(new File(wurstFolder, "Main.wurst").toPath(),
+            "package Main\nfunction f() returns int\n    return missingVariable\n");
+        Files.writeString(new File(wurstFolder, "war3map.j").toPath(),
+            "function main takes nothing returns nothing\nendfunction\n");
+        File configured = new File(projectFolder, "configured.j");
+        Files.writeString(configured.toPath(), "function main takes nothing returns nothing\nendfunction\n");
+
+        CountingModelManager modelManager = new CountingModelManager(projectFolder);
+        modelManager.loadProject();
+        assertFalse(modelManager.hasErrors(), "loading does not check");
+        CapturingCliBuildMap request = new CapturingCliBuildMap(projectFolder);
+
+        RuntimeException e = expectThrows(RuntimeException.class, () -> request.compile(modelManager, configured));
+
+        assertTrue(e.getMessage().contains("missingVariable"), e.getMessage());
+        assertEquals(modelManager.checks, 1, "the model is checked once");
+        assertNull(request.compiledModel, "nothing is compiled when the check finds errors");
     }
 
     private static final String NAME_WARNING = "Function names should start with an lower case character.";

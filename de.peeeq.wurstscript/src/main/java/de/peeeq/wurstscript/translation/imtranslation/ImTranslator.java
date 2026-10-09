@@ -422,6 +422,7 @@ public class ImTranslator implements SpecialisationLookup {
             for (CompilationUnit cu : wurstProg) {
                 translateCompilationUnit(cu);
             }
+            linkBridgedOverrides();
 
             if (mainFunc == null) {
                 mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
@@ -452,6 +453,33 @@ public class ImTranslator implements SpecialisationLookup {
                     + ": "
                     + t.getMessage()
                     + "\nPlease open a ticket with source code and the error log.", t);
+        }
+    }
+
+    /** A method a class has of its own for a method it inherits ({@code InterfaceTranslator}), and that method. */
+    private record Bridge(ImMethod bridge, ImMethod inherited) {
+    }
+
+    private final List<Bridge> bridges = new ArrayList<>();
+
+    /**
+     * Gives {@code bridge} the overrides of {@code inherited} which are below its class as sub-methods, once every
+     * class is translated: the sub-methods of {@code inherited} come from the translation of its class, which may come
+     * later. Then a deeper override stays reachable from the bridge, as AGENTS.md section 8 asks of a bridge.
+     */
+    public void linkOverridesBelow(ImMethod bridge, ImMethod inherited) {
+        bridges.add(new Bridge(bridge, inherited));
+    }
+
+    private void linkBridgedOverrides() {
+        for (Bridge b : bridges) {
+            ImClass bridgeClass = b.bridge().attrClass();
+            for (ImMethod sub : b.inherited().getSubMethods()) {
+                ImClass subClass = sub.attrClass();
+                if (subClass != bridgeClass && subClass.isSubclassOf(bridgeClass)) {
+                    b.bridge().getSubMethods().add(sub);
+                }
+            }
         }
     }
 
