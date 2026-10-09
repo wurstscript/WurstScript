@@ -1,13 +1,5 @@
 ## 1.9 (in progress)
 
-- A call through an interface with an old-style type parameter whose type converts to an index (`I<real>`) reaches
-  the implementation of a subclass, and of a class which implements an interface extending it, with the argument
-  converted back. Only a class which named the interface in its own `implements` got the bridge which converts it:
-  `class D extends B` with `B implements I<real>` got the index as its real (Jass, interpreter), or B's implementation
-  (Lua), whether D overrides the function or not, and so did a class implementing `J<real>` where `J<T> extends I<T>`.
-  The type arguments are taken from wherever the class implements the interface now. Castle fight and zombie defense
-  compile to the same scripts.
-
 - The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
   exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
   return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
