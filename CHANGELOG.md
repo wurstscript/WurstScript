@@ -1,5 +1,21 @@
 ## 1.9 (in progress)
 
+- The analysis which tells the optimiser what depends on a client-local value (`GetLocalPlayer()`, the camera, the
+  keyboard, ...) is built in less than half the time, and once less in an optimised Lua build. It kept every node in
+  identity hash maps, with a list of edges per node and a second copy of the data edges, and grew them one doubling
+  at a time. It now keeps the flags and the edges in the nodes and in one table sized for the elements, leaves out the
+  leaves which cannot depend on anything (constants), resolves the implementations of a method once instead of per
+  call, and drops its graph once the answers are known. The wrapper inlining for Lua arithmetic after the local
+  optimisations built the analysis, and the liveness of every function, even when no call of a wrapper was left to
+  inline; it now builds them for the functions which have one. What the analysis concludes is the same: every query
+  was compared with the old implementation for every construction in the test suite, in castle fight and in zombie
+  defense, and the scripts of the suite (Jass and Lua) and of castle fight are byte for byte the same, zombie
+  defense's except for its build date. On castle fight an optimised Lua build constructs it five times instead of six,
+  it is 7% of the samples of the compiler's thread instead of 14% (about 4 s instead of 9 s), and the build takes
+  59.7 s instead of 66.8 s (medians of four interleaved pairs, Java 27; single runs vary by about 8 s on a laptop
+  which also runs other builds). Constructing it in a loop, new and old alternating on the same program, takes 2.6 s
+  instead of 5.7 s for the six constructions of that build.
+
 - A flatten leaves the functions which were not modified since a flatten left them: what a flatten leaves is flat, so
   another one would rebuild the same body. The generated code of the IM counts the modifications of each function
   (`ImFunction.modificationCount()`: every setter and every list of the function and of what is below it), so no

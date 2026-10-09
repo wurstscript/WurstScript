@@ -67,6 +67,18 @@ Notes; finished-work narrative does not.
   specialised method goes from the allocations in the program, so a dead `new_Parent` no longer keeps it on the erased
   class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
 
+- **Build the local-player analysis fewer times, or incrementally.** An optimised Lua build of castle fight
+  constructs `LocalPlayerContextAnalyzer` five times: for the compile-time state function the splitter optimises
+  (`FunctionSplitter`, once per split target), for `ImInliner.doInlining`, once per `ImOptimizer.runLocalOptimizationSweep`
+  (two sweeps) and for `LuaOldGenericsCasts`, about 4 s of the compiler thread (7% of its samples). Each one is the
+  whole program, because the fact about a variable or a function depends on every caller and every writer.
+  Keeping the analysis of the first sweep for the second is not output-neutral: it changed about 40,000 lines of the
+  castle fight script (different local merges), so a construction per sweep stays until the analysis can retract a
+  fact (the propagation is a least fixpoint, so a rewrite which removes a flow cannot be undone in place) or the passes
+  report which functions they changed. What is left of a construction is the walk itself: the first touch of every IM
+  node (`indexElement`, `isInert`, `markReturns`) is about half of the samples, so the cost follows the size of the IM
+  and a flatter IM would help more than another rewrite of the analysis.
+
 - **Fewer whole-program passes between the optimiser's phases.** The garbage removal and the flatten each walk the
   whole program, and a build runs them many times (castle fight: the removal 3 to 8 times with 11 to 29 rounds, the
   flatten 6 to 16 times) while each of them changes a few percent of the functions. Done: the walk over a body is
@@ -84,7 +96,7 @@ Notes; finished-work narrative does not.
   before `ImToJassTranslator`), which the removal has just done; (3) facts which live longer than one removal, valid
   while `modificationCount()` of the function is the same (it replaces `ImTranslator.functionChanged`, which a pass
   can forget to call), so that the first round of a removal does not walk the functions no pass touched; (4) `LocalPlayerContextAnalyzer`, built again for the whole program after each
-  pass which is not local-player aware: about a tenth of an optimised build (JFR); (5) the flatten after the tuples
+  pass which is not local-player aware (see "Build the local-player analysis fewer times" above); (5) the flatten after the tuples
   are eliminated is the one which does work (about 565 to 800 functions of castle fight): the producers of
   statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does;
   (6) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
