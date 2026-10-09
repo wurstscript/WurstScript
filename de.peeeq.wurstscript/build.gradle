@@ -136,8 +136,8 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.1"
 
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:55360f6f65'
-    astgen 'com.github.peterzeller:abstractsyntaxgen:55360f6f65'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:693dca993e'
+    astgen 'com.github.peterzeller:abstractsyntaxgen:693dca993e'
 
 
     // Tests
