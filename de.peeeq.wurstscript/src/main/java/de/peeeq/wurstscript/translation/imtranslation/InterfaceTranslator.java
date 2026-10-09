@@ -2,10 +2,14 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
@@ -103,11 +107,9 @@ public class InterfaceTranslator {
             ImMethod m = translator.getMethodFor(subM);
 
             ImClass mClass = translator.getClassFor(subC);
-            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())
-                && mClass.getTypeVariables().isEmpty() && m.attrClass().getTypeVariables().isEmpty()) {
+            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
                 FuncDef interfaceDefault = defaultOf(subCT, f);
-                m = methodOfItsOwn(mClass, m, interfaceDefault == null
-                    ? m.getImplementation() : translator.getFuncFor(interfaceDefault));
+                m = methodOfItsOwn(mClass, subCT, m, interfaceDefault == null ? subM : interfaceDefault);
             }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
@@ -122,15 +124,92 @@ public class InterfaceTranslator {
      * own with Base's implementation, which its subclasses inherit. The overrides below C are its sub-methods, as they
      * are Base's ({@link ImTranslator#linkOverridesBelow}). Where another interface of C gives m a default, the
      * default is the implementation: a default beats an inherited method (a call through that interface runs it on
-     * every backend), and Lua binds one implementation for C to both. Not for generic classes: a method of a generic
-     * class is specialised with the functions the class owns, so those keep what they did.
+     * every backend), and Lua binds one implementation for C to both.
+     * <p>
+     * Where neither C nor the class of the implementation is generic, the method runs that implementation's function.
+     * Otherwise it gets a function of C which calls it ({@link #implementationOfItsOwn}).
      */
-    private ImMethod methodOfItsOwn(ImClass imClass, ImMethod inherited, ImFunction implementation) {
-        ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), inherited.getName(),
-            implementation, Lists.newArrayList(), new java.util.ArrayList<>(), "", false);
+    private ImMethod methodOfItsOwn(ImClass imClass, WurstTypeClass classType, ImMethod inherited,
+                                    FuncDef implementation) {
+        ImFunction function = translator.getFuncFor(implementation);
+        ClassOrInterface owner = implementation.attrNearestClassOrInterface();
+        String name = inherited.getName();
+        if (!imClass.getTypeVariables().isEmpty()
+            || (owner != null && !translator.getClassFor(owner).getTypeVariables().isEmpty())) {
+            function = implementationOfItsOwn(imClass, classType, implementation, function, owner);
+            name = function.getName();
+        }
+        ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), name,
+            function, Lists.newArrayList(), new java.util.ArrayList<>(), "", false);
         imClass.getMethods().add(own);
         translator.linkOverridesBelow(own, inherited);
         return own;
+    }
+
+    /**
+     * A function of {@code imClass} which runs the inherited implementation, for a class where one of the two is
+     * generic. A method is specialised with the functions of its class, but the inherited function belongs to another
+     * class and must be specialised for that class's type arguments as {@code imClass} sees them, which need not be
+     * its own ({@code C<T:> extends Base<string>}). So the function calls the inherited one with this, as
+     * {@code super.m()} does, and the specialisation finds Base's type arguments from the type of this. It takes the
+     * inherited function's parameters with Base's type variables replaced by those arguments.
+     */
+    private ImFunction implementationOfItsOwn(ImClass imClass, WurstTypeClass classType, FuncDef implementation,
+                                              ImFunction inherited, @org.eclipse.jdt.annotation.Nullable ClassOrInterface owner) {
+        List<ImTypeVar> ownerVariables = owner == null
+            ? Collections.emptyList() : translator.getClassFor(owner).getTypeVariables();
+        List<ImTypeArgument> ownerArguments = owner == null
+            ? Collections.emptyList() : typeArgumentsAsSeenFrom(classType, owner, ownerVariables);
+        ImVar thisVar = JassIm.ImVar(implementation, translator.selfType(imClass), "this", false);
+        ImVars parameters = JassIm.ImVars(thisVar);
+        ImExprs arguments = JassIm.ImExprs(JassIm.ImVarAccess(thisVar));
+        for (ImVar p : inherited.getParameters().subList(1, inherited.getParameters().size())) {
+            ImVar parameter = JassIm.ImVar(p.getTrace(),
+                ImAttrType.substituteType(p.getType(), ownerArguments, ownerVariables), p.getName(), false);
+            parameters.add(parameter);
+            arguments.add(JassIm.ImVarAccess(parameter));
+        }
+        ImType returnType = ImAttrType.substituteType(inherited.getReturnType(), ownerArguments, ownerVariables);
+        ImExpr call = JassIm.ImFunctionCall(implementation, inherited, JassIm.ImTypeArguments(), arguments, false,
+            CallType.NORMAL);
+        ImStmts body = returnType instanceof ImVoid
+            ? JassIm.ImStmts(call)
+            : JassIm.ImStmts(JassIm.ImReturn(implementation, call));
+        ImFunction own = JassIm.ImFunction(implementation, imClass.getName() + "_" + implementation.getName(),
+            JassIm.ImTypeVars(), parameters, returnType, JassIm.ImVars(), body, Collections.emptyList());
+        imClass.getFunctions().add(own);
+        return own;
+    }
+
+    /**
+     * The type arguments for {@code variables}, the type variables of {@code owner}, a class or interface above
+     * {@code classType}, as that class sees them.
+     */
+    private List<ImTypeArgument> typeArgumentsAsSeenFrom(WurstTypeClass classType, ClassOrInterface owner,
+                                                         List<ImTypeVar> variables) {
+        VariableBinding binding = VariableBinding.emptyMapping();
+        ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
+        queue.add(classType);
+        while (!queue.isEmpty()) {
+            WurstTypeClassOrInterface type = queue.removeFirst();
+            if (type.getDef() == owner) {
+                binding = type.getTypeArgBinding();
+                break;
+            }
+            queue.addAll(type.directSupertypes());
+        }
+        List<ImTypeArgument> arguments = new java.util.ArrayList<>();
+        for (ImTypeVar variable : variables) {
+            TypeParamDef parameter = translator.getTypeParamDef(variable);
+            ImType type = parameter == null ? null : binding.get(parameter)
+                .map(bound -> bound.imTranslateType(translator)).getOrNull();
+            if (type == null) {
+                throw new CompileError(classType.getDef(), "Could not find the type argument of " + owner.getName()
+                    + " for " + variable.getName() + " as " + classType.getDef().getName() + " sees it.");
+            }
+            arguments.add(JassIm.ImTypeArgument(type, Collections.emptyMap()));
+        }
+        return arguments;
     }
 
 
