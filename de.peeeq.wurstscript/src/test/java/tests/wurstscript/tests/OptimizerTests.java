@@ -2472,6 +2472,41 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     /**
+     * Merging two locals makes the copy between them an assignment of the local to itself, which does nothing and
+     * goes: `a = tick(); b = a; return b` keeps no `a = a`.
+     */
+    @Test
+    public void localMergerLeavesNoAssignmentOfALocalToItself() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(a, b),
+            JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(a),
+                    JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL)),
+                JassIm.ImSet(model, JassIm.ImVarAccess(b), JassIm.ImVarAccess(a)),
+                JassIm.ImReturn(model, JassIm.ImVarAccess(b))),
+            Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(f);
+
+        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+
+        assertEquals(f.getLocals().size(), 1, "a and b are merged: " + f.getLocals());
+        for (ImStmt s : f.getBody()) {
+            assertFalse(s instanceof ImSet set && set.getLeft() instanceof ImVarAccess left
+                    && set.getRight() instanceof ImVarAccess right && left.getVar() == right.getVar(),
+                "an assignment of a local to itself is left: " + f.getBody());
+        }
+        assertEquals(f.getBody().size(), 2, "the call and the return: " + f.getBody());
+    }
+
+    /**
      * The local merger replaces a dead assignment by what its value does besides producing it, and the IM stays flat
      * while the local optimisations run: a call becomes a call statement and a division which may stop the thread
      * inside an expression an assignment of it, not a statement expression.

@@ -135,8 +135,30 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         }
 
         applyMerges(func, merges);
+        removeSelfAssignments(func, merges);
         int removed = removeUnusedLocals(func);
         totalLocalsMerged += removed;
+    }
+
+    /**
+     * A copy between two locals which were merged is an assignment of the local to itself now, which does nothing.
+     * No pass after the last merge would remove it, so the script kept it.
+     */
+    private static void removeSelfAssignments(ImFunction func, Map<ImVar, ImVar> merges) {
+        if (merges.isEmpty()) return;
+        List<ImSet> selfAssignments = new ArrayList<>();
+        func.accept(new ImFunction.DefaultVisitor() {
+            @Override public void visit(ImSet set) {
+                super.visit(set);
+                if (set.getLeft() instanceof ImVarAccess left && set.getRight() instanceof ImVarAccess right
+                    && left.getVar() == right.getVar()) {
+                    selfAssignments.add(set);
+                }
+            }
+        });
+        for (ImSet set : selfAssignments) {
+            AstEdits.deleteStmt(set);
+        }
     }
 
     private static void applyMerges(ImFunction func, Map<ImVar, ImVar> merges) {
