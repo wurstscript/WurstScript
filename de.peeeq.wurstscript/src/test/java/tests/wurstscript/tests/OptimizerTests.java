@@ -1547,6 +1547,121 @@ public class OptimizerTests extends WurstScriptTest {
         }
     }
 
+    /** Check the inliner output before local optimizations, as well as execution on both targets. */
+    @Test
+    public void inlinerFallbackGroupsGuardsAndPreservesReturnFreeSubtrees() throws IOException {
+        test().testLua(true).luaOnly(false).inline().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int result = 0",
+            "int failures = 0",
+            "@inline function pick(int x) returns int",
+            "    trace += 1",
+            "    for i = 0 to 1",
+            "        if i == x",
+            "            return i",
+            "        trace += 2",
+            "        trace += 3",
+            "    trace += 10",
+            "    trace += 100",
+            "    if x > 10",
+            "        trace += 1000",
+            "        trace += 2000",
+            "    else",
+            "        trace += 4000",
+            "        trace += 8000",
+            "    for i = 0 to 1",
+            "        trace += 10000",
+            "        trace += 20000",
+            "    return -1",
+            "@noinline function caller(int x)",
+            "    result = pick(x)",
+            "init",
+            "    caller(0)",
+            "    if result != 0 or trace != 1",
+            "        failures++",
+            "    trace = 0",
+            "    caller(1)",
+            "    if result != 1 or trace != 6",
+            "        failures++",
+            "    trace = 0",
+            "    caller(2)",
+            "    if result != -1 or trace != 72121",
+            "        failures++",
+            "    trace = 0",
+            "    caller(11)",
+            "    if failures == 0 and result == -1 and trace == 63121",
+            "        testSuccess()");
+
+        String jass = Files.toString(new File("test-output/OptimizerTests_inlinerFallbackGroupsGuardsAndPreservesReturnFreeSubtrees_inl.j"), Charsets.UTF_8);
+        int start = jass.indexOf("function caller takes");
+        assertTrue(start >= 0);
+        String caller = jass.substring(start, jass.indexOf("endfunction", start));
+        assertEquals(countOccurrences(caller, "if  not inlineDone"), 3,
+            "only the loop suffix, post-loop suffix and fallback value need guards");
+        assertEquals(countOccurrences(caller, "exitwhen inlineDone"), 1,
+            "only the loop containing a return needs exit propagation");
+
+        String lua = Files.toString(new File("test-output/lua/OptimizerTests_inlinerFallbackGroupsGuardsAndPreservesReturnFreeSubtrees.lua"), Charsets.UTF_8);
+        assertEquals(java.util.regex.Pattern.compile("if\\s+\\(?not\\s*\\(?inlineDone").matcher(lua).results().count(), 3L,
+            "Lua must retain the same grouped guards");
+    }
+
+    @Test
+    public void inlinerGroupedGuardsPropagateNestedAndVoidReturns() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int failures = 0",
+            "@noinline function check(bool ok)",
+            "    if not ok",
+            "        failures++",
+            "@inline function nested(int x) returns int",
+            "    for i = 0 to 1",
+            "        trace += 1",
+            "        for j = 0 to 1",
+            "            trace += 10",
+            "            if i * 2 + j == x",
+            "                return i * 2 + j",
+            "            trace += 100",
+            "        trace += 1000",
+            "    trace += 10000",
+            "    return -1",
+            "@inline function voidReturn(int x)",
+            "    for i = 0 to 1",
+            "        if i == x",
+            "            return",
+            "        trace += 1",
+            "        trace += 10",
+            "    trace += 100",
+            "@noinline function run(int x) returns int",
+            "    return nested(x)",
+            "@noinline function runVoid(int x)",
+            "    voidReturn(x)",
+            "init",
+            "    check(run(0) == 0 and trace == 11)",
+            "    trace = 0",
+            "    check(run(1) == 1 and trace == 121)",
+            "    trace = 0",
+            "    check(run(2) == 2 and trace == 1232)",
+            "    trace = 0",
+            "    check(run(3) == 3 and trace == 1342)",
+            "    trace = 0",
+            "    check(run(4) == -1 and trace == 12442)",
+            "    trace = 0",
+            "    runVoid(0)",
+            "    check(trace == 0)",
+            "    runVoid(1)",
+            "    check(trace == 11)",
+            "    trace = 0",
+            "    runVoid(2)",
+            "    check(trace == 122)",
+            "    if failures == 0",
+            "        testSuccess()");
+    }
+
 
     @Test
     public void moveTowardsBug() { // see #737
