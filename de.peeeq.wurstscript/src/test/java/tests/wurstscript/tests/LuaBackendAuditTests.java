@@ -4840,6 +4840,86 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * C inherits m from its superclass and a default m from an interface it implements. Through the interface, Jass
+     * and the interpreter run the interface's default: the dispatch of Omega.m only takes implementations from the
+     * subclasses of Omega, and Base is none. Lua bound whichever of the two sorted first by class name.
+     */
+    @Test
+    public void interfaceDefaultVersusInheritedMethodDoesNotDependOnClassNames() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+            "class Base", "    function m() returns int", "        return 1", "class C extends Base implements Omega",
+            "function viaOmega(Omega a) returns int", "    return a.m()",
+            "init", "    if viaOmega(new C()) == 2", "        testSuccess()");
+        String lua = compiledLua("interfaceDefaultVersusInheritedMethodDoesNotDependOnClassNames");
+        String slot = dispatchedSlot(lua, "viaOmega");
+        assertTrue("C binds " + slot + " to Omega's default:\n" + lua, lua.contains("C." + slot + " = Omega_Omega_m"));
+    }
+
+    /** The slot the dispatching call in {@code functionName} reads. */
+    private String dispatchedSlot(String lua, String functionName) {
+        java.util.regex.Matcher call = java.util.regex.Pattern.compile("__wurst_objectClass\\[\\w+\\]\\.(\\w+)\\(")
+            .matcher(luaFunctionBody(lua, functionName));
+        assertTrue("expected a dispatching call in " + functionName + ":\n" + lua, call.find());
+        return call.group(1);
+    }
+
+    /** The same with the superclass sorting after the interface. */
+    @Test
+    public void interfaceDefaultVersusInheritedMethodDoesNotDependOnClassNamesSortedTheOtherWay() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+            "class Zeta", "    function m() returns int", "        return 1", "class C extends Zeta implements Omega",
+            "function viaOmega(Omega a) returns int", "    return a.m()",
+            "init", "    if viaOmega(new C()) == 2", "        testSuccess()");
+    }
+
+    /** The default is also the one through an interface which C implements by an interface extending it. */
+    @Test
+    public void interfaceDefaultReachedThroughAnExtendingInterfaceBeatsTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+            "interface Omega2 extends Omega",
+            "class Base", "    function m() returns int", "        return 1", "class C extends Base implements Omega2",
+            "class D extends C",
+            "function viaOmega(Omega a) returns int", "    return a.m()",
+            "init", "    if viaOmega(new C()) == 2 and viaOmega(new D()) == 2", "        testSuccess()");
+    }
+
+    /**
+     * Through the superclass, C runs the method it inherits from there, also when that method has overrides, so
+     * that it is dispatched as well: one object answers 2 through the interface and 1 through the superclass, on
+     * Jass and in the interpreter. F, which overrides both, makes the two one dispatch family.
+     */
+    @Test
+    public void interfaceDefaultAndInheritedMethodEachDispatchThroughTheirOwnType() throws IOException {
+        for (String superclass : List.of("Base", "Zeta")) {
+            String name = "interfaceDefaultAndInheritedMethodEachDispatchThroughTheirOwnType_" + superclass;
+            testNamed(name)
+                .testLua(true).luaOnly(false).executeProg().lines(
+                    "package test", "native testSuccess()", "interface Omega", "    function m() returns int", "        return 2",
+                    "class " + superclass, "    function m() returns int", "        return 1",
+                    "class C extends " + superclass + " implements Omega",
+                    "class E extends " + superclass, "    override function m() returns int", "        return 5",
+                    "class F extends " + superclass + " implements Omega", "    override function m() returns int", "        return 3",
+                    "function viaOmega(Omega a) returns int", "    return a.m()",
+                    "function viaSuper(" + superclass + " a) returns int", "    return a.m()",
+                    "init",
+                    "    if viaOmega(new C()) == 2 and viaSuper(new C()) == 1 and viaSuper(new E()) == 5",
+                    "        if viaOmega(new F()) == 3 and viaSuper(new F()) == 3",
+                    "            testSuccess()");
+            // one class table cannot give C both answers under one key: the two calls read different slots
+            String lua = compiledLua(name);
+            String throughOmega = dispatchedSlot(lua, "viaOmega");
+            String throughSuper = dispatchedSlot(lua, "viaSuper");
+            assertTrue("C binds " + throughOmega + " to Omega's default:\n" + lua,
+                lua.contains("C." + throughOmega + " = Omega_Omega_m"));
+            assertTrue("C binds " + throughSuper + " to " + superclass + "'s method:\n" + lua,
+                lua.contains("C." + throughSuper + " = " + superclass + "_" + superclass + "_m"));
+        }
+    }
+
+    /**
      * Constructor helper methods are named create, create1, create2, ... in
      * class-translation order, while method dispatch slots use (normalized)
      * user method names. Both live in the same class-table key namespace, so
