@@ -2136,6 +2136,61 @@ public class OptimizerTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * An assignment to a field nothing reads goes, but evaluating its target calls getC and nextIndex, and those
+     * calls stay. On Jass the classes are eliminated first and the target is an array access; on Lua it is still a
+     * member access.
+     */
+    @Test
+    public void garbageRemovalKeepsTheReceiverAndTheIndexOfAnUnreadField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "class C",
+            "    int x",
+            "    int array[3] arr",
+            "C c",
+            "int calls = 0",
+            "function getC() returns C",
+            "    calls++",
+            "    return c",
+            "function nextIndex() returns int",
+            "    calls++",
+            "    return 1",
+            "init",
+            "    c = new C",
+            "    getC().x = 5",
+            "    c.arr[nextIndex()] = 7",
+            "    if calls == 2",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"the effects of the assignment target were dropped\")");
+    }
+
+    /** The same for a component of a tuple array element: with -inline the removal runs before the tuples go. */
+    @Test
+    public void garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "tuple vec2(real x, real y)",
+            "vec2 array points",
+            "int calls = 0",
+            "function nextIndex() returns int",
+            "    calls++",
+            "    if calls > 100",
+            "        return 0",
+            "    return 1",
+            "init",
+            "    points[nextIndex()].y = 1.",
+            "    if calls == 1",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"the index call of the assignment target was dropped\")");
+    }
+
     @Test
     public void garbageRemovalKeepsTheVariableWhichFlatteningAnEffectMakes() {
         // An assignment to an unread variable of `sink(tick(), (tock(); 2))` leaves the call, and the statements of its

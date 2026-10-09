@@ -1,5 +1,11 @@
 ## 1.9 (in progress)
 
+- The garbage removal keeps the calls in the target of an assignment it removes. An assignment to a field which
+  nothing reads, `getC().x = 5` or `c.arr[nextIndex()] = 7`, kept only the effects of its value, so `getC()` and
+  `nextIndex()` were not called on Lua, and with `-inline` the index call of `points[nextIndex()].y = 1.` was dropped
+  on both targets. The receiver and the indexes are kept now, in the order the assignment evaluates them, as they
+  already were for an array element. Castle fight compiles to the same script.
+
 - On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
   `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
   those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic
