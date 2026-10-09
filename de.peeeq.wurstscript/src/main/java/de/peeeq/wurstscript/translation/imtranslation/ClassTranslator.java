@@ -459,7 +459,7 @@ public class ClassTranslator {
         ClassDef trace = classDef;
         ImVar thisVar = JassIm.ImVar(trace, imClassType(), "this", false);
         classInitFunc = JassIm.ImFunction(classDef, translator.getNameFor(classDef) + "_init", ImTypeVars(), ImVars(thisVar), ImVoid(), ImVars(), ImStmts(), Collections.emptyList());
-        imClass.getFunctions().add(classInitFunc);
+        translator.addClassFunction(imClass, classInitFunc);
 
         ImFunction f = classInitFunc;
         // initialize vars

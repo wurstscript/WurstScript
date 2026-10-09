@@ -78,8 +78,9 @@ public class TLDTranslation {
         // Process elements
         for (WEntity e : elements) {
             translator.lasttranslatedThing = e;
-            e.imTranslateEntity(translator);
+            translator.translateDefinition(pack, e, () -> e.imTranslateEntity(translator));
         }
+        translator.endPackageElements(pack);
     }
 
     public static void translate(ClassDef classDef, ImTranslator translator) {
@@ -94,7 +95,9 @@ public class TLDTranslation {
             translate(extendedClass.getClassDef(), translator);
         }
 
-        ClassTranslator.translate(classDef, translator);
+        // a superclass is translated before its subclass, which may be in another package
+        translator.translateDefinition((WPackage) classDef.attrNearestPackage(), ImTranslator.topLevelDefinition(classDef),
+            () -> ClassTranslator.translate(classDef, translator));
         translator.setTranslated(classDef);
     }
 
