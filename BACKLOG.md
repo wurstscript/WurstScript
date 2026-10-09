@@ -74,14 +74,16 @@ Notes; finished-work narrative does not.
   (`ImTranslator.refreshReadVariables`) and the removal runs until nothing is left, the removal puts the effects of
   an assignment in its place as statements (it left a statement expression for the next flatten to unwrap, which
   was 5 of the flatten calls of a build, and which `GlobalsInliner` took for a statement which may abort, so it did
-  not inline the constants of a package initialiser), so no flatten and no second removal (#883) follows it. Left:
+  not inline the constants of a package initialiser), so no flatten and no second removal (#883) follows it, and a flatten
+  leaves the functions which were not modified since the last one (`ImFunction.modificationCount()`, which the generator
+  keeps: `modification counts: ImFunction` in `jass_im.parseq`). Left:
   (1) more removals which remove nothing: one which the test suite shows to find nothing becomes an `assertNoGarbage`,
   as the second removal, the one in `optimize` and the one in front of the empty package initialisers did (the one in
   front of the first local optimisation is a candidate); (2) the Jass
   pipeline analyses the call relation once more after the last removal (`calculateCallRelationsAndReadVariables`
   before `ImToJassTranslator`), which the removal has just done; (3) facts which live longer than one removal, valid
-  while a modification count of the function (the generator can keep one) is the same, so that the first round of a
-  removal does not walk the functions no pass touched; (4) `LocalPlayerContextAnalyzer`, built again for the whole program after each
+  while `modificationCount()` of the function is the same (it replaces `ImTranslator.functionChanged`, which a pass
+  can forget to call), so that the first round of a removal does not walk the functions no pass touched; (4) `LocalPlayerContextAnalyzer`, built again for the whole program after each
   pass which is not local-player aware: about a tenth of an optimised build (JFR); (5) the flatten after the tuples
   are eliminated is the one which does work (about 565 to 800 functions of castle fight): the producers of
   statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does.

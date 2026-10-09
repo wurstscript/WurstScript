@@ -1,5 +1,12 @@
 ## 1.9 (in progress)
 
+- A flatten leaves the functions which were not modified since a flatten left them: what a flatten leaves is flat, so
+  another one would rebuild the same body. The generated code of the IM counts the modifications of each function
+  (`ImFunction.modificationCount()`: every setter and every list of the function and of what is below it), so no
+  pass has to say what it changed. Castle fight to Lua skips 17,514 of 42,710 function rebuilds without
+  optimisations and 37,597 of 71,300 with them; to Jass without optimisations 1 of 42,315. The scripts of the whole
+  test suite and of castle fight are byte for byte the same.
+
 - The garbage removal runs until nothing is left. It stopped after ten rounds and a second removal finished what a long
   chain of assignments had left, and it replaced each assignment to an unread variable by an empty statement
   expression, for the next flatten to unwrap. It puts what the assignment does besides assigning in its place as
