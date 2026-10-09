@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.requests.BuildMap;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -293,5 +294,35 @@ public class BuildDiagnosticsTests {
         assertEquals(reports.size(), 1);
         assertFalse(reports.get(0).getDiagnostics().stream().anyMatch(d -> d.getMessage().equals("Build warning")));
         assertTrue(reports.get(0).getDiagnostics().stream().anyMatch(d -> d.getMessage().contains("missing")));
+    }
+
+    /**
+     * A build checks the code again (BuildMap a copy of the model, RunMap the model after the map script is swapped),
+     * and that check reports the warnings the editor shows already. The file lists each once.
+     */
+    @Test
+    public void aBuildDoesNotRepeatTheWarningsTheEditorShows() throws Exception {
+        Path project = Files.createTempDirectory("wurst-build-repeated-warnings");
+        Path wurst = Files.createDirectory(project.resolve("wurst"));
+        Files.writeString(wurst.resolve("Wurst.wurst"), "package Wurst\n");
+        Path source = wurst.resolve("Main.wurst");
+        Files.writeString(source, "package Main\nfunction NotLowerCase()\n    skip\n");
+        ModelManagerImpl manager = new ModelManagerImpl(project.toFile(), new BufferManager());
+        List<PublishDiagnosticsParams> reports = new ArrayList<>();
+        manager.onCompilationResult(reports::add);
+        manager.buildProject();
+        String warning = "Function names should start with an lower case character.";
+        String uri = WFile.create(source.toFile()).getUriString();
+        LanguageClient client = (LanguageClient) Proxy.newProxyInstance(LanguageClient.class.getClassLoader(),
+            new Class<?>[]{LanguageClient.class}, (proxy, method, args) -> null);
+
+        WurstGuiLsp gui = new WurstGuiLsp(manager, client);
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(project.toFile(), gui, null, new RunArgs());
+        MapRequest.checkModel(manager, compiler, ModelManager.copy(manager.getModel()), new RunArgs());
+        gui.sendFinished();
+
+        PublishDiagnosticsParams last = reports.stream().filter(r -> r.getUri().equals(uri)).reduce((a, b) -> b).orElseThrow();
+        assertEquals(last.getDiagnostics().stream().filter(d -> d.getMessage().equals(warning)).count(), 1L,
+            last.getDiagnostics().toString());
     }
 }
