@@ -1,5 +1,12 @@
 ## 1.9 (in progress)
 
+- On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
+  `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
+  those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic
+  declarations on Jass only, so the run stopped with "The package declaring keyedMapPutNative must also declare the
+  existing keyedMapPut Jass fallback". They are roots of that shake on both targets now; the later shakes on Lua
+  still drop them. Castle fight compiles to the same script.
+
 - A file is parsed with ANTLR's SLL prediction first, and only a file which it does not accept is parsed again with the
   full LL prediction. SLL ignores the context of the rule it is in, which makes it much cheaper, and it either returns
   the tree the full prediction returns or reports a syntax error, so a valid file gives the same tree. A broken file is
