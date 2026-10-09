@@ -1971,13 +1971,30 @@ public class EliminateGenerics {
                     }
                 });
             }else {
-                subClass.getSuperClasses().replaceAll(this::specializeType);
+                specializeSuperClasses(subClass);
                 ImClassType newClassTspecialized = specializeType(newClassT);
                 if (subClass.isSubclassOf(newClassTspecialized.getClassDef())) {
                     newM.getSubMethods().add(subMethod);
                 }
             }
         }
+    }
+
+    /**
+     * Replaces the superclasses of a class with their specialisations.
+     * <p>
+     * Specialising a superclass can specialise its class. That runs the triggers registered on that
+     * class, which specialise its methods and adapt their submethods, and so come back here, for this
+     * class too; and {@link #rewriteRuntimeTypeSuperEdges} rewrites the superclasses of every class.
+     * The list can therefore change while this runs: it is read from a copy and replaced, never
+     * rewritten in place.
+     */
+    private void specializeSuperClasses(ImClass c) {
+        List<ImClassType> specialized = new ArrayList<>();
+        for (ImClassType superClass : new ArrayList<>(c.getSuperClasses())) {
+            specialized.add(specializeType(superClass));
+        }
+        c.setSuperClasses(specialized);
     }
 
     /**
@@ -2238,7 +2255,7 @@ public class EliminateGenerics {
             : c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
-        newC.getSuperClasses().replaceAll(this::specializeType);
+        specializeSuperClasses(newC);
         if (needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
             rewriteRuntimeTypeSuperEdges(c, generics, newC);
         }
@@ -2632,14 +2649,7 @@ public class EliminateGenerics {
                     // handle generic classes after they are specialized
                     return;
                 }
-                genericsUses.add(() -> {
-                    List<ImClassType> newSuperClasses = new ArrayList<>();
-                    for (ImClassType imClassType : c.getSuperClasses()) {
-                        ImClassType specializeType = EliminateGenerics.this.specializeType(imClassType);
-                        newSuperClasses.add(specializeType);
-                    }
-                    c.setSuperClasses(newSuperClasses);
-                });
+                genericsUses.add(() -> specializeSuperClasses(c));
 
                 super.visit(c);
             }
