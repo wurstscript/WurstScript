@@ -7557,6 +7557,40 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(MOD_SEMANTICS_PROG);
     }
 
+    /**
+     * The {@code or ""} guard of a concatenation operand is placed before inlining, where
+     * {@code x.str()} is a call that might answer nil. Inlined it is the {@code tostring} of I2S, and
+     * a parameter may become a literal; neither can be nil, so neither keeps the guard. A variable
+     * which may be nil keeps it.
+     */
+    @Test
+    public void concatenationOperandsWhichCannotBeNilLoseTheirGuardOnceInlined() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "function int.str() returns string",
+            "    return I2S(this)",
+            "function greet(string name) returns string",
+            "    return \"hi \" + name",
+            "@noinline function label(int x) returns string",
+            "    return \"x=\" + x.str() + \"!\"",
+            "@noinline function fixedGreeting() returns string",
+            "    return greet(\"bob\")",
+            "@noinline function greetAnyone(string name) returns string",
+            "    return \"hi \" + name",
+            "init",
+            "    if label(-3) == \"x=-3!\" and fixedGreeting() == \"hi bob\" and greetAnyone(\"al\") == \"hi al\"",
+            "        testSuccess()");
+        String compiled = compiledLua("concatenationOperandsWhichCannotBeNilLoseTheirGuardOnceInlined");
+        String label = topLevelFunctionBodyWithPrefix(compiled, "label");
+        assertTrue(label, label.contains("(\"x=\" .. tostring(x) .. \"!\")"));
+        String fixedGreeting = topLevelFunctionBodyWithPrefix(compiled, "fixedGreeting");
+        assertTrue(fixedGreeting, fixedGreeting.contains("(\"hi \" .. \"bob\")"));
+        String greetAnyone = topLevelFunctionBodyWithPrefix(compiled, "greetAnyone");
+        assertTrue("a variable keeps its guard:\n" + greetAnyone, greetAnyone.contains("(name or \"\")"));
+    }
+
     /** -0.0 stays -0.0 under Lua's % as under fmod and its correction: 1 / r is minus infinity. */
     @Test
     public void modKeepsTheSignOfANegativeZeroOnLua() throws IOException {

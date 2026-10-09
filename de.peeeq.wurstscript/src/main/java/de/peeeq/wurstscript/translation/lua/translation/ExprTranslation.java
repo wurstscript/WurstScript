@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
+import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
@@ -122,8 +123,14 @@ public class ExprTranslation {
                 unaryIntrinsic.substring(dot + 1)), argument);
         }
         if (e.getFunc() == tr.imTr.luaRawOrEmptyFunc && e.getArguments().size() == 1) {
-            return LuaAst.LuaExprBinary(e.getArguments().get(0).translateToLua(tr), LuaAst.LuaOpOr(),
-                LuaAst.LuaExprStringVal(""));
+            ImExpr operand = e.getArguments().get(0);
+            LuaExpr translated = operand.translateToLua(tr);
+            // The guard was placed before inlining; the operand it finally holds may be one that
+            // cannot be nil (a literal, I2S, a concatenation), which then needs no guard.
+            if (LuaNativeLowering.neverNil(operand, tr.imTr)) {
+                return translated;
+            }
+            return LuaAst.LuaExprBinary(translated, LuaAst.LuaOpOr(), LuaAst.LuaExprStringVal(""));
         }
         if (e.getFunc() == tr.imTr.luaRawR2IFunc && e.getArguments().size() == 1) {
             LuaExpr x = e.getArguments().get(0).translateToLua(tr);

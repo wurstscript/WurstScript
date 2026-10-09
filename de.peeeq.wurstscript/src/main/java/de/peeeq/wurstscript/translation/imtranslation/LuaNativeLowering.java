@@ -408,15 +408,21 @@ public final class LuaNativeLowering {
      */
     private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S");
 
-    private static boolean neverNil(ImExpr e, ImTranslator translator) {
+    /**
+     * Whether the string {@code e} cannot be nil on Lua. Asked here, before the optimiser, and again
+     * by the backend of the operand a {@code luaRawOrEmptyFunc} guard finally holds: inlining turns a
+     * call such as {@code int.toString()} into the {@code I2S} it returns, which needs no guard.
+     */
+    public static boolean neverNil(ImExpr e, ImTranslator translator) {
         if (e instanceof ImStringVal) {
             return true;
         }
         if (e instanceof ImFunctionCall imFunctionCall) {
             ImFunction f = imFunctionCall.getFunc();
-            // a lowered concatenation always has two strings to join
+            // a lowered concatenation always has two strings to join; tostring answers a string
             return f == translator.luaRawConcatFunc
                 || f == translator.luaRawOrEmptyFunc
+                || f == translator.luaRawToStringFunc
                 || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()));
         }
         return false;
