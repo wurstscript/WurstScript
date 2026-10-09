@@ -28,6 +28,12 @@ public interface ModelManager {
 
     List<CompileError> getParseErrors();
 
+    /**
+     * The warnings the parser reported for the units of the model, such as inconsistent indentation. No check of the
+     * model reports them again.
+     */
+    List<CompileError> getParseWarnings();
+
     void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
 
     void reportBuildDiagnostics(List<CompileError> diagnostics);

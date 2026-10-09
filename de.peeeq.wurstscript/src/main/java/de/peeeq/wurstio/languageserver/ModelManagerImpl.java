@@ -1079,6 +1079,14 @@ public class ModelManagerImpl implements ModelManager {
         return parseErrorStream().collect(Collectors.toList());
     }
 
+    @Override
+    public List<CompileError> getParseWarnings() {
+        return parseErrors.values().stream()
+                .flatMap(Collection::stream)
+                .filter(err -> err.getErrorType() == CompileError.ErrorType.WARNING)
+                .collect(Collectors.toList());
+    }
+
     private Stream<CompileError> parseErrorStream() {
         return parseErrors.values().stream()
                 .flatMap(Collection::stream)

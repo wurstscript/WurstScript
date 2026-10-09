@@ -544,6 +544,11 @@ public class LanguageWorkerTest {
         }
 
         @Override
+        public List<CompileError> getParseWarnings() {
+            return Collections.emptyList();
+        }
+
+        @Override
         public void onCompilationResult(Consumer<PublishDiagnosticsParams> f) {
         }
 

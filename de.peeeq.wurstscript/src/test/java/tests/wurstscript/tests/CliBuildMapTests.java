@@ -125,15 +125,22 @@ public class CliBuildMapTests {
     }
 
     private static final String NAME_WARNING = "Function names should start with an lower case character.";
+    /** Reported by the lexer, when the project is loaded: no check of the model reports it. */
+    private static final String INDENTATION_WARNING = "Use an even number of spaces for indentation.";
 
-    /** A project whose code has a warning, and the map script with the config applied (returned). */
-    private static File projectWithAWarning(String folder) throws Exception {
+    /**
+     * A project whose code has a warning of the check and one of the parser, and the map script with the config
+     * applied (returned).
+     */
+    private static File projectWithWarnings(String folder) throws Exception {
         File projectFolder = new File(folder);
         File wurstFolder = new File(projectFolder, "wurst");
         wurstFolder.mkdirs();
         Files.writeString(new File(wurstFolder, "Wurst.wurst").toPath(), "package Wurst\n");
         Files.writeString(new File(wurstFolder, "Main.wurst").toPath(),
             "package Main\npublic function NotLowerCase()\n    skip\n");
+        Files.writeString(new File(wurstFolder, "Indented.wurst").toPath(),
+            "package Indented\npublic function indentedByThree()\n   skip\n");
         Files.writeString(new File(wurstFolder, "war3map.j").toPath(),
             "function main takes nothing returns nothing\nendfunction\n");
         File configured = new File(projectFolder, "configured.j");
@@ -143,17 +150,18 @@ public class CliBuildMapTests {
         return configured;
     }
 
-    private static long nameWarnings(WurstGui gui) {
-        return gui.getWarningList().stream().filter(w -> w.getMessage().equals(NAME_WARNING)).count();
+    private static long warnings(WurstGui gui, String message) {
+        return gui.getWarningList().stream().filter(w -> w.getMessage().equals(message)).count();
     }
 
     /**
      * Main prints the warnings of the request's gui after a build. The CLI checks the model once, and the compilation
-     * takes that check over, so the warnings of the check are the ones to print, each once.
+     * takes that check over, so the warnings of the check are the ones to print, each once, with those the parser
+     * reported when the project was loaded.
      */
     @Test
     public void theCliBuildReportsTheWarningsOfItsCheck() throws Exception {
-        File configured = projectWithAWarning("./temp/testProject_cli_build_warnings/");
+        File configured = projectWithWarnings("./temp/testProject_cli_build_warnings/");
         File projectFolder = configured.getParentFile();
         ModelManagerImpl modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
         modelManager.loadProject();
@@ -162,13 +170,15 @@ public class CliBuildMapTests {
         new CheckingCliBuildMap(projectFolder, List.of(), gui).compile(modelManager, configured);
 
         assertFalse(modelManager.hasErrors(), modelManager.getFirstErrorDescription());
-        assertEquals(nameWarnings(gui), 1, "the warning is reported once: " + gui.getWarningList());
+        assertEquals(warnings(gui, NAME_WARNING), 1, "the warning is reported once: " + gui.getWarningList());
+        assertEquals(warnings(gui, INDENTATION_WARNING), 1,
+            "the warning of the parser is reported once: " + gui.getWarningList());
     }
 
     /** With the legacy Jass checks the compilation checks the model again, with its own checks, and reports that. */
     @Test
     public void withTheLegacyJassChecksTheCliBuildReportsTheWarningsOnce() throws Exception {
-        File configured = projectWithAWarning("./temp/testProject_cli_build_warnings_legacy/");
+        File configured = projectWithWarnings("./temp/testProject_cli_build_warnings_legacy/");
         File projectFolder = configured.getParentFile();
         ModelManagerImpl modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
         modelManager.loadProject();
@@ -176,7 +186,9 @@ public class CliBuildMapTests {
 
         new CheckingCliBuildMap(projectFolder, List.of("-legacyJassChecks"), gui).compile(modelManager, configured);
 
-        assertEquals(nameWarnings(gui), 1, "the warning is reported once: " + gui.getWarningList());
+        assertEquals(warnings(gui, NAME_WARNING), 1, "the warning is reported once: " + gui.getWarningList());
+        assertEquals(warnings(gui, INDENTATION_WARNING), 1,
+            "the warning of the parser is reported once: " + gui.getWarningList());
     }
 
     private static final class CountingModelManager extends ModelManagerImpl {
