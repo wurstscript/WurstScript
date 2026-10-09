@@ -621,6 +621,63 @@ public class DeterministicChecks extends WurstScriptTest {
         return n;
     }
 
+    /**
+     * A generic class implements two interfaces, each with one of two overloads it inherits, so it gets a function of
+     * its own for each, both named after the method. The interfaces are in packages of their own: the Jass and the
+     * Lua must not depend on which of them is translated first. Base comes first either way, so its own functions are
+     * made in its order: a class's functions are made when they are first asked for, which an interface translated
+     * before the class does in the order of the units. C comes after both interfaces.
+     */
+    @Test
+    public void bridgesOfAGenericClassAreTheSameInAnyUnitOrder() throws IOException {
+        List<CU> units = List.of(
+            compilationUnit("IntM.wurst",
+                "package IntM",
+                "public interface IntM",
+                "    function m(int x) returns int"),
+            compilationUnit("StrM.wurst",
+                "package StrM",
+                "public interface StrM",
+                "    function m(string s) returns int"),
+            compilationUnit("BaseLib.wurst",
+                "package BaseLib",
+                "public class Base",
+                "    function m(int x) returns int",
+                "        return x",
+                "    function m(string s) returns int",
+                "        return 7"),
+            compilationUnit("Lib.wurst",
+                "package Lib",
+                "import BaseLib",
+                "import IntM",
+                "import StrM",
+                "public class C<T:> extends Base implements IntM, StrM"),
+            compilationUnit("Main.wurst",
+                "package Main",
+                "import IntM",
+                "import StrM",
+                "import Lib",
+                "native testSuccess()",
+                "function viaInt(IntM i) returns int",
+                "    return i.m(5)",
+                "function viaStr(StrM s) returns int",
+                "    return s.m(\"a\")",
+                "init",
+                "    if viaInt(new C<int>()) == 5 and viaStr(new C<int>()) == 7",
+                "        testSuccess()"));
+        String name = "bridgesOfAGenericClass";
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(2), units.get(0), units.get(1), units.get(3), units.get(4));
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(2), units.get(1), units.get(0), units.get(3), units.get(4));
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass, "Jass must not depend on the unit order");
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "Lua must not depend on the unit order");
+    }
+
     /** Compiles {@code units} to Lua, runs them, and returns the script, which is written under {@code name}. */
     private String compileToLua(String name, List<CU> units) throws IOException {
         testNamed(name).testLua(true).executeProg().compilationUnits(units.toArray(new CU[0]));

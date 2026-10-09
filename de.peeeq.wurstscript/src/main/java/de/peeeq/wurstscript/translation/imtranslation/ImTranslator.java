@@ -425,6 +425,7 @@ public class ImTranslator implements SpecialisationLookup {
             }
             attachFunctionsAwaitingClass();
             linkBridgedOverrides();
+            addBridgeFunctions();
 
             if (mainFunc == null) {
                 mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
@@ -481,6 +482,36 @@ public class ImTranslator implements SpecialisationLookup {
                 if (subClass != bridgeClass && subClass.isSubclassOf(bridgeClass)) {
                     b.bridge().getSubMethods().add(sub);
                 }
+            }
+        }
+    }
+
+    /** The functions {@link #bridgeFunction} made, by class and by the implementation each one runs. */
+    private final Map<ImClass, Map<FuncDef, ImFunction>> bridgeFunctions = new IdentityHashMap<>();
+
+    /**
+     * The function {@code c} has of its own to run {@code implementation}, an implementation it inherits
+     * ({@code InterfaceTranslator}), made by {@code make} the first time: a class implementing several interfaces with
+     * one inherited method gets one function for it.
+     */
+    public ImFunction bridgeFunction(ImClass c, FuncDef implementation, java.util.function.Supplier<ImFunction> make) {
+        return bridgeFunctions.computeIfAbsent(c, k -> new IdentityHashMap<>())
+            .computeIfAbsent(implementation, k -> make.get());
+    }
+
+    /**
+     * Adds the functions of {@link #bridgeFunction} to their classes once every unit is translated. They are made as
+     * the interfaces are translated, in the order of the compilation units, and two of them can have one name (the
+     * overloads of a method), which the backends tell apart by their order. So they go in by their sort key, which the
+     * order of the units does not change.
+     */
+    private void addBridgeFunctions() {
+        for (ImClass c : imProg.getClasses()) {
+            Map<FuncDef, ImFunction> functions = bridgeFunctions.get(c);
+            if (functions != null) {
+                List<ImFunction> sorted = new ArrayList<>(functions.values());
+                sortList(sorted);
+                c.getFunctions().addAll(sorted);
             }
         }
     }
