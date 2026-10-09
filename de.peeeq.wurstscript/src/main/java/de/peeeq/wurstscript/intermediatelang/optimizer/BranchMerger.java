@@ -53,7 +53,9 @@ public class BranchMerger implements LocalPlayerAwareOptimizerPass {
                             // and has no side-effects that could affect the if-condition:
                             if (firstStmtThen.structuralEquals(firstStmtElse)
                                     && !localPlayerContextAnalyzer.isLocalPlayerDependent(ifStmt.getCondition())
-                                    && !sideEffectAnalyzer.mightAffect(firstStmtThen, ifStmt.getCondition())) {
+                                    && !sideEffectAnalyzer.mightAffect(firstStmtThen, ifStmt.getCondition())
+                                    && (!mayLeave(firstStmtThen)
+                                        || !SideEffectAnalyzer.quickcheckHasSideeffects(ifStmt.getCondition()))) {
                                 // remove statements
                                 ifStmt.getThenBlock().remove(0);
                                 ifStmt.getElseBlock().remove(0);
@@ -77,6 +79,45 @@ public class BranchMerger implements LocalPlayerAwareOptimizerPass {
     }
 
 
+
+    /**
+     * Whether control may leave the statements around {@code s} from inside it: by a return, or by an exitwhen of a
+     * loop outside {@code s}. Moved in front of an if, such a statement runs before the condition, which then is
+     * not evaluated at all when it leaves.
+     */
+    private static boolean mayLeave(ImStmt s) {
+        boolean[] leaves = {false};
+        s.accept(new Element.DefaultVisitor() {
+            private int loops = 0;
+
+            @Override
+            public void visit(ImReturn r) {
+                leaves[0] = true;
+            }
+
+            @Override
+            public void visit(ImExitwhen e) {
+                if (loops == 0) {
+                    leaves[0] = true;
+                }
+            }
+
+            @Override
+            public void visit(ImLoop l) {
+                loops++;
+                super.visit(l);
+                loops--;
+            }
+
+            @Override
+            public void visit(ImVarargLoop l) {
+                loops++;
+                super.visit(l);
+                loops--;
+            }
+        });
+        return leaves[0];
+    }
 
     @Override
     public String getName() {
