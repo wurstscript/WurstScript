@@ -26,6 +26,32 @@ import static org.testng.AssertJUnit.fail;
 public class LuaKeyedMapTests extends WurstScriptTest {
 
     @Test
+    public void malformedStringPutFallbackReportsStringSignature() {
+        test().expectError("keyedMapPutString must keep the existing int-map/string-key signature.").lines(
+            "package Test",
+            "@compilerintrinsic function keyedMapPutString(int map, handle key, int value)",
+            "    skip",
+            "@compilerintrinsic function keyedMapPutNative<K:, V:>(int map, K key, V value)",
+            "    skip",
+            "init",
+            "    keyedMapPutNative<string, int>(0, \"key\", 1)",
+            "endpackage");
+    }
+
+    @Test
+    public void malformedStringGetFallbackReportsStringSignature() {
+        test().expectError("keyedMapGetStringInt must keep the existing int-map/string-key signature.").lines(
+            "package Test",
+            "@compilerintrinsic function keyedMapGetStringInt(int map, handle key) returns int",
+            "    return 0",
+            "@compilerintrinsic function keyedMapGetNative<K:, V:>(int map, K key) returns V",
+            "    return null",
+            "init",
+            "    let value = keyedMapGetNative<string, int>(0, \"key\")",
+            "endpackage");
+    }
+
+    @Test
     public void stringKeysInFastKeyedMap() throws IOException {
         test().withStdLib().testLua(true).luaOnly(false).inline().executeProg().lines(
             "package Test",

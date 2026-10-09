@@ -186,7 +186,8 @@ public final class JassKeyedMapLowering {
                         && TypesHelper.isIntType(candidate.getReturnType());
                 if (!valid) {
                     throw new CompileError(candidate.attrTrace().attrErrorPos(),
-                        name + " must keep the existing int-map/handle-key signature.");
+                        name + " must keep the existing int-map/"
+                            + (TypesHelper.isStringType(keyType) ? "string" : "handle") + "-key signature.");
                 }
                 return candidate;
             }
