@@ -58,4 +58,28 @@ public class UpdateModelTests {
         assertEquals(manager.uncheckedCount(), manager.getModel().size(),
             "plain Jass names are visible everywhere: every unit has to be checked again");
     }
+
+    /** Only a model whose units are all unchecked may skip the reconciliation, not one which is partly checked. */
+    @Test
+    public void aFileAddedWhileSomeUnitsAreUncheckedIsReconciled() throws IOException {
+        Path root = ParallelLoadTests.project(false);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        manager.buildProject();
+        WFile p00 = WFile.create(root.resolve("wurst/P00.wurst").toFile());
+        manager.syncCompilationUnitContent(p00, Files.readString(root.resolve("wurst/P00.wurst")) + "// edited\n");
+        int unchecked = manager.uncheckedCount();
+        assertTrue(unchecked > 0 && unchecked < manager.getModel().size(), "a partly checked model: " + unchecked);
+
+        // a second definition of P15: the other P15 and everything importing it (P14 .. P00) must be checked again
+        Path dup = root.resolve("wurst/dup/P15.wurst");
+        String text = "package P15\nimport NoWurst\npublic function p15() returns int\n    return 0\n";
+        Files.createDirectories(dup.getParent());
+        Files.writeString(dup, text);
+        int before = manager.reconciliations();
+        manager.syncCompilationUnitContent(WFile.create(dup.toFile()), text);
+
+        assertEquals(manager.reconciliations(), before + 1, "a partly checked model reconciles a new unit");
+        assertTrue(manager.uncheckedCount() >= 17,
+            "the new unit, the other P15 and P14 .. P00: " + manager.uncheckedCount());
+    }
 }
