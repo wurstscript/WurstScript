@@ -697,4 +697,35 @@ public class InterfaceTests extends WurstScriptTest {
         org.testng.Assert.assertTrue(bridge.getSubMethods().stream().anyMatch(s -> s.attrClass() == classes.get("D")),
             "C's method for Base's m is linked to D's override: " + bridge.getSubMethods());
     }
+
+    /**
+     * C gets m from Base and a default m from Default, and Abstract declares m without a body. A default beats an
+     * inherited method, so C's m is the default through either interface (Lua binds one implementation for C to
+     * both), and D's override below C beats both. Calls through both interfaces are in the program, so Lua keeps both.
+     */
+    @Test
+    public void aDefaultBeatsTheInheritedMethodWhereAnotherInterfaceHasNoBody() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function m() returns int",
+            "interface Default",
+            "    function m() returns int",
+            "        return 2",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C extends Base implements Abstract, Default",
+            "class D extends C",
+            "    override function m() returns int",
+            "        return 4",
+            "function viaDefault(Default a) returns int",
+            "    return a.m()",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaDefault(new C()) == 2 and viaDefault(new D()) == 4 and viaAbstract(new C()) == 2 and viaAbstract(new D()) == 4",
+            "        testSuccess()");
+    }
 }
