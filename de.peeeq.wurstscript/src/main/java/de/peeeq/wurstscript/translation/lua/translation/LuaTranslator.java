@@ -2160,11 +2160,16 @@ public class LuaTranslator {
         return methodSortKey(a).compareTo(methodSortKey(b));
     }
 
+    /**
+     * Whether {@code method} is declared in {@code ownerClass} itself. Asked of the class, not of the implementation's
+     * name: {@code Foo_Bar_m}, the implementation of a superclass {@code Foo_Bar}, starts with {@code Foo_}, and so
+     * does the implementation of a class {@code Foo} in another package.
+     */
     private boolean isImplementationFromClass(ImMethod method, ImClass ownerClass) {
         if (method == null || ownerClass == null || method.getImplementation() == null) {
             return false;
         }
-        return method.getImplementation().getName().startsWith(ownerClass.getName() + "_");
+        return method.attrClass() == ownerClass;
     }
 
     private boolean isNoOpImplementation(ImMethod method) {
