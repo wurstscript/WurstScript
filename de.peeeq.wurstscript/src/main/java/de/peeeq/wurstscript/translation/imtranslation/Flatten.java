@@ -483,9 +483,38 @@ public class Flatten {
     }
 
 
+    /**
+     * Flattens the body of the function, unless nothing in the function has been modified since a flatten left it:
+     * what a flatten leaves is flat, so another one would rebuild the same body.
+     */
     public static void flattenFunc(ImFunction f, ImTranslator translator) {
+        if (translator.isUnmodifiedSinceFlatten(f)) {
+            if (translator.isUnitTestMode()) {
+                assertStillFlat(f, translator);
+            }
+            return;
+        }
         ImStmts newBody = flattenStatements(f.getBody(), translator, f);
         f.setBody(newBody);
+        translator.flattened(f);
+    }
+
+    /**
+     * In a unit test: a function which was not modified since it was flattened is flat, and a flatten of a sample of
+     * them (a sixteenth, by name) leaves them as they are.
+     */
+    private static void assertStillFlat(ImFunction f, ImTranslator translator) {
+        if (!ImTranslator.isFlat(f.getBody())) {
+            throw new AssertionError("The function " + f.getName() + " was not modified since it was flattened, "
+                + "and it is not flat");
+        }
+        if ((f.getName().hashCode() & 15) == 0) {
+            ImStmts again = flattenStatements(f.getBody().copy(), translator, f);
+            if (!again.structuralEquals(f.getBody())) {
+                throw new AssertionError("The function " + f.getName() + " was not modified since it was flattened, "
+                    + "and a flatten changes it");
+            }
+        }
     }
 
     public static void flattenProg(ImProg imProg, ImTranslator translator) {

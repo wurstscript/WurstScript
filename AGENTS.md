@@ -262,6 +262,19 @@ Rules for backend work:
   is the primary requirement. Runtime and allocation performance are the next requirement: common
   optimized paths must not retain avoidable compiler-introduced allocation, dispatch, copying, or
   bookkeeping overhead. Overhead the compiler adds is a defect, not a trade-off.
+* **The IM is flat** (no `ImStatementExpr` outside a compile-time expression) from the flatten before the local
+  optimisations until the backend, which needs it: Jass has no statement expression and Lua would make a closure of
+  each. A pass which makes statement expressions flattens at its end (`prog.flatten`); a pass which only removes code,
+  or replaces a statement by statements (the garbage removal), keeps the program flat and is not followed by a flatten
+  or a second run. Statements and expressions in statement position are made by the flatten's own code
+  (`Result.intoStatements`), not by hand: an operator expression such as `a and f()` is not a statement the backends
+  translate. A unit test checks flatness at these places (`ImTranslator.assertFlat`, `ImOptimizer.assertNoGarbage`).
+* **Do not tell a cache which function changed; ask the function.** `ImFunction.modificationCount()` (the generator
+  counts the changes of a function and of everything below it, through every setter and list) is the same exactly
+  while nothing in the function was modified. A pass which is only needed for the functions which changed, or a
+  result which is kept for a function (the flatten does this), compares the count it saw. Prefer it to a
+  `functionChanged(f)` call which a pass has to remember (the facts of the garbage removal still use one, see
+  `BACKLOG.md`).
 
 ### Lua performance policy
 

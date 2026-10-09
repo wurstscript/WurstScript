@@ -136,8 +136,8 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.1"
 
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:fdc1953f62'
-    astgen 'com.github.peterzeller:abstractsyntaxgen:fdc1953f62'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:55360f6f65'
+    astgen 'com.github.peterzeller:abstractsyntaxgen:55360f6f65'
 
 
     // Tests
@@ -456,7 +456,8 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/io/**'
 
     // Within the kept objects/ints packages the compiler only uses the open-hash map/set, linked-open variants,
-    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Boolean and Int2Object.
+    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Int, Reference2Boolean and
+    // Int2Object.
     // Drop the rest (~4.6 MB): sorted (tree) maps, custom-hash maps, and the cross-primitive value families whose
     // value-type packages are already excluded above. If you start using another fastutil collection, remove the
     // matching exclude here.
@@ -477,7 +478,6 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Short*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Byte*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Char*'
-    exclude 'it/unimi/dsi/fastutil/objects/Reference2Int*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Reference*'
     exclude 'it/unimi/dsi/fastutil/ints/Int2Double*'
     exclude 'it/unimi/dsi/fastutil/ints/Int2Float*'

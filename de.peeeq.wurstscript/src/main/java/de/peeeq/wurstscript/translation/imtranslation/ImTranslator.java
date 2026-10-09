@@ -25,6 +25,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -2594,14 +2595,32 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return isUnitTestMode;
     }
 
+    /** What the modification count of each function was when a flatten left it, which is flat. */
+    private final Reference2IntOpenHashMap<ImFunction> flattenedAt = new Reference2IntOpenHashMap<>();
+
+    /** Whether the function is as a flatten left it: nothing in it was modified since. */
+    public synchronized boolean isUnmodifiedSinceFlatten(ImFunction function) {
+        return flattenedAt.containsKey(function) && flattenedAt.getInt(function) == function.modificationCount();
+    }
+
+    /** A flatten has left the function flat as it is now. */
+    public synchronized void flattened(ImFunction function) {
+        flattenedAt.put(function, function.modificationCount());
+    }
+
     /**
      * Whether the program holds no statement expression, which is what a flatten leaves and what the backends need: Jass
      * has no such expression, and Lua would make a closure of each. A compile-time expression is not looked into, the
      * interpreter evaluates it as it is.
      */
     public boolean isFlat() {
+        return isFlat(imProg);
+    }
+
+    /** Whether the element holds no statement expression (see {@link #isFlat()}). */
+    public static boolean isFlat(Element element) {
         boolean[] flat = {true};
-        imProg.accept(new Element.DefaultVisitor() {
+        element.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImStatementExpr e) {
                 flat[0] = false;

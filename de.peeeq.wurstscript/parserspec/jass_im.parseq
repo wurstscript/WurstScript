@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.jassIm
 
+modification counts: ImFunction
 
 abstract syntax:
 	

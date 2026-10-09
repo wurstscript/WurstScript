@@ -2027,6 +2027,51 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void aFlattenLeavesTheFunctionsWhichWereNotModifiedSinceTheLastOne() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        CallType normal = CallType.NORMAL;
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar local = JassIm.ImVar(model, TypesHelper.imInt(), "local", false);
+        ImStmt withStatementExpr = JassIm.ImSet(model, JassIm.ImVarAccess(local), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2)));
+        ImFunction changed = JassIm.ImFunction(model, "changed", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(local), JassIm.ImStmts(withStatementExpr), Collections.emptyList());
+        ImVar other = JassIm.ImVar(model, TypesHelper.imInt(), "other", false);
+        ImFunction untouched = JassIm.ImFunction(model, "untouched", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(other), JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(other), JassIm.ImIntVal(1))),
+            Collections.emptyList());
+        prog.getFunctions().add(tock);
+        prog.getFunctions().add(changed);
+        prog.getFunctions().add(untouched);
+
+        prog.flatten(translator);
+        ImStmts flatChanged = changed.getBody();
+        ImStmts flatUntouched = untouched.getBody();
+        assertTrue(translator.isFlat(), "the first flatten flattens everything: " + changed.getBody());
+
+        prog.flatten(translator);
+        assertSame(changed.getBody(), flatChanged, "a flatten rebuilt a function which was not modified since the last");
+        assertSame(untouched.getBody(), flatUntouched, "a flatten rebuilt a function which was not modified since the last");
+
+        // a modification of one function (below its body, so not a replacement of the body) is flattened, and only it
+        ImVar another = JassIm.ImVar(model, TypesHelper.imInt(), "another", false);
+        changed.getLocals().add(another);
+        changed.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(another), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(3))));
+        assertFalse(translator.isFlat(), "the statement expression which was added");
+
+        prog.flatten(translator);
+        assertNotSame(changed.getBody(), flatChanged, "a modified function is flattened again");
+        assertSame(untouched.getBody(), flatUntouched, "the function which was not modified is still left alone");
+        assertTrue(translator.isFlat(), "what was added is flat now: " + changed.getBody());
+    }
+
+    @Test
     public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
         WurstModel model = Ast.WurstModel();
         ImTranslator translator = new ImTranslator(model, false,
