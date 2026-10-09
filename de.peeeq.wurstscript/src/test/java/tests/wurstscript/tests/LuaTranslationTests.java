@@ -388,15 +388,11 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * {@code ..} is right associative, so {@code (a .. b) .. c} is not {@code a .. b .. c}; a chain
-     * of comparisons reads as a range check but compares a boolean; unary operators print their
-     * operand in parentheses. None of them joins a chain.
+     * A chain of comparisons reads as a range check but compares a boolean; unary operators print
+     * their operand in parentheses. Neither joins a chain.
      */
     @Test
-    public void concatenationComparisonsAndUnaryOperatorsKeepTheirParentheses() {
-        assertEquals("((a .. b) .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
-        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
-        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+    public void comparisonsAndUnaryOperatorsKeepTheirParentheses() {
         assertEquals("((a < b) == c)", renderLuaExpr(equal(less(v("a"), v("b")), v("c"))));
         assertEquals("((a == b) == c)", renderLuaExpr(equal(equal(v("a"), v("b")), v("c"))));
         assertEquals("(-(a) - b)", renderLuaExpr(
@@ -418,6 +414,78 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertEquals(terms - 1, rendered.chars().filter(ch -> ch == '+').count());
         assertTrue(rendered.startsWith("(t0 + t1 + t2 + "));
         assertTrue(rendered.endsWith(" + t" + (terms - 1) + ")"));
+    }
+
+    /**
+     * A left-nested concatenation prints flat, one CONCAT instead of one per operator. The text
+     * parses as {@code a .. (b .. c)} because {@code ..} is right associative, which gives the same
+     * string: the backend only joins strings. A right operand, which already is one CONCAT with its
+     * left neighbours, and another operator as an operand keep their parentheses.
+     */
+    @Test
+    public void leftNestedConcatenationPrintsFlat() {
+        assertEquals("(a .. b .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
+        assertEquals("(a .. b .. c .. d)",
+            renderLuaExpr(concat(concat(concat(v("a"), v("b")), v("c")), v("d"))));
+        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
+        assertEquals("(a .. b .. (c .. d))",
+            renderLuaExpr(concat(concat(v("a"), v("b")), concat(v("c"), v("d")))));
+        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+        assertEquals("((a or b) .. c .. (d or e))",
+            renderLuaExpr(concat(concat(or(v("a"), v("b")), v("c")), or(v("d"), v("e")))));
+    }
+
+    /**
+     * A flat concatenation is one parser level per operator and one register per operand, so a long
+     * chain is split into groups of sixteen, and those into groups again: luac stops at 200 levels
+     * and a function has 255 registers.
+     */
+    @Test
+    public void aLongConcatenationIsGroupedWithinLuaLimits() {
+        LuaExpr chain = v("t0");
+        for (int i = 1; i < 20; i++) {
+            chain = concat(chain, v("t" + i));
+        }
+        StringBuilder expected = new StringBuilder("((t0");
+        for (int i = 1; i < 16; i++) {
+            expected.append(" .. t").append(i);
+        }
+        expected.append(") .. (t16 .. t17 .. t18 .. t19))");
+        assertEquals(expected.toString(), renderLuaExpr(chain));
+
+        int terms = 5000;
+        chain = v("t0");
+        for (int i = 1; i < terms; i++) {
+            chain = concat(chain, v("t" + i));
+        }
+        String rendered = renderLuaExpr(chain);
+        assertEquals(terms - 1, countOccurrences(rendered, " .. "));
+        int depth = 0;
+        int maxDepth = 0;
+        int longestRun = 0;
+        int run = 0;
+        for (int i = 0; i < rendered.length(); i++) {
+            char ch = rendered.charAt(i);
+            if (ch == '(') {
+                maxDepth = Math.max(maxDepth, ++depth);
+                run = 0;
+            } else if (ch == ')') {
+                depth--;
+                run = 0;
+            } else if (rendered.startsWith(" .. ", i)) {
+                longestRun = Math.max(longestRun, ++run);
+            }
+        }
+        assertEquals("5000 parts are four levels of groups", 4, maxDepth);
+        assertTrue("no group joins more than sixteen operands: " + longestRun, longestRun < 16);
+    }
+
+    private static int countOccurrences(String haystack, String needle) {
+        int count = 0;
+        for (int at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + needle.length())) {
+            count++;
+        }
+        return count;
     }
 
     @Test

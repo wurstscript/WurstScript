@@ -7414,4 +7414,51 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if seen == 0 and b.f == 5",
             "        testSuccess()");
     }
+
+    /**
+     * A message joined with + is one flat Lua concatenation, a single CONCAT, where the nested text
+     * {@code (("a=" .. x) .. ", b=")} built every intermediate string.
+     */
+    @Test
+    public void stringConcatenationChainPrintsFlat() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "function describe(int a, int b) returns string",
+            "    return \"a=\" + I2S(a) + \", b=\" + I2S(b) + \".\"",
+            "init",
+            "    if describe(1, -2) == \"a=1, b=-2.\"",
+            "        testSuccess()");
+        String describe = topLevelFunctionBodyWithPrefix(compiledLua("stringConcatenationChainPrintsFlat"), "describe");
+        assertTrue(describe, describe.contains("(\"a=\" .. tostring(a) .. \", b=\" .. tostring(b) .. \".\")"));
+        assertFalse(describe, describe.contains("(("));
+    }
+
+    /**
+     * Printed nested, a concatenation of 300 parts was 300 parentheses deep, more than luac accepts
+     * ("too many C levels"). Printed flat in groups, it loads and runs.
+     */
+    @Test
+    public void aLongStringConcatenationLoadsAndRuns() throws IOException {
+        int parts = 300;
+        StringBuilder chain = new StringBuilder("\"<\"");
+        StringBuilder expected = new StringBuilder("<");
+        for (int i = 0; i < parts; i++) {
+            chain.append(" + I2S(x + ").append(i).append(")");
+            expected.append(1000 + i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "function longMessage(int x) returns string",
+            "    return " + chain,
+            "init",
+            "    if longMessage(1000) == \"" + expected + "\"",
+            "        testSuccess()");
+        String longMessage = topLevelFunctionBodyWithPrefix(compiledLua("aLongStringConcatenationLoadsAndRuns"),
+            "longMessage");
+        assertEquals(parts, countOccurrences(longMessage, " .. "));
+    }
 }
