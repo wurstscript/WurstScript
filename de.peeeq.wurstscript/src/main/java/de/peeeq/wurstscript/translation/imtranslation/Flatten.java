@@ -232,6 +232,31 @@ public class Flatten {
 
     }
 
+    /**
+     * Whether evaluating {@code e} itself can stop the thread: an integer division or modulo by a divisor which is not a
+     * nonzero constant. A division by zero stops the thread on Jass ({@code I2S(1 div 0)} is the deliberate abort) and
+     * raises an error on Lua, so such an operator is evaluated where nothing uses its value. As a statement it is the
+     * assignment of its value to a local which nothing reads ({@link #exprToStatements}), and the removals of
+     * assignments to unread variables keep an assignment of it to a local: no smaller statement evaluates it.
+     */
+    public static boolean mayStopTheThread(ImExpr e) {
+        if (!(e instanceof ImOperatorCall opCall)) {
+            return false;
+        }
+        WurstOperator op = opCall.getOp();
+        if ((op != WurstOperator.DIV_INT && op != WurstOperator.MOD_INT && op != WurstOperator.JASS_MOD_INT)
+            || opCall.getArguments().size() < 2) {
+            return false;
+        }
+        ImExpr divisor = opCall.getArguments().get(1);
+        return !(divisor instanceof ImIntVal value) || value.getValI() == 0;
+    }
+
+    /**
+     * Puts the effects of evaluating {@code e} into {@code result} as statements: the calls, deallocations and method
+     * calls, an and/or whose right side has statements as an if, and an operator which may stop the thread as an
+     * assignment. The rest of an expression only produces a value, and it goes.
+     */
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
         if (e instanceof ImFunctionCall imFunctionCall) {
             Result res = flatten(imFunctionCall, t, f);
@@ -248,6 +273,15 @@ public class Flatten {
         } else if (e instanceof ImStatementExpr e2) {
             flattenStatementsInto(result, e2.getStatements(), t, f);
             exprToStatements(result, e2, t, f);
+        } else if (e instanceof ImOperatorCall oc && mayStopTheThread(oc)) {
+            // Jass and Lua have no expression statement, so the value goes in a local which nothing reads.
+            ImType type = oc.attrTyp();
+            de.peeeq.wurstscript.ast.Element trace = oc.attrTrace();
+            Result res = flatten(oc, t, f);
+            result.addAll(res.stmts);
+            ImVar tempVar = JassIm.ImVar(trace, type, getTempVarName(), false);
+            f.getLocals().add(tempVar);
+            result.add(ImSet(trace, ImVarAccess(tempVar), res.expr));
         } else if (e instanceof ImOperatorCall oc &&
             (oc.getOp() == WurstOperator.AND
                 || oc.getOp() == WurstOperator.OR)) {

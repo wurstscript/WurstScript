@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.Flatten;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -292,7 +293,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
             if (v == null || v.isGlobal()) continue;
 
-            if (!livenessInfo.get(s).contains(v)) {
+            if (!livenessInfo.get(s).contains(v) && !Flatten.mayStopTheThread(set.getRight())) {
+                // (an assignment of a division which may stop the thread is the statement which evaluates it)
                 final List<ImExpr> raw = new ArrayList<>();
                 collectLhsSideEffects(lhs, raw);
                 if (hasSideEffects(set.getRight())) raw.add(set.getRight());
@@ -341,6 +343,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         if (e instanceof ImMethodCall) return true;
         if (e instanceof ImFunctionCall call
             && (translator == null || !translator.isTrapFreeLuaIntrinsicCall(call))) return true;
+        if (e instanceof ImExpr expr && Flatten.mayStopTheThread(expr)) return true;
         for (int i = 0; i < e.size(); i++) if (hasSideEffects(e.get(i))) return true;
         return false;
     }

@@ -2317,6 +2317,52 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     /**
+     * An integer division by a divisor which may be zero stops the thread, so the removal of an assignment to a
+     * variable nothing reads keeps the division, without and with the optimisations, on Jass and on Lua.
+     */
+    @Test
+    public void garbageRemovalKeepsAnUnreadDivisionWhichMayStopTheThread() throws IOException {
+        String[] program = {"package Test", "native testSuccess()", "int zero = 0",
+            "function f(int d)", "    int unused = 10 div d", "init", "    f(zero)", "    testSuccess()"};
+        test().executeProg(false).lines(program);
+        for (String variant : new String[]{"no_opts", "opt", "inl", "inlopt"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_garbageRemovalKeepsAnUnreadDivisionWhichMayStopTheThread_"
+                + variant + ".j"), Charsets.UTF_8);
+            assertTrue(out.contains("10 / "), variant + ": the division which may stop the thread was dropped:\n" + out);
+        }
+        for (boolean optimised : new boolean[]{false, true}) {
+            TestConfig lua = test().testLua(true).executeProg(false);
+            if (optimised) {
+                lua = lua.inline().localOptimizations();
+            }
+            lua.lines(program);
+            String out = Files.toString(new File("test-output/lua/OptimizerTests_garbageRemovalKeepsAnUnreadDivisionWhichMayStopTheThread.lua"),
+                Charsets.UTF_8);
+            assertTrue(out.contains("10 //") || out.contains("__wurst_intDiv(10,"),
+                "Lua" + (optimised ? " with the optimisations" : "") + ": the division which may stop the thread was dropped:\n" + out);
+        }
+    }
+
+    /** The same for a division inside an operator, and for one assigned to a global, a field and an array element. */
+    @Test
+    public void garbageRemovalKeepsUnreadDivisionsInsideExpressionsAndOfOtherVariables() throws IOException {
+        String[] program = {"package Test", "native testSuccess()", "int zero = 0", "int unreadGlobal",
+            "int array unreadArray", "class C", "    int unreadField",
+            "function g() returns int", "    return 3",
+            "function f(int d)", "    int unused = 11 div d + g()", "    unreadGlobal = 12 mod d", "    unreadArray[2] = 13 div d",
+            "    C c = new C", "    c.unreadField = 14 div d", "    if 15 div d == 0", "        skip",
+            "init", "    f(zero)", "    testSuccess()"};
+        test().executeProg(false).lines(program);
+        for (String variant : new String[]{"no_opts", "opt", "inl", "inlopt"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_garbageRemovalKeepsUnreadDivisionsInsideExpressionsAndOfOtherVariables_"
+                + variant + ".j"), Charsets.UTF_8);
+            for (String division : new String[]{"11 / ", "ModuloInteger(12, ", "13 / ", "14 / ", "15 / "}) {
+                assertTrue(out.contains(division), variant + ": the division " + division + "was dropped:\n" + out);
+            }
+        }
+    }
+
+    /**
      * A global whose name a variable event refers to stays, and so does the assignment to it, when its last read in a
      * function goes in a later round of the removal (`copy = myVar` goes in the first).
      */
