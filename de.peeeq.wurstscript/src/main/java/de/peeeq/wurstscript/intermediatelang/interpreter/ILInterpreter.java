@@ -233,7 +233,9 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             // through the int fallback, with the value in its integer representation.
             if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
                 // Looked up first: it checks the intrinsic's shape before any argument is read.
-                ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f,
+                    f.getParameters().size() > 1
+                        ? keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()) : JassIm.ImVoid());
                 JassKeyedMapLowering.checkSpecialization(f,
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()),
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(2).getType()));
@@ -241,12 +243,20 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 return new LocalState();
             }
             if (JassKeyedMapLowering.isUnloweredGetNative(f)) {
-                ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f,
+                    f.getParameters().size() > 1
+                        ? keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()) : JassIm.ImVoid());
                 ImType valueType = keyedMapCallType(globalState, f, caller, f.getReturnType());
                 JassKeyedMapLowering.checkSpecialization(f,
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()), valueType);
                 ILconst stored = runFunc(globalState, get, caller, args[0], args[1]).getReturnVal();
                 return new LocalState(keyedMapValueOfInt(globalState, stored, valueType));
+            }
+            if (JassKeyedMapLowering.isUnloweredMembership(f)) {
+                ImFunction fallback = JassKeyedMapLowering.membershipFallback(globalState.getProg(), f,
+                    f.getParameters().size() > 1
+                        ? keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()) : JassIm.ImVoid());
+                return runFunc(globalState, fallback, caller, args);
             }
 
             // --- local state & bind parameters ---

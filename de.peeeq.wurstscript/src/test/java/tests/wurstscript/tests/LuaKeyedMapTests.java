@@ -25,6 +25,87 @@ import static org.testng.AssertJUnit.fail;
  */
 public class LuaKeyedMapTests extends WurstScriptTest {
 
+    @Test
+    public void stringKeysInFastKeyedMap() throws IOException {
+        test().withStdLib().testLua(true).luaOnly(false).inline().executeProg().lines(
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let m = new FastKeyedMap<string, int>()",
+            "    let other = new FastKeyedMap<string, int>()",
+            "    m.put(\"alpha\", 42)",
+            "    m.put(\"ALPHA\", 7)",
+            "    m.put(\"\", 0)",
+            "    m.put(\"alpha\", 43)",
+            "    if m.get(\"alpha\") != 43 or m.get(\"ALPHA\") != 7 or not m.has(\"\")",
+            "        testFail(\"string keys or stored zero\")",
+            "    if other.has(\"alpha\") or m.has(\"missing\") or m.get(\"missing\") != 0",
+            "        testFail(\"absence or isolation\")",
+            "    m.remove(\"alpha\")",
+            "    m.remove(\"missing\")",
+            "    if m.has(\"alpha\") or m.get(\"alpha\") != 0 or m.get(\"ALPHA\") != 7",
+            "        testFail(\"remove\")",
+            "    destroy m",
+            "    let reused = new FastKeyedMap<string, int>()",
+            "    if reused.has(\"ALPHA\") or reused.has(\"\")",
+            "        testFail(\"destroy and reuse\")",
+            "    destroy reused",
+            "    destroy other",
+            "    testSuccess()",
+            "endpackage");
+        String lua = getFunctionBody(compiled("stringKeysInFastKeyedMap"), "init_Test");
+        assertFalse(lua.contains("StringHash("));
+        assertFalse(lua.contains("GetHandleId("));
+        assertFalse(lua.contains("keyedMapPutString("));
+        assertTrue(lua, lua.contains("[\"alpha\"]"));
+    }
+
+    @Test
+    public void stringKeysWithClassValues() {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "import KeyedMap",
+            "class Data",
+            "    int value = 17",
+            "init",
+            "    let m = new FastKeyedMap<string, Data>()",
+            "    let data = new Data()",
+            "    m.put(\"data\", data)",
+            "    if m.get(\"data\") != data or m.get(\"data\").value != 17 or m.get(\"absent\") != null",
+            "        testFail(\"class values\")",
+            "    m.remove(\"data\")",
+            "    if m.has(\"data\") or m.get(\"data\") != null",
+            "        testFail(\"class remove\")",
+            "    destroy data",
+            "    destroy m",
+            "    testSuccess()",
+            "endpackage");
+    }
+
+    @Test
+    public void stdlibKeyedMapTests() {
+        test().withStdLib().executeTests().lines(
+            "package Test",
+            "import KeyedMapTests",
+            "endpackage");
+    }
+
+    @Test
+    public void stringMapEmissionIsDeterministic() throws IOException {
+        String[] source = {
+            "package Test", "import KeyedMap", "init",
+            "    let m = new FastKeyedMap<string, int>()",
+            "    m.put(\"alpha\", 0)", "    m.remove(\"alpha\")", "    destroy m", "endpackage"
+        };
+        File jassFile = new File("test-output/LuaKeyedMapTests_stringMapEmissionIsDeterministic_no_opts.j");
+        test().withStdLib().testLua(true).luaOnly(false).lines(source);
+        String firstLua = compiled("stringMapEmissionIsDeterministic");
+        String firstJass = Files.toString(jassFile, Charsets.UTF_8);
+        test().withStdLib().testLua(true).luaOnly(false).lines(source);
+        org.testng.Assert.assertEquals(compiled("stringMapEmissionIsDeterministic"), firstLua);
+        org.testng.Assert.assertEquals(Files.toString(jassFile, Charsets.UTF_8), firstJass);
+    }
+
     private String getFunctionBody(String output, String functionName) {
         // Up to the closing 'end' at column 0; nested blocks are indented.
         Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\([^\\n]*\\n(.*?)\\nend", Pattern.DOTALL);
@@ -537,7 +618,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapPutNative<unit, int>((new Table()) castTo int, CreateUnit(Player(0), 'hfoo', 0., 0., 0.))",
             "endpackage"));
         assertTrue(failure.getMessage(), failure.getMessage()
-            .contains("keyedMapPutNative requires an int map, a handle key, and an int-represented value"));
+            .contains("keyedMapPutNative requires an int map, a handle or string key, and an int-represented value"));
         assertFalse(failure.getMessage(), failure.getMessage().contains("ArrayIndexOutOfBounds"));
     }
 
@@ -555,7 +636,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapPutNative<unit, unit>((new Table()) castTo int, CreateUnit(Player(0), 'hfoo', 0., 0., 0.), null)",
             "endpackage"));
         assertTrue(failure.getMessage(), failure.getMessage()
-            .contains("keyedMapPutNative requires an int map, a handle key, and an int-represented value"));
+            .contains("keyedMapPutNative requires an int map, a handle or string key, and an int-represented value"));
     }
 
     /** An unbounded key type called with an int key is rejected before the fallback's handle parameter. */
@@ -572,7 +653,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    let value = keyedMapGetNative<int, int>((new Table()) castTo int, 7)",
             "endpackage"));
         assertTrue(failure.getMessage(), failure.getMessage()
-            .contains("keyedMapGetNative requires an int map, a handle key, and an int-represented result"));
+            .contains("keyedMapGetNative requires an int map, a handle or string key, and an int-represented result"));
     }
 
     /** The generic value intrinsics and a typed wrapper over them, as the standard library declares them. */
@@ -841,7 +922,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
     @Test
     public void jassRejectsValuesWithoutIntegerRepresentation() {
-        test().expectError("keyedMapPutNative requires an int map, a handle key, and an int-represented value")
+        test().expectError("keyedMapPutNative requires an int map, a handle or string key, and an int-represented value")
             .withStdLib().lines(
                 "package KeyedMap",
                 "import Table",

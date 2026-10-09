@@ -32,6 +32,8 @@ public final class JassKeyedMapLowering {
                 lowerPut(prog, f);
             } else if (GET_NATIVE.equals(name)) {
                 lowerGet(prog, f);
+            } else if ("keyedMapHasNative".equals(name) || "keyedMapRemoveNative".equals(name)) {
+                lowerMembership(prog, f);
             }
         }
     }
@@ -50,48 +52,93 @@ public final class JassKeyedMapLowering {
         return !f.getTypeVariables().isEmpty() && GET_NATIVE.equals(intrinsicName(f));
     }
 
+    public static boolean isUnloweredMembership(ImFunction f) {
+        return !f.getTypeVariables().isEmpty()
+            && ("keyedMapHasNative".equals(intrinsicName(f)) || "keyedMapRemoveNative".equals(intrinsicName(f)));
+    }
+
+    public static ImFunction membershipFallback(ImProg prog, ImFunction f, ImType keyType) {
+        boolean has = "keyedMapHasNative".equals(intrinsicName(f));
+        if (f.getParameters().size() != 2 || !TypesHelper.isIntType(f.getParameters().get(0).getType())
+            || !(has ? TypesHelper.isBoolType(f.getReturnType()) : f.getReturnType() instanceof ImVoid)) {
+            throw invalidSpecialization(f, "KeyedMap membership requires an int map and a handle or string key");
+        }
+        if (!supportedKey(keyType)) {
+            throw invalidSpecialization(f, "KeyedMap supports only handle and string keys");
+        }
+        String name = has ? "keyedMapHas" : "keyedMapRemove";
+        if (TypesHelper.isStringType(keyType)) {
+            name += "String";
+        }
+        for (ImFunction candidate : prog.getFunctions()) {
+            if (name.equals(intrinsicName(candidate)) && packageOf(candidate) == packageOf(f)
+                && candidate.getParameters().size() == 2
+                && TypesHelper.isIntType(candidate.getParameters().get(0).getType())
+                && sameKeyRepresentation(candidate.getParameters().get(1).getType(), keyType)
+                && (has ? TypesHelper.isBoolType(candidate.getReturnType()) : candidate.getReturnType() instanceof ImVoid)) {
+                return candidate;
+            }
+        }
+        throw invalidSpecialization(f, "The package must declare the " + name + " Jass fallback");
+    }
+
+    private static void lowerMembership(ImProg prog, ImFunction f) {
+        ImType keyType = f.getParameters().size() > 1 ? f.getParameters().get(1).getType() : JassIm.ImVoid();
+        ImFunction fallback = membershipFallback(prog, f, keyType);
+        ImExpr call = JassIm.ImFunctionCall(f.attrTrace(), fallback, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(f.getParameters().get(0)), JassIm.ImVarAccess(f.getParameters().get(1))),
+            false, CallType.NORMAL);
+        f.getBody().clear();
+        f.getLocals().clear();
+        f.getBody().add(f.getReturnType() instanceof ImVoid ? call : JassIm.ImReturn(f.attrTrace(), call));
+    }
+
     /**
      * The int fallback that the lowered put or get calls, found the way this pass finds it. Checks the
      * (map, key[, value]) shape first and raises this pass's diagnostic when it is wrong, so running the
      * program before the lowering cannot bypass it.
      */
     public static ImFunction fallbackOf(ImProg prog, ImFunction f) {
+        return fallbackOf(prog, f, f.getParameters().size() > 1 ? f.getParameters().get(1).getType() : JassIm.ImVoid());
+    }
+
+    public static ImFunction fallbackOf(ImProg prog, ImFunction f, ImType keyType) {
         boolean put = PUT_NATIVE.equals(intrinsicName(f));
         boolean shaped = f.getParameters().size() == (put ? 3 : 2)
             && TypesHelper.isIntType(f.getParameters().get(0).getType())
             && (!put || f.getReturnType() instanceof ImVoid);
         if (!shaped) {
             throw invalidSpecialization(f, put
-                ? "keyedMapPutNative requires an int map, a handle key, and an int-represented value"
-                : "keyedMapGetNative requires an int map, a handle key, and an int-represented result");
+                ? "keyedMapPutNative requires an int map, a handle or string key, and an int-represented value"
+                : "keyedMapGetNative requires an int map, a handle or string key, and an int-represented result");
         }
-        return findFallback(prog, packageOf(f), f, put ? PUT : GET_INT, put);
+        return findFallback(prog, packageOf(f), f, put ? PUT : GET_INT, put, keyType);
     }
 
     /**
-     * Raises this pass's diagnostic unless a call's resolved types are the ones it lowers: a handle
+     * Raises this pass's diagnostic unless a call's resolved types are the ones it lowers: a handle or string
      * key, and a value with Jass's integer representation, an int or a class reference. The
      * interpreter checks each call with it, so a specialization the Jass build rejects cannot pass
      * there.
      */
     public static void checkSpecialization(ImFunction f, ImType keyType, ImType valueType) {
-        if (LuaNativeLowering.isHandleType(keyType)
+        if (supportedKey(keyType)
             && (TypesHelper.isIntType(valueType) || valueType instanceof ImClassType)) {
             return;
         }
         throw invalidSpecialization(f, PUT_NATIVE.equals(intrinsicName(f))
-            ? "keyedMapPutNative requires an int map, a handle key, and an int-represented value"
-            : "keyedMapGetNative requires an int map, a handle key, and an int-represented result");
+            ? "keyedMapPutNative requires an int map, a handle or string key, and an int-represented value"
+            : "keyedMapGetNative requires an int map, a handle or string key, and an int-represented result");
     }
 
     private static void lowerPut(ImProg prog, ImFunction f) {
         if (f.getParameters().size() != 3 || !(f.getReturnType() instanceof ImVoid)
             || !TypesHelper.isIntType(f.getParameters().get(0).getType())
-            || !LuaNativeLowering.isHandleType(f.getParameters().get(1).getType())
+            || !supportedKey(f.getParameters().get(1).getType())
             || !TypesHelper.isIntType(f.getParameters().get(2).getType())) {
-            throw invalidSpecialization(f, "keyedMapPutNative requires an int map, a handle key, and an int-represented value");
+            throw invalidSpecialization(f, "keyedMapPutNative requires an int map, a handle or string key, and an int-represented value");
         }
-        ImFunction fallback = findFallback(prog, packageOf(f), f, PUT, true);
+        ImFunction fallback = findFallback(prog, packageOf(f), f, PUT, true, f.getParameters().get(1).getType());
         ImVar map = f.getParameters().get(0);
         ImVar key = f.getParameters().get(1);
         ImVar value = f.getParameters().get(2);
@@ -105,10 +152,10 @@ public final class JassKeyedMapLowering {
     private static void lowerGet(ImProg prog, ImFunction f) {
         if (f.getParameters().size() != 2 || !TypesHelper.isIntType(f.getReturnType())
             || !TypesHelper.isIntType(f.getParameters().get(0).getType())
-            || !LuaNativeLowering.isHandleType(f.getParameters().get(1).getType())) {
-            throw invalidSpecialization(f, "keyedMapGetNative requires an int map, a handle key, and an int-represented result");
+            || !supportedKey(f.getParameters().get(1).getType())) {
+            throw invalidSpecialization(f, "keyedMapGetNative requires an int map, a handle or string key, and an int-represented result");
         }
-        ImFunction fallback = findFallback(prog, packageOf(f), f, GET_INT, false);
+        ImFunction fallback = findFallback(prog, packageOf(f), f, GET_INT, false, f.getParameters().get(1).getType());
         ImVar map = f.getParameters().get(0);
         ImVar key = f.getParameters().get(1);
         ImExpr call = JassIm.ImFunctionCall(f.attrTrace(), fallback, JassIm.ImTypeArguments(),
@@ -118,7 +165,10 @@ public final class JassKeyedMapLowering {
         f.getBody().add(JassIm.ImReturn(f.attrTrace(), call));
     }
 
-    private static ImFunction findFallback(ImProg prog, WPackage owner, ImFunction source, String name, boolean put) {
+    private static ImFunction findFallback(ImProg prog, WPackage owner, ImFunction source, String name, boolean put, ImType keyType) {
+        if (TypesHelper.isStringType(keyType)) {
+            name = put ? "keyedMapPutString" : "keyedMapGetStringInt";
+        }
         if (owner != null) {
             for (ImFunction candidate : prog.getFunctions()) {
                 if (!name.equals(intrinsicName(candidate)) || packageOf(candidate) != owner) {
@@ -127,12 +177,12 @@ public final class JassKeyedMapLowering {
                 boolean valid = put
                     ? candidate.getParameters().size() == 3
                         && TypesHelper.isIntType(candidate.getParameters().get(0).getType())
-                        && isHandle(candidate.getParameters().get(1).getType())
+                        && sameKeyRepresentation(candidate.getParameters().get(1).getType(), keyType)
                         && TypesHelper.isIntType(candidate.getParameters().get(2).getType())
                         && candidate.getReturnType() instanceof ImVoid
                     : candidate.getParameters().size() == 2
                         && TypesHelper.isIntType(candidate.getParameters().get(0).getType())
-                        && isHandle(candidate.getParameters().get(1).getType())
+                        && sameKeyRepresentation(candidate.getParameters().get(1).getType(), keyType)
                         && TypesHelper.isIntType(candidate.getReturnType());
                 if (!valid) {
                     throw new CompileError(candidate.attrTrace().attrErrorPos(),
@@ -148,6 +198,14 @@ public final class JassKeyedMapLowering {
 
     private static boolean isHandle(ImType type) {
         return type instanceof ImSimpleType simple && "handle".equals(simple.getTypename());
+    }
+
+    private static boolean supportedKey(ImType type) {
+        return LuaNativeLowering.isHandleType(type) || TypesHelper.isStringType(type);
+    }
+
+    private static boolean sameKeyRepresentation(ImType fallback, ImType keyType) {
+        return TypesHelper.isStringType(keyType) ? TypesHelper.isStringType(fallback) : isHandle(fallback);
     }
 
     private static String intrinsicName(ImFunction f) {
