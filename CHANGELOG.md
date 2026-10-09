@@ -1,5 +1,10 @@
 ## 1.9 (in progress)
 
+- The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
+  exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
+  return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
+  may leave the block is moved now only when the condition has no effect. Castle fight compiles to the same script.
+
 - On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
   `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
   those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic
