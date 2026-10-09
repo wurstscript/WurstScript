@@ -433,6 +433,12 @@ public class ImTranslator implements SpecialisationLookup {
             }
 
             finishInitFunctions();
+            // Passes after the tree shake make calls of the error function (the allocators of the class
+            // elimination), so the one of the ErrorHandling package is named here, where the shake finds it
+            // pinned. The default one is made when it is first needed (imError).
+            if (errorFunc == null) {
+                errorFunc = findErrorFunc().map(this::getFuncFor).orElse(null);
+            }
             EliminateCallFunctionsWithAnnotation.process(imProg);
             removeDuplicateNatives(imProg);
             sortEverything();
@@ -2938,7 +2944,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
 
-    private Optional<FuncDef> findErrorFunc() throws CompileError {
+    /** The function {@code error} of the ErrorHandling package, a native or one with a body. */
+    private Optional<FunctionDefinition> findErrorFunc() throws CompileError {
         PackageLink p = wurstProg.lookupPackage("ErrorHandling");
         if (p == null) {
             return Optional.empty();
@@ -2949,8 +2956,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         } else if (funcs.size() > 1) {
             return Optional.empty();
         }
-        FuncDef f = (FuncDef) funcs.stream().findAny().get().getDef();
-        return Optional.of(f);
+        return Optional.of(funcs.stream().findAny().get().getDef());
     }
 
     int getCompiletimeExpressionsOrder(FunctionCall fc) {

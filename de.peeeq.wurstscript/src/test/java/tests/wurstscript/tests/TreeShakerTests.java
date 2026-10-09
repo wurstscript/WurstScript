@@ -622,4 +622,42 @@ public class TreeShakerTests extends WurstScriptTest {
         test().testLua(true).executeProg().lines(program);
         test().executeProg().lines(program);
     }
+
+    /**
+     * The allocator which the class elimination builds after the shake calls the error function of the ErrorHandling
+     * package when the instances run out, though nothing in the program calls it. A real project names it earlier,
+     * in the package initialisers which the trigger natives of common.j run; this program has no common.j.
+     */
+    @Test
+    public void theErrorFunctionWhichTheAllocatorCallsOutlivesTheShake() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package ErrorHandling",
+            "    string lastError = \"\"",
+            "    public function error(string msg)",
+            "        lastError = msg",
+            "endpackage",
+            "package Test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x",
+            "    init",
+            "        let a = new A()",
+            "        if a.x == 0",
+            "            testSuccess()",
+            "endpackage");
+    }
+
+    /** The error function the translator names may be a native: the program compiles as it did. */
+    @Test
+    public void anErrorFunctionWhichIsANativeIsNamedToo() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package ErrorHandling",
+            "    public native error(string msg)",
+            "endpackage",
+            "package Test",
+            "    native testSuccess()",
+            "    init",
+            "        testSuccess()",
+            "endpackage");
+    }
 }
