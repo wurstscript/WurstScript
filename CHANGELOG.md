@@ -1,5 +1,12 @@
 ## 1.9 (in progress)
 
+- On Lua, a class whose name begins another class's name no longer calls the wrong override. To bind a dispatch slot,
+  the Lua translation took an implementation whose name starts with the class name and `_` for one of the class's
+  own, ahead of the nearest superclass: `class Foo extends Mid extends Foo_Bar` bound `Foo_Bar.m` (`Foo_Bar_m`
+  starts with `Foo_`), a `Node` extending a `Node` of another package through `Mid` bound the other `Node`'s method,
+  and a user state called `NoOpState` bound the FSM root slot to the library's no-op. It asks the class of the method
+  now. Castle fight and zombie defense compile to the same scripts.
+
 - On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
   `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
   those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic

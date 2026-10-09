@@ -4593,6 +4593,116 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * A class takes the implementation of its nearest superclass. The implementation of {@code Foo_Bar.m} is called
+     * {@code Foo_Bar_m}, which starts with {@code Foo_}: taken for one of {@code Foo}'s own, it was bound to Foo's
+     * slot instead of Mid's override.
+     */
+    @Test
+    public void inheritedOverrideBeatsAnAncestorWhoseNameStartsWithTheClassName() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Foo_Bar",
+            "    function m() returns int",
+            "        return 1",
+            "class Mid extends Foo_Bar",
+            "    override function m() returns int",
+            "        return 2",
+            "class Foo extends Mid",
+            "function callIt(Foo_Bar x) returns int",
+            "    return x.m()",
+            "init",
+            "    if callIt(new Foo()) == 2 and callIt(new Mid()) == 2 and callIt(new Foo_Bar()) == 1",
+            "        testSuccess()");
+    }
+
+    /** The same with two classes called Node in different packages, the one inheriting from the other. */
+    @Test
+    public void inheritedOverrideBeatsASameNamedAncestorFromAnotherPackage() {
+        test().testLua(true).luaOnly(false).executeProg().compilationUnits(
+            compilationUnit("A.wurst",
+                "package A",
+                "public class Node",
+                "    function m() returns int",
+                "        return 1",
+                "public function callBase(Node x) returns int",
+                "    return x.m()",
+                "public function baseValue() returns int",
+                "    return callBase(new Node())"),
+            compilationUnit("C.wurst",
+                "package C",
+                "import A",
+                "public class Mid extends Node",
+                "    override function m() returns int",
+                "        return 2",
+                "public function callAsBase(Mid x) returns int",
+                "    return callBase(x)",
+                "public function baseValueC() returns int",
+                "    return baseValue()"),
+            compilationUnit("B.wurst",
+                "package B",
+                "import C",
+                "native testSuccess()",
+                "class Node extends Mid",
+                "init",
+                "    if callAsBase(new Node()) == 2 and callAsBase(new Mid()) == 2 and baseValueC() == 1",
+                "        testSuccess()"));
+    }
+
+    /**
+     * The shape of AGENTS.md section 8: a user state which happens to be called NoOpState extends a real state, whose
+     * update the root slot must reach, not the library's no-op.
+     */
+    @Test
+    public void aStateNamedLikeTheNoOpBaseKeepsItsInheritedUpdate() {
+        test().testLua(true).luaOnly(false).executeProg().compilationUnits(
+            compilationUnit("fsmLib.wurst",
+                "package FsmLib",
+                "public abstract class State<T:>",
+                "    function enter(T owner)",
+                "    function update(T owner, real dt)",
+                "public class NoOpState<T:> extends State<T>",
+                "    override function enter(T owner)",
+                "    override function update(T owner, real dt)",
+                "public class FSM<T:>",
+                "    T owner",
+                "    State<T> currentState = null",
+                "    construct(T owner)",
+                "        this.owner = owner",
+                "    function setInitialState(State<T> st)",
+                "        currentState = st",
+                "        if currentState != null",
+                "            currentState.enter(owner)",
+                "    function update(real dt)",
+                "        if currentState != null",
+                "            currentState.update(owner, dt)"),
+            compilationUnit("fsmUser.wurst",
+                "package FsmUser",
+                "import FsmLib",
+                "public class Owner",
+                "    FSM<Owner> fsm = new FSM<Owner>(this)",
+                "    int ticks = 0",
+                "public class Ticking extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += 1"),
+            compilationUnit("fsmMain.wurst",
+                "package FsmMain",
+                "import FsmLib",
+                "import FsmUser",
+                "native testSuccess()",
+                "class NoOpState extends Ticking",
+                "function runOne(State<Owner> st) returns int",
+                "    let o = new Owner()",
+                "    o.fsm.setInitialState(st)",
+                "    for i = 0 to 4",
+                "        o.fsm.update(0.1)",
+                "    return o.ticks",
+                "init",
+                "    if runOne(new Ticking()) == 5 and runOne(new NoOpState()) == 5",
+                "        testSuccess()"));
+    }
+
+    /**
      * Constructor helper methods are named create, create1, create2, ... in
      * class-translation order, while method dispatch slots use (normalized)
      * user method names. Both live in the same class-table key namespace, so
