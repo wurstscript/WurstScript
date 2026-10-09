@@ -2168,10 +2168,13 @@ public class OptimizerTests extends WurstScriptTest {
             "        testFail(\"the effects of the assignment target were dropped\")");
     }
 
-    /** The same for a component of a tuple array element: with -inline the removal runs before the tuples go. */
+    /**
+     * The same for a component of a tuple array element: with -inline the removal runs before the tuples go, on Jass
+     * and on Lua.
+     */
     @Test
-    public void garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement() {
-        testAssertOkLines(true,
+    public void garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement() throws Exception {
+        test().testLua(true).luaOnly(false).inline().executeProg().lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string s)",
@@ -2189,6 +2192,12 @@ public class OptimizerTests extends WurstScriptTest {
             "        testSuccess()",
             "    else",
             "        testFail(\"the index call of the assignment target was dropped\")");
+
+        // The runs show that the index call stays; the assignment itself goes on both targets.
+        String jass = Files.toString(new File("test-output/OptimizerTests_garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement_inl.j"), Charsets.UTF_8);
+        assertFalse(jass.contains("points"), jass);
+        String lua = Files.toString(new File("test-output/lua/OptimizerTests_garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement.lua"), Charsets.UTF_8);
+        assertFalse(lua.contains("points"), lua);
     }
 
     @Test
