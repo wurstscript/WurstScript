@@ -399,9 +399,18 @@ public final class TreeShaker {
         @Override
         public void visit(ImTypeArgument argument) {
             super.visit(argument);
-            if (!followTypeArguments) {
-                return;
+            if (followTypeArguments) {
+                followTypeArgument(argument);
             }
+        }
+
+        /**
+         * What a type argument binds: the implementations its type class binding names, and the construction of each
+         * class its type names. The type is a reference, which the visitor does not enter, so the type arguments
+         * inside it are followed here: given {@code Loader<State>}, the specialised methods of {@code Loader<State>}
+         * construct {@code State} and dispatch through the bindings of its type argument.
+         */
+        private void followTypeArgument(ImTypeArgument argument) {
             for (Either<ImMethod, ImFunction> implementation : argument.getTypeClassBinding().values()) {
                 if (implementation.isLeft()) {
                     addMethod(implementation.getLeft());
@@ -411,6 +420,9 @@ public final class TreeShaker {
             }
             if (argument.getType() instanceof ImClassType classType) {
                 addConstruction(classType.getClassDef());
+                for (ImTypeArgument inner : classType.getTypeArguments()) {
+                    followTypeArgument(inner);
+                }
             }
         }
 
