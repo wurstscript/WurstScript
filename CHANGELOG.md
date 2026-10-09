@@ -1,5 +1,10 @@
 ## 1.9 (in progress)
 
+- A map build or run from the editor no longer lists every warning of the project twice in the Problems panel. The
+  build checks the code again (a copy of the model, or the model with the map script swapped in), and the build
+  diagnostics, which are shown together with the editor's own, repeated what the editor's check had found. Each
+  diagnostic of a file is listed once now.
+
 - A file is parsed with ANTLR's SLL prediction first, and only a file which it does not accept is parsed again with the
   full LL prediction. SLL ignores the context of the rule it is in, which makes it much cheaper, and it either returns
   the tree the full prediction returns or reports a syntax error, so a valid file gives the same tree. A broken file is

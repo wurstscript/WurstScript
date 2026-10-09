@@ -53,7 +53,11 @@ public class ModelManagerImpl implements ModelManager {
             List<CompileError> combined = new ArrayList<>(otherErrors.getOrDefault(file,
                 parseErrors.getOrDefault(file, Collections.emptyList())));
             combined.addAll(buildDiagnostics.getOrDefault(file, Collections.emptyList()));
-            publishDiagnostics(file, combined);
+            PublishDiagnosticsParams params = Convert.createDiagnostics("", file, combined);
+            // A build checks the code again (a copy of the model, or the model with the map script swapped in), so
+            // its diagnostics repeat the ones the editor shows: the file lists each diagnostic once.
+            params.setDiagnostics(new ArrayList<>(new LinkedHashSet<>(params.getDiagnostics())));
+            publish(params);
         }
     }
 
@@ -691,9 +695,12 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void publishDiagnostics(WFile filename, List<CompileError> errors) {
-        PublishDiagnosticsParams cr = Convert.createDiagnostics("", filename, errors);
+        publish(Convert.createDiagnostics("", filename, errors));
+    }
+
+    private void publish(PublishDiagnosticsParams params) {
         for (Consumer<PublishDiagnosticsParams> consumer : onCompilationResultListeners) {
-            consumer.accept(cr);
+            consumer.accept(params);
         }
     }
 
