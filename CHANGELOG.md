@@ -1,5 +1,13 @@
 ## 1.9 (in progress)
 
+- Putting a file into the model while every unit is unchecked, as in the load of a project and of the libraries it
+  imports, no longer searches the whole model for what imports it: that search only adds units to the set of unchecked
+  ones, and they are all in it. `ModelManagerImpl.updateModel` was 4.1% of the samples of the compiler's thread in a
+  castle fight build without optimisations and is 1.6%. Six interleaved builds against the jar of master: 0.6 s faster
+  without optimisations (5 of 6, of about 29 s), 1.0 s optimised (5 of 6, of about 40 s), zombie defense the same within
+  the noise (4 of 6, 0.15 s of 24 s). A model which has checked units is reconciled as before, so a file added after a
+  check still makes what imports it unchecked.
+
 - A build parses the files of the project and of its libraries by several threads. It parsed them one after the other,
   which was 13% (castle fight, optimised) to 18% (zombie defense) of the samples of the compiler's thread. The load
   now parses the files of the project ahead, and the libraries which the imports need level by level (the imports of
