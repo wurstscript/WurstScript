@@ -37,6 +37,59 @@ import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
+    /** Return lowering owns a callee copy; it must move its children rather than clone them again. */
+    @Test
+    public void returnLoweringConsumesTheOwnedCopy() throws Exception {
+        for (String shape : new String[] {"structured", "loop", "vararg"}) {
+            boolean structured = shape.equals("structured");
+            WurstModel trace = Ast.WurstModel();
+            ImVar value = JassIm.ImVar(trace, TypesHelper.imInt(), "value", false);
+            ImVar done = JassIm.ImVar(trace, TypesHelper.imBool(), "done", false);
+            ImExpr condition = JassIm.ImBoolVal(true);
+            ImExpr returnedValue = JassIm.ImIntVal(7);
+            ImIf guard = JassIm.ImIf(trace, condition,
+                JassIm.ImStmts(JassIm.ImReturn(trace, returnedValue)), JassIm.ImStmts());
+            ImStmt unchanged = JassIm.ImIf(trace, JassIm.ImBoolVal(false),
+                JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(value), JassIm.ImIntVal(9))),
+                JassIm.ImStmts());
+            ImStmts body = JassIm.ImStmts(guard, unchanged,
+                JassIm.ImReturn(trace, JassIm.ImIntVal(11)));
+            ImVarargLoopVar loopVar = JassIm.ImVarargLoopVar(value);
+            if (shape.equals("loop")) {
+                body = JassIm.ImStmts(JassIm.ImLoop(trace, body));
+            } else if (shape.equals("vararg")) {
+                body = JassIm.ImStmts(JassIm.ImVarargLoop(trace, body, JassIm.ImVarargLoopVars(loopVar)));
+            }
+            ImInliner inliner = new ImInliner(new ImTranslator(trace, false, new RunArgs()));
+            String methodName = structured ? "structureReturns" : "rewriteForEarlyReturns";
+            java.lang.reflect.Method rewrite = structured
+                ? ImInliner.class.getDeclaredMethod(methodName, ImStmts.class, ImVar.class)
+                : ImInliner.class.getDeclaredMethod(methodName, ImStmts.class, ImVar.class, ImVar.class);
+            rewrite.setAccessible(true);
+            ImStmts output = (ImStmts) (structured ? rewrite.invoke(inliner, body, value)
+                : rewrite.invoke(inliner, body, done, value));
+            assertTrue(body.isEmpty(), "lowering must consume its input list");
+            java.util.Set<de.peeeq.wurstscript.jassIm.Element> nodes =
+                Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            collectOwnedReturnNodes(output, nodes);
+            assertTrue(nodes.contains(unchanged), "return-free subtrees must be moved intact");
+            assertTrue(nodes.contains(condition), "conditions must be reused");
+            assertTrue(nodes.contains(returnedValue), "returned expressions must be reused");
+            if (shape.equals("vararg")) {
+                assertTrue(nodes.contains(loopVar), "vararg loop bindings must be moved intact");
+            }
+        }
+    }
+
+    private static void collectOwnedReturnNodes(de.peeeq.wurstscript.jassIm.Element e,
+        java.util.Set<de.peeeq.wurstscript.jassIm.Element> nodes) {
+        assertTrue(nodes.add(e), "a child must occur only once");
+        for (int i = 0; i < e.size(); i++) {
+            assertSame(e.get(i).getParent(), e, "moved children must retain valid parents");
+            collectOwnedReturnNodes(e.get(i), nodes);
+        }
+    }
+
     @Test
     public void packageConstantsInlineAndRemoveDeadGuardsInJass() throws IOException {
         test().withStdLib().runCompiletimeFunctions(true).lines(
