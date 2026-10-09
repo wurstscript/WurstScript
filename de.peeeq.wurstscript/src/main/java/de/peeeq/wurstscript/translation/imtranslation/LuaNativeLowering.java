@@ -612,6 +612,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFmodInt;
         private ImFunction rawFloorModInt;
         private ImFunction rawFmodReal;
+        private ImFunction rawFloorModReal;
         private ImFunction intDiv;
         private ImFunction modInt;
         private ImFunction modReal;
@@ -633,18 +634,27 @@ public final class LuaNativeLowering {
             return intDiv;
         }
 
+        /** For an int divisor b > 0, Lua's floored % is exactly the ModuloInteger result. */
         ImFunction modInt() {
             if (modInt == null) {
-                modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0), rawFmodInt());
+                modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0),
+                    WurstOperator.GREATER, JassIm.ImIntVal(0), rawFmodInt(), rawFloorModInt());
                 translator.luaModIntFunc = modInt;
                 created.add(modInt);
             }
             return modInt;
         }
 
+        /**
+         * Lua 5.3 computes a float % as fmod plus the divisor when {@code fmod * b < 0}, which for a
+         * positive b is the ModuloReal correction (-0.0 stays -0.0 on both), except where that product
+         * underflows to zero: a subnormal remainder and a divisor below 1. So the operator is taken
+         * from b >= 1 on, and never for NaN.
+         */
         ImFunction modReal() {
             if (modReal == null) {
-                modReal = buildMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."), rawFmodReal());
+                modReal = buildMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."),
+                    WurstOperator.GREATER_EQ, JassIm.ImRealVal("1."), rawFmodReal(), rawFloorModReal());
                 translator.luaModRealFunc = modReal;
                 created.add(modReal);
             }
@@ -692,6 +702,16 @@ public final class LuaNativeLowering {
             return rawFmodReal;
         }
 
+        /** Lua's float {@code %}; only correct for a divisor of at least 1, which the caller guarantees. */
+        private ImFunction rawFloorModReal() {
+            if (rawFloorModReal == null) {
+                rawFloorModReal = rawNative("__wurst_rawFloorModReal", TypesHelper.imReal());
+                translator.luaRawFloorModRealFunc = rawFloorModReal;
+                created.add(rawFloorModReal);
+            }
+            return rawFloorModReal;
+        }
+
         /** A native leaf with two params and a return, translated as a Lua backend intrinsic. */
         private static ImFunction rawNative(String name, ImType numType) {
             ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
@@ -733,24 +753,35 @@ public final class LuaNativeLowering {
         }
 
         /**
-         * local r = rawFmod(a, b)
-         * if r < 0 then r = r + b end
+         * local r
+         * if b [> 0 | >= 1.] then r = rawFloorMod(a, b)
+         * else r = rawFmod(a, b); if r < 0 then r = r + b end end
          * return r
-         * (Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal:
-         * truncated remainder, plus the divisor when the remainder is negative.)
+         * (Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal: truncated remainder, plus the
+         * divisor when the remainder is negative. Lua's % is floored, which gives the same for the
+         * divisors {@code positiveTest} admits, as one VM operation instead of a C call and a branch.
+         * Once inlined where the divisor is a literal, the test folds and only one branch is left.)
          */
-        private static ImFunction buildMod(String name, ImType numType, ImExpr zeroLiteral, ImFunction rawFmod) {
+        private static ImFunction buildMod(String name, ImType numType, ImExpr zeroLiteral,
+                                           WurstOperator positiveTest, ImExpr positiveBound,
+                                           ImFunction rawFmod, ImFunction rawFloorMod) {
             ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
             ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);
             ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "r", false);
 
             ImStmts body = JassIm.ImStmts(
-                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), call(rawFmod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
                 JassIm.ImIf(SYNTHETIC_TRACE,
-                    JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), zeroLiteral)),
+                    JassIm.ImOperatorCall(positiveTest, JassIm.ImExprs(JassIm.ImVarAccess(b), positiveBound)),
                     JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
-                        JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImVarAccess(b))))),
-                    JassIm.ImStmts()
+                        call(rawFloorMod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b)))),
+                    JassIm.ImStmts(
+                        JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), call(rawFmod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
+                        JassIm.ImIf(SYNTHETIC_TRACE,
+                            JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), zeroLiteral)),
+                            JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
+                                JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImVarAccess(b))))),
+                            JassIm.ImStmts()
+                        ))
                 ),
                 JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(r))
             );

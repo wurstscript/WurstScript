@@ -5805,7 +5805,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("repro must exercise string concat lowering", compiled.contains(" .. "));
         assertFalse("the raw concat primitive is an operator, not a call", compiled.contains("__wurst_rawConcat"));
         assertTrue("repro must exercise integer div lowering", compiled.contains(" // "));
-        assertTrue("repro must exercise integer and real mod lowering", compiled.contains("math.fmod("));
+        // the divisors are literals once inlined, so both lower to Lua's % (see modByADivisorThatBecomesALiteral...)
+        assertTrue("repro must exercise integer and real mod lowering:\n" + compiled,
+            compiled.contains(" % 2)") && compiled.contains(" % 2.)"));
         assertFalse("raw numeric primitive calls must not survive Lua emission", compiled.contains("__wurst_rawF"));
     }
 
@@ -7460,5 +7462,118 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String longMessage = topLevelFunctionBodyWithPrefix(compiledLua("aLongStringConcatenationLoadsAndRuns"),
             "longMessage");
         assertEquals(parts, countOccurrences(longMessage, " .. "));
+    }
+
+    /**
+     * A divisor which only becomes a literal once the helper is inlined (here a parameter, in a map
+     * often a constant) is Lua's %, with no fmod and no sign correction: the helper tests the divisor
+     * and the test folds. A real divisor below 1 keeps fmod, and so does a runtime divisor, whose
+     * test runs.
+     */
+    @Test
+    public void modByADivisorThatBecomesALiteralIsTheLuaOperator() {
+        String compiled = compileOptimizedLua("modByADivisorThatBecomesALiteralIsTheLuaOperator",
+            "package Test",
+            "native consume(int value)",
+            "native consumeReal(real value)",
+            "function wrap(int a, int m) returns int",
+            "    return a mod m",
+            "function wrapReal(real a, real m) returns real",
+            "    return a % m",
+            "@noinline function fixed(int x) returns int",
+            "    return wrap(x, 1000003)",
+            "@noinline function fixedReal(real x) returns real",
+            "    return wrapReal(x, 360.)",
+            "@noinline function belowOne(real x) returns real",
+            "    return wrapReal(x, 0.5)",
+            "@noinline function varying(int x, int y) returns int",
+            "    return x mod y",
+            "init",
+            "    consume(fixed(5))",
+            "    consumeReal(fixedReal(5.))",
+            "    consumeReal(belowOne(5.))",
+            "    consume(varying(5, 3))");
+        String fixed = topLevelFunctionBodyWithPrefix(compiled, "fixed(");
+        assertTrue(fixed, fixed.contains(" % 1000003)"));
+        assertFalse(fixed, fixed.contains("fmod") || fixed.contains("< 0"));
+        String fixedReal = topLevelFunctionBodyWithPrefix(compiled, "fixedReal");
+        assertTrue(fixedReal, fixedReal.contains(" % 360.)"));
+        assertFalse(fixedReal, fixedReal.contains("fmod") || fixedReal.contains("< 0"));
+        String belowOne = topLevelFunctionBodyWithPrefix(compiled, "belowOne");
+        assertTrue("a real divisor below 1 keeps fmod:\n" + belowOne, belowOne.contains("math.fmod("));
+        assertFalse(belowOne, belowOne.contains(" % "));
+        String varying = topLevelFunctionBodyWithPrefix(compiled, "varying");
+        assertTrue("a runtime divisor is tested:\n" + varying,
+            varying.contains(" % ") && varying.contains("math.fmod("));
+    }
+
+    private static final String[] MOD_SEMANTICS_PROG = {
+        "package Test",
+        "native testSuccess()",
+        "real zero = 0.",
+        "function im(int a, int b) returns int",
+        "    return a mod b",
+        "function rm(real a, real b) returns real",
+        "    return a % b",
+        "@noinline function v(int x) returns int",
+        "    return x",
+        "@noinline function w(real x) returns real",
+        "    return x",
+        "function near(real a, real b) returns boolean",
+        "    return a - b < 0.0001 and b - a < 0.0001",
+        "init",
+        "    let negZero = zero * -1.",
+        "    boolean ok = true",
+        // runtime dividends, literal divisors
+        "    ok = ok and im(v(7), 3) == 1 and im(v(-7), 3) == 2 and im(v(0), 3) == 0",
+        "    ok = ok and im(v(-3), 3) == 0 and im(v(-1), 8) == 7 and im(v(-2147483647), 2) == 1",
+        // runtime divisors, both signs
+        "    ok = ok and im(v(7), v(3)) == 1 and im(v(-7), v(3)) == 2 and im(v(7), v(-3)) == 1",
+        "    ok = ok and im(v(-7), v(-3)) == -4 and im(v(0), v(-5)) == 0",
+        // reals: a divisor of at least 1, below 1, negative, at runtime
+        "    ok = ok and near(rm(w(7.5), 2.), 1.5) and near(rm(w(-7.5), 2.), 0.5) and near(rm(w(0.), 360.), 0.)",
+        "    ok = ok and near(rm(w(-370.), 360.), 350.) and near(rm(w(-0.75), 0.5), 0.25)",
+        "    ok = ok and near(rm(w(7.5), -2.), 1.5) and near(rm(w(-7.5), -2.), -3.5)",
+        "    ok = ok and near(rm(w(-7.5), w(2.)), 0.5) and near(rm(w(-7.5), w(0.5)), 0.)",
+        // -0.0 is a zero, not the divisor
+        "    ok = ok and rm(negZero, 360.) == 0. and rm(negZero, 360.) < 1. and rm(negZero, w(360.)) < 1.",
+        "    if ok",
+        "        testSuccess()"
+    };
+
+    /**
+     * Wurst mod is Blizzard.j's ModuloInteger/ModuloReal: the truncated remainder, plus the divisor
+     * when it is negative. Lua's % agrees for an int divisor above 0 and a real one of at least 1,
+     * which the helper tests at run time and the optimiser folds for a literal. Against Jass and the
+     * interpreter, once with the helper called and once inlined and folded.
+     */
+    @Test
+    public void modAgreesWithJassForEveryDivisorSign() {
+        test().testLua(true).luaOnly(false).executeProg().lines(MOD_SEMANTICS_PROG);
+    }
+
+    @Test
+    public void modAgreesWithJassForEveryDivisorSignWhenFolded() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(MOD_SEMANTICS_PROG);
+    }
+
+    /** -0.0 stays -0.0 under Lua's % as under fmod and its correction: 1 / r is minus infinity. */
+    @Test
+    public void modKeepsTheSignOfANegativeZeroOnLua() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "real zero = 0.",
+            "function rm(real a, real b) returns real",
+            "    return a % b",
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "init",
+            "    let negZero = zero * -1.",
+            "    if 1. / rm(negZero, 360.) < 0. and 1. / rm(negZero, w(360.)) < 0. and 1. / rm(negZero, w(0.5)) < 0.",
+            "        testSuccess()");
+        String compiled = topLevelFunctionBodyWithPrefix(compiledLua("modKeepsTheSignOfANegativeZeroOnLua"),
+            "init_Test");
+        assertTrue(compiled, compiled.contains(" % 360.)"));
     }
 }

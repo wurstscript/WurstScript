@@ -155,7 +155,7 @@ public class ExprTranslation {
             if (e.getFunc() == tr.imTr.luaRawFloorDivIntFunc) {
                 return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
             }
-            if (e.getFunc() == tr.imTr.luaRawFloorModIntFunc) {
+            if (e.getFunc() == tr.imTr.luaRawFloorModIntFunc || e.getFunc() == tr.imTr.luaRawFloorModRealFunc) {
                 return LuaAst.LuaExprBinary(left, LuaAst.LuaOpMod(), right);
             }
             if (e.getFunc() == tr.imTr.luaRawConcatFunc) {
@@ -189,6 +189,7 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFmodIntFunc
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
+            || function == tr.imTr.luaRawFloorModRealFunc
             || function == tr.imTr.luaRawConcatFunc
             || function == tr.imTr.luaRawOrEmptyFunc
             || LuaKeyedMap.readStubName(tr.imTr, function) != null

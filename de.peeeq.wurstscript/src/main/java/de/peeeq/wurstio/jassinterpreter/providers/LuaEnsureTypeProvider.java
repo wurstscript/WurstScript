@@ -66,4 +66,13 @@ public class LuaEnsureTypeProvider extends Provider {
     public ILconstReal __wurst_rawFmodReal(ILconstReal a, ILconstReal b) {
         return ILconstReal.create(a.getVal() % b.getVal());
     }
+
+    /** Lua 5.3's float {@code %}: fmod, plus the divisor when {@code fmod * b < 0}. */
+    public ILconstReal __wurst_rawFloorModReal(ILconstReal a, ILconstReal b) {
+        float m = a.getVal() % b.getVal();
+        if (m * b.getVal() < 0) {
+            m += b.getVal();
+        }
+        return ILconstReal.create(m);
+    }
 }
