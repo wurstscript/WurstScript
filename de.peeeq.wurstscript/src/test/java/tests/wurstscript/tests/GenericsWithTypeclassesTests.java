@@ -2460,4 +2460,51 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         assertTrue(jass.contains("set Box_cap_Box_real__u = 16"));
     }
 
+    @Test
+    public void genericOverrideOverriddenAgainByPlainSubclass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C<T:> extends Base",
+            "    override function m() returns int",
+            "        return 2",
+            "class D extends C<int>",
+            "    override function m() returns int",
+            "        return 4",
+            "function viaBase(Base b) returns int",
+            "    return b.m()",
+            "init",
+            "    if viaBase(new Base()) == 1 and viaBase(new C<int>()) == 2 and viaBase(new D()) == 4",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void genericOverrideOverriddenAgainBySubclassWithInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface I",
+            "    function n() returns int",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C<T:> extends Base",
+            "    override function m() returns int",
+            "        return 2",
+            "class D extends C<int> implements I",
+            "    override function m() returns int",
+            "        return 4",
+            "    function n() returns int",
+            "        return 8",
+            "function viaBase(Base b) returns int",
+            "    return b.m()",
+            "init",
+            "    let d = new D()",
+            "    if viaBase(new Base()) == 1 and viaBase(new C<int>()) == 2 and viaBase(d) == 4 and d.n() == 8",
+            "        testSuccess()");
+    }
+
 }

@@ -123,8 +123,7 @@ public class InterfaceTranslator {
      * are Base's ({@link ImTranslator#linkOverridesBelow}). Where another interface of C gives m a default, the
      * default is the implementation: a default beats an inherited method (a call through that interface runs it on
      * every backend), and Lua binds one implementation for C to both. Not for generic classes: a method of a generic
-     * class is specialised with the functions the class owns, and a generic class with an override in a non-generic
-     * subclass does not compile yet (EliminateGenerics.adaptSubmethods), so those keep what they did.
+     * class is specialised with the functions the class owns, so those keep what they did.
      */
     private ImMethod methodOfItsOwn(ImClass imClass, ImMethod inherited, ImFunction implementation) {
         ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), inherited.getName(),
