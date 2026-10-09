@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -9,9 +8,11 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -89,24 +90,14 @@ public class InterfaceTranslator {
 
 
         List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
-        // TODO also add extended interfaces
 
         // set sub methods
         Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
         for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
             ClassDef subC = subE.getKey();
             WurstTypeClass subCT = subC.attrTypC();
-            ImmutableCollection<WurstTypeInterface> interfaces = subCT.implementedInterfaces();
 
-            VariableBinding typeBinding =
-                VariableBinding.emptyMapping();
-            for (WurstTypeInterface t : interfaces) {
-                if (t.getDef() == interfaceDef) {
-                    VariableBinding typeArgBinding = t.getTypeArgBinding();
-                    typeBinding = typeArgBinding;
-                    break;
-                }
-            }
+            VariableBinding typeBinding = typeBindingOf(subCT);
 
             FuncDef subM = subE.getValue();
             ImMethod m = translator.getMethodFor(subM);
@@ -115,6 +106,34 @@ public class InterfaceTranslator {
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
 
+    }
+
+    /**
+     * The type arguments a class gives this interface where it implements it: itself, through an interface which
+     * extends this one, or through a superclass (the instances are the subclasses of an implementing class too). The
+     * nearest declaration binds, and at the same distance the class's own interfaces before its superclass, so a
+     * class which implements {@code I<real>} itself is not bound by the {@code I<int>} of its superclass. The override
+     * converts its arguments from their index with them.
+     */
+    private VariableBinding typeBindingOf(WurstTypeClass classType) {
+        ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
+        queue.add(classType);
+        while (!queue.isEmpty()) {
+            WurstTypeClassOrInterface type = queue.removeFirst();
+            if (type instanceof WurstTypeInterface i && i.getDef() == interfaceDef) {
+                return i.getTypeArgBinding();
+            }
+            if (type instanceof WurstTypeClass c) {
+                queue.addAll(c.implementedInterfaces());
+                WurstTypeClass extended = c.extendedClass();
+                if (extended != null) {
+                    queue.add(extended);
+                }
+            } else {
+                queue.addAll(type.directSupertypes());
+            }
+        }
+        return VariableBinding.emptyMapping();
     }
 
 }

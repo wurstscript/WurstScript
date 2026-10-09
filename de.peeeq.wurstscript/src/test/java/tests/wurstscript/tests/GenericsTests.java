@@ -296,6 +296,82 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** {@code I<real>} with the conversions of real, implemented by B and through B by its subclasses. */
+    private static final String[] BRIDGED_INTERFACE = {
+        "package test",
+        "native testSuccess()",
+        "@extern native R2I(real r) returns int",
+        "function realToIndex(real r) returns int",
+        "    return R2I(r * 10.)",
+        "function realFromIndex(int i) returns real",
+        "    return i / 10.",
+        "interface I<T>",
+        "    function foo(T t) returns int",
+        "interface J<T> extends I<T>",
+        "class B implements I<real>",
+        "    override function foo(real t) returns int",
+        "        return R2I(t * 100.)",
+        "function viaI(I<real> i) returns int",
+        "    return i.foo(1.5)"};
+
+    private static String[] bridged(String... rest) {
+        String[] result = java.util.Arrays.copyOf(BRIDGED_INTERFACE, BRIDGED_INTERFACE.length + rest.length);
+        System.arraycopy(rest, 0, result, BRIDGED_INTERFACE.length, rest.length);
+        return result;
+    }
+
+    /**
+     * The override in a subclass of the class which implements the interface is called through the interface with
+     * the argument converted from its index, as the implementation of the superclass is.
+     */
+    @Test
+    public void aSubclassOverrideIsCalledThroughTheInterfaceWithTheConvertedArgument() throws java.io.IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(bridged(
+            "class D extends B",
+            "    override function foo(real t) returns int",
+            "        return R2I(t * 1000.)",
+            "init",
+            "    if viaI(new B()) == 150 and viaI(new D()) == 1500",
+            "        testSuccess()"));
+
+        String name = "GenericsTests_aSubclassOverrideIsCalledThroughTheInterfaceWithTheConvertedArgument";
+        // Jass: D has its own bridge, which converts the index back, and the dispatch of I.foo calls it
+        String jass = java.nio.file.Files.readString(java.nio.file.Path.of("test-output", name + "_no_opts.j"));
+        org.testng.Assert.assertTrue(jass.contains("function D_foo_wrapper takes integer this, integer t returns integer"), jass);
+        org.testng.Assert.assertTrue(jass.contains("return D_foo(this, realFromIndex(t))"), jass);
+        org.testng.Assert.assertTrue(jass.contains("= D_foo_wrapper(this, t)"), "the dispatch calls D's bridge:\n" + jass);
+        // Lua: D binds the slot the call reads to its own bridge, not B's
+        String lua = java.nio.file.Files.readString(java.nio.file.Path.of("test-output", "lua", name + ".lua"));
+        java.util.regex.Matcher call = java.util.regex.Pattern.compile("__wurst_objectClass\\[\\w+\\]\\.(\\w+)\\(").matcher(lua);
+        org.testng.Assert.assertTrue(call.find(), lua);
+        String slot = call.group(1);
+        org.testng.Assert.assertTrue(lua.contains("D." + slot + " = D_foo_wrapper"), "D binds " + slot + " to its bridge:\n" + lua);
+        org.testng.Assert.assertTrue(lua.contains("B." + slot + " = B_foo_wrapper"), "B keeps its own:\n" + lua);
+        java.util.regex.Matcher bridge = java.util.regex.Pattern.compile("function D_foo_wrapper\\((\\w+), (\\w+)\\) \\s*return (\\w+)\\(\\1, realFromIndex\\(\\2\\)\\)").matcher(lua);
+        org.testng.Assert.assertTrue(bridge.find(), "D's bridge converts the argument back:\n" + lua);
+    }
+
+    @Test
+    public void aSubclassWithoutAnOverrideIsCalledThroughTheInterfaceWithTheConvertedArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(bridged(
+            "class D extends B",
+            "init",
+            "    if viaI(new D()) == 150",
+            "        testSuccess()"));
+    }
+
+    /** The interface is implemented through one which extends it, with the type arguments of that one. */
+    @Test
+    public void anImplementationOfAnExtendingInterfaceIsCalledWithTheConvertedArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(bridged(
+            "class K implements J<real>",
+            "    override function foo(real t) returns int",
+            "        return R2I(t * 1000.)",
+            "init",
+            "    if viaI(new K()) == 1500",
+            "        testSuccess()"));
+    }
+
     @Test
     public void implicitConversionsFail() {
         testAssertErrorsLines(true, "Could not find function blaFromIndex",
