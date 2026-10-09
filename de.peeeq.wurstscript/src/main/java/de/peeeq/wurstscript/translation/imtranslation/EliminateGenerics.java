@@ -1569,21 +1569,6 @@ public class EliminateGenerics {
                 typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()));
             }
             rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
-
-            // NEW: fill implicit type args for captured generics (Inner -> Inner<T>)
-            Map<String, ImTypeVar> scope = new HashMap<>();
-            for (ImTypeVar tv : f.getTypeVariables()) {
-                scope.put(tv.getName(), tv);
-            }
-
-            f.setReturnType(fillMissingTypeArgsFromScope(f.getReturnType(), scope));
-
-            for (ImVar p : f.getParameters()) {
-                p.setType(fillMissingTypeArgsFromScope(p.getType(), scope));
-            }
-            for (ImVar l : f.getLocals()) {
-                l.setType(fillMissingTypeArgsFromScope(l.getType(), scope));
-            }
         }
     }
 
@@ -3259,63 +3244,6 @@ public class EliminateGenerics {
         public void eliminate() {
             f.setClazz(specializeType(f.getClazz()));
         }
-    }
-
-    private ImType fillMissingTypeArgsFromScope(ImType t, Map<String, ImTypeVar> scope) {
-        return t.match(new ImType.Matcher<ImType>() {
-
-            @Override
-            public ImType case_ImClassType(ImClassType ct) {
-                int need = ct.getClassDef().getTypeVariables().size();
-                int have = ct.getTypeArguments().size();
-                if (need == 0 || have >= need) {
-                    return ct;
-                }
-
-                ImTypeArguments newArgs = JassIm.ImTypeArguments();
-                // keep existing args
-                for (ImTypeArgument a : ct.getTypeArguments()) {
-                    newArgs.add(a.copy());
-                }
-
-                // fill missing args by name from scope
-                for (int i = have; i < need; i++) {
-                    ImTypeVar tv = ct.getClassDef().getTypeVariables().get(i);
-                    ImTypeVar inScope = scope.get(tv.getName());
-                    if (inScope == null) {
-                        // no suitable type var in scope -> cannot fill
-                        return ct;
-                    }
-                    newArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(inScope), Collections.emptyMap()));
-                }
-
-                return JassIm.ImClassType(ct.getClassDef(), newArgs);
-            }
-
-            @Override
-            public ImType case_ImArrayType(ImArrayType at) {
-                return JassIm.ImArrayType(fillMissingTypeArgsFromScope(at.getEntryType(), scope));
-            }
-
-            @Override
-            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti at) {
-                return JassIm.ImArrayTypeMulti(fillMissingTypeArgsFromScope(at.getEntryType(), scope), at.getArraySize());
-            }
-
-            @Override
-            public ImType case_ImTupleType(ImTupleType tt) {
-                List<ImType> ts = new ArrayList<>();
-                for (ImType x : tt.getTypes()) {
-                    ts.add(fillMissingTypeArgsFromScope(x, scope));
-                }
-                return JassIm.ImTupleType(ts, tt.getNames());
-            }
-
-            @Override public ImType case_ImVoid(ImVoid v) { return v; }
-            @Override public ImType case_ImAnyType(ImAnyType a) { return a; }
-            @Override public ImType case_ImSimpleType(ImSimpleType s) { return s; }
-            @Override public ImType case_ImTypeVarRef(ImTypeVarRef r) { return r; }
-        });
     }
 
     private static String id(Object o) {

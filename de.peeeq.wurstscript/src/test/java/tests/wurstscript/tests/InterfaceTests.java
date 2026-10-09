@@ -915,13 +915,11 @@ public class InterfaceTests extends WurstScriptTest {
 
     /**
      * Static classes inside a generic class have its type parameter as a variable of their own, which no superclass
-     * binds: C sees Base's as the parameter itself. Lua only: on Jass a static class extending another inside a
-     * generic class does not compile yet, with or without an interface (the generic elimination specialises Base
-     * without the parameter).
+     * binds: C sees Base's as its own captured variable.
      */
     @Test
     public void aStaticClassOfAGenericClassImplementingTheInterfaceWithAnInheritedMethodIsDispatched() {
-        test().testLua(true).executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "native testSuccess()",
             "interface Omega",
@@ -940,6 +938,38 @@ public class InterfaceTests extends WurstScriptTest {
             "    return a.m()",
             "init",
             "    if viaOmega(new Outer<int>().make()) == 1 and viaOmega(new X()) == 3",
+            "        testSuccess()");
+    }
+
+    /**
+     * As above, with the enclosing class's parameter in the signature of the inherited method: the function C gets
+     * for it takes and returns C's captured variable, which each instantiation of Outer binds.
+     */
+    @Test
+    public void aStaticClassOfAGenericClassInheritingAnImplementationOverTheTypeParameterIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega<A:>",
+            "    function m(A a) returns A",
+            "class Outer<T:>",
+            "    function make() returns Omega<T>",
+            "        return new C()",
+            "    static class Base",
+            "        function m(T t) returns T",
+            "            return t",
+            "    static class C extends Base implements Omega<T>",
+            "class X implements Omega<int>",
+            "    function m(int a) returns int",
+            "        return a + 1",
+            "function viaOmega(Omega<int> a, int v) returns int",
+            "    return a.m(v)",
+            "function viaOmegaString(Omega<string> a, string v) returns string",
+            "    return a.m(v)",
+            "init",
+            "    let fromInt = viaOmega(new Outer<int>().make(), 5)",
+            "    let fromString = viaOmegaString(new Outer<string>().make(), \"a\")",
+            "    if fromInt == 5 and fromString == \"a\" and viaOmega(new X(), 5) == 6",
             "        testSuccess()");
     }
 

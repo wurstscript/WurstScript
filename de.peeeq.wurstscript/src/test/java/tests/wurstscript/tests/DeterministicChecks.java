@@ -678,6 +678,50 @@ public class DeterministicChecks extends WurstScriptTest {
         assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "Lua must not depend on the unit order");
     }
 
+    /**
+     * A static class inside a generic class inherits the implementation of an interface's method over the class's
+     * type parameter, and the interface is in a package of its own. Translating the interface first asks for Base's
+     * method before Outer is translated: the members of a static class see the parameter as its captured variable
+     * whichever code asks for them first, so the Jass and the Lua do not depend on the unit order.
+     */
+    @Test
+    public void staticClassOfAGenericClassIsTheSameInAnyUnitOrder() throws IOException {
+        List<CU> units = List.of(
+            compilationUnit("OmegaLib.wurst",
+                "package OmegaLib",
+                "public interface Omega<A:>",
+                "    function m(A a) returns A"),
+            compilationUnit("Lib.wurst",
+                "package Lib",
+                "import OmegaLib",
+                "public class Outer<T:>",
+                "    function make() returns Omega<T>",
+                "        return new C()",
+                "    static class Base",
+                "        function m(T t) returns T",
+                "            return t",
+                "    static class C extends Base implements Omega<T>"),
+            compilationUnit("Main.wurst",
+                "package Main",
+                "import OmegaLib",
+                "import Lib",
+                "native testSuccess()",
+                "init",
+                "    if new Outer<int>().make().m(5) == 5 and new Outer<string>().make().m(\"a\") == \"a\"",
+                "        testSuccess()"));
+        String name = "staticClassOfAGenericClass";
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(0), units.get(1), units.get(2));
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(1), units.get(0), units.get(2));
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass, "Jass must not depend on the unit order");
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "Lua must not depend on the unit order");
+    }
+
     /** Compiles {@code units} to Lua, runs them, and returns the script, which is written under {@code name}. */
     private String compileToLua(String name, List<CU> units) throws IOException {
         testNamed(name).testLua(true).executeProg().compilationUnits(units.toArray(new CU[0]));

@@ -56,10 +56,10 @@ public class ClassTranslator {
      * translates the given classDef
      */
     private void translate() {
+        imClass = translator.getClassFor(classDef);
         Map<TypeParamDef, ImTypeVar> ov = translator.getTypeVarOverridesForClass(classDef);
         translator.pushTypeVarOverrides(ov);
         try {
-            imClass = translator.getClassFor(classDef);
             prog.getClasses().add(imClass);
 
             addSuperClasses();
@@ -193,6 +193,7 @@ public class ClassTranslator {
                         typeArgs.add(tp.imTranslateToTypeArgument(translator));
                     }
                 }
+                typeArgs.addAll(translator.capturedTypeArguments(extended.getDef(), extended.getTypeArgBinding()));
                 addTo.add(ImFunctionCall(c, onDestroy, typeArgs, ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
         }
@@ -427,6 +428,8 @@ public class ClassTranslator {
                             typeArgs.add(bt.imTranslateToTypeArgument(translator));
                         }
                     }
+                    typeArgs.addAll(translator.capturedTypeArguments(extendedTypeC.getDef(),
+                        extendedTypeC.getTypeArgBinding()));
                 }
                 f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
             }

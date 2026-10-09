@@ -27,6 +27,7 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -350,9 +351,72 @@ public class ImTranslator implements SpecialisationLookup {
         return "type";
     }
 
-    public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForClass(ClassDef cd) {
-        Map<TypeParamDef, ImTypeVar> m = capturedOwnerTypeVarsByStaticClass.get(cd);
-        return (m == null) ? Collections.emptyMap() : m;
+    /**
+     * The type variable each type parameter in scope of a member of {@code c} stands for: the class's own and, for a
+     * static class inside a generic class, the ones it captures from that class
+     * ({@link #addCapturedTypeVarsFromOwningGeneric}). A member is translated with these whatever the code which first
+     * asks for it, so the parameter of the enclosing class is the static class's captured variable everywhere in it.
+     */
+    public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForClass(ClassOrInterface c) {
+        Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
+        for (ImTypeVar tv : getClassFor(c).getTypeVariables()) {
+            TypeParamDef tp = typeVariableReverse.get(tv);
+            if (tp != null) {
+                result.put(tp, tv);
+            }
+        }
+        return result;
+    }
+
+    /** The overrides of {@link #getTypeVarOverridesForClass} for the class {@code member} belongs to, if any. */
+    private Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForMember(de.peeeq.wurstscript.ast.Element member) {
+        ClassOrInterface c = member.attrNearestClassOrInterface();
+        return c == null ? Collections.emptyMap() : getTypeVarOverridesForClass(c);
+    }
+
+    /**
+     * The type arguments of a type of {@code c} for the type parameters it captures from the generic class around it
+     * ({@link #addCapturedTypeVarsFromOwningGeneric}), which follow its own in its type variables. Each is what
+     * {@code binding} binds the parameter to ({@code new Outer<int>().make()} returns a {@code Base} with T bound to
+     * int), or else the parameter as the code being translated sees it: the enclosing class's own variable in its
+     * members, and the captured variable in the members of a static class.
+     */
+    public List<ImTypeArgument> capturedTypeArguments(ClassOrInterface c, VariableBinding binding) {
+        List<TypeParamDef> parameters = capturedTypeParameters(c);
+        if (parameters.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ImTypeArgument> result = new ArrayList<>();
+        for (TypeParamDef tp : parameters) {
+            Option<WurstTypeBoundTypeParam> bound = binding.get(tp);
+            result.add(bound.isDefined()
+                ? bound.get().imTranslateToTypeArgument(this)
+                : JassIm.ImTypeArgument(JassIm.ImTypeVarRef(getTypeVar(tp)), Collections.emptyMap()));
+        }
+        return result;
+    }
+
+    /**
+     * The type parameters of the generic class around {@code c} which the static class captures
+     * ({@link #addCapturedTypeVarsFromOwningGeneric}), in the order of its type variables.
+     */
+    private List<TypeParamDef> capturedTypeParameters(ClassOrInterface c) {
+        if (!(c instanceof ClassDef cd)) {
+            return Collections.emptyList();
+        }
+        ImClass imClass = getClassFor(cd);
+        Map<TypeParamDef, ImTypeVar> captured = capturedOwnerTypeVarsByStaticClass.get(cd);
+        if (captured == null) {
+            return Collections.emptyList();
+        }
+        List<TypeParamDef> result = new ArrayList<>();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            TypeParamDef tp = typeVariableReverse.get(tv);
+            if (tp != null && captured.get(tp) == tv) {
+                result.add(tp);
+            }
+        }
+        return result;
     }
 
     public void pushTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
@@ -1191,16 +1255,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return selfType(imClass);
     }
 
+    /** The type of this in the members of the class: the class with its own type variables, the captured ones too. */
     public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            TypeParamDef tpd = typeVariableReverse.get(tv);
-
-            // If this ImTypeVar corresponds to an owner TypeParamDef (captured case),
-            // resolve it through context so owner context uses owner vars, Iterator context uses captured vars.
-            ImTypeVar tvForContext = (tpd != null) ? getTypeVar(tpd) : tv;
-
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tvForContext), Collections.emptyMap()));
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
         }
         return JassIm.ImClassType(imClass, typeArgs);
     }
@@ -1291,12 +1350,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
         ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
         ImFunction f = ImFunction(funcDef, name, typeVars, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
+        // The signature of a class member sees the type variables of its class, not those of the code asking for it.
+        Map<TypeParamDef, ImTypeVar> classOv = funcDef instanceof ExprClosure
+            ? Collections.emptyMap() : getTypeVarOverridesForMember(funcDef);
         Map<TypeParamDef, ImTypeVar> ov = getTypeVarOverridesForFunction(f);
+        pushTypeVarOverrides(classOv);
         pushTypeVarOverrides(ov);
         try {
             funcDef.imCreateFuncSkeleton(this, f);
         } finally {
             popTypeVarOverrides(ov);
+            popTypeVarOverrides(classOv);
         }
 
         addFunction(f, funcDef);
@@ -1363,6 +1427,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                     ClassOrInterface owner = funcDef.attrNearestClassOrInterface();
                     if (owner != null) {
                         handleTypeParameters(owner.getTypeParameters());
+                        // A static function is not in its class, so it takes the parameters a static class captures
+                        // from the generic class around it as its own too.
+                        capturedTypeParameters(owner).forEach(this::handleTypeParameter);
                     }
                 }
                 handleTypeParameters(funcDef.getTypeParameters());
@@ -1539,7 +1606,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImVar getVarFor(VarDef varDef) {
         ImVar v = varMap.get(varDef);
         if (v == null) {
-            Map<TypeParamDef, ImTypeVar> ov = getOwnerTypeVarOverridesForStaticClassVar(varDef);
+            // A field sees the type variables of its class, not those of the code asking for it.
+            Map<TypeParamDef, ImTypeVar> ov = varDef instanceof GlobalVarDef
+                ? getTypeVarOverridesForMember(varDef) : Collections.emptyMap();
             pushTypeVarOverrides(ov);
             ImType type;
             try {
@@ -1556,25 +1625,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             varMap.put(varDef, v);
         }
         return v;
-    }
-
-    private Map<TypeParamDef, ImTypeVar> getOwnerTypeVarOverridesForStaticClassVar(VarDef varDef) {
-        if (!(varDef instanceof GlobalVarDef) || !varDef.attrIsStatic()) {
-            return Collections.emptyMap();
-        }
-        ClassOrInterface owner = varDef.attrNearestClassOrInterface();
-        if (owner == null) {
-            return Collections.emptyMap();
-        }
-        Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
-        if (owner instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
-            for (TypeParamDef tp : astElementWithTypeParameters.getTypeParameters()) {
-                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                    result.put(tp, typeVariable.getFor(tp));
-                }
-            }
-        }
-        return result;
     }
 
     private boolean isNamedScopeVar(VarDef varDef) {
@@ -2813,7 +2863,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             if (s1 instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
                 for (TypeParamDef tp : astElementWithTypeParameters.getTypeParameters()) {
                     if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                        ImTypeVar tv = getTypeVar(tp); // now context-aware (override stack)
+                        // not getTypeVar: the class's variables must not depend on the code which first asks for it
+                        ImTypeVar tv = typeVariable.getFor(tp);
                         if (!hasTypeVarNamed(typeVariables, tv.getName())) {
                             typeVariables.add(tv);
                         }
