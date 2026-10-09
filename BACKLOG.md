@@ -129,6 +129,12 @@ Notes; finished-work narrative does not.
   the tree while validating. The per-function IM passes need a translator whose caches and generated names are per
   function and deterministic. Do not start with the attribute protocol: make the caches, the error handler and the
   validator per unit first, and measure that against the 2.6 s of attribute evaluation in the warm check.
+- **Make the grammars SLL-clean.** The SLL-first parse (`AntlrTokenPipeline`) parses a file again with the full LL
+  prediction when SLL does not accept it, which also happens to a few valid files: 2 of the 733 `.wurst` files below
+  castle fight (one is `util/Cinematic.wurst` of the standard library) and `blizzard.j`, whose trees are the same either
+  way. Find the decisions of the Wurst and Jass grammars which need the context of the calling rule (the syntax
+  error the SLL pass reports on such a file, with the full-prediction pass switched off, names the place) and
+  left-factor them. That removes the second parse for valid files, which would then only be paid by broken ones.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

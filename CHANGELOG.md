@@ -1,11 +1,32 @@
 ## 1.9 (in progress)
 
-- The tree shake before the generics keeps what a type argument inside a type argument binds. Given
-  `make<Loader<State>>()`, where `make` returns `wurstNewInstance<H>()`, it dropped the function which constructs
-  `State`, which the specialised `Loader<State>.load` calls, and given `make<Box<Foo>>()` the implementation of the type
-  class which `Box` binds for `Foo`. The type of a type argument is a reference, which the walk does not enter, so only
-  the outer one was followed. Lua builds of such programs stopped with "Lua IM contains a dangling reference to removed
-  function". Castle fight compiles to the same script.
+- The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
+  exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
+  return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
+  may leave the block is moved now only when the condition has no effect. Castle fight compiles to the same script.
+
+- On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
+  `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
+  those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic
+  declarations on Jass only, so the run stopped with "The package declaring keyedMapPutNative must also declare the
+  existing keyedMapPut Jass fallback". They are roots of that shake on both targets now; the later shakes on Lua
+  still drop them. Castle fight compiles to the same script.
+
+- A file is parsed with ANTLR's SLL prediction first, and only a file which it does not accept is parsed again with the
+  full LL prediction. SLL ignores the context of the rule it is in, which makes it much cheaper, and it either returns
+  the tree the full prediction returns or reports a syntax error, so a valid file gives the same tree. A broken file is
+  parsed again from the first token with the error listener and the recovering strategy it always had, so it reports the
+  same diagnostics in the same order, each once (the lexer has run already and does not report twice). Of the 733 Wurst
+  files below castle fight (library sources included) 2 need the second parse. Parsing every one of them in a fresh
+  JVM, six alternating pairs: 5.7 s instead of 7.1 s on one thread (median, 5 of 6 pairs faster) and 2.9 s instead of
+  3.5 s on 8 threads (6 of 6), with 7 s less CPU of about 42 s. Whole builds are not told apart on this machine: the
+  median difference of six interleaved pairs was 1.7 s faster for castle fight without optimisations, 0.3 s slower
+  optimised and 0.4 s slower for zombie defense, against a scatter of several seconds, because parsing is already
+  parallel and what is left of it is a small part of a build. The scripts are byte for byte the same in all 28 pairs.
+  A file with a syntax error costs more than before, as it is parsed up to the error twice: 1.1 times as long with the
+  error in the middle of the largest library file, 1.2 to 1.3 times at its very end. `WurstParser.setSllFirst(false)`
+  restores the single pass. `SllParsingTests` compares trees and diagnostics of both on the standard library, `common.j`,
+  `blizzard.j` and about 40 broken sources.
 
 - Putting a file into the model while every unit is unchecked, as in the load of a project and of the libraries it
   imports, no longer searches the whole model for what imports it: that search only adds units to the set of unchecked

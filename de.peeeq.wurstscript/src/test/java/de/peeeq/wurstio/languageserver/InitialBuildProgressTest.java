@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import static org.testng.Assert.*;
 
 public class InitialBuildProgressTest {
+    // Only catches a hang: these waits include the initial build, which takes 3 to 4 s locally and longer on slow CI hosts.
+    private static final long BUILD_TIMEOUT_SECONDS = 60;
     private java.io.PrintStream errorStream;
     private java.util.logging.Level rpcLogLevel;
 
@@ -107,11 +109,11 @@ public class InitialBuildProgressTest {
             assertFalse(firstFormat.isDone(), "formatting must wait while progress creation is pending");
             assertFalse(secondFormat.isDone(), "formatting one document must not cancel another");
             creation.complete(null);
-            List<? extends TextEdit> firstEdits = firstFormat.get(5, TimeUnit.SECONDS);
+            List<? extends TextEdit> firstEdits = firstFormat.get(BUILD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertEquals(firstEdits.size(), 1);
             assertTrue(firstEdits.getFirst().getNewText().contains("unsavedFormatting"));
             assertEquals(firstEdits.getFirst().getRange().getEnd(), new Position(4, 0));
-            List<? extends TextEdit> blankEdits = secondFormat.get(5, TimeUnit.SECONDS);
+            List<? extends TextEdit> blankEdits = secondFormat.get(BUILD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertEquals(blankEdits.size(), 1);
             assertEquals(blankEdits.getFirst().getRange().getEnd(), new Position(2, 0));
         } finally {
@@ -190,7 +192,7 @@ public class InitialBuildProgressTest {
             assertTrue(server.worker().handle(new UserRequest<Boolean>() {
                 @Override
                 public Boolean execute(ModelManager modelManager) { return true; }
-            }).get(10, TimeUnit.SECONDS));
+            }).get(BUILD_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertEquals(client.creates, progress ? 1 : 0, "duplicate initialized must not restart progress");
             assertEquals(client.progress.size(), progress && !rejectProgress && !stallProgress ? 2 : 0);
             if (!client.progress.isEmpty()) {
