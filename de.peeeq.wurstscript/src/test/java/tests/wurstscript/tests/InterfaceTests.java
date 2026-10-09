@@ -612,4 +612,30 @@ public class InterfaceTests extends WurstScriptTest {
 
 
     }
+
+    /**
+     * C implements Omega's abstract m with the m it inherits from Base, which is not an Omega. The dispatch over
+     * Omega's implementations reaches C (and D below it) and must call Base's m, not the one of another implementor.
+     */
+    @Test
+    public void anAbstractInterfaceMethodImplementedByAnInheritedMethodIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C extends Base implements Omega",
+            "class D extends C",
+            "class X implements Omega",
+            "    function m() returns int",
+            "        return 3",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaOmega(new C()) == 1 and viaOmega(new D()) == 1 and viaOmega(new X()) == 3 and new C().m() == 1",
+            "        testSuccess()");
+    }
 }

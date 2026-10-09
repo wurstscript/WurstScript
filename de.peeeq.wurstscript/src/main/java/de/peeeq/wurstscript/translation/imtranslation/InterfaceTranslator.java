@@ -103,9 +103,26 @@ public class InterfaceTranslator {
             ImMethod m = translator.getMethodFor(subM);
 
             ImClass mClass = translator.getClassFor(subC);
+            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
+                m = methodOfItsOwn(mClass, m);
+            }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
 
+    }
+
+    /**
+     * A method of {@code imClass} itself for the abstract method of this interface, which the class implements with a
+     * method it inherits from a class outside the interface ({@code C extends Base implements Omega}). The dispatch
+     * over the implementations of the interface method follows the classes below the interface and takes at each the
+     * method declared in that class, and so does the interpreter: Base is not on that path, so C gets a method of its
+     * own with Base's implementation, which its subclasses inherit.
+     */
+    private ImMethod methodOfItsOwn(ImClass imClass, ImMethod inherited) {
+        ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), inherited.getName(),
+            inherited.getImplementation(), JassIm.ImMethods(), new java.util.ArrayList<>(), "", false);
+        imClass.getMethods().add(own);
+        return own;
     }
 
     /**
