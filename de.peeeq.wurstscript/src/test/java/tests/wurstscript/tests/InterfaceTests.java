@@ -638,4 +638,63 @@ public class InterfaceTests extends WurstScriptTest {
             "    if viaOmega(new C()) == 1 and viaOmega(new D()) == 1 and viaOmega(new X()) == 3 and new C().m() == 1",
             "        testSuccess()");
     }
+
+    private static final String[] OVERRIDE_BELOW_THE_INHERITING_CLASS = {
+        "package test",
+        "native testSuccess()",
+        "interface Omega",
+        "    function m() returns int",
+        "class Base",
+        "    function m() returns int",
+        "        return 1",
+        "class C extends Base implements Omega",
+        "class D extends C",
+        "    override function m() returns int",
+        "        return 4",
+        "class E extends D",
+        "class X implements Omega",
+        "    function m() returns int",
+        "        return 3",
+        "function viaOmega(Omega a) returns int",
+        "    return a.m()",
+        "function viaBase(Base b) returns int",
+        "    return b.m()",
+        "init",
+        "    if viaOmega(new C()) == 1 and viaOmega(new D()) == 4 and viaOmega(new E()) == 4 and viaOmega(new X()) == 3",
+        "        and viaBase(new D()) == 4 and viaBase(new C()) == 1",
+        "        testSuccess()"};
+
+    /** An override below the class which inherits the implementation is reached through the interface too. */
+    @Test
+    public void anOverrideBelowTheClassWhichInheritsTheImplementationIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(OVERRIDE_BELOW_THE_INHERITING_CLASS);
+    }
+
+    /**
+     * The method C has of its own for the m it inherits keeps D's override as a sub-method, as Base's m does: a
+     * bridge stays linked to the overrides below it (AGENTS.md section 8), which the dispatch preparation and the
+     * specialisation follow.
+     */
+    @Test
+    public void theMethodAClassHasOfItsOwnKeepsTheOverridesBelowIt() {
+        de.peeeq.wurstscript.gui.WurstGuiCliImpl gui = new de.peeeq.wurstscript.gui.WurstGuiCliImpl();
+        de.peeeq.wurstio.WurstCompilerJassImpl compiler =
+            new de.peeeq.wurstio.WurstCompilerJassImpl(null, gui, null, new de.peeeq.wurstscript.RunArgs());
+        de.peeeq.wurstscript.ast.WurstModel model = parseFiles(java.util.Collections.emptyList(),
+            java.util.Collections.singletonList(new CU("InterfaceTests.wurst", String.join("\n", OVERRIDE_BELOW_THE_INHERITING_CLASS))),
+            false, compiler);
+        compiler.checkProg(model);
+        org.testng.Assert.assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+        compiler.translateProgToIm(model);
+        java.util.Map<String, de.peeeq.wurstscript.jassIm.ImClass> classes = new java.util.HashMap<>();
+        for (de.peeeq.wurstscript.jassIm.ImClass c : compiler.getImProg().getClasses()) {
+            classes.put(c.getName(), c);
+        }
+        de.peeeq.wurstscript.jassIm.ImMethod baseM = classes.get("Base").getMethods().stream()
+            .filter(m -> !m.getName().startsWith("destroy")).findFirst().orElseThrow();
+        de.peeeq.wurstscript.jassIm.ImMethod bridge = classes.get("C").getMethods().stream()
+            .filter(m -> m.getImplementation() == baseM.getImplementation()).findFirst().orElseThrow();
+        org.testng.Assert.assertTrue(bridge.getSubMethods().stream().anyMatch(s -> s.attrClass() == classes.get("D")),
+            "C's method for Base's m is linked to D's override: " + bridge.getSubMethods());
+    }
 }

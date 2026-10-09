@@ -103,7 +103,8 @@ public class InterfaceTranslator {
             ImMethod m = translator.getMethodFor(subM);
 
             ImClass mClass = translator.getClassFor(subC);
-            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
+            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())
+                && mClass.getTypeVariables().isEmpty() && m.attrClass().getTypeVariables().isEmpty()) {
                 m = methodOfItsOwn(mClass, m);
             }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
@@ -116,14 +117,19 @@ public class InterfaceTranslator {
      * method it inherits from a class outside the interface ({@code C extends Base implements Omega}). The dispatch
      * over the implementations of the interface method follows the classes below the interface and takes at each the
      * method declared in that class, and so does the interpreter: Base is not on that path, so C gets a method of its
-     * own with Base's implementation, which its subclasses inherit.
+     * own with Base's implementation, which its subclasses inherit. The overrides below C are its sub-methods, as they
+     * are Base's ({@link ImTranslator#linkOverridesBelow}). Not for generic classes: a method of a generic class is
+     * specialised with the functions the class owns, and a generic class with an override in a non-generic subclass
+     * does not compile yet (EliminateGenerics.adaptSubmethods), so those keep what they did.
      */
     private ImMethod methodOfItsOwn(ImClass imClass, ImMethod inherited) {
         ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), inherited.getName(),
-            inherited.getImplementation(), JassIm.ImMethods(), new java.util.ArrayList<>(), "", false);
+            inherited.getImplementation(), Lists.newArrayList(), new java.util.ArrayList<>(), "", false);
         imClass.getMethods().add(own);
+        translator.linkOverridesBelow(own, inherited);
         return own;
     }
+
 
     /**
      * The type arguments a class gives this interface where it implements it: itself, through an interface which
