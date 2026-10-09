@@ -2411,6 +2411,66 @@ public class OptimizerTests extends WurstScriptTest {
                 "    testSuccess()"));
     }
 
+    /**
+     * The only read of `a` is after a loop which always returns, so it is never reached. The optimisations do not
+     * leave that read with no assignment before it, which pjass rejects.
+     */
+    @Test
+    public void localOptimizationsLeaveNoUninitialisedReadAfterAReturningLoop() {
+        test().executeProg().lines("package test", "native testSuccess()", "int trace = 0",
+            "@noinline function side(int k) returns int", "    trace = trace * 5 + k", "    return trace mod 7",
+            "@noinline function f(int x) returns int", "    int a = x", "    for i1 = 0 to 0", "        a = x + 1",
+            "    for i2 = 0 to 3", "        return side(i2)", "    return a",
+            "init", "    if f(1) != 12345", "        testSuccess()");
+    }
+
+    /**
+     * The same after an if both branches of which return: the local merger removes the assignment to `a`, whose only
+     * read no path reaches, and that read with it. (`x` is read after the assignment, so `a` cannot share its slot,
+     * which would have hidden the read with no assignment before it.)
+     */
+    @Test
+    public void localMergerRemovesTheCodeAfterAnIfBothBranchesOfWhichReturn() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImIf bothReturn = JassIm.ImIf(model, JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.GREATER,
+                JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImIntVal(0))),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImIntVal(1))),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImIntVal(2))));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(x), TypesHelper.imInt(),
+            JassIm.ImVars(a),
+            JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(a), JassIm.ImVarAccess(x)), bothReturn,
+                JassIm.ImReturn(model, JassIm.ImVarAccess(a))),
+            Collections.emptyList());
+        prog.getFunctions().add(f);
+
+        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+
+        List<ImVar> assigned = new ArrayList<>();
+        List<ImVar> read = new ArrayList<>();
+        f.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImSet set) {
+                set.getRight().accept(this);
+                assigned.add(((ImVarAccess) set.getLeft()).getVar());
+            }
+
+            @Override
+            public void visit(ImVarAccess access) {
+                read.add(access.getVar());
+            }
+        });
+        for (ImVar v : read) {
+            assertTrue(v == x || assigned.contains(v), "a read of " + v.getName() + " with no assignment: " + f.getBody());
+        }
+        assertEquals(f.getBody().size(), 1, "only the if is left: " + f.getBody());
+        assertSame(f.getBody().get(0), bothReturn);
+        assertTrue(f.getLocals().isEmpty(), "the local nothing reads any more: " + f.getLocals());
+    }
+
     @Test
     public void aFlattenLeavesTheFunctionsWhichWereNotModifiedSinceTheLastOne() {
         WurstModel model = Ast.WurstModel();

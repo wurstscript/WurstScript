@@ -47,6 +47,16 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     void optimizeFunc(ImFunction func) {
         LivenessAnalysis liveness = analyzeLiveness(func);
+        // The liveness is that of the code which a path reaches: a local which only code no path reaches reads (after
+        // a loop which nothing leaves, say) is live nowhere, and eliminateDeadCode removes the assignments to it. That
+        // code goes too, so that no read is left with no assignment before it, which pjass rejects.
+        List<ImStmt> unreachable = liveness.cfg.unreachableStatements();
+        if (!unreachable.isEmpty()) {
+            for (ImStmt s : unreachable) {
+                AstEdits.deleteStmt(s);
+            }
+            liveness = analyzeLiveness(func);
+        }
         Map<ImStmt, Set<ImVar>> livenessInfo = liveness.liveOut;
         eliminateDeadCode(livenessInfo);
         mergeLocals(livenessInfo, liveness.liveAtEntry, func);
@@ -503,7 +513,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         Set<ImVar> liveAtEntry = N == 0
             ? io.vavr.collection.HashSet.empty()
             : variables.toSet(in[0], converted);
-        return new LivenessAnalysis(result, liveAtEntry);
+        return new LivenessAnalysis(cfg, result, liveAtEntry);
     }
 
     private static final int[] NO_VARIABLES = new int[0];
@@ -624,10 +634,12 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     }
 
     private static final class LivenessAnalysis {
+        private final ControlFlowGraph cfg;
         private final Map<ImStmt, Set<ImVar>> liveOut;
         private final Set<ImVar> liveAtEntry;
 
-        private LivenessAnalysis(Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+        private LivenessAnalysis(ControlFlowGraph cfg, Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+            this.cfg = cfg;
             this.liveOut = liveOut;
             this.liveAtEntry = liveAtEntry;
         }
