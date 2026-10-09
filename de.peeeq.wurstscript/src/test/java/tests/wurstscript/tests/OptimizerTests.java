@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -27,7 +28,9 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.testng.Assert.*;
@@ -1886,6 +1889,141 @@ public class OptimizerTests extends WurstScriptTest {
 
         assertEquals(timeTaker.measurements, 16,
             "the optimizer should run two fixed sweeps rather than iterating to convergence");
+    }
+
+    @Test
+    public void garbageRemovalRemovesAChainOfAssignmentsInsideOneFunction() {
+        // `v1 = v0; v2 = v1; ...` where nothing reads the last: each round makes the variable before it unread, so a
+        // chain takes a round for each link. The removal goes on until the first link is gone, however long it is: it
+        // does not stop after some rounds and leave the rest, and it does not take a converging program for one which
+        // never settles.
+        int links = 300;
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVars locals = JassIm.ImVars();
+        ImStmts body = JassIm.ImStmts();
+        ImVar previous = null;
+        for (int i = 0; i < links; i++) {
+            ImVar v = JassIm.ImVar(model, TypesHelper.imInt(), "v" + i, false);
+            locals.add(v);
+            body.add(JassIm.ImSet(model, JassIm.ImVarAccess(v),
+                previous == null ? JassIm.ImIntVal(0) : JassIm.ImVarAccess(previous)));
+            previous = v;
+        }
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            locals, body, Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        assertEquals(main.getLocals().size(), 0, "the variables of the chain which are left: " + main.getLocals().size());
+        assertEquals(main.getBody().size(), 0, "the assignments of the chain which are left: " + main.getBody().size());
+    }
+
+    @Test
+    public void garbageRemovalRemovesAChainOfAssignmentsInFunctionsOfTheirOwn() {
+        // The same chain with each link in a function and the variables global: a link is only found unread once the
+        // function of the link after it has lost its read.
+        int links = 300;
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        List<ImVar> globals = new ArrayList<>();
+        for (int i = 0; i <= links; i++) {
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            globals.add(g);
+            prog.getGlobals().add(g);
+        }
+        ImStmts mainBody = JassIm.ImStmts();
+        mainBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(globals.get(0)), JassIm.ImIntVal(0)));
+        List<ImFunction> linkFunctions = new ArrayList<>();
+        for (int i = 1; i <= links; i++) {
+            ImFunction link = JassIm.ImFunction(model, "link" + i, JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+                JassIm.ImVars(), JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(globals.get(i)),
+                    JassIm.ImVarAccess(globals.get(i - 1)))), Collections.emptyList());
+            linkFunctions.add(link);
+            prog.getFunctions().add(link);
+            mainBody.add(JassIm.ImFunctionCall(model, link, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL));
+        }
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), mainBody, Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        assertEquals(prog.getGlobals().size(), 0, "the variables of the chain which are left: " + prog.getGlobals().size());
+        for (ImFunction link : linkFunctions) {
+            assertEquals(link.getBody().size(), 0, "the assignment which is left in " + link.getName());
+        }
+    }
+
+    @Test
+    public void garbageRemovalKeepsTheVariableWhichFlatteningAnEffectMakes() {
+        // An assignment to an unread variable of `sink(tick(), (tock(); 2))` leaves the call, and the statements of its
+        // second argument come before the call: the first one, which has an effect, is saved in a variable of the
+        // function first. That variable is declared, and the removal does not take it for one nothing reads.
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), JassIm.ImVars(a, b), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        CallType normal = CallType.NORMAL;
+        ImExpr first = JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal);
+        ImExpr second = JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2));
+        ImVar unread = JassIm.ImVar(model, TypesHelper.imInt(), "unread", false);
+        ImSet assignment = JassIm.ImSet(model, JassIm.ImVarAccess(unread),
+            JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), JassIm.ImExprs(first, second), false, normal));
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(unread), JassIm.ImStmts(assignment), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(tock);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        // the unread variable is gone, the saved argument is declared, and every variable which is used is attached
+        assertEquals(main.getLocals().size(), 1, "the variable which saves the first argument: " + main.getLocals());
+        ImVar saved = main.getLocals().get(0);
+        assertNotSame(saved, unread);
+        List<ImVar> used = new ArrayList<>();
+        main.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess e) {
+                used.add(e.getVar());
+            }
+        });
+        assertTrue(used.size() >= 2, "the variable is set and read: " + used);
+        for (ImVar v : used) {
+            assertSame(v, saved, "a variable of main which is not a local of main");
+            assertNotNull(v.getParent(), "a variable which is used is not attached");
+        }
+        assertEquals(main.getBody().size(), 3, "the saved argument, the statement of the second, the call: " + main.getBody());
+        assertTrue(translator.isFlat(), "what is left is flat: " + main.getBody());
     }
 
     @Test
