@@ -188,35 +188,38 @@ public class InterfaceTranslator {
 
     /**
      * The type arguments for {@code variables}, the type variables of {@code owner}, a class or interface above
-     * {@code classType}, as that class sees them.
+     * {@code classType}, as that class sees them: those of the type of {@code owner} among its supertypes, translated
+     * as in the class's own functions. So in a static class inside a generic class, the parameter of that class is
+     * the static class's captured variable, which no supertype binds.
      */
     private List<ImTypeArgument> typeArgumentsAsSeenFrom(WurstTypeClass classType, ClassOrInterface owner,
                                                          List<ImTypeVar> variables) {
-        VariableBinding binding = VariableBinding.emptyMapping();
         ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
         queue.add(classType);
         while (!queue.isEmpty()) {
             WurstTypeClassOrInterface type = queue.removeFirst();
             if (type.getDef() == owner) {
-                binding = type.getTypeArgBinding();
+                List<ImTypeArgument> arguments = translateAsIn(classType.getDef(), type).getTypeArguments().removeAll();
+                if (arguments.size() == variables.size()) {
+                    return arguments;
+                }
                 break;
             }
             queue.addAll(type.directSupertypes());
         }
-        List<ImTypeArgument> arguments = new java.util.ArrayList<>();
-        for (ImTypeVar variable : variables) {
-            TypeParamDef parameter = translator.getTypeParamDef(variable);
-            if (parameter == null) {
-                throw new CompileError(classType.getDef(), "Could not find the type argument of " + owner.getName()
-                    + " for " + variable.getName() + " as " + classType.getDef().getName() + " sees it.");
-            }
-            // A parameter no supertype binds is one of an enclosing generic class, which a static class inside it
-            // captures: the class sees it as it is, as its own functions do.
-            ImType type = binding.get(parameter).map(bound -> bound.imTranslateType(translator))
-                .getOrElse(() -> JassIm.ImTypeVarRef(translator.getTypeVar(parameter)));
-            arguments.add(JassIm.ImTypeArgument(type, Collections.emptyMap()));
+        throw new CompileError(classType.getDef(), "Could not find the type arguments of " + owner.getName()
+            + " as " + classType.getDef().getName() + " sees it.");
+    }
+
+    /** {@code type} translated as in the functions of {@code c}. */
+    private ImClassType translateAsIn(ClassDef c, WurstTypeClassOrInterface type) {
+        Map<TypeParamDef, ImTypeVar> overrides = translator.getTypeVarOverridesForClass(c);
+        translator.pushTypeVarOverrides(overrides);
+        try {
+            return (ImClassType) type.imTranslateType(translator);
+        } finally {
+            translator.popTypeVarOverrides(overrides);
         }
-        return arguments;
     }
 
 

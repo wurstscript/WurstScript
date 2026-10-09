@@ -2507,4 +2507,203 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /*
+     * A static class inside a generic class sees the class's type parameter as a type variable of its own, which each
+     * use of the static class binds: its members are translated with it whatever code first asks for them, and a type
+     * of the static class carries an argument for it (the enclosing class's parameter in the enclosing class's members).
+     */
+
+    /** A static class's own method uses the type parameter of the generic class around it. */
+    @Test
+    public void staticClassMethodUsesTheEnclosingClassTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function roundTrip(T t) returns T",
+            "        let h = new Holder()",
+            "        return h.id(t)",
+            "    static class Holder",
+            "        function id(T t) returns T",
+            "            return t",
+            "init",
+            "    if new Outer<int>().roundTrip(5) == 5 and new Outer<string>().roundTrip(\"a\") == \"a\"",
+            "        testSuccess()");
+    }
+
+    /** A static class extends a sibling static class inside a generic class. */
+    @Test
+    public void staticClassExtendsASiblingStaticClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function make() returns Base",
+            "        return new C()",
+            "    static class Base",
+            "        function m() returns int",
+            "            return 1",
+            "    static class C extends Base",
+            "init",
+            "    if new Outer<int>().make().m() == 1",
+            "        testSuccess()");
+    }
+
+    /** A field of a static class has the enclosing class's type parameter, and the enclosing class uses it first. */
+    @Test
+    public void staticClassFieldHasTheEnclosingClassTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function roundTrip(T t) returns T",
+            "        let h = new Holder()",
+            "        h.v = t",
+            "        return h.v",
+            "    static class Holder",
+            "        T v",
+            "init",
+            "    if new Outer<int>().roundTrip(5) == 5 and new Outer<string>().roundTrip(\"a\") == \"a\"",
+            "        testSuccess()");
+    }
+
+    /** The constructor and the ondestroy block of a static class use the enclosing class's type parameter. */
+    @Test
+    public void staticClassConstructorAndOnDestroyUseTheEnclosingClassTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function roundTrip(T t) returns T",
+            "        let h = new Holder(t)",
+            "        let r = h.v",
+            "        destroy h",
+            "        return r",
+            "    static class Holder",
+            "        T v",
+            "        construct(T t)",
+            "            v = t",
+            "        ondestroy",
+            "            T x = v",
+            "init",
+            "    if new Outer<int>().roundTrip(5) == 5 and new Outer<string>().roundTrip(\"a\") == \"a\"",
+            "        testSuccess()");
+    }
+
+    /** A closure in a method of a static class takes and returns the enclosing class's type parameter. */
+    @Test
+    public void staticClassClosureUsesTheEnclosingClassTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface F<X:>",
+            "    function apply(X x) returns X",
+            "class Outer<T:>",
+            "    function run(T t) returns T",
+            "        return new Holder().make().apply(t)",
+            "    static class Holder",
+            "        function make() returns F<T>",
+            "            return (T x) -> x",
+            "init",
+            "    if new Outer<int>().run(5) == 5 and new Outer<string>().run(\"a\") == \"a\"",
+            "        testSuccess()");
+    }
+
+    /** A generic static class uses its own type parameter and the enclosing class's. */
+    @Test
+    public void genericStaticClassUsesItsOwnAndTheEnclosingClassTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function pair(T t, int i) returns T",
+            "        let b = new Box<int>(i)",
+            "        return b.first(t)",
+            "    static class Box<A:>",
+            "        A a",
+            "        construct(A a)",
+            "            this.a = a",
+            "        function first(T t) returns T",
+            "            return t",
+            "init",
+            "    if new Outer<int>().pair(5, 3) == 5 and new Outer<string>().pair(\"a\", 3) == \"a\"",
+            "        testSuccess()");
+    }
+
+    /**
+     * A static function of a static class uses the enclosing class's type parameter. It is not in its class, so it
+     * takes the parameter as a type variable of its own, as a static function of the generic class does.
+     */
+    @Test
+    public void staticFunctionOfAStaticClassUsesTheEnclosingClassTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function roundTrip(T t) returns T",
+            "        return Holder.id(new Holder().viaStatic(t))",
+            "    static function viaStaticOuter(T t) returns T",
+            "        return Holder.id(t)",
+            "    static class Holder",
+            "        static function id(T t) returns T",
+            "            return t",
+            "        function viaStatic(T t) returns T",
+            "            return id(t)",
+            "init",
+            "    if new Outer<int>().roundTrip(5) == 5 and Outer<string>.viaStaticOuter(\"a\") == \"a\"",
+            "        testSuccess()");
+    }
+
+    /** A static class extends a generic sibling static class: the constructor passes both type arguments up. */
+    @Test
+    public void staticClassExtendsAGenericSiblingStaticClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    function make(T t) returns Base<int>",
+            "        return new C(t)",
+            "    static class Base<A:>",
+            "        function m() returns int",
+            "            return 1",
+            "    static class C extends Base<int>",
+            "        T t",
+            "        construct(T t)",
+            "            this.t = t",
+            "init",
+            "    if new Outer<int>().make(3).m() == 1 and new Outer<string>().make(\"a\").m() == 1",
+            "        testSuccess()");
+    }
+
+    /** A static class overrides methods of a sibling static class, one of them over the type parameter. */
+    @Test
+    public void staticClassOverridesASiblingStaticClassMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    T last",
+            "    function run(T t, bool sub) returns int",
+            "        Base b = new Base()",
+            "        if sub",
+            "            b = new C()",
+            "        last = b.m(t)",
+            "        return b.k()",
+            "    static class Base",
+            "        function m(T t) returns T",
+            "            return t",
+            "        function k() returns int",
+            "            return 1",
+            "    static class C extends Base",
+            "        override function m(T t) returns T",
+            "            return t",
+            "        override function k() returns int",
+            "            return 2",
+            "init",
+            "    let o = new Outer<int>()",
+            "    let s = new Outer<string>()",
+            "    if o.run(5, true) == 2 and o.last == 5 and s.run(\"a\", false) == 1 and s.last == \"a\" and s.run(\"b\", true) == 2",
+            "        testSuccess()");
+    }
+
 }
