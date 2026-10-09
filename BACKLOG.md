@@ -79,6 +79,18 @@ Notes; finished-work narrative does not.
   changes what the inliner sees, because it decides by function size, so each candidate needs a byte for byte
   comparison of the scripts of the whole suite first.
 
+- **Build the local-player analysis fewer times, or incrementally.** An optimised Lua build of castle fight
+  constructs `LocalPlayerContextAnalyzer` five times: for the compile-time state function the splitter optimises
+  (`FunctionSplitter`, once per split target), for `ImInliner.doInlining`, once per `ImOptimizer.runLocalOptimizationSweep`
+  (two sweeps) and for `LuaOldGenericsCasts`, about 4 s of the compiler thread (7% of its samples). Each one is the
+  whole program, because the fact about a variable or a function depends on every caller and every writer.
+  Keeping the analysis of the first sweep for the second is not output-neutral: it changed about 40,000 lines of the
+  castle fight script (different local merges), so a construction per sweep stays until the analysis can retract a
+  fact (the propagation is a least fixpoint, so a rewrite which removes a flow cannot be undone in place) or the passes
+  report which functions they changed. What is left of a construction is the walk itself: the first touch of every IM
+  node (`indexElement`, `isInert`, `markReturns`) is about half of the samples, so the cost follows the size of the IM
+  and a flatter IM would help more than another rewrite of the analysis.
+
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
