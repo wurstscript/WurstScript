@@ -136,6 +136,7 @@ public class ModelManagerImpl implements ModelManager {
     public Changes removeCompilationUnit(WFile resource) {
         WurstModel model2 = model;
         List<CompilationUnit> toRemove = new ArrayList<>();
+        boolean jassNamesRemoved = false;
         if (model2 != null) {
             for (CompilationUnit compilationUnit : model2) {
                 if (wFile(compilationUnit).equals(resource)) {
@@ -148,16 +149,18 @@ public class ModelManagerImpl implements ModelManager {
                 .flatMap(cu -> cu.getPackages().stream())
                 .map(WPackage::getName)
                 .collect(Collectors.toSet());
-            Set<CompilationUnit> dependents = toRemove.isEmpty() ? Collections.emptySet()
-                : calculateCUsToUpdate(Collections.emptyList(), removedPackages, model2);
-            synchronized (modelLock) {
-                model2.removeAll(toRemove);
-                uncheckedUnits.removeAll(toRemove);
+            jassNamesRemoved = toRemove.stream().anyMatch(ModelManagerImpl::declaresJassNames);
+            if (!toRemove.isEmpty()) {
+                Set<CompilationUnit> dependents =
+                    calculateCUsToUpdate(Collections.emptyList(), removedPackages, jassNamesRemoved, model2);
                 dependents.removeAll(toRemove);
-                uncheckedUnits.addAll(dependents);
-                if (toRemove.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
-                    // Jass names are visible everywhere
-                    uncheckedUnits.addAll(model2);
+                // what used the removed units resolves its names again, as after a replacement: a check of the
+                // whole model before the reconciliation must not find the bindings into the removed units
+                clearCompilationUnits(dependents);
+                synchronized (modelLock) {
+                    model2.removeAll(toRemove);
+                    uncheckedUnits.removeAll(toRemove);
+                    uncheckedUnits.addAll(dependents);
                 }
             }
         }
@@ -173,7 +176,8 @@ public class ModelManagerImpl implements ModelManager {
             toRemove.stream()
                 .flatMap(cu -> cu.getPackages().stream())
                 .map(WPackage::getName)
-                .collect(Collectors.toList())
+                .collect(Collectors.toList()),
+            jassNamesRemoved
         );
     }
 
@@ -743,7 +747,8 @@ public class ModelManagerImpl implements ModelManager {
                     // get old provided packages:
                     Set<String> oldPackages = providedPackages(c);
                     reconciliations++;
-                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
+                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages,
+                        declaresJassNames(c), model2);
 
                     GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
                     clearCompilationUnits(mustUpdate);
@@ -769,10 +774,16 @@ public class ModelManagerImpl implements ModelManager {
                         uncheckedUnits.add(cu);
                     }
                 }
-                if (!everyUnitUnchecked) {
-                    // what imports the new packages (or sees the new Jass names) has to be checked again
+                if (everyUnitUnchecked) {
+                    // the packages and names of the model include the new unit
+                    model2.clearAttributesLocal();
+                } else {
+                    // what imports the new packages (or sees the new Jass names) has to be checked again, and resolves
+                    // its names again, as after a replacement
                     reconciliations++;
-                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu),
+                        Collections.emptySet(), false, model2);
+                    clearCompilationUnits(mustUpdate);
                     synchronized (modelLock) {
                         uncheckedUnits.addAll(mustUpdate);
                     }
@@ -887,8 +898,9 @@ public class ModelManagerImpl implements ModelManager {
             return Changes.empty();
         }
         Set<String> oldPackages = declaredPackages(filename);
+        boolean oldJassNames = declaredJassNames(filename);
         replaceCompilationUnit(filename, contents, false);
-        return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages);
+        return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages, oldJassNames);
     }
 
     private Set<String> declaredPackages(WFile f) {
@@ -907,6 +919,21 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
         return Collections.emptySet();
+    }
+
+    /** Whether the unit of the file declares Jass names, see {@link #declaresJassNames(CompilationUnit)}. */
+    private boolean declaredJassNames(WFile f) {
+        CompilationUnit cu = getCompilationUnit(f);
+        return cu != null && declaresJassNames(cu);
+    }
+
+    /**
+     * Whether the unit declares Jass names: a .j file, or Jass declared outside of the packages of a .wurst or .jurst
+     * file. Every package sees those names without an import (the scope of the model holds the Jass declarations of
+     * every unit), so a change to them concerns every unit of the model.
+     */
+    private static boolean declaresJassNames(CompilationUnit cu) {
+        return cu.getCuInfo().getFile().endsWith(".j") || !cu.getJassDecls().isEmpty();
     }
 
     @Override
@@ -939,11 +966,12 @@ public class ModelManagerImpl implements ModelManager {
             return Changes.empty();
         }
         Set<String> oldPackages = declaredPackages(f);
+        boolean oldJassNames = declaredJassNames(f);
         replaceCompilationUnit(f, contents, true);
         WLogger.debug("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
-        doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
-        return new Changes(io.vavr.collection.HashSet.of(f), oldPackages);
+        doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages, oldJassNames);
+        return new Changes(io.vavr.collection.HashSet.of(f), oldPackages, oldJassNames);
     }
 
     private @Nullable String readCompilationUnitContents(WFile filename, boolean preferOpenBuffer) throws IOException {
@@ -1116,7 +1144,8 @@ public class ModelManagerImpl implements ModelManager {
         onCompilationResultListeners.add(f);
     }
 
-    private void doTypeCheckPartial(WurstGui gui, List<WFile> toCheckFilenames, Set<String> oldPackages) {
+    private void doTypeCheckPartial(WurstGui gui, List<WFile> toCheckFilenames, Set<String> oldPackages,
+                                    boolean oldJassNames) {
         WLogger.debug("do typecheck partial of " + toCheckFilenames);
         WurstCompilerJassImpl comp = getCompiler(gui);
         List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
@@ -1126,7 +1155,7 @@ public class ModelManagerImpl implements ModelManager {
             return;
         }
 
-        Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck, oldPackages, model2);
+        Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck, oldPackages, oldJassNames, model2);
 
         partialTypecheck(model2, toCheckRec, gui, comp);
     }
@@ -1144,14 +1173,11 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
         Set<String> oldPackageNames = changes.getAffectedPackageNames().toJavaSet();
-        Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, model2);
-        boolean jassFileChanged = changes.getAffectedFiles().toJavaSet().stream()
+        // A removed or replaced unit is no longer in the model, so calculateCUsToUpdate cannot see its Jass names
+        // among the changed compilation units.
+        boolean jassNamesChanged = changes.isJassNamesChanged() || changes.getAffectedFiles().toJavaSet().stream()
             .anyMatch(file -> file.getUriString().endsWith(".j"));
-        if (jassFileChanged) {
-            // A removed Jass CU is no longer in the model, so calculateCUsToUpdate
-            // cannot see it among the changed compilation units.
-            toCheckRec.addAll(model2);
-        }
+        Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, jassNamesChanged, model2);
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl comp = getCompiler(gui);
         partialTypecheck(model2, toCheckRec, gui, comp);
@@ -1204,23 +1230,18 @@ public class ModelManagerImpl implements ModelManager {
      *
      * @param changed the set of compilation units that were changed
      * @param oldPackages packages that were provided before the update (which might have been removed now)
+     * @param oldJassNames whether the units before the update (which might have been removed now) declared Jass names
      * @param model the complete AST
      * @return the set of compilation units that might be affected by the changes, including the changed compilation units
      */
-    private Set<CompilationUnit> calculateCUsToUpdate(Collection<CompilationUnit> changed, Set<String> oldPackages, WurstModel model) {
+    private Set<CompilationUnit> calculateCUsToUpdate(Collection<CompilationUnit> changed, Set<String> oldPackages,
+                                                      boolean oldJassNames, WurstModel model) {
 
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
         result.addAll(changed);
 
-        boolean b = false;
-        for (CompilationUnit compilationUnit : changed) {
-            if (compilationUnit.getCuInfo().getFile().endsWith(".j")) {
-                b = true;
-                break;
-            }
-        }
-        if (b) {
-            // when plain Jass files are changed, everything must be checked again:
+        if (oldJassNames || changed.stream().anyMatch(ModelManagerImpl::declaresJassNames)) {
+            // Jass names are visible everywhere, so everything must be checked again:
             result.addAll(model);
             return result;
         }

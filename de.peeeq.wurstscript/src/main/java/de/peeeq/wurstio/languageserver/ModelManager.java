@@ -141,15 +141,26 @@ public interface ModelManager {
         private static final Changes EMPTY = new Changes(HashSet.empty(), HashSet.empty());
         private final HashSet<WFile> affectedFiles;
         private final HashSet<String> affectedPackageNames;
+        private final boolean jassNamesChanged;
 
         public Changes(Iterable<WFile> affectedFiles, Iterable<String> affectedPackageNames) {
+            this(affectedFiles, affectedPackageNames, false);
+        }
+
+        /**
+         * @param jassNamesChanged whether a unit which declared Jass names was replaced or removed (see
+         *                         {@link #isJassNamesChanged()})
+         */
+        public Changes(Iterable<WFile> affectedFiles, Iterable<String> affectedPackageNames, boolean jassNamesChanged) {
             this.affectedFiles = HashSet.ofAll(affectedFiles);
             this.affectedPackageNames = HashSet.ofAll(affectedPackageNames);
+            this.jassNamesChanged = jassNamesChanged;
         }
 
         public Changes(Stream<WFile> affectedFiles, Stream<String> affectedPackageNames) {
             this.affectedFiles = HashSet.ofAll(affectedFiles);
             this.affectedPackageNames = HashSet.ofAll(affectedPackageNames);
+            this.jassNamesChanged = false;
         }
 
         public static Changes empty() {
@@ -164,17 +175,27 @@ public interface ModelManager {
             return affectedPackageNames;
         }
 
+        /**
+         * Whether a unit which declared Jass names (a .j file, or Jass outside of the packages of a .wurst or .jurst
+         * file) was replaced or removed. Every package sees those names without an import, so every unit has to be
+         * checked again, and a removed unit is not in the model any more to tell.
+         */
+        public boolean isJassNamesChanged() {
+            return jassNamesChanged;
+        }
+
         public Changes mergeWith(Changes affected) {
             HashSet<WFile> newF = affectedFiles.addAll(affected.affectedFiles);
             HashSet<String> newP = affectedPackageNames.addAll(affected.affectedPackageNames);
-            if (newF == affectedFiles && newP == affectedPackageNames) {
+            boolean newJ = jassNamesChanged || affected.jassNamesChanged;
+            if (newF == affectedFiles && newP == affectedPackageNames && newJ == jassNamesChanged) {
                 return this;
             }
-            return new Changes(newF, newP);
+            return new Changes(newF, newP, newJ);
         }
 
         public boolean isEmpty() {
-            return affectedFiles.isEmpty() && affectedPackageNames.isEmpty();
+            return affectedFiles.isEmpty() && affectedPackageNames.isEmpty() && !jassNamesChanged;
         }
     }
 

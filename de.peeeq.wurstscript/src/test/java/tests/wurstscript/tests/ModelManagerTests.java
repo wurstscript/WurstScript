@@ -1615,4 +1615,247 @@ public class ModelManagerTests {
         return checks.get();
     }
 
+    /**
+     * A .wurst file may declare Jass functions, globals and natives outside of any package. Every package sees those
+     * names without an import (the model scope holds the Jass declarations of every unit), exactly like the names of a
+     * .j file, so a change to them has to check their users.
+     */
+    @Test
+    public void editingJassDeclaredOutsideAPackageOfAWurstFileChecksItsUsers() throws IOException {
+        File projectFolder = new File("./temp/testProject_jassInWurstFileEdit/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileDefs = WFile.create(new File(wurstFolder, "Defs.wurst"));
+        WFile fileUser = WFile.create(new File(wurstFolder, "User.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileDefs, string(
+            "function JassHelper takes nothing returns integer",
+            "    return 1",
+            "endfunction",
+            ""));
+        writeFile(fileUser, string("package User", "init", "    BJDebugMsg(I2S(JassHelper()))", ""));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> results = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertEquals(results.get(fileUser), "", "JassHelper is visible without an import");
+
+        String withoutHelper = string(
+            "function OtherHelper takes nothing returns integer",
+            "    return 2",
+            "endfunction",
+            "");
+        writeFile(fileDefs, withoutHelper);
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileDefs, withoutHelper);
+        manager.reconcile(changes);
+
+        // a build from scratch reports the call to JassHelper
+        assertThat(results.get(fileUser), containsString("severity = Error"));
+        assertTrue(manager.hasErrors(), "a run must not translate the call to what is gone");
+    }
+
+    /** The same when the Jass declarations go from a .wurst file which keeps no Jass declaration and no package. */
+    @Test
+    public void removingTheJassDeclarationsOfAWurstFileChecksTheirUsers() throws IOException {
+        File projectFolder = new File("./temp/testProject_jassInWurstFileRemoved/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileDefs = WFile.create(new File(wurstFolder, "Defs.wurst"));
+        WFile fileUser = WFile.create(new File(wurstFolder, "User.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileDefs, string(
+            "function JassHelper takes nothing returns integer",
+            "    return 1",
+            "endfunction",
+            ""));
+        writeFile(fileUser, string("package User", "init", "    BJDebugMsg(I2S(JassHelper()))", ""));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> results = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertEquals(results.get(fileUser), "");
+
+        writeFile(fileDefs, "\n");
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileDefs, "\n");
+        manager.reconcile(changes);
+
+        assertThat(results.get(fileUser), containsString("severity = Error"));
+    }
+
+    @Test
+    public void deletingAWurstFileWithJassDeclarationsChecksTheirUsers() throws IOException {
+        File projectFolder = new File("./temp/testProject_jassInWurstFileDelete/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileDefs = WFile.create(new File(wurstFolder, "Defs.wurst"));
+        WFile fileUser = WFile.create(new File(wurstFolder, "User.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileDefs, string(
+            "globals",
+            "    integer jassG = 0",
+            "endglobals",
+            ""));
+        writeFile(fileUser, string("package User", "init", "    jassG = 3", ""));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> results = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertEquals(results.get(fileUser), "");
+
+        assertTrue(new File(wurstFolder, "Defs.wurst").delete());
+        ModelManager.Changes changes = manager.removeCompilationUnit(fileDefs);
+        assertFalse(manager.isFullyChecked(manager.getModel()), "User used what is gone");
+        manager.reconcile(changes);
+
+        assertThat(results.get(fileUser), containsString("severity = Error"));
+    }
+
+    /**
+     * The language worker removes a deleted file at once and reconciles after its debounce, and serves a run in
+     * between. The run checks the whole model: it must find that B imports what is gone, and must not certify the
+     * model for the next run.
+     */
+    @Test
+    public void aCompilationBeforeTheReconcileOfADeletedPackageReportsTheMissingImport() throws IOException {
+        File projectFolder = new File("./temp/testProject_compileBeforeReconcileDelete/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileA, string("package A", "public function a() returns int", "    return 4711", ""));
+        writeFile(fileB, string("package B", "import A", "init", "    BJDebugMsg(I2S(a()))", ""));
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        assertTrue(new File(wurstFolder, "A.wurst").delete());
+        manager.removeCompilationUnit(fileA);
+        assertFalse(manager.isFullyChecked(manager.getModel()), "B imports what is gone");
+        assertFalse(manager.hasErrors(), "nothing has reported B yet, so a run is not stopped before it checks");
+
+        WurstGui gui = new WurstGuiLogger();
+        RunArgs runArgs = new RunArgs("-lua");
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        MapRequest.checkModel(manager, compiler, manager.getModel(), runArgs);
+
+        assertThat(gui.getErrorList().toString(), containsString("Could not find imported package A"));
+        assertFalse(manager.isFullyChecked(manager.getModel()), "a check which found errors does not certify the model");
+    }
+
+    /**
+     * The same with a move, as an editor rename sends it: the old path is removed, the new one synced, which does not
+     * check at once. The run must compile what a build from scratch compiles.
+     */
+    @Test
+    public void aCompilationBeforeTheReconcileOfAMovedPackageEmitsWhatAFreshBuildEmits() throws IOException {
+        File projectFolder = new File("./temp/testProject_compileBeforeReconcileMove/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(new File(wurstFolder, "moved"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileMovedA = WFile.create(new File(wurstFolder, "moved/A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileA, string("package A", "public function a() returns int", "    return 4711", ""));
+        writeFile(fileB, string("package B", "import A", "init", "    BJDebugMsg(I2S(a()))", ""));
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        String movedA = string("package A", "public function a() returns int", "    return 4712", "");
+        assertTrue(new File(wurstFolder, "A.wurst").delete());
+        writeFile(fileMovedA, movedA);
+        manager.removeCompilationUnit(fileA);
+        manager.syncCompilationUnitContent(fileMovedA, movedA);
+
+        String incremental = luaOf(projectFolder, manager);
+
+        ModelManagerImpl fresh = new ModelManagerImpl(projectFolder, new BufferManager());
+        fresh.buildProject();
+        String expected = luaOf(projectFolder, fresh);
+        assertThat(expected, containsString("4712"));
+        assertEquals(incremental, expected, "the run compiled the binding B had before the move");
+    }
+
+    /**
+     * A unit added while every unit is unchecked is not reconciled with the others, as there is nothing to find which
+     * is not unchecked already. The packages of the model include it from then on all the same: a request which read
+     * them meanwhile must not leave a check of the whole model with the packages from before.
+     */
+    @Test
+    public void aCompilationSeesAPackageAddedWhileEveryUnitIsUnchecked() throws IOException {
+        File projectFolder = new File("./temp/testProject_addWhileEveryUnitUnchecked/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(new File(wurstFolder, "second"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileJass = WFile.create(new File(wurstFolder, "extra.j"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileSecondA = WFile.create(new File(wurstFolder, "second/A.wurst"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileJass, string("function F takes nothing returns integer", "    return 1", "endfunction", ""));
+        writeFile(fileA, "package A\n");
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        // a change to Jass names leaves every unit unchecked
+        manager.syncCompilationUnitContent(fileJass,
+            string("function F takes nothing returns integer", "    return 2", "endfunction", ""));
+        // a request reads the packages of the model meanwhile, as the resolution of an import does
+        assertNotNull(manager.getModel().attrPackages().get("A"));
+
+        writeFile(fileSecondA, "package A\n");
+        manager.syncCompilationUnitContent(fileSecondA, "package A\n");
+
+        WurstGui gui = new WurstGuiLogger();
+        RunArgs runArgs = new RunArgs("-lua");
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        MapRequest.checkModel(manager, compiler, manager.getModel(), runArgs);
+
+        assertThat(gui.getErrorList().toString(), containsString("Package 'A' is defined multiple times."));
+        assertFalse(manager.isFullyChecked(manager.getModel()), "a check which found errors does not certify the model");
+    }
+
+    /**
+     * A compilation only marks the model checked when it used the manager's checks: after a compilation with the
+     * legacy Jass checks, which tolerate a Jass return type mismatch, the next strict compilation must not adopt it.
+     */
+    @Test
+    public void aLegacyCompilationDoesNotCertifyTheModelForStrictCompilations() throws IOException {
+        File projectFolder = new File("./temp/testProject_legacyCheckDoesNotCertify/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileJass = WFile.create(new File(wurstFolder, "extra.j"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileJass, string("function F takes nothing returns integer", "    return 1", "endfunction", ""));
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        assertTrue(manager.isFullyChecked(manager.getModel()));
+
+        // a mismatch which the legacy checks downgrade to a warning; synced, not reconciled
+        manager.syncCompilationUnitContent(fileJass,
+            string("function F takes nothing returns integer", "    return 1.5", "endfunction", ""));
+
+        assertEquals(checkErrors(projectFolder, manager, "-legacyJassChecks"), 0, "the legacy checks tolerate it");
+        assertFalse(manager.isFullyChecked(manager.getModel()), "a legacy check must not certify the model");
+        assertTrue(checkErrors(projectFolder, manager) > 0, "a strict compilation still reports the mismatch");
+    }
+
+    /** The errors a compilation's check of the managed model reports. */
+    private int checkErrors(File projectFolder, ModelManagerImpl manager, String... args) {
+        WurstGui gui = new WurstGuiLogger();
+        RunArgs runArgs = new RunArgs(args);
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+        MapRequest.checkModel(manager, compiler, manager.getModel(), runArgs);
+        return gui.getErrorCount();
+    }
+
 }
