@@ -142,6 +142,7 @@ This repository has multiple entry points that may trigger compilation/build beh
 * `LanguageWorker` serializes requests and file-change reconciliation.
 * `ModelManagerImpl` owns project model state (wurst files, dependencies, diagnostics).
 * Add, replace, remove or purge compilation units of the managed model only through `ModelManager` (`retainCompilationUnits` for purges), never by mutating `getModel()`: lookups from other threads rely on its `modelLock`. A copy from `ModelManager.copy` can be changed freely.
+* A load parses the files of the project and of its libraries ahead, by several threads (`-Dwurst.parseThreads=n`, 1 parses nothing ahead), and takes each parse when it comes to the file. Only the parse runs on those threads, because it depends on nothing but the text of one file. The model is changed by the loading thread alone, file by file in the order of the sequential load, and the imports resolve depth first as before: that order is the order of the compilation units, and so of the output. A step which adds to the model or reads it from the parse threads is not safe (the generated attributes, `GlobalCaches` and `ErrorHandler` are not thread safe, see `BACKLOG.md`). `ParallelLoadTests` compares a load with one thread and with four.
 * User actions like build/start/tests are implemented in `languageserver.requests.*`.
 
 ### Initial workspace readiness
