@@ -1,11 +1,9 @@
 ## 1.9 (in progress)
 
-- On Lua, a class whose name begins another class's name no longer calls the wrong override. To bind a dispatch slot,
-  the Lua translation took an implementation whose name starts with the class name and `_` for one of the class's
-  own, ahead of the nearest superclass: `class Foo extends Mid extends Foo_Bar` bound `Foo_Bar.m` (`Foo_Bar_m`
-  starts with `Foo_`), a `Node` extending a `Node` of another package through `Mid` bound the other `Node`'s method,
-  and a user state called `NoOpState` bound the FSM root slot to the library's no-op. It asks the class of the method
-  now. Castle fight and zombie defense compile to the same scripts.
+- The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
+  exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
+  return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
+  may leave the block is moved now only when the condition has no effect. Castle fight compiles to the same script.
 
 - On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
   `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
