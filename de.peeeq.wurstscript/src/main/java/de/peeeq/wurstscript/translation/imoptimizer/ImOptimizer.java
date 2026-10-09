@@ -342,24 +342,17 @@ public class ImOptimizer {
                 } else if (e.getLeft() instanceof ImVarArrayAccess) {
                     ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
                     if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                        List<ImExpr> exprs = new ArrayList<>();
-                        for (ImExpr index : va.getIndexes()) {
-                            exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
-                        }
-                        exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer));
-                        replacements.add(Pair.create(e, exprs));
+                        replacements.add(Pair.create(e, effectsOfAssignment(e, sideEffectAnalyzer)));
                     }
                 } else if (e.getLeft() instanceof ImTupleSelection) {
                     ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
                     if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
-                        List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                        replacements.add(Pair.create(e, sideEffects));
+                        replacements.add(Pair.create(e, effectsOfAssignment(e, sideEffectAnalyzer)));
                     }
                 } else if(e.getLeft() instanceof ImMemberAccess) {
                     ImMemberAccess va = ((ImMemberAccess) e.getLeft());
                     if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                        List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
-                        replacements.add(Pair.create(e, sideEffects));
+                        replacements.add(Pair.create(e, effectsOfAssignment(e, sideEffectAnalyzer)));
                     }
                 }
             }
@@ -411,6 +404,34 @@ public class ImOptimizer {
         }
         for (Map.Entry<ImStmts, Map<ImStmt, List<ImStmt>>> entry : byList.entrySet()) {
             entry.getKey().replaceEach(entry.getValue());
+        }
+    }
+
+    /**
+     * What an assignment to an array element, a field or a tuple component does besides assigning: the effects of
+     * evaluating its target (the receiver, then the indexes, as for an element of an array), then those of the value.
+     */
+    private List<ImExpr> effectsOfAssignment(ImSet assignment, SideEffectAnalyzer analyzer) {
+        List<ImExpr> effects = new ArrayList<>();
+        collectTargetEffects(assignment.getLeft(), analyzer, effects);
+        effects.addAll(collectSideEffects(assignment.getRight(), analyzer));
+        return effects;
+    }
+
+    private void collectTargetEffects(ImExpr target, SideEffectAnalyzer analyzer, List<ImExpr> effects) {
+        if (target instanceof ImTupleSelection selection) {
+            collectTargetEffects(selection.getTupleExpr(), analyzer, effects);
+        } else if (target instanceof ImMemberAccess access) {
+            effects.addAll(collectSideEffects(access.getReceiver(), analyzer));
+            for (ImExpr index : access.getIndexes()) {
+                effects.addAll(collectSideEffects(index, analyzer));
+            }
+        } else if (target instanceof ImVarArrayAccess access) {
+            for (ImExpr index : access.getIndexes()) {
+                effects.addAll(collectSideEffects(index, analyzer));
+            }
+        } else if (!(target instanceof ImVarAccess)) {
+            effects.addAll(collectSideEffects(target, analyzer));
         }
     }
 
