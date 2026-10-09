@@ -114,21 +114,17 @@ public class ExprTranslation {
         // normalization available to callers which explicitly cross an
         // external boundary; ordinary Wurst expressions must not pay for it.
         if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam wtb) {
-
+            WurstType base = wtb.getBaseType().normalize();
             @Nullable ImFunction ensureType = null;
-            switch (wtb.getName()) {
-                case "integer":
-                    ensureType = t.ensureIntFunc;
-                    break;
-                case "string":
-                    ensureType = t.ensureStrFunc;
-                    break;
-                case "boolean":
-                    ensureType = t.ensureBoolFunc;
-                    break;
-                case "real":
-                    ensureType = t.ensureRealFunc;
-                    break;
+            // An enum is an int whose default is its first constant, so it is normalised like one.
+            if (base instanceof WurstTypeInt || base instanceof WurstTypeEnum) {
+                ensureType = t.ensureIntFunc;
+            } else if (base instanceof WurstTypeString) {
+                ensureType = t.ensureStrFunc;
+            } else if (base instanceof WurstTypeBool) {
+                ensureType = t.ensureBoolFunc;
+            } else if (base instanceof WurstTypeReal) {
+                ensureType = t.ensureRealFunc;
             }
             if(ensureType != null) {
                 // Lua already has the exact cheap operation needed for the
@@ -870,6 +866,7 @@ public class ExprTranslation {
     private static boolean isPrimitiveType(WurstType type) {
         WurstType normalized = type.normalize();
         return normalized instanceof WurstTypeInt
+            || normalized instanceof WurstTypeEnum
             || normalized instanceof WurstTypeBool
             || normalized instanceof WurstTypeReal
             || normalized instanceof WurstTypeString;

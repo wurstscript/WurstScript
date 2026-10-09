@@ -1450,6 +1450,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** An unset old-generics entry read as an enum is the enum's default, its first constant, as on Jass. */
+    @Test
+    public void oldGenericEnumDefaultIsFirstConstant() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "enum Color",
+            "    RED",
+            "    GREEN",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "init",
+            "    let s = new Store<Color>()",
+            "    s.put(1, Color.GREEN)",
+            "    if s.get(1) == Color.GREEN and s.get(7) == Color.RED",
+            "        testSuccess()");
+    }
+
     @Test
     public void legacyGenericHandleCastsUseObjectIndexMap() throws IOException {
         // The stdlib's TypeCasting functions, which the Lua backend maps to the object index; a
