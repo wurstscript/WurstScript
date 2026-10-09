@@ -1,5 +1,12 @@
 ## 1.9 (in progress)
 
+- The tree shake before the generics keeps what a type argument inside a type argument binds. Given
+  `make<Loader<State>>()`, where `make` returns `wurstNewInstance<H>()`, it dropped the function which constructs
+  `State`, which the specialised `Loader<State>.load` calls, and given `make<Box<Foo>>()` the implementation of the type
+  class which `Box` binds for `Foo`. The type of a type argument is a reference, which the walk does not enter, so only
+  the outer one was followed. Lua builds of such programs stopped with "Lua IM contains a dangling reference to removed
+  function". Castle fight compiles to the same script.
+
 - Putting a file into the model while every unit is unchecked, as in the load of a project and of the libraries it
   imports, no longer searches the whole model for what imports it: that search only adds units to the set of unchecked
   ones, and they are all in it. `ModelManagerImpl.updateModel` was 4.1% of the samples of the compiler's thread in a
