@@ -2186,11 +2186,6 @@ public class LuaTranslator {
         if (aDist != bDist) {
             return Integer.compare(aDist, bDist);
         }
-        boolean aNoOp = isNoOpImplementation(a);
-        boolean bNoOp = isNoOpImplementation(b);
-        if (aNoOp != bNoOp) {
-            return aNoOp ? 1 : -1;
-        }
         return methodSortKey(a).compareTo(methodSortKey(b));
     }
 
@@ -2403,12 +2398,6 @@ public class LuaTranslator {
             }
         }
         pending.target.setFieldName(slot);
-    }
-
-    private boolean isNoOpImplementation(ImMethod method) {
-        return method != null
-            && method.getImplementation() != null
-            && method.getImplementation().getName().contains("NoOpState_");
     }
 
     private int classDistance(ImClass from, ImClass to) {
