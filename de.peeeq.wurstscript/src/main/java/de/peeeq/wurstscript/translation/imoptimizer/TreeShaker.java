@@ -70,7 +70,8 @@ import java.util.Set;
  * The passes of the Jass pipeline which look at the whole program are served here, each at its origin:
  * <ul>
  * <li>The keyed-map lowerings find the functions of the package which declares an intrinsic by name, whether anything
- * calls them or not: the declarations of the compiler's own intrinsics are roots on Jass.</li>
+ * calls them or not: the declarations of the compiler's own intrinsics are roots on Jass. The interpreter finds them
+ * the same way, so in front of the compile-time run they are roots on Lua too.</li>
  * <li>The class elimination builds a dispatch function over every override of every method, called or not: a method
  * which nothing calls is removed with its implementation.</li>
  * <li>The vararg lowering reports a call which does not fit Jass's 31 parameters in a function nothing calls, which is
@@ -90,7 +91,7 @@ public final class TreeShaker {
      * @return the number of functions removed
      */
     public static int removeUnreachableFunctions(ImTranslator trans) {
-        return remove(trans, false);
+        return remove(trans, false, false, Collections.emptyList());
     }
 
     /**
@@ -102,7 +103,7 @@ public final class TreeShaker {
      * @return the number of functions removed
      */
     public static int removeUnreachableFunctionsBeforeGenerics(ImTranslator trans) {
-        return remove(trans, true, Collections.emptyList());
+        return remove(trans, true, false, Collections.emptyList());
     }
 
     /**
@@ -110,27 +111,27 @@ public final class TreeShaker {
      * executes the compile-time functions, which nothing calls, and evaluates the compile-time expressions of the
      * program, in functions nothing calls too, so none of them is reachable from main and the caller passes them as
      * roots. Everything else the run needs it reaches by a call, a reference or a type argument from there: it
-     * interprets the IM, which holds the functions it calls and the bindings of its type arguments as nodes.
+     * interprets the IM, which holds the functions it calls and the bindings of its type arguments as nodes. Except
+     * for the Jass fallbacks of the keyed-map intrinsics, which it runs them through and finds by name, the way the
+     * Jass lowering does: the declarations of the compiler's intrinsics are roots here on Lua too.
      *
      * @param compiletimeRoots the functions the run executes or holds an expression it evaluates
      *                         ({@code CompiletimeFunctionRunner#functionsOfTheRun})
      * @return the number of functions removed
      */
     public static int removeUnreachableFunctionsBeforeCompiletime(ImTranslator trans, Collection<ImFunction> compiletimeRoots) {
-        return remove(trans, true, compiletimeRoots);
+        return remove(trans, true, true, compiletimeRoots);
     }
 
-    private static int remove(ImTranslator trans, boolean followTypeArguments) {
-        return remove(trans, followTypeArguments, Collections.emptyList());
-    }
-
-    private static int remove(ImTranslator trans, boolean followTypeArguments, Collection<ImFunction> extraRoots) {
+    private static int remove(ImTranslator trans, boolean followTypeArguments, boolean beforeCompiletime,
+                              Collection<ImFunction> extraRoots) {
         ImProg prog = trans.imProg();
         Reachability reachability = new Reachability(trans, prog, followTypeArguments);
         reachability.add(trans.getMainFunc());
         reachability.add(trans.getConfFunc());
+        boolean keepIntrinsics = beforeCompiletime || !trans.isLuaTarget();
         for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
-            if (NamePreservation.isPreserved(function) || (!trans.isLuaTarget() && isCompilerIntrinsic(function))) {
+            if (NamePreservation.isPreserved(function) || (keepIntrinsics && isCompilerIntrinsic(function))) {
                 reachability.add(function);
             }
         }
@@ -173,7 +174,8 @@ public final class TreeShaker {
     /**
      * Whether {@code f} is a declaration of the compiler's own functions. The Jass lowerings of these find the
      * functions their lowered body calls (the projection of a key, the fallback of a keyed map) among the intrinsics
-     * of the declaring package, by name, whether any code calls them or not.
+     * of the declaring package, by name, whether any code calls them or not, and so does the interpreter on both
+     * targets.
      */
     private static boolean isCompilerIntrinsic(ImFunction f) {
         return f.attrTrace() instanceof FunctionDefinition definition && CompilerIntrinsics.isDeclaration(definition);
