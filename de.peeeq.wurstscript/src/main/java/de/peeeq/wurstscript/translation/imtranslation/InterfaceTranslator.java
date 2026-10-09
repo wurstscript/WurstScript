@@ -136,7 +136,9 @@ public class InterfaceTranslator {
         String name = inherited.getName();
         if (!imClass.getTypeVariables().isEmpty()
             || (owner != null && !translator.getClassFor(owner).getTypeVariables().isEmpty())) {
-            function = implementationOfItsOwn(imClass, classType, implementation, function, owner);
+            ImFunction inheritedFunction = function;
+            function = translator.bridgeFunction(imClass, implementation,
+                () -> implementationOfItsOwn(imClass, classType, implementation, inheritedFunction, owner));
             name = function.getName();
         }
         ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), name,
@@ -152,7 +154,8 @@ public class InterfaceTranslator {
      * class and must be specialised for that class's type arguments as {@code imClass} sees them, which need not be
      * its own ({@code C<T:> extends Base<string>}). So the function calls the inherited one with this, as
      * {@code super.m()} does, and the specialisation finds Base's type arguments from the type of this. It takes the
-     * inherited function's parameters with Base's type variables replaced by those arguments.
+     * inherited function's parameters with Base's type variables replaced by those arguments, and is vararg where that
+     * function is. The translator adds it to the class ({@link ImTranslator#bridgeFunction}).
      */
     private ImFunction implementationOfItsOwn(ImClass imClass, WurstTypeClass classType, FuncDef implementation,
                                               ImFunction inherited, @org.eclipse.jdt.annotation.Nullable ClassOrInterface owner) {
@@ -175,10 +178,12 @@ public class InterfaceTranslator {
         ImStmts body = returnType instanceof ImVoid
             ? JassIm.ImStmts(call)
             : JassIm.ImStmts(JassIm.ImReturn(implementation, call));
-        ImFunction own = JassIm.ImFunction(implementation, imClass.getName() + "_" + implementation.getName(),
-            JassIm.ImTypeVars(), parameters, returnType, JassIm.ImVars(), body, Collections.emptyList());
-        imClass.getFunctions().add(own);
-        return own;
+        List<FunctionFlag> flags = new java.util.ArrayList<>();
+        if (inherited.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+            flags.add(FunctionFlagEnum.IS_VARARG);
+        }
+        return JassIm.ImFunction(implementation, imClass.getName() + "_" + implementation.getName(),
+            JassIm.ImTypeVars(), parameters, returnType, JassIm.ImVars(), body, flags);
     }
 
     /**
@@ -201,12 +206,14 @@ public class InterfaceTranslator {
         List<ImTypeArgument> arguments = new java.util.ArrayList<>();
         for (ImTypeVar variable : variables) {
             TypeParamDef parameter = translator.getTypeParamDef(variable);
-            ImType type = parameter == null ? null : binding.get(parameter)
-                .map(bound -> bound.imTranslateType(translator)).getOrNull();
-            if (type == null) {
+            if (parameter == null) {
                 throw new CompileError(classType.getDef(), "Could not find the type argument of " + owner.getName()
                     + " for " + variable.getName() + " as " + classType.getDef().getName() + " sees it.");
             }
+            // A parameter no supertype binds is one of an enclosing generic class, which a static class inside it
+            // captures: the class sees it as it is, as its own functions do.
+            ImType type = binding.get(parameter).map(bound -> bound.imTranslateType(translator))
+                .getOrElse(() -> JassIm.ImTypeVarRef(translator.getTypeVar(parameter)));
             arguments.add(JassIm.ImTypeArgument(type, Collections.emptyMap()));
         }
         return arguments;

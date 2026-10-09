@@ -887,6 +887,62 @@ public class InterfaceTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** The inherited implementation takes a vararg, which the function the generic class gets must take too. */
+    @Test
+    public void aGenericClassImplementingAVarargInterfaceMethodWithAnInheritedMethodIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Summer",
+            "    function sum(vararg int xs) returns int",
+            "class Base",
+            "    function sum(vararg int xs) returns int",
+            "        var r = 0",
+            "        for x in xs",
+            "            r += x",
+            "        return r",
+            "class C<T:> extends Base implements Summer",
+            "class D extends Base implements Summer",
+            "class X implements Summer",
+            "    function sum(vararg int xs) returns int",
+            "        return -1",
+            "function viaSummer(Summer s) returns int",
+            "    return s.sum(1, 2, 3)",
+            "init",
+            "    if viaSummer(new C<int>()) == 6 and viaSummer(new D()) == 6 and viaSummer(new X()) == -1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Static classes inside a generic class have its type parameter as a variable of their own, which no superclass
+     * binds: C sees Base's as the parameter itself. Lua only: on Jass a static class extending another inside a
+     * generic class does not compile yet, with or without an interface (the generic elimination specialises Base
+     * without the parameter).
+     */
+    @Test
+    public void aStaticClassOfAGenericClassImplementingTheInterfaceWithAnInheritedMethodIsDispatched() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Outer<T:>",
+            "    function make() returns Omega",
+            "        return new C()",
+            "    static class Base",
+            "        function m() returns int",
+            "            return 1",
+            "    static class C extends Base implements Omega",
+            "class X implements Omega",
+            "    function m() returns int",
+            "        return 3",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaOmega(new Outer<int>().make()) == 1 and viaOmega(new X()) == 3",
+            "        testSuccess()");
+    }
+
     /**
      * The function a generic class gets for an inherited implementation only calls it, so an optimised Lua build
      * inlines the call and a dispatch through the interface runs Base's body directly.
