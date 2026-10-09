@@ -1394,6 +1394,62 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** {@link #oldGenericsIntRoundTripKeepsValuesAndNull} with the optimiser, which inlines the casts. */
+    @Test
+    public void oldGenericsIntRoundTripKeepsValuesAndNullOptimized() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "    function isNull(int key) returns bool",
+            "        return get(key) == null",
+            "class C",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, -5)",
+            "    ints.put(2, 123456)",
+            "    let objs = new Store<C>()",
+            "    let c = new C(42)",
+            "    objs.put(10, c)",
+            "    objs.put(11, null)",
+            "    if ints.get(0) == 0 and ints.get(1) == -5 and ints.get(2) == 123456 and objs.get(10) == c and objs.get(10).v == 42 and objs.get(11) == null and objs.isNull(11) and objs.isNull(12) and not objs.isNull(10)",
+            "        testSuccess()");
+    }
+
+    /** {@link #oldGenericsIntZeroIsNotNull} with the optimiser, which inlines the casts. */
+    @Test
+    public void oldGenericsIntZeroIsNotNullOptimized() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "interface Visit<T>",
+            "    function run(T t) returns int",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function visit(int key, Visit<T> v) returns int",
+            "        return v.run(slots[key] castTo T)",
+            "    function isNull(int key) returns bool",
+            "        return (slots[key] castTo T) == null",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, 3)",
+            "    let total = ints.visit(0, x -> x + 10) + ints.visit(1, x -> x + 10)",
+            "    if total == 23 and not ints.isNull(0) and ints.isNull(7)",
+            "        testSuccess()");
+    }
+
     @Test
     public void legacyGenericHandleCastsUseObjectIndexMap() throws IOException {
         // The stdlib's TypeCasting functions, which the Lua backend maps to the object index; a
