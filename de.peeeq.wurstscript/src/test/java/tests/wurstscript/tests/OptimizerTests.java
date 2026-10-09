@@ -1967,6 +1967,64 @@ public class OptimizerTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * The liveness where the two branches of an if join: one branch's set holds the other's (first if: then {x,y},
+     * else {x}), and two sets of which neither holds the other make a new one (second if: then {c,x,y,z}, else
+     * {c,w,x,y}). The key of an if in the result is its condition, which the control flow graph puts in its node.
+     */
+    @Test
+    public void localMergerLivenessJoinsTheBranchesOfAnIf() {
+        Element trace = Ast.NoExpr();
+        LocalMerger localMerger = new LocalMerger();
+        ImVar y = JassIm.ImVar(trace, TypesHelper.imInt(), "y", false);
+        ImVar x = JassIm.ImVar(trace, TypesHelper.imInt(), "x", false);
+        ImVar z = JassIm.ImVar(trace, TypesHelper.imInt(), "z", false);
+        ImVar w = JassIm.ImVar(trace, TypesHelper.imInt(), "w", false);
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
+        ImVar sinkA = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkA", false);
+        ImVar sinkB = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkB", false);
+        ImFunction sink = JassIm.ImFunction(trace, "sink", JassIm.ImTypeVars(), JassIm.ImVars(sinkA, sinkB),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        CallType normal = CallType.NORMAL;
+
+        ImSet setY = JassIm.ImSet(trace, JassIm.ImVarAccess(y), JassIm.ImIntVal(2));
+        ImSet setX = JassIm.ImSet(trace, JassIm.ImVarAccess(x), JassIm.ImIntVal(1));
+        ImSet setZ = JassIm.ImSet(trace, JassIm.ImVarAccess(z), JassIm.ImIntVal(3));
+        ImSet setW = JassIm.ImSet(trace, JassIm.ImVarAccess(w), JassIm.ImIntVal(4));
+        ImSet setC = JassIm.ImSet(trace, JassIm.ImVarAccess(c), JassIm.ImIntVal(0));
+        ImExpr cond2 = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(c), JassIm.ImIntVal(1)));
+        ImFunctionCall readZ = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(z), JassIm.ImVarAccess(z)), false, normal);
+        ImFunctionCall readW = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(w), JassIm.ImVarAccess(w)), false, normal);
+        ImIf second = JassIm.ImIf(trace, cond2, JassIm.ImStmts(readZ), JassIm.ImStmts(readW));
+        ImExpr cond1 = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(c), JassIm.ImIntVal(0)));
+        ImFunctionCall readXY = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImVarAccess(y)), false, normal);
+        ImFunctionCall readX = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImVarAccess(x)), false, normal);
+        ImIf first = JassIm.ImIf(trace, cond1, JassIm.ImStmts(readXY), JassIm.ImStmts(readX));
+        ImFunction branching = JassIm.ImFunction(trace, "branching", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(y, x, z, w, c),
+            JassIm.ImStmts(setY, setX, setZ, setW, setC, second, first), Collections.emptyList());
+
+        Map<ImStmt, Set<ImVar>> live = localMerger.calculateLiveness(branching);
+
+        assertEquals(live.get(readXY), HashSet.empty());
+        assertEquals(live.get(readX), HashSet.empty());
+        assertEquals(live.get(cond1), HashSet.of(x, y));          // then {x,y} holds else {x}
+        assertEquals(live.get(readZ), HashSet.of(c, x, y));
+        assertEquals(live.get(readW), HashSet.of(c, x, y));
+        assertEquals(live.get(cond2), HashSet.of(c, w, x, y, z)); // {c,x,y,z} and {c,w,x,y} make a new set
+        assertEquals(live.get(setC), HashSet.of(c, w, x, y, z));
+        assertEquals(live.get(setW), HashSet.of(w, x, y, z));
+        assertEquals(live.get(setZ), HashSet.of(x, y, z));
+        assertEquals(live.get(setX), HashSet.of(x, y));
+        assertEquals(live.get(setY), HashSet.of(y));
+    }
+
     @Test
     public void localMergerKeepsImplicitEntryLocalSeparateFromParameter() {
         WurstModel model = Ast.WurstModel();
@@ -2064,10 +2122,10 @@ public class OptimizerTests extends WurstScriptTest {
         // `v1 = v0; v2 = v1; ...` where nothing reads the last: each round makes the variable before it unread, so a
         // chain takes a round for each link. The removal goes on until the first link is gone, however long it is: it
         // does not stop after some rounds and leave the rest, and it does not take a converging program for one which
-        // never settles.
+        // never settles. (In unit-test mode, so the rounds are checked against an analysis of the whole program.)
         int links = 300;
         WurstModel model = Ast.WurstModel();
-        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
         ImProg prog = translator.getImProg();
         ImVars locals = JassIm.ImVars();
         ImStmts body = JassIm.ImStmts();
@@ -2100,7 +2158,7 @@ public class OptimizerTests extends WurstScriptTest {
         // function of the link after it has lost its read.
         int links = 300;
         WurstModel model = Ast.WurstModel();
-        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
         ImProg prog = translator.getImProg();
         List<ImVar> globals = new ArrayList<>();
         for (int i = 0; i <= links; i++) {
@@ -2206,7 +2264,7 @@ public class OptimizerTests extends WurstScriptTest {
         // second argument come before the call: the first one, which has an effect, is saved in a variable of the
         // function first. That variable is declared, and the removal does not take it for one nothing reads.
         WurstModel model = Ast.WurstModel();
-        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
         ImProg prog = translator.getImProg();
         ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
         ImVar b = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
@@ -2258,6 +2316,55 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(translator.isFlat(), "what is left is flat: " + main.getBody());
     }
 
+    /**
+     * A global whose name a variable event refers to stays, and so does the assignment to it, when its last read in a
+     * function goes in a later round of the removal (`copy = myVar` goes in the first).
+     */
+    @Test
+    public void garbageRemovalKeepsAPreservedGlobalWhoseLastReadGoesInALaterRound() throws IOException {
+        test().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    int myVar = 0",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    function copyIt()",
+            "        int copy = myVar",
+            "    init",
+            "        TriggerRegisterVariableEvent(null, \"test_myVar\", null, 0.0)",
+            "        copyIt()",
+            "        myVar = 5",
+            "endpackage");
+        String out = Files.toString(new File(
+            "test-output/OptimizerTests_garbageRemovalKeepsAPreservedGlobalWhoseLastReadGoesInALaterRound_no_opts.j"),
+            Charsets.UTF_8);
+        assertTrue(out.contains("integer test_myVar") && out.contains("set test_myVar = 5"), out);
+    }
+
+    /**
+     * A global of blizzard.j whose last read goes in a later round of the removal makes it analyse the program again,
+     * so what its initial value reads (bj_PI) is not kept for it. The unit-test cross-check at the end of the removal
+     * compares the rounds with an analysis of the whole program.
+     */
+    @Test
+    public void garbageRemovalAnalysesAgainWhenABlizzardGlobalLosesItsLastRead() {
+        test().executeProg(true).compilationUnits(
+            compilationUnit("blizzard.j",
+                "globals",
+                "    constant real bj_PI = 3.14159",
+                "    constant real bj_DEGTORAD = bj_PI/180.0",
+                "endglobals"),
+            compilationUnit("test.wurst",
+                "package Test",
+                "native testSuccess()",
+                "function copyIt()",
+                "    real copy = bj_DEGTORAD",
+                "init",
+                "    copyIt()",
+                "    testSuccess()"));
+    }
+
     @Test
     public void aFlattenLeavesTheFunctionsWhichWereNotModifiedSinceTheLastOne() {
         WurstModel model = Ast.WurstModel();
@@ -2301,6 +2408,66 @@ public class OptimizerTests extends WurstScriptTest {
         assertNotSame(changed.getBody(), flatChanged, "a modified function is flattened again");
         assertSame(untouched.getBody(), flatUntouched, "the function which was not modified is still left alone");
         assertTrue(translator.isFlat(), "what was added is flat now: " + changed.getBody());
+    }
+
+    /**
+     * The same in unit-test mode (the functions a flatten leaves are checked) for a function of a class, changed
+     * through a setter below an if and two lists, a replacement whose parent is not a list, and a transfer into an
+     * empty block (the inliner's), each followed by a flatten.
+     */
+    @Test
+    public void aFlattenFlattensAgainAClassFunctionChangedDeepInsideItsBody() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        CallType normal = CallType.NORMAL;
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar local = JassIm.ImVar(model, TypesHelper.imInt(), "local", false);
+        ImFunction method = JassIm.ImFunction(model, "method", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(local),
+            JassIm.ImStmts(JassIm.ImIf(model, JassIm.ImBoolVal(true),
+                JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(local), JassIm.ImIntVal(1))), JassIm.ImStmts())),
+            Collections.emptyList());
+        ImClass c = JassIm.ImClass(model, "C", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(),
+            JassIm.ImFunctions(method), new ArrayList<>());
+        prog.getFunctions().add(tock);
+        prog.getClasses().add(c);
+
+        prog.flatten(translator);
+        ImStmts tockBody = tock.getBody();
+
+        // 1. a setter below an if and two lists
+        ImIf theIf = (ImIf) method.getBody().get(0);
+        int seen = method.modificationCount();
+        ((ImSet) theIf.getThenBlock().get(0)).setRight(JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2)));
+        assertNotEquals(method.modificationCount(), seen, "a setter deep in the body counts for the function");
+        prog.flatten(translator);
+        assertTrue(translator.isFlat(), "after the setter: " + method.getBody());
+        assertSame(tock.getBody(), tockBody, "the function which was not modified is left alone");
+
+        // 2. a replacement whose parent is not a list (replaceBy falls back to set(i, ...))
+        theIf = (ImIf) method.getBody().get(0);
+        ImSet last = (ImSet) theIf.getThenBlock().get(theIf.getThenBlock().size() - 1);
+        last.getRight().replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(3)));
+        prog.flatten(translator);
+        assertTrue(translator.isFlat(), "after replaceBy: " + method.getBody());
+
+        // 3. a transfer into an empty block (addAllMoved takes the source's array)
+        theIf = (ImIf) method.getBody().get(0);
+        ImStmts moved = JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(local), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(4))));
+        seen = method.modificationCount();
+        theIf.getElseBlock().addAllMoved(moved);
+        assertNotEquals(method.modificationCount(), seen, "a transfer into the function counts for it");
+        prog.flatten(translator);
+        assertTrue(translator.isFlat(), "after addAllMoved: " + method.getBody());
+        assertSame(tock.getBody(), tockBody, "still left alone");
     }
 
     @Test
