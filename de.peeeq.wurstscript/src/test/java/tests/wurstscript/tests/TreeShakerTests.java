@@ -646,4 +646,18 @@ public class TreeShakerTests extends WurstScriptTest {
             "            testSuccess()",
             "endpackage");
     }
+
+    /** The error function the translator names may be a native: the program compiles as it did. */
+    @Test
+    public void anErrorFunctionWhichIsANativeIsNamedToo() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package ErrorHandling",
+            "    public native error(string msg)",
+            "endpackage",
+            "package Test",
+            "    native testSuccess()",
+            "    init",
+            "        testSuccess()",
+            "endpackage");
+    }
 }
