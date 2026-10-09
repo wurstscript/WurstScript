@@ -1,10 +1,13 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.CliBuildMap;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -121,6 +124,73 @@ public class CliBuildMapTests {
             "no check has run against the unconfigured script: " + modelManager.getFirstErrorDescription());
     }
 
+    private static final String NAME_WARNING = "Function names should start with an lower case character.";
+    /** Reported by the lexer, when the project is loaded: no check of the model reports it. */
+    private static final String INDENTATION_WARNING = "Use an even number of spaces for indentation.";
+
+    /**
+     * A project whose code has a warning of the check and one of the parser, and the map script with the config
+     * applied (returned).
+     */
+    private static File projectWithWarnings(String folder) throws Exception {
+        File projectFolder = new File(folder);
+        File wurstFolder = new File(projectFolder, "wurst");
+        wurstFolder.mkdirs();
+        Files.writeString(new File(wurstFolder, "Wurst.wurst").toPath(), "package Wurst\n");
+        Files.writeString(new File(wurstFolder, "Main.wurst").toPath(),
+            "package Main\npublic function NotLowerCase()\n    skip\n");
+        Files.writeString(new File(wurstFolder, "Indented.wurst").toPath(),
+            "package Indented\npublic function indentedByThree()\n   skip\n");
+        Files.writeString(new File(wurstFolder, "war3map.j").toPath(),
+            "function main takes nothing returns nothing\nendfunction\n");
+        File configured = new File(projectFolder, "configured.j");
+        Files.writeString(configured.toPath(),
+            "function main takes nothing returns nothing\nendfunction\n"
+                + "function config takes nothing returns nothing\nendfunction\n");
+        return configured;
+    }
+
+    private static long warnings(WurstGui gui, String message) {
+        return gui.getWarningList().stream().filter(w -> w.getMessage().equals(message)).count();
+    }
+
+    /**
+     * Main prints the warnings of the request's gui after a build. The CLI checks the model once, and the compilation
+     * takes that check over, so the warnings of the check are the ones to print, each once, with those the parser
+     * reported when the project was loaded.
+     */
+    @Test
+    public void theCliBuildReportsTheWarningsOfItsCheck() throws Exception {
+        File configured = projectWithWarnings("./temp/testProject_cli_build_warnings/");
+        File projectFolder = configured.getParentFile();
+        ModelManagerImpl modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
+        modelManager.loadProject();
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+
+        new CheckingCliBuildMap(projectFolder, List.of(), gui).compile(modelManager, configured);
+
+        assertFalse(modelManager.hasErrors(), modelManager.getFirstErrorDescription());
+        assertEquals(warnings(gui, NAME_WARNING), 1, "the warning is reported once: " + gui.getWarningList());
+        assertEquals(warnings(gui, INDENTATION_WARNING), 1,
+            "the warning of the parser is reported once: " + gui.getWarningList());
+    }
+
+    /** With the legacy Jass checks the compilation checks the model again, with its own checks, and reports that. */
+    @Test
+    public void withTheLegacyJassChecksTheCliBuildReportsTheWarningsOnce() throws Exception {
+        File configured = projectWithWarnings("./temp/testProject_cli_build_warnings_legacy/");
+        File projectFolder = configured.getParentFile();
+        ModelManagerImpl modelManager = new ModelManagerImpl(projectFolder, new BufferManager());
+        modelManager.loadProject();
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+
+        new CheckingCliBuildMap(projectFolder, List.of("-legacyJassChecks"), gui).compile(modelManager, configured);
+
+        assertEquals(warnings(gui, NAME_WARNING), 1, "the warning is reported once: " + gui.getWarningList());
+        assertEquals(warnings(gui, INDENTATION_WARNING), 1,
+            "the warning of the parser is reported once: " + gui.getWarningList());
+    }
+
     private static final class CountingModelManager extends ModelManagerImpl {
         private int checks = 0;
 
@@ -129,9 +199,9 @@ public class CliBuildMapTests {
         }
 
         @Override
-        public void checkProject() {
+        public void checkProject(WurstGui gui) {
             checks++;
-            super.checkProject();
+            super.checkProject(gui);
         }
     }
 
@@ -155,6 +225,31 @@ public class CliBuildMapTests {
         protected File compileMap(ModelManager modelManager, File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs,
                                   WurstModel model, WurstProjectConfigData projectConfigData, boolean isProd) {
             compiledModel = model;
+            return null;
+        }
+    }
+
+    /** Builds with one gui, as Main does, and checks the model for the compilation as {@code compileMap} does. */
+    private static final class CheckingCliBuildMap extends CliBuildMap {
+        private final WurstGui gui;
+        private final List<String> compileArgs;
+
+        private CheckingCliBuildMap(File projectFolder, List<String> compileArgs, WurstGui gui) {
+            super(WFile.create(projectFolder), Optional.of(new File(projectFolder, "input.w3x")), compileArgs,
+                Optional.empty(), gui);
+            this.gui = gui;
+            this.compileArgs = compileArgs;
+        }
+
+        private void compile(ModelManager modelManager, File script) throws Exception {
+            compileScript(gui, modelManager, compileArgs, Optional.empty(), WurstProjectConfigData.empty(), true, script);
+        }
+
+        @Override
+        protected File compileMap(ModelManager modelManager, File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs,
+                                  WurstModel model, WurstProjectConfigData projectConfigData, boolean isProd) {
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), projectFolder, gui, null, runArgs);
+            MapRequest.checkModel(modelManager, compiler, model, runArgs);
             return null;
         }
     }

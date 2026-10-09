@@ -219,9 +219,8 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
-    public void checkProject() {
+    public void checkProject(WurstGui gui) {
         try {
-            WurstGui gui = new WurstGuiLogger();
             resolveImports(gui);
 
             doTypeCheck(gui);
@@ -1085,6 +1084,14 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public List<CompileError> getParseErrors() {
         return parseErrorStream().collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CompileError> getParseWarnings() {
+        return parseErrors.values().stream()
+                .flatMap(Collection::stream)
+                .filter(err -> err.getErrorType() == CompileError.ErrorType.WARNING)
+                .collect(Collectors.toList());
     }
 
     private Stream<CompileError> parseErrorStream() {
