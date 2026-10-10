@@ -947,4 +947,41 @@ public class DeterministicChecks extends WurstScriptTest {
             "a class's functions must be emitted in an order independent of the compilation units");
     }
 
+    /**
+     * The Lua backend declares the locals of the hashtable operations it prints in place, and defines the helper of
+     * one it cannot, where it first needs them. Here the packages which first need each do not import each other.
+     */
+    @Test
+    public void hashtableHelpersNeededByUnrelatedPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU first = compilationUnit("HtA.wurst",
+            "package HtA",
+            "@noinline function keyA(int k) returns int",
+            "    return k",
+            "public function useA(hashtable h) returns int",
+            "    SaveInteger(h, 1, 1, 7)",
+            "    return LoadInteger(h, keyA(1), 1)");
+        CU second = compilationUnit("HtB.wurst",
+            "package HtB",
+            "@noinline function keyB(int k) returns int",
+            "    return k",
+            "public function useB(hashtable h) returns int",
+            "    SaveReal(h, keyB(2), 1, 8.)",
+            "    return R2I(LoadReal(h, 2, 1))");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import HtA",
+            "import HtB",
+            "init",
+            "    let h = InitHashtable()",
+            "    if useA(h) + useB(h) == 15",
+            "        testSuccess()");
+        String name = "hashtableHelpersNeededByUnrelatedPackages";
+        testNamed(name).testLua(true).withStdLib().executeProg().compilationUnits(first, second, main);
+        File output = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String forward = Files.toString(output, Charsets.UTF_8);
+        testNamed(name).testLua(true).withStdLib().executeProg().compilationUnits(second, first, main);
+        assertEquals(Files.toString(output, Charsets.UTF_8), forward,
+            "the hashtable locals and helpers must be emitted in an order independent of the compilation units");
+    }
+
 }

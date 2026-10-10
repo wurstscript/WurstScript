@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
@@ -29,13 +30,20 @@ public class StmtTranslation {
                 translateKeyedMapWrite(call, keyedWrite, res, tr);
                 return;
             }
+            LuaHashtable.Op hashtableOp = LuaHashtable.op(tr.imTr, call.getFunc());
+            if (hashtableOp != null && LuaHashtableTranslation.statement(call, hashtableOp, res, tr)) {
+                return;
+            }
         }
         LuaExpr expr = e.translateToLua(tr);
         res.add(expr);
     }
 
-    /** How an operand of a keyed-map store may be moved: see {@link #translateKeyedMapWrite}. */
-    private enum WriteOperand {
+    /**
+     * How an operand of a store printed in place of its stub may be moved: see {@link #translateKeyedMapWrite}
+     * and {@link LuaHashtableTranslation}.
+     */
+    enum WriteOperand {
         /** A literal or a local: the same value wherever it is read, and reading it does nothing. */
         STABLE,
         /** A global or a table read: reading it does nothing, but an effect before it can change it. */
@@ -44,7 +52,7 @@ public class StmtTranslation {
         EFFECT
     }
 
-    private static WriteOperand writeOperand(ImExpr e) {
+    static WriteOperand writeOperand(ImExpr e) {
         if (e instanceof ImIntVal || e instanceof ImRealVal || e instanceof ImStringVal
             || e instanceof ImBoolVal || e instanceof ImNull) {
             return WriteOperand.STABLE;
@@ -67,7 +75,8 @@ public class StmtTranslation {
         return WriteOperand.EFFECT;
     }
 
-    private static boolean readsOnly(ImExprs exprs) {
+    /** Whether no operand is an {@link WriteOperand#EFFECT}: each one may be read again, or later, or not at all. */
+    static boolean readsOnly(ImExprs exprs) {
         for (ImExpr e : exprs) {
             if (writeOperand(e) == WriteOperand.EFFECT) {
                 return false;

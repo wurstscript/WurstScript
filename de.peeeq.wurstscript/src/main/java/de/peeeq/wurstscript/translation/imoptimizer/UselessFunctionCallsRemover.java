@@ -110,7 +110,7 @@ public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPas
     private boolean isNativeWithoutSideEffect(ImFunction func) {
         return func.isNative()
             && !localPlayerContextAnalyzer.isLocalPlayerSource(func)
-            && (isFunctionWithoutSideEffect(func.getName()) || translator.isLuaKeyedMapRead(func));
+            && (isFunctionWithoutSideEffect(func.getName()) || translator.isLuaTableRead(func));
     }
 
     /**

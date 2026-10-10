@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
@@ -152,6 +153,10 @@ public class ExprTranslation {
             // StmtTranslation#translateKeyedMapWrite. Its stub has no definition to call.
             throw new CompileError(e.attrTrace().attrSource(),
                 "Lua backend: " + imFuncName + " used as an expression; a keyed-map store must be a statement.");
+        }
+        LuaHashtable.Op hashtableOp = LuaHashtable.op(tr.imTr, e.getFunc());
+        if (hashtableOp != null) {
+            return LuaHashtableTranslation.expression(e, hashtableOp, tr);
         }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {

@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaFieldDefaults;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
@@ -344,6 +345,34 @@ public class LuaTranslator {
 
     LuaPolyfillSetup.OldGenericsHelpers oldGenericsHelpers() {
         return oldGenericsHelpers.get();
+    }
+
+    /** The hashtable stubs whose helper is defined. Membership only, never iterated. */
+    private final Set<ImFunction> definedHashtableHelpers = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Lazy<LuaVariable> hashtableEmpty = Lazy.create(() -> LuaHashtableTranslation.createEmpty(this));
+    private final Lazy<LuaFunction> hashtableNewChild = Lazy.create(() -> LuaHashtableTranslation.createNewChild(this));
+
+    /**
+     * The helper a call of a hashtable stub calls where the operation cannot be printed in place
+     * ({@link LuaHashtableTranslation}), defined with the first such call: a stub which every call prints
+     * in place has no definition.
+     */
+    LuaFunction hashtableHelper(ImFunction stub) {
+        LuaFunction helper = luaFunc.getFor(stub);
+        if (definedHashtableHelpers.add(stub)) {
+            LuaNatives.get(helper);
+            luaModel.add(helper);
+        }
+        return helper;
+    }
+
+    /** Main-chunk locals of the in-place hashtable operations, declared on first use. */
+    LuaVariable hashtableEmpty() {
+        return hashtableEmpty.get();
+    }
+
+    LuaFunction hashtableNewChild() {
+        return hashtableNewChild.get();
     }
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -887,6 +916,10 @@ public class LuaTranslator {
             return;
         }
         if (f.isNative() && ExprTranslation.isBackendIntrinsic(f, this)) {
+            return;
+        }
+        if (LuaHashtable.op(imTr, f) != null) {
+            // Printed where it is called; a call which cannot be printed so defines it (hashtableHelper).
             return;
         }
         LuaFunction lf = luaFunc.getFor(f);

@@ -1101,8 +1101,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("unit keys must still enter the object registry:\n" + unitProbe,
             unitProbe.contains("__wurst_objectToIndex"));
         if (inline) {
+            // the helper's call, or the read it stands for when every operand may be read in place
             assertTrue("the regression must exercise an inlined hashtable probe:\n" + intProbe,
-                intProbe.contains("__wurst_HaveSavedInteger"));
+                intProbe.contains("__wurst_HaveSavedInteger") || intProbe.contains(".__wurst_ht_int["));
             assertTrue("an inlined integer key must retain the zero sentinel:\n" + intProbe,
                 intProbe.contains("== 0") && intProbe.contains("__wurst_oldGenericsZero"));
             assertTrue("an inlined handle index must retain the zero sentinel:\n" + unitProbe,

@@ -18,7 +18,9 @@ import java.util.*;
  *   <li><b>Hashtable natives</b> ({@code SaveInteger}, {@code LoadBoolean}, …) and
  *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …) –
  *       replaced 1:1 by their {@code __wurst_} prefixed equivalents, whose Lua
- *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.</li>
+ *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.
+ *       The backend prints a hashtable operation where it is called instead, as the table accesses
+ *       it stands for, and calls its helper only where it cannot ({@link LuaHashtable}).</li>
  *   <li><b>All other BJ calls with at least one handle-typed parameter</b> – wrapped
  *       by a generated IM function that first checks each required handle param for
  *       {@code null} and returns the type-appropriate default (0 / 0.0 / false / "" / nil),
@@ -39,35 +41,6 @@ import java.util.*;
  * {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.
  */
 public final class LuaNativeLowering {
-
-    /** Hashtable native names that need to be remapped to {@code __wurst_} equivalents. */
-    private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(Arrays.asList(
-        "InitHashtable",
-        "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
-        "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr",
-        "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString", "HaveSavedHandle",
-        "FlushChildHashtable", "FlushParentHashtable",
-        "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString", "RemoveSavedHandle",
-        // Handle-typed save/load variants
-        "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle", "SaveItemHandle", "SaveUnitHandle",
-        "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
-        "SaveTriggerActionHandle", "SaveTriggerEventHandle", "SaveForceHandle", "SaveGroupHandle",
-        "SaveLocationHandle", "SaveRectHandle", "SaveBooleanExprHandle", "SaveSoundHandle", "SaveEffectHandle",
-        "SaveUnitPoolHandle", "SaveItemPoolHandle", "SaveQuestHandle", "SaveQuestItemHandle",
-        "SaveDefeatConditionHandle", "SaveTimerDialogHandle", "SaveLeaderboardHandle", "SaveMultiboardHandle",
-        "SaveMultiboardItemHandle", "SaveTrackableHandle", "SaveDialogHandle", "SaveButtonHandle",
-        "SaveTextTagHandle", "SaveLightningHandle", "SaveImageHandle", "SaveUbersplatHandle", "SaveRegionHandle",
-        "SaveFogStateHandle", "SaveFogModifierHandle", "SaveAgentHandle", "SaveHashtableHandle", "SaveFrameHandle",
-        "LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle", "LoadUnitHandle",
-        "LoadAbilityHandle", "LoadTimerHandle", "LoadTriggerHandle", "LoadTriggerConditionHandle",
-        "LoadTriggerActionHandle", "LoadTriggerEventHandle", "LoadForceHandle", "LoadGroupHandle",
-        "LoadLocationHandle", "LoadRectHandle", "LoadBooleanExprHandle", "LoadSoundHandle", "LoadEffectHandle",
-        "LoadUnitPoolHandle", "LoadItemPoolHandle", "LoadQuestHandle", "LoadQuestItemHandle",
-        "LoadDefeatConditionHandle", "LoadTimerDialogHandle", "LoadLeaderboardHandle", "LoadMultiboardHandle",
-        "LoadMultiboardItemHandle", "LoadTrackableHandle", "LoadDialogHandle", "LoadButtonHandle",
-        "LoadTextTagHandle", "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle",
-        "LoadFogStateHandle", "LoadFogModifierHandle", "LoadHashtableHandle", "LoadFrameHandle"
-    ));
 
     /** Context-callback natives that need to be remapped to {@code __wurst_} equivalents. */
     private static final Set<String> CONTEXT_CALLBACK_NATIVE_NAMES = new HashSet<>(Arrays.asList(
@@ -281,7 +254,10 @@ public final class LuaNativeLowering {
                     ImFunction r = computeReplacement(f);
                     if (r != null) {
                         replacements.put(f, r);
-                        deferredAdditions.add(r);
+                        // A hashtable stub of an earlier run is already in the program, unless it was removed.
+                        if (r.getParent() == null) {
+                            deferredAdditions.add(r);
+                        }
                     } else {
                         noReplacement.add(f);
                     }
@@ -299,8 +275,10 @@ public final class LuaNativeLowering {
 
             private ImFunction computeReplacement(ImFunction bj) {
                 String name = bj.getName();
-                if (HASHTABLE_NATIVE_NAMES.contains(name)) {
-                    return createNativeStub("__wurst_" + name, bj);
+                if (LuaHashtable.isNative(name)) {
+                    // Kept by the translator, so the optimizer and the backend match the stub by identity.
+                    return translator.luaHashtableStubs.computeIfAbsent(LuaHashtable.stubName(name),
+                        stubName -> createNativeStub(stubName, bj));
                 } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
                     return createNativeStub("__wurst_" + name, bj);
                 } else if (hasHandleParam(bj)) {

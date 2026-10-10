@@ -473,7 +473,7 @@ public class ImOptimizer {
         }
         if (analyzer.hasObservableSideEffects(expr, func -> func.isNative()
             && (UselessFunctionCallsRemover.isFunctionWithoutSideEffect(func.getName())
-                || trans.isLuaKeyedMapRead(func)))) {
+                || trans.isLuaTableRead(func)))) {
             return Collections.singletonList(expr);
         }
         return Collections.emptyList();
