@@ -1174,6 +1174,46 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             init.contains("__wurst_keyedMapPut") || init.contains("__wurst_keyedMapRemove"));
     }
 
+    /**
+     * A value which can raise, such as an array field read through an object which may be null, is evaluated before
+     * the nil-key test, as the stub's argument was: with a nil key it still runs.
+     */
+    @Test
+    public void aKeyedMapWriteEvaluatesAValueWhichCanRaiseEvenForANilKey() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, timer key, int value)",
+            "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int tbl, timer key) returns int",
+            "    return (tbl castTo Table).loadInt(GetHandleId(key))",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "class Holder",
+            "    int array[2] arr",
+            "init",
+            "    let theMap = keyedMapCreate()",
+            "    let h = new Holder()",
+            "    h.arr[0] = 5",
+            "    timer none = null",
+            "    keyedMapPut(theMap, none, h.arr[0])",
+            "    let key = CreateTimer()",
+            "    keyedMapPut(theMap, key, h.arr[0])",
+            "    if keyedMapGetInt(theMap, key) != 5",
+            "        testFail(\"put did not store\")",
+            "    testSuccess()",
+            "endpackage");
+
+        String init = getFunctionBody(compiled("aKeyedMapWriteEvaluatesAValueWhichCanRaiseEvenForANilKey"), "init_Test");
+        java.util.regex.Matcher read = java.util.regex.Pattern
+            .compile("local (\\w+) = Holder_arr_storage\\[\\w+\\]\\[0\\]\\s*\\n\\s*if \\(\\w+ ~= nil\\) then")
+            .matcher(init);
+        assertTrue("the array field read is evaluated before the nil-key test: " + init, read.find());
+    }
+
     @Test
     public void keyedMapDestroyClearsLuaStoreWhileAliasRemains() {
         test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(

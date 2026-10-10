@@ -4507,43 +4507,77 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     /**
-     * The pass behind the Lua field defaults, on hand-made IM: of {@code o.f = 0; ...; o.f = 2} the first write goes
-     * only when o was allocated in the same list and nothing between the writes can stop the thread. A deallocation
-     * can (a double free fails), and an object which was not allocated there may be null, so its first write could
-     * fail itself.
+     * The pass behind the Lua field defaults, on hand-made IM: of {@code o = alloc C; o.f = 0; ...; o.f = 2} the
+     * first write goes only when nothing between the writes can raise. A deallocation can (a double free), and so can
+     * reading an array field through an object which may be null ({@code storage[p][0]} indexes nil), arithmetic on a
+     * field read or on a local assigned one (nil), and a write through such an object (a nil table key). An object
+     * which was not allocated in the list may be null itself, so its first write could raise.
      */
     @Test
-    public void aFieldWriteGoesOnlyForANewObjectWithNothingBetweenWhichCanStopTheThread() {
-        assertEquals(redundantFieldStoresLeave(true, false), 2, "o = alloc; o.f = 2");
-        assertEquals(redundantFieldStoresLeave(true, true), 4, "a deallocation between keeps the first write");
-        assertEquals(redundantFieldStoresLeave(false, false), 2, "an object not allocated here keeps it: o.f = 0; o.f = 2");
+    public void aFieldWriteGoesOnlyForANewObjectWithNothingBetweenWhichCanRaise() {
+        assertEquals(redundantFieldStoresLeave(true, "nothing"), 2, "o = alloc; o.f = 2");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on locals"), 3, "a local sum does not raise");
+        assertEquals(redundantFieldStoresLeave(true, "dealloc"), 4, "a deallocation between keeps the first write");
+        assertEquals(redundantFieldStoresLeave(true, "array field read"), 4, "p.arr[0] can index nil");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on a field read"), 4, "p.g + 1 can add nil");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on a local read from a field"), 5,
+            "x = p.g; x + 1 can add nil");
+        assertEquals(redundantFieldStoresLeave(true, "write through another object"), 4, "p.g = 1 can use a nil key");
+        assertEquals(redundantFieldStoresLeave(false, "nothing"), 2, "an object not allocated here keeps it");
     }
 
-    /** The statements left of {@code [o = alloc C;] o.f = 0; [dealloc o;] o.f = 2} after the pass. */
-    private int redundantFieldStoresLeave(boolean allocate, boolean deallocate) {
+    /** The statements left of {@code [o = alloc C;] o.f = 0; <middle>; o.f = 2} after the pass. */
+    private int redundantFieldStoresLeave(boolean allocate, String middle) {
         WurstModel model = Ast.WurstModel();
         ImTranslator translator = new ImTranslator(model, false, new RunArgs());
         ImVar field = JassIm.ImVar(model, TypesHelper.imInt(), "f", false);
-        ImClass c = JassIm.ImClass(model, "C", JassIm.ImTypeVars(), JassIm.ImVars(field), JassIm.ImMethods(),
-            JassIm.ImFunctions(), new ArrayList<>());
+        ImVar other = JassIm.ImVar(model, TypesHelper.imInt(), "g", false);
+        ImVar array = JassIm.ImVar(model, JassIm.ImArrayType(TypesHelper.imInt()), "arr", false);
+        ImClass c = JassIm.ImClass(model, "C", JassIm.ImTypeVars(), JassIm.ImVars(field, other, array),
+            JassIm.ImMethods(), JassIm.ImFunctions(), new ArrayList<>());
         translator.getImProg().getClasses().add(c);
         ImVar o = JassIm.ImVar(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), "o", false);
+        ImVar p = JassIm.ImVar(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), "p", false);
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
         ImStmts body = JassIm.ImStmts();
         if (allocate) {
             body.add(JassIm.ImSet(model, JassIm.ImVarAccess(o),
                 JassIm.ImAlloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()))));
         }
-        body.add(JassIm.ImSet(model, JassIm.ImMemberAccess(model, JassIm.ImVarAccess(o), JassIm.ImTypeArguments(),
-            field, JassIm.ImExprs()), JassIm.ImIntVal(0)));
-        if (deallocate) {
-            body.add(JassIm.ImDealloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), JassIm.ImVarAccess(o)));
+        body.add(JassIm.ImSet(model, member(model, o, field), JassIm.ImIntVal(0)));
+        switch (middle) {
+            case "nothing" -> {
+            }
+            case "arithmetic on locals" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), plusOne(JassIm.ImVarAccess(x))));
+            case "dealloc" -> body.add(JassIm.ImDealloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()),
+                JassIm.ImVarAccess(o)));
+            case "array field read" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x),
+                JassIm.ImMemberAccess(model, JassIm.ImVarAccess(p), JassIm.ImTypeArguments(), array,
+                    JassIm.ImExprs(JassIm.ImIntVal(0)))));
+            case "arithmetic on a field read" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x),
+                plusOne(member(model, p, other))));
+            case "arithmetic on a local read from a field" -> {
+                body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), member(model, p, other)));
+                body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), plusOne(JassIm.ImVarAccess(x))));
+            }
+            case "write through another object" -> body.add(JassIm.ImSet(model, member(model, p, other),
+                JassIm.ImIntVal(1)));
+            default -> throw new IllegalArgumentException(middle);
         }
-        body.add(JassIm.ImSet(model, JassIm.ImMemberAccess(model, JassIm.ImVarAccess(o), JassIm.ImTypeArguments(),
-            field, JassIm.ImExprs()), JassIm.ImIntVal(2)));
-        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
-            JassIm.ImVars(o), body, Collections.emptyList());
+        body.add(JassIm.ImSet(model, member(model, o, field), JassIm.ImIntVal(2)));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(p), JassIm.ImVoid(),
+            JassIm.ImVars(o, x), body, Collections.emptyList());
         translator.getImProg().getFunctions().add(f);
         new de.peeeq.wurstscript.intermediatelang.optimizer.RedundantFieldStores().optimize(translator);
         return f.getBody().size();
+    }
+
+    private static ImMemberAccess member(WurstModel model, ImVar receiver, ImVar field) {
+        return JassIm.ImMemberAccess(model, JassIm.ImVarAccess(receiver), JassIm.ImTypeArguments(), field,
+            JassIm.ImExprs());
+    }
+
+    private static ImExpr plusOne(ImExpr e) {
+        return JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(e, JassIm.ImIntVal(1)));
     }
 }

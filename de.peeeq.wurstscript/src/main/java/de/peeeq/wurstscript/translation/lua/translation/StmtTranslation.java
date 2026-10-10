@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
+import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -47,6 +48,11 @@ public class StmtTranslation {
         if (e instanceof ImIntVal || e instanceof ImRealVal || e instanceof ImStringVal
             || e instanceof ImBoolVal || e instanceof ImNull) {
             return WriteOperand.STABLE;
+        }
+        if (LuaTraps.mayRaise(e, v -> false)) {
+            // It must be evaluated even when the key is nil, as the stub's argument was: an array field read
+            // through a null object raises.
+            return WriteOperand.EFFECT;
         }
         if (e instanceof ImVarAccess access) {
             return access.getVar().isGlobal() ? WriteOperand.READ : WriteOperand.STABLE;
