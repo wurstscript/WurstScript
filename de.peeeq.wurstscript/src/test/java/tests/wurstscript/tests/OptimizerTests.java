@@ -15,7 +15,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
-import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
+import de.peeeq.wurstscript.translation.imoptimizer.SideEffectFreeNatives;
 import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
@@ -775,19 +775,19 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY"
         );
         for (String name : readOnlyNatives) {
-            assertTrue(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+            assertTrue(SideEffectFreeNatives.isFunctionWithoutSideEffect(name),
                 name + " must be recognized as a side-effect-free Reforged 3 native");
         }
 
         for (String name : java.util.Set.of(
             "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot")) {
-            assertTrue(UselessFunctionCallsRemover.isFunctionPure(name),
+            assertTrue(SideEffectFreeNatives.isFunctionPure(name),
                 name + " must be recognized as a pure conversion native");
         }
 
         for (String name : java.util.Set.of(
             "ChooseRandomItemExWithFilter", "BlzPreloadModelCinematicGame", "BlzCreateDestructablePitchRoll")) {
-            assertFalse(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+            assertFalse(SideEffectFreeNatives.isFunctionWithoutSideEffect(name),
                 name + " changes state or consumes randomness and must remain effectful");
         }
     }
@@ -1003,20 +1003,6 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_unused_func_remover() throws IOException {
-        test().executeProg().lines(
-            "package test",
-            "	@extern native I2S(int i) returns string",
-            "	native testSuccess()",
-            "	init",
-            "		I2S(5)",
-            "		testSuccess()",
-            "endpackage");
-        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover_opt.j"), Charsets.UTF_8);
-        assertFalse(compiledAndOptimized.contains("I2S"), "I2S should be removed");
-    }
-
-    @Test
     public void test_unused_func_remover2() throws IOException {
         test().lines(
             "package test",
@@ -1103,32 +1089,6 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unreachableCodeRemover_opt.j"), Charsets.UTF_8);
         assertFalse(compiledAndOptimized.contains("testSuccess"), "testSuccess should be removed");
-    }
-
-    @Test
-    public void controlFlowMergeNoSideEffect() throws IOException {
-        test().lines(
-            "package Test",
-            "native testSuccess()",
-            "native testFail(string msg)",
-            "var ghs = 12",
-            "function nonInlinable(int x) returns bool",
-            "	if x > 6",
-            "		return true",
-            "	else",
-            "		return false",
-            "init",
-            "	var x = 6",
-            "	if nonInlinable(x)",
-            "		ghs = 0",
-            "		testFail(\"bad\")",
-            "	else",
-            "		ghs = 0",
-            "		if ghs == 0",
-            "			testSuccess()"
-        );
-        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeNoSideEffect_opt.j"), Charsets.UTF_8);
-        assertEquals(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
     }
 
     @Test
@@ -2113,7 +2073,7 @@ public class OptimizerTests extends WurstScriptTest {
 
         new ImOptimizer(timeTaker, translator).localOptimizations();
 
-        assertEquals(timeTaker.measurements, 18,
+        assertEquals(timeTaker.measurements, 14,
             "the optimizer should run two fixed sweeps rather than iterating to convergence");
     }
 
@@ -3527,28 +3487,6 @@ public class OptimizerTests extends WurstScriptTest {
             "    f(5)",
             "    if trace == 5",
             "        testSuccess()");
-    }
-
-    /** A condition without effects is not missed, so equal returns are still merged and the if goes. */
-    @Test
-    public void branchMergerMergesEqualReturnsUnderAConditionWithoutEffects() throws Exception {
-        test().lines(
-            "package test",
-            "native print(int i)",
-            "@noinline function f(int b)",
-            "    if b > 0",
-            "        return",
-            "    else",
-            "        return",
-            "init",
-            "    f(5)",
-            "    print(1)");
-        String optimized = Files.toString(
-            new File("test-output/OptimizerTests_branchMergerMergesEqualReturnsUnderAConditionWithoutEffects_opt.j"),
-            Charsets.UTF_8);
-        String f = optimized.substring(optimized.indexOf("function f takes"));
-        f = f.substring(0, f.indexOf("endfunction"));
-        assertFalse(f.contains("if "), "the equal returns are merged:\n" + f);
     }
 
     @Test

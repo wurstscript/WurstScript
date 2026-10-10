@@ -116,7 +116,7 @@ public final class LuaNativeLowering {
         // Remove keyed-table destroy calls outright rather than leaving an empty function for the
         // inliner to clean up: inlining only runs under -inline, and even then the Lua register
         // budget can refuse a caller. Arguments move into a statement expression so anything they
-        // do still happens, as in UselessFunctionCallsRemover.
+        // do still happens, as the garbage removal keeps them.
         removeDestroyCalls(prog);
 
         // Shared with any earlier run, so a second lowering reuses a stub instead of adding another of

@@ -197,7 +197,7 @@ public final class LocalPlayerContextAnalyzer {
      * consulted. A function reachable from a client-local branch has a tainted return fact, but
      * inlining substitutes its body at the call site, where it runs under exactly the control the
      * call already had, so nothing crosses a boundary. The passes which do move code
-     * ({@link BranchMerger}, {@link TempMerger}, ...) run after inlining and re-analyse the inlined
+     * ({@link LocalMerger}, {@link ConstantAndCopyPropagation}, ...) run after inlining and re-analyse the inlined
      * program, where that control is explicit.
      */
     public boolean functionInliningIsLocalPlayerSensitive(ImFunction function) {
