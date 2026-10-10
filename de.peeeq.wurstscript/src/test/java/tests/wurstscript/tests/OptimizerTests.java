@@ -4509,8 +4509,9 @@ public class OptimizerTests extends WurstScriptTest {
     /**
      * The pass behind the Lua field defaults, on hand-made IM: of {@code o = alloc C; o.f = 0; ...; o.f = 2} the
      * first write goes only when nothing between the writes can raise. A deallocation can (a double free), and so can
-     * reading an array field through an object which may be null ({@code storage[p][0]} indexes nil), arithmetic on a
-     * field read or on a local assigned one (nil), and a write through such an object (a nil table key). An object
+     * reading an array field or the type id through an object which may be null ({@code storage[p][0]} and the class
+     * descriptor of p index nil), arithmetic on a field read or on a local assigned one (nil), and a write through such
+     * an object (a nil table key). An object
      * which was not allocated in the list may be null itself, so its first write could raise.
      */
     @Test
@@ -4523,6 +4524,8 @@ public class OptimizerTests extends WurstScriptTest {
         assertEquals(redundantFieldStoresLeave(true, "arithmetic on a local read from a field"), 5,
             "x = p.g; x + 1 can add nil");
         assertEquals(redundantFieldStoresLeave(true, "write through another object"), 4, "p.g = 1 can use a nil key");
+        assertEquals(redundantFieldStoresLeave(true, "type id read through another object"), 4,
+            "p.typeId reads a nil class descriptor");
         assertEquals(redundantFieldStoresLeave(false, "nothing"), 2, "an object not allocated here keeps it");
     }
 
@@ -4562,6 +4565,8 @@ public class OptimizerTests extends WurstScriptTest {
             }
             case "write through another object" -> body.add(JassIm.ImSet(model, member(model, p, other),
                 JassIm.ImIntVal(1)));
+            case "type id read through another object" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x),
+                JassIm.ImTypeIdOfObj(JassIm.ImVarAccess(p), JassIm.ImClassType(c, JassIm.ImTypeArguments()))));
             default -> throw new IllegalArgumentException(middle);
         }
         body.add(JassIm.ImSet(model, member(model, o, field), JassIm.ImIntVal(2)));

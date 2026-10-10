@@ -11,8 +11,11 @@ import java.util.function.Predicate;
  * A pass which removes or moves an evaluation must not move it past such a point: the code after it would then run
  * where it did not, or a value would be left which the thread never saw replaced. Beyond what stops the thread on Jass
  * too ({@link Flatten#mayStopTheThread}), Lua raises where Jass reads a default through an object which is null or
- * freed: an array field is {@code storage[o][i]}, which indexes nil, and a field read gives nil, on which arithmetic
- * and orderings raise.
+ * freed: an array field is {@code storage[o][i]}, which indexes nil, an object's type id is read from its class
+ * descriptor, which is nil, and a field read gives nil, on which arithmetic and orderings raise.
+ * <p>
+ * The answer is decided by the kind of each node, and a kind not named here can raise, so a new one is safe until it
+ * is shown not to.
  */
 public final class LuaTraps {
 
@@ -20,52 +23,54 @@ public final class LuaTraps {
     }
 
     /**
-     * Whether evaluating {@code e} can raise: it contains a call (the callee can), a deallocation (a double free
-     * fails), an operation which stops the thread on Jass too, a read of an array field, or arithmetic or an ordering
-     * on a value which may be nil: a field read, or a local which {@code maybeNil} says holds one.
+     * Whether evaluating {@code e}, an expression or a statement which is not a nested block, can raise. It cannot
+     * when it consists only of constants, variable reads, field reads without an index, array reads, allocations, type
+     * ids of a class, instanceof tests and tuples, and of operators other than a division, and arithmetic or an
+     * ordering on a value which may be nil: a field read, or a local which {@code maybeNil} says holds one. Anything
+     * else can: a call, a deallocation (a double free fails), a type id read through an object, a cast, an array field
+     * read.
      */
     public static boolean mayRaise(Element e, Predicate<ImVar> maybeNil) {
-        boolean[] raises = {false};
-        e.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImFunctionCall call) {
-                raises[0] = true;
+        if (e instanceof ImIntVal || e instanceof ImRealVal || e instanceof ImStringVal || e instanceof ImBoolVal
+            || e instanceof ImFuncRef || e instanceof ImNull || e instanceof ImVarAccess || e instanceof ImAlloc
+            || e instanceof ImTypeIdOfClass) {
+            return false;
+        } else if (e instanceof ImMemberAccess access) {
+            return !access.getIndexes().isEmpty() || mayRaise(access.getReceiver(), maybeNil);
+        } else if (e instanceof ImVarArrayAccess access) {
+            return anyMayRaise(access.getIndexes(), maybeNil);
+        } else if (e instanceof ImInstanceof instanceOf) {
+            // isInstanceOf answers false for an object without a class descriptor.
+            return mayRaise(instanceOf.getObj(), maybeNil);
+        } else if (e instanceof ImTupleExpr tuple) {
+            return anyMayRaise(tuple.getExprs(), maybeNil);
+        } else if (e instanceof ImTupleSelection selection) {
+            return mayRaise(selection.getTupleExpr(), maybeNil);
+        } else if (e instanceof ImOperatorCall call) {
+            if (Flatten.mayStopTheThread(call)) {
+                return true;
             }
-
-            @Override
-            public void visit(ImMethodCall call) {
-                raises[0] = true;
-            }
-
-            @Override
-            public void visit(ImDealloc dealloc) {
-                raises[0] = true;
-            }
-
-            @Override
-            public void visit(ImMemberAccess access) {
-                super.visit(access);
-                if (!access.getIndexes().isEmpty()) {
-                    raises[0] = true;
-                }
-            }
-
-            @Override
-            public void visit(ImOperatorCall call) {
-                super.visit(call);
-                if (Flatten.mayStopTheThread(call)) {
-                    raises[0] = true;
-                } else if (!neverRaisesOnNil(call.getOp())) {
-                    for (ImExpr operand : call.getArguments()) {
-                        if (operand instanceof ImMemberAccess
-                            || (operand instanceof ImVarAccess v && maybeNil.test(v.getVar()))) {
-                            raises[0] = true;
-                        }
+            if (!neverRaisesOnNil(call.getOp())) {
+                for (ImExpr operand : call.getArguments()) {
+                    if (mayBeNil(operand) || (operand instanceof ImVarAccess v && maybeNil.test(v.getVar()))) {
+                        return true;
                     }
                 }
             }
-        });
-        return raises[0];
+            return anyMayRaise(call.getArguments(), maybeNil);
+        } else if (e instanceof ImSet set) {
+            return mayRaise(set.getLeft(), maybeNil) || mayRaise(set.getRight(), maybeNil);
+        }
+        return true;
+    }
+
+    private static boolean anyMayRaise(ImExprs exprs, Predicate<ImVar> maybeNil) {
+        for (ImExpr e : exprs) {
+            if (mayRaise(e, maybeNil)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Whether the expression {@code e} reads a value which is nil when its object is null: a field read. */
