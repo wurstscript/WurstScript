@@ -9,14 +9,16 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import java.util.*;
 
 /**
- * Removes a write of a constant to a field which the same statement list writes again before anything can read
- * it.
+ * Removes a write of a constant to a field of an object allocated in the same statement list, which the list writes
+ * again before anything can read it.
  * <p>
  * Between the two writes there must be no read of the field through any object (so an alias cannot see the first
  * value), no call (a callee can read anything, a native can run Wurst code through an event), nothing which can stop
- * the thread or leave the list ({@code exitwhen}, {@code return}: the first value would then be what remains) and no
- * statement with statement lists of its own (whose paths are not followed). The object is told by value: a local copied from another names the same object until
- * either is assigned again. An allocation reads no field and runs no Wurst code, so it is not in the way.
+ * the thread or leave the list (a division, a deallocation, which fails on a double free, {@code exitwhen},
+ * {@code return}: the first value would then be what remains) and no statement with statement lists of its own
+ * (whose paths are not followed). The object is told by value: a local copied from another names the same object
+ * until either is assigned again. It must have been allocated in the list, so it is not null and the first write
+ * cannot fail either. An allocation reads no field and runs no Wurst code, so it is not in the way.
  * <p>
  * This removes the defaults an allocation writes on Lua where the constructor sets the field
  * ({@code LuaFieldDefaults}). Fields are only still fields on Lua: on Jass the class elimination has turned them into
@@ -51,6 +53,7 @@ public class RedundantFieldStores implements OptimizerPass {
     private void optimizeStatements(ImStmts stmts) {
         Map<ImVar, Integer> objectOf = new IdentityHashMap<>();
         int[] nextObject = {0};
+        Set<Integer> allocated = new HashSet<>();
         Map<Slot, ImSet> pending = new HashMap<>();
         Set<ImStmt> dead = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImStmt s : stmts) {
@@ -58,6 +61,7 @@ public class RedundantFieldStores implements OptimizerPass {
                 // Its paths can assign the locals, so their values are told apart afresh after it.
                 pending.clear();
                 objectOf.clear();
+                allocated.clear();
                 s.accept(new Element.DefaultVisitor() {
                     @Override
                     public void visit(ImStmts nested) {
@@ -74,11 +78,11 @@ public class RedundantFieldStores implements OptimizerPass {
                 if (set.getLeft() instanceof ImMemberAccess target) {
                     forgetReadFields(target.getReceiver(), pending);
                     forgetReadFields(target.getIndexes(), pending);
-                    if (target.getIndexes().isEmpty()
+                    Integer object = target.getIndexes().isEmpty()
                         && target.getReceiver() instanceof ImVarAccess receiver
-                        && !receiver.getVar().isGlobal()) {
-                        Slot slot = new Slot(trans.canonical(target.getVar()),
-                            objectOf.computeIfAbsent(receiver.getVar(), v -> nextObject[0]++));
+                        && !receiver.getVar().isGlobal() ? objectOf.get(receiver.getVar()) : null;
+                    if (object != null && allocated.contains(object)) {
+                        Slot slot = new Slot(trans.canonical(target.getVar()), object);
                         ImSet earlier = pending.remove(slot);
                         if (earlier != null) {
                             dead.add(earlier);
@@ -94,7 +98,11 @@ public class RedundantFieldStores implements OptimizerPass {
                             objectOf.put(assigned.getVar(),
                                 objectOf.computeIfAbsent(copied.getVar(), v -> nextObject[0]++));
                         } else {
-                            objectOf.put(assigned.getVar(), nextObject[0]++);
+                            int object = nextObject[0]++;
+                            objectOf.put(assigned.getVar(), object);
+                            if (set.getRight() instanceof ImAlloc) {
+                                allocated.add(object);
+                            }
                         }
                     }
                 }
@@ -113,8 +121,8 @@ public class RedundantFieldStores implements OptimizerPass {
     }
 
     /**
-     * Whether running {@code s} can read any field or leave the list with the first value in place: a call, an
-     * operation which can stop the thread, or an {@code exitwhen} or {@code return}.
+     * Whether running {@code s} can read any field or leave the list with the first value in place: a call, a
+     * deallocation or a division, which can stop the thread, or an {@code exitwhen} or {@code return}.
      */
     private static boolean isBarrier(ImStmt s) {
         if (s instanceof ImExitwhen || s instanceof ImReturn) {
@@ -129,6 +137,11 @@ public class RedundantFieldStores implements OptimizerPass {
 
             @Override
             public void visit(ImMethodCall call) {
+                barrier[0] = true;
+            }
+
+            @Override
+            public void visit(ImDealloc dealloc) {
                 barrier[0] = true;
             }
 

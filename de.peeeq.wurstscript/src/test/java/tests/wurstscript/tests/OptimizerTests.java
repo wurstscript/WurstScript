@@ -4505,4 +4505,45 @@ public class OptimizerTests extends WurstScriptTest {
             "    if failures == 0",
             "        testSuccess()");
     }
+
+    /**
+     * The pass behind the Lua field defaults, on hand-made IM: of {@code o.f = 0; ...; o.f = 2} the first write goes
+     * only when o was allocated in the same list and nothing between the writes can stop the thread. A deallocation
+     * can (a double free fails), and an object which was not allocated there may be null, so its first write could
+     * fail itself.
+     */
+    @Test
+    public void aFieldWriteGoesOnlyForANewObjectWithNothingBetweenWhichCanStopTheThread() {
+        assertEquals(redundantFieldStoresLeave(true, false), 2, "o = alloc; o.f = 2");
+        assertEquals(redundantFieldStoresLeave(true, true), 4, "a deallocation between keeps the first write");
+        assertEquals(redundantFieldStoresLeave(false, false), 2, "an object not allocated here keeps it: o.f = 0; o.f = 2");
+    }
+
+    /** The statements left of {@code [o = alloc C;] o.f = 0; [dealloc o;] o.f = 2} after the pass. */
+    private int redundantFieldStoresLeave(boolean allocate, boolean deallocate) {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImVar field = JassIm.ImVar(model, TypesHelper.imInt(), "f", false);
+        ImClass c = JassIm.ImClass(model, "C", JassIm.ImTypeVars(), JassIm.ImVars(field), JassIm.ImMethods(),
+            JassIm.ImFunctions(), new ArrayList<>());
+        translator.getImProg().getClasses().add(c);
+        ImVar o = JassIm.ImVar(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), "o", false);
+        ImStmts body = JassIm.ImStmts();
+        if (allocate) {
+            body.add(JassIm.ImSet(model, JassIm.ImVarAccess(o),
+                JassIm.ImAlloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()))));
+        }
+        body.add(JassIm.ImSet(model, JassIm.ImMemberAccess(model, JassIm.ImVarAccess(o), JassIm.ImTypeArguments(),
+            field, JassIm.ImExprs()), JassIm.ImIntVal(0)));
+        if (deallocate) {
+            body.add(JassIm.ImDealloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), JassIm.ImVarAccess(o)));
+        }
+        body.add(JassIm.ImSet(model, JassIm.ImMemberAccess(model, JassIm.ImVarAccess(o), JassIm.ImTypeArguments(),
+            field, JassIm.ImExprs()), JassIm.ImIntVal(2)));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(o), body, Collections.emptyList());
+        translator.getImProg().getFunctions().add(f);
+        new de.peeeq.wurstscript.intermediatelang.optimizer.RedundantFieldStores().optimize(translator);
+        return f.getBody().size();
+    }
 }
