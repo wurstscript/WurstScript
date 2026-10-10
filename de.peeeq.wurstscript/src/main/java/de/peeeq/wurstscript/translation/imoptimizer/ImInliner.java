@@ -435,7 +435,7 @@ public class ImInliner {
             ImFunction target = call.getFunc();
             if (!target.isNative() || localPlayerAnalysis().isLocalPlayerSource(target)
                 || !(SideEffectFreeNatives.isFunctionWithoutSideEffect(target.getName())
-                    || translator.isLuaKeyedMapRead(target))) {
+                    || translator.isLuaTableRead(target))) {
                 return false;
             }
         } else if (e instanceof ImExpr) {

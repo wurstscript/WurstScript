@@ -685,6 +685,34 @@ public class DeterministicChecks extends WurstScriptTest {
     }
 
     /**
+     * The Lua dispatch groups the methods of an override family into slots by the key of their signature. A type
+     * variable used to print with an identity hash there, so the parameter T of State and the T of NoOpState shared a
+     * key in some runs and not in others, and the FSM below got its slot named after either class: two copies of a
+     * program must give a type variable the same key, and two variables of different owners different ones.
+     */
+    @Test
+    public void dispatchSignatureKeysDoNotDependOnIdentityHashes() {
+        String[] first = typeVarKeys();
+        String[] second = typeVarKeys();
+        assertEquals(second, first);
+        assertTrue(!first[0].equals(first[1]), first[0] + " / " + first[1]);
+    }
+
+    private static String[] typeVarKeys() {
+        String[] keys = new String[2];
+        String[] owners = {"State", "NoOpState"};
+        for (int i = 0; i < 2; i++) {
+            de.peeeq.wurstscript.jassIm.ImTypeVar t = de.peeeq.wurstscript.jassIm.JassIm.ImTypeVar("T");
+            de.peeeq.wurstscript.jassIm.JassIm.ImClass(de.peeeq.wurstscript.ast.Ast.NoExpr(), owners[i], de.peeeq.wurstscript.jassIm.JassIm.ImTypeVars(t),
+                de.peeeq.wurstscript.jassIm.JassIm.ImVars(), de.peeeq.wurstscript.jassIm.JassIm.ImMethods(),
+                de.peeeq.wurstscript.jassIm.JassIm.ImFunctions(), new ArrayList<>());
+            keys[i] = de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation.typeKey(
+                de.peeeq.wurstscript.jassIm.JassIm.ImTypeVarRef(t));
+        }
+        return keys;
+    }
+
+    /**
      * The FSM of AGENTS.md section 8 with each sibling state in a package of its own: every sibling binds the root
      * slot FSM.update calls to its own update, never to NoOpState's, and the script is the same with the
      * compilation units in the reverse order.
@@ -945,6 +973,43 @@ public class DeterministicChecks extends WurstScriptTest {
         String first = compileAndRunToLua(name, cycA, cycB, main);
         assertEquals(compileAndRunToLua(name, cycB, cycA, main), first,
             "a class's functions must be emitted in an order independent of the compilation units");
+    }
+
+    /**
+     * The Lua backend declares the locals of the hashtable operations it prints in place, and defines the helper of
+     * one it cannot, where it first needs them. Here the packages which first need each do not import each other.
+     */
+    @Test
+    public void hashtableHelpersNeededByUnrelatedPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU first = compilationUnit("HtA.wurst",
+            "package HtA",
+            "@noinline function keyA(int k) returns int",
+            "    return k",
+            "public function useA(hashtable h) returns int",
+            "    SaveInteger(h, 1, 1, 7)",
+            "    return LoadInteger(h, keyA(1), 1)");
+        CU second = compilationUnit("HtB.wurst",
+            "package HtB",
+            "@noinline function keyB(int k) returns int",
+            "    return k",
+            "public function useB(hashtable h) returns int",
+            "    SaveReal(h, keyB(2), 1, 8.)",
+            "    return R2I(LoadReal(h, 2, 1))");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import HtA",
+            "import HtB",
+            "init",
+            "    let h = InitHashtable()",
+            "    if useA(h) + useB(h) == 15",
+            "        testSuccess()");
+        String name = "hashtableHelpersNeededByUnrelatedPackages";
+        testNamed(name).testLua(true).withStdLib().executeProg().compilationUnits(first, second, main);
+        File output = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String forward = Files.toString(output, Charsets.UTF_8);
+        testNamed(name).testLua(true).withStdLib().executeProg().compilationUnits(second, first, main);
+        assertEquals(Files.toString(output, Charsets.UTF_8), forward,
+            "the hashtable locals and helpers must be emitted in an order independent of the compilation units");
     }
 
 }

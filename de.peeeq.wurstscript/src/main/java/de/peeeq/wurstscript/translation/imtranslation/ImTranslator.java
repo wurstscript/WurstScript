@@ -219,6 +219,12 @@ public class ImTranslator implements SpecialisationLookup {
      * call was lowered to instead of a name.
      */
     public final Map<String, ImFunction> luaKeyedStubs = new LinkedHashMap<>();
+    /**
+     * The Lua hashtable native stubs, by stub name ({@link LuaHashtable#stubName}). {@link LuaNativeLowering#transform}
+     * creates each one once, at the calls of its native, so later passes can match a stub by identity. Not pinned:
+     * the stubs are created after the last tree shake, and one which nothing calls any more needs no definition.
+     */
+    public final Map<String, ImFunction> luaHashtableStubs = new LinkedHashMap<>();
 
     /**
      * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a
@@ -245,11 +251,12 @@ public class ImTranslator implements SpecialisationLookup {
                 || target == luaRawFloorModRealFunc);
     }
     /**
-     * Whether {@code f} is one of the Lua keyed-map read stubs, which the backend prints as a table
-     * index. A call whose result nothing uses may be dropped, as for the Jass natives which only read.
+     * Whether {@code f} is one of the Lua stubs which only read a table: a keyed-map read, or a hashtable
+     * load or HaveSaved test. The backend prints them as table indexes. A call whose result nothing uses
+     * may be dropped, as for the Jass natives which only read.
      */
-    public boolean isLuaKeyedMapRead(ImFunction f) {
-        return LuaKeyedMap.readStubName(this, f) != null;
+    public boolean isLuaTableRead(ImFunction f) {
+        return LuaKeyedMap.readStubName(this, f) != null || LuaHashtable.isRead(this, f);
     }
     @Nullable public ImFunction luaIntDivFunc = null;
     @Nullable public ImFunction luaModIntFunc = null;
@@ -477,6 +484,17 @@ public class ImTranslator implements SpecialisationLookup {
 
     public void setLuaFieldDefaultsMaterialized() {
         luaFieldDefaultsMaterialized = true;
+    }
+
+    /** Whether {@link EliminateTuples} gave the Lua program multiple results ({@link LuaMultipleResults}). */
+    private boolean luaMultipleResultsLowered = false;
+
+    public boolean luaMultipleResultsLowered() {
+        return luaMultipleResultsLowered;
+    }
+
+    public void setLuaMultipleResultsLowered() {
+        luaMultipleResultsLowered = true;
     }
 
     /**

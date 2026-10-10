@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.ast.AstElementWithFuncName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -12,7 +14,10 @@ import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
+import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
@@ -616,8 +621,54 @@ public final class LuaDispatchPreparation {
         return "" + Math.max(0, implementation.getParameters().size() - 1);
     }
 
-    private static String typeKey(ImType type) {
-        return type == null ? "<null>" : type.toString();
+    /**
+     * The type as a key which every compilation of the program agrees on. Printed, a type variable carries an identity
+     * hash (ImPrinter), so two variables named T could share a key in one run and not in the next, and the methods of
+     * a group then fell into one slot or two depending on the run. A type variable is its owner, its position there
+     * and its name instead.
+     */
+    public static String typeKey(ImType type) {
+        if (type == null) {
+            return "<null>";
+        } else if (type instanceof ImTypeVarRef ref) {
+            return typeVarKey(ref.getTypeVariable());
+        } else if (type instanceof ImClassType classType) {
+            StringBuilder sb = new StringBuilder(classType.getClassDef().getName());
+            if (!classType.getTypeArguments().isEmpty()) {
+                sb.append("<");
+                for (int i = 0; i < classType.getTypeArguments().size(); i++) {
+                    sb.append(i > 0 ? "," : "").append(typeKey(classType.getTypeArguments().get(i).getType()));
+                }
+                sb.append(">");
+            }
+            return sb.toString();
+        } else if (type instanceof ImArrayType arrayType) {
+            return typeKey(arrayType.getEntryType()) + "[]";
+        } else if (type instanceof ImArrayTypeMulti arrayType) {
+            return typeKey(arrayType.getEntryType()) + arrayType.getArraySize();
+        } else if (type instanceof ImTupleType tupleType) {
+            StringBuilder sb = new StringBuilder("(");
+            for (int i = 0; i < tupleType.getTypes().size(); i++) {
+                sb.append(i > 0 ? "," : "").append(typeKey(tupleType.getTypes().get(i)));
+            }
+            return sb.append(")").toString();
+        }
+        // a simple type, void, any: no identity in the printed form
+        return type.toString();
+    }
+
+    private static String typeVarKey(ImTypeVar typeVar) {
+        String owner = "?";
+        int position = -1;
+        if (typeVar.getParent() instanceof ImTypeVars vars) {
+            position = vars.indexOf(typeVar);
+            if (vars.getParent() instanceof ImClass c) {
+                owner = c.getName();
+            } else if (vars.getParent() instanceof ImFunction f) {
+                owner = f.getName();
+            }
+        }
+        return owner + "." + position + "." + typeVar.getName();
     }
 
     private static String methodSortKey(ImMethod method) {

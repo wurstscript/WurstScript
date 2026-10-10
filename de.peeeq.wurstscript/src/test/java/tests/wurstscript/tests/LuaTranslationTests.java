@@ -498,8 +498,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_testStdLib.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
-        assertTrue(compiled.contains("function __wurst_InitHashtable("));
-        assertTrue(compiled.contains("function __wurst_SaveInteger("));
+        // The library's hashtables are created and filled where it uses them (LuaHashtableTranslation).
+        assertTrue(compiled.contains(" = ({__wurst_ht_int=({}), __wurst_ht_bool=({}), __wurst_ht_real=({}), "
+            + "__wurst_ht_str=({}), __wurst_ht_handle=({}), })"));
+        assertTrue(compiled.contains("local function __wurst_htNewChild("));
+        assertFalse(compiled.contains("function __wurst_InitHashtable("));
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -2677,7 +2681,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // caller: Table itself is compiled in and legitimately uses the hashtable natives.
         String init = getFunctionBody(compiled, "init_Test");
         assertFalse("the caller must not reach the hashtable natives: " + init,
-            init.contains("SaveBoolean") || init.contains("LoadBoolean"));
+            init.contains("SaveBoolean") || init.contains("LoadBoolean") || init.contains("__wurst_ht_"));
         assertTrue("the caller must call the stubs directly: " + init,
             init.contains("__wurst_keyedTableContains"));
     }
@@ -2721,7 +2725,7 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         // The Jass body must not survive: it would destroy a Table that does not exist here.
         assertFalse("the Table machinery must not reach Lua: " + init,
-            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
+            init.contains("FlushChildHashtable") || init.contains("__wurst_ht_") || init.contains("Table_destroy"));
     }
 
     /**
@@ -3637,9 +3641,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        // With IM-level remapping, helpers are only emitted when called.
-        // SaveInteger is used by stdlib init code, so its helper must be present.
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
+        // The stdlib init code saves into hashtables. A save is printed in place, through the child
+        // constructor, and the helper of one which cannot be is defined where it is called.
+        assertContainsRegex(compiled, "\\blocal function __wurst_htNewChild\\s*\\(");
+        assertContainsRegex(compiled, "\n\\s*;\\(\\w+\\.__wurst_ht_int\\[");
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -3654,7 +3660,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
+        // Printed as the read it stands for, so no helper is called.
+        assertContainsRegex(compiled, "\\(\\w+\\.__wurst_ht_handle\\[\\w+\\] or __wurst_htEmpty\\)\\[\\w+\\] ~= nil\\)");
+        assertDoesNotContainRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
     }
 
     @Test
@@ -3669,9 +3677,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         // Runtime guard overrides are removed; compile-time checks are authoritative.
         assertFalse(compiled.contains("Wurst experimental Lua assertion guards"));
         assertFalse(compiled.contains("__wurst_guard_ok"));
-        // __wurst_ helper definitions must still be present.
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
+        // Printed where they are called; a helper which a call still needs must be defined.
+        assertContainsRegex(compiled, "= \\(\\{__wurst_ht_int=\\(\\{\\}\\), ");
+        assertContainsRegex(compiled,
+            ";\\((\\w+)\\.__wurst_ht_int\\[(\\w+)\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, \\2\\)\\)\\[\\w+\\] = \\w+");
+        assertDoesNotContainRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -3682,13 +3693,17 @@ public class LuaTranslationTests extends WurstScriptTest {
             "init",
             "    let h = InitHashtable()",
             "    h.saveAbilityHandle(1, 2, null)",
-            "    let a = h.loadAbilityHandle(1, 2)"
+            // used, so the load is not dropped as a read whose result nothing uses
+            "    if h.loadAbilityHandle(1, 2) == null",
+            "        print(\"absent\")"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleLoadSaveUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_SaveAbilityHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_LoadAbilityHandle\\(");
+        // Printed in place on the handle subtable, so no helper is called.
+        assertContainsRegex(compiled, "__wurst_htNewChild\\(\\w+\\.__wurst_ht_handle, \\w+\\)");
+        assertContainsRegex(compiled, "\\(\\w+\\.__wurst_ht_handle\\[\\w+\\] or __wurst_htEmpty\\)\\[\\w+\\]");
+        assertDoesNotContainRegex(compiled, "\\b__wurst_(Save|Load)AbilityHandle\\(");
     }
 
     @Test
@@ -3702,24 +3717,25 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    h.saveReal(1, 2, 3.5)",
             "    h.saveString(1, 2, \"x\")",
             "    h.saveAbilityHandle(1, 2, null)",
-            "    let i = h.loadInt(1, 2)",
-            "    let r = h.loadReal(1, 2)",
-            "    let s = h.loadString(1, 2)",
-            "    let a = h.loadAbilityHandle(1, 2)"
+            // used, so the loads are not dropped as reads whose result nothing uses
+            "    if h.loadInt(1, 2) == 7 and h.loadReal(1, 2) == 3.5 and h.loadString(1, 2) == \"x\""
+                + " and h.loadAbilityHandle(1, 2) == null",
+            "        print(\"loaded\")"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHelpersEmitPerTypeBucketsInLua.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_handle", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveInteger", "h.__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveReal", "h.__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveStr", "h.__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveAbilityHandle", "h.__wurst_ht_handle", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "h.__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadReal", "h.__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadStr", "h.__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadAbilityHandle", "h.__wurst_ht_handle", true);
+        // The operations are printed where they are called, the stdlib wrappers here.
+        String init = getFunctionBody(compiled, "init_Test");
+        for (String subtable : new String[]{"int", "bool", "real", "str", "handle"}) {
+            assertTrue("InitHashtable creates every subtable: " + init, init.contains("__wurst_ht_" + subtable + "=({})"));
+        }
+        assertFunctionBodyContains(compiled, "hashtable_saveInt", ".__wurst_ht_int[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveReal", ".__wurst_ht_real[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveString", ".__wurst_ht_str[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveAbilityHandle", ".__wurst_ht_handle[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadInt", ".__wurst_ht_int[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadReal", ".__wurst_ht_real[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadString", ".__wurst_ht_str[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadAbilityHandle", ".__wurst_ht_handle[", true);
     }
 
     /** A code value takes no parameters, so its adapter forwards none: no varargs at all. */

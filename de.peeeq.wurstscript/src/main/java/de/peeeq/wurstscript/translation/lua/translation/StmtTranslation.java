@@ -3,9 +3,12 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,13 +31,20 @@ public class StmtTranslation {
                 translateKeyedMapWrite(call, keyedWrite, res, tr);
                 return;
             }
+            LuaHashtable.Op hashtableOp = LuaHashtable.op(tr.imTr, call.getFunc());
+            if (hashtableOp != null && LuaHashtableTranslation.statement(call, hashtableOp, res, tr)) {
+                return;
+            }
         }
         LuaExpr expr = e.translateToLua(tr);
         res.add(expr);
     }
 
-    /** How an operand of a keyed-map store may be moved: see {@link #translateKeyedMapWrite}. */
-    private enum WriteOperand {
+    /**
+     * How an operand of a store printed in place of its stub may be moved: see {@link #translateKeyedMapWrite}
+     * and {@link LuaHashtableTranslation}.
+     */
+    enum WriteOperand {
         /** A literal or a local: the same value wherever it is read, and reading it does nothing. */
         STABLE,
         /** A global or a table read: reading it does nothing, but an effect before it can change it. */
@@ -43,10 +53,22 @@ public class StmtTranslation {
         EFFECT
     }
 
-    private static WriteOperand writeOperand(ImExpr e) {
+    static WriteOperand writeOperand(ImExpr e) {
         if (e instanceof ImIntVal || e instanceof ImRealVal || e instanceof ImStringVal
             || e instanceof ImBoolVal || e instanceof ImNull) {
             return WriteOperand.STABLE;
+        }
+        if (e instanceof ImCast cast && cast.getFromType() instanceof ImClassType
+            && (TypesHelper.isIntType(cast.getToType()) || cast.getToType() instanceof ImClassType)) {
+            // An instance id as an int is (x or 0) and as another class x itself (ExprTranslation): neither
+            // raises nor changes anything. Table keys its hashtable by this castTo int.
+            return writeOperand(cast.getExpr());
+        }
+        if (e instanceof ImCast cast && cast.getFromType() instanceof ImAnyType && TypesHelper.isIntType(cast.getToType())
+            && cast.getExpr() instanceof ImVarAccess) {
+            // An old-generics value of a variable as an int is ((x == 0) and zero) or (x or 0) (ExprTranslation):
+            // reads only. HashList and the old HashMap key their hashtable by elem castTo int.
+            return writeOperand(cast.getExpr());
         }
         if (LuaTraps.mayRaise(e)) {
             // It must be evaluated even when the key is nil, as the stub's argument was: an array field read
@@ -66,7 +88,8 @@ public class StmtTranslation {
         return WriteOperand.EFFECT;
     }
 
-    private static boolean readsOnly(ImExprs exprs) {
+    /** Whether no operand is an {@link WriteOperand#EFFECT}: each one may be read again, or later, or not at all. */
+    static boolean readsOnly(ImExprs exprs) {
         for (ImExpr e : exprs) {
             if (writeOperand(e) == WriteOperand.EFFECT) {
                 return false;
@@ -187,10 +210,23 @@ public class StmtTranslation {
     }
 
     public static void translate(ImReturn s, List<LuaStatement> res, LuaTranslator tr) {
+        if (s.getReturnValue() instanceof ImTupleExpr results) {
+            res.add(LuaAst.LuaReturnValues(tr.translateExprList(results.getExprs())));
+            return;
+        }
         res.add(LuaAst.LuaReturn(tr.translateOptional(s.getReturnValue())));
     }
 
     public static void translate(ImSet s, List<LuaStatement> res, LuaTranslator tr) {
+        if (s.getLeft() instanceof ImVarAccess target && LuaMultipleResults.isResultsLocal(target.getVar())) {
+            // the results of a call, one local for each
+            LuaExprlist targets = LuaAst.LuaExprlist();
+            for (LuaVariable component : tr.resultVars(target.getVar())) {
+                targets.add(LuaAst.LuaExprVarAccess(component));
+            }
+            res.add(LuaAst.LuaMultipleAssignment(targets, s.getRight().translateToLua(tr)));
+            return;
+        }
         LuaExpr left;
         if (s.getLeft() instanceof ImVarArrayAccess) {
             // Assignment LHS must stay a writable table access, never an ensured r-value wrapper.
@@ -199,13 +235,6 @@ public class StmtTranslation {
             left = s.getLeft().translateToLua(tr);
         }
         LuaExpr right = s.getRight().translateToLua(tr);
-        if (s.getRight().attrTyp() instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) s.getRight().attrTyp();
-            // tuples must be copied, unless they are literals
-            if(!(right instanceof LuaTableConstructor)) {
-                right = LuaAst.LuaExprFunctionCall(ExprTranslation.getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(right));
-            }
-        }
         res.add(LuaAst.LuaAssignment(left, right));
     }
 

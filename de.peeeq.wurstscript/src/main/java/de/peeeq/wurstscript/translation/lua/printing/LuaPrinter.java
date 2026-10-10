@@ -10,7 +10,18 @@ import java.util.List;
 public class LuaPrinter {
 
     public static void print(LuaAssignment s, StringBuilder sb, int indent) {
-        s.getLeft().print(sb, indent);
+        // Lua joins a statement which starts with '(' onto the previous line as a call; ';' ends that line.
+        LuaExpr target = s.getLeft();
+        if (target instanceof LuaLiteral literal ? literal.getLuaCode().startsWith("(") : !startsWithName(target)) {
+            sb.append(";");
+        }
+        target.print(sb, indent);
+        sb.append(" = ");
+        s.getRight().print(sb, indent);
+    }
+
+    public static void print(LuaMultipleAssignment s, StringBuilder sb, int indent) {
+        s.getTargets().print(sb, indent);
         sb.append(" = ");
         s.getRight().print(sb, indent);
     }
@@ -313,7 +324,8 @@ public class LuaPrinter {
     }
 
     private static void printPostfixReceiver(LuaExpr receiver, StringBuilder sb, int indent) {
-        if (isPrefixExpression(receiver)) {
+        // A binary operation prints in parentheses of its own.
+        if (isPrefixExpression(receiver) || receiver instanceof LuaExprBinary) {
             receiver.print(sb, indent);
         } else {
             sb.append("(");
@@ -507,12 +519,17 @@ public class LuaPrinter {
         s.getRetVal().print(sb, indent);
     }
 
+    public static void print(LuaReturnValues s, StringBuilder sb, int indent) {
+        sb.append("return ");
+        s.getValues().print(sb, indent);
+    }
+
     public static void print(LuaStatements stmts, StringBuilder sb, int indent) {
         for (LuaStatement s : stmts) {
             printIndent(sb, indent);
             s.print(sb, indent);
             sb.append("\n");
-            if (s instanceof LuaReturn || s instanceof LuaBreak) {
+            if (s instanceof LuaReturn || s instanceof LuaReturnValues || s instanceof LuaBreak) {
                 // there can be no statement after return or break ...
                 break;
             }

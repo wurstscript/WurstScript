@@ -199,7 +199,8 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertFalse("no read stub is defined", compiled.contains("function __wurst_keyedMapGetInt")
             || compiled.contains("function __wurst_keyedMapHas"));
         assertFalse("the caller must not reach the hashtable natives: " + init,
-            init.contains("SaveInteger") || init.contains("LoadInteger") || init.contains("HaveSavedInteger"));
+            init.contains("SaveInteger") || init.contains("LoadInteger") || init.contains("HaveSavedInteger")
+                || init.contains("__wurst_ht_"));
         assertFalse("an int read needs no nil normalisation: " + init,
             init.contains("__wurst_ensureInt") || init.contains("__wurst_rawTo"));
     }
@@ -245,7 +246,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertTrue("the caller must read and store into the table itself: " + init,
             init.contains("] or 0)") && init.contains("m[7] = 70"));
         assertFalse("the caller must not reach the hashtable natives: " + init,
-            init.contains("SaveInteger") || init.contains("LoadInteger"));
+            init.contains("SaveInteger") || init.contains("LoadInteger") || init.contains("__wurst_ht_"));
     }
 
     /**
@@ -302,7 +303,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertTrue("the clear stub must empty the existing table in place: " + destroy,
             destroy.contains("for k in pairs(t) do t[k] = nil end"));
         assertFalse("the Table machinery must not reach Lua: " + init,
-            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
+            init.contains("FlushChildHashtable") || init.contains("__wurst_ht_") || init.contains("Table_destroy"));
     }
 
     /**
@@ -1060,7 +1061,8 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             init.contains("if (u ~= nil) then\n\t\tm[u] = 5\n\tend") && init.contains("] or 0)")
                 && init.contains("] ~= nil)") && init.contains("if (u ~= nil) then\n\t\tm[u] = nil\n\tend"));
         assertFalse("the unit must not go through a handle id or an index map: " + init,
-            init.contains("GetHandleId") || init.contains("__wurst_objectToIndex") || init.contains("SaveInteger"));
+            init.contains("GetHandleId") || init.contains("__wurst_objectToIndex") || init.contains("SaveInteger")
+                || init.contains("__wurst_ht_"));
     }
 
     /**

@@ -8,8 +8,10 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -151,6 +153,10 @@ public class ExprTranslation {
             // StmtTranslation#translateKeyedMapWrite. Its stub has no definition to call.
             throw new CompileError(e.attrTrace().attrSource(),
                 "Lua backend: " + imFuncName + " used as an expression; a keyed-map store must be a statement.");
+        }
+        LuaHashtable.Op hashtableOp = LuaHashtable.op(tr.imTr, e.getFunc());
+        if (hashtableOp != null) {
+            return LuaHashtableTranslation.expression(e, hashtableOp, tr);
         }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
@@ -629,16 +635,19 @@ public class ExprTranslation {
         return LuaAst.LuaExprStringVal(e.getValS());
     }
 
+    /** Only the results of a return are a tuple (StmtTranslation): see {@link LuaMultipleResults}. */
     public static LuaExpr translate(ImTupleExpr e, LuaTranslator tr) {
-        LuaTableFields tableFields = LuaAst.LuaTableFields();
-        for (ImExpr te : e.getExprs()) {
-            tableFields.add(LuaAst.LuaTableSingleField(te.translateToLua(tr)));
-        }
-        return LuaAst.LuaTableConstructor(tableFields);
+        throw new CompileError(e.attrTrace().attrSource(),
+            "Lua backend: a tuple which is not the results of a return: " + e);
     }
 
+    /** A component of a call's results is the local it was received in. */
     public static LuaExpr translate(ImTupleSelection e, LuaTranslator tr) {
-        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1 + e.getTupleIndex()))));
+        if (e.getTupleExpr() instanceof ImVarAccess access && LuaMultipleResults.isResultsLocal(access.getVar())) {
+            return LuaAst.LuaExprVarAccess(tr.resultVars(access.getVar()).get(e.getTupleIndex()));
+        }
+        throw new CompileError(e.attrTrace().attrSource(),
+            "Lua backend: a tuple selection which is not of a call's results: " + e);
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
@@ -654,6 +663,10 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImVarAccess e, LuaTranslator tr) {
+        if (LuaMultipleResults.isResultsLocal(e.getVar())) {
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: the results of a call read other than by a component: " + e);
+        }
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
