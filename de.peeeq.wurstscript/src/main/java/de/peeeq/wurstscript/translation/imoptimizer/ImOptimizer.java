@@ -138,6 +138,11 @@ public class ImOptimizer {
     public boolean removeGarbage() {
         boolean wasFlat = trans.isUnitTestMode() && trans.isFlat();
         boolean changed = removeGarbageWithFacts();
+        // A Lua result which no call reads is not returned, and what computed it is then garbage of its own.
+        while (trans.luaMultipleResultsLowered() && LuaUnreadResults.drop(this, trans)) {
+            changed = true;
+            removeGarbageWithFacts();
+        }
         if (wasFlat && !trans.isFlat()) {
             throw new AssertionError("The garbage removal made a flat program not flat");
         }
@@ -451,7 +456,7 @@ public class ImOptimizer {
         }
     }
 
-    private List<ImExpr> collectSideEffects(ImExpr expr, SideEffectAnalyzer analyzer) {
+    List<ImExpr> collectSideEffects(ImExpr expr, SideEffectAnalyzer analyzer) {
         if (expr == null) {
             return Collections.emptyList();
         }

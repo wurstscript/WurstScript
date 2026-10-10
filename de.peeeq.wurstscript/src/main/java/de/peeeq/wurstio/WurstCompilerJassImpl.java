@@ -1027,8 +1027,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         timeTaker.beginPhase("eliminate tuples");
         getImProg().flatten(imTranslator2);
+        // The tuples left are the multiple results of calls (LuaMultipleResults), whose shape the elimination checks.
         EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
-        imTranslator2.assertProperties(AssertProperty.NOTUPLES);
         timeTaker.endPhase();
 
         optimizer.removeGarbage();

@@ -15,6 +15,12 @@ public class LuaPrinter {
         s.getRight().print(sb, indent);
     }
 
+    public static void print(LuaMultipleAssignment s, StringBuilder sb, int indent) {
+        s.getTargets().print(sb, indent);
+        sb.append(" = ");
+        s.getRight().print(sb, indent);
+    }
+
     public static void print(LuaBreak s, StringBuilder sb, int indent) {
         sb.append("break");
     }
@@ -507,12 +513,17 @@ public class LuaPrinter {
         s.getRetVal().print(sb, indent);
     }
 
+    public static void print(LuaReturnValues s, StringBuilder sb, int indent) {
+        sb.append("return ");
+        s.getValues().print(sb, indent);
+    }
+
     public static void print(LuaStatements stmts, StringBuilder sb, int indent) {
         for (LuaStatement s : stmts) {
             printIndent(sb, indent);
             s.print(sb, indent);
             sb.append("\n");
-            if (s instanceof LuaReturn || s instanceof LuaBreak) {
+            if (s instanceof LuaReturn || s instanceof LuaReturnValues || s instanceof LuaBreak) {
                 // there can be no statement after return or break ...
                 break;
             }

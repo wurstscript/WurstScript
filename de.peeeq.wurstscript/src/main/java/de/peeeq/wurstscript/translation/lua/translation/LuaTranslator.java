@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaFieldDefaults;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -186,6 +187,20 @@ public class LuaTranslator {
             return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
         }
     };
+
+    /** The Lua locals of each results local, one per component ({@link LuaMultipleResults}). Only looked up. */
+    private final Map<ImVar, List<LuaVariable>> luaResultVars = new IdentityHashMap<>();
+
+    List<LuaVariable> resultVars(ImVar local) {
+        return luaResultVars.computeIfAbsent(local, v -> {
+            ImTupleType type = (ImTupleType) v.getType();
+            List<LuaVariable> vars = new ArrayList<>();
+            for (String component : type.getNames()) {
+                vars.add(LuaAst.LuaVariable(uniqueName(v.getName() + "_" + component), LuaAst.LuaNoExpr()));
+            }
+            return vars;
+        });
+    }
 
     GetAForB<ImFunction, LuaFunction> luaFunc = new GetAForB<ImFunction, LuaFunction>() {
 
@@ -895,6 +910,15 @@ public class LuaTranslator {
 
             // translate local variables
             for (ImVar local : f.getLocals()) {
+                if (LuaMultipleResults.isResultsLocal(local)) {
+                    List<ImType> types = ((ImTupleType) local.getType()).getTypes();
+                    List<LuaVariable> components = resultVars(local);
+                    for (int i = 0; i < types.size(); i++) {
+                        components.get(i).setInitialValue(defaultValue(types.get(i)));
+                        lf.getBody().add(components.get(i));
+                    }
+                    continue;
+                }
                 LuaVariable luaLocal = luaVar.getFor(local);
                 luaLocal.setInitialValue(defaultValue(local.getType()));
                 lf.getBody().add(luaLocal);

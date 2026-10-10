@@ -479,6 +479,17 @@ public class ImTranslator implements SpecialisationLookup {
         luaFieldDefaultsMaterialized = true;
     }
 
+    /** Whether {@link EliminateTuples} gave the Lua program multiple results ({@link LuaMultipleResults}). */
+    private boolean luaMultipleResultsLowered = false;
+
+    public boolean luaMultipleResultsLowered() {
+        return luaMultipleResultsLowered;
+    }
+
+    public void setLuaMultipleResultsLowered() {
+        luaMultipleResultsLowered = true;
+    }
+
     /**
      * Gives {@code bridge} the overrides of {@code inherited} which are below its class as sub-methods, once every
      * class is translated: the sub-methods of {@code inherited} come from the translation of its class, which may come

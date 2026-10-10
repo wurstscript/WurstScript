@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 
@@ -187,10 +188,23 @@ public class StmtTranslation {
     }
 
     public static void translate(ImReturn s, List<LuaStatement> res, LuaTranslator tr) {
+        if (s.getReturnValue() instanceof ImTupleExpr results) {
+            res.add(LuaAst.LuaReturnValues(tr.translateExprList(results.getExprs())));
+            return;
+        }
         res.add(LuaAst.LuaReturn(tr.translateOptional(s.getReturnValue())));
     }
 
     public static void translate(ImSet s, List<LuaStatement> res, LuaTranslator tr) {
+        if (s.getLeft() instanceof ImVarAccess target && LuaMultipleResults.isResultsLocal(target.getVar())) {
+            // the results of a call, one local for each
+            LuaExprlist targets = LuaAst.LuaExprlist();
+            for (LuaVariable component : tr.resultVars(target.getVar())) {
+                targets.add(LuaAst.LuaExprVarAccess(component));
+            }
+            res.add(LuaAst.LuaMultipleAssignment(targets, s.getRight().translateToLua(tr)));
+            return;
+        }
         LuaExpr left;
         if (s.getLeft() instanceof ImVarArrayAccess) {
             // Assignment LHS must stay a writable table access, never an ensured r-value wrapper.
@@ -199,13 +213,6 @@ public class StmtTranslation {
             left = s.getLeft().translateToLua(tr);
         }
         LuaExpr right = s.getRight().translateToLua(tr);
-        if (s.getRight().attrTyp() instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) s.getRight().attrTyp();
-            // tuples must be copied, unless they are literals
-            if(!(right instanceof LuaTableConstructor)) {
-                right = LuaAst.LuaExprFunctionCall(ExprTranslation.getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(right));
-            }
-        }
         res.add(LuaAst.LuaAssignment(left, right));
     }
 

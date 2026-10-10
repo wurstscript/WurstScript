@@ -20,11 +20,13 @@ LuaStatement =
       LuaDefinition
     | LuaChunkLocal(LuaDefinition definition) // a definition printed as a local of the main chunk
     | LuaAssignment(LuaExpr left, LuaExpr right)
+    | LuaMultipleAssignment(LuaExprlist targets, LuaExpr right) // the results of a call, one per target
     | LuaWhile(LuaExpr cond, LuaStatements body)
     | LuaFor(ref LuaVariable loopVar, LuaExpr from, LuaExpr to, LuaExprOpt step, LuaStatements body)
     | LuaIf(LuaExpr cond, LuaStatements thenStmts, LuaStatements elseStmts)
     | LuaBreak()
     | LuaReturn(LuaExprOpt retVal)
+    | LuaReturnValues(LuaExprlist values) // several results
     | LuaExpr
 
 LuaExprOpt = LuaExpr | LuaNoExpr()
