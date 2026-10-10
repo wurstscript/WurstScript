@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
-import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,9 +78,10 @@ public class StmtTranslation {
     /**
      * A keyed-map put or remove as the table store it stands for, {@code t[k] = v} or
      * {@code t[k] = nil}, instead of a call to a stub with that body. Storing under a nil key is an
-     * error in Lua, where reading one only answers nil, so a key which may be nil (a handle, a
-     * string, an erased element) is tested first: a null element stores nothing and reads as absent.
-     * An int key or a literal is never nil and is stored without the test.
+     * error in Lua, where reading one only answers nil, so a key which may be nil is tested first: a
+     * null element stores nothing and reads as absent. Any key but a literal may be nil, an int too
+     * when it is a field read through an object which is null, so only a literal is stored without
+     * the test.
      *
      * <p>Each operand is evaluated once and in the order of the call. A plain store does that by
      * itself. The test reads the key twice and evaluates the table and the value only when the key
@@ -98,8 +98,8 @@ public class StmtTranslation {
                 "Lua backend: " + stub + " expects " + arity + " arguments, got " + args.size() + ".");
         }
         ImExpr key = args.get(1);
-        boolean keyNeverNil = TypesHelper.isIntType(key.attrTyp())
-            || key instanceof ImIntVal || key instanceof ImRealVal || key instanceof ImStringVal
+        // Only a literal: a key of any type can hold nil, read through an object which is null (LuaTraps).
+        boolean keyNeverNil = key instanceof ImIntVal || key instanceof ImRealVal || key instanceof ImStringVal
             || key instanceof ImBoolVal;
         List<LuaExpr> operands = new ArrayList<>();
         for (ImExpr arg : args) {

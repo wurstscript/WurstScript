@@ -1214,6 +1214,37 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertTrue("the array field read is evaluated before the nil-key test: " + init, read.find());
     }
 
+    /**
+     * An int key read through a null object is nil on Lua, so an int key which is not a literal keeps the nil test:
+     * the store does nothing, as the stub did, instead of raising on a nil table key. (Jass reads the field as 0 and
+     * stores under 0; Lua only.)
+     */
+    @Test
+    public void aKeyedMapWriteUnderAnIntKeyReadThroughANullObjectStoresNothing() {
+        test().testLua(true).executeProg(true).withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, int key, int value)",
+            "    (tbl castTo Table).saveInt(key, value)",
+            "@compilerintrinsic public function keyedMapGetInt(int tbl, int key) returns int",
+            "    return (tbl castTo Table).loadInt(key)",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "class Holder",
+            "    int id",
+            "init",
+            "    let theMap = keyedMapCreate()",
+            "    Holder none = null",
+            "    keyedMapPut(theMap, none.id, 7)",
+            "    keyedMapPut(theMap, 3, 4)",
+            "    if keyedMapGetInt(theMap, 3) == 4 and keyedMapGetInt(theMap, 0) == 0",
+            "        testSuccess()",
+            "endpackage");
+    }
+
     @Test
     public void keyedMapDestroyClearsLuaStoreWhileAliasRemains() {
         test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(
