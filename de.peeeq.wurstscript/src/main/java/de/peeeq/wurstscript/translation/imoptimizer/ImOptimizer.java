@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
+import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
@@ -36,6 +37,7 @@ public class ImOptimizer {
         // after this one needs it again in the same sweep.
         localPasses.add(new RedundantFieldStores());
         localPasses.add(new GlobalsInliner());
+        localPasses.add(new DispatchCheckDeduplicator());
         localPasses.add(new SimpleRewrites());
     }
 
@@ -93,6 +95,10 @@ public class ImOptimizer {
         int optCount = 0;
         LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
         for (OptimizerPass pass : localPasses) {
+            if (pass instanceof DispatchCheckDeduplicator && trans.isLuaTarget()) {
+                // The dispatch checks it merges are made by the class elimination, which Lua does not run.
+                continue;
+            }
             int count;
             if (pass instanceof LocalPlayerAwareOptimizerPass localPlayerAwarePass) {
                 if (localPlayerContextAnalyzer == null) {
