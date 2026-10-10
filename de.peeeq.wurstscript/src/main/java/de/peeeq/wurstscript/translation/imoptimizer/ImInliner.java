@@ -434,7 +434,7 @@ public class ImInliner {
         if (e instanceof ImFunctionCall call) {
             ImFunction target = call.getFunc();
             if (!target.isNative() || localPlayerAnalysis().isLocalPlayerSource(target)
-                || !(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(target.getName())
+                || !(SideEffectFreeNatives.isFunctionWithoutSideEffect(target.getName())
                     || translator.isLuaKeyedMapRead(target))) {
                 return false;
             }

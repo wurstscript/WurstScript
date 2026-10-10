@@ -3485,7 +3485,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The return ends its path, so the call is an if with an else and leaves no done flag.
         assertDoesNotContainRegex(compiled, "inlineDone");
         // Both returns are inlined; the optimiser merges the result variable away.
-        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+\\w+ = \\(\\w+ \\+ 2\\)");
+        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\w+ = \\(\\w+ \\+ 2\\)");
     }
 
     @Test
@@ -3511,7 +3511,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The return ends its path, so the call is an if with an else and leaves no done flag.
         assertDoesNotContainRegex(compiled, "inlineDone");
         // Both returns are inlined; the optimiser merges the result variable away.
-        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+\\w+ = \\(\\w+ \\+ 2\\)");
+        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\w+ = \\(\\w+ \\+ 2\\)");
     }
 
     @Test

@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
+import static de.peeeq.wurstscript.translation.imoptimizer.SideEffectFreeNatives.isFunctionPure;
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_NOARG_CACHE;
 

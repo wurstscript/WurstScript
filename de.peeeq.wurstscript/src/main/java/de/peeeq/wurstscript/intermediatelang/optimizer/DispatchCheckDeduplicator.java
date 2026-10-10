@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
+import de.peeeq.wurstscript.translation.imoptimizer.SideEffectFreeNatives;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
@@ -148,7 +148,7 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
             return true;
         }
         if (f.isNative()) {
-            return !UselessFunctionCallsRemover.isFunctionWithoutSideEffect(f.getName());
+            return !SideEffectFreeNatives.isFunctionWithoutSideEffect(f.getName());
         }
         if (f.isExtern()) {
             return true;
@@ -175,7 +175,7 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
                 return true;
             }
             if (g.isNative()) {
-                if (!UselessFunctionCallsRemover.isFunctionWithoutSideEffect(g.getName())) {
+                if (!SideEffectFreeNatives.isFunctionWithoutSideEffect(g.getName())) {
                     return true;
                 }
                 continue;
