@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,12 @@ public class StmtTranslation {
         if (e instanceof ImIntVal || e instanceof ImRealVal || e instanceof ImStringVal
             || e instanceof ImBoolVal || e instanceof ImNull) {
             return WriteOperand.STABLE;
+        }
+        if (e instanceof ImCast cast && cast.getFromType() instanceof ImClassType
+            && (TypesHelper.isIntType(cast.getToType()) || cast.getToType() instanceof ImClassType)) {
+            // An instance id as an int is (x or 0) and as another class x itself (ExprTranslation): neither
+            // raises nor changes anything. Table keys its hashtable by this castTo int.
+            return writeOperand(cast.getExpr());
         }
         if (LuaTraps.mayRaise(e)) {
             // It must be evaluated even when the key is nil, as the stub's argument was: an array field read

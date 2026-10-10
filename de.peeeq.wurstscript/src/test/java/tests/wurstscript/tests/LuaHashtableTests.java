@@ -225,6 +225,34 @@ public class LuaHashtableTests extends WurstScriptTest {
     }
 
     /**
+     * The library's Table keys its hashtable by the instance, {@code this castTo int}, which is {@code (t or 0)} on
+     * Lua: once inlined, that cast is an operand of the native, and it can neither raise nor change anything, so the
+     * operation is still printed in place.
+     */
+    @Test
+    public void aTableOperationIsPrintedInPlace() throws IOException {
+        test().testLua(true).withStdLib().inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "import Table",
+            "init",
+            "    let t = new Table()",
+            "    t.saveInt(5, 7)",
+            "    if t.loadInt(5) == 7 and t.hasInt(5) and not t.hasInt(6)",
+            "        t.removeInt(5)",
+            "        if not t.hasInt(5)",
+            "            testSuccess()");
+
+        String init = functionBody(compiled("aTableOperationIsPrintedInPlace"), "init_Test");
+        assertFalse("no hashtable helper is called:\n" + init,
+            Pattern.compile("__wurst_(Save|Load|HaveSaved|RemoveSaved)\\w*\\(").matcher(init).find());
+        assertMatches("the save is printed in place",
+            ";\\(\\w+\\.__wurst_ht_int\\[[^\\]]+\\] or __wurst_htNewChild\\(\\w+\\.__wurst_ht_int, [^\\n]+\\)\\)\\[5\\] = 7",
+            init);
+        assertMatches("the load is printed in place under the instance id",
+            "\\(Table_ht\\.__wurst_ht_int\\[\\(\\w+ or 0\\)\\] or __wurst_htEmpty\\)\\[5\\] or 0\\)", init);
+    }
+
+    /**
      * Lua reads a statement which starts with '(' as the arguments of a call ending the previous statement, so an
      * assignment whose target starts with '(' is printed after a ';'. Here the save follows an assignment which ends
      * in a parenthesised expression; the harness compiles the script with luac.
