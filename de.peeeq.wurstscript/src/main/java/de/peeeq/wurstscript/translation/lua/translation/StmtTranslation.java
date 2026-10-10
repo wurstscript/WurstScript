@@ -49,7 +49,7 @@ public class StmtTranslation {
             || e instanceof ImBoolVal || e instanceof ImNull) {
             return WriteOperand.STABLE;
         }
-        if (LuaTraps.mayRaise(e, v -> false)) {
+        if (LuaTraps.mayRaise(e)) {
             // It must be evaluated even when the key is nil, as the stub's argument was: an array field read
             // through a null object raises.
             return WriteOperand.EFFECT;

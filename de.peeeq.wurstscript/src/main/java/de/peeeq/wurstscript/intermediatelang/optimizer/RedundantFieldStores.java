@@ -14,9 +14,9 @@ import java.util.*;
  * <p>
  * Between the two writes there must be no read of the field through any object (so an alias cannot see the first
  * value), no call (a callee can read anything, a native can run Wurst code through an event), nothing which can stop
- * the thread or leave the list ({@link LuaTraps#mayRaise}, such as a division, a deallocation or arithmetic on a
- * field read through a null object; {@code exitwhen}, {@code return}: the first value would then be what remains)
- * and no statement with statement lists of its own (whose paths are not followed). The object is told by value: a local copied from another names the same object
+ * the thread or leave the list ({@link LuaTraps#mayRaise}, such as a division, a deallocation, arithmetic on a value
+ * which may be nil, or a write through an object which may be null; {@code exitwhen}, {@code return}: the first value
+ * would then be what remains) and no statement with statement lists of its own (whose paths are not followed). The object is told by value: a local copied from another names the same object
  * until either is assigned again. It must have been allocated in the list, so it is not null and the first write
  * cannot fail either. An allocation reads no field and runs no Wurst code, so it is not in the way.
  * <p>
@@ -54,8 +54,6 @@ public class RedundantFieldStores implements OptimizerPass {
         Map<ImVar, Integer> objectOf = new IdentityHashMap<>();
         int[] nextObject = {0};
         Set<Integer> allocated = new HashSet<>();
-        // Locals assigned a field read in this list: nil when the object was null, and arithmetic on nil raises.
-        Set<ImVar> maybeNil = Collections.newSetFromMap(new IdentityHashMap<>());
         Map<Slot, ImSet> pending = new HashMap<>();
         Set<ImStmt> dead = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImStmt s : stmts) {
@@ -64,7 +62,6 @@ public class RedundantFieldStores implements OptimizerPass {
                 pending.clear();
                 objectOf.clear();
                 allocated.clear();
-                maybeNil.clear();
                 s.accept(new Element.DefaultVisitor() {
                     @Override
                     public void visit(ImStmts nested) {
@@ -73,7 +70,7 @@ public class RedundantFieldStores implements OptimizerPass {
                 });
                 continue;
             }
-            if (isBarrier(s, maybeNil)) {
+            if (isBarrier(s)) {
                 pending.clear();
             }
             if (s instanceof ImSet set) {
@@ -100,16 +97,7 @@ public class RedundantFieldStores implements OptimizerPass {
                     }
                 } else {
                     forgetReadFields(set.getLeft(), pending);
-                    if (set.getLeft() instanceof ImVarArrayAccess target && writesUnderAMaybeNilIndex(target, maybeNil)) {
-                        pending.clear();
-                    }
                     if (set.getLeft() instanceof ImVarAccess assigned && !assigned.getVar().isGlobal()) {
-                        if (LuaTraps.mayBeNil(set.getRight()) || (set.getRight() instanceof ImVarAccess copiedVar
-                            && maybeNil.contains(copiedVar.getVar()))) {
-                            maybeNil.add(assigned.getVar());
-                        } else {
-                            maybeNil.remove(assigned.getVar());
-                        }
                         if (set.getRight() instanceof ImVarAccess copied && !copied.getVar().isGlobal()) {
                             objectOf.put(assigned.getVar(),
                                 objectOf.computeIfAbsent(copied.getVar(), v -> nextObject[0]++));
@@ -140,18 +128,8 @@ public class RedundantFieldStores implements OptimizerPass {
      * Whether running {@code s} can read any field or leave the list with the first value in place: anything which can
      * raise ({@link LuaTraps#mayRaise}, a call among them), or an {@code exitwhen} or {@code return}.
      */
-    private static boolean isBarrier(ImStmt s, Set<ImVar> maybeNil) {
-        return s instanceof ImExitwhen || s instanceof ImReturn || LuaTraps.mayRaise(s, maybeNil::contains);
-    }
-
-    /** Whether an index of the array write {@code target} may be nil, which raises: a field read or such a local. */
-    private static boolean writesUnderAMaybeNilIndex(ImVarArrayAccess target, Set<ImVar> maybeNil) {
-        for (ImExpr index : target.getIndexes()) {
-            if (LuaTraps.mayBeNil(index) || (index instanceof ImVarAccess v && maybeNil.contains(v.getVar()))) {
-                return true;
-            }
-        }
-        return false;
+    private static boolean isBarrier(ImStmt s) {
+        return s instanceof ImExitwhen || s instanceof ImReturn || LuaTraps.mayRaise(s);
     }
 
     /** Forgets the pending writes of every field {@code e} reads, through whatever object. */

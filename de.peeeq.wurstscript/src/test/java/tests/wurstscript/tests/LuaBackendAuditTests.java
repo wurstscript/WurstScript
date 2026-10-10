@@ -7326,7 +7326,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     /**
      * A new object's field defaults are IM writes after its allocation, so where the constructor sets a field the
-     * default is gone: the allocation writes no field, and each field is written once where the object is made.
+     * default is gone: the allocation writes no field, and each field is written once where the object is made. (A
+     * value computed between them, which may raise on nil, would keep the defaults after it: OptimizerTests.)
      */
     @Test
     public void aConstructedFieldIsWrittenOnceNotFirstWithItsDefault() throws IOException {
@@ -7339,14 +7340,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    boolean crit",
             "    string label",
             "    Hit next",
-            "    construct(int amount, real factor)",
+            "    construct(int amount, real factor, boolean crit)",
             "        this.amount = amount",
             "        this.factor = factor",
-            "        this.crit = amount > 10",
+            "        this.crit = crit",
             "        this.label = \"hit\"",
             "        this.next = null",
             "@noinline function make(int amount) returns Hit",
-            "    return new Hit(amount, 1.5)",
+            "    return new Hit(amount, 1.5, amount > 10)",
             "init",
             "    let h = make(12)",
             "    if h.amount == 12 and h.factor == 1.5 and h.crit and h.label == \"hit\" and h.next == null",
