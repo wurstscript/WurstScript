@@ -41,7 +41,6 @@ public class FunctionSplitter {
         LocalPlayerContextAnalyzer localPlayerContextAnalyzer =
             new LocalPlayerContextAnalyzer(tr.getImProg());
         new ConstantAndCopyPropagation().optimizeFunc(func, localPlayerContextAnalyzer);
-//        new TempMerger().optimizeFunc(func);
         new LocalMerger().optimizeFunc(func, localPlayerContextAnalyzer, tr);
         Set<ImVar> usedVars = UsedVariables.calculate(func);
         func.getLocals().removeIf(v -> !usedVars.contains(v));

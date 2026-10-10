@@ -661,11 +661,6 @@ public class ClassesTests extends WurstScriptTest {
         assertTrue(optDispatchCalls >= 3,
             "Expected at least three dispatch calls in opt output, found " + optDispatchCalls);
 
-        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_inlopt.j");
-        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
-        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
-        assertTrue(inlOptGuardCount == 1,
-            "Expected inlopt output to contain a single dispatch guard, found " + inlOptGuardCount);
     }
 
     @Test

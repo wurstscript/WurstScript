@@ -3,9 +3,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
-import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
@@ -26,8 +24,6 @@ import java.util.stream.Collectors;
 import java.util.*;
 
 public class ImOptimizer {
-    private int totalFunctionsRemoved = 0;
-    private int totalGlobalsRemoved = 0;
 
     private static final ArrayList<OptimizerPass> localPasses = new ArrayList<>();
     private static final HashMap<String, Integer> totalCount = new HashMap<>();
@@ -35,14 +31,11 @@ public class ImOptimizer {
     static {
         localPasses.add(new SimpleRewrites());
         localPasses.add(new LocalMerger());
-        localPasses.add(new BranchMerger());
         localPasses.add(new ConstantAndCopyPropagation());
-        localPasses.add(new UselessFunctionCallsRemover());
         // After the passes which use the local-player analysis: a pass which does not use it discards it, and none
         // after this one needs it again in the same sweep.
         localPasses.add(new RedundantFieldStores());
         localPasses.add(new GlobalsInliner());
-        localPasses.add(new DispatchCheckDeduplicator());
         localPasses.add(new SimpleRewrites());
     }
 
@@ -73,9 +66,6 @@ public class ImOptimizer {
         removeGarbage();
     }
 
-    public int inlineLuaDivModHelpersWithinLocalBudget() {
-        return new ImInliner(trans).inlineLuaDivModHelpersWithinLocalBudget();
-    }
     public void localOptimizations() {
         totalCount.clear();
 
@@ -277,26 +267,17 @@ public class ImOptimizer {
 
         if (variablesLost) {
             // keep only used variables
-            int globalsBefore = prog.getGlobals().size();
             changes |= prog.getGlobals().retainAll(readVars);
-            int globalsRemoved = globalsBefore - prog.getGlobals().size();
-            totalGlobalsRemoved += globalsRemoved;
         }
 
         if (!incremental) {
             // keep only functions reachable from main and config
-            int functionsBefore = prog.getFunctions().size();
             changes |= prog.getFunctions().retainAll(usedFuncs);
-            int functionsRemoved = functionsBefore - prog.getFunctions().size();
-            totalFunctionsRemoved += functionsRemoved;
 
             // also consider class functions
             List<ImFunction> allFunctions = new ArrayList<>(prog.getFunctions());
             for (ImClass c : prog.getClasses()) {
-                int classFunctionsBefore = c.getFunctions().size();
                 changes |= c.getFunctions().retainAll(usedFuncs);
-                int classFunctionsAfter = c.getFunctions().size();
-                totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
             }
             roundFunctions = allFunctions;
@@ -308,13 +289,10 @@ public class ImOptimizer {
                 // before specialisation still naming the original's variable. It is live exactly
                 // when the field it was copied from is; dropping it leaves an instance allocated
                 // with no fields while the emitted code goes on reading them.
-                int classFieldsBefore = c.getFields().size();
                 changes |= c.getFields().retainAll(c.getFields().stream()
                     .filter(field -> readVars.contains(field)
                         || readVars.contains(trans.canonical(field)))
                     .collect(Collectors.toCollection(LinkedHashSet::new)));
-                int classFieldsAfter = c.getFields().size();
-                totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
         }
 
@@ -467,7 +445,7 @@ public class ImOptimizer {
             return Collections.singletonList(expr);
         }
         if (analyzer.hasObservableSideEffects(expr, func -> func.isNative()
-            && (UselessFunctionCallsRemover.isFunctionWithoutSideEffect(func.getName())
+            && (SideEffectFreeNatives.isFunctionWithoutSideEffect(func.getName())
                 || trans.isLuaKeyedMapRead(func)))) {
             return Collections.singletonList(expr);
         }
