@@ -66,6 +66,9 @@ public class ImOptimizer {
         removeGarbage();
     }
 
+    public int inlineLuaDivModHelpersWithinLocalBudget() {
+        return new ImInliner(trans).inlineLuaDivModHelpersWithinLocalBudget();
+    }
     public void localOptimizations() {
         totalCount.clear();
 

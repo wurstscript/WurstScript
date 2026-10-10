@@ -67,6 +67,48 @@ public class ImInliner {
         inlineFunctions();
     }
 
+    /**
+     * Retry the tiny compiler-owned arithmetic wrappers after local allocation has reduced the
+     * caller. The late check builds the locality analysis and uses the same allocation classes as
+     * the local merger, so it cannot push Lua over the hard local-variable limit. The budget of a
+     * function (its liveness and register pressure) and the analysis it consults are made when the first
+     * call to one of the wrappers is found: nothing is inlined before that, so what they read is what
+     * the start of this pass left, and a program with no such call builds neither.
+     */
+    public int inlineLuaDivModHelpersWithinLocalBudget() {
+        if (!translator.isLuaTarget()) {
+            return 0;
+        }
+        prog.flatten(translator);
+        int changed = 0;
+        for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
+            changed += inlineLuaDivModHelpers(function, function, new LuaRegisterBudget[1]);
+        }
+        return changed;
+    }
+
+    private int inlineLuaDivModHelpers(ImFunction function, Element element, LuaRegisterBudget[] budgetOfFunction) {
+        int changed = 0;
+        for (int i = 0; i < element.size(); i++) {
+            Element child = element.get(i);
+            if (child instanceof ImFunctionCall call && isLuaDivModHelper(call.getFunc())) {
+                ImFunction callee = call.getFunc();
+                if (budgetOfFunction[0] == null) {
+                    budgetOfFunction[0] = new LuaRegisterBudget(function);
+                }
+                LuaRegisterBudget budget = budgetOfFunction[0];
+                if (budget.fits(call, callee)) {
+                    budget.recordInline(call, callee);
+                    inlineCall(function, element, i, call);
+                    changed++;
+                    child = element.get(i);
+                }
+            }
+            changed += inlineLuaDivModHelpers(function, child, budgetOfFunction);
+        }
+        return changed;
+    }
+
     /** The locality analysis of the program as the inlining found it; made on first use when no one asked for it before. */
     private LocalPlayerContextAnalyzer localPlayerAnalysis() {
         if (localPlayerContextAnalyzer == null) {
@@ -874,6 +916,12 @@ public class ImInliner {
             default:
                 return refusal.label;
         }
+    }
+
+    private boolean isLuaDivModHelper(ImFunction function) {
+        return function == translator.luaIntDivFunc
+            || function == translator.luaModIntFunc
+            || function == translator.luaModRealFunc;
     }
 
     private static int backendGeneratedLuaLocals(ImFunction function) {
