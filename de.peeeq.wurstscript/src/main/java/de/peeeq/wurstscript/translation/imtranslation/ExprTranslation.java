@@ -155,8 +155,9 @@ public class ExprTranslation {
                                           boolean indexContext) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
+        FuncDef fromIndexFunc = null;
         if (actualType instanceof WurstTypeBoundTypeParam wtb) {
-            FuncDef fromIndexFunc = wtb.getFromIndex();
+            fromIndexFunc = wtb.getFromIndex();
             if (fromIndexFunc != null) {
                 fromIndex = t.getFuncFor(fromIndexFunc);
             }
@@ -178,7 +179,10 @@ public class ExprTranslation {
             return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
-            if(t.isLuaTarget()) {
+            // Lua normalises the erased value to an int first, except for the conversions which
+            // answer the same for every value a slot can hold (nil, 0, an index) without it.
+            if (t.isLuaTarget() && !de.peeeq.wurstscript.translation.lua.translation.ExprTranslation
+                    .printsAsObjectFromIndex(fromIndexFunc)) {
                 translated = ImFunctionCall(trace, t.ensureIntFunc, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
             // no ensure type necessary here, because the fromIndex function is already type safe

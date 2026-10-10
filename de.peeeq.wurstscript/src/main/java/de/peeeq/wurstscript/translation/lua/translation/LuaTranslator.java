@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaFieldDefaults;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
@@ -383,6 +384,7 @@ public class LuaTranslator {
     public LuaCompilationUnit translate() {
         collectPredefinedNames();
         assertNoDanglingFunctionReferences(prog);
+        fieldDefaultsOnAllocation = LuaFieldDefaults.moveSurvivorsToAllocations(prog, imTr);
 
         normalizeFieldNames();
 
@@ -454,18 +456,23 @@ public class LuaTranslator {
         }
 
         LuaFunction targetLua = luaFunc.getFor(target);
-        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
         LuaFunction adapter = LuaAst.LuaFunction(
             uniqueName("__wurst_callback_" + targetLua.getName()),
-            LuaAst.LuaParams(dots), LuaAst.LuaStatements());
+            LuaAst.LuaParams(), LuaAst.LuaStatements());
         callbackAdapters.put(target, adapter);
 
         LuaFunction errorHandler = callbackErrorHandler();
-        LuaExprFunctionCallByName xpcall = LuaAst.LuaExprFunctionCallByName("xpcall",
-            LuaAst.LuaExprlist(
-                LuaAst.LuaExprFuncRef(targetLua),
-                LuaAst.LuaExprFuncRef(errorHandler),
-                LuaAst.LuaExprVarAccess(dots.copy())));
+        LuaExprlist xpcallArgs = LuaAst.LuaExprlist(
+            LuaAst.LuaExprFuncRef(targetLua),
+            LuaAst.LuaExprFuncRef(errorHandler));
+        // A Wurst code value takes no parameters, so whatever the caller passes is dropped by the
+        // target anyway: such an adapter takes no varargs. Only a target with parameters needs them.
+        if (!targetLua.getParams().isEmpty()) {
+            LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+            adapter.getParams().add(dots);
+            xpcallArgs.add(LuaAst.LuaExprVarAccess(dots));
+        }
+        LuaExprFunctionCallByName xpcall = LuaAst.LuaExprFunctionCallByName("xpcall", xpcallArgs);
         if (target.getReturnType() instanceof ImVoid) {
             adapter.getBody().add(xpcall);
         } else {
@@ -748,16 +755,35 @@ public class LuaTranslator {
         LuaPolyfillSetup.createInstanceOfFunction(this);
     }
 
+    /** For each class, the fields whose default its allocation writes ({@link LuaFieldDefaults}). */
+    private Map<ImClass, Set<ImVar>> fieldDefaultsOnAllocation = Collections.emptyMap();
+
     LuaVariable fieldStorage(ImVar field) {
         return luaFieldStorage.getFor(imTr.canonical(field));
     }
 
+    /** How many main-chunk locals lead the model; see {@link #declareChunkLocal}. */
+    private int chunkLocalCount;
+
+    /**
+     * Declares a local of the main chunk at the top of the script, before every function, so that
+     * each function reaches it as an upvalue instead of looking it up among the thousands of globals.
+     * Only the runtime state read on hot paths belongs here: the main chunk has room for 200 locals
+     * and a function for 255 upvalues. Declared now: the four object-allocator variables, the
+     * deallocator and, when used, the old-generics zero sentinel.
+     */
+    void declareChunkLocal(LuaDefinition definition) {
+        luaModel.add(chunkLocalCount++, LuaAst.LuaChunkLocal(definition));
+    }
+
     private void createObjectManagement() {
-        luaModel.add(objectClass);
-        localizableStorageTables.add(objectClass);
-        luaModel.add(objectFree);
-        luaModel.add(objectMax);
-        luaModel.add(objectFreeCount);
+        // Every allocation and destroy reads these. The descriptor map is not aliased into function
+        // locals like the field stores (localizeHotStorageTables): Lua indexes an upvalue table in
+        // one instruction (GETTABUP), as it does a local one, so an alias would only add a copy.
+        declareChunkLocal(objectClass);
+        declareChunkLocal(objectFree);
+        declareChunkLocal(objectMax);
+        declareChunkLocal(objectFreeCount);
 
         LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
         objectDealloc.getParams().add(object);
@@ -781,7 +807,8 @@ public class LuaTranslator {
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
             LuaAst.LuaExprVarAccess(object)));
-        luaModel.add(objectDealloc);
+        // Called by every destroy, so a local function like the state it pushes onto.
+        declareChunkLocal(objectDealloc);
 
         LuaVariable toIndexObject = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
         classToIndex.getParams().add(toIndexObject);
@@ -1343,14 +1370,13 @@ public class LuaTranslator {
             LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectMax),
                 LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectMax), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))),
             LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(newInst), LuaAst.LuaExprVarAccess(objectMax)));
+        // The popped slot is not cleared: a slot above the count is never read before a destroy
+        // writes it again, and it holds an integer id, so it retains nothing. The free stack stays
+        // as large as its peak.
         LuaStatements recycled = LuaAst.LuaStatements(
             LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(newInst),
                 LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
                     LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount)))),
-            LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
-                LuaAst.LuaExprNull()),
             LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectFreeCount),
                 LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpMinus(), LuaAst.LuaExprIntVal("1"))));
         body.add(LuaAst.LuaIf(
@@ -1360,38 +1386,18 @@ public class LuaTranslator {
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
             LuaAst.LuaExprVarAccess(classVar)));
-        for (ImVar field : collectFieldsForAllocation(c)) {
-            body.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
-                defaultValue(field.getType())));
-        }
-        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
-    }
-
-    private List<ImVar> collectFieldsForAllocation(ImClass c) {
-        List<ImVar> result = new ArrayList<>();
-        Set<ImClass> visitedClasses = Collections.newSetFromMap(new IdentityHashMap<>());
-        Set<ImVar> visitedFields = Collections.newSetFromMap(new IdentityHashMap<>());
-        collectFieldsForAllocation(c, result, visitedClasses, visitedFields);
-        return result;
-    }
-
-    private void collectFieldsForAllocation(ImClass c, List<ImVar> out,
-                                            Set<ImClass> visitedClasses, Set<ImVar> visitedFields) {
-        if (!visitedClasses.add(c)) {
-            return;
-        }
-        List<ImClassType> superClasses = new ArrayList<>(c.getSuperClasses());
-        superClasses.sort(Comparator.comparing(sc -> classSortKey(sc.getClassDef())));
-        for (ImClassType sc : superClasses) {
-            collectFieldsForAllocation(sc.getClassDef(), out, visitedClasses, visitedFields);
-        }
-        for (ImVar field : c.getFields()) {
-            if (visitedFields.add(imTr.canonical(field))) {
-                out.add(field);
+        // The defaults the optimiser did not remove at some allocation of this class (LuaFieldDefaults), and the
+        // table an array field needs per object, which only the backend can make.
+        Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(c, Collections.emptySet());
+        for (ImVar field : LuaFieldDefaults.fieldsOf(c, imTr)) {
+            if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
+                body.add(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+                    defaultValue(field.getType())));
             }
         }
+        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
     }
 
     private void initClassTables(ImClass c) {

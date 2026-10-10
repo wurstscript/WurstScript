@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
@@ -8,6 +10,7 @@ import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
+import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
@@ -91,15 +94,13 @@ public class ExprTranslation {
                 return classFromIndex(arg, tr);
             } else if (tcFunc.equals("objectToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
-            } else if (tcFunc.equals("objectFromIndex")) {
-                return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("stringToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("stringFromIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringFromIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (LUA_HANDLE_TO_INDEX.contains(tcFunc)) {
                 return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
-            } else if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
+            } else if (isObjectFromIndexName(tcFunc)) {
                 return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
             }
         }
@@ -122,8 +123,14 @@ public class ExprTranslation {
                 unaryIntrinsic.substring(dot + 1)), argument);
         }
         if (e.getFunc() == tr.imTr.luaRawOrEmptyFunc && e.getArguments().size() == 1) {
-            return LuaAst.LuaExprBinary(e.getArguments().get(0).translateToLua(tr), LuaAst.LuaOpOr(),
-                LuaAst.LuaExprStringVal(""));
+            ImExpr operand = e.getArguments().get(0);
+            LuaExpr translated = operand.translateToLua(tr);
+            // The guard was placed before inlining; the operand it finally holds may be one that
+            // cannot be nil (a literal, I2S, a concatenation), which then needs no guard.
+            if (LuaNativeLowering.neverNil(operand, tr.imTr)) {
+                return translated;
+            }
+            return LuaAst.LuaExprBinary(translated, LuaAst.LuaOpOr(), LuaAst.LuaExprStringVal(""));
         }
         if (e.getFunc() == tr.imTr.luaRawR2IFunc && e.getArguments().size() == 1) {
             LuaExpr x = e.getArguments().get(0).translateToLua(tr);
@@ -139,6 +146,12 @@ public class ExprTranslation {
             return keyedMapRead(keyedRead, e.getArguments().get(0).translateToLua(tr),
                 e.getArguments().get(1).translateToLua(tr));
         }
+        if (LuaKeyedMap.writeStubName(tr.imTr, e.getFunc()) != null) {
+            // A store returns nothing, so it is always a statement of a flat program; see
+            // StmtTranslation#translateKeyedMapWrite. Its stub has no definition to call.
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: " + imFuncName + " used as an expression; a keyed-map store must be a statement.");
+        }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
@@ -149,7 +162,7 @@ public class ExprTranslation {
             if (e.getFunc() == tr.imTr.luaRawFloorDivIntFunc) {
                 return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
             }
-            if (e.getFunc() == tr.imTr.luaRawFloorModIntFunc) {
+            if (e.getFunc() == tr.imTr.luaRawFloorModIntFunc || e.getFunc() == tr.imTr.luaRawFloorModRealFunc) {
                 return LuaAst.LuaExprBinary(left, LuaAst.LuaOpMod(), right);
             }
             if (e.getFunc() == tr.imTr.luaRawConcatFunc) {
@@ -172,9 +185,26 @@ public class ExprTranslation {
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
     }
 
+    private static boolean isObjectFromIndexName(String typeCastingFunction) {
+        return "objectFromIndex".equals(typeCastingFunction) || LUA_HANDLE_FROM_INDEX.contains(typeCastingFunction);
+    }
+
     /**
-     * Compiler-synthesised natives which the backend prints as an operator instead of a call.
-     * Recognised by node identity: an ordinary function of the same name keeps its definition.
+     * Whether a call of {@code fromIndex}, an old-generics conversion back to a handle, is printed as
+     * {@code __wurst_objectFromIndex}. That helper answers nil for nil, for 0 and for every number it
+     * never handed out, and indexes its table with the number it is given (Lua reads 3.0 as the key 3),
+     * so it needs no int normalisation in front of it: an old-generics slot holds nil or the index the
+     * matching toIndex gave.
+     */
+    public static boolean printsAsObjectFromIndex(FuncDef fromIndex) {
+        return fromIndex.attrNearestPackage() instanceof WPackage p && "TypeCasting".equals(p.getName())
+            && isObjectFromIndexName(fromIndex.getName());
+    }
+
+    /**
+     * Compiler-synthesised natives which the backend prints as an operator or a table store instead
+     * of a call, so they have no definition. Recognised by node identity: an ordinary function of the
+     * same name keeps its definition.
      */
     static boolean isBackendIntrinsic(ImFunction function, LuaTranslator tr) {
         return unaryIntrinsicName(function, tr) != null
@@ -182,9 +212,11 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFmodIntFunc
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
+            || function == tr.imTr.luaRawFloorModRealFunc
             || function == tr.imTr.luaRawConcatFunc
             || function == tr.imTr.luaRawOrEmptyFunc
-            || LuaKeyedMap.readStubName(tr.imTr, function) != null;
+            || LuaKeyedMap.readStubName(tr.imTr, function) != null
+            || LuaKeyedMap.writeStubName(tr.imTr, function) != null;
     }
 
     /**

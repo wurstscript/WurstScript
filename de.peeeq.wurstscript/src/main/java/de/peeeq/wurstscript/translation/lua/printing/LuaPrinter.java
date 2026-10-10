@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class LuaPrinter {
@@ -24,6 +25,10 @@ public class LuaPrinter {
             if (d instanceof LuaVariable luaVariable) {
                 // don't translate global variables as locals:
                 printVariable(luaVariable, sb, indent);
+                sb.append("\n");
+                statementBlock = true;
+            } else if (d instanceof LuaChunkLocal local && local.getDefinition() instanceof LuaVariable) {
+                d.print(sb, indent);
                 sb.append("\n");
                 statementBlock = true;
             } else if(d instanceof LuaAssignment) {
@@ -53,6 +58,10 @@ public class LuaPrinter {
     }
 
     public static void print(LuaExprBinary e, StringBuilder sb, int indent) {
+        if (e.getOp() instanceof LuaOpConcatString && isConcatenation(e.getLeftExpr())) {
+            printConcatenation(e, sb, indent);
+            return;
+        }
         sb.append("(");
         if (continuesChain(e, e.getLeftExpr())) {
             printChain(e, sb, indent);
@@ -111,9 +120,11 @@ public class LuaPrinter {
      * The Lua precedence level of an operator whose left-nested chains print flat, or -1 for one
      * which keeps its parentheses. Only the levels (not their order) matter, and they follow the
      * Lua 5.3 manual, section 3.4.8: {@code or}; {@code and}; {@code + -}; {@code * / // %}.
-     * Not listed, so always parenthesised: {@code ..}, which is right associative (so
-     * {@code (a .. b) .. c} is not {@code a .. b .. c}); the comparisons, where a chain reads as
-     * a range check but compares a boolean; and any operator added later until its level is decided.
+     * Not listed: {@code ..}, which is right associative, so the text {@code a .. b .. c} parses as
+     * {@code a .. (b .. c)}, not as {@code (a .. b) .. c}; it has its own printing, see
+     * {@link #printConcatenation}. Also not listed, so always parenthesised: the comparisons, where
+     * a chain reads as a range check but compares a boolean; and any operator added later until its
+     * level is decided.
      */
     private static int chainLevel(LuaOpBinary op) {
         if (op instanceof LuaOpOr) {
@@ -127,6 +138,67 @@ public class LuaPrinter {
             return 4;
         }
         return -1;
+    }
+
+    /**
+     * The most operands one flat group of a concatenation holds. A flat {@code a .. b .. c} is one
+     * CONCAT over consecutive registers and the parser nests one level per {@code ..}, so a group
+     * costs as many registers and parser levels as it has operands. Sixteen is more than the parts
+     * of nearly every message, and a chain of up to 4096 parts then holds at most 46 registers for
+     * its operands, which fit beside the 199 locals a function may keep before they are spilled
+     * (Lua has 255).
+     */
+    private static final int CONCATENATION_GROUP = 16;
+
+    private static boolean isConcatenation(LuaExpr e) {
+        return e instanceof LuaExprBinary binary && binary.getOp() instanceof LuaOpConcatString;
+    }
+
+    /**
+     * Prints a left-nested chain of {@code ..} flat: {@code (a .. b .. c)}, not {@code ((a .. b) .. c)}.
+     * The nested text concatenates once per operator and builds every intermediate string; the flat
+     * one is a single CONCAT into one buffer. The text parses to another tree, {@code a .. (b .. c)},
+     * because {@code ..} is right associative, which is why {@link #chainLevel} leaves it out. Here the
+     * value is still the same: the backend only concatenates strings (operands which might be nil are
+     * guarded with {@code or ""}), and joining strings is associative, with no metamethod to observe
+     * the grouping. The operands are still evaluated from left to right.
+     *
+     * <p>A long chain is split into parenthesised groups of at most {@link #CONCATENATION_GROUP}
+     * operands, and those into groups again, so neither the parser levels (luac stops at 200,
+     * "too many C levels") nor the registers grow with its length.
+     */
+    private static void printConcatenation(LuaExprBinary outermost, StringBuilder sb, int indent) {
+        List<LuaExpr> operands = new ArrayList<>();
+        LuaExpr current = outermost;
+        while (isConcatenation(current)) {
+            LuaExprBinary binary = (LuaExprBinary) current;
+            operands.add(binary.getRight());
+            current = binary.getLeftExpr();
+        }
+        operands.add(current);
+        Collections.reverse(operands);
+        printConcatenation(operands, 0, operands.size(), sb, indent);
+    }
+
+    private static void printConcatenation(List<LuaExpr> operands, int from, int to, StringBuilder sb, int indent) {
+        if (to - from == 1) {
+            operands.get(from).print(sb, indent);
+            return;
+        }
+        // Each part holds at most 'span' operands, a power of the group size, and there are at most
+        // CONCATENATION_GROUP parts, so the nesting is logarithmic in the length of the chain.
+        long span = 1;
+        while (span * CONCATENATION_GROUP < to - from) {
+            span *= CONCATENATION_GROUP;
+        }
+        sb.append("(");
+        for (int start = from; start < to; start += (int) span) {
+            if (start > from) {
+                sb.append(" .. ");
+            }
+            printConcatenation(operands, start, (int) Math.min(to, start + span), sb, indent);
+        }
+        sb.append(")");
     }
 
     public static void print(LuaExprBoolVal e, StringBuilder sb, int indent) {
@@ -275,6 +347,27 @@ public class LuaPrinter {
 
     public static void print(LuaFunction f, StringBuilder sb, int indent) {
         printIndent(sb, indent);
+        printFunction(f, sb, indent);
+    }
+
+    /**
+     * A local of the main chunk. A function printed after it reaches it as an upvalue, one
+     * instruction, instead of looking its name up in _ENV, the table of every global.
+     */
+    public static void print(LuaChunkLocal l, StringBuilder sb, int indent) {
+        LuaDefinition definition = l.getDefinition();
+        if (definition instanceof LuaVariable v) {
+            print(v, sb, indent);
+        } else if (definition instanceof LuaFunction f) {
+            printIndent(sb, indent);
+            sb.append("local ");
+            printFunction(f, sb, indent);
+        } else {
+            throw new IllegalArgumentException("A method is a table field and cannot be a local: " + definition);
+        }
+    }
+
+    private static void printFunction(LuaFunction f, StringBuilder sb, int indent) {
         sb.append("function ");
         sb.append(f.getName());
         sb.append("(");

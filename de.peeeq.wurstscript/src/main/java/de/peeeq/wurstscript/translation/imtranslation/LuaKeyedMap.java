@@ -60,6 +60,9 @@ public final class LuaKeyedMap {
     private static final java.util.List<String> READ_STUBS = java.util.List.of(
         NATIVE_GET, NATIVE_GET_INT, NATIVE_GET_REAL, NATIVE_GET_BOOL, NATIVE_GET_STR, NATIVE_HAS);
 
+    /** The stubs which store into a map, printed as the table store they stand for where they are called. */
+    private static final java.util.List<String> WRITE_STUBS = java.util.List.of(NATIVE_PUT, NATIVE_REMOVE);
+
     private LuaKeyedMap() {
     }
 
@@ -68,10 +71,19 @@ public final class LuaKeyedMap {
      * each stub once and a user function that happens to share the name stays an ordinary function.
      */
     public static String readStubName(ImTranslator translator, ImFunction f) {
+        return stubName(translator, f, READ_STUBS);
+    }
+
+    /** The name of the put or remove stub {@code f} is, or null; matched like {@link #readStubName}. */
+    public static String writeStubName(ImTranslator translator, ImFunction f) {
+        return stubName(translator, f, WRITE_STUBS);
+    }
+
+    private static String stubName(ImTranslator translator, ImFunction f, java.util.List<String> names) {
         if (!f.isNative()) {
             return null;
         }
-        for (String name : READ_STUBS) {
+        for (String name : names) {
             if (translator.luaKeyedStubs.get(name) == f) {
                 return name;
             }

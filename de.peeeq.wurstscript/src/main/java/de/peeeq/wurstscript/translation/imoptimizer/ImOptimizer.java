@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.RedundantFieldStores;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
@@ -37,6 +38,9 @@ public class ImOptimizer {
         localPasses.add(new BranchMerger());
         localPasses.add(new ConstantAndCopyPropagation());
         localPasses.add(new UselessFunctionCallsRemover());
+        // After the passes which use the local-player analysis: a pass which does not use it discards it, and none
+        // after this one needs it again in the same sweep.
+        localPasses.add(new RedundantFieldStores());
         localPasses.add(new GlobalsInliner());
         localPasses.add(new DispatchCheckDeduplicator());
         localPasses.add(new SimpleRewrites());

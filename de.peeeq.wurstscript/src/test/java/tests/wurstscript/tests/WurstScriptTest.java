@@ -888,7 +888,7 @@ public class WurstScriptTest {
         );
     }
 
-    private String getLuacExecutable() {
+    protected String getLuacExecutable() {
         if (resolvedLuacExecutable != null) {
             return resolvedLuacExecutable;
         }
@@ -1041,6 +1041,10 @@ public class WurstScriptTest {
         );
 
         for (LuaStatement stmt : luaCode) {
+            if (stmt instanceof LuaChunkLocal local) {
+                // A main-chunk local is initialised at the root like a global.
+                stmt = local.getDefinition();
+            }
             if (stmt instanceof LuaVariable) {
                 LuaExprOpt initialValue = ((LuaVariable) stmt).getInitialValue();
                 if (initialValue instanceof LuaExpr) {

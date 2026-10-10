@@ -5805,7 +5805,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("repro must exercise string concat lowering", compiled.contains(" .. "));
         assertFalse("the raw concat primitive is an operator, not a call", compiled.contains("__wurst_rawConcat"));
         assertTrue("repro must exercise integer div lowering", compiled.contains(" // "));
-        assertTrue("repro must exercise integer and real mod lowering", compiled.contains("math.fmod("));
+        // the divisors are literals once inlined, so both lower to Lua's % (see modByADivisorThatBecomesALiteral...)
+        assertTrue("repro must exercise integer and real mod lowering:\n" + compiled,
+            compiled.contains(" % 2)") && compiled.contains(" % 2.)"));
         assertFalse("raw numeric primitive calls must not survive Lua emission", compiled.contains("__wurst_rawF"));
     }
 
@@ -5898,6 +5900,173 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_objectClass[new_inst] = Foo"));
         assertFalse("create must not allocate an instance table", compiled.contains("local new_inst = {"));
         assertFalse("create must not attach an instance metatable", compiled.contains("setmetatable(new_inst"));
+    }
+
+    /** The globals a test's script reads or writes, as {@code luac -l} lists them: an access through _ENV. */
+    private java.util.Set<String> globalsAccessedBy(String testName) throws IOException, InterruptedException {
+        File luaFile = new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua");
+        Process luac = new ProcessBuilder(getLuacExecutable(), "-l", "-p", luaFile.getPath())
+            .redirectErrorStream(true).start();
+        String listing = new String(luac.getInputStream().readAllBytes(), Charsets.UTF_8);
+        assertTrue("luac did not finish", luac.waitFor(60, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(listing, 0, luac.exitValue());
+        java.util.Set<String> globals = new java.util.TreeSet<>();
+        java.util.regex.Matcher access = java.util.regex.Pattern.compile("; _ENV \"(\\w+)\"").matcher(listing);
+        while (access.find()) {
+            globals.add(access.group(1));
+        }
+        // The entry point is a global, so a listing which names none has changed its format.
+        assertTrue("the listing names no global:\n" + listing, globals.contains("main"));
+        return globals;
+    }
+
+    /**
+     * Every allocation and destroy reads the allocator's state and every destroy calls the
+     * deallocator, so they are locals of the main chunk, declared before any function: a function
+     * reaches them as upvalues, not by a lookup among the thousands of globals of a map.
+     */
+    @Test
+    public void objectRuntimeStateIsMainChunkLocal() throws IOException, InterruptedException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "abstract class Shape",
+            "    abstract function area() returns int",
+            "class Square extends Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "init",
+            "    Shape first = new Square(2)",
+            "    let firstId = first castTo int",
+            "    destroy first",
+            "    Shape second = new Square(3)",
+            "    if second castTo int == firstId and second.area() == 9 and second instanceof Square",
+            "        and second.typeId == Square.typeId",
+            "        testSuccess()");
+        String compiled = compiledLua("objectRuntimeStateIsMainChunkLocal");
+        assertTrue("the script opens with the allocator state and the deallocator as locals:\n" + compiled,
+            compiled.startsWith("local __wurst_objectClass = ({})\n"
+                + "local __wurst_objectFree = ({})\n"
+                + "local __wurst_objectMax = 0\n"
+                + "local __wurst_objectFreeCount = 0\n"
+                + "\n"
+                + "local function __wurst_deallocObject(object) \n"));
+        java.util.Set<String> globals = globalsAccessedBy("objectRuntimeStateIsMainChunkLocal");
+        for (String local : List.of("__wurst_objectClass", "__wurst_objectFree", "__wurst_objectMax",
+                "__wurst_objectFreeCount", "__wurst_deallocObject")) {
+            assertFalse(local + " is reached as a global: " + globals, globals.contains(local));
+        }
+    }
+
+    /**
+     * Allocation pops a recycled id without clearing its slot: a slot above the count is never read
+     * before a destroy writes it again, and it holds an integer, so clearing it retained nothing.
+     */
+    @Test
+    public void recycledIdIsPoppedWithoutClearingItsSlot() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Node",
+            "init",
+            "    let a = new Node()",
+            "    let b = new Node()",
+            "    let c = new Node()",
+            "    let ia = a castTo int",
+            "    let ib = b castTo int",
+            "    let ic = c castTo int",
+            "    destroy a",
+            "    destroy b",
+            "    destroy c",
+            "    let x = new Node() castTo int",
+            "    let y = new Node() castTo int",
+            "    let z = new Node() castTo int",
+            // The free stack is empty again and still holds the three ids above its count.
+            "    let fresh = new Node()",
+            "    let freshId = fresh castTo int",
+            "    destroy fresh",
+            "    let again = new Node() castTo int",
+            "    let following = new Node() castTo int",
+            "    if x == ic and y == ib and z == ia and freshId == ic + 1 and again == freshId",
+            "        and following == freshId + 1",
+            "        testSuccess()");
+        String create = topLevelFunctionBodyWithPrefix(
+            compiledLua("recycledIdIsPoppedWithoutClearingItsSlot"), "Node:create");
+        assertTrue("the id comes off the free stack:\n" + create,
+            create.contains("new_inst = __wurst_objectFree[__wurst_objectFreeCount]"));
+        assertFalse("the popped slot is not cleared:\n" + create,
+            create.contains("__wurst_objectFree[__wurst_objectFreeCount] = nil"));
+    }
+
+    /**
+     * Every old-generics cast reads the zero sentinel, so it is a main-chunk local too. It stays
+     * {@code math.mininteger}, never a literal: the game's integers need not have the test Lua's 64 bits.
+     */
+    @Test
+    public void oldGenericsZeroSentinelIsMainChunkLocal() throws IOException, InterruptedException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, 7)",
+            "    if ints.get(0) == 0 and ints.get(1) == 7",
+            "        testSuccess()");
+        String compiled = compiledLua("oldGenericsZeroSentinelIsMainChunkLocal");
+        String declaration = "\nlocal __wurst_oldGenericsZero = math.mininteger\n";
+        int at = compiled.indexOf(declaration);
+        assertTrue("the sentinel is declared as a local:\n" + compiled, at >= 0);
+        assertTrue("the sentinel is declared before the first function which is not a local:\n" + compiled,
+            at < compiled.indexOf("\nfunction "));
+        assertEquals("the sentinel is assigned once:\n" + compiled,
+            1, compiled.split("__wurst_oldGenericsZero = ", -1).length - 1);
+        assertTrue("the casts read the sentinel:\n" + compiled,
+            compiled.indexOf("__wurst_oldGenericsZero", at + declaration.length()) >= 0);
+        assertFalse("the sentinel is reached as a global",
+            globalsAccessedBy("oldGenericsZeroSentinelIsMainChunkLocal").contains("__wurst_oldGenericsZero"));
+    }
+
+    /**
+     * A Wurst code value takes no parameters, so the callback adapter of one takes no varargs: the
+     * target would drop anything it forwarded.
+     */
+    @Test
+    public void callbackAdapterOfANullaryTargetTakesNoVarargs() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native pcall(code callback) returns bool",
+            "int calls = 0",
+            "function tick()",
+            "    calls++",
+            "function tickAndAccept() returns boolean",
+            "    calls++",
+            "    return true",
+            "init",
+            "    if pcall(function tick) and pcall(function tickAndAccept) and calls == 2",
+            "        testSuccess()");
+        String compiled = compiledLua("callbackAdapterOfANullaryTargetTakesNoVarargs");
+        assertTrue("the adapter calls its target with nothing to forward:\n" + compiled,
+            java.util.regex.Pattern.compile(
+                "function __wurst_callback_tick\\w*\\(\\) \\n\\txpcall\\(tick\\w*, __wurst_callback_error\\w*\\)\\n")
+                .matcher(compiled).find());
+        assertTrue("a returning adapter keeps its single result:\n" + compiled,
+            java.util.regex.Pattern.compile(
+                "function __wurst_callback_tickAndAccept\\w*\\(\\) \\n(?:\\t.*\\n)*?"
+                    + "\\t_, result = xpcall\\(tickAndAccept\\w*, __wurst_callback_error\\w*\\)\\n")
+                .matcher(compiled).find());
+        assertFalse("no adapter takes varargs:\n" + compiled,
+            java.util.regex.Pattern.compile("function __wurst_callback_\\w+\\(\\.\\.\\.\\)").matcher(compiled).find());
     }
 
     /**
@@ -6232,12 +6401,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    shapes[1] = new Square()",
             "    consume(total(2))");
         String total = topLevelFunctionBodyWithPrefix(compiled, "total");
-        java.util.regex.Matcher alias = java.util.regex.Pattern
-            .compile("local (\\w+) = __wurst_objectClass\\R").matcher(total);
-        assertTrue("the descriptor table is aliased for the loop:\n" + total, alias.find());
+        // An upvalue table is indexed in one instruction, as a local one is, so an alias would only
+        // add a copy.
+        assertFalse("the descriptor table is an upvalue and needs no alias for the loop:\n" + total,
+            total.contains("= __wurst_objectClass\n"));
         assertTrue("the slot is read from the receiver's descriptor at the call site:\n" + total,
-            java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(alias.group(1))
-                + "\\[\\w+\\[i\\]\\]\\.\\w*area\\w*\\(").matcher(total).find());
+            java.util.regex.Pattern.compile("__wurst_objectClass\\[\\w+\\[i\\]\\]\\.\\w*area\\w*\\(")
+                .matcher(total).find());
         assertFalse("no dispatch stub is needed for a table-read receiver:\n" + compiled,
             compiled.contains("dispatch_"));
     }
@@ -7152,5 +7322,332 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertEquals(java.util.Arrays.asList("Under_passUnder_Test_do_it", "Under_passUnder_Test_do_it1"),
             luaFunctionsWithPrefix(lua, "Under_pass"));
         assertFalse(lua, lua.contains("passUnder_passUnder"));
+    }
+
+    /**
+     * A new object's field defaults are IM writes after its allocation, so where the constructor sets a field the
+     * default is gone: the allocation writes no field, and each field is written once where the object is made. (A
+     * value computed between them, which may raise on nil, would keep the defaults after it: OptimizerTests.)
+     */
+    @Test
+    public void aConstructedFieldIsWrittenOnceNotFirstWithItsDefault() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Hit",
+            "    int amount",
+            "    real factor",
+            "    boolean crit",
+            "    string label",
+            "    Hit next",
+            "    construct(int amount, real factor, boolean crit)",
+            "        this.amount = amount",
+            "        this.factor = factor",
+            "        this.crit = crit",
+            "        this.label = \"hit\"",
+            "        this.next = null",
+            "@noinline function make(int amount) returns Hit",
+            "    return new Hit(amount, 1.5, amount > 10)",
+            "init",
+            "    let h = make(12)",
+            "    if h.amount == 12 and h.factor == 1.5 and h.crit and h.label == \"hit\" and h.next == null",
+            "        testSuccess()");
+        String compiled = compiledLua("aConstructedFieldIsWrittenOnceNotFirstWithItsDefault");
+        java.util.regex.Matcher create = java.util.regex.Pattern
+            .compile("function Hit:create\\d*\\(\\) \\n(.*?)\\nend", java.util.regex.Pattern.DOTALL).matcher(compiled);
+        assertTrue("the allocation:\n" + compiled, create.find());
+        assertFalse("the allocation writes no field:\n" + create.group(1), create.group(1).contains("_storage["));
+        for (String field : new String[] {"amount", "factor", "crit", "label", "next"}) {
+            int writes = compiled.split("Hit_" + field + "_storage(_local\\d*)?\\[[^\\]]+\\] = ", -1).length - 1;
+            assertEquals("Hit." + field + " is written once:\n" + compiled, 1, writes);
+        }
+    }
+
+    /**
+     * A field nothing sets before reading it still starts at its default, also on an id which an earlier object
+     * had: here the constructor reads count first, and the earlier object had set every field.
+     */
+    @Test
+    public void aFieldReadBeforeItIsSetStartsAtItsDefaultOnAReusedId() {
+        String[] lines = {
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "    int count",
+            "    string name",
+            "    A other",
+            "    construct()",
+            "        count += 1",
+            "init",
+            "    let a = new A()",
+            "    a.count = 41",
+            "    a.name = \"x\"",
+            "    a.other = a",
+            "    destroy a",
+            "    let b = new A()",
+            "    if b.count == 1 and b.name == \"\" and b.other == null",
+            "        testSuccess()"};
+        test().testLua(true).inline().localOptimizations().executeProg().lines(lines);
+        testNamed("aFieldReadBeforeItIsSetStartsAtItsDefaultOnAReusedId_unoptimised").testLua(true).executeProg()
+            .lines(lines);
+    }
+
+    /**
+     * A call between the allocation and the constructor's write can read the field, so the default before it stays:
+     * the observer sees 0 on an id whose earlier object had set the field to 7.
+     */
+    @Test
+    public void aDefaultACallCanReadBeforeTheConstructorSetsItStays() {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int seen = -1",
+            "class A",
+            "    int f",
+            "    construct()",
+            "        observe(this)",
+            "        f = 5",
+            "@noinline function observe(A a)",
+            "    seen = a.f",
+            "init",
+            "    let a = new A()",
+            "    a.f = 7",
+            "    destroy a",
+            "    let b = new A()",
+            "    if seen == 0 and b.f == 5",
+            "        testSuccess()");
+    }
+
+    /**
+     * A message joined with + is one flat Lua concatenation, a single CONCAT, where the nested text
+     * {@code (("a=" .. x) .. ", b=")} built every intermediate string.
+     */
+    @Test
+    public void stringConcatenationChainPrintsFlat() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "function describe(int a, int b) returns string",
+            "    return \"a=\" + I2S(a) + \", b=\" + I2S(b) + \".\"",
+            "init",
+            "    if describe(1, -2) == \"a=1, b=-2.\"",
+            "        testSuccess()");
+        String describe = topLevelFunctionBodyWithPrefix(compiledLua("stringConcatenationChainPrintsFlat"), "describe");
+        assertTrue(describe, describe.contains("(\"a=\" .. tostring(a) .. \", b=\" .. tostring(b) .. \".\")"));
+        assertFalse(describe, describe.contains("(("));
+    }
+
+    /**
+     * Printed nested, a concatenation of 300 parts was 300 parentheses deep, more than luac accepts
+     * ("too many C levels"). Printed flat in groups, it loads and runs.
+     */
+    @Test
+    public void aLongStringConcatenationLoadsAndRuns() throws IOException {
+        int parts = 300;
+        StringBuilder chain = new StringBuilder("\"<\"");
+        StringBuilder expected = new StringBuilder("<");
+        for (int i = 0; i < parts; i++) {
+            chain.append(" + I2S(x + ").append(i).append(")");
+            expected.append(1000 + i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "function longMessage(int x) returns string",
+            "    return " + chain,
+            "init",
+            "    if longMessage(1000) == \"" + expected + "\"",
+            "        testSuccess()");
+        String longMessage = topLevelFunctionBodyWithPrefix(compiledLua("aLongStringConcatenationLoadsAndRuns"),
+            "longMessage");
+        assertEquals(parts, countOccurrences(longMessage, " .. "));
+    }
+
+    /**
+     * A divisor which only becomes a literal once the helper is inlined (here a parameter, in a map
+     * often a constant) is Lua's %, with no fmod and no sign correction: the helper tests the divisor
+     * and the test folds. A real divisor below 1 keeps fmod, and so does a runtime divisor, whose
+     * test runs.
+     */
+    @Test
+    public void modByADivisorThatBecomesALiteralIsTheLuaOperator() {
+        String compiled = compileOptimizedLua("modByADivisorThatBecomesALiteralIsTheLuaOperator",
+            "package Test",
+            "native consume(int value)",
+            "native consumeReal(real value)",
+            "function wrap(int a, int m) returns int",
+            "    return a mod m",
+            "function wrapReal(real a, real m) returns real",
+            "    return a % m",
+            "@noinline function fixed(int x) returns int",
+            "    return wrap(x, 1000003)",
+            "@noinline function fixedReal(real x) returns real",
+            "    return wrapReal(x, 360.)",
+            "@noinline function belowOne(real x) returns real",
+            "    return wrapReal(x, 0.5)",
+            "@noinline function varying(int x, int y) returns int",
+            "    return x mod y",
+            "init",
+            "    consume(fixed(5))",
+            "    consumeReal(fixedReal(5.))",
+            "    consumeReal(belowOne(5.))",
+            "    consume(varying(5, 3))");
+        String fixed = topLevelFunctionBodyWithPrefix(compiled, "fixed(");
+        assertTrue(fixed, fixed.contains(" % 1000003)"));
+        assertFalse(fixed, fixed.contains("fmod") || fixed.contains("< 0"));
+        String fixedReal = topLevelFunctionBodyWithPrefix(compiled, "fixedReal");
+        assertTrue(fixedReal, fixedReal.contains(" % 360.)"));
+        assertFalse(fixedReal, fixedReal.contains("fmod") || fixedReal.contains("< 0"));
+        String belowOne = topLevelFunctionBodyWithPrefix(compiled, "belowOne");
+        assertTrue("a real divisor below 1 keeps fmod:\n" + belowOne, belowOne.contains("math.fmod("));
+        assertFalse(belowOne, belowOne.contains(" % "));
+        String varying = topLevelFunctionBodyWithPrefix(compiled, "varying");
+        assertTrue("a runtime divisor is tested:\n" + varying,
+            varying.contains(" % ") && varying.contains("math.fmod("));
+    }
+
+    private static final String[] MOD_SEMANTICS_PROG = {
+        "package Test",
+        "native testSuccess()",
+        "real zero = 0.",
+        "function im(int a, int b) returns int",
+        "    return a mod b",
+        "function rm(real a, real b) returns real",
+        "    return a % b",
+        "@noinline function v(int x) returns int",
+        "    return x",
+        "@noinline function w(real x) returns real",
+        "    return x",
+        "function near(real a, real b) returns boolean",
+        "    return a - b < 0.0001 and b - a < 0.0001",
+        "init",
+        "    let negZero = zero * -1.",
+        "    boolean ok = true",
+        // runtime dividends, literal divisors
+        "    ok = ok and im(v(7), 3) == 1 and im(v(-7), 3) == 2 and im(v(0), 3) == 0",
+        "    ok = ok and im(v(-3), 3) == 0 and im(v(-1), 8) == 7 and im(v(-2147483647), 2) == 1",
+        // runtime divisors, both signs
+        "    ok = ok and im(v(7), v(3)) == 1 and im(v(-7), v(3)) == 2 and im(v(7), v(-3)) == 1",
+        "    ok = ok and im(v(-7), v(-3)) == -4 and im(v(0), v(-5)) == 0",
+        // reals: a divisor of at least 1, below 1, negative, at runtime
+        "    ok = ok and near(rm(w(7.5), 2.), 1.5) and near(rm(w(-7.5), 2.), 0.5) and near(rm(w(0.), 360.), 0.)",
+        "    ok = ok and near(rm(w(-370.), 360.), 350.) and near(rm(w(-0.75), 0.5), 0.25)",
+        "    ok = ok and near(rm(w(7.5), -2.), 1.5) and near(rm(w(-7.5), -2.), -3.5)",
+        "    ok = ok and near(rm(w(-7.5), w(2.)), 0.5) and near(rm(w(-7.5), w(0.5)), 0.)",
+        // -0.0 is a zero, not the divisor
+        "    ok = ok and rm(negZero, 360.) == 0. and rm(negZero, 360.) < 1. and rm(negZero, w(360.)) < 1.",
+        "    if ok",
+        "        testSuccess()"
+    };
+
+    /**
+     * Wurst mod is Blizzard.j's ModuloInteger/ModuloReal: the truncated remainder, plus the divisor
+     * when it is negative. Lua's % agrees for an int divisor above 0 and a real one of at least 1,
+     * which the helper tests at run time and the optimiser folds for a literal. Against Jass and the
+     * interpreter, once with the helper called and once inlined and folded.
+     */
+    @Test
+    public void modAgreesWithJassForEveryDivisorSign() {
+        test().testLua(true).luaOnly(false).executeProg().lines(MOD_SEMANTICS_PROG);
+    }
+
+    @Test
+    public void modAgreesWithJassForEveryDivisorSignWhenFolded() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(MOD_SEMANTICS_PROG);
+    }
+
+    /**
+     * The {@code or ""} guard of a concatenation operand is placed before inlining, where
+     * {@code x.str()} is a call that might answer nil. Inlined it is the {@code tostring} of I2S, and
+     * a parameter may become a literal; neither can be nil, so neither keeps the guard. A variable
+     * which may be nil keeps it.
+     */
+    @Test
+    public void concatenationOperandsWhichCannotBeNilLoseTheirGuardOnceInlined() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "function int.str() returns string",
+            "    return I2S(this)",
+            "function greet(string name) returns string",
+            "    return \"hi \" + name",
+            "@noinline function label(int x) returns string",
+            "    return \"x=\" + x.str() + \"!\"",
+            "@noinline function fixedGreeting() returns string",
+            "    return greet(\"bob\")",
+            "@noinline function greetAnyone(string name) returns string",
+            "    return \"hi \" + name",
+            "init",
+            "    if label(-3) == \"x=-3!\" and fixedGreeting() == \"hi bob\" and greetAnyone(\"al\") == \"hi al\"",
+            "        testSuccess()");
+        String compiled = compiledLua("concatenationOperandsWhichCannotBeNilLoseTheirGuardOnceInlined");
+        String label = topLevelFunctionBodyWithPrefix(compiled, "label");
+        assertTrue(label, label.contains("(\"x=\" .. tostring(x) .. \"!\")"));
+        String fixedGreeting = topLevelFunctionBodyWithPrefix(compiled, "fixedGreeting");
+        assertTrue(fixedGreeting, fixedGreeting.contains("(\"hi \" .. \"bob\")"));
+        String greetAnyone = topLevelFunctionBodyWithPrefix(compiled, "greetAnyone");
+        assertTrue("a variable keeps its guard:\n" + greetAnyone, greetAnyone.contains("(name or \"\")"));
+    }
+
+    /**
+     * An old-generics value read back as a handle goes through the TypeCasting fromIndex, which Lua
+     * prints as __wurst_objectFromIndex. That maps nil, 0 and an unknown index to nil and indexes its
+     * table with the integer it is given, so an int normalisation in front of it (tonumber,
+     * math.tointeger) answers the same and is not emitted. Jass has no such normalisation.
+     */
+    @Test
+    public void oldGenericHandleReadsNeedNoIntNormalisation() throws IOException {
+        test().withStdLib().testLua(true).executeProg().lines(
+            "package Test",
+            "class Box<T>",
+            "    T elem",
+            "    construct(T e)",
+            "        elem = e",
+            "    function get() returns T",
+            "        return elem",
+            "class Unset<T>",
+            "    T elem",
+            "init",
+            "    let t = CreateTimer()",
+            "    let other = CreateTimer()",
+            "    let full = new Box<timer>(t)",
+            "    let empty = new Box<timer>(null)",
+            "    let unset = new Unset<timer>()",
+            "    if full.get() != t",
+            "        testFail(\"the handle did not come back\")",
+            "    if full.get() == other",
+            "        testFail(\"another handle came back\")",
+            "    if empty.get() != null",
+            "        testFail(\"null (index 0) did not come back\")",
+            "    if unset.elem != null",
+            "        testFail(\"an unset slot (nil) did not read as null\")",
+            "    testSuccess()");
+        String init = topLevelFunctionBodyWithPrefix(compiledLua("oldGenericHandleReadsNeedNoIntNormalisation"),
+            "init_Test");
+        assertTrue(init, init.contains("__wurst_objectFromIndex(") || init.contains("timerFromIndex("));
+        assertFalse(init, init.contains("math.tointeger") || init.contains("tonumber") || init.contains("__wurst_ensureInt"));
+    }
+
+    /** -0.0 stays -0.0 under Lua's % as under fmod and its correction: 1 / r is minus infinity. */
+    @Test
+    public void modKeepsTheSignOfANegativeZeroOnLua() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "real zero = 0.",
+            "function rm(real a, real b) returns real",
+            "    return a % b",
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "init",
+            "    let negZero = zero * -1.",
+            "    if 1. / rm(negZero, 360.) < 0. and 1. / rm(negZero, w(360.)) < 0. and 1. / rm(negZero, w(0.5)) < 0.",
+            "        testSuccess()");
+        String compiled = topLevelFunctionBodyWithPrefix(compiledLua("modKeepsTheSignOfANegativeZeroOnLua"),
+            "init_Test");
+        assertTrue(compiled, compiled.contains(" % 360.)"));
     }
 }

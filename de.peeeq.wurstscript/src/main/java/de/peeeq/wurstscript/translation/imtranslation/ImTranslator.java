@@ -202,6 +202,7 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFmodIntFunc = null;
     @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
+    @Nullable public ImFunction luaRawFloorModRealFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
     /** {@code x or ""}: a string operand which may be nil, made safe for {@link #luaRawConcatFunc}. */
     @Nullable public ImFunction luaRawOrEmptyFunc = null;
@@ -240,7 +241,8 @@ public class ImTranslator implements SpecialisationLookup {
             || (divisor instanceof ImRealVal realVal && Double.parseDouble(realVal.getValR()) != 0.0);
         return nonZeroDivisor
             && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
-                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
+                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc
+                || target == luaRawFloorModRealFunc);
     }
     /**
      * Whether {@code f} is one of the Lua keyed-map read stubs, which the backend prints as a table
@@ -263,7 +265,8 @@ public class ImTranslator implements SpecialisationLookup {
         List<ImFunction> result = new ArrayList<>();
         for (ImFunction f : new ImFunction[]{
             ensureIntFunc, ensureBoolFunc, ensureRealFunc, ensureStrFunc, stringConcatFunc,
-            luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFmodRealFunc, luaRawFloorModIntFunc, luaRawConcatFunc,
+            luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFmodRealFunc, luaRawFloorModIntFunc,
+            luaRawFloorModRealFunc, luaRawConcatFunc,
             luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
             luaRawToStringFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
             debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
@@ -464,6 +467,17 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
     private final List<Bridge> bridges = new ArrayList<>();
+
+    /** Whether {@link LuaFieldDefaults} wrote the field defaults after the allocations, which the Lua backend needs. */
+    private boolean luaFieldDefaultsMaterialized = false;
+
+    public boolean luaFieldDefaultsMaterialized() {
+        return luaFieldDefaultsMaterialized;
+    }
+
+    public void setLuaFieldDefaultsMaterialized() {
+        luaFieldDefaultsMaterialized = true;
+    }
 
     /**
      * Gives {@code bridge} the overrides of {@code inherited} which are below its class as sub-methods, once every

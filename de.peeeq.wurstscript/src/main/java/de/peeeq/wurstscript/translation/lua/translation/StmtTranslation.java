@@ -1,8 +1,13 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
+import de.peeeq.wurstscript.translation.imtranslation.LuaTraps;
+import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,9 +23,121 @@ public class StmtTranslation {
                 emitLuaInitXpcall(call.getFunc(), res, tr);
                 return;
             }
+            String keyedWrite = LuaKeyedMap.writeStubName(tr.imTr, call.getFunc());
+            if (keyedWrite != null) {
+                translateKeyedMapWrite(call, keyedWrite, res, tr);
+                return;
+            }
         }
         LuaExpr expr = e.translateToLua(tr);
         res.add(expr);
+    }
+
+    /** How an operand of a keyed-map store may be moved: see {@link #translateKeyedMapWrite}. */
+    private enum WriteOperand {
+        /** A literal or a local: the same value wherever it is read, and reading it does nothing. */
+        STABLE,
+        /** A global or a table read: reading it does nothing, but an effect before it can change it. */
+        READ,
+        /** Anything else, such as a call. */
+        EFFECT
+    }
+
+    private static WriteOperand writeOperand(ImExpr e) {
+        if (e instanceof ImIntVal || e instanceof ImRealVal || e instanceof ImStringVal
+            || e instanceof ImBoolVal || e instanceof ImNull) {
+            return WriteOperand.STABLE;
+        }
+        if (LuaTraps.mayRaise(e)) {
+            // It must be evaluated even when the key is nil, as the stub's argument was: an array field read
+            // through a null object raises.
+            return WriteOperand.EFFECT;
+        }
+        if (e instanceof ImVarAccess access) {
+            return access.getVar().isGlobal() ? WriteOperand.READ : WriteOperand.STABLE;
+        }
+        if (e instanceof ImVarArrayAccess access && readsOnly(access.getIndexes())) {
+            return WriteOperand.READ;
+        }
+        if (e instanceof ImMemberAccess access && writeOperand(access.getReceiver()) != WriteOperand.EFFECT
+            && readsOnly(access.getIndexes())) {
+            return WriteOperand.READ;
+        }
+        return WriteOperand.EFFECT;
+    }
+
+    private static boolean readsOnly(ImExprs exprs) {
+        for (ImExpr e : exprs) {
+            if (writeOperand(e) == WriteOperand.EFFECT) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * A keyed-map put or remove as the table store it stands for, {@code t[k] = v} or
+     * {@code t[k] = nil}, instead of a call to a stub with that body. Storing under a nil key is an
+     * error in Lua, where reading one only answers nil, so a key which may be nil is tested first: a
+     * null element stores nothing and reads as absent. Any key but a literal may be nil, an int too
+     * when it is a field read through an object which is null, so only a literal is stored without
+     * the test.
+     *
+     * <p>Each operand is evaluated once and in the order of the call. A plain store does that by
+     * itself. The test reads the key twice and evaluates the table and the value only when the key
+     * is not nil, so there an operand with an effect, and each operand before it which is not
+     * {@link WriteOperand#STABLE}, is first evaluated into a local.
+     */
+    private static void translateKeyedMapWrite(ImFunctionCall call, String stub, List<LuaStatement> res,
+                                               LuaTranslator tr) {
+        boolean put = LuaKeyedMap.NATIVE_PUT.equals(stub);
+        ImExprs args = call.getArguments();
+        int arity = put ? 3 : 2;
+        if (args.size() != arity) {
+            throw new CompileError(call.attrTrace().attrSource(),
+                "Lua backend: " + stub + " expects " + arity + " arguments, got " + args.size() + ".");
+        }
+        ImExpr key = args.get(1);
+        // Only a literal: a key of any type can hold nil, read through an object which is null (LuaTraps).
+        boolean keyNeverNil = key instanceof ImIntVal || key instanceof ImRealVal || key instanceof ImStringVal
+            || key instanceof ImBoolVal;
+        List<LuaExpr> operands = new ArrayList<>();
+        for (ImExpr arg : args) {
+            operands.add(arg.translateToLua(tr));
+        }
+        boolean[] intoLocal = new boolean[arity];
+        if (!keyNeverNil) {
+            int lastEffect = -1;
+            for (int i = 0; i < arity; i++) {
+                if (writeOperand(args.get(i)) == WriteOperand.EFFECT) {
+                    lastEffect = i;
+                }
+            }
+            for (int i = 0; i <= lastEffect; i++) {
+                intoLocal[i] = writeOperand(args.get(i)) != WriteOperand.STABLE;
+            }
+        }
+        // A statement must not start with '(' (Lua would join it onto the previous line as a call).
+        intoLocal[0] |= !LuaPrinter.startsWithName(operands.get(0));
+        String[] names = {"__wurst_map", "__wurst_key", "__wurst_value"};
+        for (int i = 0; i < arity; i++) {
+            if (intoLocal[i]) {
+                LuaVariable local = LuaAst.LuaVariable(tr.uniqueName(names[i]), operands.get(i));
+                res.add(local);
+                operands.set(i, LuaAst.LuaExprVarAccess(local));
+            }
+        }
+        LuaExpr value = put ? operands.get(2) : LuaAst.LuaExprNull();
+        LuaExpr keyExpr = operands.get(1);
+        LuaAssignment store = LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(operands.get(0), LuaAst.LuaExprlist(keyNeverNil ? keyExpr : keyExpr.copy())),
+            value);
+        if (keyNeverNil) {
+            res.add(store);
+        } else {
+            res.add(LuaAst.LuaIf(LuaAst.LuaExprBinary(keyExpr, LuaAst.LuaOpUnequals(), LuaAst.LuaExprNull()),
+                LuaAst.LuaStatements(store), LuaAst.LuaStatements()));
+        }
     }
 
     private static void emitLuaInitXpcall(ImFunction initFunc, List<LuaStatement> res, LuaTranslator tr) {
