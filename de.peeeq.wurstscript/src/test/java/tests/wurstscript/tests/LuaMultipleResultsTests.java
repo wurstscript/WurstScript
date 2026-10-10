@@ -330,8 +330,10 @@ public class LuaMultipleResultsTests extends WurstScriptTest {
         String add = functionBody(lua, "add");
         assertEquals("add returns once, both components:\n" + add, 1, add.split("\\breturn\\b", -1).length - 1);
         assertTrue(add, Pattern.compile("(?m)^\\s*return [^,\\n]+, [^,\\n]+$").matcher(add).find());
-        assertTrue("the call takes both results:\n" + lua,
-            Pattern.compile("(\\w+), (\\w+) = add\\(").matcher(lua).find());
+        Matcher call = Pattern.compile("(\\w+), (\\w+) = add\\(").matcher(lua);
+        assertTrue("the call takes both results:\n" + lua, call.find());
+        assertTrue("the results are used where they were received, not copied first:\n" + lua,
+            lua.contains("consume(" + call.group(1) + ", " + call.group(2) + ")"));
     }
 
     @Test
