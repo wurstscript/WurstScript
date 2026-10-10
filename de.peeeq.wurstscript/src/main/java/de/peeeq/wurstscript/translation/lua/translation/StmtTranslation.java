@@ -64,6 +64,12 @@ public class StmtTranslation {
             // raises nor changes anything. Table keys its hashtable by this castTo int.
             return writeOperand(cast.getExpr());
         }
+        if (e instanceof ImCast cast && cast.getFromType() instanceof ImAnyType && TypesHelper.isIntType(cast.getToType())
+            && cast.getExpr() instanceof ImVarAccess) {
+            // An old-generics value of a variable as an int is ((x == 0) and zero) or (x or 0) (ExprTranslation):
+            // reads only. HashList and the old HashMap key their hashtable by elem castTo int.
+            return writeOperand(cast.getExpr());
+        }
         if (LuaTraps.mayRaise(e)) {
             // It must be evaluated even when the key is nil, as the stub's argument was: an array field read
             // through a null object raises.

@@ -253,6 +253,28 @@ public class LuaHashtableTests extends WurstScriptTest {
     }
 
     /**
+     * HashList keys its hashtable by elem castTo int, an old-generics value as an int, which reads its variable and
+     * nothing else. Counted as an operand with an effect, it kept every inlined count and add a helper call.
+     */
+    @Test
+    public void anOldGenericsKeyIsPrintedInPlace() throws IOException {
+        test().testLua(true).withStdLib().inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "import HashList",
+            "init",
+            "    let l = new HashList<int>()",
+            "    l.add(3)",
+            "    l.add(3)",
+            "    if l.has(3) and not l.has(4) and l.size() == 2",
+            "        testSuccess()");
+
+        String lua = compiled("anOldGenericsKeyIsPrintedInPlace");
+        String init = functionBody(lua, "init_Test");
+        assertFalse("no hashtable helper is called:\n" + init,
+            Pattern.compile("__wurst_(Save|Load|HaveSaved|RemoveSaved)\\w*\\(").matcher(init).find());
+    }
+
+    /**
      * Lua reads a statement which starts with '(' as the arguments of a call ending the previous statement, so an
      * assignment whose target starts with '(' is printed after a ';'. Here the save follows an assignment which ends
      * in a parenthesised expression; the harness compiles the script with luac.
