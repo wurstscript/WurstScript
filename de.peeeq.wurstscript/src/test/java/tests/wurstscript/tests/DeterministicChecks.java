@@ -685,6 +685,34 @@ public class DeterministicChecks extends WurstScriptTest {
     }
 
     /**
+     * The Lua dispatch groups the methods of an override family into slots by the key of their signature. A type
+     * variable used to print with an identity hash there, so the parameter T of State and the T of NoOpState shared a
+     * key in some runs and not in others, and the FSM below got its slot named after either class: two copies of a
+     * program must give a type variable the same key, and two variables of different owners different ones.
+     */
+    @Test
+    public void dispatchSignatureKeysDoNotDependOnIdentityHashes() {
+        String[] first = typeVarKeys();
+        String[] second = typeVarKeys();
+        assertEquals(second, first);
+        assertTrue(!first[0].equals(first[1]), first[0] + " / " + first[1]);
+    }
+
+    private static String[] typeVarKeys() {
+        String[] keys = new String[2];
+        String[] owners = {"State", "NoOpState"};
+        for (int i = 0; i < 2; i++) {
+            de.peeeq.wurstscript.jassIm.ImTypeVar t = de.peeeq.wurstscript.jassIm.JassIm.ImTypeVar("T");
+            de.peeeq.wurstscript.jassIm.JassIm.ImClass(de.peeeq.wurstscript.ast.Ast.NoExpr(), owners[i], de.peeeq.wurstscript.jassIm.JassIm.ImTypeVars(t),
+                de.peeeq.wurstscript.jassIm.JassIm.ImVars(), de.peeeq.wurstscript.jassIm.JassIm.ImMethods(),
+                de.peeeq.wurstscript.jassIm.JassIm.ImFunctions(), new ArrayList<>());
+            keys[i] = de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation.typeKey(
+                de.peeeq.wurstscript.jassIm.JassIm.ImTypeVarRef(t));
+        }
+        return keys;
+    }
+
+    /**
      * The FSM of AGENTS.md section 8 with each sibling state in a package of its own: every sibling binds the root
      * slot FSM.update calls to its own update, never to NoOpState's, and the script is the same with the
      * compilation units in the reverse order.
