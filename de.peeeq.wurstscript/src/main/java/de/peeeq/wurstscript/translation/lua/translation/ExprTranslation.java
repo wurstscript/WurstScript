@@ -251,7 +251,8 @@ public class ExprTranslation {
      * float, and {@code | 0} turns it into an integer, which it can because the range was checked; a
      * negative real is truncated as the negated floor of its negation. Both middle values are integers,
      * which Lua counts as true even when they are 0, so {@code and}/{@code or} pick the right branch.
-     * NaN, the infinities and everything outside the range call the native.
+     * Outside the range R2I saturates, in Jass and in the game's Lua alike (measured on the 3.0.0 client: a computed
+     * 5000000320 is 2147483647), so the bound is answered in place, and NaN is 0 as in the interpreter.
      */
     static LuaExpr realToInt(LuaExpr x) {
         LuaExpr nonNegative = LuaAst.LuaExprBinary(
@@ -265,13 +266,20 @@ public class ExprTranslation {
         LuaExpr truncated = floorToInt(x.copy());
         LuaExpr negatedTruncated = LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(),
             floorToInt(LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(), x.copy())));
-        LuaExpr nativeCall = LuaAst.LuaExprFunctionCallByName("R2I", LuaAst.LuaExprlist(x.copy()));
+        LuaExpr saturated = LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpGreater(), LuaAst.LuaExprRealVal("0.0")),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("2147483647")),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpLess(), LuaAst.LuaExprRealVal("0.0")),
+                    LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("-2147483648")),
+                LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0")));
         return LuaAst.LuaExprBinary(
             LuaAst.LuaExprBinary(nonNegative, LuaAst.LuaOpAnd(), truncated),
             LuaAst.LuaOpOr(),
             LuaAst.LuaExprBinary(
                 LuaAst.LuaExprBinary(negative, LuaAst.LuaOpAnd(), negatedTruncated),
-                LuaAst.LuaOpOr(), nativeCall));
+                LuaAst.LuaOpOr(), saturated));
     }
 
     private static LuaExpr floorToInt(LuaExpr x) {

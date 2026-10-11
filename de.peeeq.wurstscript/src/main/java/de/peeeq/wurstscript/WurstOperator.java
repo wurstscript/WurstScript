@@ -248,11 +248,13 @@ public enum WurstOperator {
         return a / b;
     }
 
-    /** Jass's R2I, measured on the 3.0.0 client: truncates, and wraps to 32 bits rather than saturating (1e10 is 1410065408). */
+    /**
+     * Jass's R2I, measured on the 3.0.0 client: truncates, and saturates outside the 32-bit range (a computed 5000000320
+     * is 2147483647, its negative -2147483648, a computed 1e20 2147483647), as Java's cast does. A real literal past
+     * 2^31 is read wrapped by Jass (the literal 1e10 is 1410065408.), which R2I of it shows, not R2I itself.
+     */
     public static int realToInt(double value) {
-        // Truncated in double and wrapped by remainder: a cast to long would saturate above its range.
-        double truncated = value < 0 ? Math.ceil(value) : Math.floor(value);
-        return (int) (long) (truncated % 4294967296.0);
+        return (int) value;
     }
 
     /**

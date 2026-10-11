@@ -7630,6 +7630,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * Measured on the 3.0.0 client, R2I saturates outside the 32-bit range, in Jass and in the game's Lua alike: a
+     * computed 5000000320 is 2147483647, its negative -2147483648. The interpreters and the test Lua's R2I agree, so
+     * a real modulo whose quotient leaves the range is the same everywhere too.
+     */
+    @Test
+    public void r2iSaturatesInEveryRun() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
+            "package Test",
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "init",
+            "    let big = w(50000.) * w(100000.)",
+            "    if R2I(big) == 2147483647 and R2I(-big) == -2147483648 and R2I(big * big) == 2147483647",
+            "        and big % 1. > 2000000000.",
+            "        testSuccess()");
+    }
+
     @Test
     public void realModIsModuloRealsFormulaInEveryRun() {
         test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
