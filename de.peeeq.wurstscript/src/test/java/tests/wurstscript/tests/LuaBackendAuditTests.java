@@ -7631,6 +7631,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * The Jass interpreter divides through {@code ILconstNum.div}, which a program never reaches when the IM
+     * interpreter stops first, so it is checked on its own: a real division by zero stops, an integer one too.
+     */
+    @Test
+    public void theJassInterpretersRealDivisionByZeroStops() {
+        de.peeeq.wurstscript.intermediatelang.ILconstReal zero = de.peeeq.wurstscript.intermediatelang.ILconstReal.create(0f);
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstReal.create(1f).div(zero));
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstReal.create(0f).div(zero));
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstInt.create(1).div(zero));
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstReal.create(1f)
+                .div(de.peeeq.wurstscript.intermediatelang.ILconstInt.create(0)));
+        assertEquals(0.5f, ((de.peeeq.wurstscript.intermediatelang.ILconstReal)
+            de.peeeq.wurstscript.intermediatelang.ILconstReal.create(1f).div(
+                de.peeeq.wurstscript.intermediatelang.ILconstReal.create(2f))).getVal(), 0f);
+    }
+
+    /**
      * Measured on the 3.0.0 client, R2I saturates outside the 32-bit range, in Jass and in the game's Lua alike: a
      * computed 5000000320 is 2147483647, its negative -2147483648. The interpreters and the test Lua's R2I agree, so
      * a real modulo whose quotient leaves the range is the same everywhere too.
