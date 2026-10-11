@@ -155,6 +155,38 @@ public class CliBuildMapTests {
         assertNull(request.compiledModel, "nothing is compiled when the check finds errors");
     }
 
+    /**
+     * The map script is the input of a protected map. Jass in it which the parser cannot translate fails the build: a
+     * dropped declaration would ship a map whose script is missing it.
+     */
+    @Test
+    public void theCliBuildFailsOnInvalidJassInTheMapScript() throws Exception {
+        File projectFolder = new File("./temp/testProject_cli_invalid_map_script/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        wurstFolder.mkdirs();
+        Files.writeString(new File(wurstFolder, "Wurst.wurst").toPath(), "package Wurst\n");
+        Files.writeString(new File(wurstFolder, "war3map.j").toPath(),
+            "function main takes nothing returns nothing\nendfunction\n");
+        File configured = new File(projectFolder, "configured.j");
+        Files.writeString(configured.toPath(),
+            "function main takes nothing returns nothing\n"
+                + "    local hero = \"h\"\n"
+                + "    call BJDebugMsg(hero)\n"
+                + "endfunction\n"
+                + "function config takes nothing returns nothing\nendfunction\n");
+
+        CountingModelManager modelManager = new CountingModelManager(projectFolder);
+        modelManager.loadProject();
+        assertFalse(modelManager.hasErrors(), "the project's own script is valid");
+        CapturingCliBuildMap request = new CapturingCliBuildMap(projectFolder);
+
+        RuntimeException e = expectThrows(RuntimeException.class, () -> request.compile(modelManager, configured));
+
+        assertTrue(e.getMessage().contains("missing ID at '='"), e.getMessage());
+        assertTrue(modelManager.hasErrors(), "the invalid local is an error");
+        assertNull(request.compiledModel, "nothing is compiled");
+    }
+
     private static final String NAME_WARNING = "Function names should start with an lower case character.";
     /** Reported by the lexer, when the project is loaded: no check of the model reports it. */
     private static final String INDENTATION_WARNING = "Use an even number of spaces for indentation.";
