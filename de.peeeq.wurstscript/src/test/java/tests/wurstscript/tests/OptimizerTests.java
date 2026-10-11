@@ -3934,35 +3934,12 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzIsSelectionEnabled"
         ));
         Element trace = Ast.NoExpr();
-        ImFunctions functions = JassIm.ImFunctions();
-        java.util.Map<String, ImFunction> functionsByName = new java.util.LinkedHashMap<>();
         for (String name : localValueSources) {
-            ImFunction nativeFunction = nativeIntFunction(trace, name);
-            functions.add(nativeFunction);
-            functionsByName.put(name, nativeFunction);
-        }
-        for (String name : intentionallyExcludedSources) {
-            ImFunction nativeFunction = nativeIntFunction(trace, name);
-            functions.add(nativeFunction);
-            functionsByName.put(name, nativeFunction);
-        }
-        ImProg prog = JassIm.ImProg(
-            trace,
-            JassIm.ImVars(),
-            functions,
-            JassIm.ImMethods(),
-            JassIm.ImClasses(),
-            JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>()
-        );
-        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
-
-        for (String name : localValueSources) {
-            assertTrue(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+            assertTrue(LocalPlayerContextAnalyzer.isLocalPlayerSource(nativeIntFunction(trace, name)),
                 name + " must be treated as a client-local value source");
         }
         for (String name : intentionallyExcludedSources) {
-            assertFalse(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+            assertFalse(LocalPlayerContextAnalyzer.isLocalPlayerSource(nativeIntFunction(trace, name)),
                 name + " is synchronized event data or user-managed local state");
         }
     }

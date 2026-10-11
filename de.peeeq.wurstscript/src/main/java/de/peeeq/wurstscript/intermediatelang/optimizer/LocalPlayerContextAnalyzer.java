@@ -215,7 +215,8 @@ public final class LocalPlayerContextAnalyzer {
         return variable != null && variableIsDependent(variable);
     }
 
-    public boolean isLocalPlayerSource(ImFunction function) {
+    /** Whether {@code function} is a native whose value may differ between clients; a fixed list, no analysis. */
+    public static boolean isLocalPlayerSource(ImFunction function) {
         return isClientLocalValueSource(function);
     }
 
