@@ -85,8 +85,10 @@ jassTypeDecl: 'type' name=ID 'extends' extended=jassTypeExpr NL;
 
 formalParam: jassTypeExpr name=ID;
 
+// A type is never empty: with an empty alternative `local x = 1` parsed as a local without a type, which the
+// translation cannot handle, and the declaration was dropped without an error.
 jassTypeExpr:
-    | typeName=ID
+      typeName=ID
     | jassTypeExpr 'array'
 ;
 
@@ -126,7 +128,8 @@ exprFuncRef: 'function' (scopeName=ID '.')? funcName=ID;
 
 argumentList: '(' exprList ')';
 
-exprFunctionCall: funcName=ID jassTypeExpr argumentList;
+// Jass has no type arguments, so nothing stands between the name and the arguments.
+exprFunctionCall: funcName=ID argumentList;
 	  
 exprList : exprs+=jassExpr (',' exprs+=jassExpr)*;
 
