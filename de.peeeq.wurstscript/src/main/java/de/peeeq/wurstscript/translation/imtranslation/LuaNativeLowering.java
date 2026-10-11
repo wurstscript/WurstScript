@@ -498,6 +498,7 @@ public final class LuaNativeLowering {
      */
     private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
         ImFunction[] shim = {null};
+        List<ImFunction> added = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
@@ -507,27 +508,38 @@ public final class LuaNativeLowering {
                     return;
                 }
                 if (shim[0] == null) {
-                    shim[0] = buildRealToInt(translator);
+                    shim[0] = buildRealToInt(translator, added);
                 }
                 call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
                     JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL));
             }
         });
         if (shim[0] != null) {
-            prog.getFunctions().add(translator.luaRawR2IFunc);
+            prog.getFunctions().addAll(added);
             prog.getFunctions().add(shim[0]);
         }
     }
 
+    /**
+     * The R2I intrinsic, printed as Lua arithmetic by ExprTranslation#realToInt: made once per program, and added to
+     * {@code addTo} by whichever asks first. The R2I lowering and the real modulo share it.
+     */
+    private static ImFunction rawRealToInt(ImTranslator translator, List<ImFunction> addTo) {
+        if (translator.luaRawR2IFunc == null) {
+            ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, TypesHelper.imReal(), "x", false);
+            translator.luaRawR2IFunc = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
+                JassIm.ImVars(arg), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(),
+                Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+            addTo.add(translator.luaRawR2IFunc);
+        }
+        return translator.luaRawR2IFunc;
+    }
+
     /** return rawR2I(x): one intrinsic call, printed as Lua arithmetic by ExprTranslation#realToInt. */
-    private static ImFunction buildRealToInt(ImTranslator translator) {
+    private static ImFunction buildRealToInt(ImTranslator translator, List<ImFunction> addTo) {
         ImType realType = TypesHelper.imReal();
         ImType intType = TypesHelper.imInt();
-        ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
-        ImFunction rawR2I = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
-            JassIm.ImVars(arg), intType.copy(), JassIm.ImVars(), JassIm.ImStmts(),
-            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
-        translator.luaRawR2IFunc = rawR2I;
+        ImFunction rawR2I = rawRealToInt(translator, addTo);
 
         ImVar x = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
         ImStmts body = JassIm.ImStmts(JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImFunctionCall(SYNTHETIC_TRACE, rawR2I,
@@ -595,7 +607,6 @@ public final class LuaNativeLowering {
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
         private ImFunction rawFloorModInt;
-        private ImFunction rawFmodReal;
         private ImFunction intDiv;
         private ImFunction modInt;
         private ImFunction modReal;
@@ -629,14 +640,15 @@ public final class LuaNativeLowering {
         }
 
         /**
-         * Always fmod and the ModuloReal correction, never Lua's float %: in the game the two differ for a
-         * negative dividend, and fmod is the one which agrees with Jass (measured on the 3.0.0 client: -0.1 % 7
-         * gives 6.900000064 with % and 6.899999616 with fmod, as Jass; -0.0000001 % 1 gives 0.999999872 with %
-         * and 1 with fmod, as Jass). The test Lua computes in double, where the two agree.
+         * Blizzard.j's ModuloReal, which a real modulo calls on Jass: {@code a - R2I(a / b) * b}, plus b when that
+         * is negative, with R2I as the game's Lua computes it. Measured on the 3.0.0 client, that gives Jass's
+         * result in the game's Lua for every operand both read alike, where math.fmod and Lua's float % do not:
+         * 360 % 7 is 3 (fmod and % give 3.0000153), 7.5 % 360 is 7.5 (both give 7.4999995), -7.5 % 2.5 is 0
+         * (fmod gives 2.4999993). The test Lua computes in double, where all three agree.
          */
         ImFunction modReal() {
             if (modReal == null) {
-                modReal = buildFmodMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."), rawFmodReal());
+                modReal = buildBlizzardModReal(rawRealToInt(translator, created));
                 translator.luaModRealFunc = modReal;
                 created.add(modReal);
             }
@@ -673,15 +685,6 @@ public final class LuaNativeLowering {
                 created.add(rawFloorModInt);
             }
             return rawFloorModInt;
-        }
-
-        private ImFunction rawFmodReal() {
-            if (rawFmodReal == null) {
-                rawFmodReal = rawNative("__wurst_rawFmodReal", TypesHelper.imReal());
-                translator.luaRawFmodRealFunc = rawFmodReal;
-                created.add(rawFmodReal);
-            }
-            return rawFmodReal;
         }
 
         /** A native leaf with two params and a return, translated as a Lua backend intrinsic. */
@@ -761,24 +764,34 @@ public final class LuaNativeLowering {
                 JassIm.ImVars(r), body, Collections.emptyList());
         }
 
-        /** local r = rawFmod(a, b); if r < 0 then r = r + b end; return r */
-        private static ImFunction buildFmodMod(String name, ImType numType, ImExpr zeroLiteral, ImFunction rawFmod) {
-            ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
-            ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);
-            ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "r", false);
+        /**
+         * local q = a / b; local r = a - rawR2I(q) * b; if r < 0 then r = r + b end; return r
+         * (Blizzard.j's ModuloReal. The quotient is a local because the intrinsic is printed in place only for a
+         * variable; the integer it gives converts to a real in the multiplication, as I2R does.)
+         */
+        private static ImFunction buildBlizzardModReal(ImFunction rawR2I) {
+            ImType realType = TypesHelper.imReal();
+            ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "a", false);
+            ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "b", false);
+            ImVar q = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "q", false);
+            ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "r", false);
 
             ImStmts body = JassIm.ImStmts(
-                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), call(rawFmod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
+                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(q),
+                    JassIm.ImOperatorCall(WurstOperator.DIV_REAL, JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImVarAccess(b)))),
+                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), JassIm.ImOperatorCall(WurstOperator.MINUS,
+                    JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImOperatorCall(WurstOperator.MULT,
+                        JassIm.ImExprs(call(rawR2I, JassIm.ImVarAccess(q)), JassIm.ImVarAccess(b)))))),
                 JassIm.ImIf(SYNTHETIC_TRACE,
-                    JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), zeroLiteral)),
+                    JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImRealVal("0."))),
                     JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
                         JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImVarAccess(b))))),
                     JassIm.ImStmts()
                 ),
                 JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(r))
             );
-            return JassIm.ImFunction(SYNTHETIC_TRACE, name, JassIm.ImTypeVars(), JassIm.ImVars(a, b), numType.copy(),
-                JassIm.ImVars(r), body, Collections.emptyList());
+            return JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_modReal", JassIm.ImTypeVars(), JassIm.ImVars(a, b),
+                realType.copy(), JassIm.ImVars(q, r), body, Collections.emptyList());
         }
 
         private static ImFunctionCall call(ImFunction f, ImExpr... args) {

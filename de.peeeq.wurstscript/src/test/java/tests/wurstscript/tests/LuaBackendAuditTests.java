@@ -5841,10 +5841,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("repro must exercise string concat lowering", compiled.contains(" .. "));
         assertFalse("the raw concat primitive is an operator, not a call", compiled.contains("__wurst_rawConcat"));
         assertTrue("repro must exercise integer div lowering", compiled.contains(" // "));
-        // the int divisor is a literal once inlined, so it lowers to Lua's %; a real modulo is always fmod
-        // (see modByADivisorThatBecomesALiteral...)
+        // the int divisor is a literal once inlined, so it lowers to Lua's %; a real modulo is always Blizzard.j's
+        // formula (see modByADivisorThatBecomesALiteral...)
         assertTrue("repro must exercise integer and real mod lowering:\n" + compiled,
-            compiled.contains(" % 2)") && compiled.contains("math.fmod("));
+            compiled.contains(" % 2)") && compiled.contains(" * 2.))") && !compiled.contains("math.fmod("));
         assertFalse("raw numeric primitive calls must not survive Lua emission", compiled.contains("__wurst_rawF"));
     }
 
@@ -7505,9 +7505,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /**
      * An int divisor which only becomes a literal once the helper is inlined (here a parameter, in a map
      * often a constant) is Lua's %, with no fmod and no sign correction: the helper tests the divisor
-     * and the test folds; a runtime divisor keeps the test. A real modulo is always fmod, whatever the
-     * divisor: in the game Lua's float % differs from fmod and from Jass for a negative dividend (measured
-     * on the 3.0.0 client, -0.1 % 7 gives 6.900000064 with % and 6.899999616 with fmod and in Jass).
+     * and the test folds; a runtime divisor keeps the test. A real modulo is always Blizzard.j's ModuloReal,
+     * whatever the divisor, as on Jass: in the game math.fmod and Lua's float % differ from Jass (measured on the
+     * 3.0.0 client, 360 % 7 gives 3.0000153 with both and 3 with the formula and in Jass).
      */
     @Test
     public void modByADivisorThatBecomesALiteralIsTheLuaOperator() {
@@ -7536,12 +7536,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue(fixed, fixed.contains(" % 1000003)"));
         assertFalse(fixed, fixed.contains("fmod") || fixed.contains("< 0"));
         String fixedReal = topLevelFunctionBodyWithPrefix(compiled, "fixedReal");
-        assertTrue("a real modulo is fmod, also by a literal of at least 1:\n" + fixedReal,
-            fixedReal.contains("math.fmod("));
-        assertFalse(fixedReal, fixedReal.contains(" % "));
+        assertTrue("a real modulo is Blizzard.j's formula, the truncation printed in place:\n" + fixedReal,
+            fixedReal.contains(" / 360.)") && fixedReal.contains("// 1) | 0)"));
+        assertFalse(fixedReal, fixedReal.contains(" % ") || fixedReal.contains("math.fmod(")
+            || fixedReal.contains("__wurst_rawR2I("));
         String belowOne = topLevelFunctionBodyWithPrefix(compiled, "belowOne");
-        assertTrue("a real divisor below 1 keeps fmod:\n" + belowOne, belowOne.contains("math.fmod("));
-        assertFalse(belowOne, belowOne.contains(" % "));
+        assertTrue("a real divisor below 1 is the same formula:\n" + belowOne, belowOne.contains(" / 0.5)"));
+        assertFalse(belowOne, belowOne.contains(" % ") || belowOne.contains("math.fmod("));
         String varying = topLevelFunctionBodyWithPrefix(compiled, "varying");
         assertTrue("a runtime divisor is tested:\n" + varying,
             varying.contains(" % ") && varying.contains("math.fmod("));
@@ -7670,7 +7671,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse(init, init.contains("math.tointeger") || init.contains("tonumber") || init.contains("__wurst_ensureInt"));
     }
 
-    /** -0.0 stays -0.0 under fmod and its correction, which a real modulo always is: 1 / r is minus infinity. */
+    /** -0.0 stays -0.0 under Blizzard.j's ModuloReal, which a real modulo always is: 1 / r is minus infinity. */
     @Test
     public void modKeepsTheSignOfANegativeZeroOnLua() throws IOException {
         test().testLua(true).inline().localOptimizations().executeProg().lines(
@@ -7687,6 +7688,6 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
         String compiled = topLevelFunctionBodyWithPrefix(compiledLua("modKeepsTheSignOfANegativeZeroOnLua"),
             "init_Test");
-        assertTrue(compiled, compiled.contains("math.fmod(") && !compiled.contains(" % "));
+        assertTrue(compiled, compiled.contains(" / 360.)") && !compiled.contains(" % ") && !compiled.contains("math.fmod("));
     }
 }

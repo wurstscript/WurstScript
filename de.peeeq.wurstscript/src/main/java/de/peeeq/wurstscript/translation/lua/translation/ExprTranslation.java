@@ -216,7 +216,6 @@ public class ExprTranslation {
         return unaryIntrinsicName(function, tr) != null
             || function == tr.imTr.luaRawFloorDivIntFunc
             || function == tr.imTr.luaRawFmodIntFunc
-            || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc
             || function == tr.imTr.luaRawOrEmptyFunc
