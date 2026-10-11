@@ -841,6 +841,63 @@ public class DeterministicChecks extends WurstScriptTest {
             "same-named receivers must bind in an order independent of the compilation units");
     }
 
+    /**
+     * Two packages each declare the generic hierarchy Box, First and Second. The key of a dispatch group named its class,
+     * its method and the types of its signature by name only, so both families of pick had the same key and shared
+     * one group: the packages of the class and of what the signature names keep them apart, in any order of the
+     * compilation units.
+     */
+    @Test
+    public void sameNamedGenericHierarchiesInTwoPackagesKeepTheirOwnDispatchGroups() throws IOException {
+        assertOwnDispatchGroups("sameNamedOldGenericHierarchies", "T");
+    }
+
+    /** The same with new generics, whose signatures name the type variable and so its owner. */
+    @Test
+    public void sameNamedNewGenericHierarchiesInTwoPackagesKeepTheirOwnDispatchGroups() throws IOException {
+        assertOwnDispatchGroups("sameNamedNewGenericHierarchies", "T:");
+    }
+
+    private void assertOwnDispatchGroups(String name, String typeParameter) throws IOException {
+        List<CU> units = new ArrayList<>();
+        for (String p : List.of("PA", "PB")) {
+            boolean first = p.equals("PA");
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "public abstract class Box<" + typeParameter + ">",
+                "    abstract function pick(T a, T b) returns T",
+                "public class First<" + typeParameter + "> extends Box<T>",
+                "    override function pick(T a, T b) returns T",
+                "        return " + (first ? "a" : "b"),
+                "public class Second<" + typeParameter + "> extends Box<T>",
+                "    override function pick(T a, T b) returns T",
+                "        return " + (first ? "b" : "a"),
+                "public function run" + p + "() returns int",
+                "    Box<int> x = new First<int>()",
+                "    Box<int> y = new Second<int>()",
+                "    return x.pick(10, 20) * 100 + y.pick(10, 20)"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import PA",
+            "import PB",
+            "native testSuccess()",
+            "init",
+            "    if runPA() == 1020 and runPB() == 2010",
+            "        testSuccess()"));
+        String lua = compileAndRunToLua(name, units.toArray(new CU[0]));
+        java.util.Set<String> slots = new java.util.TreeSet<>();
+        java.util.regex.Matcher binding = java.util.regex.Pattern.compile("\\n\\t\\w+\\.(\\w+) = First_First_pick\\w*\\n")
+            .matcher(lua);
+        while (binding.find()) {
+            slots.add(binding.group(1));
+        }
+        assertEquals(slots.size(), 2, "each package's First binds pick to a slot of its own:\n" + lua);
+        List<CU> shuffled = List.of(units.get(2), units.get(1), units.get(0));
+        assertEquals(compileToLua(name, shuffled), lua,
+            "the slots are the same in any order of the compilation units");
+    }
+
     /** Compiles {@code units} for every backend, runs them, and returns the Lua script written under {@code name}. */
     private String compileAndRunToLua(String name, CU... units) throws IOException {
         testNamed(name).testLua(true).luaOnly(false).executeProg().compilationUnits(units);

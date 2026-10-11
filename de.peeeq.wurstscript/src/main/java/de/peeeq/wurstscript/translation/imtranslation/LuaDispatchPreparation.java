@@ -5,10 +5,12 @@ import de.peeeq.wurstscript.ast.AstElementWithFuncName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -100,7 +102,10 @@ public final class LuaDispatchPreparation {
                 if (partition.isEmpty()) {
                     continue;
                 }
-                String key = methodSortKey(partition.get(0)) + "|" + dispatchSignatureKey(partition.get(0));
+                // The sort key names the class only; two packages may each declare one of that name.
+                ImClass owner = partition.get(0).attrClass();
+                String key = methodSortKey(partition.get(0)) + "|" + dispatchSignatureKey(partition.get(0))
+                    + OWNERS + (owner == null ? "" : packageOf(owner.getTrace()));
                 for (int k = 0; k < partition.size(); k++) {
                     ImMethod method = partition.get(k);
                     method.setLuaDispatchGroupKey(key);
@@ -467,6 +472,11 @@ public final class LuaDispatchPreparation {
             }
             sb.append(typeKey(params.get(i).getType()));
         }
+        sb.append(OWNERS);
+        appendOwners(implementation.getReturnType(), sb);
+        for (int i = 1; i < params.size(); i++) {
+            appendOwners(params.get(i).getType(), sb);
+        }
         return sb.toString();
     }
 
@@ -488,6 +498,10 @@ public final class LuaDispatchPreparation {
                 sb.append(",");
             }
             sb.append(typeKey(params.get(i).getType()));
+        }
+        sb.append(OWNERS);
+        for (int i = 1; i < params.size(); i++) {
+            appendOwners(params.get(i).getType(), sb);
         }
         return sb.toString();
     }
@@ -655,6 +669,43 @@ public final class LuaDispatchPreparation {
         }
         // a simple type, void, any: no identity in the printed form
         return type.toString();
+    }
+
+    /**
+     * Separates a signature from the packages of what it names. It sorts below every character a type key holds, so
+     * two signatures which differed before them keep their order, and two which named equal types stay together.
+     */
+    private static final char OWNERS = '';
+
+    /**
+     * The packages of the classes and of the owners of the type variables {@code type} names, in order. Two packages may
+     * each declare a class of the same name, and {@link #typeKey} names a class by its name only: without these, the
+     * methods of two such classes shared a dispatch group and their signatures compared equal for an alias.
+     */
+    private static void appendOwners(ImType type, StringBuilder sb) {
+        if (type instanceof ImTypeVarRef ref) {
+            ImTypeVar typeVar = ref.getTypeVariable();
+            Element owner = typeVar.getParent() instanceof ImTypeVars vars ? vars.getParent() : null;
+            sb.append(owner instanceof ImClass c ? packageOf(c.getTrace())
+                : owner instanceof ImFunction f ? packageOf(f.getTrace()) : "").append(';');
+        } else if (type instanceof ImClassType classType) {
+            sb.append(packageOf(classType.getClassDef().getTrace())).append(';');
+            for (int i = 0; i < classType.getTypeArguments().size(); i++) {
+                appendOwners(classType.getTypeArguments().get(i).getType(), sb);
+            }
+        } else if (type instanceof ImArrayType arrayType) {
+            appendOwners(arrayType.getEntryType(), sb);
+        } else if (type instanceof ImArrayTypeMulti arrayType) {
+            appendOwners(arrayType.getEntryType(), sb);
+        } else if (type instanceof ImTupleType tupleType) {
+            for (int i = 0; i < tupleType.getTypes().size(); i++) {
+                appendOwners(tupleType.getTypes().get(i), sb);
+            }
+        }
+    }
+
+    private static String packageOf(de.peeeq.wurstscript.ast.Element trace) {
+        return trace != null && trace.attrNearestPackage() instanceof WPackage p ? p.getName() : "";
     }
 
     private static String typeVarKey(ImTypeVar typeVar) {
