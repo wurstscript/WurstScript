@@ -406,11 +406,17 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
-    /** Every expected value here was measured on the 3.0.0 client. */
+    /**
+     * Every expected value here was measured on the 3.0.0 client. A real past 2^31 is computed (w keeps it from
+     * folding): Jass reads a real literal past 2^31 wrapped (the literal 3000000000. is negative), which the
+     * interpreter does not model, and which is what R2S, R2SW and R2I of such a literal show.
+     */
     @Test
     public void stringNativesAsMeasured() {
         test().withStdLib().executeProg(true).testLua(false).lines(
             "package Test",
+            "@noinline function w(real x) returns real",
+            "    return x",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
             "        testFail(name + \" gave \" + actual)",
@@ -433,11 +439,8 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2S carry\", R2S(0.9996), \"1.000\")",
             "    measured(\"R2S negative\", R2S(-1.5), \"-1.500\")",
             "    measured(\"R2S negative to zero\", R2S(-0.0004), \"-0.000\")",
-            "    measured(\"R2S wraps\", R2S(3000000000.), \"-1294967296.000\")",
-            "    measured(\"R2S negative wraps\", R2S(-3000000000.), \"1294967296.000\")",
-            "    measured(\"R2S 1e10\", R2S(10000000000.), \"1410065408.000\")",
-            // Past 2^56 a real is a multiple of 2^32, so its integer part wraps to 0.
-            "    measured(\"R2S and R2SW beyond the long range\", R2S(100000000000000000000.) + \",\" + R2SW(100000000000000000000., 1, 2), \"0.000,0.00\")",
+            "    measured(\"R2S of a computed 3e9\", R2S(w(30000.) * w(100000.)), \"3000000000.000\")",
+            "    measured(\"R2S of a computed -3e9\", R2S(-(w(30000.) * w(100000.))), \"-3000000000.000\")",
             "    measured(\"R2SW padded\", R2SW(1.5, 8, 2), \"     1.50\")",
             "    measured(\"R2SW negative padded\", R2SW(-1.5, 8, 3), \"-    1.500\")",
             "    measured(\"R2SW precision 0\", R2SW(1.5, 2, 0), \" 2.0\")",
@@ -446,12 +449,13 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2SW negative to zero\", R2SW(-0.4, 1, 0), \"-0.0\")",
             "    measured(\"R2SW integer\", R2SW(7., 4, 0), \"   7.0\")",
             "    measured(\"R2SW carry\", R2SW(0.9996, 1, 3), \"1.000\")",
-            // Wraps like R2S: 3e9 is measured, and -3e9 wraps to the positive value R2S prints for it.
-            "    measured(\"R2SW wraps\", R2SW(3000000000., 1, 1) + \",\" + R2SW(-3000000000., 1, 3), \"-1294967296.0,1294967296.000\")",
+            "    measured(\"R2SW of a computed 3e9\", R2SW(w(30000.) * w(100000.), 1, 1) + \",\""
+                + " + R2SW(-(w(30000.) * w(100000.)), 1, 3), \"3000000000.0,-3000000000.000\")",
             "    measured(\"R2SW smallest width\", R2SW(1., -2147483647 - 1, 1), \"1.0\")",
             "    measured(\"R2I truncates\", I2S(R2I(1.9)) + \",\" + I2S(R2I(-1.9)), \"1,-1\")",
-            "    measured(\"R2I wraps\", I2S(R2I(10000000000.)) + \",\" + I2S(R2I(-10000000000.)), \"1410065408,-1410065408\")",
-            "    measured(\"R2I beyond the long range\", I2S(R2I(100000000000000000000.)) + \",\" + I2S(R2I(-100000000000000000000.)), \"0,0\")",
+            "    measured(\"R2I saturates\", I2S(R2I(w(50000.) * w(100000.))) + \",\" + I2S(R2I(-(w(50000.) * w(100000.)))),"
+                + " \"2147483647,-2147483648\")",
+            "    measured(\"R2I saturates far out\", I2S(R2I(w(50000.) * w(100000.) * w(50000.) * w(100000.) * w(4.))), \"2147483647\")",
             "    measured(\"SubString end before start\", SubString(\"abcdef\", 3, 1), \"def\")",
             "    measured(\"SubString empty range\", SubString(\"abcdef\", 3, 3), \"\")",
             "    measured(\"SubString at the end\", SubString(\"abcdef\", 6, 8), \"\")",

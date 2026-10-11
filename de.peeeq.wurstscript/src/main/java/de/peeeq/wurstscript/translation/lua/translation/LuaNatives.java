@@ -134,6 +134,9 @@ public class LuaNatives {
             // Truncate toward zero. Not math.modf: that returns TWO values
             // (which expand into enclosing argument lists) and its integral
             // part is a float (tostring would yield "3.0" instead of "3").
+            // Saturates outside the 32-bit range, as the game's R2I does (measured on the 3.0.0 client).
+            f.getBody().add(LuaAst.LuaLiteral("if x >= 2147483647 then return 2147483647 end"));
+            f.getBody().add(LuaAst.LuaLiteral("if x <= -2147483648 then return -2147483648 end"));
             f.getBody().add(LuaAst.LuaLiteral("if x >= 0 then"));
             f.getBody().add(LuaAst.LuaLiteral("    return math.floor(x)"));
             f.getBody().add(LuaAst.LuaLiteral("end"));
@@ -150,7 +153,10 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("if x >= 0.0 and x < 2147483648.0 then return x // 1 | 0 end"));
             f.getBody().add(LuaAst.LuaLiteral("if x < 0.0 and x > -2147483649.0 then return -(-x // 1 | 0) end"));
-            f.getBody().add(LuaAst.LuaLiteral("return R2I(x)"));
+            // R2I saturates outside the range (measured on the 3.0.0 client), and NaN is 0 as in the interpreter
+            f.getBody().add(LuaAst.LuaLiteral("if x > 0.0 then return 2147483647 end"));
+            f.getBody().add(LuaAst.LuaLiteral("if x < 0.0 then return -2147483648 end"));
+            f.getBody().add(LuaAst.LuaLiteral("return 0"));
         });
 
         addNative("__wurst_rawToInteger", f -> {

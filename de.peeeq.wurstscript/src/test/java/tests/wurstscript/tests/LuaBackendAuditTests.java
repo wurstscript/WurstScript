@@ -7604,6 +7604,71 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * formula and 1 by fmod. The comparisons are exact ({@code !=}), as Jass's {@code ==} on reals has a
      * tolerance.
      */
+    /**
+     * Measured on the 3.0.0 client, a real division or modulo by zero stops the thread in Jass ({@code 1. / 0.},
+     * {@code 0. / 0.}, {@code 5. % 0.} and ModuloReal by 0 alike). The interpreters, which model Jass, stop too, as
+     * for an integer division by zero, rather than going on with an infinity.
+     */
+    @Test
+    public void realDivisionByZeroStopsTheInterpreters() {
+        for (String expr : new String[]{"w(1.) / w(0.)", "w(5.) % w(0.)", "w(0.) / w(0.)"}) {
+            Throwable stopped = null;
+            try {
+                test().executeProg().lines(
+                    "package Test",
+                    "native testSuccess()",
+                    "@noinline function w(real x) returns real",
+                    "    return x",
+                    "init",
+                    "    let x = " + expr,
+                    "    if x == x or x != x",
+                    "        testSuccess()");
+            } catch (Throwable t) {
+                stopped = t;
+            }
+            assertTrue("a real division by zero stops: " + expr, stopped != null && String.valueOf(stopped.getMessage()).contains("by zero"));
+        }
+    }
+
+    /**
+     * The Jass interpreter divides through {@code ILconstNum.div}, which a program never reaches when the IM
+     * interpreter stops first, so it is checked on its own: a real division by zero stops, an integer one too.
+     */
+    @Test
+    public void theJassInterpretersRealDivisionByZeroStops() {
+        de.peeeq.wurstscript.intermediatelang.ILconstReal zero = de.peeeq.wurstscript.intermediatelang.ILconstReal.create(0f);
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstReal.create(1f).div(zero));
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstReal.create(0f).div(zero));
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstInt.create(1).div(zero));
+        org.testng.Assert.assertThrows(ArithmeticException.class,
+            () -> de.peeeq.wurstscript.intermediatelang.ILconstReal.create(1f)
+                .div(de.peeeq.wurstscript.intermediatelang.ILconstInt.create(0)));
+        assertEquals(0.5f, ((de.peeeq.wurstscript.intermediatelang.ILconstReal)
+            de.peeeq.wurstscript.intermediatelang.ILconstReal.create(1f).div(
+                de.peeeq.wurstscript.intermediatelang.ILconstReal.create(2f))).getVal(), 0f);
+    }
+
+    /**
+     * Measured on the 3.0.0 client, R2I saturates outside the 32-bit range, in Jass and in the game's Lua alike: a
+     * computed 5000000320 is 2147483647, its negative -2147483648. The interpreters and the test Lua's R2I agree, so
+     * a real modulo whose quotient leaves the range is the same everywhere too.
+     */
+    @Test
+    public void r2iSaturatesInEveryRun() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
+            "package Test",
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "init",
+            "    let big = w(50000.) * w(100000.)",
+            "    if R2I(big) == 2147483647 and R2I(-big) == -2147483648 and R2I(big * big) == 2147483647",
+            "        and big % 1. > 2000000000.",
+            "        testSuccess()");
+    }
+
     @Test
     public void realModIsModuloRealsFormulaInEveryRun() {
         test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
