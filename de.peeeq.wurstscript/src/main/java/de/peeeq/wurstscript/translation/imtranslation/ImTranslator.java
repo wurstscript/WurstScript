@@ -202,7 +202,6 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFmodIntFunc = null;
     @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
-    @Nullable public ImFunction luaRawFloorModRealFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
     /** {@code x or ""}: a string operand which may be nil, made safe for {@link #luaRawConcatFunc}. */
     @Nullable public ImFunction luaRawOrEmptyFunc = null;
@@ -247,8 +246,7 @@ public class ImTranslator implements SpecialisationLookup {
             || (divisor instanceof ImRealVal realVal && Double.parseDouble(realVal.getValR()) != 0.0);
         return nonZeroDivisor
             && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
-                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc
-                || target == luaRawFloorModRealFunc);
+                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
     }
     /**
      * Whether {@code f} is one of the Lua stubs which only read a table: a keyed-map read, or a hashtable
@@ -273,7 +271,7 @@ public class ImTranslator implements SpecialisationLookup {
         for (ImFunction f : new ImFunction[]{
             ensureIntFunc, ensureBoolFunc, ensureRealFunc, ensureStrFunc, stringConcatFunc,
             luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFmodRealFunc, luaRawFloorModIntFunc,
-            luaRawFloorModRealFunc, luaRawConcatFunc,
+            luaRawConcatFunc,
             luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
             luaRawToStringFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
             debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
