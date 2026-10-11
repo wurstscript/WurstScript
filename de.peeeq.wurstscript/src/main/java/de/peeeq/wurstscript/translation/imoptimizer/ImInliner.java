@@ -433,7 +433,7 @@ public class ImInliner {
     private boolean isEffectFree(Element e) {
         if (e instanceof ImFunctionCall call) {
             ImFunction target = call.getFunc();
-            if (!target.isNative() || localPlayerAnalysis().isLocalPlayerSource(target)
+            if (!target.isNative() || LocalPlayerContextAnalyzer.isLocalPlayerSource(target)
                 || !(SideEffectFreeNatives.isFunctionWithoutSideEffect(target.getName())
                     || translator.isLuaTableRead(target))) {
                 return false;

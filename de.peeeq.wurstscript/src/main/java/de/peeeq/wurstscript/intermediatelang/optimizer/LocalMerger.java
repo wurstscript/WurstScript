@@ -119,6 +119,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 if (!canMerge(color.getType(), v.getType())) {
                     continue;
                 }
+                // A merged local would hold both values while the analysis, made before this pass, still answers for
+                // each: keeping them apart keeps it true for the passes which use it after this one.
                 if (localPlayerContextAnalyzer != null
                     && localPlayerContextAnalyzer.isLocalPlayerDependent(v)
                     != localPlayerContextAnalyzer.isLocalPlayerDependent(color)) {

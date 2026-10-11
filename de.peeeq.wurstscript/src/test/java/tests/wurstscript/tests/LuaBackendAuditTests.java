@@ -1312,6 +1312,41 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * The merge after the cast operands are hoisted is the last pass, so nothing reads a locality analysis
+     * after it, and a client-local local may share its slot with a synchronized one which is dead by then.
+     */
+    @Test
+    public void oldGenericsCastMergeIgnoresLocality() {
+        String compiled = compileOptimizedLua("oldGenericsCastMergeIgnoresLocality",
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native GetPlayerId(player p) returns integer",
+            "native readInt() returns integer",
+            "native consume(integer value)",
+            "int array slots",
+            "@inline function load<T>(int key) returns T",
+            "    return slots[key] castTo T",
+            "@noinline function show(int key)",
+            "    let id = GetPlayerId(GetLocalPlayer())",
+            "    consume(id)",
+            "    consume(id)",
+            "    let other = readInt()",
+            "    consume(other)",
+            "    consume(other)",
+            "    consume(load<int>(key))",
+            "init",
+            "    show(1)");
+        String show = topLevelFunctionBodyWithPrefix(compiled, "show");
+        java.util.regex.Matcher clientLocal =
+            java.util.regex.Pattern.compile("(\\w+) = GetPlayerId\\(GetLocalPlayer\\(\\)\\)").matcher(show);
+        assertTrue("the client-local value is kept in a local:\n" + show, clientLocal.find());
+        String local = clientLocal.group(1);
+        assertTrue("that local is reused for a synchronized value:\n" + show,
+            show.contains(local + " = readInt()") || show.contains(local + " = Test_slots[key]"));
+    }
+
+    /**
      * A class-typed caller uses an old-generics result as is, so a missing entry has to come back
      * as nil: TimedLoop looks its timer up in a HashMap and creates one when the lookup is null.
      */

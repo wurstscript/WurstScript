@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -24,6 +23,9 @@ import java.util.Set;
  * got some are passed through the local merger once more: the temporaries share a slot with each
  * other and with dead locals of their type, and a function with many casts does not grow towards
  * Lua's limit of 200 locals. Merging only renames variables, so the operands stay variables.
+ * The merger runs here without a locality analysis, so a client-local value and a synchronized one
+ * may share a local. Elsewhere it keeps them apart only so that the analysis made before it stays
+ * true for the passes which use it afterwards; this is the last pass, so nothing uses one after it.
  */
 public final class LuaOldGenericsCasts {
 
@@ -72,9 +74,8 @@ public final class LuaOldGenericsCasts {
                 replacement));
         }
         prog.flatten(translator);
-        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
         for (ImFunction function : touched) {
-            new LocalMerger().optimizeFunc(function, analyzer, translator);
+            new LocalMerger().optimizeFunc(function, null, translator);
         }
     }
 }
