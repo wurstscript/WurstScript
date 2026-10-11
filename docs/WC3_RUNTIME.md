@@ -47,6 +47,8 @@ Every client simulates the same game from the same inputs; anything that makes t
 * **measured, 3.0.0** `R2I` and the arithmetic `x // 1 | 0` agree on every value probed, the 32-bit edges and values outside the range included (`LuaNativeLowering.lowerRealToInt`).
 * **measured, 3.0.0** A real modulo is Blizzard.j's `ModuloReal` on Jass, `a - I2R(R2I(a / b)) * b` plus `b` when negative. The same formula in the game's Lua gives Jass's result for every dividend both read alike (54 of 54 probed); Lua's float `%` and `math.fmod` do not: `360. % 7.` is 3.0000153 with either and 3 in Jass, `7.5 % 360.` is 7.4999995 and 7.5, and `-7.5 % 2.5` is 2.4999993 with fmod and its correction and 0 in Jass. The integer `%` agrees with Jass's `ModuloInteger` for a positive divisor on every value probed, the 32-bit edges included. So a real modulo is that formula with `R2I` as Lua arithmetic, and only an integer one by a positive literal is `%` (`LuaNativeLowering`).
 
+* **measured, 3.0.0** A real division by zero stops the thread in Jass: `1. / 0.`, `-1. / 0.`, `0. / 0.`, `5. % 0.` and `ModuloReal(5., 0.)` all do. The game's Lua goes on: `1. / 0.` is 1.7014e38 (the largest float, not an infinity), `-1. / 0.` its negative, `0. / 0.` is 1, and the Lua real modulo by 0 answers a number. The interpreters stop as Jass does (`WurstOperator.divideReal`); the Lua backend adds no check, which would cost every real division.
+
 ## Establishing a fact
 
 * Measure in the real client with discriminating values, such as `2^24 + 1` or sums just below an integer, computed at run time from array operands so that nothing is folded, and read the emitted Lua to confirm. State the client version where the fact is recorded.

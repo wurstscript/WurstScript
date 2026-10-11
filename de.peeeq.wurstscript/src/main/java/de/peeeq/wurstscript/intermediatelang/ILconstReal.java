@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang;
 
+import de.peeeq.wurstscript.WurstOperator;
+
 
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeReal;
@@ -74,9 +76,9 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
     @Override
     public ILconstNum div(ILconstNum other) {
         if (other instanceof ILconstInt iLconstInt) {
-            return create(val / iLconstInt.getVal());
+            return create(WurstOperator.divideReal(val, iLconstInt.getVal()));
         } else if (other instanceof ILconstReal iLconstReal) {
-            return create(val / iLconstReal.getVal());
+            return create(WurstOperator.divideReal(val, iLconstReal.getVal()));
         } else {
             throw new Error();
         }

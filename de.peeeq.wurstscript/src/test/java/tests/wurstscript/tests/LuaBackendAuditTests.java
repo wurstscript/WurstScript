@@ -7604,6 +7604,32 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * formula and 1 by fmod. The comparisons are exact ({@code !=}), as Jass's {@code ==} on reals has a
      * tolerance.
      */
+    /**
+     * Measured on the 3.0.0 client, a real division or modulo by zero stops the thread in Jass ({@code 1. / 0.},
+     * {@code 0. / 0.}, {@code 5. % 0.} and ModuloReal by 0 alike). The interpreters, which model Jass, stop too, as
+     * for an integer division by zero, rather than going on with an infinity.
+     */
+    @Test
+    public void realDivisionByZeroStopsTheInterpreters() {
+        for (String expr : new String[]{"w(1.) / w(0.)", "w(5.) % w(0.)", "w(0.) / w(0.)"}) {
+            Throwable stopped = null;
+            try {
+                test().executeProg().lines(
+                    "package Test",
+                    "native testSuccess()",
+                    "@noinline function w(real x) returns real",
+                    "    return x",
+                    "init",
+                    "    let x = " + expr,
+                    "    if x == x or x != x",
+                    "        testSuccess()");
+            } catch (Throwable t) {
+                stopped = t;
+            }
+            assertTrue("a real division by zero stops: " + expr, stopped != null && String.valueOf(stopped.getMessage()).contains("by zero"));
+        }
+    }
+
     @Test
     public void realModIsModuloRealsFormulaInEveryRun() {
         test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
