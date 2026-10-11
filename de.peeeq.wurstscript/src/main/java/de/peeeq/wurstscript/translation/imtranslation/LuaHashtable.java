@@ -11,8 +11,19 @@ import java.util.Map;
  * The Jass hashtable natives on Lua. A hashtable is a table with one subtable per kind of value, as Jass keeps the
  * kinds apart under the same keys: {@code { __wurst_ht_int = {}, __wurst_ht_bool = {}, ... }}. A subtable maps a
  * parent key to a child table, which maps a child key to the value. Only InitHashtable creates one (a compile-time
- * hashtable is emitted as a call of it and its saves) and FlushParentHashtable gives it five new subtables, so every
- * subtable is always there.
+ * hashtable is emitted as a call of it and its saves), so every subtable is always there.
+ *
+ * <p>Each operation answers what Jass answers, measured on the 3.0.0 client:
+ * <ul>
+ *     <li>A handle load is typed: a saved unit loads as itself through LoadUnitHandle and LoadWidgetHandle and as
+ *     null through LoadItemHandle or LoadTimerHandle. Lua cannot tell a handle's type, so a save also writes the
+ *     type of its native as a tag into {@link Values#HANDLE_TYPE}, and a load answers the handle only for a tag it
+ *     accepts ({@link #acceptedTags}).</li>
+ *     <li>Saving a null handle stores nothing, and a handle saved there before stays.</li>
+ *     <li>FlushParentHashtable destroys the hashtable: later saves do not stick and every load answers its default.
+ *     It points every subtable at one shared table which ignores writes.</li>
+ *     <li>A null hashtable answers every load with its default and ignores every write.</li>
+ * </ul>
  *
  * <p>{@link LuaNativeLowering} points every call of one of these natives at a stub {@code __wurst_<native>}, made once
  * per native and kept in {@link ImTranslator#luaHashtableStubs}. The optimizer and the backend recognise the stub by
@@ -34,7 +45,9 @@ public final class LuaHashtable {
     /** The kinds of value, each kept in its own subtable. */
     public enum Values {
         INT("__wurst_ht_int"), BOOL("__wurst_ht_bool"), REAL("__wurst_ht_real"), STR("__wurst_ht_str"),
-        HANDLE("__wurst_ht_handle");
+        HANDLE("__wurst_ht_handle"),
+        /** The tag of each saved handle, the type of the native which saved it, under the same keys. */
+        HANDLE_TYPE("__wurst_ht_htype");
 
         /** The field of the hashtable which holds the subtable. */
         public final String field;
@@ -44,8 +57,11 @@ public final class LuaHashtable {
         }
     }
 
-    /** An operation on the values of one kind, or on all of them ({@code values} is null). */
-    public record Op(Kind kind, @Nullable Values values) {
+    /**
+     * An operation on the values of one kind, or on all of them ({@code values} is null). {@code handleType} is the
+     * type of a handle save or load, the tag a save writes and the type a load asks for.
+     */
+    public record Op(Kind kind, @Nullable Values values, @Nullable String handleType) {
     }
 
     /** The handle types with a Save and a Load native of their own; agent has only a Save. */
@@ -55,6 +71,12 @@ public final class LuaHashtable {
         "UnitPool", "ItemPool", "Quest", "QuestItem", "DefeatCondition", "TimerDialog", "Leaderboard", "Multiboard",
         "MultiboardItem", "Trackable", "Dialog", "Button", "TextTag", "Lightning", "Image", "Ubersplat", "Region",
         "FogState", "FogModifier", "Hashtable", "Frame");
+
+    /** The tag of a handle saved as an agent, whose own type is not known. */
+    public static final String AGENT = "Agent";
+
+    /** The handle types a widget can be; a handle saved as one of them is a widget. */
+    public static final List<String> WIDGET_TYPES = List.of("Unit", "Item", "Destructable");
 
     /** The operations by stub name. Looked up, never iterated. */
     private static final Map<String, Op> OPS = new HashMap<>();
@@ -69,11 +91,28 @@ public final class LuaHashtable {
         family(Values.STR, "SaveStr", "LoadStr", "HaveSavedString", "RemoveSavedString");
         put("HaveSavedHandle", Kind.HAVE, Values.HANDLE);
         put("RemoveSavedHandle", Kind.REMOVE, Values.HANDLE);
-        put("SaveAgentHandle", Kind.SAVE, Values.HANDLE);
+        OPS.put(stubName("SaveAgentHandle"), new Op(Kind.SAVE, Values.HANDLE, AGENT));
         for (String type : HANDLE_TYPES) {
-            put("Save" + type + "Handle", Kind.SAVE, Values.HANDLE);
-            put("Load" + type + "Handle", Kind.LOAD, Values.HANDLE);
+            OPS.put(stubName("Save" + type + "Handle"), new Op(Kind.SAVE, Values.HANDLE, type));
+            OPS.put(stubName("Load" + type + "Handle"), new Op(Kind.LOAD, Values.HANDLE, type));
         }
+    }
+
+    /**
+     * The tags a load of {@code type} answers the handle for: its own type and, for a widget, the widget types. A
+     * handle saved through a supertype (a widget, an agent) may be of the type loaded, which Lua cannot tell, so
+     * those tags are accepted too.
+     */
+    public static List<String> acceptedTags(String type) {
+        List<String> tags = new java.util.ArrayList<>();
+        tags.add(type);
+        if (type.equals("Widget")) {
+            tags.addAll(WIDGET_TYPES);
+        } else if (WIDGET_TYPES.contains(type)) {
+            tags.add("Widget");
+        }
+        tags.add(AGENT);
+        return tags;
     }
 
     private static void family(Values values, String save, String load, String have, String remove) {
@@ -84,7 +123,13 @@ public final class LuaHashtable {
     }
 
     private static void put(String nativeName, Kind kind, @Nullable Values values) {
-        OPS.put(stubName(nativeName), new Op(kind, values));
+        OPS.put(stubName(nativeName), new Op(kind, values, null));
+    }
+
+    /** The operation of the hashtable native or stub {@code name}, or null. */
+    public static @Nullable Op opOfName(String name) {
+        Op op = OPS.get(name);
+        return op != null ? op : OPS.get(stubName(name));
     }
 
     private LuaHashtable() {

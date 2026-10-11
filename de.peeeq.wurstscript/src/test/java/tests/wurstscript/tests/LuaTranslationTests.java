@@ -500,7 +500,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
         // The library's hashtables are created and filled where it uses them (LuaHashtableTranslation).
         assertTrue(compiled.contains(" = ({__wurst_ht_int=({}), __wurst_ht_bool=({}), __wurst_ht_real=({}), "
-            + "__wurst_ht_str=({}), __wurst_ht_handle=({}), })"));
+            + "__wurst_ht_str=({}), __wurst_ht_handle=({}), __wurst_ht_htype=({}), })"));
         assertTrue(compiled.contains("local function __wurst_htNewChild("));
         assertFalse(compiled.contains("function __wurst_InitHashtable("));
         LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
@@ -3661,7 +3661,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
         // Printed as the read it stands for, so no helper is called.
-        assertContainsRegex(compiled, "\\(\\w+\\.__wurst_ht_handle\\[\\w+\\] or __wurst_htEmpty\\)\\[\\w+\\] ~= nil\\)");
+        assertContainsRegex(compiled, "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[\\w+\\]\\) or __wurst_htEmpty\\)\\[\\w+\\] ~= nil\\)");
         assertDoesNotContainRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
     }
 
@@ -3702,7 +3702,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
         // Printed in place on the handle subtable, so no helper is called.
         assertContainsRegex(compiled, "__wurst_htNewChild\\(\\w+\\.__wurst_ht_handle, \\w+\\)");
-        assertContainsRegex(compiled, "\\(\\w+\\.__wurst_ht_handle\\[\\w+\\] or __wurst_htEmpty\\)\\[\\w+\\]");
+        assertContainsRegex(compiled, "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[\\w+\\]\\) or __wurst_htEmpty\\)\\[\\w+\\]");
         assertDoesNotContainRegex(compiled, "\\b__wurst_(Save|Load)AbilityHandle\\(");
     }
 

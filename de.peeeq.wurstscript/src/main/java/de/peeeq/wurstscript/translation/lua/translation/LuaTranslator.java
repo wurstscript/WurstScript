@@ -351,6 +351,9 @@ public class LuaTranslator {
     private final Set<ImFunction> definedHashtableHelpers = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Lazy<LuaVariable> hashtableEmpty = Lazy.create(() -> LuaHashtableTranslation.createEmpty(this));
     private final Lazy<LuaFunction> hashtableNewChild = Lazy.create(() -> LuaHashtableTranslation.createNewChild(this));
+    private final Lazy<LuaVariable> hashtableFlushed = Lazy.create(() -> LuaHashtableTranslation.createFlushed(this));
+    /** Looked up by type, never iterated: the declaration order is the order of first use. */
+    private final Map<String, LuaVariable> hashtableAccepts = new HashMap<>();
 
     /**
      * The helper a call of a hashtable stub calls where the operation cannot be printed in place
@@ -373,6 +376,15 @@ public class LuaTranslator {
 
     LuaFunction hashtableNewChild() {
         return hashtableNewChild.get();
+    }
+
+    LuaVariable hashtableFlushed() {
+        return hashtableFlushed.get();
+    }
+
+    /** The set of tags a handle load of {@code type} accepts, one main-chunk local per type, declared on first use. */
+    LuaVariable hashtableAccepts(String type) {
+        return hashtableAccepts.computeIfAbsent(type, t -> LuaHashtableTranslation.createAccepts(t, this));
     }
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());

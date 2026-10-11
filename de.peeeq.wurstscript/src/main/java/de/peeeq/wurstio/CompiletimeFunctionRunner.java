@@ -1138,6 +1138,11 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
                 }
             }
+            if (map.isDestroyed()) {
+                // FlushParentHashtable destroyed it at compile time, so it is destroyed when the map starts too
+                batch.add(JassIm.ImFunctionCall(trace, findNative("FlushParentHashtable", errorPos), JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(JassIm.ImVarAccess(htVar)), false, CallType.NORMAL));
+            }
             if (!batch.isEmpty()) {
                 getCompiletimeStateInitFunction().getBody().addAll(batch);
             }

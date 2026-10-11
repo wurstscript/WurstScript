@@ -71,6 +71,10 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "                testSuccess()"));
     }
 
+    /**
+     * Measured on the 3.0.0 client, FlushParentHashtable destroys the hashtable: what was saved is gone and nothing
+     * saved afterwards stays. A table destroyed at compile time is destroyed when the map starts, too.
+     */
     @Test
     public void flushingTheWholeTableLeavesNothingToReplay() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
@@ -81,7 +85,9 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "    FlushParentHashtable(h)",
             "    SaveInteger(h, 5, 5, 50)",
             "init",
-            "    if LoadInteger(h, 1, 1) == 0 and LoadInteger(h, 2, 2) == 0 and LoadInteger(h, 5, 5) == 50",
+            "    SaveInteger(h, 6, 6, 60)",
+            "    if LoadInteger(h, 1, 1) == 0 and LoadInteger(h, 2, 2) == 0 and LoadInteger(h, 5, 5) == 0",
+            "        and LoadInteger(h, 6, 6) == 0 and not HaveSavedInteger(h, 6, 6)",
             "        testSuccess()"));
     }
 
