@@ -49,9 +49,12 @@ public class LuaHashtableTests extends WurstScriptTest {
             "package Test",
             "init",
             "    let h = InitHashtable()",
+            "    let t = CreateTimer()",
             "    SaveInteger(h, 1, 2, 3)",
             "    SaveTimerHandle(h, 1, 2, null)",
+            "    SaveTimerHandle(h, 1, 3, t)",
             "    if LoadInteger(h, 1, 2) == 3 and HaveSavedInteger(h, 1, 2) and LoadTimerHandle(h, 1, 2) == null"
+                + " and LoadTimerHandle(h, 1, 3) == t and LoadUnitHandle(h, 1, 3) == null"
                 + " and \"x\" + LoadStr(h, 1, 2) == \"x\"",
             "        RemoveSavedInteger(h, 1, 2)",
             "        FlushChildHashtable(h, 1)",
@@ -64,6 +67,12 @@ public class LuaHashtableTests extends WurstScriptTest {
             compiled.contains("local __wurst_htEmpty = ({})\n"));
         assertTrue("the child constructor is a main-chunk local:\n" + compiled,
             compiled.contains("local function __wurst_htNewChild(t, p) \n"));
+        assertTrue("the table of a flushed hashtable keeps nothing written to it:\n" + compiled,
+            compiled.contains("local __wurst_htFlushed = setmetatable({}, { __newindex = function() end })\n"));
+        assertTrue("a timer load accepts a timer, and a handle saved as an agent:\n" + compiled,
+            compiled.contains("local __wurst_htAccepts_Timer = ({Timer=true, Agent=true, })\n"));
+        assertTrue("a unit load accepts a unit, and a handle saved as a widget or an agent:\n" + compiled,
+            compiled.contains("local __wurst_htAccepts_Unit = ({Unit=true, Widget=true, Agent=true, })\n"));
 
         String init = functionBody(compiled, "init_Test");
         assertFalse("no hashtable helper is called:\n" + init,
@@ -76,28 +85,32 @@ public class LuaHashtableTests extends WurstScriptTest {
         }
         assertMatches("InitHashtable is the table constructor",
             "= \\(\\{__wurst_ht_int=\\(\\{\\}\\), __wurst_ht_bool=\\(\\{\\}\\), __wurst_ht_real=\\(\\{\\}\\), "
-                + "__wurst_ht_str=\\(\\{\\}\\), __wurst_ht_handle=\\(\\{\\}\\), \\}\\)", init);
-        assertMatches("a save creates the child only when there is none",
-            "\n\\s*;\\((\\w+)\\.__wurst_ht_int\\[1\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, 1\\)\\)\\[2\\] = 3\n",
+                + "__wurst_ht_str=\\(\\{\\}\\), __wurst_ht_handle=\\(\\{\\}\\), __wurst_ht_htype=\\(\\{\\}\\), \\}\\)", init);
+        assertMatches("a save of a hashtable creates the child only when there is none",
+            "if (\\w+) then\\s+;\\(\\1\\.__wurst_ht_int\\[1\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, 1\\)\\)\\[2\\] = 3\\s+end",
             init);
-        assertMatches("a handle save goes to the handle subtable",
-            ";\\((\\w+)\\.__wurst_ht_handle\\[1\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_handle, 1\\)\\)\\[2\\] = nil",
+        assertFalse("saving a null handle stores nothing:\n" + init, init.contains("__wurst_ht_handle, 1))[2] = nil"));
+        assertMatches("a handle save writes the handle and the type of its native",
+            "\\(\\w+\\.__wurst_ht_handle\\[1\\] or __wurst_htNewChild\\(\\w+\\.__wurst_ht_handle, 1\\)\\)\\[3\\] = \\w+\\s+"
+                + ";\\(\\w+\\.__wurst_ht_htype\\[1\\] or __wurst_htNewChild\\(\\w+\\.__wurst_ht_htype, 1\\)\\)\\[3\\] = \"Timer\"",
             init);
-        assertMatches("an int load reads through the empty child and answers 0",
-            "\\(\\(\\w+\\.__wurst_ht_int\\[1\\] or __wurst_htEmpty\\)\\[2\\] or 0\\)", init);
+        assertMatches("only for a handle which is not nil", "if \\(\\w+ and \\(\\w+ ~= nil\\)\\) then", init);
+        assertMatches("an int load reads through the empty child, also of a nil hashtable, and answers 0",
+            "\\(\\(\\(\\w+ and \\w+\\.__wurst_ht_int\\[1\\]\\) or __wurst_htEmpty\\)\\[2\\] or 0\\)", init);
         assertMatches("a test is the same read",
-            "\\(\\(\\w+\\.__wurst_ht_int\\[1\\] or __wurst_htEmpty\\)\\[2\\] ~= nil\\)", init);
-        assertMatches("a handle load answers nil when absent, as the helper did",
-            "\\(\\(\\w+\\.__wurst_ht_handle\\[1\\] or __wurst_htEmpty\\)\\[2\\] == nil\\)", init);
-        assertMatches("so does a string load, which the concatenation guards",
-            "\\(\\w+\\.__wurst_ht_str\\[1\\] or __wurst_htEmpty\\)\\[2\\] or \"\"\\)", init);
+            "\\(\\(\\(\\w+ and \\w+\\.__wurst_ht_int\\[1\\]\\) or __wurst_htEmpty\\)\\[2\\] ~= nil\\)", init);
+        assertMatches("a handle load answers the handle only for a tag it accepts",
+            "\\(\\(__wurst_htAccepts_Timer\\[\\(\\(\\w+ and \\w+\\.__wurst_ht_htype\\[1\\]\\) or __wurst_htEmpty\\)\\[3\\]\\] and "
+                + "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[1\\]\\) or __wurst_htEmpty\\)\\[3\\]\\) or nil\\)", init);
+        assertMatches("a string load is nil when absent, which the concatenation guards",
+            "\\(\\(\\(\\w+ and \\w+\\.__wurst_ht_str\\[1\\]\\) or __wurst_htEmpty\\)\\[2\\] or \"\"\\)", init);
         assertMatches("a remove never writes the shared empty child",
-            "if (\\w+)\\.__wurst_ht_int\\[1\\] then\\s+\\1\\.__wurst_ht_int\\[1\\]\\[2\\] = nil\\s+end", init);
-        for (String subtable : new String[]{"int", "bool", "real", "str", "handle"}) {
+            "if \\((\\w+) and \\1\\.__wurst_ht_int\\[1\\]\\) then\\s+\\1\\.__wurst_ht_int\\[1\\]\\[2\\] = nil\\s+end", init);
+        for (String subtable : new String[]{"int", "bool", "real", "str", "handle", "htype"}) {
             assertMatches("FlushChildHashtable drops the child of every kind",
                 "\\w+\\.__wurst_ht_" + subtable + "\\[1\\] = nil", init);
-            assertMatches("FlushParentHashtable replaces every subtable",
-                "\\w+\\.__wurst_ht_" + subtable + " = \\(\\{\\}\\)", init);
+            assertMatches("FlushParentHashtable destroys the hashtable, as Jass does",
+                "\\w+\\.__wurst_ht_" + subtable + " = __wurst_htFlushed", init);
         }
         assertFalse("a flush tests no subtable, every one is always there:\n" + init,
             Pattern.compile("if \\w+\\.__wurst_ht_\\w+ then").matcher(init).find());
@@ -135,6 +148,14 @@ public class LuaHashtableTests extends WurstScriptTest {
         "    let t = CreateTimer()",
         "    SaveTimerHandle(h, 1, 1, t)",
         "    check(LoadTimerHandle(h, 1, 1) == t and HaveSavedHandle(h, 1, 1), \"handle\")",
+        // measured on the 3.0.0 client: a handle load is typed, and saving a null handle stores nothing
+        "    check(LoadUnitHandle(h, 1, 1) == null and LoadGroupHandle(h, 1, 1) == null and LoadWidgetHandle(h, 1, 1) == null,"
+            + " \"a timer loads as null through another type\")",
+        "    timer noTimer = null",
+        "    SaveTimerHandle(h, 1, 1, noTimer)",
+        "    check(LoadTimerHandle(h, 1, 1) == t and HaveSavedHandle(h, 1, 1), \"a null handle replaces nothing\")",
+        "    SaveTimerHandle(h, 3, 3, noTimer)",
+        "    check(not HaveSavedHandle(h, 3, 3), \"a null handle is not saved\")",
         "    RemoveSavedInteger(h, 1, 1)",
         "    check(not HaveSavedInteger(h, 1, 1) and LoadInteger(h, 1, 1) == 0 and LoadReal(h, 1, 1) == 2.5,"
             + " \"a remove takes only its kind\")",
@@ -155,8 +176,24 @@ public class LuaHashtableTests extends WurstScriptTest {
         "    check(LoadInteger(h, 2, 1) == 22, \"a flushed child takes a save\")",
         "    FlushParentHashtable(h)",
         "    check(not HaveSavedBoolean(h, 1, 2) and not HaveSavedInteger(h, 2, 1), \"a flushed hashtable is empty\")",
+        // measured on the 3.0.0 client: FlushParentHashtable destroys the hashtable
         "    SaveInteger(h, 1, 1, 31)",
-        "    check(LoadInteger(h, 1, 1) == 31, \"a flushed hashtable takes a save\")",
+        "    SaveTimerHandle(h, 1, 1, t)",
+        "    check(LoadInteger(h, 1, 1) == 0 and not HaveSavedInteger(h, 1, 1) and LoadTimerHandle(h, 1, 1) == null,"
+            + " \"a flushed hashtable keeps nothing\")",
+        "    FlushChildHashtable(h, 1)",
+        "    RemoveSavedInteger(h, 1, 1)",
+        "    FlushParentHashtable(h)",
+        // measured on the 3.0.0 client: a null hashtable answers defaults and ignores writes
+        "    hashtable none = null",
+        "    SaveInteger(none, 1, 1, 5)",
+        "    SaveTimerHandle(none, 1, 1, t)",
+        "    RemoveSavedInteger(none, 1, 1)",
+        "    FlushChildHashtable(none, 1)",
+        "    FlushParentHashtable(none)",
+        "    check(LoadInteger(none, 1, 1) == 0 and LoadReal(none, 1, 1) == 0. and not LoadBoolean(none, 1, 1)"
+            + " and \"x\" + LoadStr(none, 1, 1) == \"x\" and LoadTimerHandle(none, 1, 1) == null"
+            + " and not HaveSavedInteger(none, 1, 1), \"a null hashtable reads defaults\")",
         "    check(LoadInteger(ct, 1, 2) == 12 and LoadStr(ct, 1, 3) == \"ct\" and LoadBoolean(ct, 4, 5)"
             + " and LoadReal(ct, 6, 7) == 1.5 and not HaveSavedInteger(ct, 1, 3), \"a compile-time hashtable\")",
         "    testSuccess()"
@@ -200,6 +237,17 @@ public class LuaHashtableTests extends WurstScriptTest {
             "    FlushChildHashtable(h, key(\"f\", 1))",
             "    if trace != \"pcvwPCHrsRSf\"",
             "        testFail(\"operands evaluated as \" + trace)",
+            // the helpers answer as the operations printed in place
+            "    let tm = CreateTimer()",
+            "    timer noTimer = null",
+            "    SaveTimerHandle(h, key(\"T\", 3), 1, tm)",
+            "    SaveTimerHandle(h, key(\"N\", 3), 1, noTimer)",
+            "    if LoadTimerHandle(h, key(\"L\", 3), 1) != tm or LoadUnitHandle(h, key(\"U\", 3), 1) != null",
+            "        testFail(\"a typed load through the helper\")",
+            "    hashtable none = null",
+            "    SaveInteger(none, key(\"n\", 1), 1, 1)",
+            "    if LoadInteger(none, key(\"l\", 1), 1) != 0 or HaveSavedInteger(none, key(\"h\", 1), 1)",
+            "        testFail(\"a null hashtable through the helper\")",
             "    if HaveSavedInteger(h, 1, 2) or HaveSavedInteger(h, 1, 4) or LoadInteger(h, 9, 2) != 0",
             "        testFail(\"removed and flushed\")",
             "    testSuccess()");
@@ -217,7 +265,7 @@ public class LuaHashtableTests extends WurstScriptTest {
         assertMatches("a save with plain operands is printed in place",
             ";\\((\\w+)\\.__wurst_ht_int\\[1\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, 1\\)\\)\\[6\\] = 7", init);
         assertMatches("a load with plain operands is printed in place",
-            "\\(\\w+\\.__wurst_ht_int\\[9\\] or __wurst_htEmpty\\)\\[2\\] or 0\\)", init);
+            "\\(\\(\\w+ and \\w+\\.__wurst_ht_int\\[9\\]\\) or __wurst_htEmpty\\)\\[2\\] or 0\\)", init);
         assertFalse("a helper nothing calls is not defined:\n" + compiled,
             compiled.contains("function __wurst_LoadReal(") || compiled.contains("function __wurst_InitHashtable("));
         assertFalse("the helper no longer tests for a missing subtable:\n" + compiled,
@@ -249,7 +297,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             ";\\(\\w+\\.__wurst_ht_int\\[[^\\]]+\\] or __wurst_htNewChild\\(\\w+\\.__wurst_ht_int, [^\\n]+\\)\\)\\[5\\] = 7",
             init);
         assertMatches("the load is printed in place under the instance id",
-            "\\(Table_ht\\.__wurst_ht_int\\[\\(\\w+ or 0\\)\\] or __wurst_htEmpty\\)\\[5\\] or 0\\)", init);
+            "\\(\\(Table_ht and Table_ht\\.__wurst_ht_int\\[\\(\\w+ or 0\\)\\]\\) or __wurst_htEmpty\\)\\[5\\] or 0\\)", init);
     }
 
     /**
@@ -293,8 +341,8 @@ public class LuaHashtableTests extends WurstScriptTest {
 
         String init = functionBody(compiled("aStoreStartingWithAParenthesisIsSeparatedFromTheStatementBefore"),
             "init_Test");
-        assertMatches("the save follows a statement ending in a parenthesis, after a ';'",
-            "= \\(\\w+ \\+ 1\\)\n\\s*;\\(", init);
+        assertMatches("the save, under the test of the hashtable, starts with a ';'",
+            "= \\(\\w+ \\+ 1\\)\n\\s*if \\w+ then\n\\s*;\\(", init);
     }
 
     @Test

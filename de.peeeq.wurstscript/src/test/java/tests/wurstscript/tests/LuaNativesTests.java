@@ -96,7 +96,9 @@ public class LuaNativesTests {
     @Test
     public void hashtableFlushesTestNoSubtable() {
         String flushChild = renderNative("__wurst_FlushChildHashtable");
-        assertTrue(flushChild, flushChild.contains("h.__wurst_ht_handle[p] = nil"));
-        assertFalse(flushChild, flushChild.contains("if "));
+        assertTrue(flushChild, flushChild.contains("h.__wurst_ht_handle[p] = nil")
+            && flushChild.contains("h.__wurst_ht_htype[p] = nil"));
+        assertTrue("a nil hashtable is ignored, as Jass does: " + flushChild, flushChild.contains("if h == nil then return end"));
+        assertFalse(flushChild, flushChild.contains("if h."));
     }
 }

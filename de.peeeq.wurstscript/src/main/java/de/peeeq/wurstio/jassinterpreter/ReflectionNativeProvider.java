@@ -66,10 +66,10 @@ public class ReflectionNativeProvider implements NativesProvider {
                     if (methodMap.containsKey(funcName)) {
                         throw new Error("Trying to add multiple implementations of <" + funcName + ">");
                     }
-                    methodMap.put(funcName, new NativeJassFunction(provider, method));
+                    methodMap.put(funcName, new NativeJassFunction(funcName, provider, method));
                 }
             } else {
-                methodMap.put(method.getName(), new NativeJassFunction(provider, method));
+                methodMap.put(method.getName(), new NativeJassFunction(method.getName(), provider, method));
             }
         }
     }
@@ -81,23 +81,26 @@ public class ReflectionNativeProvider implements NativesProvider {
             throw new NoSuchNativeException("");
         }
 
-        if (candidate.getMethod().getParameterCount() == args.length) {
+        // A method whose first parameter is a String implements several natives and is told which one was called.
+        Class<?>[] declared = candidate.getMethod().getParameterTypes();
+        int offset = candidate.nameParameters();
+        if (declared.length == args.length + offset) {
             String[] parameterTypes = new String[args.length];
             for (int i = 0; i < args.length; i++) {
                 parameterTypes[i] = "" + args[i];
-                if (!candidate.getMethod().getParameterTypes()[i].isAssignableFrom(args[i].getClass())) {
+                if (!declared[i + offset].isAssignableFrom(args[i].getClass())) {
                     if (args[i] instanceof ILconstNull) {
                         // handle null as a special case and pass it to the native as a Java null
                         args[i] = null;
                         continue;
                     }
                     throw new Error("The native <" + funcname + "> expects different parameter " + i + "!" +
-                            "\n\tExpected: " + candidate.getMethod().getParameterTypes()[i].getSimpleName() + " Actual: " + parameterTypes[i]);
+                            "\n\tExpected: " + declared[i + offset].getSimpleName() + " Actual: " + parameterTypes[i]);
                 }
             }
         }
         try {
-            return (ILconst) candidate.getMethod().invoke(candidate.getProvider(), (Object[]) args);
+            return (ILconst) candidate.getMethod().invoke(candidate.getProvider(), candidate.callArguments(args));
         } catch (IllegalAccessException | InvocationTargetException e) {
             if (e.getCause() instanceof Error) {
                 throw (Error) e.getCause();
