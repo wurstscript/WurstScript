@@ -23,9 +23,9 @@ import java.util.Set;
  * got some are passed through the local merger once more: the temporaries share a slot with each
  * other and with dead locals of their type, and a function with many casts does not grow towards
  * Lua's limit of 200 locals. Merging only renames variables, so the operands stay variables.
- * The merger is given no locality analysis: it keeps a client-local value apart from a
- * synchronized one so that the analysis made before it stays true for the passes which run after
- * it, and none runs after this one.
+ * The merger runs here without a locality analysis, so a client-local value and a synchronized one
+ * may share a local. Elsewhere it keeps them apart only so that the analysis made before it stays
+ * true for the passes which use it afterwards; this is the last pass, so nothing uses one after it.
  */
 public final class LuaOldGenericsCasts {
 
