@@ -379,8 +379,9 @@ public class LuaNatives {
         // true only for a stored true, as LoadBoolean answers false when nothing is stored
         addHashtableLoad(withWurstPrefix("LoadBoolean"), "__wurst_ht_bool", "false", "x[c] == true");
         addHashtableLoad(withWurstPrefix("LoadReal"), "__wurst_ht_real", "0.0", "x[c] or 0.0");
-        // nil when absent, as the string and handle loads have always answered
-        addHashtableLoad(withWurstPrefix("LoadStr"), "__wurst_ht_str", "nil", "x[c]");
+        // "" when absent: a null string is "" on Lua (EliminateLocalTypes), so a missing string compares equal to null
+        addHashtableLoad(withWurstPrefix("LoadStr"), "__wurst_ht_str", "\"\"", "x[c] or \"\"");
+        // nil when absent, which is the null handle
         addHashtableLoad(withWurstPrefix(HASHTABLE_HANDLE_LOAD_NAMES), "__wurst_ht_handle", "nil", "x[c]");
 
         addHashtableEntryOperation(withWurstPrefix("HaveSavedInteger"), "__wurst_ht_int", "return x ~= nil and x[c] ~= nil");

@@ -401,7 +401,10 @@ public final class LuaNativeLowering {
             return f == translator.luaRawConcatFunc
                 || f == translator.luaRawOrEmptyFunc
                 || f == translator.luaRawToStringFunc
-                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()));
+                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()))
+                // a string load of the hashtable emulation answers "" when nothing is stored
+                || (LuaHashtable.op(translator, f) instanceof LuaHashtable.Op op
+                    && op.kind() == LuaHashtable.Kind.LOAD && op.values() == LuaHashtable.Values.STR);
         }
         return false;
     }

@@ -89,8 +89,9 @@ public class LuaHashtableTests extends WurstScriptTest {
             "\\(\\(\\w+\\.__wurst_ht_int\\[1\\] or __wurst_htEmpty\\)\\[2\\] ~= nil\\)", init);
         assertMatches("a handle load answers nil when absent, as the helper did",
             "\\(\\(\\w+\\.__wurst_ht_handle\\[1\\] or __wurst_htEmpty\\)\\[2\\] == nil\\)", init);
-        assertMatches("so does a string load, which the concatenation guards",
+        assertMatches("a string load answers \"\", the null string on Lua, when absent",
             "\\(\\w+\\.__wurst_ht_str\\[1\\] or __wurst_htEmpty\\)\\[2\\] or \"\"\\)", init);
+        assertFalse("so the concatenation adds no guard of its own:\n" + init, init.contains("or \"\") or \"\")"));
         assertMatches("a remove never writes the shared empty child",
             "if (\\w+)\\.__wurst_ht_int\\[1\\] then\\s+\\1\\.__wurst_ht_int\\[1\\]\\[2\\] = nil\\s+end", init);
         for (String subtable : new String[]{"int", "bool", "real", "str", "handle"}) {
@@ -117,7 +118,8 @@ public class LuaHashtableTests extends WurstScriptTest {
         "init",
         "    let h = InitHashtable()",
         "    check(LoadInteger(h, 1, 1) == 0 and LoadReal(h, 1, 1) == 0. and not LoadBoolean(h, 1, 1)"
-            + " and \"x\" + LoadStr(h, 1, 1) == \"x\" and LoadTimerHandle(h, 1, 1) == null, \"an absent parent key reads defaults\")",
+            + " and \"x\" + LoadStr(h, 1, 1) == \"x\" and LoadStr(h, 1, 1) == null and LoadTimerHandle(h, 1, 1) == null,"
+            + " \"an absent parent key reads defaults\")",
         "    check(not HaveSavedInteger(h, 1, 1) and not HaveSavedReal(h, 1, 1) and not HaveSavedBoolean(h, 1, 1)"
             + " and not HaveSavedString(h, 1, 1) and not HaveSavedHandle(h, 1, 1), \"an absent parent key holds nothing\")",
         "    SaveInteger(h, 1, 1, 11)",
@@ -132,6 +134,7 @@ public class LuaHashtableTests extends WurstScriptTest {
         "    check(LoadReal(h, 1, 1) == 2.5 and HaveSavedReal(h, 1, 1), \"real\")",
         "    SaveStr(h, 1, 1, \"s\")",
         "    check(LoadStr(h, 1, 1) == \"s\" and HaveSavedString(h, 1, 1), \"string\")",
+        "    check(LoadStr(h, 1, 2) == null and not HaveSavedString(h, 1, 2), \"an absent child key reads the null string\")",
         "    let t = CreateTimer()",
         "    SaveTimerHandle(h, 1, 1, t)",
         "    check(LoadTimerHandle(h, 1, 1) == t and HaveSavedHandle(h, 1, 1), \"handle\")",
@@ -195,10 +198,12 @@ public class LuaHashtableTests extends WurstScriptTest {
             "    SaveInteger(h, 1, 6, 7)",
             "    if LoadInteger(h, key(\"P\", 1), key(\"C\", 2)) != 3 or not HaveSavedInteger(h, 1, key(\"H\", 4))",
             "        testFail(\"stored through the helper\")",
+            "    if LoadStr(h, key(\"L\", 1), 9) != null",
+            "        testFail(\"an absent string through the helper is the null string\")",
             "    RemoveSavedInteger(h, key(\"r\", 9), key(\"s\", 2))",
             "    RemoveSavedInteger(h, key(\"R\", 1), key(\"S\", 2))",
             "    FlushChildHashtable(h, key(\"f\", 1))",
-            "    if trace != \"pcvwPCHrsRSf\"",
+            "    if trace != \"pcvwPCHLrsRSf\"",
             "        testFail(\"operands evaluated as \" + trace)",
             "    if HaveSavedInteger(h, 1, 2) or HaveSavedInteger(h, 1, 4) or LoadInteger(h, 9, 2) != 0",
             "        testFail(\"removed and flushed\")",
@@ -207,8 +212,8 @@ public class LuaHashtableTests extends WurstScriptTest {
         String compiled = compiled("anOperandWithAnEffectKeepsTheCallOfTheHelper");
         LuaTranslator.assertNoLeakedHashtableNativeCalls(compiled);
         String init = functionBody(compiled, "init_Test");
-        for (String helper : new String[]{"SaveInteger", "LoadInteger", "HaveSavedInteger", "RemoveSavedInteger",
-            "FlushChildHashtable"}) {
+        for (String helper : new String[]{"SaveInteger", "LoadInteger", "HaveSavedInteger", "LoadStr",
+            "RemoveSavedInteger", "FlushChildHashtable"}) {
             assertTrue("an operation with an effect in an operand calls its helper: " + helper + "\n" + init,
                 init.contains("__wurst_" + helper + "("));
             assertTrue("a helper which is called is defined: " + helper + "\n" + compiled,

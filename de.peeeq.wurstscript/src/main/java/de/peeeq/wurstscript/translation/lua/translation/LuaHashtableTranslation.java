@@ -18,7 +18,8 @@ import java.util.List;
  * <ul>
  *     <li>InitHashtable is the table constructor;</li>
  *     <li>a load is {@code (h.T[p] or __wurst_htEmpty)[c]}, then the default the helper answers: {@code or 0},
- *     {@code or 0.0}, {@code == true}, and nothing for a string or a handle, which are nil when absent;</li>
+ *     {@code or 0.0}, {@code == true}, {@code or ""} (a null string is {@code ""} on Lua), and nothing for a
+ *     handle, which is nil when absent;</li>
  *     <li>a HaveSaved test is the same read {@code ~= nil};</li>
  *     <li>a save is {@code (h.T[p] or __wurst_htNewChild(h.T, p))[c] = v};</li>
  *     <li>a remove is {@code if h.T[p] then h.T[p][c] = nil end}. Not through the empty child: in Lua 5.3
@@ -64,7 +65,8 @@ final class LuaHashtableTranslation {
             case INT -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0"));
             case REAL -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprRealVal("0.0"));
             case BOOL -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpEquals(), LuaAst.LuaExprBoolVal(true));
-            case STR, HANDLE -> value;
+            case STR -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprStringVal(""));
+            case HANDLE -> value;
         };
     }
 
