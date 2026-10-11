@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
@@ -123,13 +124,9 @@ public class StringProvider extends Provider {
         return new long[] {whole, digits};
     }
 
-    /** Measured on the 3.0.0 client: truncates, and wraps to 32 bits rather than saturating
-     *  (1e10 is 1410065408). */
+    /** See {@link WurstOperator#realToInt}, measured on the 3.0.0 client. */
     public ILconstInt R2I(ILconstReal i) {
-        double value = i.getVal();
-        // Truncated in double and wrapped by remainder: a cast to long would saturate above its range.
-        double truncated = value < 0 ? Math.ceil(value) : Math.floor(value);
-        return new ILconstInt((int) (long) (truncated % 4294967296.0));
+        return new ILconstInt(WurstOperator.realToInt(i.getVal()));
     }
 
     public ILconstReal I2R(ILconstInt i) {

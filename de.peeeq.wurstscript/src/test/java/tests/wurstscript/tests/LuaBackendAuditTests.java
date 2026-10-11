@@ -7583,10 +7583,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     };
 
     /**
-     * Wurst mod is Blizzard.j's ModuloInteger/ModuloReal: the truncated remainder, plus the divisor
-     * when it is negative. Lua's % agrees for an int divisor above 0 and a real one of at least 1,
-     * which the helper tests at run time and the optimiser folds for a literal. Against Jass and the
-     * interpreter, once with the helper called and once inlined and folded.
+     * Wurst mod is Blizzard.j's ModuloInteger/ModuloReal: for an int the truncated remainder, plus the
+     * divisor when it is negative, which Lua's % agrees with for a divisor above 0 (the helper tests it at
+     * run time and the optimiser folds it for a literal); for a real ModuloReal's formula. Against Jass and
+     * the interpreter, once with the helper called and once inlined and folded.
      */
     @Test
     public void modAgreesWithJassForEveryDivisorSign() {
@@ -7596,6 +7596,35 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     @Test
     public void modAgreesWithJassForEveryDivisorSignWhenFolded() {
         test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(MOD_SEMANTICS_PROG);
+    }
+
+    /**
+     * A real modulo is ModuloReal's formula, {@code a - R2I(a / b) * b} plus b when negative, in every
+     * run: the interpreter, Jass and Lua. It is not the exact remainder: in float, 1e9 % 3 is -29 by the
+     * formula and 1 by fmod. The comparisons are exact ({@code !=}), as Jass's {@code ==} on reals has a
+     * tolerance.
+     */
+    @Test
+    public void realModIsModuloRealsFormulaInEveryRun() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
+            "package Test",
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "function formula(real a, real b) returns real",
+            // the int converts to a real in the multiplication, as I2R does (the test Lua has no I2R)
+            "    var m = a - R2I(a / b) * b",
+            "    if m < 0.",
+            "        m = m + b",
+            "    return m",
+            "function same(real a, real b) returns boolean",
+            "    return not (a != b)",
+            "init",
+            "    if same(w(1000000000.) % 3., formula(w(1000000000.), 3.))",
+            "        and same(w(360.) % 7., formula(w(360.), 7.))",
+            "        and same(w(-7.5) % w(2.5), formula(w(-7.5), w(2.5)))",
+            "        and same(w(-0.1) % 7., formula(w(-0.1), 7.))",
+            "        and same(w(7.5) % 360., formula(w(7.5), 360.))",
+            "        testSuccess()");
     }
 
     /**

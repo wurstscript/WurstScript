@@ -221,13 +221,27 @@ public enum WurstOperator {
         return a % b;
     }
 
-    /** Reference semantics for Wurst's real {@code mod}; see {@link #moduloInteger}. */
+    /**
+     * Reference semantics for Wurst's real {@code mod}: Blizzard.j's ModuloReal, which a real modulo is on both
+     * targets, {@code a - I2R(R2I(a / b)) * b} plus b when that is negative, each step in float as in the game.
+     * That is not the exact remainder: the quotient rounds, and for a quotient past 2^24 the result can leave
+     * [0, b) altogether. Measured on the 3.0.0 client, Jass and the same formula in the game's Lua agree on every
+     * probed operand; math.fmod and Lua's float % do not (360 % 7 is 3.0000153 with either).
+     */
     public static float moduloReal(float a, float b) {
-        float r = a % b;
+        float quotient = a / b;
+        float r = a - (float) realToInt(quotient) * b;
         if (r < 0) {
             r += b;
         }
         return r;
+    }
+
+    /** Jass's R2I, measured on the 3.0.0 client: truncates, and wraps to 32 bits rather than saturating (1e10 is 1410065408). */
+    public static int realToInt(double value) {
+        // Truncated in double and wrapped by remainder: a cast to long would saturate above its range.
+        double truncated = value < 0 ? Math.ceil(value) : Math.floor(value);
+        return (int) (long) (truncated % 4294967296.0);
     }
 
     /**
