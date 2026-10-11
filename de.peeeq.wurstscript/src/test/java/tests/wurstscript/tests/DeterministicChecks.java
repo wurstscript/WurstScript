@@ -858,6 +858,52 @@ public class DeterministicChecks extends WurstScriptTest {
         assertOwnDispatchGroups("sameNamedNewGenericHierarchies", "T:");
     }
 
+    /**
+     * One family across packages: Box in a shared package, and a class First overriding pick in each of two others.
+     * Both overrides belong to Box's group and must bind the slot a call through Box uses.
+     */
+    @Test
+    public void sameNamedOverridesInTwoPackagesShareTheirRootSlot() throws IOException {
+        assertSharedRootSlot("sameNamedOldGenericOverrides", "T");
+    }
+
+    @Test
+    public void sameNamedNewGenericOverridesInTwoPackagesShareTheirRootSlot() throws IOException {
+        assertSharedRootSlot("sameNamedNewGenericOverrides", "T:");
+    }
+
+    private void assertSharedRootSlot(String name, String typeParameter) throws IOException {
+        List<CU> units = new ArrayList<>();
+        units.add(compilationUnit("Common.wurst",
+            "package Common",
+            "public abstract class Box<" + typeParameter + ">",
+            "    abstract function pick(T a, T b) returns T",
+            "public function pickOf(Box<int> box) returns int",
+            "    return box.pick(10, 20)"));
+        for (String p : List.of("PA", "PB")) {
+            boolean first = p.equals("PA");
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "import Common",
+                "public class First<" + typeParameter + "> extends Box<T>",
+                "    override function pick(T a, T b) returns T",
+                "        return " + (first ? "a" : "b"),
+                "public function run" + p + "() returns int",
+                "    return pickOf(new First<int>())"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import PA",
+            "import PB",
+            "native testSuccess()",
+            "init",
+            "    if runPA() == 10 and runPB() == 20",
+            "        testSuccess()"));
+        String lua = compileAndRunToLua(name, units.toArray(new CU[0]));
+        List<CU> shuffled = List.of(units.get(3), units.get(2), units.get(0), units.get(1));
+        assertEquals(compileToLua(name, shuffled), lua, "the same in any order of the compilation units");
+    }
+
     private void assertOwnDispatchGroups(String name, String typeParameter) throws IOException {
         List<CU> units = new ArrayList<>();
         for (String p : List.of("PA", "PB")) {
