@@ -4,11 +4,8 @@ import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.HasModifier;
-import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -53,21 +50,28 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
      */
     private static void bindTypeArguments(ProgramState globalState, LocalState localState, ImFunction f,
                                           @Nullable Element caller, ILconst[] args) {
-        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
-
-        // A bound may belong to the owning class rather than to the method, as in
-        // class Box<T: Show>. The receiver carries the arguments the class was created with.
-        if (args.length > 0 && args[0] instanceof ILconstObject receiver) {
-            bindClassTypeArguments(globalState, binding, receiver.getType(),
-                Collections.newSetFromMap(new IdentityHashMap<>()));
-        }
-
         ImTypeArguments typeArgs = null;
         if (caller instanceof ImFunctionCall call) {
             typeArgs = call.getTypeArguments();
         } else if (caller instanceof ImMethodCall call) {
             typeArgs = call.getTypeArguments();
         }
+        boolean genericReceiver = args.length > 0 && args[0] instanceof ILconstObject receiver
+            && globalState.isGenericHierarchy(receiver.getType().getClassDef());
+        if (!genericReceiver && (typeArgs == null || typeArgs.isEmpty())) {
+            // Nothing to bind, which is the case for almost every call.
+            return;
+        }
+        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
+
+        // A bound may belong to the owning class rather than to the method, as in
+        // class Box<T: Show>. The receiver carries the arguments the class was created with.
+        if (genericReceiver) {
+            ILconstObject receiver = (ILconstObject) args[0];
+            bindClassTypeArguments(globalState, binding, receiver.getType(),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+        }
+
         if (typeArgs != null) {
             List<ImTypeVar> typeVars = f.getTypeVariables();
             for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
@@ -209,7 +213,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             }
 
             // --- natives / compiletimenative ---
-            if (isCompiletimeNative(f) || f.isNative()) {
+            if (f.isNative() || f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE)) {
                 return runBuiltinFunction(globalState, f, args);
             }
 
@@ -272,8 +276,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 if (caller != null) {
                     globalState.setLastElement(caller);
                 }
-                WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
-                globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
+                globalState.pushStackframeWithTypes(f, receiverObj, args, caller != null ? caller : f, normalized);
                 try {
                     return localState.setReturnVal(ILconstNull.instance());
                 } finally {
@@ -379,8 +382,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             if (caller != null) {
                 globalState.setLastElement(caller);
             }
-            WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
-            globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
+            globalState.pushStackframeWithTypes(f, receiverObj, args, caller != null ? caller : f, normalized);
             globalState.pushTypeArguments(localState.getTypeArguments());
 
             ILconst retVal = null;
@@ -389,12 +391,6 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             try {
                 f.getBody().runStatements(globalState, localState);
             } catch (ReturnException e) {
-                ILconst retVal2 = e.getVal();
-                WLogger.trace("RETURN {} expected={} got={} ({})",
-                        f.getName(),
-                        f.getReturnType(),
-                        retVal,
-                        (retVal == null ? "null" : retVal2.getClass().getSimpleName()));
                 retVal = adjustTypeOfConstant(e.getVal(), f.getReturnType());
                 didReturn = true;
             } finally {
@@ -635,20 +631,6 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         }
         final ILconst returnValue = f.getReturnType().defaultValue();
         return new LocalState(returnValue);
-    }
-
-    private static boolean isCompiletimeNative(ImFunction f) {
-        if (f.getTrace() instanceof HasModifier) {
-            HasModifier f2 = (HasModifier) f.getTrace();
-            for (Modifier m : f2.getModifiers()) {
-                if (m instanceof Annotation annotation) {
-                    if (annotation.getAnnotationType().equals("@compiletimenative")) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     public LocalState executeFunction(String funcName, @Nullable Element trace) {

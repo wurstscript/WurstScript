@@ -32,6 +32,10 @@ public class ProgramState extends State implements AutoCloseable {
     private final Set<String> missingNativeFuncs = new HashSet<>();
     private ImProg prog;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
+    /** See {@link #isGenericHierarchy}; only looked up, never iterated. */
+    private final Map<ImClass, Boolean> genericHierarchy = new IdentityHashMap<>();
+    /** See {@link #dispatch}; only looked up, never iterated. */
+    private final Map<ImMethod, Map<ImClass, ImMethod>> dispatchCache = new IdentityHashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
     private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
     private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
@@ -248,6 +252,8 @@ public class ProgramState extends State implements AutoCloseable {
         prog = p;
         classKeyLookup.clear();
         objectIdSpaces.clear();
+        dispatchCache.clear();
+        genericHierarchy.clear();
         buildClassKeyLookup();
         return this;
     }
@@ -294,33 +300,78 @@ public class ProgramState extends State implements AutoCloseable {
         return obj.getImClass().isSubclassOf(clazz); // TODO more efficient check
     }
 
+    /**
+     * The implementation a call of {@code method} runs for a receiver of class {@code receiverClass}: the
+     * most specific of its overrides which that class inherits. A call site sees the same few classes
+     * again and again, so the answer is kept per method and class.
+     */
+    public ImMethod dispatch(ImMethod method, ImClass receiverClass) {
+        Map<ImClass, ImMethod> byClass = dispatchCache.computeIfAbsent(method, m -> new IdentityHashMap<>());
+        ImMethod result = byClass.get(receiverClass);
+        if (result == null) {
+            result = method;
+            for (ImMethod m : method.getSubMethods()) {
+                if (m.attrClass().isSubclassOf(result.attrClass()) && receiverClass.isSubclassOf(m.attrClass())) {
+                    result = m;
+                }
+            }
+            byClass.put(receiverClass, result);
+        }
+        return result;
+    }
+
+    /**
+     * Whether a type variable of this class, or a type argument written in the supertypes of it or of a
+     * class it inherits from, can bind anything for a receiver of this class. Most classes have neither,
+     * and their calls bind no type arguments.
+     */
+    public boolean isGenericHierarchy(ImClass c) {
+        Boolean known = genericHierarchy.get(c);
+        if (known != null) {
+            return known;
+        }
+        // provisional answer, in case of a cyclic hierarchy in an erroneous program
+        genericHierarchy.put(c, Boolean.TRUE);
+        boolean result = !c.getTypeVariables().isEmpty();
+        for (ImClassType superClass : c.getSuperClasses()) {
+            result |= !superClass.getTypeArguments().isEmpty() || isGenericHierarchy(superClass.getClassDef());
+        }
+        genericHierarchy.put(c, result);
+        return result;
+    }
+
     public int getTypeId(ILconstObject obj, Element trace) {
         assertAllocated(obj, trace);
         return obj.getImClass().attrTypeId();
     }
 
+    /** {@code entry} is where the frame is entered: the call, or the function when nothing called it. */
     public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver,
-                                        ILconst[] args, WPos trace,
+                                        ILconst[] args, de.peeeq.wurstscript.jassIm.Element entry,
                                         Map<ImTypeVar, ImType> typeSubstitutions) {
 
         // normalize the incoming map: RHS = fully resolved type
-        Map<ImTypeVar, ImType> normalized = new HashMap<>();
-        for (Map.Entry<ImTypeVar, ImType> e : typeSubstitutions.entrySet()) {
-            ImType rhs = resolveType(e.getValue()); // resolve through existing frames
-            // skip self-maps (T -> T)
-            if (rhs instanceof ImTypeVarRef imTypeVarRef &&
-                imTypeVarRef.getTypeVariable() == e.getKey()) {
-                continue;
+        Map<ImTypeVar, ImType> normalized = Collections.emptyMap();
+        if (!typeSubstitutions.isEmpty()) {
+            normalized = new HashMap<>();
+            for (Map.Entry<ImTypeVar, ImType> e : typeSubstitutions.entrySet()) {
+                ImType rhs = resolveType(e.getValue()); // resolve through existing frames
+                // skip self-maps (T -> T)
+                if (rhs instanceof ImTypeVarRef imTypeVarRef &&
+                    imTypeVarRef.getTypeVariable() == e.getKey()) {
+                    continue;
+                }
+                normalized.put(e.getKey(), rhs);
             }
-            normalized.put(e.getKey(), rhs);
         }
+        Map<ImTypeVar, ImType> frameTypes = normalized;
 
         WLogger.trace(() -> "pushStackframe " + f + " with receiver " + receiver
-            + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
+            + " and args " + Arrays.toString(args) + " and typesubst " + frameTypes);
 
 //        new Exception().printStackTrace(System.out);
 
-        stackFrames.push(new ILStackFrame(f, receiver, args, trace, normalized));
+        stackFrames.push(new ILStackFrame(f, receiver, args, entry, frameTypes));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) stmt = f;
         lastStatements.push(stmt);
@@ -436,6 +487,10 @@ public class ProgramState extends State implements AutoCloseable {
 
     private ImType resolveTypeDeep(ImType t, int budget) {
         if (budget <= 0 || t == null) return t;
+        // the common cases, which hold no type variable, without allocating a matcher
+        if (t instanceof ImSimpleType || t instanceof ImClassType ct && ct.getTypeArguments().isEmpty()) {
+            return t;
+        }
 
         return t.match(new ImType.Matcher<ImType>() {
             @Override
