@@ -629,6 +629,17 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"negative max mana\", R2S(GetUnitState(mm, UNIT_STATE_MANA)), \"0.000\")",
             "    let h = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
             "    measured(\"hero type and null type\", bs(IsUnitType(h, UNIT_TYPE_HERO)) + \",\" + bs(IsUnitType(h, null)) + \",\" + bs(IsUnitType(u, UNIT_TYPE_HERO)), \"true,true,false\")",
+            // a null enum handle is the handle of id 0: the game result, which is neutral (3) while the game runs
+            "    playerstate noState = null",
+            "    measured(\"null player state, game result, gold\", I2S(GetPlayerState(Player(0), noState)) + \",\""
+                + " + I2S(GetPlayerState(Player(0), PLAYER_STATE_GAME_RESULT)) + \",\" + I2S(GetPlayerState(Player(0), PLAYER_STATE_RESOURCE_GOLD)), \"3,3,0\")",
+            "    let target = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    let lifeBefore = GetWidgetLife(target)",
+            "    attacktype noAttack = null",
+            "    damagetype noDamage = null",
+            "    weapontype noWeapon = null",
+            "    let damaged = UnitDamageTarget(h, target, 10.0, false, false, noAttack, noDamage, noWeapon)",
+            "    measured(\"damage with null types\", bs(damaged) + \",\" + R2S(lifeBefore - GetWidgetLife(target)), \"true,10.000\")",
             "    testSuccess()"
         );
     }
