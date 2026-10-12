@@ -37,6 +37,25 @@ import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
+    /**
+     * A common.j converter changes and reads nothing, so a call whose result nothing uses goes. The list is by name,
+     * and 40 converters of the Reforged natives were once missing from it: an unused native call stayed in the script.
+     */
+    @Test
+    public void everyCommonJConverterIsSideEffectFree() throws IOException {
+        String commonJ = Files.toString(new File("src/main/resources/common.j"), Charsets.UTF_8);
+        java.util.regex.Matcher converter = java.util.regex.Pattern
+            .compile("native\\s+(Convert\\w+)\\s+takes\\s+integer\\s+\\w+\\s+returns").matcher(commonJ);
+        int count = 0;
+        while (converter.find()) {
+            String name = converter.group(1);
+            assertTrue(SideEffectFreeNatives.isFunctionWithoutSideEffect(name), name + " changes nothing");
+            assertTrue(SideEffectFreeNatives.isFunctionPure(name), name + " reads nothing");
+            count++;
+        }
+        assertTrue(count > 80, "the converters were found: " + count);
+    }
+
     /** Return lowering owns a callee copy; it must move its children rather than clone them again. */
     @Test
     public void returnLoweringConsumesTheOwnedCopy() throws Exception {

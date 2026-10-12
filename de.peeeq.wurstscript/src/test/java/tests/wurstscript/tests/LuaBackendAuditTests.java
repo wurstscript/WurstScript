@@ -1158,6 +1158,69 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * The nil guard of a handle native passes a null enum handle on as the handle of id 0, which is what the
+     * engine reads a null enum argument as (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
+     * IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result); a null unit still answers
+     * the default.
+     */
+    @Test
+    public void aNullEnumHandleIsTheHandleOfIdZeroOnLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "native consume(real r)",
+            "native consumeB(boolean b)",
+            "@noinline function read(unit u, unitstate s, unittype t)",
+            "    consume(GetUnitState(u, s))",
+            "    consumeB(IsUnitType(u, t))",
+            "init",
+            "    read(null, null, null)");
+        String compiled = compiledLua("aNullEnumHandleIsTheHandleOfIdZeroOnLua");
+        String state = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState");
+        assertTrue("a null unit state is UNIT_STATE_LIFE:\n" + state,
+            java.util.regex.Pattern.compile("if \\(?(\\w+) == nil\\)? then\\s+\\1 = ConvertUnitState\\(0\\)").matcher(state).find());
+        assertTrue("a null unit answers the default:\n" + state,
+            java.util.regex.Pattern.compile("if \\(?\\w+ == nil\\)? then\\s+return 0\\.").matcher(state).find());
+        String type = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_IsUnitType");
+        assertTrue("a null unit type is UNIT_TYPE_HERO:\n" + type, type.contains("ConvertUnitType(0)"));
+    }
+
+    /**
+     * Only a native reads a null enum handle as id 0. A blizzard.j helper sees the null, which Jass keeps, so its
+     * guard answers the default as for any other null handle rather than handing the helper the id-0 handle:
+     * RemovePlayerPreserveUnitsBJ compares its game result with PLAYER_GAME_RESULT_VICTORY before any native.
+     */
+    @Test
+    public void aBlizzardHelperIsNotHandedTheHandleOfIdZero() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "@noinline function remove(player p, playergameresult r)",
+            "    RemovePlayerPreserveUnitsBJ(p, r, false)",
+            "init",
+            "    remove(null, null)");
+        String compiled = compiledLua("aBlizzardHelperIsNotHandedTheHandleOfIdZero");
+        String wrapper = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_RemovePlayerPreserveUnitsBJ");
+        assertFalse("a helper sees the null:\n" + wrapper, wrapper.contains("ConvertPlayerGameResult"));
+    }
+
+    /**
+     * A converter which no common.j constant calls is not in the program until a wrapper needs it; it is created
+     * before the lowering walks the program's functions, so the walk does not see the function list change.
+     */
+    @Test
+    public void aConverterNothingElseCallsIsCreatedForTheNilGuard() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "native consume(int i)",
+            "@noinline function read(ability a, abilityintegerlevelarrayfield f)",
+            "    consume(BlzGetAbilityIntegerLevelArrayField(a, f, 0, 0))",
+            "init",
+            "    read(null, null)");
+        String compiled = compiledLua("aConverterNothingElseCallsIsCreatedForTheNilGuard");
+        String wrapper = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_BlzGetAbilityIntegerLevelArrayField");
+        assertTrue("a null field is the field of id 0:\n" + wrapper, wrapper.contains("ConvertAbilityIntegerLevelArrayField(0)"));
+    }
+
+    /**
      * A package whose init fails is reported by the generated script and the program goes on, so a test which
      * still reaches testSuccess has run without that package. The harness fails it: 49 tests with the standard
      * library passed so, their ErrorHandling never initialised for want of CreateForce in the test runtime.
