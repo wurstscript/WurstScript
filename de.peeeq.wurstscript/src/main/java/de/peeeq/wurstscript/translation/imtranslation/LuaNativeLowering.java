@@ -866,7 +866,10 @@ public final class LuaNativeLowering {
                     JassIm.ImVarAccess(param),
                     JassIm.ImNull(param.getType().copy())
                 ));
-                ImFunction converter = translator.enumConverter(((ImSimpleType) param.getType()).getTypename());
+                // Only a native reads it so: a blizzard.j helper sees the null, which Jass keeps, and may compare it.
+                ImFunction converter = bjNative.isNative()
+                    ? translator.enumConverter(((ImSimpleType) param.getType()).getTypename())
+                    : null;
                 ImStmts thenBlock;
                 if (converter != null) {
                     // A converter nothing else called may have been shaken out of the program.

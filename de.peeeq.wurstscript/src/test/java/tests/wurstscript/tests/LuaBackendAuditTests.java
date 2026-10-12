@@ -1185,6 +1185,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * Only a native reads a null enum handle as id 0. A blizzard.j helper sees the null, which Jass keeps, so its
+     * guard answers the default as for any other null handle rather than handing the helper the id-0 handle:
+     * RemovePlayerPreserveUnitsBJ compares its game result with PLAYER_GAME_RESULT_VICTORY before any native.
+     */
+    @Test
+    public void aBlizzardHelperIsNotHandedTheHandleOfIdZero() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "@noinline function remove(player p, playergameresult r)",
+            "    RemovePlayerPreserveUnitsBJ(p, r, false)",
+            "init",
+            "    remove(null, null)");
+        String compiled = compiledLua("aBlizzardHelperIsNotHandedTheHandleOfIdZero");
+        String wrapper = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_RemovePlayerPreserveUnitsBJ");
+        assertFalse("a helper sees the null:\n" + wrapper, wrapper.contains("ConvertPlayerGameResult"));
+    }
+
+    /**
      * A converter which no common.j constant calls is not in the program until a wrapper needs it; it is created
      * before the lowering walks the program's functions, so the walk does not see the function list change.
      */
