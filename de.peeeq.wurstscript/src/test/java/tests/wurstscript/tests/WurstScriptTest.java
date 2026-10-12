@@ -702,6 +702,9 @@ public class WurstScriptTest {
                 if (sawTestFail.get()) {
                     throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
                 }
+                if (output.indexOf("Could not initialize package") >= 0) {
+                    throw new Error(currentTestEnv + ": a package failed to initialize\nLua output:\n" + output);
+                }
                 if (!sawTestSuccess.get()) {
                     throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);
                 }

@@ -1157,6 +1157,45 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    testSuccess()");
     }
 
+    /**
+     * A package whose init fails is reported by the generated script and the program goes on, so a test which
+     * still reaches testSuccess has run without that package. The harness fails it: 49 tests with the standard
+     * library passed so, their ErrorHandling never initialised for want of CreateForce in the test runtime.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*a package failed to initialize.*")
+    public void aPackageWhichFailsToInitializeFailsTheTest() {
+        test().testLua(true).executeProg().lines(
+            "package Broken",
+            "native notInTheTestRuntime()",
+            "init",
+            "    notInTheTestRuntime()",
+            "endpackage",
+            "package Test",
+            "import Broken",
+            "native testSuccess()",
+            "init",
+            "    testSuccess()",
+            "endpackage");
+    }
+
+    /** ErrorHandling initialises on Lua, and its listeners run through ForForce as in the game. */
+    @Test
+    public void errorListenersRunOnLua() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
+            "package Test",
+            "import ErrorHandling",
+            "string seen = \"\"",
+            "int calls = 0",
+            "init",
+            "    addErrorListener(msg -> begin",
+            "        seen = msg",
+            "        calls++",
+            "    end)",
+            "    notifyErrorListeners(\"probe\")",
+            "    if seen == \"probe\" and calls == 1 and lastError == \"probe\"",
+            "        testSuccess()");
+    }
+
     /** Fixed-seed model checking also varies the expression substituted for an old-generic key. */
     @Test
     public void randomizedOldGenericMapOperationsMatchReferenceModel() {
