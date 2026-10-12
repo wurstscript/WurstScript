@@ -2811,6 +2811,21 @@ public class LuaTranslator {
         return errorFunc.get();
     }
 
+    /**
+     * The Lua names of the package init functions which are still in the program, in the order of
+     * {@code ImTranslator.luaInitFunctions}. The generated script calls each in an xpcall
+     * ({@code StmtTranslation.emitLuaInitXpcall}); the test harness watches them.
+     */
+    public List<String> initFunctionNames() {
+        List<String> names = new ArrayList<>();
+        for (ImFunction f : imTr.luaInitFunctions.keySet()) {
+            if (f.getParent() != null) {
+                names.add(luaFunc.getFor(f).getName());
+            }
+        }
+        return names;
+    }
+
     public String getTypeCastingFunctionName(ImFunction f) {
         de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
         if (trace instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p) {

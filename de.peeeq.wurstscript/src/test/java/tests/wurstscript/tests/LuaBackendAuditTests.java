@@ -1202,6 +1202,37 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "endpackage");
     }
 
+    /**
+     * The generated script reports a failed init through the program's error function, which need not print
+     * anything; the harness sees the failure itself, not in the output.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*a package failed to initialize.*")
+    public void aPackageWhichFailsToInitializeFailsTheTestWhateverTheErrorFunctionPrints() {
+        test().testLua(true).executeProg().lines(
+            "package ErrorHandling",
+            "    string lastError = \"\"",
+            "    public function error(string msg)",
+            "        lastError = msg",
+            "endpackage",
+            "package Broken",
+            "native notInTheTestRuntime()",
+            "init",
+            "    notInTheTestRuntime()",
+            "endpackage",
+            "package Test",
+            "import Broken",
+            "import ErrorHandling",
+            "native testSuccess()",
+            // a call of the error function keeps it in the program, so the script reports through it
+            "@noinline function check(int i)",
+            "    if i == 7",
+            "        error(\"seven\")",
+            "init",
+            "    check(3)",
+            "    testSuccess()",
+            "endpackage");
+    }
+
     /** ErrorHandling initialises on Lua, and its listeners run through ForForce as in the game. */
     @Test
     public void errorListenersRunOnLua() {
