@@ -183,7 +183,7 @@ public class InitialBuildProgressTest {
             capabilities.setExperimental(Map.of("wurstInitialBuildStatus", readiness));
             params.setCapabilities(capabilities);
             InitializeResult result = server.initialize(params).get(2, TimeUnit.SECONDS);
-            assertEquals(result.getCapabilities().getExperimental(), Map.of("wurstInitialBuildStatus", readiness));
+            assertEquals(result.getCapabilities().getExperimental(), Map.of("wurstInitialBuildStatus", readiness, "wurstMapCancellation", true));
             assertTrue(notifications.isEmpty(), "initialization must not emit readiness before initialized");
             assertNull(server.worker().modelManager, "the build must wait for initialized");
             server.initialized(new InitializedParams());

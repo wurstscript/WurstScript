@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
@@ -32,7 +33,7 @@ public class WurstGuiLsp extends WurstGui {
         modelManager.reportBuildDiagnostics(List.of());
         WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
         begin.setTitle(title);
-        begin.setCancellable(false);
+        begin.setCancellable(true);
         notifyProgress(begin);
     }
 
@@ -44,13 +45,14 @@ public class WurstGuiLsp extends WurstGui {
 
     @Override
     public void sendProgress(@NonNull String message) {
+        CompilationCancellation.check();
         if (finished) {
             return;
         }
         client.logMessage(new MessageParams(MessageType.Log, message));
         WorkDoneProgressReport report = new WorkDoneProgressReport();
         report.setMessage(message);
-        report.setCancellable(false);
+        report.setCancellable(true);
         notifyProgress(report);
     }
 

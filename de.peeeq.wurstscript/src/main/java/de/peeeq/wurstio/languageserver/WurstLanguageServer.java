@@ -30,6 +30,10 @@ import java.util.logging.Logger;
  *
  */
 public class WurstLanguageServer implements LanguageServer, LanguageClientAware {
+    @Override
+    public void cancelProgress(WorkDoneProgressCancelParams params) {
+        languageWorker.cancelMapRequest(params.getToken());
+    }
     private WFile rootUri;
     private final de.peeeq.wurstio.languageserver.LanguageWorker languageWorker;
     private LanguageClient languageClient;
@@ -64,7 +68,7 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
                 && Boolean.TRUE.equals(clientCapabilities.getWindow().getWorkDoneProgress());
 
         ServerCapabilities capabilities = new ServerCapabilities();
-        capabilities.setExperimental(Map.of("wurstInitialBuildStatus", initialBuildStatusSupported));
+        capabilities.setExperimental(Map.of("wurstInitialBuildStatus", initialBuildStatusSupported, "wurstMapCancellation", true));
         capabilities.setCompletionProvider(new CompletionOptions(true, Collections.singletonList(".")));
         capabilities.setHoverProvider(true);
         capabilities.setDefinitionProvider(true);

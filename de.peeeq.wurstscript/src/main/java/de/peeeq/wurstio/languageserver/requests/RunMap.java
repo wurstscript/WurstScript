@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import java.util.concurrent.CancellationException;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -75,6 +76,8 @@ public class RunMap extends MapRequest {
             WLogger.info(e);
             gui.sendError(e);
             throw new RequestFailedException(MessageType.Error, "Map compilation failed. See the Problems panel for details.");
+        } catch (CancellationException e) {
+            throw e;
         } catch (RequestFailedException e) {
             // Already carries an actionable message and the intended MessageType; don't bury it in a generic wrapper.
             throw e;
