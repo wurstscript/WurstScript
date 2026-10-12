@@ -858,7 +858,7 @@ public final class LuaNativeLowering {
         // A null enum handle is no missing handle: the engine reads it as the handle of id 0, so the
         // wrapper passes that one on (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
         // IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result, and
-        // UnitDamageTarget with a null attack and damage type deals the damage).
+        // UnitDamageTarget with a null attack, damage and weapon type deals the damage).
         ImExpr returnDefault = defaultValueExpr(bjNative.getReturnType());
         for (ImVar param : paramVars) {
             if (isHandleType(param.getType()) && !isNullableHandleType(param.getType())) {

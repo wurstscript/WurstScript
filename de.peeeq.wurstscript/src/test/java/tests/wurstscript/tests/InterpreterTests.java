@@ -636,6 +636,10 @@ public class InterpreterTests extends WurstScriptTest {
             "    playerstate noState = null",
             "    measured(\"null player state, game result, gold\", I2S(GetPlayerState(Player(0), noState)) + \",\""
                 + " + I2S(GetPlayerState(Player(0), PLAYER_STATE_GAME_RESULT)) + \",\" + I2S(GetPlayerState(Player(0), PLAYER_STATE_RESOURCE_GOLD)), \"3,3,0\")",
+            // a write through the null state is one to the game result, as a read is (measured: Player(1), 2 reads back 2)
+            "    SetPlayerState(Player(1), noState, 1)",
+            "    measured(\"null player state written, read back\", I2S(GetPlayerState(Player(1), PLAYER_STATE_GAME_RESULT)) + \",\""
+                + " + I2S(GetPlayerState(Player(1), noState)), \"1,1\")",
             "    let target = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
             "    let lifeBefore = GetWidgetLife(target)",
             "    attacktype noAttack = null",
