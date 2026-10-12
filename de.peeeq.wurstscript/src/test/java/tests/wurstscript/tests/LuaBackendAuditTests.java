@@ -1220,6 +1220,100 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("a null field is the field of id 0:\n" + wrapper, wrapper.contains("ConvertAbilityIntegerLevelArrayField(0)"));
     }
 
+    /**
+     * A package whose init fails is reported by the generated script and the program goes on, so a test which
+     * still reaches testSuccess has run without that package. The harness fails it: 49 tests with the standard
+     * library passed so, their ErrorHandling never initialised for want of CreateForce in the test runtime.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*a package failed to initialize.*")
+    public void aPackageWhichFailsToInitializeFailsTheTest() {
+        test().testLua(true).executeProg().lines(
+            "package Broken",
+            "native notInTheTestRuntime()",
+            "init",
+            "    notInTheTestRuntime()",
+            "endpackage",
+            "package Test",
+            "import Broken",
+            "native testSuccess()",
+            "init",
+            "    testSuccess()",
+            "endpackage");
+    }
+
+    /** The failure is recognised as it is printed, also after more output than the harness keeps. */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*a package failed to initialize.*")
+    public void aPackageWhichFailsToInitializeAfterMoreOutputThanTheHarnessKeepsFailsTheTest() {
+        test().testLua(true).executeProg().lines(
+            "package Noisy",
+            "native print(string s)",
+            "init",
+            "    for i = 1 to 2000",
+            "        print(\"padding which fills the output the harness is willing to keep, line after line\")",
+            "endpackage",
+            "package Broken",
+            "import Noisy",
+            "native notInTheTestRuntime()",
+            "init",
+            "    notInTheTestRuntime()",
+            "endpackage",
+            "package Test",
+            "import Broken",
+            "native testSuccess()",
+            "init",
+            "    testSuccess()",
+            "endpackage");
+    }
+
+    /**
+     * The generated script reports a failed init through the program's error function, which need not print
+     * anything; the harness sees the failure itself, not in the output.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*a package failed to initialize.*")
+    public void aPackageWhichFailsToInitializeFailsTheTestWhateverTheErrorFunctionPrints() {
+        test().testLua(true).executeProg().lines(
+            "package ErrorHandling",
+            "    string lastError = \"\"",
+            "    public function error(string msg)",
+            "        lastError = msg",
+            "endpackage",
+            "package Broken",
+            "native notInTheTestRuntime()",
+            "init",
+            "    notInTheTestRuntime()",
+            "endpackage",
+            "package Test",
+            "import Broken",
+            "import ErrorHandling",
+            "native testSuccess()",
+            // a call of the error function keeps it in the program, so the script reports through it
+            "@noinline function check(int i)",
+            "    if i == 7",
+            "        error(\"seven\")",
+            "init",
+            "    check(3)",
+            "    testSuccess()",
+            "endpackage");
+    }
+
+    /** ErrorHandling initialises on Lua, and its listeners run through ForForce as in the game. */
+    @Test
+    public void errorListenersRunOnLua() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
+            "package Test",
+            "import ErrorHandling",
+            "string seen = \"\"",
+            "int calls = 0",
+            "init",
+            "    addErrorListener(msg -> begin",
+            "        seen = msg",
+            "        calls++",
+            "    end)",
+            "    notifyErrorListeners(\"probe\")",
+            "    if seen == \"probe\" and calls == 1 and lastError == \"probe\"",
+            "        testSuccess()");
+    }
+
     /** Fixed-seed model checking also varies the expression substituted for an old-generic key. */
     @Test
     public void randomizedOldGenericMapOperationsMatchReferenceModel() {

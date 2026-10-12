@@ -69,6 +69,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private final WurstParser parser;
     private final WurstChecker checker;
     private @Nullable ImTranslator imTranslator;
+    /** The translator of the last transformProgToLua, which knows the Lua name of each function. */
+    private @Nullable LuaTranslator luaTranslator;
     private final List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
     private final TimeTaker timeTaker;
@@ -677,6 +679,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         });
     }
 
+    public @Nullable LuaTranslator getLuaTranslator() {
+        return luaTranslator;
+    }
+
     public ImTranslator getImTranslator() {
         final ImTranslator t = imTranslator;
         if (t != null) {
@@ -1090,6 +1096,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
+        this.luaTranslator = luaTranslator;
         ImAttrType.setWurstClassType(TypesHelper.imInt());
         timeTaker.endPhase();
         return luaCode;
