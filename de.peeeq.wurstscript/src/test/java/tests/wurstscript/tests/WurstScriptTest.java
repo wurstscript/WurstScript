@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -620,6 +621,8 @@ public class WurstScriptTest {
             compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            LuaTranslator luaTranslator = compiler.getLuaTranslator();
+            List<String> initFunctionNames = luaTranslator == null ? List.of() : luaTranslator.initFunctionNames();
             LuaAssertions.assertNamesAreValidIdentifiers(luaCode);
             checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
@@ -660,11 +663,24 @@ public class WurstScriptTest {
                     }
                 }
                 chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");
+                // The generated script reports a package whose init raised, through the program's error
+                // function, and goes on without it. The harness wraps each init function to see the raise
+                // itself, whatever the error function prints, and re-raises it unchanged.
+                chunk.append("local __wurst_testInits = {");
+                for (String initFunctionName : initFunctionNames) {
+                    chunk.append("'").append(initFunctionName).append("',");
+                }
+                chunk.append("};");
+                chunk.append("for _, n in ipairs(__wurst_testInits) do local f = rawget(_G, n); if f then"
+                    + " _G[n] = function(...) local r = table.pack(pcall(f, ...));"
+                    + " if not r[1] then __wurst_testInitFailed = true; error(r[2], 0) end"
+                    + " return table.unpack(r, 2, r.n) end end end;");
                 // Success is read off stdout, so testSuccess has to print. A program with no
                 // standard library gets a generated fallback which does; one with the library gets
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
-                chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
+                chunk.append("testSuccess = function() if __wurst_testInitFailed then print('__wurst_initFailed') end"
+                    + " print('testSuccess') os.exit() end;");
                 // Callback adapters can consume the error. Record an independent failure signal
                 // before raising it so a later testSuccess cannot make the Java harness pass.
                 chunk.append("testFail = function(message) print('__wurst_testFail'); error(message, 0) end;");
@@ -683,8 +699,11 @@ public class WurstScriptTest {
                     new java.util.concurrent.atomic.AtomicBoolean(false);
                 java.util.concurrent.atomic.AtomicBoolean sawTestFail =
                     new java.util.concurrent.atomic.AtomicBoolean(false);
+                java.util.concurrent.atomic.AtomicBoolean sawInitFailure =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
                 Thread outCollector = collectStreamAsync(p.getInputStream(), output,
-                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail));
+                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail,
+                        "__wurst_initFailed", sawInitFailure));
                 Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
                 if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
                     p.destroyForcibly();
@@ -701,6 +720,9 @@ public class WurstScriptTest {
 
                 if (sawTestFail.get()) {
                     throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
+                }
+                if (sawInitFailure.get()) {
+                    throw new Error(currentTestEnv + ": a package failed to initialize\nLua output:\n" + output);
                 }
                 if (!sawTestSuccess.get()) {
                     throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);

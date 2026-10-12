@@ -118,6 +118,7 @@ The Gradle wrapper lives inside `de.peeeq.wurstscript/` (not the repo root); run
 * `test().executeProg()` runs the compiled program in the interpreter and requires a `testSuccess()` call.
 * `test().testLua(true).executeProg()` runs the **Lua path only** (`testLua` sets `luaOnly`, which skips the Jass and interpreter runs; add `.luaOnly(false)` to keep them). It syntax-checks the emitted Lua with luac and executes it with a stock Lua interpreter (5.3 on Windows and the Linux CI, see below) against the WC3 runtime in `src/test/resources/luaruntime/` (wc3shim + Reforged `common.j.lua`/`blizzard.j.lua` dumps).
 * Interpreter discovery (`WurstScriptTest.getLuaExecutable`): on Linux `lua5.3` from PATH, then the bundled `lua53`; on Windows the bundled `lua.exe`; then `lua53`/`lua` from PATH. The version is never checked: Linux CI asserts 5.3 and the bundled Windows `lua.exe` is 5.3, but CI's macOS job installs whatever `brew install lua` gives. A missing interpreter skips the execution (visibly); a missing `luac` fails the test.
+* A Lua run fails when a package fails to initialise ("Could not initialize package X"), even if it reaches `testSuccess`: the generated script reports the failure and goes on without the package. A native which a package init needs belongs in `wc3shim.lua`.
 * Use `LuaBackendAuditTests` as the reference style for backend regression repros.
 * The test Lua is not the game's Lua (libraries, real arithmetic): see §11.
 
