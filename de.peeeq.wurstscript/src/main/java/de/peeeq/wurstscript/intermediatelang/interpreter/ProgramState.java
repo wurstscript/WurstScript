@@ -262,7 +262,7 @@ public class ProgramState extends State implements AutoCloseable {
         int objId = !idSpace.freeObjectIds.isEmpty() ? idSpace.freeObjectIds.pop() : ++idSpace.objectIdCounter;
         ILconstObject res = new ILconstObject(clazz, objId, trace);
         idSpace.indexToObject.put(objId, res);
-        WLogger.trace("alloc objId=" + objId + " type=" + clazz + " trace=" + trace);
+        WLogger.trace(() -> "alloc objId=" + objId + " type=" + clazz + " trace=" + trace);
         return res;
     }
 

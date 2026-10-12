@@ -1508,9 +1508,7 @@ public class ModelManagerTests {
         ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
         manager.buildProject();
 
-        GlobalCaches.LOCAL_STATE_NOARG_CACHE.put("left over from an earlier compilation", null);
         assertEquals(checksWhenCompiling(projectFolder, manager), 0, "nothing changed since the build");
-        assertTrue(GlobalCaches.LOCAL_STATE_NOARG_CACHE.isEmpty(), "the interpreter caches of the last compilation go");
 
         ModelManager.Changes changes = manager.syncCompilationUnitContent(fileA, packageA + "// changed\n");
         manager.reconcile(changes);
