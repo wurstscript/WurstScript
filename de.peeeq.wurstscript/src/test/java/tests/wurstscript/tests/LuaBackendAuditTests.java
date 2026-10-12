@@ -1178,6 +1178,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "endpackage");
     }
 
+    /** The failure is recognised as it is printed, also after more output than the harness keeps. */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*a package failed to initialize.*")
+    public void aPackageWhichFailsToInitializeAfterMoreOutputThanTheHarnessKeepsFailsTheTest() {
+        test().testLua(true).executeProg().lines(
+            "package Noisy",
+            "native print(string s)",
+            "init",
+            "    for i = 1 to 2000",
+            "        print(\"padding which fills the output the harness is willing to keep, line after line\")",
+            "endpackage",
+            "package Broken",
+            "import Noisy",
+            "native notInTheTestRuntime()",
+            "init",
+            "    notInTheTestRuntime()",
+            "endpackage",
+            "package Test",
+            "import Broken",
+            "native testSuccess()",
+            "init",
+            "    testSuccess()",
+            "endpackage");
+    }
+
     /** ErrorHandling initialises on Lua, and its listeners run through ForForce as in the game. */
     @Test
     public void errorListenersRunOnLua() {

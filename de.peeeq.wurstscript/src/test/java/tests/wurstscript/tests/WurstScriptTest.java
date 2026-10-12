@@ -683,8 +683,11 @@ public class WurstScriptTest {
                     new java.util.concurrent.atomic.AtomicBoolean(false);
                 java.util.concurrent.atomic.AtomicBoolean sawTestFail =
                     new java.util.concurrent.atomic.AtomicBoolean(false);
+                java.util.concurrent.atomic.AtomicBoolean sawInitFailure =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
                 Thread outCollector = collectStreamAsync(p.getInputStream(), output,
-                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail));
+                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail),
+                    java.util.Map.of("Could not initialize package ", sawInitFailure));
                 Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
                 if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
                     p.destroyForcibly();
@@ -702,7 +705,8 @@ public class WurstScriptTest {
                 if (sawTestFail.get()) {
                     throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
                 }
-                if (output.indexOf("Could not initialize package") >= 0) {
+                // The generated script reports a package whose init failed and goes on without it.
+                if (sawInitFailure.get()) {
                     throw new Error(currentTestEnv + ": a package failed to initialize\nLua output:\n" + output);
                 }
                 if (!sawTestSuccess.get()) {
@@ -754,7 +758,7 @@ public class WurstScriptTest {
     }
 
     private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
-        return collectStreamAsync(stream, out, java.util.Collections.emptyMap());
+        return collectStreamAsync(stream, out, java.util.Collections.emptyMap(), java.util.Collections.emptyMap());
     }
 
     /**
@@ -765,13 +769,20 @@ public class WurstScriptTest {
      * Whatever the caller is looking for is recognised here rather than read back out of
      * {@code out} afterwards, because it may arrive after the limit: a program that prints a
      * million lines and then succeeds has still succeeded, and one that prints them and then fails
-     * has still failed. Each line in {@code watchedLines} sets its flag when the program prints it.
+     * has still failed. Each line in {@code watchedLines} sets its flag when the program prints it,
+     * and each prefix in {@code watchedPrefixes} when the program prints a line which starts with it.
      */
     private Thread collectStreamAsync(InputStream stream, StringBuilder out,
-                                      java.util.Map<String, java.util.concurrent.atomic.AtomicBoolean> watchedLines) {
+                                      java.util.Map<String, java.util.concurrent.atomic.AtomicBoolean> watchedLines,
+                                      java.util.Map<String, java.util.concurrent.atomic.AtomicBoolean> watchedPrefixes) {
         int longestWatchedLine = 0;
         for (String watched : watchedLines.keySet()) {
             longestWatchedLine = Math.max(longestWatchedLine, watched.length());
+        }
+        java.util.Set<Integer> prefixLengths = new java.util.HashSet<>();
+        for (String watched : watchedPrefixes.keySet()) {
+            longestWatchedLine = Math.max(longestWatchedLine, watched.length());
+            prefixLengths.add(watched.length());
         }
         final int maxWatchedLength = longestWatchedLine;
         Thread t = new Thread(() -> {
@@ -785,7 +796,7 @@ public class WurstScriptTest {
             try (Reader input = new InputStreamReader(stream)) {
                 int read;
                 while ((read = input.read(chunk)) >= 0) {
-                    if (!watchedLines.isEmpty()) {
+                    if (!watchedLines.isEmpty() || !watchedPrefixes.isEmpty()) {
                         for (int i = 0; i < read; i++) {
                             char c = chunk[i];
                             if (c == '\n') {
@@ -805,6 +816,14 @@ public class WurstScriptTest {
                                     pendingLine.setLength(0);
                                 } else {
                                     pendingLine.append(c);
+                                    // A prefix is matched as the line reaches its length, before the
+                                    // line grows past the longest watched one and is dropped.
+                                    if (prefixLengths.contains(pendingLine.length())) {
+                                        java.util.concurrent.atomic.AtomicBoolean saw = watchedPrefixes.get(pendingLine.toString());
+                                        if (saw != null) {
+                                            saw.set(true);
+                                        }
+                                    }
                                 }
                             }
                         }
