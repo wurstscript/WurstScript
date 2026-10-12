@@ -88,7 +88,9 @@ public class LuaNativesTests {
         assertTrue(loadStr.contains("h.__wurst_ht_str"));
         assertTrue(loadHandle.contains("h.__wurst_ht_handle"));
         assertTrue(loadInt, loadInt.contains("return x[c] or 0"));
-        assertTrue("a missing string is nil: " + loadStr, loadStr.contains("return nil") && loadStr.contains("return x[c]\n"));
+        assertTrue("a missing string is the null string, \"\": " + loadStr,
+            loadStr.contains("if h == nil then return \"\" end") && loadStr.contains("return x[c] or \"\"")
+                && !loadStr.contains("return nil"));
         assertTrue(loadBool, loadBool.contains("return x[c] == true"));
         assertFalse("no subtable is ever missing: " + loadInt, loadInt.contains("t == nil"));
     }

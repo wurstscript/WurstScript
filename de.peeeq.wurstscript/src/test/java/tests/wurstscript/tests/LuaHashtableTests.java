@@ -102,8 +102,8 @@ public class LuaHashtableTests extends WurstScriptTest {
         assertMatches("a handle load answers the handle only for a tag it accepts",
             "\\(\\(__wurst_htAccepts_Timer\\[\\(\\(\\w+ and \\w+\\.__wurst_ht_htype\\[1\\]\\) or __wurst_htEmpty\\)\\[3\\]\\] and "
                 + "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[1\\]\\) or __wurst_htEmpty\\)\\[3\\]\\) or nil\\)", init);
-        assertMatches("a string load is nil when absent, which the concatenation guards",
-            "\\(\\(\\(\\w+ and \\w+\\.__wurst_ht_str\\[1\\]\\) or __wurst_htEmpty\\)\\[2\\] or \"\"\\)", init);
+        assertMatches("a string load is the null string, \"\", when absent, which the concatenation need not guard",
+            "\"x\" \\.\\. \\(\\(\\(\\w+ and \\w+\\.__wurst_ht_str\\[1\\]\\) or __wurst_htEmpty\\)\\[2\\] or \"\"\\)\\)", init);
         assertMatches("a remove never writes the shared empty child",
             "if \\((\\w+) and \\1\\.__wurst_ht_int\\[1\\]\\) then\\s+\\1\\.__wurst_ht_int\\[1\\]\\[2\\] = nil\\s+end", init);
         for (String subtable : new String[]{"int", "bool", "real", "str", "handle", "htype"}) {
@@ -136,6 +136,9 @@ public class LuaHashtableTests extends WurstScriptTest {
         "    SaveInteger(h, 1, 1, 11)",
         "    check(LoadInteger(h, 1, 1) == 11 and HaveSavedInteger(h, 1, 1), \"int\")",
         "    check(LoadInteger(h, 1, 2) == 0 and not HaveSavedInteger(h, 1, 2), \"an absent child key reads 0\")",
+        // Lua's null string is "", which is what the game's Lua natives answer where Jass answers null; they raise on nil
+        "    check(StringLength(LoadStr(h, 1, 1)) == 0 and LoadStr(h, 1, 1) == null and StringLength(LoadStr(h, 1, 2)) == 0,"
+            + " \"an absent string is the null string\")",
         "    check(LoadReal(h, 1, 1) == 0. and not HaveSavedReal(h, 1, 1), \"each kind has its own entries\")",
         "    SaveBoolean(h, 1, 1, false)",
         "    check(HaveSavedBoolean(h, 1, 1) and not LoadBoolean(h, 1, 1), \"a stored false\")",
@@ -181,6 +184,7 @@ public class LuaHashtableTests extends WurstScriptTest {
         "    SaveTimerHandle(h, 1, 1, t)",
         "    check(LoadInteger(h, 1, 1) == 0 and not HaveSavedInteger(h, 1, 1) and LoadTimerHandle(h, 1, 1) == null,"
             + " \"a flushed hashtable keeps nothing\")",
+        "    check(StringLength(LoadStr(h, 1, 1)) == 0 and LoadStr(h, 1, 1) == null, \"a flushed hashtable reads the null string\")",
         "    FlushChildHashtable(h, 1)",
         "    RemoveSavedInteger(h, 1, 1)",
         "    FlushParentHashtable(h)",
@@ -194,6 +198,7 @@ public class LuaHashtableTests extends WurstScriptTest {
         "    check(LoadInteger(none, 1, 1) == 0 and LoadReal(none, 1, 1) == 0. and not LoadBoolean(none, 1, 1)"
             + " and \"x\" + LoadStr(none, 1, 1) == \"x\" and LoadTimerHandle(none, 1, 1) == null"
             + " and not HaveSavedInteger(none, 1, 1), \"a null hashtable reads defaults\")",
+        "    check(StringLength(LoadStr(none, 1, 1)) == 0 and LoadStr(none, 1, 1) == null, \"a null hashtable reads the null string\")",
         "    check(LoadInteger(ct, 1, 2) == 12 and LoadStr(ct, 1, 3) == \"ct\" and LoadBoolean(ct, 4, 5)"
             + " and LoadReal(ct, 6, 7) == 1.5 and not HaveSavedInteger(ct, 1, 3), \"a compile-time hashtable\")",
         "    testSuccess()"
@@ -225,6 +230,8 @@ public class LuaHashtableTests extends WurstScriptTest {
             "@noinline function key(string tag, int k) returns int",
             "    trace += tag",
             "    return k",
+            "function loadZ(hashtable h) returns string",
+            "    return LoadStr(h, key(\"z\", 7), 1)",
             "init",
             "    let h = InitHashtable()",
             "    SaveInteger(h, key(\"p\", 1), key(\"c\", 2), key(\"v\", 3))",
@@ -248,6 +255,11 @@ public class LuaHashtableTests extends WurstScriptTest {
             "    SaveInteger(none, key(\"n\", 1), 1, 1)",
             "    if LoadInteger(none, key(\"l\", 1), 1) != 0 or HaveSavedInteger(none, key(\"h\", 1), 1)",
             "        testFail(\"a null hashtable through the helper\")",
+            "    if StringLength(LoadStr(h, key(\"s\", 7), 1)) != 0 or StringLength(LoadStr(none, key(\"t\", 1), 1)) != 0",
+            "        testFail(\"an absent string through the helper\")",
+            // guarded before inlining, as the call of loadZ; inlined, the guard holds the stub, which answers ""
+            "    if \"x\" + loadZ(h) != \"x\"",
+            "        testFail(\"an absent string joined through the helper\")",
             "    if HaveSavedInteger(h, 1, 2) or HaveSavedInteger(h, 1, 4) or LoadInteger(h, 9, 2) != 0",
             "        testFail(\"removed and flushed\")",
             "    testSuccess()");
@@ -256,12 +268,16 @@ public class LuaHashtableTests extends WurstScriptTest {
         LuaTranslator.assertNoLeakedHashtableNativeCalls(compiled);
         String init = functionBody(compiled, "init_Test");
         for (String helper : new String[]{"SaveInteger", "LoadInteger", "HaveSavedInteger", "RemoveSavedInteger",
-            "FlushChildHashtable"}) {
+            "FlushChildHashtable", "LoadStr"}) {
             assertTrue("an operation with an effect in an operand calls its helper: " + helper + "\n" + init,
                 init.contains("__wurst_" + helper + "("));
             assertTrue("a helper which is called is defined: " + helper + "\n" + compiled,
                 compiled.contains("function __wurst_" + helper + "("));
         }
+        int joined = init.indexOf("\"x\" .. __wurst_LoadStr(");
+        assertTrue("the string load joined through the helper:\n" + init, joined >= 0);
+        String join = init.substring(joined, init.indexOf('\n', joined));
+        assertFalse("the helper answers the null string, so the join adds no guard: " + join, join.contains("or \"\""));
         assertMatches("a save with plain operands is printed in place",
             ";\\((\\w+)\\.__wurst_ht_int\\[1\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, 1\\)\\)\\[6\\] = 7", init);
         assertMatches("a load with plain operands is printed in place",

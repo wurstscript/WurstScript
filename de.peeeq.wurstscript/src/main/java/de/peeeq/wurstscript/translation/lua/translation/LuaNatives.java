@@ -390,8 +390,8 @@ public class LuaNatives {
         // true only for a stored true, as LoadBoolean answers false when nothing is stored
         addHashtableLoad(withWurstPrefix("LoadBoolean"), "__wurst_ht_bool", "false", "x[c] == true");
         addHashtableLoad(withWurstPrefix("LoadReal"), "__wurst_ht_real", "0.0", "x[c] or 0.0");
-        // nil when absent, as the string loads have always answered
-        addHashtableLoad(withWurstPrefix("LoadStr"), "__wurst_ht_str", "nil", "x[c]");
+        // the null string when absent, which on Lua is "": the game's natives raise on nil
+        addHashtableLoad(withWurstPrefix("LoadStr"), "__wurst_ht_str", "\"\"", "x[c] or \"\"");
         for (String name : HASHTABLE_HANDLE_LOAD_NAMES) {
             String type = handleTypeOf(name);
             StringBuilder accepted = new StringBuilder();

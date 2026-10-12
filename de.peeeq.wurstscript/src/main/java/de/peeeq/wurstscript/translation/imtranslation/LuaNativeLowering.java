@@ -383,6 +383,7 @@ public final class LuaNativeLowering {
      * Natives whose result is a string whatever the runtime does. Only {@code I2S}: the backend prints
      * it as {@code tostring}, which cannot answer nil. A native which merely returns a string in the
      * game, such as {@code R2S}, is not trusted to: a runtime of one's own may declare it to answer nil.
+     * The emulated string load is matched by identity ({@link LuaHashtable#isStringLoad}).
      */
     private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S");
 
@@ -401,7 +402,8 @@ public final class LuaNativeLowering {
             return f == translator.luaRawConcatFunc
                 || f == translator.luaRawOrEmptyFunc
                 || f == translator.luaRawToStringFunc
-                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()));
+                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()))
+                || LuaHashtable.isStringLoad(translator, f);
         }
         return false;
     }
