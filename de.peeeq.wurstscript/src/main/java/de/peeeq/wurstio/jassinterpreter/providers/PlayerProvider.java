@@ -35,11 +35,15 @@ public class PlayerProvider extends Provider {
         ((PlayerMock) player.getObj()).playerStates.put(key, value);
     }
 
+    /** Measured on the 3.0.0 client: a null player state is id 0, PLAYER_STATE_GAME_RESULT, which is 3
+     *  (PLAYER_GAME_RESULT_NEUTRAL) while the game runs. */
     public ILconstInt GetPlayerState(IlConstHandle player, IlConstHandle playerstate) {
-        if (player == null || playerstate == null) {
+        if (player == null) {
             return ILconstInt.create(0);
         }
-        return ((PlayerMock) player.getObj()).playerStates.getOrDefault(playerstate.print(), ILconstInt.create(0));
+        String key = playerstate == null ? "playerstate0" : playerstate.print();
+        ILconstInt unset = ILconstInt.create(key.equals("playerstate0") ? 3 : 0);
+        return ((PlayerMock) player.getObj()).playerStates.getOrDefault(key, unset);
     }
 
     public IlConstHandle GetPlayerSlotState(IlConstHandle player) {
