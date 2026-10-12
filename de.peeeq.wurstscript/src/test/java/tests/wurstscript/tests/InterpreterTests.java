@@ -534,6 +534,9 @@ public class InterpreterTests extends WurstScriptTest {
             "    return b ? \"true\" : \"false\"",
             "init",
             "    measured(\"same value, same handle\", bs(ConvertUnitType(1) == UNIT_TYPE_DEAD) + \",\" + bs(ConvertUnitEvent(5) == ConvertUnitEvent(5)) + \",\" + bs(ConvertUnitType(999) != null), \"true,true,true\")",
+            // every conversion keeps its handle, the frame types too, which a second provider once made afresh
+            "    measured(\"same origin frame type, same handle\", bs(ConvertOriginFrameType(3) == ConvertOriginFrameType(3)) + \",\""
+                + " + bs(GetHandleId(ConvertOriginFrameType(3)) == GetHandleId(ConvertOriginFrameType(3))), \"true,true\")",
             "    let ids = I2S(GetHandleId(UNIT_TYPE_DEAD)) + \",\" + I2S(GetHandleId(UNIT_STATE_MANA)) + \",\" + I2S(GetHandleId(FRAMEPOINT_CENTER)) + \",\" + I2S(GetHandleId(PLAYER_STATE_RESOURCE_GOLD)) + \",\" + I2S(GetHandleId(UNIT_RF_HP)) + \",\" + I2S(GetHandleId(ConvertUnitType(999)))",
             "    measured(\"GetHandleId of conversions\", ids, \"1,2,4,1,1969778787,999\")",
             "    measured(\"GetHandleId of a unit\", bs(GetHandleId(CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)) >= 0x100000), \"true\")",

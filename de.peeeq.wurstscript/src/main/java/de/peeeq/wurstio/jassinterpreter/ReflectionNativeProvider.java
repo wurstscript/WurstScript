@@ -68,8 +68,15 @@ public class ReflectionNativeProvider implements NativesProvider {
                     }
                     methodMap.put(funcName, new NativeJassFunction(funcName, provider, method));
                 }
-            } else {
-                methodMap.put(method.getName(), new NativeJassFunction(method.getName(), provider, method));
+            } else if (method.getDeclaringClass() != Object.class) {
+                // Two providers with a method of the same name would make the later one win silently
+                // (FrameProvider once shadowed ConversionProvider's ConvertOriginFrameType, whose handles keep
+                // their identity). Overloads within one provider stay as they were.
+                NativeJassFunction previous = methodMap.put(method.getName(), new NativeJassFunction(method.getName(), provider, method));
+                if (previous != null && previous.getProvider() != provider) {
+                    throw new Error("Trying to add multiple implementations of <" + method.getName() + ">: "
+                        + previous.getProvider().getClass().getSimpleName() + " and " + provider.getClass().getSimpleName());
+                }
             }
         }
     }

@@ -76,12 +76,10 @@ public class WurstChecker {
 
     /**
      * Lets a model which was checked completely by another checker report to this one, so that errors
-     * found while translating it reach this checker's gui. What a check of the whole model would clear
-     * and the model's own attributes do not hold, the compile time interpreter's caches, is cleared.
+     * found while translating it reach this checker's gui.
      */
     public void adoptCheckedModel(WurstModel root) {
         attachErrorHandler(root);
-        GlobalCaches.clearInterpreterCaches();
     }
 
     private void clearGlobalCaches(WurstModel root, Collection<CompilationUnit> toCheck) {
