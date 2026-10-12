@@ -70,7 +70,8 @@ final class LuaHashtableTranslation {
             case INT -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0"));
             case REAL -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprRealVal("0.0"));
             case BOOL -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpEquals(), LuaAst.LuaExprBoolVal(true));
-            case STR -> value;
+            // Lua's null string is "", which is what the game's Lua natives answer where Jass answers null
+            case STR -> LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprStringVal(""));
             case HANDLE -> {
                 LuaExpr accepted = LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.hashtableAccepts(op.handleType())),
                     LuaAst.LuaExprlist(read(copies(operands), LuaHashtable.Values.HANDLE_TYPE, tr)));

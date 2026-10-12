@@ -380,11 +380,13 @@ public final class LuaNativeLowering {
     }
 
     /**
-     * Natives whose result is a string whatever the runtime does. Only {@code I2S}: the backend prints
-     * it as {@code tostring}, which cannot answer nil. A native which merely returns a string in the
-     * game, such as {@code R2S}, is not trusted to: a runtime of one's own may declare it to answer nil.
+     * Natives whose result is a string whatever the runtime does. {@code I2S}: the backend prints it as
+     * {@code tostring}, which cannot answer nil. {@code LoadStr}: the backend emulates every hashtable
+     * native, and its string load answers "" when nothing is stored. A native which merely returns a
+     * string in the game, such as {@code R2S}, is not trusted to: a runtime of one's own may declare it
+     * to answer nil.
      */
-    private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S");
+    private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S", "LoadStr");
 
     /**
      * Whether the string {@code e} cannot be nil on Lua. Asked here, before the optimiser, and again
