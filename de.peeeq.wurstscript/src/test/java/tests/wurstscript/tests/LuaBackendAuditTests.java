@@ -7669,6 +7669,45 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * Jass reads a real literal's integer part as a 32-bit integer (measured on the 3.0.0 client: the
+     * literal 3000000000. is negative, 10000000000. reads as 1410065408), and truncates one past 2^24
+     * (16777219. reads as 16777218). So the Jass backend prints the float the literal means: its exact
+     * digits below 2^31, and above that a product of exact factors, which Jass multiplies exactly.
+     * The test Lua computes in double, where 16777219. is exact, so only the Jass shows that one.
+     */
+    @Test
+    public void largeRealLiteralsMeanTheSameFloatInEveryRun() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native R2I(real r) returns int",
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "function same(real a, real b) returns boolean",
+            "    return not (a != b)",
+            "init",
+            "    let big = w(30000.) * w(100000.)",
+            "    let tenTo10 = w(100000.) * w(100000.)",
+            "    if same(3000000000., big) and same(-3000000000., -big) and 3000000000. > 0.",
+            "        and same(w(6000000000.) / 3000000000., 2.) and same(w(1.) - 3000000000., 1. - big)",
+            "        and same(10000000000., tenTo10) and w(16777219.) > 0.",
+            "        and same(100000000000000000000., tenTo10 * tenTo10)",
+            // the stdlib's REAL_MAX: past the largest float, so infinity to a float, and finite to the test Lua
+            "        and 340282366920938000000000000000000000000. > w(3000.) * w(100000.) * tenTo10 * tenTo10 * tenTo10",
+            "        and -340282366920938000000000000000000000000. < -(w(3000.) * w(100000.) * tenTo10 * tenTo10 * tenTo10)",
+            "        and R2I(3000000000.) == 2147483647 and R2I(-3000000000.) == -2147483648",
+            "        testSuccess()");
+        String jass = compiledJass("largeRealLiteralsMeanTheSameFloatInEveryRun");
+        java.util.regex.Matcher literal = java.util.regex.Pattern.compile("(?<![\\w.])(\\d+)\\.").matcher(jass);
+        while (literal.find()) {
+            assertTrue("Jass reads " + literal.group() + " wrapped:\n" + jass,
+                new java.math.BigInteger(literal.group(1)).bitLength() <= 31);
+        }
+        assertFalse("Jass truncates 16777219.:\n" + jass, jass.contains("16777219."));
+        assertTrue("the float 16777219. means is printed:\n" + jass, jass.contains("16777220."));
+    }
+
     @Test
     public void realModIsModuloRealsFormulaInEveryRun() {
         test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(

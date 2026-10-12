@@ -408,8 +408,8 @@ public class InterpreterTests extends WurstScriptTest {
 
     /**
      * Every expected value here was measured on the 3.0.0 client. A real past 2^31 is computed (w keeps it from
-     * folding): Jass reads a real literal past 2^31 wrapped (the literal 3000000000. is negative), which the
-     * interpreter does not model, and which is what R2S, R2SW and R2I of such a literal show.
+     * folding), as it was in the measurement: Jass reads such a literal wrapped as written (the literal
+     * 3000000000. is negative), which is why the Jass backend prints it otherwise.
      */
     @Test
     public void stringNativesAsMeasured() {

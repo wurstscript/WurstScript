@@ -480,13 +480,25 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         return value.text();
     }
 
+    /**
+     * A real as a decimal literal both backends read: the shortest decimal which reads back as the
+     * same float, without the exponent Java prints from 10^7 on and below 10^-3, which Jass does not parse.
+     */
+    private static String realLiteral(Element trace, float value) {
+        if (!Float.isFinite(value)) {
+            throw new InterpreterException(trace, "The compile-time real " + value + " has no literal.");
+        }
+        String plain = new java.math.BigDecimal(Float.toString(value)).toPlainString();
+        return plain.contains(".") ? plain : plain + ".";
+    }
+
     private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
         if (value instanceof ILconstBool iLconstBool) {
             return JassIm.ImBoolVal(iLconstBool.getVal());
         } else if (value instanceof ILconstInt iLconstInt) {
             return JassIm.ImIntVal(iLconstInt.getVal());
         } else if (value instanceof ILconstReal iLconstReal) {
-            return JassIm.ImRealVal("" + iLconstReal.getVal());
+            return JassIm.ImRealVal(realLiteral(trace, iLconstReal.getVal()));
         } else if (value instanceof ILconstString iLconstString) {
             return JassIm.ImStringVal(literalText(iLconstString, trace));
         } else if (value instanceof ILconstNull) {
@@ -1110,7 +1122,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(parentKey),
                             JassIm.ImIntVal(childKey),
-                            JassIm.ImRealVal("" + iv.getVal())
+                            JassIm.ImRealVal(realLiteral(trace, iv.getVal()))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstString iv) {
                     if (saveStr == null) {
