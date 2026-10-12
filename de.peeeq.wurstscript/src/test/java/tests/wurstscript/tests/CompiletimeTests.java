@@ -83,7 +83,9 @@ public class CompiletimeTests extends WurstScriptTest {
                 "        and not (small != w(1.) / w(1024.))",
                 "        testSuccess()");
         String jass = Files.toString(new File(TEST_OUTPUT_PATH + "CompiletimeTests_compiletimeRealsBecomeDecimalLiterals_no_opts.j"), Charsets.UTF_8);
-        assertFalse(java.util.regex.Pattern.compile("\\d[eE][-+]?\\d").matcher(jass).find(), "no exponent:\n" + jass);
+        // The header comment names the compiler's commit, whose hash can read like an exponent (557e639).
+        String code = jass.replaceAll("(?m)^//.*$", "");
+        assertFalse(java.util.regex.Pattern.compile("\\d[eE][-+]?\\d").matcher(code).find(), "no exponent:\n" + jass);
     }
 
     @Test
