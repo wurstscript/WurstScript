@@ -1157,6 +1157,33 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    testSuccess()");
     }
 
+    /**
+     * The nil guard of a handle native passes a null enum handle on as the handle of id 0, which is what the
+     * engine reads a null enum argument as (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
+     * IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result); a null unit still answers
+     * the default.
+     */
+    @Test
+    public void aNullEnumHandleIsTheHandleOfIdZeroOnLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "native consume(real r)",
+            "native consumeB(boolean b)",
+            "@noinline function read(unit u, unitstate s, unittype t)",
+            "    consume(GetUnitState(u, s))",
+            "    consumeB(IsUnitType(u, t))",
+            "init",
+            "    read(null, null, null)");
+        String compiled = compiledLua("aNullEnumHandleIsTheHandleOfIdZeroOnLua");
+        String state = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState");
+        assertTrue("a null unit state is UNIT_STATE_LIFE:\n" + state,
+            java.util.regex.Pattern.compile("if \\(?(\\w+) == nil\\)? then\\s+\\1 = ConvertUnitState\\(0\\)").matcher(state).find());
+        assertTrue("a null unit answers the default:\n" + state,
+            java.util.regex.Pattern.compile("if \\(?\\w+ == nil\\)? then\\s+return 0\\.").matcher(state).find());
+        String type = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_IsUnitType");
+        assertTrue("a null unit type is UNIT_TYPE_HERO:\n" + type, type.contains("ConvertUnitType(0)"));
+    }
+
     /** Fixed-seed model checking also varies the expression substituted for an old-generic key. */
     @Test
     public void randomizedOldGenericMapOperationsMatchReferenceModel() {

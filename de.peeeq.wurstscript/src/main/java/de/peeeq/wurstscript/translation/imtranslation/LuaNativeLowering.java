@@ -282,7 +282,7 @@ public final class LuaNativeLowering {
                 } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
                     return createNativeStub("__wurst_" + name, bj);
                 } else if (hasHandleParam(bj)) {
-                    return createNilSafeWrapper(bj);
+                    return createNilSafeWrapper(bj, translator, deferredAdditions);
                 }
                 return null;
             }
@@ -841,7 +841,7 @@ public final class LuaNativeLowering {
      * {@code null} and returns the type-appropriate default value if any is
      * null.  Otherwise it delegates to the original BJ function.
      */
-    private static ImFunction createNilSafeWrapper(ImFunction bjNative) {
+    private static ImFunction createNilSafeWrapper(ImFunction bjNative, ImTranslator translator, List<ImFunction> deferredAdditions) {
         ImVars params = JassIm.ImVars();
         List<ImVar> paramVars = new ArrayList<>();
         for (ImVar p : bjNative.getParameters()) {
@@ -855,6 +855,10 @@ public final class LuaNativeLowering {
         // Null-check each required handle param: if param == null then return <default> end
         // boolexpr and code params are intentionally skipped — they are optional/nullable
         // in Jass (e.g. the filter arg of TriggerRegisterPlayerUnitEvent).
+        // A null enum handle is no missing handle: the engine reads it as the handle of id 0, so the
+        // wrapper passes that one on (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
+        // IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result, and
+        // UnitDamageTarget with a null attack and damage type deals the damage).
         ImExpr returnDefault = defaultValueExpr(bjNative.getReturnType());
         for (ImVar param : paramVars) {
             if (isHandleType(param.getType()) && !isNullableHandleType(param.getType())) {
@@ -862,9 +866,21 @@ public final class LuaNativeLowering {
                     JassIm.ImVarAccess(param),
                     JassIm.ImNull(param.getType().copy())
                 ));
-                ImStmts thenBlock = JassIm.ImStmts(
-                    JassIm.ImReturn(bjNative.attrTrace(), returnDefault.copy())
-                );
+                ImFunction converter = translator.enumConverter(((ImSimpleType) param.getType()).getTypename());
+                ImStmts thenBlock;
+                if (converter != null) {
+                    // A converter nothing else called may have been shaken out of the program.
+                    if (converter.getParent() == null && !deferredAdditions.contains(converter)) {
+                        deferredAdditions.add(converter);
+                    }
+                    thenBlock = JassIm.ImStmts(JassIm.ImSet(bjNative.attrTrace(), JassIm.ImVarAccess(param),
+                        JassIm.ImFunctionCall(bjNative.attrTrace(), converter, JassIm.ImTypeArguments(),
+                            JassIm.ImExprs(JassIm.ImIntVal(0)), false, CallType.NORMAL)));
+                } else {
+                    thenBlock = JassIm.ImStmts(
+                        JassIm.ImReturn(bjNative.attrTrace(), returnDefault.copy())
+                    );
+                }
                 body.add(JassIm.ImIf(bjNative.attrTrace(), condition, thenBlock, JassIm.ImStmts()));
             }
         }

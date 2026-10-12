@@ -965,6 +965,36 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
 
+    /** The common.j natives which make an enum handle from an integer, by the enum type's name; built when first asked. */
+    private @Nullable Map<String, NativeFunc> enumConverters;
+
+    /**
+     * The common.j native which makes the enum handle of type {@code typename} from an integer
+     * ({@code ConvertUnitState} for {@code unitstate}), or null when the type is no enum. A null enum
+     * argument is the handle of id 0 to the engine.
+     */
+    public @Nullable ImFunction enumConverter(String typename) {
+        if (enumConverters == null) {
+            // looked up by type, never iterated
+            Map<String, NativeFunc> converters = new HashMap<>();
+            for (CompilationUnit cu : wurstProg) {
+                for (JassToplevelDeclaration decl : cu.getJassDecls()) {
+                    if (decl instanceof NativeFunc nativeFunc && isBJ(nativeFunc.getSource())
+                        && nativeFunc.getNameId().getName().startsWith("Convert")
+                        && nativeFunc.getParameters().size() == 1
+                        && nativeFunc.getParameters().get(0).attrTyp() instanceof WurstTypeInt
+                        && nativeFunc.attrReturnTyp().imTranslateType(this) instanceof ImSimpleType returned
+                        && LuaNativeLowering.isHandleType(returned)) {
+                        converters.putIfAbsent(returned.getTypename(), nativeFunc);
+                    }
+                }
+            }
+            enumConverters = converters;
+        }
+        NativeFunc converter = enumConverters.get(typename);
+        return converter == null ? null : getFuncFor(converter);
+    }
+
     private ImFunction getNativeFunc(String funcName) {
         ImmutableCollection<FuncLink> wurstFunc = wurstProg.lookupFuncs(funcName);
         if (wurstFunc.isEmpty()) {
