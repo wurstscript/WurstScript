@@ -27,7 +27,8 @@ public class PlayerProvider extends Provider {
         if (player == null) {
             return;
         }
-        // a null state is id 0, the game result, as GetPlayerState reads it and the Lua backend passes it on
+        // Measured on the 3.0.0 client: a null state is id 0, the game result (SetPlayerState(Player(1), null, 2)
+        // then reads 2 through PLAYER_STATE_GAME_RESULT), as GetPlayerState reads it and the Lua backend passes it on.
         String key = playerStateKey(playerstate);
         if (key.equals("playerstate1") || key.equals("playerstate2")) {
             // Measured on the 3.0.0 client: gold and lumber are clamped to 0.
