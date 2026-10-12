@@ -153,6 +153,15 @@ public final class LuaHashtable {
         return OPS.get(f.getName());
     }
 
+    /**
+     * Whether {@code f} is the string load: the common.j native before {@link LuaNativeLowering#transform} replaces
+     * its calls, or the stub after. It answers the null string, "", when nothing is stored.
+     */
+    public static boolean isStringLoad(ImTranslator translator, ImFunction f) {
+        Op op = f.isBj() ? (isNative(f.getName()) ? opOfName(f.getName()) : null) : op(translator, f);
+        return op != null && op.kind() == Kind.LOAD && op.values() == Values.STR;
+    }
+
     /** Whether {@code f} is the stub of a load or a HaveSaved test, which only read the hashtable. */
     public static boolean isRead(ImTranslator translator, ImFunction f) {
         Op op = op(translator, f);

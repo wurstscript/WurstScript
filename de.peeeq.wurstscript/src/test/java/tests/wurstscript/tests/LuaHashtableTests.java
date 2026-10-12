@@ -230,6 +230,8 @@ public class LuaHashtableTests extends WurstScriptTest {
             "@noinline function key(string tag, int k) returns int",
             "    trace += tag",
             "    return k",
+            "function loadZ(hashtable h) returns string",
+            "    return LoadStr(h, key(\"z\", 7), 1)",
             "init",
             "    let h = InitHashtable()",
             "    SaveInteger(h, key(\"p\", 1), key(\"c\", 2), key(\"v\", 3))",
@@ -255,6 +257,9 @@ public class LuaHashtableTests extends WurstScriptTest {
             "        testFail(\"a null hashtable through the helper\")",
             "    if StringLength(LoadStr(h, key(\"s\", 7), 1)) != 0 or StringLength(LoadStr(none, key(\"t\", 1), 1)) != 0",
             "        testFail(\"an absent string through the helper\")",
+            // guarded before inlining, as the call of loadZ; inlined, the guard holds the stub, which answers ""
+            "    if \"x\" + loadZ(h) != \"x\"",
+            "        testFail(\"an absent string joined through the helper\")",
             "    if HaveSavedInteger(h, 1, 2) or HaveSavedInteger(h, 1, 4) or LoadInteger(h, 9, 2) != 0",
             "        testFail(\"removed and flushed\")",
             "    testSuccess()");
@@ -269,6 +274,10 @@ public class LuaHashtableTests extends WurstScriptTest {
             assertTrue("a helper which is called is defined: " + helper + "\n" + compiled,
                 compiled.contains("function __wurst_" + helper + "("));
         }
+        int joined = init.indexOf("\"x\" .. __wurst_LoadStr(");
+        assertTrue("the string load joined through the helper:\n" + init, joined >= 0);
+        String join = init.substring(joined, init.indexOf('\n', joined));
+        assertFalse("the helper answers the null string, so the join adds no guard: " + join, join.contains("or \"\""));
         assertMatches("a save with plain operands is printed in place",
             ";\\((\\w+)\\.__wurst_ht_int\\[1\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, 1\\)\\)\\[6\\] = 7", init);
         assertMatches("a load with plain operands is printed in place",
