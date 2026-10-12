@@ -9,7 +9,17 @@ public final class CompilationCancellation {
 
     private CompilationCancellation() {}
 
-    public static void run(BooleanSupplier canceled, Runnable action) {
+    @FunctionalInterface
+    public interface Action<E extends Exception> {
+        void run() throws E;
+    }
+
+    /** Capture the signal, not its current value, before handing work to an executor. */
+    public static BooleanSupplier capture() {
+        return CURRENT.get();
+    }
+
+    public static <E extends Exception> void run(BooleanSupplier canceled, Action<E> action) throws E {
         BooleanSupplier previous = CURRENT.get();
         CURRENT.set(canceled);
         try {

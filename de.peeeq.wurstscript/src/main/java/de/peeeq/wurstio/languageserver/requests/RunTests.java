@@ -1,5 +1,8 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import de.peeeq.wurstscript.utils.CompilationCancellation;
+import java.util.concurrent.CancellationException;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -239,10 +242,13 @@ public class RunTests extends UserRequest<Object> {
 
                     try {
                         @Nullable ILInterpreter finalInterpreter = interpreter;
+                        var cancellation = CompilationCancellation.capture();
                         Callable<Void> run = () -> {
-                            finalInterpreter.runVoidFunc(f, null);
-                            // each test must finish its own timers (otherwise, we would get strange results)
-                            finalInterpreter.completeTimers();
+                            CompilationCancellation.run(cancellation, () -> {
+                                finalInterpreter.runVoidFunc(f, null);
+                                // each test must finish its own timers (otherwise, we would get strange results)
+                                finalInterpreter.completeTimers();
+                            });
                             return null;
                         };
 
@@ -313,6 +319,8 @@ public class RunTests extends UserRequest<Object> {
                         if (!compactOutput) {
                             println("\t" + failure.getMessageWithStackFrame());
                         }
+                    } catch (CancellationException e) {
+                        throw e;
                     } catch (Throwable e) {
                         failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
                         if (!compactOutput) {

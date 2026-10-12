@@ -178,4 +178,92 @@ public class MapCancellationTest {
         }
         CompilationCancellation.check();
     }
+
+    @Test
+    public void cancelDuringOutputPublicationStillFinalizesTheMap() throws Exception {
+        var project = Files.createTempDirectory("wurst-cancel-map-finalization");
+        Files.writeString(project.resolve("wurst.build"), "projectName: Test\nwc3Patch: v2.0\n");
+        var cached = project.resolve("cached.w3x").toFile();
+        Files.copy(java.nio.file.Path.of("testscripts/mpq/test.w3x"), cached.toPath());
+        try (var mpq = de.peeeq.wurstio.mpq.MpqEditorFactory.getEditor(Optional.of(cached))) {
+            mpq.insertFile("wurst_cache_manifest.txt", new byte[]{1});
+            mpq.insertFile("wurst_object_cache.txt", new byte[]{2});
+        }
+        java.util.concurrent.atomic.AtomicBoolean canceled = new java.util.concurrent.atomic.AtomicBoolean();
+        java.io.File[] output = new java.io.File[1];
+        class Request extends MapRequest {
+            Request() {
+                super(null, Optional.of(cached), List.of(), WFile.create(project), Optional.empty(), Optional.empty());
+            }
+
+            @Override
+            public Object execute(ModelManager manager) { return null; }
+
+            @Override
+            protected java.io.File getBuildDir() { return project.toFile(); }
+
+            @Override
+            protected java.io.File getCachedMapFile() { return cached; }
+
+            @Override
+            protected CompilationResult compileScript(ModelManager manager, de.peeeq.wurstscript.gui.WurstGui gui,
+                Optional<java.io.File> map, WurstProjectConfigData config, java.io.File buildDir, boolean production) {
+                return new CompilationResult();
+            }
+
+            @Override
+            protected void injectMapData(de.peeeq.wurstscript.gui.WurstGui gui, Optional<java.io.File> map,
+                CompilationResult result) {}
+
+            @Override
+            protected java.io.File ensureWritableBuildOutput(java.io.File target, boolean finalWrite) {
+                output[0] = target;
+                return target;
+            }
+
+            void build(de.peeeq.wurstscript.gui.WurstGui gui) throws Exception {
+                executeBuildMapPipeline(null, gui, WurstProjectConfigData.empty());
+            }
+        }
+        Request request = new Request();
+        var gui = new WurstGuiLogger() {
+            @Override
+            public void sendProgress(String message) {
+                if (message.equals("Finalizing map")) canceled.set(true);
+                CompilationCancellation.check();
+            }
+        };
+        expectThrows(CancellationException.class, () -> CompilationCancellation.run(canceled::get, () -> {
+            try { request.build(gui); }
+            catch (CancellationException e) { throw e; }
+            catch (Exception e) { throw new RuntimeException(e); }
+        }));
+        try (var mpq = de.peeeq.wurstio.mpq.MpqEditorFactory.getEditor(Optional.of(output[0]))) {
+            assertFalse(mpq.hasFile("wurst_cache_manifest.txt"), "cancellation must not publish an unfinalized map");
+            assertFalse(mpq.hasFile("wurst_object_cache.txt"));
+            assertTrue(mpq.hasFile("war3map.j"), "the finalized map must remain readable");
+        }
+        CompilationCancellation.check();
+    }
+
+    @Test
+    public void mapTestExecutorInheritsCancellationWithoutReportingFailedTests() {
+        var gui = new WurstGuiLogger();
+        var compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs());
+        compiler.loadReader("Main.wurst", new StringReader(
+            "package Main\n@test\nfunction spin()\n    while true\n        skip\n"));
+        var model = compiler.parseFiles();
+        assertTrue(compiler.checkProg(model), gui.getErrors());
+        compiler.translateProgToIm(model);
+        Thread owner = Thread.currentThread();
+        AtomicInteger schedulerChecks = new AtomicInteger();
+        var tests = new de.peeeq.wurstio.languageserver.requests.RunTests(Optional.empty(), 0, 0, Optional.empty(), 2);
+        expectThrows(CancellationException.class, () -> CompilationCancellation.run(
+            () -> Thread.currentThread() != owner && schedulerChecks.incrementAndGet() >= 5,
+            () -> tests.runTests(compiler.getImTranslator(), compiler.getImProg(), Optional.empty(), Optional.empty())));
+        assertTrue(schedulerChecks.get() >= 5, "the executor must observe the captured cancellation signal");
+        assertTrue(tests.getFailTests().isEmpty(), "cancellation must not be recorded as a failed test");
+        CompilationCancellation.check();
+    }
+
 }

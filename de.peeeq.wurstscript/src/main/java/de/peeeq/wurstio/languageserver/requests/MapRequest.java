@@ -880,18 +880,25 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
         CompilationCancellation.check();
-        java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        final File outputMapFile = targetMapFile;
+        // Once publication begins, finish compression and stripping cache metadata before
+        // honoring cancellation. Otherwise the output could replace a valid release with
+        // an unfinished cached map.
+        CompilationCancellation.run(() -> false, () -> {
+            java.nio.file.Files.copy(getCachedMapFile().toPath(), outputMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        gui.sendProgress("Finalizing map");
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
-            if (mpq != null) {
-                // Strip internal Wurst cache files — they are dev-only metadata and should
-                // not be present in the distributed map.
-                if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
-                if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
-                mpq.closeWithCompression();
+            gui.sendProgress("Finalizing map");
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(outputMapFile))) {
+                if (mpq != null) {
+                    // Strip internal Wurst cache files — they are dev-only metadata and should
+                    // not be present in the distributed map.
+                    if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
+                    if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    mpq.closeWithCompression();
+                }
             }
-        }
+
+        });
 
         gui.sendProgress("Done.");
         return targetMapFile;
