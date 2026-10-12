@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
@@ -63,6 +65,21 @@ public class LanguageWorker implements Runnable {
     private Exception initializationFailure;
 
     private final Object lock = new Object();
+    private MapRequest pendingMapRequest;
+    // An editor can cancel its notification before executeCommand has reached this worker.
+    // Retain a bounded set so that notification/request ordering cannot lose cancellation.
+    private final Set<Either<String, Integer>> canceledMapTokens = new LinkedHashSet<>();
+
+    public void cancelMapRequest(Either<String, Integer> token) {
+        synchronized (lock) {
+            if (pendingMapRequest != null && token != null && token.equals(pendingMapRequest.getWorkDoneToken())) {
+                pendingMapRequest.cancel();
+            } else if (token != null) {
+                canceledMapTokens.add(token);
+                if (canceledMapTokens.size() > 64) canceledMapTokens.remove(canceledMapTokens.iterator().next());
+            }
+        }
+    }
     private ModelManager.Changes changesToReconcile = ModelManager.Changes.empty();
     private boolean reconcileNowRequested = false;
     private final DebouncingTimer packagesToReconcileTimer = new DebouncingTimer(() -> {
@@ -390,6 +407,13 @@ public class LanguageWorker implements Runnable {
 
     public <Res> CompletableFuture<Res> handle(UserRequest<Res> request) {
         synchronized (lock) {
+            if (request instanceof MapRequest mapRequest) {
+                if (pendingMapRequest != null) {
+                    return CompletableFuture.failedFuture(new IllegalStateException("A map command is already in progress"));
+                }
+                pendingMapRequest = mapRequest;
+                if (canceledMapTokens.remove(mapRequest.getWorkDoneToken())) mapRequest.cancel();
+            }
             if (!request.keepDuplicateRequests()) {
                 Iterator<UserRequest<?>> it = userRequests.iterator();
                 while (it.hasNext()) {
@@ -404,7 +428,14 @@ public class LanguageWorker implements Runnable {
             lock.notifyAll();
             CompletableFuture<Res> fut = request.getFuture();
             CompletableFuture<Res> resFut = new CompletableFuture<>();
+            resFut.whenComplete((result, error) -> {
+                if (resFut.isCancelled()) request.cancel();
+            });
             fut.whenComplete((res, err) -> {
+                synchronized (lock) {
+                    if (pendingMapRequest == request) pendingMapRequest = null;
+                }
+                if (resFut.isCancelled()) return;
                 if (err != null) {
                     request.handleException(languageClient, err, resFut);
                 } else if (res == null) {
