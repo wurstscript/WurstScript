@@ -4,8 +4,12 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.slf4j.LoggerFactory;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
@@ -58,6 +62,28 @@ public class CompiletimeTests extends WurstScriptTest {
                 "init",
                 "    if a == 1. and b == 2.",
                 "        testSuccess()");
+    }
+
+    /** Java prints a float from 10^7 on and below 10^-3 with an exponent, which Jass does not parse. */
+    @Test
+    public void compiletimeRealsBecomeDecimalLiterals() throws IOException {
+        test().executeProg(true)
+            .runCompiletimeFunctions(true)
+            .lines("package Test",
+                "native testSuccess()",
+                "function compiletime(real r) returns real",
+                "    return r",
+                "@noinline function w(real x) returns real",
+                "    return x",
+                "constant big = compiletime(w(10000.) * w(1000.))",
+                "constant huge = compiletime(w(30000.) * w(100000.) * w(1000.))",
+                "constant small = compiletime(w(1.) / w(1024.))",
+                "init",
+                "    if not (big != w(10000.) * w(1000.)) and not (huge != w(30000.) * w(100000.) * w(1000.))",
+                "        and not (small != w(1.) / w(1024.))",
+                "        testSuccess()");
+        String jass = Files.toString(new File(TEST_OUTPUT_PATH + "CompiletimeTests_compiletimeRealsBecomeDecimalLiterals_no_opts.j"), Charsets.UTF_8);
+        assertFalse(java.util.regex.Pattern.compile("\\d[eE][-+]?\\d").matcher(jass).find(), "no exponent:\n" + jass);
     }
 
     @Test

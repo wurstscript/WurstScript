@@ -52,6 +52,21 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "        testSuccess()"));
     }
 
+    /** Java prints these reals with an exponent, which Jass does not parse; the replay writes decimals. */
+    @Test
+    public void largeAndSmallRealsAreReplayedAsDecimals() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "@compiletime",
+            "function fill()",
+            "    SaveReal(h, 1, 1, w(10000.) * w(1000.))",
+            "    SaveReal(h, 1, 2, w(1.) / w(1024.))",
+            "init",
+            "    if LoadReal(h, 1, 1) == 10000000. and LoadReal(h, 1, 2) == 0.0009765625",
+            "        testSuccess()"));
+    }
+
     @Test
     public void flushedAndRemovedEntriesAreNotReplayed() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
