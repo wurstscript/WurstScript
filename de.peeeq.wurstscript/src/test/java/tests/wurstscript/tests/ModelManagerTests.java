@@ -1493,6 +1493,57 @@ public class ModelManagerTests {
         assertFalse(manager.isFullyChecked(model));
     }
 
+    /**
+     * A map build removes the units nothing imports before it compiles. What is left is checked again only where
+     * it may have used what went: it used to be checked again entirely, which cost the compilation a second check.
+     */
+    @Test
+    public void purgingWhatNothingUsesKeepsTheModelChecked() throws IOException {
+        File projectFolder = new File("./temp/testProject_purgeKeepsChecked/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        WFile fileUnused = WFile.create(new File(wurstFolder, "Unused.wurst"));
+        WFile fileC = WFile.create(new File(wurstFolder, "C.wurst"));
+        WFile fileCConfig = WFile.create(new File(wurstFolder, "C_config.wurst"));
+        WFile fileJass = WFile.create(new File(wurstFolder, "Extra.j"));
+        WFile fileStaleJass = WFile.create(new File(wurstFolder, "Stale.j"));
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileA, string("package A", "import B", "import C", "public function a() returns int",
+            "    return b() + c() + extra()", ""));
+        writeFile(fileB, string("package B", "public function b() returns int", "    return 1", ""));
+        writeFile(fileUnused, string("package Unused", "public function unused() returns int", "    return 2", ""));
+        writeFile(fileC, string("package C", "@configurable public constant X = 1", "public function c() returns int", "    return X", ""));
+        writeFile(fileCConfig, string("package C_config", "@config public constant X = 2", ""));
+        writeFile(fileJass, string("function extra takes nothing returns integer", "    return 3", "endfunction", ""));
+        writeFile(fileStaleJass, string("function stale takes nothing returns integer", "    return 4", "endfunction", ""));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        WurstModel model = manager.getModel();
+        assertTrue(manager.isFullyChecked(model));
+
+        manager.retainCompilationUnits(model, cu -> !cu.getCuInfo().getFile().endsWith("Unused.wurst"));
+        assertTrue(manager.isFullyChecked(model), "nothing used what went");
+
+        // a config package is not imported by what it configures, but changes what that resolves to
+        manager.retainCompilationUnits(model, cu -> !cu.getCuInfo().getFile().endsWith("C_config.wurst"));
+        assertFalse(manager.isFullyChecked(model), "C and what imports it resolve X differently now");
+        manager.checkProject(new WurstGuiLogger());
+        assertTrue(manager.isFullyChecked(model));
+
+        // Jass names are visible everywhere, so what matters is whether something resolved one into what goes
+        manager.retainCompilationUnits(model, cu -> !cu.getCuInfo().getFile().endsWith("Stale.j"));
+        assertTrue(manager.isFullyChecked(model), "nothing called the stale Jass function");
+        manager.retainCompilationUnits(model, cu -> !cu.getCuInfo().getFile().endsWith("Extra.j"));
+        assertFalse(manager.isFullyChecked(model), "A called the Jass function which went");
+        manager.checkProject(new WurstGuiLogger());
+        assertTrue(manager.hasErrors(), "the call cannot be resolved any more: " + manager.getFirstErrorDescription());
+    }
+
     @Test
     public void aCompilationDoesNotCheckAModelThatIsAlreadyChecked() throws IOException {
         File projectFolder = new File("./temp/testProject_compileSkipsCheck/");

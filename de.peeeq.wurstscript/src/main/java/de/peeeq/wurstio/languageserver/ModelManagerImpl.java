@@ -12,6 +12,8 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.Utils;
@@ -936,6 +938,75 @@ public class ModelManagerImpl implements ModelManager {
         return cu.getCuInfo().getFile().endsWith(".j") || !cu.getJassDecls().isEmpty();
     }
 
+    /**
+     * The units of the model, other than the removed ones, which resolve a name to a declaration in a removed unit,
+     * or which declare a Jass name a removed unit declares too: removing one of two equal Jass names changes how the
+     * other resolves. The names were resolved by the last check, so this reads what it found.
+     */
+    private static Set<CompilationUnit> usersOfJassNames(List<CompilationUnit> removed, WurstModel model) {
+        Set<CompilationUnit> removedUnits = Collections.newSetFromMap(new IdentityHashMap<>());
+        removedUnits.addAll(removed);
+        Set<String> removedJassNames = new HashSet<>();
+        for (CompilationUnit cu : removed) {
+            addJassNames(cu, removedJassNames);
+        }
+        Set<CompilationUnit> result = new LinkedHashSet<>();
+        for (CompilationUnit cu : model) {
+            if (removedUnits.contains(cu)) {
+                continue;
+            }
+            Set<String> names = new HashSet<>();
+            addJassNames(cu, names);
+            names.retainAll(removedJassNames);
+            if (!names.isEmpty() || resolvesInto(cu, removedUnits)) {
+                result.add(cu);
+            }
+        }
+        return result;
+    }
+
+    private static void addJassNames(CompilationUnit cu, Set<String> names) {
+        for (JassToplevelDeclaration declaration : cu.getJassDecls()) {
+            if (declaration instanceof JassGlobalBlock block) {
+                for (GlobalVarDef global : block) {
+                    names.add(global.getName());
+                }
+            } else if (declaration instanceof NameDef nameDef) {
+                names.add(nameDef.getName());
+            }
+        }
+    }
+
+    private static boolean resolvesInto(CompilationUnit cu, Set<CompilationUnit> units) {
+        Deque<Element> todo = new ArrayDeque<>();
+        todo.push(cu);
+        while (!todo.isEmpty()) {
+            Element e = todo.pop();
+            if (e instanceof FuncRef ref) {
+                FuncLink link = ref.attrFuncLink();
+                if (link != null && units.contains(link.getDef().attrCompilationUnit())) {
+                    return true;
+                }
+            }
+            if (e instanceof NameRef ref) {
+                NameLink link = ref.attrNameLink();
+                if (link != null && units.contains(link.getDef().attrCompilationUnit())) {
+                    return true;
+                }
+            }
+            if (e instanceof TypeRef ref) {
+                TypeDef def = ref.attrTypeDef();
+                if (def != null && units.contains(def.attrCompilationUnit())) {
+                    return true;
+                }
+            }
+            for (int i = 0; i < e.size(); i++) {
+                todo.push(e.get(i));
+            }
+        }
+        return false;
+    }
+
     @Override
     public CompilationUnit replaceCompilationUnitContent(WFile filename, String contents, boolean reportErrors) {
         return replaceCompilationUnit(filename, contents, reportErrors);
@@ -1070,12 +1141,38 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void retainCompilationUnits(WurstModel model, Predicate<CompilationUnit> keep) {
+        List<CompilationUnit> toRemove = new ArrayList<>();
+        for (CompilationUnit cu : model) {
+            if (!keep.test(cu)) {
+                toRemove.add(cu);
+            }
+        }
+        if (toRemove.isEmpty()) {
+            return;
+        }
+        Set<CompilationUnit> dependents = Collections.emptySet();
+        if (model == this.model) {
+            // What is left has to be checked again only where it may have used what goes: what imports a removed
+            // package (or one it configures), and, as Jass names are visible everywhere, what resolves a name to a
+            // removed unit or declares a Jass name a removed unit declares too. A map build removes the units
+            // nothing imports, a stale Jass file at most, so usually nothing is left to check again.
+            GlobalCaches.clearLookupCacheFor(toRemove);
+            Set<String> removedPackages = toRemove.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .map(WPackage::getName)
+                .collect(Collectors.toSet());
+            dependents = calculateCUsToUpdate(Collections.emptyList(), removedPackages, false, model);
+            if (toRemove.stream().anyMatch(ModelManagerImpl::declaresJassNames)) {
+                dependents.addAll(usersOfJassNames(toRemove, model));
+            }
+            toRemove.forEach(dependents::remove);
+            clearCompilationUnits(dependents);
+        }
         synchronized (modelLock) {
-            boolean removed = model.removeIf(cu -> !keep.test(cu));
-            if (removed && model == this.model) {
+            model.removeIf(cu -> !keep.test(cu));
+            if (model == this.model) {
                 uncheckedUnits.removeIf(cu -> !keep.test(cu));
-                // what is left may have used what went: it all has to be checked again
-                uncheckedUnits.addAll(model);
+                uncheckedUnits.addAll(dependents);
             }
         }
     }
