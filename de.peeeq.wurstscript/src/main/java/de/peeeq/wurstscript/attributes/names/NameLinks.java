@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -288,6 +290,37 @@ public class NameLinks {
         }
 
         return result.build();
+    }
+
+    /**
+     * What {@code p.attrNameLinks().get(name)} holds, without building that table. The table of a package
+     * holds every name each of its imports exports, so building it for every package grows with the packages
+     * times the names they import, while a lookup asks for one name: it is asked of each import instead, in
+     * the order of the imports, keeping the first of equal links as the table does.
+     */
+    public static ImmutableSet<DefLink> importedNameLinks(WPackage p, String name) {
+        if (p.getName().equals("WurstREPL")) {
+            // the REPL can use all names, see calculate(WPackage)
+            return (ImmutableSet<DefLink>) p.attrNameLinks().get(name);
+        }
+        ImmutableSet.@Nullable Builder<DefLink> result = null;
+        for (WImport imp : p.getImports()) {
+            if (imp.getPackagename().equals("NoWurst")) {
+                continue;
+            }
+            WPackage importedPackage = imp.attrImportedPackage();
+            if (importedPackage == null) {
+                continue;
+            }
+            ImmutableCollection<DefLink> links = importedPackage.attrExportedNameLinks().get(name);
+            if (!links.isEmpty()) {
+                if (result == null) {
+                    result = ImmutableSet.builder();
+                }
+                result.addAll(links);
+            }
+        }
+        return result == null ? ImmutableSet.of() : result.build();
     }
 
     public static ImmutableMultimap<String, DefLink> calculate(WEntities wEntities) {
