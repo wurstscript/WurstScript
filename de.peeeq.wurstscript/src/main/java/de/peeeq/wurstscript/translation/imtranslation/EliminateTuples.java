@@ -30,7 +30,9 @@ public class EliminateTuples {
             removeOldVars.add(transformVars(c.getFields(), translator));
         }
 
-        shareTupleReturnSlotsAcrossOverrides(imProg, translator);
+        if (!translator.isLuaTarget()) {
+            shareTupleReturnSlotsAcrossOverrides(imProg, translator);
+        }
         List<ImFunction> functions = allFunctions(imProg);
         for (ImFunction f : functions) {
             transformFunctionReturnsAndParameters(f, translator);
@@ -39,7 +41,12 @@ public class EliminateTuples {
             eliminateTuplesFunc(f, translator, discardEvaluation);
         }
         removeOldVars.forEach(Runnable::run);
-        assertNoTuples(imProg);
+        if (translator.isLuaTarget()) {
+            LuaMultipleResults.assertShape(imProg);
+            translator.setLuaMultipleResultsLowered();
+        } else {
+            assertNoTuples(imProg);
+        }
     }
 
     private static void assertNoTuples(Element element) {
@@ -157,7 +164,8 @@ public class EliminateTuples {
         preserveVarargParameter(f);
         transformVars(f.getParameters(), translator).run();
         translator.setOriginalReturnValue(f, f.getReturnType());
-        f.setReturnType(getFirstType(f.getReturnType()));
+        ImTupleType results = translator.isLuaTarget() ? LuaMultipleResults.resultsType(f.getReturnType()) : null;
+        f.setReturnType(results != null ? results : getFirstType(f.getReturnType()));
     }
 
     /**
@@ -198,6 +206,10 @@ public class EliminateTuples {
             public void visit(ImTupleSelection ts) {
                 super.visit(ts);
 
+                if (isResultRead(ts)) {
+                    // a component of a call's results (Lua), read as it is
+                    return;
+                }
                 if (!(ts.getTupleExpr() instanceof ImTupleExpr)) {
                     throw new CompileError(ts.attrTrace().attrSource(), "Wrong tuple selection: " + ts);
                 }
@@ -304,7 +316,8 @@ public class EliminateTuples {
             || value instanceof ImStringVal
             || value instanceof ImNull
             || value instanceof ImVarAccess
-            || value instanceof ImFuncRef) {
+            || value instanceof ImFuncRef
+            || isResultRead(value)) {
             return true;
         }
         if (value instanceof ImOperatorCall operatorCall
@@ -457,7 +470,7 @@ public class EliminateTuples {
 
             @Override
             public void visit(ImVarAccess va) {
-                if (va.attrTyp() instanceof ImTupleType) {
+                if (va.attrTyp() instanceof ImTupleType && !LuaMultipleResults.isResultsLocal(va.getVar())) {
                     ImVar v = va.getVar();
                     VarsForTupleResult vars = translator.getVarsForTuple(v);
                     ImExpr expr = vars.<ImExpr>map(
@@ -550,6 +563,10 @@ public class EliminateTuples {
             public void visit(ImFunctionCall fc) {
                 super.visit(fc);
                 if (translator.getOriginalReturnValue(fc.getFunc()) instanceof ImTupleType) {
+                    if (translator.isLuaTarget()) {
+                        takeResults(fc, fc.getFunc());
+                        return;
+                    }
                     Element parent = fc.getParent();
                     fc.setParent(null);
 
@@ -574,6 +591,10 @@ public class EliminateTuples {
                 super.visit(mc);
                 ImFunction implementation = mc.getMethod().getImplementation();
                 if (implementation != null && translator.getOriginalReturnValue(implementation) instanceof ImTupleType) {
+                    if (translator.isLuaTarget()) {
+                        takeResults(mc, implementation);
+                        return;
+                    }
                     Element parent = mc.getParent();
                     mc.setParent(null);
                     VarsForTupleResult returnVars = translator.getTupleTempReturnVarsFor(implementation);
@@ -583,6 +604,31 @@ public class EliminateTuples {
                         var -> var == firstVar ? mc.copy() : JassIm.ImVarAccess(var));
                     replacer.replaceInParent(parent, mc, newCall);
                 }
+            }
+
+            /**
+             * On Lua a call takes the results of {@code called} into a results local of its own and stands for the
+             * tuple of their selections ({@link LuaMultipleResults}). A call whose results nothing uses stays a
+             * statement, and one of a function returning a single component is that component.
+             */
+            private void takeResults(ImExpr call, ImFunction called) {
+                if (call.getParent() instanceof ImStmts) {
+                    return;
+                }
+                ImType source = translator.getOriginalReturnValue(called);
+                Element parent = call.getParent();
+                call.setParent(null);
+                ImExpr replacement;
+                if (called.getReturnType() instanceof ImTupleType results) {
+                    ImVar local = JassIm.ImVar(call.attrTrace(), results.copy(), called.getName() + "_result", false);
+                    f.getLocals().add(local);
+                    replacement = JassIm.ImStatementExpr(
+                        JassIm.ImStmts(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(local), (ImExpr) call.copy())),
+                        LuaMultipleResults.shape(source, i -> JassIm.ImTupleSelection(JassIm.ImVarAccess(local), i)));
+                } else {
+                    replacement = LuaMultipleResults.shape(source, i -> (ImExpr) call.copy());
+                }
+                replacer.replaceInParent(parent, call, replacement);
             }
 
         });
@@ -606,7 +652,9 @@ public class EliminateTuples {
 
         ImExpr expanded;
         ImStmts prelude = JassIm.ImStmts();
-        if (storage instanceof ImVarAccess access && access.attrTyp() instanceof ImTupleType) {
+        if (storage instanceof ImVarAccess access && LuaMultipleResults.isResultsLocal(access.getVar())) {
+            return null;
+        } else if (storage instanceof ImVarAccess access && access.attrTyp() instanceof ImTupleType) {
             VarsForTupleResult selected = selectTupleComponent(
                 translator.getVarsForTuple(access.getVar()), componentPath);
             if (selected == null) {
@@ -1142,11 +1190,23 @@ public class EliminateTuples {
             || expression instanceof ImStringVal
             || expression instanceof ImNull
             || expression instanceof ImFuncRef
-            || expression instanceof ImTypeIdOfClass;
+            || expression instanceof ImTypeIdOfClass
+            // only the call writes its results local, and it runs before any of the components is read
+            || isResultRead(expression);
+    }
+
+    /** A component of the results of a call (Lua): {@code t.k} of a results local t. */
+    private static boolean isResultRead(ImExpr expression) {
+        return expression instanceof ImTupleSelection selection
+            && selection.getTupleExpr() instanceof ImVarAccess access
+            && LuaMultipleResults.isResultsLocal(access.getVar());
     }
 
     private static ImStatementExpr inReturn(ImReturn parent, ImTupleExpr tupleExpr,
                                             ImTranslator translator, ImFunction f) {
+        if (translator.isLuaTarget()) {
+            return inReturnOfResults(parent, tupleExpr, f);
+        }
         // flat list of return temps, already created by translator:
         List<ImVar> returnVars = translator.getTupleTempReturnVarsFor(f)
             .allValuesStream().collect(Collectors.toList());
@@ -1180,6 +1240,33 @@ public class EliminateTuples {
 
         // 3) Return the first component slot
         stmts.add(JassIm.ImReturn(parent.getTrace(), JassIm.ImVarAccess(returnVars.get(0))));
+        return ImHelper.statementExprVoid(stmts);
+    }
+
+    /**
+     * On Lua the components are the multiple results of the return ({@link LuaMultipleResults}), which Lua evaluates
+     * in order as the bundle has them; a single component is returned as it is.
+     */
+    private static ImStatementExpr inReturnOfResults(ImReturn parent, ImTupleExpr tupleExpr, ImFunction f) {
+        ImStmts stmts = JassIm.ImStmts();
+        OrderedBundle result = lowerBundle(tupleExpr, f, false, "tuple_return");
+        result.appendPreludeTo(stmts);
+        List<ImType> types = f.getReturnType() instanceof ImTupleType results
+            ? results.getTypes()
+            : Collections.singletonList(f.getReturnType());
+        if (result.values.size() != types.size()) {
+            throw new CompileError(parent.getTrace(),
+                "Cannot return tuple with " + result.values.size()
+                    + " element(s) from function expecting " + types.size() + " element(s)");
+        }
+        ImExprs values = JassIm.ImExprs();
+        for (int i = 0; i < types.size(); i++) {
+            ImExpr value = result.values.get(i);
+            value.setParent(null);
+            values.add(value instanceof ImNull ? ImHelper.defaultValueForComplexType(types.get(i)) : value);
+        }
+        ImExpr returned = values.size() == 1 ? values.remove(0) : JassIm.ImTupleExpr(values);
+        stmts.add(JassIm.ImReturn(parent.getTrace(), returned));
         return ImHelper.statementExprVoid(stmts);
     }
 

@@ -114,21 +114,17 @@ public class ExprTranslation {
         // normalization available to callers which explicitly cross an
         // external boundary; ordinary Wurst expressions must not pay for it.
         if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam wtb) {
-
+            WurstType base = wtb.getBaseType().normalize();
             @Nullable ImFunction ensureType = null;
-            switch (wtb.getName()) {
-                case "integer":
-                    ensureType = t.ensureIntFunc;
-                    break;
-                case "string":
-                    ensureType = t.ensureStrFunc;
-                    break;
-                case "boolean":
-                    ensureType = t.ensureBoolFunc;
-                    break;
-                case "real":
-                    ensureType = t.ensureRealFunc;
-                    break;
+            // An enum is an int whose default is its first constant, so it is normalised like one.
+            if (base instanceof WurstTypeInt || base instanceof WurstTypeEnum) {
+                ensureType = t.ensureIntFunc;
+            } else if (base instanceof WurstTypeString) {
+                ensureType = t.ensureStrFunc;
+            } else if (base instanceof WurstTypeBool) {
+                ensureType = t.ensureBoolFunc;
+            } else if (base instanceof WurstTypeReal) {
+                ensureType = t.ensureRealFunc;
             }
             if(ensureType != null) {
                 // Lua already has the exact cheap operation needed for the
@@ -159,8 +155,9 @@ public class ExprTranslation {
                                           boolean indexContext) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
+        FuncDef fromIndexFunc = null;
         if (actualType instanceof WurstTypeBoundTypeParam wtb) {
-            FuncDef fromIndexFunc = wtb.getFromIndex();
+            fromIndexFunc = wtb.getFromIndex();
             if (fromIndexFunc != null) {
                 fromIndex = t.getFuncFor(fromIndexFunc);
             }
@@ -182,7 +179,10 @@ public class ExprTranslation {
             return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
-            if(t.isLuaTarget()) {
+            // Lua normalises the erased value to an int first, except for the conversions which
+            // answer the same for every value a slot can hold (nil, 0, an index) without it.
+            if (t.isLuaTarget() && !de.peeeq.wurstscript.translation.lua.translation.ExprTranslation
+                    .printsAsObjectFromIndex(fromIndexFunc)) {
                 translated = ImFunctionCall(trace, t.ensureIntFunc, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
             // no ensure type necessary here, because the fromIndex function is already type safe
@@ -555,9 +555,21 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(ExprCast e, ImTranslator t, ImFunction f) {
-        ImExpr et = e.getExpr().imTranslateExpr(t, f);
+        Expr operand = e.getExpr();
+        ImExpr et = operand.imTranslateExpr(t, f);
+        ImType fromType = et.attrTyp();
+        if (fromType instanceof ImAnyType && operand.attrTypRaw() instanceof WurstTypeBoundTypeParam bound) {
+            // An old-generics result is erased in the IM, but here it has its type argument's
+            // type: the cast converts a value of that type, not the generic storage encoding.
+            // The value leaves erased storage here, so on Lua it gets that type's default.
+            ImType argumentType = bound.imTranslateType(t);
+            if (!(argumentType instanceof ImAnyType)) {
+                et = wrapLua(operand, t, et, bound);
+                fromType = argumentType;
+            }
+        }
         ImType toType = e.getTyp().attrTyp().imTranslateType(t);
-        return JassIm.ImCast(et, toType);
+        return JassIm.ImCast(et, fromType, toType);
     }
 
     public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {
@@ -870,6 +882,7 @@ public class ExprTranslation {
     private static boolean isPrimitiveType(WurstType type) {
         WurstType normalized = type.normalize();
         return normalized instanceof WurstTypeInt
+            || normalized instanceof WurstTypeEnum
             || normalized instanceof WurstTypeBool
             || normalized instanceof WurstTypeReal
             || normalized instanceof WurstTypeString;

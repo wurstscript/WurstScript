@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
@@ -15,7 +14,6 @@ import java.util.List;
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
-    private final boolean showRewrites = false;
     /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}); Lua
      *  compares exactly. Neither target's reals match a folder's arithmetic, so both fold a real
      *  operation only where it is exact ({@link #foldRealExactly}). */
@@ -302,9 +300,6 @@ public class SimpleRewrites implements OptimizerPass {
         }
         if (wasViable) {
             totalRewrites++;
-            if (showRewrites) {
-                WLogger.info("opcall rewrite: " + opc);
-            }
         }
 
     }

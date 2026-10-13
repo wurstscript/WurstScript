@@ -40,6 +40,52 @@ public class PjassTests {
         return file.toFile();
     }
 
+    private static String longStringScript(String extraStatement) {
+        return "function main takes nothing returns nothing\n"
+            + "    local string s = \"" + "x".repeat(1024) + "\"\n"
+            + "    local string t = \"" + "y".repeat(2048) + "\"\n"
+            + extraStatement + "endfunction\n";
+    }
+
+    @Test
+    public void longStringsAreNonBlockingWarnings() throws IOException {
+        Path dir = Files.createTempDirectory("pjass-strings");
+        File file = script(dir, "long.j", longStringScript(""));
+
+        Result result = Pjass.runPjass(file);
+
+        Assert.assertTrue(result.isOk(), result.getMessage());
+        Assert.assertTrue(result.getErrors().isEmpty());
+        Assert.assertTrue(result.getLogMessage().contains("String literals over 1023"), result.getLogMessage());
+    }
+
+    @Test
+    public void longStringsDoNotHideOtherErrors() throws IOException {
+        Path dir = Files.createTempDirectory("pjass-strings");
+        File file = script(dir, "invalid.j", longStringScript("    call Nothing()\n"));
+
+        Result result = Pjass.runPjass(file);
+
+        Assert.assertFalse(result.isOk());
+        Assert.assertEquals(result.getErrors().size(), 1);
+        Assert.assertTrue(result.getErrors().get(0).getMessage().contains("Nothing"));
+    }
+
+    @Test
+    public void eachTreatsLongStringsAsWarningsWithoutHidingOtherErrors() throws IOException {
+        Path dir = Files.createTempDirectory("pjass-strings");
+        File good = script(dir, "long.j", longStringScript(""));
+        File bad = script(dir, "invalid.j", longStringScript("    call Nothing()\n"));
+
+        List<Result> results = Pjass.runPjassEach(Arrays.asList(good, bad, good));
+
+        Assert.assertTrue(results.get(0).isOk(), results.get(0).getMessage());
+        Assert.assertTrue(results.get(0).getLogMessage().contains("String literals over 1023"));
+        Assert.assertFalse(results.get(1).isOk());
+        Assert.assertEquals(results.get(1).getErrors().size(), 1);
+        Assert.assertTrue(results.get(2).isOk(), results.get(2).getMessage());
+    }
+
     @Test
     public void eachChecksScriptsWhichDefineTheSameNames() throws IOException {
         Path dir = Files.createTempDirectory("pjass-each");

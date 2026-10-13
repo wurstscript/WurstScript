@@ -1,5 +1,10 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import java.util.concurrent.CancellationException;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -13,6 +18,7 @@ import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.languageserver.WurstGuiLsp;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -39,6 +45,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -67,6 +74,31 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final WurstBuildConfig buildConfig;
     protected final W3InstallationData w3data;
     protected final TimeTaker timeTaker;
+    private Either<String, Integer> workDoneToken;
+    private volatile boolean canceled;
+
+    public Either<String, Integer> getWorkDoneToken() {
+        return workDoneToken;
+    }
+
+    @Override
+    public void cancel() {
+        // Keep the completion pending until execution has unwound and released map resources.
+        canceled = true;
+    }
+
+    @Override
+    public void run(ModelManager modelManager) {
+        CompilationCancellation.run(() -> canceled, () -> super.run(modelManager));
+    }
+
+    public void setWorkDoneToken(Either<String, Integer> workDoneToken) {
+        this.workDoneToken = workDoneToken;
+    }
+
+    protected WurstGui createGui(ModelManager modelManager, String title) {
+        return new WurstGuiLsp(modelManager, langServer.getLanguageClient(), workDoneToken, title);
+    }
 
     public static long mapLastModified = 0L;
     public static String mapPath = "";
@@ -144,11 +176,40 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     @Override
     public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
-        if (err instanceof RequestFailedException rfe) {
+        if (canceled || err instanceof CancellationException) {
+            resFut.completeExceptionally(new ResponseErrorException(
+                new ResponseError(
+                    ResponseErrorCode.RequestCancelled,
+                    "Map command canceled", null)));
+            return;
+        }
+        if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() == MessageType.Info)) {
+            // The requesting editor owns the failure notification for this progress operation.
+            resFut.completeExceptionally(err);
+        } else if (err instanceof RequestFailedException rfe) {
             languageClient.showMessage(new MessageParams(rfe.getMessageType(), rfe.getMessage()));
             resFut.complete(new Object());
         } else {
             super.handleException(languageClient, err, resFut);
+        }
+    }
+
+    /**
+     * Checks the model for a compilation, unless the model manager has validated every unit of it since it
+     * last changed. Then the model only takes over the compilation's error handler. A check which finds
+     * the model free of errors is reported to the manager, which would otherwise check it again for the
+     * next compilation.
+     */
+    public static void checkModel(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
+                                  RunArgs runArgs) {
+        boolean sameChecks = checksLikeTheModelManager(runArgs);
+        if (sameChecks && modelManager.isFullyChecked(model)) {
+            compiler.adoptCheckedModel(model);
+            return;
+        }
+        boolean validated = compiler.checkProg(model);
+        if (sameChecks && validated && compiler.getErrorHandler().getErrorCount() == 0) {
+            modelManager.markFullyChecked(model);
         }
     }
 
@@ -171,7 +232,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             purgeUnimportedFiles(modelManager, model);
 
             gui.sendProgress("Check program");
-            compiler.checkProg(model);
+            checkModel(modelManager, compiler, model, runArgs);
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
@@ -237,10 +298,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                         new File(buildDir, "common.j").getAbsolutePath(),
                         new File(buildDir, "blizzard.j").getAbsolutePath());
                     WLogger.info(pJassResult.getLogMessage());
+                    for (CompileError diagnostic : pJassResult.getDiagnostics(printer.getSourceMap())) {
+                        gui.sendBuildDiagnostic(diagnostic);
+                    }
                     if (!pJassResult.isOk()) {
-                        for (CompileError err : pJassResult.getErrors()) {
-                            gui.sendError(err);
-                        }
                         throw new RuntimeException("Could not compile project (PJass error)");
                     }
                     timeTaker.endPhase();
@@ -252,6 +313,8 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
                 return outFile;
             }
+        } catch (CancellationException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -388,12 +451,17 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && rebuildModelBeforeCompile) {
             // it is safer to rebuild the project, instead of taking the current editor state
             gui.sendProgress("Cleaning project");
-            modelManager.clean();
             gui.sendProgress("Building project");
-            modelManager.buildProject();
+            // A shared-model rebuild must finish as a unit; cancellation resumes on the
+            // private compilation copy, rather than leaving editor state half initialized.
+            CompilationCancellation.run(() -> false, () -> {
+                modelManager.clean();
+                modelManager.buildProject();
+            });
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
+        checkModelWithMapScript(modelManager, gui, runArgs);
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -403,13 +471,33 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         WurstModel model = modelManager.getModel();
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty
+            || CompilationCancellation.isScoped()) {
             // compilation will alter the model (e.g. remove unused imports),
             // so it is safer to create a copy
             model = ModelManager.copy(model);
         }
 
         return compileMap(modelManager, modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
+    }
+
+    /**
+     * Called when the map script with the project config applied is in the model, before anything is compiled.
+     * The swap of the script invalidates every attribute of the model, so a request which loaded the project
+     * without checking it checks it here, once, and the compilation takes that check over.
+     *
+     * @param gui     the gui the compilation reports to
+     * @param runArgs the arguments of the compilation
+     */
+    protected void checkModelWithMapScript(ModelManager modelManager, WurstGui gui, RunArgs runArgs) {
+    }
+
+    /**
+     * Whether a compilation with these arguments checks the model as the model manager does, and so can take the
+     * manager's check over ({@link #checkModel}): the manager checks without the legacy Jass type checks.
+     */
+    static boolean checksLikeTheModelManager(RunArgs runArgs) {
+        return !runArgs.isLegacyJassTypeChecks();
     }
 
     private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {
@@ -791,18 +879,26 @@ public abstract class MapRequest extends UserRequest<Object> {
         writeRequestedScript(result);
 
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
-        java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        CompilationCancellation.check();
+        final File outputMapFile = targetMapFile;
+        // Once publication begins, finish compression and stripping cache metadata before
+        // honoring cancellation. Otherwise the output could replace a valid release with
+        // an unfinished cached map.
+        CompilationCancellation.run(() -> false, () -> {
+            java.nio.file.Files.copy(getCachedMapFile().toPath(), outputMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        gui.sendProgress("Finalizing map");
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
-            if (mpq != null) {
-                // Strip internal Wurst cache files — they are dev-only metadata and should
-                // not be present in the distributed map.
-                if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
-                if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
-                mpq.closeWithCompression();
+            gui.sendProgress("Finalizing map");
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(outputMapFile))) {
+                if (mpq != null) {
+                    // Strip internal Wurst cache files — they are dev-only metadata and should
+                    // not be present in the distributed map.
+                    if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
+                    if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    mpq.closeWithCompression();
+                }
             }
-        }
+
+        });
 
         gui.sendProgress("Done.");
         return targetMapFile;
@@ -932,10 +1028,14 @@ public abstract class MapRequest extends UserRequest<Object> {
         return MapRequest.mapLastModified > scriptFile.lastModified();
     }
 
-    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) {
+    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) throws IOException {
         CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
         if (compilationUnit == null) {
-            modelManager.syncCompilationUnit(WFile.create(scriptFile));
+            // Into the model only, without a check: the script is replaced by the one with the project config applied
+            // before the model is checked, and a check of this one finds errors in code which calls what the config
+            // adds (and checks the whole model, since every unit may use a Jass function).
+            modelManager.syncCompilationUnitContent(WFile.create(scriptFile),
+                java.nio.file.Files.readString(scriptFile.toPath()));
         }
     }
 

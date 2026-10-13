@@ -4,8 +4,11 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ControlFlowGraph {
@@ -36,11 +39,59 @@ public class ControlFlowGraph {
     private final Reference2ObjectOpenHashMap<ImLoop, Node> loopEnd    = new Reference2ObjectOpenHashMap<>();
     private final Reference2ObjectOpenHashMap<ImVarargLoop, Node> varargLoopEnd = new Reference2ObjectOpenHashMap<>();
     private final ObjectArrayList<Node> nodeList = new ObjectArrayList<>();
+    private final ImStmts body;
 
     public ControlFlowGraph(ImStmts stmts) {
+        this.body = stmts;
         // a light hint helps the first growth step avoid rehash
         nodes.trim(0);
         buildCfg(stmts);
+    }
+
+    /**
+     * The statements which no path from the first statement reaches, without the statements inside them: what follows
+     * a return, a loop which has no exitwhen of its own, or an if neither branch of which comes to its end.
+     */
+    public List<ImStmt> unreachableStatements() {
+        if (body.isEmpty()) {
+            return List.of();
+        }
+        ReferenceOpenHashSet<Node> reached = new ReferenceOpenHashSet<>(nodeList.size());
+        ArrayDeque<Node> work = new ArrayDeque<>();
+        Node entry = getNode(body.get(0));
+        reached.add(entry);
+        work.add(entry);
+        while (!work.isEmpty()) {
+            ObjectArrayList<Node> successors = work.poll().successors;
+            for (int i = 0; i < successors.size(); i++) {
+                Node successor = successors.get(i);
+                if (reached.add(successor)) {
+                    work.add(successor);
+                }
+            }
+        }
+        if (reached.size() == nodeList.size()) {
+            return List.of();
+        }
+        List<ImStmt> result = new ArrayList<>();
+        collectUnreachable(body, reached, result);
+        return result;
+    }
+
+    private void collectUnreachable(ImStmts stmts, ReferenceOpenHashSet<Node> reached, List<ImStmt> result) {
+        for (int i = 0; i < stmts.size(); i++) {
+            ImStmt s = stmts.get(i);
+            if (!reached.contains(nodes.get(s))) {
+                result.add(s);
+            } else if (s instanceof ImIf imIf) {
+                collectUnreachable(imIf.getThenBlock(), reached, result);
+                collectUnreachable(imIf.getElseBlock(), reached, result);
+            } else if (s instanceof ImLoop imLoop) {
+                collectUnreachable(imLoop.getBody(), reached, result);
+            } else if (s instanceof ImVarargLoop imVarargLoop) {
+                collectUnreachable(imVarargLoop.getBody(), reached, result);
+            }
+        }
     }
 
     private void buildCfg(ImStmts stmts) {

@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import java.util.concurrent.CancellationException;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
@@ -21,8 +23,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.JassKeyOfLowering;
 import de.peeeq.wurstscript.translation.imtranslation.JassKeyedMapLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.validation.GlobalCaches;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
@@ -31,9 +31,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
-import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
-import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_NOARG_CACHE;
 
 public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     private ImProg prog;
@@ -179,6 +176,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
                                      ILconst... args) {
+        CompilationCancellation.check();
         if (Thread.currentThread().isInterrupted()) {
             throw new InterpreterException(globalState, "Execution interrupted");
         }
@@ -233,7 +231,9 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             // through the int fallback, with the value in its integer representation.
             if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
                 // Looked up first: it checks the intrinsic's shape before any argument is read.
-                ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f,
+                    f.getParameters().size() > 1
+                        ? keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()) : JassIm.ImVoid());
                 JassKeyedMapLowering.checkSpecialization(f,
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()),
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(2).getType()));
@@ -241,12 +241,20 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 return new LocalState();
             }
             if (JassKeyedMapLowering.isUnloweredGetNative(f)) {
-                ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f,
+                    f.getParameters().size() > 1
+                        ? keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()) : JassIm.ImVoid());
                 ImType valueType = keyedMapCallType(globalState, f, caller, f.getReturnType());
                 JassKeyedMapLowering.checkSpecialization(f,
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()), valueType);
                 ILconst stored = runFunc(globalState, get, caller, args[0], args[1]).getReturnVal();
                 return new LocalState(keyedMapValueOfInt(globalState, stored, valueType));
+            }
+            if (JassKeyedMapLowering.isUnloweredMembership(f)) {
+                ImFunction fallback = JassKeyedMapLowering.membershipFallback(globalState.getProg(), f,
+                    f.getParameters().size() > 1
+                        ? keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()) : JassIm.ImVoid());
+                return runFunc(globalState, fallback, caller, args);
             }
 
             // --- local state & bind parameters ---
@@ -412,7 +420,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             e.setStacktrace(msg);
             e.setTrace(getTrace(globalState, f));
             throw e;
-        } catch (TestSuccessException | TestFailException | DebugPrintError e) {
+        } catch (TestSuccessException | TestFailException | DebugPrintError | CancellationException e) {
             throw e;
         } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);
@@ -496,9 +504,6 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     }
 
 
-    // Cap per-function cache size to avoid unbounded growth
-    private static final int MAX_CACHE_PER_FUNC = 2048;
-
     private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
 
     /**
@@ -579,35 +584,13 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             + valueType + ".");
     }
 
+    /**
+     * Calls a native through the provider which implements it. Results are not memoised: the natives are
+     * cheaper than hashing and comparing their arguments, and the ones whose identity matters (the
+     * conversions, Player) keep their own handles.
+     */
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        // Delegate to the array overload to avoid double-allocations.
-        return runBuiltinFunction(globalState, f, args, /*isVarargs*/ true);
-    }
-
-    private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst[] args, boolean isVarargs) {
-        // Cache purity + name once
         final String fname = f.getName();
-        final boolean pure = isFunctionPure(fname);
-
-        if (pure && args.length == 0) {
-            LocalState cachedNoArg = LOCAL_STATE_NOARG_CACHE.get(f);
-            if (cachedNoArg != null) {
-                return cachedNoArg;
-            }
-        }
-
-        GlobalCaches.ArgumentKey key = null;
-        Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn = null;
-        if (pure) {
-            key = GlobalCaches.ArgumentKey.forLookup(args);
-            perFn = LOCAL_STATE_CACHE.get(f);
-            if (perFn != null) {
-                final LocalState cached = perFn.get(key);
-                if (cached != null) {
-                    return cached;
-                }
-            }
-        }
 
         // Build error text lazily (only if we actually get exceptions)
         StringBuilder errors = null;
@@ -616,23 +599,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         NativesProvider cachedProvider = globalState.getCachedNativeProvider(fname);
         if (cachedProvider != null) {
             try {
-                final LocalState localState = new LocalState(cachedProvider.invoke(fname, args));
-                if (pure) {
-                    if (args.length == 0) {
-                        LOCAL_STATE_NOARG_CACHE.put(f, localState);
-                        return localState;
-                    }
-                    if (perFn == null) {
-                        perFn = new Object2ObjectOpenHashMap<>(16);
-                        LOCAL_STATE_CACHE.put(f, perFn);
-                    }
-                    perFn.put(key, localState);
-                    if (perFn.size() > MAX_CACHE_PER_FUNC) {
-                        final GlobalCaches.ArgumentKey eldest = perFn.keySet().iterator().next();
-                        perFn.remove(eldest);
-                    }
-                }
-                return localState;
+                return new LocalState(cachedProvider.invoke(fname, args));
             } catch (NoSuchNativeException e) {
                 // Provider mapping changed or function not available in this provider instance anymore.
                 // Fall through to full scan and refresh cache.
@@ -649,31 +616,9 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                // Invoke native; TODO: cache method handles per name elsewhere.
                 final LocalState localState = new LocalState(natives.invoke(fname, args));
                 globalState.cacheNativeProvider(fname, natives);
-
-                if (pure) {
-                    if (args.length == 0) {
-                        LOCAL_STATE_NOARG_CACHE.put(f, localState);
-                        return localState;
-                    }
-                    // insert into per-function cache with bounded size
-                    if (perFn == null) {
-                        perFn = new Object2ObjectOpenHashMap<>(16);
-                        LOCAL_STATE_CACHE.put(f, perFn);
-                    }
-                    perFn.put(key, localState);
-                    if (perFn.size() > MAX_CACHE_PER_FUNC) {
-                        // evict eldest (insertion order) to bound memory
-                        // Object2ObjectOpenHashMap maintains insertion order
-                        final GlobalCaches.ArgumentKey eldest = perFn.keySet().iterator().next();
-                        perFn.remove(eldest);
-                    }
-                }
-
                 return localState;
-
             } catch (NoSuchNativeException e) {
                 if (errors == null) errors = new StringBuilder(128);
                 errors.append('\n').append(e.getMessage());
@@ -694,12 +639,6 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         final ILconst returnValue = f.getReturnType().defaultValue();
         return new LocalState(returnValue);
     }
-
-    /** Zero-allocation combined hash for ILconst[] (order-sensitive). */
-    private static int fastHashArgs(ILconst[] args) {
-        return Arrays.hashCode(args);
-    }
-
 
     private static boolean isCompiletimeNative(ImFunction f) {
         if (f.getTrace() instanceof HasModifier) {

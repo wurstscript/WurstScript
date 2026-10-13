@@ -52,6 +52,21 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "        testSuccess()"));
     }
 
+    /** Java prints these reals with an exponent, which Jass does not parse; the replay writes decimals. */
+    @Test
+    public void largeAndSmallRealsAreReplayedAsDecimals() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
+            "@noinline function w(real x) returns real",
+            "    return x",
+            "@compiletime",
+            "function fill()",
+            "    SaveReal(h, 1, 1, w(10000.) * w(1000.))",
+            "    SaveReal(h, 1, 2, w(1.) / w(1024.))",
+            "init",
+            "    if LoadReal(h, 1, 1) == 10000000. and LoadReal(h, 1, 2) == 0.0009765625",
+            "        testSuccess()"));
+    }
+
     @Test
     public void flushedAndRemovedEntriesAreNotReplayed() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
@@ -71,6 +86,10 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "                testSuccess()"));
     }
 
+    /**
+     * Measured on the 3.0.0 client, FlushParentHashtable destroys the hashtable: what was saved is gone and nothing
+     * saved afterwards stays. A table destroyed at compile time is destroyed when the map starts, too.
+     */
     @Test
     public void flushingTheWholeTableLeavesNothingToReplay() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true).lines(program(
@@ -81,7 +100,9 @@ public class CompiletimeHashtableTests extends WurstScriptTest {
             "    FlushParentHashtable(h)",
             "    SaveInteger(h, 5, 5, 50)",
             "init",
-            "    if LoadInteger(h, 1, 1) == 0 and LoadInteger(h, 2, 2) == 0 and LoadInteger(h, 5, 5) == 50",
+            "    SaveInteger(h, 6, 6, 60)",
+            "    if LoadInteger(h, 1, 1) == 0 and LoadInteger(h, 2, 2) == 0 and LoadInteger(h, 5, 5) == 0",
+            "        and LoadInteger(h, 6, 6) == 0 and not HaveSavedInteger(h, 6, 6)",
             "        testSuccess()"));
     }
 

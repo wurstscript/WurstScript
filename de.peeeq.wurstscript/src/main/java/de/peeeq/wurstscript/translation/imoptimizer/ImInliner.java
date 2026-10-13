@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
@@ -12,7 +11,6 @@ import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
@@ -71,29 +69,34 @@ public class ImInliner {
 
     /**
      * Retry the tiny compiler-owned arithmetic wrappers after local allocation has reduced the
-     * caller. The late check rebuilds the locality analysis and uses the same allocation classes as
-     * the local merger, so it cannot push Lua over the hard local-variable limit.
+     * caller. The late check builds the locality analysis and uses the same allocation classes as
+     * the local merger, so it cannot push Lua over the hard local-variable limit. The budget of a
+     * function (its liveness and register pressure) and the analysis it consults are made when the first
+     * call to one of the wrappers is found: nothing is inlined before that, so what they read is what
+     * the start of this pass left, and a program with no such call builds neither.
      */
     public int inlineLuaDivModHelpersWithinLocalBudget() {
         if (!translator.isLuaTarget()) {
             return 0;
         }
         prog.flatten(translator);
-        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
         int changed = 0;
         for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
-            LuaRegisterBudget budget = new LuaRegisterBudget(function);
-            changed += inlineLuaDivModHelpers(function, function, budget);
+            changed += inlineLuaDivModHelpers(function, function, new LuaRegisterBudget[1]);
         }
         return changed;
     }
 
-    private int inlineLuaDivModHelpers(ImFunction function, Element element, LuaRegisterBudget budget) {
+    private int inlineLuaDivModHelpers(ImFunction function, Element element, LuaRegisterBudget[] budgetOfFunction) {
         int changed = 0;
         for (int i = 0; i < element.size(); i++) {
             Element child = element.get(i);
             if (child instanceof ImFunctionCall call && isLuaDivModHelper(call.getFunc())) {
                 ImFunction callee = call.getFunc();
+                if (budgetOfFunction[0] == null) {
+                    budgetOfFunction[0] = new LuaRegisterBudget(function);
+                }
+                LuaRegisterBudget budget = budgetOfFunction[0];
                 if (budget.fits(call, callee)) {
                     budget.recordInline(call, callee);
                     inlineCall(function, element, i, call);
@@ -101,9 +104,17 @@ public class ImInliner {
                     child = element.get(i);
                 }
             }
-            changed += inlineLuaDivModHelpers(function, child, budget);
+            changed += inlineLuaDivModHelpers(function, child, budgetOfFunction);
         }
         return changed;
+    }
+
+    /** The locality analysis of the program as the inlining found it; made on first use when no one asked for it before. */
+    private LocalPlayerContextAnalyzer localPlayerAnalysis() {
+        if (localPlayerContextAnalyzer == null) {
+            localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        }
+        return localPlayerContextAnalyzer;
     }
 
     private void inlineFunctions() {
@@ -250,7 +261,7 @@ public class ImInliner {
         if (called == f) {
             throw new Error("cannot inline self.");
         }
-        List<ImStmt> prefixStmts = Lists.newArrayList();
+        ImStmts stmts = JassIm.ImStmts();
         // save arguments to temp vars:
         List<ImExpr> args = call.getArguments().removeAll();
         Map<ImVar, ImVar> varSubtitutions = Maps.newLinkedHashMap();
@@ -261,7 +272,7 @@ public class ImInliner {
             f.getLocals().add(tempVar);
             varSubtitutions.put(param, tempVar);
             // set temp var
-            prefixStmts.add(JassIm.ImSet(arg.attrTrace(), JassIm.ImVarAccess(tempVar), arg));
+            stmts.add(JassIm.ImSet(arg.attrTrace(), JassIm.ImVarAccess(tempVar), arg));
         }
         // add locals
         for (ImVar l : called.getLocals()) {
@@ -270,7 +281,7 @@ public class ImInliner {
             varSubtitutions.put(l, newL);
         }
         // add body and replace params with tempvars
-        List<ImStmt> copiedBody = Lists.newArrayList();
+        ImStmts copiedBody = JassIm.ImStmts();
         for (int i = 0; i < called.getBody().size(); i++) {
             ImStmt s = called.getBody().get(i).copy();
             ImHelper.replaceVar(s, varSubtitutions);
@@ -288,22 +299,18 @@ public class ImInliner {
             copiedBody.add(s);
         }
 
-        List<ImStmt> stmts = Lists.newArrayList();
-        stmts.addAll(prefixStmts);
-
         ImExpr newExpr = null;
         if (maxOneReturn(called)) {
             // Fast path for existing single-return shape.
-            stmts.addAll(copiedBody);
+            stmts.addAllMoved(copiedBody);
             if (!stmts.isEmpty()) {
                 ImStmt lastStmt = stmts.get(stmts.size() - 1);
                 if (lastStmt instanceof ImReturn ret) {
                     stmts.remove(stmts.size() - 1);
                     ImExprOpt valOpt = ret.getReturnValue();
-                    if (valOpt instanceof ImExpr) {
-                        ImExpr val = (ImExpr) valOpt.copy();
-                        ImHelper.replaceVar(val, varSubtitutions);
-                        newExpr = ImStatementExpr(ImStmts(stmts), val);
+                    if (valOpt instanceof ImExpr val) {
+                        ret.setReturnValue(JassIm.ImNoExpr());
+                        newExpr = ImStatementExpr(stmts, val);
                     }
                 }
             }
@@ -315,9 +322,9 @@ public class ImInliner {
                 retVar = JassIm.ImVar(call.attrTrace(), called.getReturnType().copy(), "inlineRet", false);
                 f.getLocals().add(retVar);
             }
-            stmts.addAll(structureReturns(copiedBody, retVar));
+            stmts.addAllMoved(structureReturns(copiedBody, retVar));
             if (retVar != null) {
-                newExpr = ImStatementExpr(ImStmts(stmts), JassIm.ImVarAccess(retVar));
+                newExpr = ImStatementExpr(stmts, JassIm.ImVarAccess(retVar));
             }
         } else {
             // Multi-return path: rewrite returns to done-flag + optional return temp.
@@ -331,8 +338,7 @@ public class ImInliner {
                 f.getLocals().add(retVar);
             }
 
-            ImStmts rewritten = rewriteForEarlyReturns(JassIm.ImStmts(copiedBody), doneVar, retVar);
-            stmts.addAll(rewritten.removeAll());
+            stmts.addAllMoved(rewriteForEarlyReturns(copiedBody, doneVar, retVar));
 
             if (retVar != null) {
                 // Set fallback return value only on paths where the inlined body did not execute any return.
@@ -342,11 +348,11 @@ public class ImInliner {
                     JassIm.ImStmts(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(retVar),
                         ImHelper.defaultValueForComplexType(called.getReturnType()))),
                     JassIm.ImStmts()));
-                newExpr = ImStatementExpr(ImStmts(stmts), JassIm.ImVarAccess(retVar));
+                newExpr = ImStatementExpr(stmts, JassIm.ImVarAccess(retVar));
             }
         }
         if (newExpr == null) {
-            newExpr = ImHelper.statementExprVoid(ImStmts(stmts));
+            newExpr = ImHelper.statementExprVoid(stmts);
         }
         parent.set(parentI, newExpr);
 
@@ -427,9 +433,9 @@ public class ImInliner {
     private boolean isEffectFree(Element e) {
         if (e instanceof ImFunctionCall call) {
             ImFunction target = call.getFunc();
-            if (!target.isNative() || localPlayerContextAnalyzer.isLocalPlayerSource(target)
-                || !(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(target.getName())
-                    || translator.isLuaKeyedMapRead(target))) {
+            if (!target.isNative() || LocalPlayerContextAnalyzer.isLocalPlayerSource(target)
+                || !(SideEffectFreeNatives.isFunctionWithoutSideEffect(target.getName())
+                    || translator.isLuaTableRead(target))) {
                 return false;
             }
         } else if (e instanceof ImExpr) {
@@ -459,7 +465,7 @@ public class ImInliner {
      * convert without state.
      */
     private static boolean numbersItsOperand(ImCast cast) {
-        ImType from = cast.getExpr().attrTyp();
+        ImType from = cast.getFromType();
         return TypesHelper.isIntType(cast.getToType())
             && !(from instanceof ImClassType) && !(from instanceof ImAnyType);
     }
@@ -662,37 +668,46 @@ public class ImInliner {
         return result;
     }
 
-    /** The statements with each return replaced by a write of its value; see {@link #returnsCanBeStructured}. */
-    private List<ImStmt> structureReturns(List<ImStmt> stmts, ImVar retVar) {
-        List<ImStmt> result = new ArrayList<>();
+    /** Consumes the copied body, moving its suffix into the continuing branch without copying its nodes. */
+    private ImStmts structureReturns(ImStmts body, ImVar retVar) {
+        List<ImStmt> stmts = body.removeAll();
+        ImStmts result = JassIm.ImStmts();
         for (int i = 0; i < stmts.size(); i++) {
             ImStmt s = stmts.get(i);
             if (s instanceof ImReturn r) {
                 if (retVar != null && r.getReturnValue() instanceof ImExpr value) {
-                    result.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(retVar), value.copy()));
+                    r.setReturnValue(JassIm.ImNoExpr());
+                    result.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(retVar), value));
                 }
                 return result;
             }
             if (!hasReturn(s)) {
-                result.add(s.copy());
+                result.add(s);
                 continue;
             }
             ImIf imIf = (ImIf) s;
-            List<ImStmt> rest = stmts.subList(i + 1, stmts.size());
+            ImStmts rest = JassIm.ImStmts(stmts.subList(i + 1, stmts.size()));
             boolean thenReturns = alwaysReturns(imIf.getThenBlock());
             boolean elseReturns = alwaysReturns(imIf.getElseBlock());
-            List<ImStmt> thenBlock = structureReturns(
-                thenReturns ? imIf.getThenBlock() : concat(imIf.getThenBlock(), rest), retVar);
-            List<ImStmt> elseBlock = structureReturns(
-                elseReturns ? imIf.getElseBlock() : concat(imIf.getElseBlock(), rest), retVar);
-            ImExpr condition = imIf.getCondition().copy();
+            // The admission check rules out a nonempty suffix needed by both branches.
+            if (!thenReturns) {
+                imIf.getThenBlock().addAllMoved(rest);
+            } else if (!elseReturns) {
+                imIf.getElseBlock().addAllMoved(rest);
+            }
+            ImStmts thenBlock = structureReturns(imIf.getThenBlock(), retVar);
+            ImStmts elseBlock = structureReturns(imIf.getElseBlock(), retVar);
             if (thenBlock.isEmpty() && !elseBlock.isEmpty()) {
-                condition = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(condition));
-                List<ImStmt> swap = thenBlock;
+                ImExpr condition = imIf.getCondition();
+                imIf.setCondition(JassIm.ImBoolVal(false));
+                imIf.setCondition(JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(condition)));
+                ImStmts swap = thenBlock;
                 thenBlock = elseBlock;
                 elseBlock = swap;
             }
-            result.add(JassIm.ImIf(imIf.getTrace(), condition, JassIm.ImStmts(thenBlock), JassIm.ImStmts(elseBlock)));
+            imIf.setThenBlock(thenBlock);
+            imIf.setElseBlock(elseBlock);
+            result.add(imIf);
             return result;
         }
         return result;
@@ -700,12 +715,37 @@ public class ImInliner {
 
     private ImStmts rewriteForEarlyReturns(ImStmts body, ImVar doneVar, ImVar retVar) {
         ImStmts rewritten = JassIm.ImStmts();
-        for (ImStmt s : body) {
-            ImStmts transformed = rewriteStmtForEarlyReturn(s, doneVar, retVar);
-            ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
-            rewritten.add(JassIm.ImIf(s.attrTrace(), notDone, transformed, JassIm.ImStmts()));
+        ImStmts segment = JassIm.ImStmts();
+        // Blocks are entered only while live: their parent guards them, and a returning loop
+        // checks done at its header. Only a return within this block can require another guard.
+        boolean needsGuard = false;
+        for (ImStmt s : body.removeAll()) {
+            if (!hasReturn(s)) {
+                // Preserve whole return-free branches and loops, including their exitwhens.
+                segment.add(s);
+                continue;
+            }
+            segment.addAllMoved(rewriteStmtForEarlyReturn(s, doneVar, retVar));
+            appendEarlyReturnSegment(rewritten, segment, needsGuard, doneVar);
+            segment = JassIm.ImStmts();
+            needsGuard = true;
         }
+        appendEarlyReturnSegment(rewritten, segment, needsGuard, doneVar);
         return rewritten;
+    }
+
+    /** A segment ends at the next possible return, so one entry check covers all its statements. */
+    private void appendEarlyReturnSegment(ImStmts rewritten, ImStmts segment, boolean needsGuard, ImVar doneVar) {
+        if (segment.isEmpty()) {
+            return;
+        }
+        if (needsGuard) {
+            ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT,
+                JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
+            rewritten.add(JassIm.ImIf(segment.get(0).attrTrace(), notDone, segment, JassIm.ImStmts()));
+        } else {
+            rewritten.addAllMoved(segment);
+        }
     }
 
     private ImStmts rewriteStmtForEarlyReturn(ImStmt s, ImVar doneVar, ImVar retVar) {
@@ -713,31 +753,27 @@ public class ImInliner {
             ImStmts b = JassIm.ImStmts();
             if (retVar != null && r.getReturnValue() instanceof ImExpr) {
                 ImExpr rv = (ImExpr) r.getReturnValue();
-                rv.setParent(null);
+                r.setReturnValue(JassIm.ImNoExpr());
                 b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(retVar), rv));
             }
             b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(doneVar), JassIm.ImBoolVal(true)));
             return b;
         } else if (s instanceof ImIf imIf) {
-            ImStmts thenBlock = rewriteForEarlyReturns(imIf.getThenBlock().copy(), doneVar, retVar);
-            ImStmts elseBlock = rewriteForEarlyReturns(imIf.getElseBlock().copy(), doneVar, retVar);
-            return JassIm.ImStmts(JassIm.ImIf(imIf.getTrace(), imIf.getCondition().copy(), thenBlock, elseBlock));
+            imIf.setThenBlock(rewriteForEarlyReturns(imIf.getThenBlock(), doneVar, retVar));
+            imIf.setElseBlock(rewriteForEarlyReturns(imIf.getElseBlock(), doneVar, retVar));
+            return JassIm.ImStmts(imIf);
         } else if (s instanceof ImLoop l) {
-            ImStmts loopBody = JassIm.ImStmts();
-            loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
-            loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
-            return JassIm.ImStmts(JassIm.ImLoop(l.getTrace(), loopBody));
+            ImStmts loopBody = rewriteForEarlyReturns(l.getBody(), doneVar, retVar);
+            loopBody.addFront(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
+            l.setBody(loopBody);
+            return JassIm.ImStmts(l);
         } else if (s instanceof ImVarargLoop l) {
-            ImStmts loopBody = JassIm.ImStmts();
-            loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
-            loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
-            return JassIm.ImStmts(JassIm.ImVarargLoop(l.getTrace(), loopBody,
-                JassIm.ImVarargLoopVars(l.getLoopVars().stream()
-                    .map(v -> JassIm.ImVarargLoopVar(v.getVar()))
-                    .collect(Collectors.toList()))));
+            ImStmts loopBody = rewriteForEarlyReturns(l.getBody(), doneVar, retVar);
+            loopBody.addFront(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
+            l.setBody(loopBody);
+            return JassIm.ImStmts(l);
         }
-        // Keep tree ownership valid when rewrapping statements into new blocks.
-        return JassIm.ImStmts(s.copy());
+        return JassIm.ImStmts(s);
     }
 
     private void rateInlinableFunctions() {
@@ -835,7 +871,7 @@ public class ImInliner {
             // Keeping them as standalone calls avoids callback context/vararg scope breakage.
             return Refusal.LUA_CALLBACK_FUNCREF_BARRIER;
         }
-        if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
+        if (localPlayerAnalysis().functionInliningIsLocalPlayerSensitive(f)) {
             // Keep the call boundary around GetLocalPlayer-dependent code.
             // Inlining is normally context-preserving, but future local
             // rewrites must not gain an opportunity to move its body.
@@ -992,8 +1028,7 @@ public class ImInliner {
     private LuaPressure pressureOf(Iterable<ImVar> variables) {
         LuaPressure result = new LuaPressure();
         for (ImVar variable : variables) {
-            boolean localPlayerDependent = localPlayerContextAnalyzer != null
-                && localPlayerContextAnalyzer.isLocalPlayerDependent(variable);
+            boolean localPlayerDependent = localPlayerAnalysis().isLocalPlayerDependent(variable);
             result.add(variable.getType() + "|local=" + localPlayerDependent,
                 ImHelper.flattenedJassArity(variable.getType()));
         }

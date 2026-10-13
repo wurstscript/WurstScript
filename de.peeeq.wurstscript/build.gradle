@@ -33,16 +33,15 @@ if (!(version ==~ /(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)/)) {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(27)
     }
 }
 
 def toolchainSvc = extensions.getByType(JavaToolchainService)
-def j25Launcher = toolchainSvc.launcherFor(java.toolchain)
+def j27Launcher = toolchainSvc.launcherFor(java.toolchain)
 
 tasks.withType(JavaExec).configureEach {
-    javaLauncher.set(j25Launcher)
-    jvmArgs('-XX:+UnlockExperimentalVMOptions', '-XX:+UseCompactObjectHeaders')
+    javaLauncher.set(j27Launcher)
 }
 
 /** -------- Compilation and static analysis --------
@@ -54,7 +53,7 @@ tasks.withType(JavaExec).configureEach {
 def errorProneEnabled = !project.hasProperty('skipErrorProne')
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 25
+    options.release = 27
     // 'serial'/'this-escape' are noisy against this codebase's AST and visitor style.
     // 'auxiliaryclass' fires ~86 times purely on the multi-class-per-file layout - structural, not a defect.
     options.compilerArgs += ['-Xlint:all', '-Xlint:-serial', '-Xlint:-this-escape',
@@ -84,7 +83,7 @@ tasks.withType(JavaCompile).configureEach {
 tasks.named('compileTestJava') { options.errorprone.enabled = false }
 
 jacoco {
-    toolVersion = "0.8.13"
+    toolVersion = "0.8.15"
 }
 
 tasks.named("jacocoTestReport", JacocoReport) {
@@ -140,8 +139,8 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.1"
 
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:2b3d742e8a'
-    astgen 'com.github.peterzeller:abstractsyntaxgen:2b3d742e8a'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:693dca993e'
+    astgen 'com.github.peterzeller:abstractsyntaxgen:693dca993e'
 
 
     // Tests
@@ -391,8 +390,6 @@ test {
             '-Xmx2g',                         // local: give it room to finish and dump
             '-XX:MaxMetaspaceSize=256m',
             '-XX:+HeapDumpOnOutOfMemoryError',
-            '-XX:+UnlockExperimentalVMOptions', // needed for UseCompactObjectHeaders until it graduates
-            '-XX:+UseCompactObjectHeaders',    // Java 24+: 8-byte headers (vs 16) — big win for AST-heavy workloads
             // Each fork otherwise sizes its garbage collector and compiler threads for the whole
             // machine, so running several at once oversubscribes it badly: eight forks made every
             // test about three times slower and gave back only a third of the parallelism.
@@ -461,7 +458,8 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/io/**'
 
     // Within the kept objects/ints packages the compiler only uses the open-hash map/set, linked-open variants,
-    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Boolean and Int2Object.
+    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Int, Reference2Boolean and
+    // Int2Object.
     // Drop the rest (~4.6 MB): sorted (tree) maps, custom-hash maps, and the cross-primitive value families whose
     // value-type packages are already excluded above. If you start using another fastutil collection, remove the
     // matching exclude here.
@@ -482,7 +480,6 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Short*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Byte*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Char*'
-    exclude 'it/unimi/dsi/fastutil/objects/Reference2Int*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Reference*'
     exclude 'it/unimi/dsi/fastutil/ints/Int2Double*'
     exclude 'it/unimi/dsi/fastutil/ints/Int2Float*'

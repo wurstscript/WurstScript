@@ -191,6 +191,32 @@ function GetPlayerId(p)
     return p.id
 end
 
+-- Forces hold their members by player id. ForForce visits them in id order (by index, never with
+-- pairs, so the order is the same on every run) and GetEnumPlayer answers the one being visited,
+-- also inside a nested ForForce. The stdlib's ErrorHandling creates a force at init and runs its
+-- error listeners through one.
+function CreateForce() return { members = {} } end
+function DestroyForce(f) end
+function ForceAddPlayer(f, p) f.members[p.id] = p end
+function ForceRemovePlayer(f, p) f.members[p.id] = nil end
+function ForceClear(f) f.members = {} end
+function IsPlayerInForce(p, f) return f.members[p.id] ~= nil end
+local enumPlayers = {}
+function GetEnumPlayer() return enumPlayers[#enumPlayers] end
+function ForForce(f, callback)
+    for id = 0, GetBJMaxPlayerSlots() - 1 do
+        local p = f.members[id]
+        if p ~= nil then
+            enumPlayers[#enumPlayers + 1] = p
+            local ok, err = pcall(callback)
+            enumPlayers[#enumPlayers] = nil
+            if not ok then
+                error(err, 0)
+            end
+        end
+    end
+end
+
 -- text output: route to stdout so error handlers (BJDebugMsg) work in tests
 function GetLocalPlayer() return Player(0) end
 function DisplayTimedTextToPlayer(toPlayer, x, y, duration, message)

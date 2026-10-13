@@ -49,7 +49,7 @@ jobs:
             plat: linux-x64
           - os: macos-15-intel
             plat: macos-x64
-          - os: macos-14
+          - os: macos-latest
             plat: macos-arm64
     runs-on: ${{ matrix.os }}
     env:
@@ -65,21 +65,30 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: actions/setup-java@v4
+      - name: Setup JDK 27
+        uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: '25'
+          # Temurin 27 has no macOS x64 build; Zulu keeps the Intel artifact supported.
+          distribution: ${{ matrix.os == 'macos-15-intel' && 'zulu' || 'temurin' }}
+          java-version: '27'
       # Ubuntu's system-modified JDK cannot always serve as a jlink input.
       - name: Install portable Temurin for Linux packaging
         if: runner.os == 'Linux'
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/temurin25"
-          curl -fsSL 'https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz' -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
-          tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
-          PORTABLE_JAVA_HOME=$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)
-          echo "JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/temurin27"
+          curl -fsSL 'https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27%2B35/OpenJDK27U-jdk_x64_linux_hotspot_27_35.tar.gz' -o "$RUNNER_TEMP/temurin27/jdk.tar.gz"
+          tar -xzf "$RUNNER_TEMP/temurin27/jdk.tar.gz" -C "$RUNNER_TEMP/temurin27"
+          PORTABLE_JAVA_HOME=$(find "$RUNNER_TEMP/temurin27" -maxdepth 1 -type d -name 'jdk-27*' | head -n1)
+          echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
           echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
+      - name: Pin Gradle toolchain
+        run: |
+          ACTIVE_JAVA_HOME="${PORTABLE_JAVA_HOME:-$JAVA_HOME}"
+          echo "JAVA_HOME=${ACTIVE_JAVA_HOME}" >> "$GITHUB_ENV"
+          echo "${ACTIVE_JAVA_HOME}/bin" >> "$GITHUB_PATH"
+          echo "org.gradle.java.installations.paths=${ACTIVE_JAVA_HOME}" >> gradle.properties
+          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
       - uses: gradle/actions/wrapper-validation@v4
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Lua 5.3 for Linux tests

@@ -30,7 +30,7 @@ def plat = os.isWindows() ? "win-x64"
 def versionString = project.version.toString()
 
 // Allow adding modules if reflection/ServiceLoader pulls them in:
-//   ./gradlew jlinkRuntime25 -PextraJdkModules=java.desktop,jdk.crypto.ec
+//   ./gradlew jlinkRuntime27 -PextraJdkModules=java.desktop,jdk.crypto.ec
 def extraJdkModulesProvider = providers.gradleProperty("extraJdkModules").orElse("")
 
 def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
@@ -38,21 +38,19 @@ def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
 def jlinkWorkDir  = layout.buildDirectory.dir("jlink")
 def modulesRawTxt  = jlinkWorkDir.map { it.file("modules.raw.txt") }
 def modulesTxt     = jlinkWorkDir.map { it.file("modules.txt") }
-def jreImageDir    = layout.buildDirectory.dir("jre-wurst-25")
+def jreImageDir    = layout.buildDirectory.dir("jre-wurst-27")
 
 def distRoot    = layout.buildDirectory.dir("dist/slim-${plat}")
 def releasesDir = layout.buildDirectory.dir("releases")
-def appCdsArchive = distRoot.map { it.file("wurst-runtime/wurst-lsp.jsa") }
 
 // ----------------------- Toolchain / tool paths (providers) -------------------------
 def toolchainSvc = extensions.getByType(JavaToolchainService)
 def launcherProvider = toolchainSvc.launcherFor(java.toolchain)
 
-// Prefer JAVA_HOME if set, otherwise toolchain
-def javaHomeProvider =
-        providers.environmentVariable("JAVA_HOME")
-                .map { new File(it) }   // <-- no file()
-                .orElse(launcherProvider.map { it.metadata.installationPath.asFile })
+// Build the runtime with the same Java 27 toolchain as the compiler, even when
+// Gradle itself was launched with an older JAVA_HOME. CI pins the portable JDK
+// through org.gradle.java.installations.paths.
+def javaHomeProvider = launcherProvider.map { it.metadata.installationPath.asFile }
 
 def jdepsPathProvider = javaHomeProvider.map { home ->
     new File(home, "bin/jdeps${os.isWindows() ? '.exe' : ''}").absolutePath
@@ -60,6 +58,7 @@ def jdepsPathProvider = javaHomeProvider.map { home ->
 def jlinkPathProvider = javaHomeProvider.map { home ->
     new File(home, "bin/jlink${os.isWindows() ? '.exe' : ''}").absolutePath
 }
+def javaExecutableName = os.isWindows() ? "java.exe" : "java"
 def jmodsDirProvider = javaHomeProvider.map { home ->
     new File(home, "jmods").absolutePath
 }
@@ -87,7 +86,7 @@ abstract class JdepsRawTask extends DefaultTask {
         def outBuf = new ByteArrayOutputStream()
         execOps.exec {
             executable = jdepsPath.get()
-            args "--multi-release", "25",
+            args "--multi-release", "27",
                     "--ignore-missing-deps",
                     "--print-module-deps",
                     "--ignore-missing-deps",
@@ -95,6 +94,27 @@ abstract class JdepsRawTask extends DefaultTask {
             standardOutput = outBuf
         }
         outFile.get().asFile.text = outBuf.toString("UTF-8").trim() + "\n"
+    }
+}
+
+/**
+ * Runs the java of a runtime image without the JVM option variables of the build machine: CI exports JAVA_TOOL_OPTIONS
+ * for its tests, and a base class data sharing archive takes on the options of the JVM which writes it.
+ * Use Java 27's default compact-header mode when making and validating the shipped archive.
+ */
+class RuntimeJava {
+    static String run(File java, List<String> options) {
+        def command = [java.absolutePath] + options
+        def pb = new ProcessBuilder(command)
+        pb.redirectErrorStream(true)
+        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { pb.environment().remove(it) }
+        def process = pb.start()
+        def output = process.inputStream.getText("UTF-8")
+        def exit = process.waitFor()
+        if (exit != 0) {
+            throw new org.gradle.api.GradleException("`" + command.join(" ") + "` exited with " + exit + ": " + output)
+        }
+        return output
     }
 }
 
@@ -146,8 +166,8 @@ tasks.register("jdepsModules") {
 }
 
 // 2) Build slim runtime with jlink (output dir must not exist)
-tasks.register("jlinkRuntime25", Exec) {
-    description = "Builds a slim Java 25 runtime image containing only the needed modules"
+tasks.register("jlinkRuntime27", Exec) {
+    description = "Builds a slim Java 27 runtime image containing only the needed modules"
     group = "distribution"
 
     dependsOn("jdepsModules")
@@ -173,6 +193,8 @@ tasks.register("jlinkRuntime25", Exec) {
         logger.lifecycle("[jlink] Modules: ${mods}")
 
         executable = jlinkPathProvider.get()
+        // Generate the archive with the shipped JVM defaults, independently of the build machine's JVM options.
+        ["JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS", "JDK_JAVA_OPTIONS"].each { environment.remove(it) }
         args "--verbose",
                 "--module-path", jmodsDirProvider.get(),
                 "--add-modules", mods,
@@ -180,7 +202,19 @@ tasks.register("jlinkRuntime25", Exec) {
                 "--no-man-pages",
                 "--strip-debug",
                 "--compress=zip-9",
+                // The language server starts from an AppCDS archive which the JVM writes next to the compiler
+                // jar (wurst4vscode, -XX:+AutoCreateSharedArchive). That archive sits on top of the base archive
+                // of the runtime; without one the JVM silently runs without any.
+                "--generate-cds-archive",
                 "--output", outDir.absolutePath
+    }
+
+    doLast {
+        // checked on the image itself: the dist folder is only added to, and may still hold an archive of an earlier build
+        def image = jreImageDir.get().asFile
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(image, it).exists() }) {
+            throw new GradleException("jlink made no base CDS archive (classes.jsa or classes_coh.jsa under bin/server or lib/server) in " + image)
+        }
     }
 }
 
@@ -190,7 +224,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
     group = "distribution"
 
     if (os.isMacOsX()) {
-        // On macOS, skip jlink entirely. Copying the original Temurin JDK preserves
+        // On macOS, skip jlink entirely. Copying the original signed JDK preserves
         // Apple's codesignatures on dylibs/executables, which jlink would invalidate.
         // jmods/ (jlink inputs, ~150 MB) and include/ (C headers) are dev-only.
         dependsOn("shadowJar")
@@ -199,8 +233,12 @@ tasks.register("assembleSlimCompilerDist", Copy) {
             exclude("jmods/**", "include/**")
         }
     } else {
-        dependsOn("jlinkRuntime25", "shadowJar")
-        from(jreImageDir) { into("wurst-runtime") }
+        dependsOn("jlinkRuntime27", "shadowJar")
+        from(jreImageDir) {
+            into("wurst-runtime")
+            // for heaps above 32 GB, which this does not run with; it would add 14 MB to the download
+            exclude("**/classes_nocoops*.jsa")
+        }
     }
 
     from(fatJar) { into("wurst-compiler") }
@@ -208,6 +246,17 @@ tasks.register("assembleSlimCompilerDist", Copy) {
 
     doLast {
         logger.lifecycle("[dist] Folder ready at: ${distRoot.get().asFile}")
+        def runtime = new File(distRoot.get().asFile, "wurst-runtime")
+        def java = new File(runtime, "bin/" + javaExecutableName)
+        // jlink made the archive of the slim runtime, and a full JDK (macOS) normally brings its own, but not every
+        // build does: the Temurin for macOS x64 on CI has none. -Xshare:dump writes it next to the JVM library.
+        if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(runtime, it).exists() }) {
+            logger.lifecycle("[dist] The runtime has no base CDS archive, dumping it")
+            RuntimeJava.run(java, ["-Xshare:dump"])
+        }
+        // -Xshare:on makes the JVM fail when it has no usable base archive, where it would otherwise run without one
+        // and nobody would notice
+        RuntimeJava.run(java, ["-Xshare:on", "-version"])
     }
 }
 
@@ -224,51 +273,11 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
     }
 }
 
-tasks.register("generateAppCdsArchive", Exec) {
-    description = "Best-effort AppCDS archive generation for language-server startup."
-    group = "distribution"
-    dependsOn("assembleSlimCompilerDist")
-
-    inputs.file(fatJar)
-    inputs.dir(distRoot)
-    outputs.file(appCdsArchive)
-    ignoreExitValue = true
-
-    doFirst {
-        def distDir = distRoot.get().asFile
-        def archiveFile = appCdsArchive.get().asFile
-        def runtimeJava = new File(distDir, "wurst-runtime/bin/java${os.isWindows() ? '.exe' : ''}")
-        def compilerJar = new File(distDir, "wurst-compiler/${fatJar.get().asFile.name}")
-
-        archiveFile.parentFile.mkdirs()
-        if (archiveFile.exists()) {
-            archiveFile.delete()
-        }
-
-        executable = runtimeJava.absolutePath
-        args "-Xshare:auto",
-            "-XX:ArchiveClassesAtExit=${archiveFile.absolutePath}",
-            "-jar", compilerJar.absolutePath,
-            "-languageServerAppCdsTrain"
-
-        logger.lifecycle("[appcds] Training LS startup with ${runtimeJava.absolutePath}")
-    }
-
-    doLast {
-        def archiveFile = appCdsArchive.get().asFile
-        if (executionResult.get().exitValue != 0 || !archiveFile.exists()) {
-            logger.warn("[appcds] Archive generation did not succeed on ${plat}; continuing without shipped AppCDS archive.")
-        } else {
-            logger.lifecycle("[appcds] Wrote ${archiveFile.absolutePath}")
-        }
-    }
-}
-
 // 4) Package ZIP on all platforms
 tasks.register("packageSlimCompilerDistZip", Zip) {
     description = "Packages slim dist as a ZIP archive (all platforms)."
     group = "distribution"
-    dependsOn("generateAppCdsArchive")
+    dependsOn("assembleSlimCompilerDist")
 
     from(distRoot)
     destinationDirectory.set(releasesDir)

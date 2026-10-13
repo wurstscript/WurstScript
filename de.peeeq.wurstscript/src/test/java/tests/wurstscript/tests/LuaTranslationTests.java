@@ -388,15 +388,11 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * {@code ..} is right associative, so {@code (a .. b) .. c} is not {@code a .. b .. c}; a chain
-     * of comparisons reads as a range check but compares a boolean; unary operators print their
-     * operand in parentheses. None of them joins a chain.
+     * A chain of comparisons reads as a range check but compares a boolean; unary operators print
+     * their operand in parentheses. Neither joins a chain.
      */
     @Test
-    public void concatenationComparisonsAndUnaryOperatorsKeepTheirParentheses() {
-        assertEquals("((a .. b) .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
-        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
-        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+    public void comparisonsAndUnaryOperatorsKeepTheirParentheses() {
         assertEquals("((a < b) == c)", renderLuaExpr(equal(less(v("a"), v("b")), v("c"))));
         assertEquals("((a == b) == c)", renderLuaExpr(equal(equal(v("a"), v("b")), v("c"))));
         assertEquals("(-(a) - b)", renderLuaExpr(
@@ -420,6 +416,78 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(rendered.endsWith(" + t" + (terms - 1) + ")"));
     }
 
+    /**
+     * A left-nested concatenation prints flat, one CONCAT instead of one per operator. The text
+     * parses as {@code a .. (b .. c)} because {@code ..} is right associative, which gives the same
+     * string: the backend only joins strings. A right operand, which already is one CONCAT with its
+     * left neighbours, and another operator as an operand keep their parentheses.
+     */
+    @Test
+    public void leftNestedConcatenationPrintsFlat() {
+        assertEquals("(a .. b .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
+        assertEquals("(a .. b .. c .. d)",
+            renderLuaExpr(concat(concat(concat(v("a"), v("b")), v("c")), v("d"))));
+        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
+        assertEquals("(a .. b .. (c .. d))",
+            renderLuaExpr(concat(concat(v("a"), v("b")), concat(v("c"), v("d")))));
+        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+        assertEquals("((a or b) .. c .. (d or e))",
+            renderLuaExpr(concat(concat(or(v("a"), v("b")), v("c")), or(v("d"), v("e")))));
+    }
+
+    /**
+     * A flat concatenation is one parser level per operator and one register per operand, so a long
+     * chain is split into groups of sixteen, and those into groups again: luac stops at 200 levels
+     * and a function has 255 registers.
+     */
+    @Test
+    public void aLongConcatenationIsGroupedWithinLuaLimits() {
+        LuaExpr chain = v("t0");
+        for (int i = 1; i < 20; i++) {
+            chain = concat(chain, v("t" + i));
+        }
+        StringBuilder expected = new StringBuilder("((t0");
+        for (int i = 1; i < 16; i++) {
+            expected.append(" .. t").append(i);
+        }
+        expected.append(") .. (t16 .. t17 .. t18 .. t19))");
+        assertEquals(expected.toString(), renderLuaExpr(chain));
+
+        int terms = 5000;
+        chain = v("t0");
+        for (int i = 1; i < terms; i++) {
+            chain = concat(chain, v("t" + i));
+        }
+        String rendered = renderLuaExpr(chain);
+        assertEquals(terms - 1, countOccurrences(rendered, " .. "));
+        int depth = 0;
+        int maxDepth = 0;
+        int longestRun = 0;
+        int run = 0;
+        for (int i = 0; i < rendered.length(); i++) {
+            char ch = rendered.charAt(i);
+            if (ch == '(') {
+                maxDepth = Math.max(maxDepth, ++depth);
+                run = 0;
+            } else if (ch == ')') {
+                depth--;
+                run = 0;
+            } else if (rendered.startsWith(" .. ", i)) {
+                longestRun = Math.max(longestRun, ++run);
+            }
+        }
+        assertEquals("5000 parts are four levels of groups", 4, maxDepth);
+        assertTrue("no group joins more than sixteen operands: " + longestRun, longestRun < 16);
+    }
+
+    private static int countOccurrences(String haystack, String needle) {
+        int count = 0;
+        for (int at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + needle.length())) {
+            count++;
+        }
+        return count;
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -430,8 +498,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_testStdLib.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
-        assertTrue(compiled.contains("function __wurst_InitHashtable("));
-        assertTrue(compiled.contains("function __wurst_SaveInteger("));
+        // The library's hashtables are created and filled where it uses them (LuaHashtableTranslation).
+        assertTrue(compiled.contains(" = ({__wurst_ht_int=({}), __wurst_ht_bool=({}), __wurst_ht_real=({}), "
+            + "__wurst_ht_str=({}), __wurst_ht_handle=({}), __wurst_ht_htype=({}), })"));
+        assertTrue(compiled.contains("local function __wurst_htNewChild("));
+        assertFalse(compiled.contains("function __wurst_InitHashtable("));
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -2609,7 +2681,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // caller: Table itself is compiled in and legitimately uses the hashtable natives.
         String init = getFunctionBody(compiled, "init_Test");
         assertFalse("the caller must not reach the hashtable natives: " + init,
-            init.contains("SaveBoolean") || init.contains("LoadBoolean"));
+            init.contains("SaveBoolean") || init.contains("LoadBoolean") || init.contains("__wurst_ht_"));
         assertTrue("the caller must call the stubs directly: " + init,
             init.contains("__wurst_keyedTableContains"));
     }
@@ -2653,7 +2725,7 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         // The Jass body must not survive: it would destroy a Table that does not exist here.
         assertFalse("the Table machinery must not reach Lua: " + init,
-            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
+            init.contains("FlushChildHashtable") || init.contains("__wurst_ht_") || init.contains("Table_destroy"));
     }
 
     /**
@@ -3417,7 +3489,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The return ends its path, so the call is an if with an else and leaves no done flag.
         assertDoesNotContainRegex(compiled, "inlineDone");
         // Both returns are inlined; the optimiser merges the result variable away.
-        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+\\w+ = \\(\\w+ \\+ 2\\)");
+        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\w+ = \\(\\w+ \\+ 2\\)");
     }
 
     @Test
@@ -3443,7 +3515,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The return ends its path, so the call is an if with an else and leaves no done flag.
         assertDoesNotContainRegex(compiled, "inlineDone");
         // Both returns are inlined; the optimiser merges the result variable away.
-        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+\\w+ = \\(\\w+ \\+ 2\\)");
+        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\w+ = \\(\\w+ \\+ 2\\)");
     }
 
     @Test
@@ -3569,9 +3641,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        // With IM-level remapping, helpers are only emitted when called.
-        // SaveInteger is used by stdlib init code, so its helper must be present.
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
+        // The stdlib init code saves into hashtables. A save is printed in place, through the child
+        // constructor, and the helper of one which cannot be is defined where it is called.
+        assertContainsRegex(compiled, "\\blocal function __wurst_htNewChild\\s*\\(");
+        assertContainsRegex(compiled, "\n\\s*;\\(\\w+\\.__wurst_ht_int\\[");
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -3586,7 +3660,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
+        // Printed as the read it stands for, so no helper is called.
+        assertContainsRegex(compiled, "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[\\w+\\]\\) or __wurst_htEmpty\\)\\[\\w+\\] ~= nil\\)");
+        assertDoesNotContainRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
     }
 
     @Test
@@ -3601,9 +3677,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         // Runtime guard overrides are removed; compile-time checks are authoritative.
         assertFalse(compiled.contains("Wurst experimental Lua assertion guards"));
         assertFalse(compiled.contains("__wurst_guard_ok"));
-        // __wurst_ helper definitions must still be present.
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
+        // Printed where they are called; a helper which a call still needs must be defined.
+        assertContainsRegex(compiled, "= \\(\\{__wurst_ht_int=\\(\\{\\}\\), ");
+        assertContainsRegex(compiled,
+            ";\\((\\w+)\\.__wurst_ht_int\\[(\\w+)\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, \\2\\)\\)\\[\\w+\\] = \\w+");
+        assertDoesNotContainRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -3614,13 +3693,17 @@ public class LuaTranslationTests extends WurstScriptTest {
             "init",
             "    let h = InitHashtable()",
             "    h.saveAbilityHandle(1, 2, null)",
-            "    let a = h.loadAbilityHandle(1, 2)"
+            // used, so the load is not dropped as a read whose result nothing uses
+            "    if h.loadAbilityHandle(1, 2) == null",
+            "        print(\"absent\")"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleLoadSaveUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_SaveAbilityHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_LoadAbilityHandle\\(");
+        // Printed in place on the handle subtable, so no helper is called.
+        assertContainsRegex(compiled, "__wurst_htNewChild\\(\\w+\\.__wurst_ht_handle, \\w+\\)");
+        assertContainsRegex(compiled, "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[\\w+\\]\\) or __wurst_htEmpty\\)\\[\\w+\\]");
+        assertDoesNotContainRegex(compiled, "\\b__wurst_(Save|Load)AbilityHandle\\(");
     }
 
     @Test
@@ -3634,40 +3717,42 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    h.saveReal(1, 2, 3.5)",
             "    h.saveString(1, 2, \"x\")",
             "    h.saveAbilityHandle(1, 2, null)",
-            "    let i = h.loadInt(1, 2)",
-            "    let r = h.loadReal(1, 2)",
-            "    let s = h.loadString(1, 2)",
-            "    let a = h.loadAbilityHandle(1, 2)"
+            // used, so the loads are not dropped as reads whose result nothing uses
+            "    if h.loadInt(1, 2) == 7 and h.loadReal(1, 2) == 3.5 and h.loadString(1, 2) == \"x\""
+                + " and h.loadAbilityHandle(1, 2) == null",
+            "        print(\"loaded\")"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHelpersEmitPerTypeBucketsInLua.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_handle", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveInteger", "h.__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveReal", "h.__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveStr", "h.__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveAbilityHandle", "h.__wurst_ht_handle", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "h.__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadReal", "h.__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadStr", "h.__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadAbilityHandle", "h.__wurst_ht_handle", true);
+        // The operations are printed where they are called, the stdlib wrappers here.
+        String init = getFunctionBody(compiled, "init_Test");
+        for (String subtable : new String[]{"int", "bool", "real", "str", "handle"}) {
+            assertTrue("InitHashtable creates every subtable: " + init, init.contains("__wurst_ht_" + subtable + "=({})"));
+        }
+        assertFunctionBodyContains(compiled, "hashtable_saveInt", ".__wurst_ht_int[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveReal", ".__wurst_ht_real[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveString", ".__wurst_ht_str[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveAbilityHandle", ".__wurst_ht_handle[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadInt", ".__wurst_ht_int[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadReal", ".__wurst_ht_real[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadString", ".__wurst_ht_str[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadAbilityHandle", ".__wurst_ht_handle[", true);
     }
 
+    /** A code value takes no parameters, so its adapter forwards none: no varargs at all. */
     @Test
-    public void luaFunctionRefWrapperForwardsVarargs() throws IOException {
+    public void luaFunctionRefWrapperOfNullaryTargetTakesNoVarargs() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
             "    let f = CreateForce()",
             "    ForForce(f, () -> skip)"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperOfNullaryTargetTakesNoVarargs.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\)");
+        assertDoesNotContainRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
         assertFalse(compiled.contains("xpcall(function (...)"));
         assertContainsRegex(compiled,
-            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*, \\.\\.\\.\\)");
-        assertTrue(compiled.contains(", ...)"));
+            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*\\)");
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
     }
@@ -3704,7 +3789,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         List<String> adapters = uniqueMatches(compiled,
-            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\.\\.\\.\\)", 1);
+            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\)", 1);
         assertEquals("one adapter must serve every reference to the same function:\n" + compiled,
             1, adapters.size());
         String adapter = adapters.get(0);
@@ -3979,10 +4064,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_subclassAllocationIncludesInheritedFieldsInLua.lua"), Charsets.UTF_8);
 
+        // Within Child's own allocation function (Window is never allocated, so its allocation writes nothing).
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorTop_storage\\[new_inst\\] = 0");
+            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorTop_storage\\[new_inst\\] = 0");
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorBottom_storage\\[new_inst\\] = 0");
+            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorBottom_storage\\[new_inst\\] = 0");
     }
 
     // ----- GetHandleId remapping -----

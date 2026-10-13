@@ -1,5 +1,6 @@
 package de.peeeq.wurstio;
 
+import java.util.concurrent.CancellationException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -145,6 +146,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             long tPartitioned = System.nanoTime();
             logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned);
 
+        } catch (CancellationException e) {
+            throw e;
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
             sendErrors(origin, e.getMessage(), e);
@@ -291,6 +294,40 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 toExecute.add(Either.forRight(f));
             }
         }
+    }
+
+    /**
+     * The functions a run with {@code flag} starts from or evaluates: the ones it executes, and the ones holding an
+     * expression it evaluates, which it does whether anything calls the function or not. A pass which removes the
+     * functions nothing reaches before the run takes these as roots, or the run misses code it would have executed.
+     */
+    public static Set<ImFunction> functionsOfTheRun(ImProg prog, FunctionFlagToRun flag) {
+        Set<ImFunction> result = new LinkedHashSet<>();
+        for (ImFunction f : prog.getFunctions()) {
+            if (flag.matches(f)) {
+                result.add(f);
+            }
+        }
+        // collectCompiletimeExpressions finds the expressions of the whole program, so this does too
+        ImFunction.DefaultVisitor holders = new ImFunction.DefaultVisitor() {
+            private ImFunction holder;
+
+            @Override
+            public void visit(ImFunction f) {
+                holder = f;
+                super.visit(f);
+            }
+
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+                super.visit(e);
+                result.add(holder);
+            }
+        };
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+            f.accept(holders);
+        }
+        return result;
     }
 
     private void collectCompiletimeExpressions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
@@ -446,13 +483,25 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         return value.text();
     }
 
+    /**
+     * A real as a decimal literal both backends read: the shortest decimal which reads back as the
+     * same float, without the exponent Java prints from 10^7 on and below 10^-3, which Jass does not parse.
+     */
+    private static String realLiteral(Element trace, float value) {
+        if (!Float.isFinite(value)) {
+            throw new InterpreterException(trace, "The compile-time real " + value + " has no literal.");
+        }
+        String plain = new java.math.BigDecimal(Float.toString(value)).toPlainString();
+        return plain.contains(".") ? plain : plain + ".";
+    }
+
     private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
         if (value instanceof ILconstBool iLconstBool) {
             return JassIm.ImBoolVal(iLconstBool.getVal());
         } else if (value instanceof ILconstInt iLconstInt) {
             return JassIm.ImIntVal(iLconstInt.getVal());
         } else if (value instanceof ILconstReal iLconstReal) {
-            return JassIm.ImRealVal("" + iLconstReal.getVal());
+            return JassIm.ImRealVal(realLiteral(trace, iLconstReal.getVal()));
         } else if (value instanceof ILconstString iLconstString) {
             return JassIm.ImStringVal(literalText(iLconstString, trace));
         } else if (value instanceof ILconstNull) {
@@ -1076,7 +1125,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(parentKey),
                             JassIm.ImIntVal(childKey),
-                            JassIm.ImRealVal("" + iv.getVal())
+                            JassIm.ImRealVal(realLiteral(trace, iv.getVal()))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstString iv) {
                     if (saveStr == null) {
@@ -1103,6 +1152,11 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 } else {
                     throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
                 }
+            }
+            if (map.isDestroyed()) {
+                // FlushParentHashtable destroyed it at compile time, so it is destroyed when the map starts too
+                batch.add(JassIm.ImFunctionCall(trace, findNative("FlushParentHashtable", errorPos), JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(JassIm.ImVarAccess(htVar)), false, CallType.NORMAL));
             }
             if (!batch.isEmpty()) {
                 getCompiletimeStateInitFunction().getBody().addAll(batch);
@@ -1144,6 +1198,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 successTests.add(f);
             } catch (TestFailException e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+            } catch (CancellationException e) {
+                throw e;
             } catch (Throwable e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
                 throw e;

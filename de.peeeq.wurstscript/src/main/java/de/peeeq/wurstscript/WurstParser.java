@@ -41,6 +41,24 @@ public class WurstParser {
         this.removeSugar = removeSugar;
     }
 
+    private boolean sllFirst = true;
+    private final AntlrTokenPipeline.Counts counts = new AntlrTokenPipeline.Counts();
+
+    /** false parses every file with the full LL prediction only, which is what a parse did before SLL was tried first. */
+    public void setSllFirst(boolean sllFirst) {
+        this.sllFirst = sllFirst;
+    }
+
+    /** How many files this parser accepted in the SLL pass. */
+    public int getSllParses() {
+        return counts.sllParses;
+    }
+
+    /** How many files this parser had to parse again with the full LL prediction, because the SLL pass did not accept them. */
+    public int getFallbacks() {
+        return counts.fallbacks;
+    }
+
     public CompilationUnit parse(Reader reader, String source, boolean hasCommonJ) {
         return parseWithAntlr(reader, source, hasCommonJ);
     }
@@ -85,7 +103,9 @@ public class WurstParser {
                     de.peeeq.wurstscript.antlr.WurstParser::new,
                     de.peeeq.wurstscript.antlr.WurstParser::compilationUnit,
                     listener,
-                    (lx, l) -> lx.setErrorListener(l) // <-- keep your existing API
+                    (lx, l) -> lx.setErrorListener(l), // <-- keep your existing API
+                    sllFirst,
+                    counts
                 );
 
             if (lexerRef[0].getTabWarning() != null) {
@@ -153,7 +173,9 @@ public class WurstParser {
                     JurstParser::new,
                     JurstParser::compilationUnit,
                     listener,
-                    (lx, l) -> lx.addErrorListener(l)
+                    (lx, l) -> lx.addErrorListener(l),
+                    sllFirst,
+                    counts
                 );
 
             CompilationUnit root = new AntlrJurstParseTreeTransformer(
@@ -209,7 +231,9 @@ public class WurstParser {
                     JassParser::new,
                     JassParser::compilationUnit,
                     listener,
-                    (lx, l) -> lx.addErrorListener(l)
+                    (lx, l) -> lx.addErrorListener(l),
+                    sllFirst,
+                    counts
                 );
 
             CompilationUnit root = new AntlrJassParseTreeTransformer(

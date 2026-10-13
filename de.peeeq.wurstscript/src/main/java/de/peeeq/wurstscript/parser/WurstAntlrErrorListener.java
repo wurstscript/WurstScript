@@ -9,7 +9,6 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Interval;
 
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class WurstAntlrErrorListener extends BaseErrorListener {
@@ -103,8 +102,8 @@ public final class WurstAntlrErrorListener extends BaseErrorListener {
             posStop = Math.max(0, cs.size() - 1);
         }
 
-        Matcher matcher = WS.matcher(cs.getText(new Interval(pos, posStop)));
-        while (pos > 0 && matcher.matches()) {
+        // an error in whitespace (a newline, the end of the file) starts at the code before it
+        while (pos > 0 && WS.matcher(cs.getText(new Interval(pos, posStop))).matches()) {
             pos--;
         }
 

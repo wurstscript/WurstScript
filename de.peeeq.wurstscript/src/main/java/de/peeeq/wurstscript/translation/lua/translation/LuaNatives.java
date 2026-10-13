@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -132,6 +134,9 @@ public class LuaNatives {
             // Truncate toward zero. Not math.modf: that returns TWO values
             // (which expand into enclosing argument lists) and its integral
             // part is a float (tostring would yield "3.0" instead of "3").
+            // Saturates outside the 32-bit range, as the game's R2I does (measured on the 3.0.0 client).
+            f.getBody().add(LuaAst.LuaLiteral("if x >= 2147483647 then return 2147483647 end"));
+            f.getBody().add(LuaAst.LuaLiteral("if x <= -2147483648 then return -2147483648 end"));
             f.getBody().add(LuaAst.LuaLiteral("if x >= 0 then"));
             f.getBody().add(LuaAst.LuaLiteral("    return math.floor(x)"));
             f.getBody().add(LuaAst.LuaLiteral("end"));
@@ -148,7 +153,10 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("if x >= 0.0 and x < 2147483648.0 then return x // 1 | 0 end"));
             f.getBody().add(LuaAst.LuaLiteral("if x < 0.0 and x > -2147483649.0 then return -(-x // 1 | 0) end"));
-            f.getBody().add(LuaAst.LuaLiteral("return R2I(x)"));
+            // R2I saturates outside the range (measured on the 3.0.0 client), and NaN is 0 as in the interpreter
+            f.getBody().add(LuaAst.LuaLiteral("if x > 0.0 then return 2147483647 end"));
+            f.getBody().add(LuaAst.LuaLiteral("if x < 0.0 then return -2147483648 end"));
+            f.getBody().add(LuaAst.LuaLiteral("return 0"));
         });
 
         addNative("__wurst_rawToInteger", f -> {
@@ -309,16 +317,10 @@ public class LuaNatives {
         // KeyedMap: one native table per map, keyed by the element itself. Typed reads answer the
         // Wurst default for a missing key so the caller needs no nil normalisation. Lowered by
         // LuaKeyedMap/LuaNativeLowering before the inliner runs, like KeyedTable. No iteration.
+        // Puts and removes have no body: they are printed as the store where they are called
+        // (StmtTranslation#translateKeyedMapWrite), as the reads are (ExprTranslation#keyedMapRead).
         addNative("__wurst_keyedMapCreate", f ->
             f.getBody().add(LuaAst.LuaLiteral("return {}")));
-        addNative("__wurst_keyedMapPut", f -> {
-            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("v", LuaAst.LuaNoExpr()));
-            // Writing under a nil key is an error in Lua, where reading one is only nil: a null
-            // element stores nothing and reads as absent.
-            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = v end"));
-        });
         addNative("__wurst_keyedMapGet", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
@@ -362,11 +364,6 @@ public class LuaNatives {
             // as it is behind a trigger.
             f.getBody().add(LuaAst.LuaLiteral("local i = 1 local c = t[1] while c do c() i = i + 1 c = t[i] end"));
         });
-        addNative("__wurst_keyedMapRemove", f -> {
-            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = nil end"));
-        });
         addNative("__wurst_keyedMapDestroy", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             // The owner may still be reachable through an alias after destroy, so clear this table
@@ -374,194 +371,71 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("for k in pairs(t) do t[k] = nil end"));
         });
 
+        // The hashtable natives; LuaHashtable has the representation and what each answers. The backend prints a call
+        // of a __wurst_ stub where it is (LuaHashtableTranslation), so these bodies run only where it cannot, and for
+        // a hashtable native declared without the BJ flag. A nil hashtable reads defaults and ignores writes.
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
-            f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, __wurst_ht_str = {}, __wurst_ht_handle = {} }")));
+            f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, "
+                + "__wurst_ht_str = {}, __wurst_ht_handle = {}, __wurst_ht_htype = {} }")));
 
-        addNative(Arrays.asList("SaveInteger", "__wurst_SaveInteger"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_int = t end"));
-            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
-        });
-        addNative(Arrays.asList("SaveBoolean", "__wurst_SaveBoolean"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_bool = t end"));
-            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
-        });
-        addNative(Arrays.asList("SaveReal", "__wurst_SaveReal"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_real = t end"));
-            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
-        });
-        addNative(Arrays.asList("SaveStr", "__wurst_SaveStr"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_str = t end"));
-            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
-        });
-        addNative(withWurstPrefix(HASHTABLE_HANDLE_SAVE_NAMES), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_handle = t end"));
-            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
-        });
+        addHashtableSave(withWurstPrefix("SaveInteger"), "__wurst_ht_int", null);
+        addHashtableSave(withWurstPrefix("SaveBoolean"), "__wurst_ht_bool", null);
+        addHashtableSave(withWurstPrefix("SaveReal"), "__wurst_ht_real", null);
+        addHashtableSave(withWurstPrefix("SaveStr"), "__wurst_ht_str", null);
+        for (String name : HASHTABLE_HANDLE_SAVE_NAMES) {
+            addHashtableSave(withWurstPrefix(name), "__wurst_ht_handle", handleTypeOf(name));
+        }
 
-        addNative(Arrays.asList("LoadInteger", "__wurst_LoadInteger"), f -> {
+        addHashtableLoad(withWurstPrefix("LoadInteger"), "__wurst_ht_int", "0", "x[c] or 0");
+        // true only for a stored true, as LoadBoolean answers false when nothing is stored
+        addHashtableLoad(withWurstPrefix("LoadBoolean"), "__wurst_ht_bool", "false", "x[c] == true");
+        addHashtableLoad(withWurstPrefix("LoadReal"), "__wurst_ht_real", "0.0", "x[c] or 0.0");
+        // the null string when absent, which on Lua is "": the game's natives raise on nil
+        addHashtableLoad(withWurstPrefix("LoadStr"), "__wurst_ht_str", "\"\"", "x[c] or \"\"");
+        for (String name : HASHTABLE_HANDLE_LOAD_NAMES) {
+            String type = handleTypeOf(name);
+            StringBuilder accepted = new StringBuilder();
+            for (String tag : LuaHashtable.acceptedTags(type)) {
+                accepted.append(accepted.length() == 0 ? "" : " or ").append("tag == \"").append(tag).append("\"");
+            }
+            // typed: the handle only for a tag this load accepts (LuaHashtable.acceptedTags)
+            addHashtableEntryOperation(withWurstPrefix(name), "__wurst_ht_handle", "nil",
+                "if x == nil then return nil end",
+                "local tag = h.__wurst_ht_htype[p]",
+                "tag = tag and tag[c]",
+                "if " + accepted + " then return x[c] end",
+                "return nil");
+        }
+
+        for (String[] have : new String[][]{{"HaveSavedInteger", "__wurst_ht_int"}, {"HaveSavedBoolean", "__wurst_ht_bool"},
+            {"HaveSavedReal", "__wurst_ht_real"}, {"HaveSavedString", "__wurst_ht_str"}, {"HaveSavedHandle", "__wurst_ht_handle"}}) {
+            addHashtableEntryOperation(withWurstPrefix(have[0]), have[1], "false", "return x ~= nil and x[c] ~= nil");
+        }
+
+        addHashtableEntryOperation(withWurstPrefix("RemoveSavedInteger"), "__wurst_ht_int", "", "if x then x[c] = nil end");
+        addHashtableEntryOperation(withWurstPrefix("RemoveSavedBoolean"), "__wurst_ht_bool", "", "if x then x[c] = nil end");
+        addHashtableEntryOperation(withWurstPrefix("RemoveSavedReal"), "__wurst_ht_real", "", "if x then x[c] = nil end");
+        addHashtableEntryOperation(withWurstPrefix("RemoveSavedString"), "__wurst_ht_str", "", "if x then x[c] = nil end");
+        addHashtableEntryOperation(withWurstPrefix("RemoveSavedHandle"), "__wurst_ht_handle", "",
+            "if x then x[c] = nil end", "x = h.__wurst_ht_htype[p]", "if x then x[c] = nil end");
+
+        addNative(withWurstPrefix("FlushChildHashtable"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return 0 end"));
-            f.getBody().add(LuaAst.LuaLiteral("local v = t[p][c]"));
-            f.getBody().add(LuaAst.LuaLiteral("if v == nil then return 0 end"));
-            f.getBody().add(LuaAst.LuaLiteral("return v"));
+            f.getBody().add(LuaAst.LuaLiteral("if h == nil then return end"));
+            for (LuaHashtable.Values values : LuaHashtable.Values.values()) {
+                f.getBody().add(LuaAst.LuaLiteral("h." + values.field + "[p] = nil"));
+            }
         });
 
-        addNative(Arrays.asList("LoadBoolean", "__wurst_LoadBoolean"), f -> {
+        // Jass destroys a flushed hashtable: every subtable becomes a table which keeps nothing written to it
+        addNative(withWurstPrefix("FlushParentHashtable"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return false end"));
-            f.getBody().add(LuaAst.LuaLiteral("local v = t[p][c]"));
-            f.getBody().add(LuaAst.LuaLiteral("if v == nil then return false end"));
-            f.getBody().add(LuaAst.LuaLiteral("return v"));
-        });
-
-        addNative(Arrays.asList("LoadReal", "__wurst_LoadReal"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return 0.0 end"));
-            f.getBody().add(LuaAst.LuaLiteral("local v = t[p][c]"));
-            f.getBody().add(LuaAst.LuaLiteral("if v == nil then return 0.0 end"));
-            f.getBody().add(LuaAst.LuaLiteral("return v"));
-        });
-
-        addNative(Arrays.asList("LoadStr", "__wurst_LoadStr"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("return t[p][c]"));
-        });
-        addNative(withWurstPrefix(HASHTABLE_HANDLE_LOAD_NAMES), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
-            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("return t[p][c]"));
-        });
-
-        addNative(Arrays.asList("HaveSavedInteger", "__wurst_HaveSavedInteger"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
-            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
-        });
-        addNative(Arrays.asList("HaveSavedBoolean", "__wurst_HaveSavedBoolean"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
-            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
-        });
-        addNative(Arrays.asList("HaveSavedReal", "__wurst_HaveSavedReal"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
-            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
-        });
-        addNative(Arrays.asList("HaveSavedString", "__wurst_HaveSavedString"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
-            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
-        });
-        addNative(Arrays.asList("HaveSavedHandle", "__wurst_HaveSavedHandle"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
-            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
-        });
-
-        addNative(Arrays.asList("FlushChildHashtable", "__wurst_FlushChildHashtable"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_int then h.__wurst_ht_int[p] = nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_bool then h.__wurst_ht_bool[p] = nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_real then h.__wurst_ht_real[p] = nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_str then h.__wurst_ht_str[p] = nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_handle then h.__wurst_ht_handle[p] = nil end"));
-        });
-
-        addNative(Arrays.asList("FlushParentHashtable", "__wurst_FlushParentHashtable"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_int = {}"));
-            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_bool = {}"));
-            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_real = {}"));
-            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_str = {}"));
-            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_handle = {}"));
-        });
-
-        addNative(Arrays.asList("RemoveSavedInteger", "__wurst_RemoveSavedInteger"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
-            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
-        });
-        addNative(Arrays.asList("RemoveSavedBoolean", "__wurst_RemoveSavedBoolean"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
-            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
-        });
-        addNative(Arrays.asList("RemoveSavedReal", "__wurst_RemoveSavedReal"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
-            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
-        });
-        addNative(Arrays.asList("RemoveSavedString", "__wurst_RemoveSavedString"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
-            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
-        });
-        addNative(Arrays.asList("RemoveSavedHandle", "__wurst_RemoveSavedHandle"), f -> {
-            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
-            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("if h == nil then return end"));
+            f.getBody().add(LuaAst.LuaLiteral("local flushed = setmetatable({}, { __newindex = function() end })"));
+            for (LuaHashtable.Values values : LuaHashtable.Values.values()) {
+                f.getBody().add(LuaAst.LuaLiteral("h." + values.field + " = flushed"));
+            }
         });
 
         addNative("__wurst_GetHandleId", f -> {
@@ -603,7 +477,65 @@ public class LuaNatives {
         }
     }
 
-    private static Iterable<String> withWurstPrefix(String[] names) {
+    /** Stores {@code i} under the child key, creating the child table under the parent key first if needed. */
+    /**
+     * {@code handleType} is the tag a handle save writes with the value, null for any other save; a null handle
+     * stores nothing.
+     */
+    private static void addHashtableSave(Iterable<String> names, String subtable, @Nullable String handleType) {
+        addNative(names, f -> {
+            addParams(f, "h", "p", "c", "i");
+            f.getBody().add(LuaAst.LuaLiteral(handleType == null ? "if h == nil then return end"
+                : "if h == nil or i == nil then return end"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h." + subtable));
+            f.getBody().add(LuaAst.LuaLiteral("local x = t[p]"));
+            f.getBody().add(LuaAst.LuaLiteral("if x == nil then x = {} t[p] = x end"));
+            f.getBody().add(LuaAst.LuaLiteral("x[c] = i"));
+            if (handleType != null) {
+                f.getBody().add(LuaAst.LuaLiteral("t = h.__wurst_ht_htype"));
+                f.getBody().add(LuaAst.LuaLiteral("x = t[p]"));
+                f.getBody().add(LuaAst.LuaLiteral("if x == nil then x = {} t[p] = x end"));
+                f.getBody().add(LuaAst.LuaLiteral("x[c] = \"" + handleType + "\""));
+            }
+        });
+    }
+
+    /** {@code absent} is the answer when there is no child table, {@code value} the answer read from it. */
+    private static void addHashtableLoad(Iterable<String> names, String subtable, String absent, String value) {
+        addHashtableEntryOperation(names, subtable, absent, "if x == nil then return " + absent + " end", "return " + value);
+    }
+
+    /**
+     * Reads the child table {@code x} under the parent key, then runs {@code body} on it; a nil hashtable answers
+     * {@code nilAnswer} (nothing for an operation which answers nothing).
+     */
+    private static void addHashtableEntryOperation(Iterable<String> names, String subtable, String nilAnswer, String... body) {
+        addNative(names, f -> {
+            addParams(f, "h", "p", "c");
+            f.getBody().add(LuaAst.LuaLiteral("if h == nil then return " + nilAnswer + " end"));
+            f.getBody().add(LuaAst.LuaLiteral("local x = h." + subtable + "[p]"));
+            for (String line : body) {
+                f.getBody().add(LuaAst.LuaLiteral(line));
+            }
+        });
+    }
+
+    /** The handle type of a handle save or load native ("SaveUnitHandle" is "Unit"), as LuaHashtable tags it. */
+    private static String handleTypeOf(String nativeName) {
+        LuaHashtable.Op op = LuaHashtable.opOfName(nativeName);
+        if (op == null || op.handleType() == null) {
+            throw new IllegalStateException("not a handle save or load: " + nativeName);
+        }
+        return op.handleType();
+    }
+
+    private static void addParams(LuaFunction f, String... names) {
+        for (String name : names) {
+            f.getParams().add(LuaAst.LuaVariable(name, LuaAst.LuaNoExpr()));
+        }
+    }
+
+    private static Iterable<String> withWurstPrefix(String... names) {
         java.util.List<String> result = new java.util.ArrayList<>();
         for (String name : names) {
             result.add(name);

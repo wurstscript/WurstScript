@@ -5,14 +5,28 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class JassPrinter {
+
+    public Map<Integer, WPos> getSourceMap() {
+        Map<Integer, WPos> result = new LinkedHashMap<>();
+        for (var entry : prog.attrLineMap().entrySet()) {
+            WPos source = prog.attrSourceMap().get(entry.getKey());
+            if (source != null) {
+                result.put(entry.getValue(), source);
+            }
+        }
+        return result;
+    }
 
     public static final String WURST_COMMENT_RAW = "// this script was compiled with wurst ";
     public static final String WURST_COMMENT = WURST_COMMENT_RAW + AboutDialog.version;
@@ -28,12 +42,31 @@ public class JassPrinter {
     public void printProg(StringBuilder sb) {
         Preconditions.checkNotNull(sb);
         Preconditions.checkNotNull(prog);
+        prog.attrLineMap().clear();
 
         sb.append(WURST_COMMENT + "\n");
         printTypes(sb, prog.getDefs());
         printGlobals(sb, prog.getGlobals());
         printNatives(sb, prog.getNatives());
         printFunctions(sb, prog.getFunctions());
+        // The printer records character offsets in emission order, then converts them in one
+        // forward scan. Recounting the whole buffer for each statement would be quadratic.
+        int offset = 0;
+        int line = 1;
+        for (var entry : prog.attrLineMap().entrySet()) {
+            while (offset < entry.getValue()) {
+                if (sb.charAt(offset++) == '\n') line++;
+            }
+            entry.setValue(line);
+        }
+    }
+
+    static void recordElement(StringBuilder sb, Element element) {
+        Element root = element;
+        while (root != null && !(root instanceof JassProg)) root = root.getParent();
+        if (root instanceof JassProg prog) {
+            prog.attrLineMap().put(element, sb.length());
+        }
     }
 
     private String additionalNewline() {
@@ -65,12 +98,14 @@ public class JassPrinter {
 
     private void printTypes(StringBuilder sb, JassTypeDefs defs) {
         for (JassTypeDef d : defs) {
+            recordElement(sb, d);
             printTypeDef(d, sb, false);
         }
     }
 
     private void printNatives(StringBuilder sb, JassNatives natives) {
         for (JassNative n : natives) {
+            recordElement(sb, n);
             printNative(n, sb, false);
         }
     }
@@ -79,6 +114,7 @@ public class JassPrinter {
         if (prog.attrIgnoredVariables().contains(g)) {
             return;
         }
+        recordElement(sb, g);
         g.match(new JassVar.MatcherVoid() {
 
             @Override
@@ -121,6 +157,7 @@ public class JassPrinter {
             return;
         }
         printComment(sb, f, 0);
+        recordElement(sb, f);
         sb.append("function ");
         sb.append(f.getName());
         sb.append(" takes ");
@@ -140,6 +177,7 @@ public class JassPrinter {
         // first print all the initalized vars:
         for (JassVar v : f.getLocals()) {
             if (v instanceof JassInitializedVar ji) {
+                recordElement(sb, v);
                 printIndent(sb, 1, withSpace);
                 sb.append("local ");
                 sb.append(v.getType());
@@ -172,6 +210,7 @@ public class JassPrinter {
                 break;
             }
             // there is a local var ==> merge
+            recordElement(sb, set);
             printIndent(sb, 1, withSpace);
             sb.append("local ");
             sb.append(localVar.getType());
@@ -187,6 +226,7 @@ public class JassPrinter {
 
         // print the remaining locals
         for (JassVar v : locals) {
+            recordElement(sb, v);
             printIndent(sb, 1, withSpace);
             sb.append("local ");
             sb.append(v.getType());
@@ -222,6 +262,7 @@ public class JassPrinter {
 
     static void printStatements(StringBuilder sb, int indent, List<JassStatement> statements, boolean withSpace) {
         for (JassStatement s : statements) {
+            recordElement(sb, s);
             printIndent(sb, indent, withSpace);
             s.print(sb, indent, withSpace);
             sb.append("\n");

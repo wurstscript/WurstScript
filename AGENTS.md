@@ -73,8 +73,8 @@ Two incompatible generic systems coexist. The syntax of the type parameter picks
 
 ### Language and tooling
 
-* **Java 25**
-* **Gradle (9.2.1)**
+* **Java 27**
+* **Gradle (9.8.1)**
 
 ---
 
@@ -118,6 +118,7 @@ The Gradle wrapper lives inside `de.peeeq.wurstscript/` (not the repo root); run
 * `test().executeProg()` runs the compiled program in the interpreter and requires a `testSuccess()` call.
 * `test().testLua(true).executeProg()` runs the **Lua path only** (`testLua` sets `luaOnly`, which skips the Jass and interpreter runs; add `.luaOnly(false)` to keep them). It syntax-checks the emitted Lua with luac and executes it with a stock Lua interpreter (5.3 on Windows and the Linux CI, see below) against the WC3 runtime in `src/test/resources/luaruntime/` (wc3shim + Reforged `common.j.lua`/`blizzard.j.lua` dumps).
 * Interpreter discovery (`WurstScriptTest.getLuaExecutable`): on Linux `lua5.3` from PATH, then the bundled `lua53`; on Windows the bundled `lua.exe`; then `lua53`/`lua` from PATH. The version is never checked: Linux CI asserts 5.3 and the bundled Windows `lua.exe` is 5.3, but CI's macOS job installs whatever `brew install lua` gives. A missing interpreter skips the execution (visibly); a missing `luac` fails the test.
+* A Lua run fails when a package fails to initialise ("Could not initialize package X"), even if it reaches `testSuccess`: the generated script reports the failure and goes on without the package. A native which a package init needs belongs in `wc3shim.lua`.
 * Use `LuaBackendAuditTests` as the reference style for backend regression repros.
 * The test Lua is not the game's Lua (libraries, real arithmetic): see §11.
 
@@ -142,6 +143,7 @@ This repository has multiple entry points that may trigger compilation/build beh
 * `LanguageWorker` serializes requests and file-change reconciliation.
 * `ModelManagerImpl` owns project model state (wurst files, dependencies, diagnostics).
 * Add, replace, remove or purge compilation units of the managed model only through `ModelManager` (`retainCompilationUnits` for purges), never by mutating `getModel()`: lookups from other threads rely on its `modelLock`. A copy from `ModelManager.copy` can be changed freely.
+* A load parses the files of the project and of its libraries ahead, by several threads (`-Dwurst.parseThreads=n`, 1 parses nothing ahead), and takes each parse when it comes to the file. Only the parse runs on those threads, because it depends on nothing but the text of one file. The model is changed by the loading thread alone, file by file in the order of the sequential load, and the imports resolve depth first as before: that order is the order of the compilation units, and so of the output. A step which adds to the model or reads it from the parse threads is not safe (the generated attributes, `GlobalCaches` and `ErrorHandler` are not thread safe, see `BACKLOG.md`). `ParallelLoadTests` compares a load with one thread and with four.
 * User actions like build/start/tests are implemented in `languageserver.requests.*`.
 
 ### Initial workspace readiness
@@ -151,6 +153,20 @@ This repository has multiple entry points that may trigger compilation/build beh
 * Completion means `ModelManager.buildProject()` returned, including projects with ordinary source diagnostics. Exceptions report failed. Legacy clients retain their queued `workspace/symbol` readiness barrier. Keep that request ordering intact.
 * Model-dependent requests, including formatting, must use `LanguageWorker.handle` so progress negotiation, initialization, and the initial build complete before model access. Formatting keeps duplicate requests because separate documents must each receive an answer.
 * Run `InitialBuildProgressTest` and `LanguageWorkerTest` for startup changes; the extension's opt-in `scripts/test-lsp-readiness.js <compiler.jar>` verifies the actual stdio protocol.
+
+### Language server startup archive
+
+wurst4vscode starts the server with `-XX:+AutoCreateSharedArchive`: the JVM writes an AppCDS archive next to the
+compiler jar when the first session ends, and the sessions after it start from it. That archive sits on the
+runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-archive`; macOS copies a full JDK, which
+usually has one, and `assembleSlimCompilerDist` dumps one with `java -Xshare:dump` when the JDK has none: the Temurin
+for macOS x64 on CI does not). `assembleSlimCompilerDist` then starts the runtime with `-Xshare:on`, which fails when
+there is no usable archive. Without one the JVM silently runs without any, which is how the earlier attempt went
+unnoticed. Pull-request CI packages nothing (only pushes to master do, on every host), so a change here is not tested
+on macOS before it merges. Java 27 enables compact object headers by default. The build clears the JVM option
+environment variables when making and validating the base archive so it matches the shipped runtime defaults.
+The extension passes `-Xlog:disable` because the JVM reports archive trouble on stdout, which is the protocol stream:
+never print anything of your own there.
 
 ### Build-map pipeline (centralized)
 
@@ -248,6 +264,19 @@ Rules for backend work:
   is the primary requirement. Runtime and allocation performance are the next requirement: common
   optimized paths must not retain avoidable compiler-introduced allocation, dispatch, copying, or
   bookkeeping overhead. Overhead the compiler adds is a defect, not a trade-off.
+* **The IM is flat** (no `ImStatementExpr` outside a compile-time expression) from the flatten before the local
+  optimisations until the backend, which needs it: Jass has no statement expression and Lua would make a closure of
+  each. A pass which makes statement expressions flattens at its end (`prog.flatten`); a pass which only removes code,
+  or replaces a statement by statements (the garbage removal), keeps the program flat and is not followed by a flatten
+  or a second run. Statements and expressions in statement position are made by the flatten's own code
+  (`Result.intoStatements`), not by hand: an operator expression such as `a and f()` is not a statement the backends
+  translate. A unit test checks flatness at these places (`ImTranslator.assertFlat`, `ImOptimizer.assertNoGarbage`).
+* **Do not tell a cache which function changed; ask the function.** `ImFunction.modificationCount()` (the generator
+  counts the changes of a function and of everything below it, through every setter and list) is the same exactly
+  while nothing in the function was modified. A pass which is only needed for the functions which changed, or a
+  result which is kept for a function (the flatten does this), compares the count it saw. Prefer it to a
+  `functionChanged(f)` call which a pass has to remember (the facts of the garbage removal still use one, see
+  `BACKLOG.md`).
 
 ### Lua performance policy
 
@@ -274,8 +303,8 @@ Rules for backend work:
 
 ### Reference semantics for arithmetic
 
-* Integer/real division and modulo semantics are centralized: `WurstOperator.moduloInteger/moduloReal` implement the Blizzard.j formula (truncated remainder, plus divisor if negative) and Jass `div` truncates toward zero.
-* The Lua helpers (`__wurst_intDiv`, `__wurst_modInt`, `__wurst_modReal`, built in `LuaNativeLowering`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`) must all stay consistent with those helpers — never reimplement div/mod locally.
+* Integer/real division and modulo semantics are centralized: `WurstOperator.moduloInteger` is Blizzard.j's ModuloInteger (truncated remainder, plus divisor if negative), `WurstOperator.moduloReal` is ModuloReal's formula itself (`a - R2I(a / b) * b` in float, plus divisor if negative, not the exact remainder), and Jass `div` truncates toward zero.
+* The Lua helpers (`__wurst_intDiv`, `__wurst_modInt`, `__wurst_modReal`, built in `LuaNativeLowering`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`) must all stay consistent with those helpers — never reimplement div/mod locally. A real modulo on Lua is Blizzard.j's `ModuloReal` formula, as on Jass, never `math.fmod` or Lua's float `%`, which differ from Jass in the game ([`docs/WC3_RUNTIME.md`](docs/WC3_RUNTIME.md) "Numbers").
 * Jass `==` on reals allows a difference of 0.001 (`WurstOperator.jassRealEquals`), while `!=` and the orderings are exact, so on the Jass target `not (a == b)` is not `a != b` for reals. Lua compares exactly, by design: the tolerance would cost every real comparison. Both interpreters use that helper; the optimiser must not swap one for the other or fold nearly equal reals on Jass.
 * The game reads Jass real literals inexactly and computes Lua reals with a 24-bit mantissa (measurements: [`docs/WC3_RUNTIME.md`](docs/WC3_RUNTIME.md) "Numbers"). So on both targets real folding (`SimpleRewrites.foldRealExactly`) reads and writes only exact literals and folds an operation only when its exact result is one. Never fold in double or float, and never treat one `R2I` result as proof of a precision. The test runtime's Lua computes in double, so a test that runs the emitted Lua does not show the game's rounding.
 

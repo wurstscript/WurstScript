@@ -127,10 +127,8 @@ public class WurstGuiImpl extends WurstGui {
 
     @Override
     public void sendProgress(String whatsRunningNow) {
-        if (whatsRunningNow != null) {
-            WLogger.debug("progress: " + whatsRunningNow);
-        }
-        if (whatsRunningNow == null || done.contains(whatsRunningNow)) {
+        WLogger.debug("progress: " + whatsRunningNow);
+        if (done.contains(whatsRunningNow)) {
             return;
         }
 

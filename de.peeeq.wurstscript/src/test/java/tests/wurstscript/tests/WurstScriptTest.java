@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -620,6 +621,8 @@ public class WurstScriptTest {
             compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            LuaTranslator luaTranslator = compiler.getLuaTranslator();
+            List<String> initFunctionNames = luaTranslator == null ? List.of() : luaTranslator.initFunctionNames();
             LuaAssertions.assertNamesAreValidIdentifiers(luaCode);
             checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
@@ -660,11 +663,27 @@ public class WurstScriptTest {
                     }
                 }
                 chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");
+                // The generated script reports a package whose init raised, through the program's error
+                // function, and goes on without it. The harness wraps each init function to see the raise
+                // itself, whatever the error function prints, and re-raises it unchanged.
+                chunk.append("local __wurst_testInits = {");
+                for (String initFunctionName : initFunctionNames) {
+                    chunk.append("'").append(initFunctionName).append("',");
+                }
+                chunk.append("};");
+                chunk.append("for _, n in ipairs(__wurst_testInits) do local f = rawget(_G, n); if f then"
+                    + " _G[n] = function(...) local r = table.pack(pcall(f, ...));"
+                    + " if not r[1] then __wurst_testInitFailed = true; error(r[2], 0) end"
+                    + " return table.unpack(r, 2, r.n) end end end;");
                 // Success is read off stdout, so testSuccess has to print. A program with no
                 // standard library gets a generated fallback which does; one with the library gets
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
-                chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
+                chunk.append("testSuccess = function() if __wurst_testInitFailed then print('__wurst_initFailed') end"
+                    + " print('testSuccess') os.exit() end;");
+                // Callback adapters can consume the error. Record an independent failure signal
+                // before raising it so a later testSuccess cannot make the Java harness pass.
+                chunk.append("testFail = function(message) print('__wurst_testFail'); error(message, 0) end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -678,7 +697,13 @@ public class WurstScriptTest {
                 // and one that fills the stdout pipe would deadlock against a stderr-first read.
                 java.util.concurrent.atomic.AtomicBoolean sawTestSuccess =
                     new java.util.concurrent.atomic.AtomicBoolean(false);
-                Thread outCollector = collectStreamAsync(p.getInputStream(), output, "testSuccess", sawTestSuccess);
+                java.util.concurrent.atomic.AtomicBoolean sawTestFail =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                java.util.concurrent.atomic.AtomicBoolean sawInitFailure =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                Thread outCollector = collectStreamAsync(p.getInputStream(), output,
+                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail,
+                        "__wurst_initFailed", sawInitFailure));
                 Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
                 if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
                     p.destroyForcibly();
@@ -693,8 +718,14 @@ public class WurstScriptTest {
                     throw new TestFailException(errors.toString());
                 }
 
+                if (sawTestFail.get()) {
+                    throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
+                }
+                if (sawInitFailure.get()) {
+                    throw new Error(currentTestEnv + ": a package failed to initialize\nLua output:\n" + output);
+                }
                 if (!sawTestSuccess.get()) {
-                    throw new Error(currentTestEnv + ": Succeed function not called");
+                    throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);
                 }
             }
 
@@ -742,7 +773,7 @@ public class WurstScriptTest {
     }
 
     private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
-        return collectStreamAsync(stream, out, null, null);
+        return collectStreamAsync(stream, out, java.util.Collections.emptyMap());
     }
 
     /**
@@ -752,10 +783,16 @@ public class WurstScriptTest {
      * <p>
      * Whatever the caller is looking for is recognised here rather than read back out of
      * {@code out} afterwards, because it may arrive after the limit: a program that prints a
-     * million lines and then succeeds has still succeeded.
+     * million lines and then succeeds has still succeeded, and one that prints them and then fails
+     * has still failed. Each line in {@code watchedLines} sets its flag when the program prints it.
      */
     private Thread collectStreamAsync(InputStream stream, StringBuilder out,
-                                      String watchedLine, java.util.concurrent.atomic.AtomicBoolean sawWatchedLine) {
+                                      java.util.Map<String, java.util.concurrent.atomic.AtomicBoolean> watchedLines) {
+        int longestWatchedLine = 0;
+        for (String watched : watchedLines.keySet()) {
+            longestWatchedLine = Math.max(longestWatchedLine, watched.length());
+        }
+        final int maxWatchedLength = longestWatchedLine;
         Thread t = new Thread(() -> {
             // Fixed-size chunks rather than lines: a line is only bounded by what the program
             // chose to print, and reading one materialises all of it before any limit here could
@@ -767,20 +804,22 @@ public class WurstScriptTest {
             try (Reader input = new InputStreamReader(stream)) {
                 int read;
                 while ((read = input.read(chunk)) >= 0) {
-                    if (watchedLine != null) {
+                    if (!watchedLines.isEmpty()) {
                         for (int i = 0; i < read; i++) {
                             char c = chunk[i];
                             if (c == '\n') {
-                                if (!lineIsLongerThanWatched && pendingLine.length() == watchedLine.length()
-                                    && watchedLine.contentEquals(pendingLine)) {
-                                    sawWatchedLine.set(true);
+                                if (!lineIsLongerThanWatched) {
+                                    java.util.concurrent.atomic.AtomicBoolean saw = watchedLines.get(pendingLine.toString());
+                                    if (saw != null) {
+                                        saw.set(true);
+                                    }
                                 }
                                 pendingLine.setLength(0);
                                 lineIsLongerThanWatched = false;
                             } else if (c != '\r' && !lineIsLongerThanWatched) {
-                                // Only ever as long as what is being looked for; past that the
-                                // line cannot be it, so there is no reason to keep any of it.
-                                if (pendingLine.length() == watchedLine.length()) {
+                                // Only ever as long as the longest line being looked for; past that
+                                // the line cannot be any of them, so there is no reason to keep it.
+                                if (pendingLine.length() == maxWatchedLength) {
                                     lineIsLongerThanWatched = true;
                                     pendingLine.setLength(0);
                                 } else {
@@ -871,7 +910,7 @@ public class WurstScriptTest {
         );
     }
 
-    private String getLuacExecutable() {
+    protected String getLuacExecutable() {
         if (resolvedLuacExecutable != null) {
             return resolvedLuacExecutable;
         }
@@ -1024,6 +1063,10 @@ public class WurstScriptTest {
         );
 
         for (LuaStatement stmt : luaCode) {
+            if (stmt instanceof LuaChunkLocal local) {
+                // A main-chunk local is initialised at the root like a global.
+                stmt = local.getDefinition();
+            }
             if (stmt instanceof LuaVariable) {
                 LuaExprOpt initialValue = ((LuaVariable) stmt).getInitialValue();
                 if (initialValue instanceof LuaExpr) {

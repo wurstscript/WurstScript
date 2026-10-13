@@ -274,6 +274,7 @@ public class RemoveGarbage {
             @Override
             public void visit(ImCast e) {
                 super.visit(e);
+                visitType(e.getFromType(), used);
                 visitType(e.getToType(), used);
             }
 

@@ -163,7 +163,7 @@ public enum WurstOperator {
             case DIV_INT:
                 return new ILconstInt(((ILconstInt) left).getVal() / ((ILconstInt) right.get()).getVal());
             case DIV_REAL:
-                return new ILconstReal(getReal(left) / getReal(right.get()));
+                return new ILconstReal(divideReal(getReal(left), getReal(right.get())));
             case EQ: {
                 ILconst rightVal = right.get();
                 rejectUnresolvedDefault(left, rightVal);
@@ -221,13 +221,40 @@ public enum WurstOperator {
         return a % b;
     }
 
-    /** Reference semantics for Wurst's real {@code mod}; see {@link #moduloInteger}. */
+    /**
+     * Reference semantics for Wurst's real {@code mod}: Blizzard.j's ModuloReal, which a real modulo is on both
+     * targets, {@code a - I2R(R2I(a / b)) * b} plus b when that is negative, each step in float as in the game.
+     * That is not the exact remainder: the quotient rounds, and for a quotient past 2^24 the result can leave
+     * [0, b) altogether. Measured on the 3.0.0 client, Jass and the same formula in the game's Lua agree on every
+     * probed operand; math.fmod and Lua's float % do not (360 % 7 is 3.0000153 with either).
+     */
     public static float moduloReal(float a, float b) {
-        float r = a % b;
+        float quotient = divideReal(a, b);
+        float r = a - (float) realToInt(quotient) * b;
         if (r < 0) {
             r += b;
         }
         return r;
+    }
+
+    /**
+     * A real division. Measured on the 3.0.0 client, a real division by zero stops the thread in Jass ({@code 1. / 0.},
+     * {@code 0. / 0.} and ModuloReal by 0 alike), so it is the same error as an integer one here, not an infinity.
+     */
+    public static float divideReal(float a, float b) {
+        if (b == 0) {
+            throw new ArithmeticException("/ by zero");
+        }
+        return a / b;
+    }
+
+    /**
+     * Jass's R2I, measured on the 3.0.0 client: truncates, and saturates outside the 32-bit range (a computed 5000000320
+     * is 2147483647, its negative -2147483648, a computed 1e20 2147483647), as Java's cast does. A real literal past
+     * 2^31 is read wrapped by Jass (the literal 1e10 is 1410065408.), which R2I of it shows, not R2I itself.
+     */
+    public static int realToInt(double value) {
+        return (int) value;
     }
 
     /**

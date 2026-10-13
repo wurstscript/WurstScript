@@ -612,4 +612,395 @@ public class InterfaceTests extends WurstScriptTest {
 
 
     }
+
+    /**
+     * C implements Omega's abstract m with the m it inherits from Base, which is not an Omega. The dispatch over
+     * Omega's implementations reaches C (and D below it) and must call Base's m, not the one of another implementor.
+     */
+    @Test
+    public void anAbstractInterfaceMethodImplementedByAnInheritedMethodIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C extends Base implements Omega",
+            "class D extends C",
+            "class X implements Omega",
+            "    function m() returns int",
+            "        return 3",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaOmega(new C()) == 1 and viaOmega(new D()) == 1 and viaOmega(new X()) == 3 and new C().m() == 1",
+            "        testSuccess()");
+    }
+
+    private static final String[] OVERRIDE_BELOW_THE_INHERITING_CLASS = {
+        "package test",
+        "native testSuccess()",
+        "interface Omega",
+        "    function m() returns int",
+        "class Base",
+        "    function m() returns int",
+        "        return 1",
+        "class C extends Base implements Omega",
+        "class D extends C",
+        "    override function m() returns int",
+        "        return 4",
+        "class E extends D",
+        "class X implements Omega",
+        "    function m() returns int",
+        "        return 3",
+        "function viaOmega(Omega a) returns int",
+        "    return a.m()",
+        "function viaBase(Base b) returns int",
+        "    return b.m()",
+        "init",
+        "    if viaOmega(new C()) == 1 and viaOmega(new D()) == 4 and viaOmega(new E()) == 4 and viaOmega(new X()) == 3",
+        "        and viaBase(new D()) == 4 and viaBase(new C()) == 1",
+        "        testSuccess()"};
+
+    /** An override below the class which inherits the implementation is reached through the interface too. */
+    @Test
+    public void anOverrideBelowTheClassWhichInheritsTheImplementationIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(OVERRIDE_BELOW_THE_INHERITING_CLASS);
+    }
+
+    /**
+     * The method C has of its own for the m it inherits keeps D's override as a sub-method, as Base's m does: a
+     * bridge stays linked to the overrides below it (AGENTS.md section 8), which the dispatch preparation and the
+     * specialisation follow.
+     */
+    @Test
+    public void theMethodAClassHasOfItsOwnKeepsTheOverridesBelowIt() {
+        de.peeeq.wurstscript.gui.WurstGuiCliImpl gui = new de.peeeq.wurstscript.gui.WurstGuiCliImpl();
+        de.peeeq.wurstio.WurstCompilerJassImpl compiler =
+            new de.peeeq.wurstio.WurstCompilerJassImpl(null, gui, null, new de.peeeq.wurstscript.RunArgs());
+        de.peeeq.wurstscript.ast.WurstModel model = parseFiles(java.util.Collections.emptyList(),
+            java.util.Collections.singletonList(new CU("InterfaceTests.wurst", String.join("\n", OVERRIDE_BELOW_THE_INHERITING_CLASS))),
+            false, compiler);
+        compiler.checkProg(model);
+        org.testng.Assert.assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+        compiler.translateProgToIm(model);
+        java.util.Map<String, de.peeeq.wurstscript.jassIm.ImClass> classes = new java.util.HashMap<>();
+        for (de.peeeq.wurstscript.jassIm.ImClass c : compiler.getImProg().getClasses()) {
+            classes.put(c.getName(), c);
+        }
+        de.peeeq.wurstscript.jassIm.ImMethod baseM = classes.get("Base").getMethods().stream()
+            .filter(m -> !m.getName().startsWith("destroy")).findFirst().orElseThrow();
+        de.peeeq.wurstscript.jassIm.ImMethod bridge = classes.get("C").getMethods().stream()
+            .filter(m -> m.getImplementation() == baseM.getImplementation()).findFirst().orElseThrow();
+        org.testng.Assert.assertTrue(bridge.getSubMethods().stream().anyMatch(s -> s.attrClass() == classes.get("D")),
+            "C's method for Base's m is linked to D's override: " + bridge.getSubMethods());
+    }
+
+    /**
+     * C gets m from Base and a default m from Default, and Abstract declares m without a body. A default beats an
+     * inherited method, so C's m is the default through either interface (Lua binds one implementation for C to
+     * both), and D's override below C beats both. Calls through both interfaces are in the program, so Lua keeps both.
+     */
+    @Test
+    public void aDefaultBeatsTheInheritedMethodWhereAnotherInterfaceHasNoBody() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function m() returns int",
+            "interface Default",
+            "    function m() returns int",
+            "        return 2",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C extends Base implements Abstract, Default",
+            "class D extends C",
+            "    override function m() returns int",
+            "        return 4",
+            "function viaDefault(Default a) returns int",
+            "    return a.m()",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaDefault(new C()) == 2 and viaDefault(new D()) == 4 and viaAbstract(new C()) == 2 and viaAbstract(new D()) == 4",
+            "        testSuccess()");
+    }
+
+    /** As {@link #anOverrideBelowTheClassWhichInheritsTheImplementationIsDispatched}, with C and D generic. */
+    @Test
+    public void aGenericClassImplementingTheInterfaceWithAnInheritedMethodIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C<T:> extends Base implements Omega",
+            "class D<T:> extends C<T>",
+            "    override function m() returns int",
+            "        return 4",
+            "class E<T:> extends C<T>",
+            "class X implements Omega",
+            "    function m() returns int",
+            "        return 3",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "function viaBase(Base b) returns int",
+            "    return b.m()",
+            "init",
+            "    if viaOmega(new C<int>()) == 1 and viaOmega(new D<int>()) == 4 and viaOmega(new E<real>()) == 1",
+            "        and viaOmega(new X()) == 3 and viaBase(new C<int>()) == 1 and viaBase(new D<int>()) == 4",
+            "        testSuccess()");
+    }
+
+    /** A plain class overrides the method below the generic class which inherits it. */
+    @Test
+    public void aPlainOverrideBelowAGenericClassImplementingTheInterfaceWithAnInheritedMethodIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C<T:> extends Base implements Omega",
+            "class D extends C<int>",
+            "    override function m() returns int",
+            "        return 4",
+            "class E extends D",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "function viaBase(Base b) returns int",
+            "    return b.m()",
+            "init",
+            "    if viaOmega(new C<int>()) == 1 and viaOmega(new D()) == 4 and viaOmega(new E()) == 4",
+            "        and viaBase(new C<int>()) == 1 and viaBase(new D()) == 4",
+            "        testSuccess()");
+    }
+
+    /** The method comes from a generic class, which a plain class implementing the interface extends. */
+    @Test
+    public void aClassImplementingTheInterfaceWithAMethodOfAGenericSuperclassIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Base<T:>",
+            "    function m() returns int",
+            "        return 1",
+            "class C extends Base<int> implements Omega",
+            "class D extends C",
+            "    override function m() returns int",
+            "        return 4",
+            "class X implements Omega",
+            "    function m() returns int",
+            "        return 3",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaOmega(new C()) == 1 and viaOmega(new D()) == 4 and viaOmega(new X()) == 3 and new Base<int>().m() == 1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Both classes and the interface are generic, and the inherited method reads a field of its class's type
+     * parameter, so the implementation C gets must be Base's specialised for C's type argument.
+     */
+    @Test
+    public void aGenericInterfaceImplementedWithAMethodOfAGenericSuperclassIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega<T:>",
+            "    function get() returns T",
+            "class Base<T:>",
+            "    T v",
+            "    construct(T v)",
+            "        this.v = v",
+            "    function get() returns T",
+            "        return v",
+            "class C<T:> extends Base<T> implements Omega<T>",
+            "    construct(T v)",
+            "        super(v)",
+            "class X implements Omega<int>",
+            "    function get() returns int",
+            "        return 3",
+            "function viaOmega(Omega<int> a) returns int",
+            "    return a.get()",
+            "function viaOmegaS(Omega<string> a) returns string",
+            "    return a.get()",
+            "init",
+            "    if viaOmega(new C<int>(5)) == 5 and viaOmega(new X()) == 3 and viaOmegaS(new C<string>(\"s\")) == \"s\"",
+            "        testSuccess()");
+    }
+
+    /**
+     * C's type parameters are not Base's: C instantiates Base with a type of its own choosing and with the second of
+     * its two parameters, and the method takes a parameter of Base's type parameter. C's method must run Base's for
+     * Base's instantiation, not C's.
+     */
+    @Test
+    public void aGenericClassImplementingTheInterfaceWithAMethodOfADifferentlyInstantiatedSuperclassIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Named",
+            "    function name(string prefix) returns string",
+            "interface Swap<T:>",
+            "    function swap(T t) returns T",
+            "class Base<T:>",
+            "    T v",
+            "    construct(T v)",
+            "        this.v = v",
+            "    function name(string prefix) returns string",
+            "        return prefix + \"base\"",
+            "    function swap(T t) returns T",
+            "        let old = v",
+            "        v = t",
+            "        return old",
+            "class Fixed<T:> extends Base<string> implements Named",
+            "    T other",
+            "    construct(T other)",
+            "        super(\"fixed\")",
+            "        this.other = other",
+            "class Second<A:, B:> extends Base<B> implements Swap<B>",
+            "    construct(B b)",
+            "        super(b)",
+            "class X implements Named",
+            "    function name(string prefix) returns string",
+            "        return prefix + \"x\"",
+            "function viaNamed(Named n) returns string",
+            "    return n.name(\"a-\")",
+            "function viaSwap(Swap<string> s, string t) returns string",
+            "    return s.swap(t)",
+            "init",
+            "    let s = new Second<int, string>(\"one\")",
+            "    if viaNamed(new Fixed<int>(7)) == \"a-base\" and viaNamed(new X()) == \"a-x\"",
+            "        and viaSwap(s, \"two\") == \"one\" and viaSwap(s, \"three\") == \"two\"",
+            "        testSuccess()");
+    }
+
+    /** The inherited implementation takes a vararg, which the function the generic class gets must take too. */
+    @Test
+    public void aGenericClassImplementingAVarargInterfaceMethodWithAnInheritedMethodIsDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Summer",
+            "    function sum(vararg int xs) returns int",
+            "class Base",
+            "    function sum(vararg int xs) returns int",
+            "        var r = 0",
+            "        for x in xs",
+            "            r += x",
+            "        return r",
+            "class C<T:> extends Base implements Summer",
+            "class D extends Base implements Summer",
+            "class X implements Summer",
+            "    function sum(vararg int xs) returns int",
+            "        return -1",
+            "function viaSummer(Summer s) returns int",
+            "    return s.sum(1, 2, 3)",
+            "init",
+            "    if viaSummer(new C<int>()) == 6 and viaSummer(new D()) == 6 and viaSummer(new X()) == -1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Static classes inside a generic class have its type parameter as a variable of their own, which no superclass
+     * binds: C sees Base's as the parameter itself. Lua only: on Jass a static class extending another inside a
+     * generic class does not compile yet, with or without an interface (the generic elimination specialises Base
+     * without the parameter).
+     */
+    @Test
+    public void aStaticClassOfAGenericClassImplementingTheInterfaceWithAnInheritedMethodIsDispatched() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Omega",
+            "    function m() returns int",
+            "class Outer<T:>",
+            "    function make() returns Omega",
+            "        return new C()",
+            "    static class Base",
+            "        function m() returns int",
+            "            return 1",
+            "    static class C extends Base implements Omega",
+            "class X implements Omega",
+            "    function m() returns int",
+            "        return 3",
+            "function viaOmega(Omega a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaOmega(new Outer<int>().make()) == 1 and viaOmega(new X()) == 3",
+            "        testSuccess()");
+    }
+
+    /**
+     * The function a generic class gets for an inherited implementation only calls it, so an optimised Lua build
+     * inlines the call and a dispatch through the interface runs Base's body directly.
+     */
+    @Test
+    public void theFunctionAGenericClassGetsForAnInheritedMethodIsInlined() throws java.io.IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Named",
+            "    function name(string prefix) returns string",
+            "class Base<T:>",
+            "    function name(string prefix) returns string",
+            "        return prefix + \"base\"",
+            "class Fixed<T:> extends Base<string> implements Named",
+            "class X implements Named",
+            "    function name(string prefix) returns string",
+            "        return prefix + \"x\"",
+            "function viaNamed(Named n) returns string",
+            "    return n.name(\"a-\")",
+            "init",
+            "    if viaNamed(new Fixed<int>()) == \"a-base\" and viaNamed(new X()) == \"a-x\"",
+            "        testSuccess()");
+        String lua = com.google.common.io.Files.asCharSource(new java.io.File(
+                "test-output/lua/InterfaceTests_theFunctionAGenericClassGetsForAnInheritedMethodIsInlined.lua"),
+            java.nio.charset.StandardCharsets.UTF_8).read();
+        int start = lua.indexOf("function Fixed_Fixed_name(");
+        org.testng.Assert.assertTrue(start >= 0, lua);
+        String body = lua.substring(start, lua.indexOf("\nend", start));
+        org.testng.Assert.assertTrue(body.contains("\"base\""), body);
+        org.testng.Assert.assertFalse(body.contains("Base_"), body);
+    }
+
+    /** As {@link #aDefaultBeatsTheInheritedMethodWhereAnotherInterfaceHasNoBody}, with C and D generic. */
+    @Test
+    public void aDefaultBeatsTheInheritedMethodOfAGenericClassWhereAnotherInterfaceHasNoBody() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function m() returns int",
+            "interface Default",
+            "    function m() returns int",
+            "        return 2",
+            "class Base",
+            "    function m() returns int",
+            "        return 1",
+            "class C<T:> extends Base implements Abstract, Default",
+            "class D<T:> extends C<T>",
+            "    override function m() returns int",
+            "        return 4",
+            "function viaDefault(Default a) returns int",
+            "    return a.m()",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.m()",
+            "init",
+            "    if viaDefault(new C<int>()) == 2 and viaDefault(new D<int>()) == 4",
+            "        and viaAbstract(new C<int>()) == 2 and viaAbstract(new D<int>()) == 4",
+            "        testSuccess()");
+    }
 }

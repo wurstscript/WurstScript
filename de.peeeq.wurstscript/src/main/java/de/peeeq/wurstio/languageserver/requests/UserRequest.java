@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
@@ -27,8 +28,11 @@ public abstract class UserRequest<Res> {
     }
 
     public void run(ModelManager modelManager) {
+        if (fut.isCancelled()) return;
         try {
+            CompilationCancellation.check();
             Res res = execute(modelManager);
+            CompilationCancellation.check();
             fut.complete(res);
         } catch (Exception e) {
             fut.completeExceptionally(e);

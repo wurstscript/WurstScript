@@ -1,5 +1,6 @@
 package de.peeeq.wurstio;
 
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.lang.management.GarbageCollectorMXBean;
@@ -32,6 +33,7 @@ public interface TimeTaker {
 
         @Override
         public <T> T measure(String name, Supplier<T> f) {
+            CompilationCancellation.check();
             return f.get();
         }
 
@@ -58,6 +60,7 @@ public interface TimeTaker {
         private Long startTime = 0L;
 
         public <T> T measure(String name, Supplier<T> f) {
+            CompilationCancellation.check();
             name = withNesting(name);
             nesting++;
             accumulatedTimes.putIfAbsent(name, 0L);

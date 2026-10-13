@@ -4,8 +4,12 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.slf4j.LoggerFactory;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
@@ -58,6 +62,30 @@ public class CompiletimeTests extends WurstScriptTest {
                 "init",
                 "    if a == 1. and b == 2.",
                 "        testSuccess()");
+    }
+
+    /** Java prints a float from 10^7 on and below 10^-3 with an exponent, which Jass does not parse. */
+    @Test
+    public void compiletimeRealsBecomeDecimalLiterals() throws IOException {
+        test().executeProg(true)
+            .runCompiletimeFunctions(true)
+            .lines("package Test",
+                "native testSuccess()",
+                "function compiletime(real r) returns real",
+                "    return r",
+                "@noinline function w(real x) returns real",
+                "    return x",
+                "constant big = compiletime(w(10000.) * w(1000.))",
+                "constant huge = compiletime(w(30000.) * w(100000.) * w(1000.))",
+                "constant small = compiletime(w(1.) / w(1024.))",
+                "init",
+                "    if not (big != w(10000.) * w(1000.)) and not (huge != w(30000.) * w(100000.) * w(1000.))",
+                "        and not (small != w(1.) / w(1024.))",
+                "        testSuccess()");
+        String jass = Files.toString(new File(TEST_OUTPUT_PATH + "CompiletimeTests_compiletimeRealsBecomeDecimalLiterals_no_opts.j"), Charsets.UTF_8);
+        // The header comment names the compiler's commit, whose hash can read like an exponent (557e639).
+        String code = jass.replaceAll("(?m)^//.*$", "");
+        assertFalse(java.util.regex.Pattern.compile("\\d[eE][-+]?\\d").matcher(code).find(), "no exponent:\n" + jass);
     }
 
     @Test
@@ -1003,5 +1031,107 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if c == 1",
                         "        testSuccess()");
+    }
+
+    // The Lua pipeline drops the functions nothing reaches before the compile-time functions run (TreeShaker). What
+    // the run executes or evaluates is not reached from main, and has to survive that.
+
+    private TestConfig luaAndJassCompiletime() {
+        return test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms()
+            .runCompiletimeFunctions(true);
+    }
+
+    @Test
+    public void compiletimeExpressionInAFunctionNothingCallsIsStillEvaluated() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "@compiletime int counter = 0",
+            "function bump() returns int",
+            "    counter++",
+            "    return counter",
+            "function neverCalled() returns int",
+            "    return compiletime(bump())",
+            "init",
+            "    if counter == 1",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeExpressionInAMethodOfAnUnusedClassIsStillEvaluated() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "@compiletime int counter = 0",
+            "function bump() returns int",
+            "    counter++",
+            "    return counter",
+            "class NeverCreated",
+            "    function neverCalled() returns int",
+            "        return compiletime(bump())",
+            "init",
+            "    if counter == 1",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeExpressionInAFunctionNothingCallsEvaluatesWhatOnlyItCalls() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "@compiletime int state = 0",
+            "function deepest() returns int",
+            "    state += 40",
+            "    return state",
+            "function middle() returns int",
+            "    return deepest() + 2",
+            "function neverCalled() returns int",
+            "    return compiletime(middle())",
+            "init",
+            "    if state == 40",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeFunctionRunsTheOverrideNothingNames() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "abstract class Base",
+            "    abstract function value() returns int",
+            "class Impl extends Base",
+            "    override function value() returns int",
+            "        return helper()",
+            "function helper() returns int",
+            "    return 42",
+            "@compiletime int result",
+            "@compiletime function fill()",
+            "    Base b = new Impl()",
+            "    result = b.value()",
+            "init",
+            "    if result == 42",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void compiletimeFunctionRunsTheTypeClassImplementationOnlyItNames() {
+        luaAndJassCompiletime().lines("package Test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "class A",
+            "implements ToIndex<A>",
+            "    function toIndex(A x) returns int",
+            "        return 42",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "@compiletime int result",
+            "@compiletime function fill()",
+            "    result = foo(new A)",
+            "init",
+            "    if result == 42",
+            "        testSuccess()");
     }
 }

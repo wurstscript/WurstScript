@@ -73,7 +73,7 @@ public class EliminateLocalTypes {
             @Override
             public void visit(ImCast imCast) {
                 super.visit(imCast);
-                if(TypesHelper.isIntType(imCast.getExpr().attrTyp()) && TypesHelper.isIntType(imCast.getToType())) {
+                if(TypesHelper.isIntType(imCast.getFromType()) && TypesHelper.isIntType(imCast.getToType())) {
                     imCast.replaceBy(imCast.getExpr().copy());
                 }
             }

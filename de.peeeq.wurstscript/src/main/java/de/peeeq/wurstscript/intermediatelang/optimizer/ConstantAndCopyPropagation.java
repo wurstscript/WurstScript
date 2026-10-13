@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
@@ -37,26 +38,36 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
     static class Value {
         final @Nullable ImVar copyVar;
+        /** With a copyVar which holds a call's results (LuaMultipleResults): the component copied, otherwise -1. */
+        final int component;
         final @Nullable ImConst constantValue;
         final @Nullable ImTupleExpr constantTuple;
 
         public Value(ImVar copyVar) {
-            this.copyVar = copyVar;
+            this(copyVar, -1);
+        }
+
+        /** A copy of component {@code component} of the results local {@code results}. */
+        public Value(ImVar results, int component) {
+            this.copyVar = results;
+            this.component = component;
             this.constantValue = null;
             this.constantTuple = null;
-            if(copyVar.isGlobal()) {
+            if(results.isGlobal()) {
                 throw new IllegalArgumentException("copyVar must not be a Global.");
             }
         }
 
         public Value(ImConst constantValue) {
             this.copyVar = null;
+            this.component = -1;
             this.constantValue = constantValue;
             this.constantTuple = null;
         }
 
         public Value(ImTupleExpr tupleExpr) {
             this.copyVar = null;
+            this.component = -1;
             this.constantValue = null;
             this.constantTuple = tupleExpr;
 
@@ -93,7 +104,7 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
         public boolean equalValue(Value other) {
             if (copyVar != null && other.copyVar != null) {
-                return copyVar == other.copyVar;
+                return copyVar == other.copyVar && component == other.component;
             } else if (constantValue != null && other.constantValue != null) {
                 return constantValue.equalValue(other.constantValue);
             } else if (constantTuple != null && other.constantTuple != null) {
@@ -117,7 +128,7 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
         @Override
         public String toString() {
             if (copyVar != null) {
-                return "copy of " + copyVar;
+                return "copy of " + copyVar + (component < 0 ? "" : "." + component);
             } else if (constantValue != null) {
                 return "constant " + constantValue;
             } else {
@@ -179,6 +190,9 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
                     if (val.constantValue != null) {
                         va.replaceBy(val.constantValue.copy());
+                        totalPropagated++;
+                    } else if (val.component >= 0) {
+                        va.replaceBy(JassIm.ImTupleSelection(JassIm.ImVarAccess(val.copyVar), val.component));
                         totalPropagated++;
                     } else if (val.copyVar != null) {
                         ImVar old = va.getVar();
@@ -328,6 +342,11 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                                 }
                             } else if(right instanceof ImTupleExpr) {
                                 newValue = Value.tryValue(right);
+                            } else if (right instanceof ImTupleSelection selection
+                                && selection.getTupleExpr() instanceof ImVarAccess results
+                                && LuaMultipleResults.isResultsLocal(results.getVar())) {
+                                // a component of a call's results, which only another call writes
+                                newValue = new Value(results.getVar(), selection.getTupleIndex());
                             }
 
                             if (newValue == null) {

@@ -74,7 +74,11 @@ public class StatementTranslation {
 
     public static void translate(ImStmts imStmts, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
         for (ImStmt s : imStmts) {
+            int first = stmts.size();
             s.translate(stmts, f, translator);
+            for (int i = first; i < stmts.size(); i++) {
+                translator.recordSource(stmts.get(i), s.attrTrace().attrSource());
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.jass;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.JassParser;
 import de.peeeq.wurstscript.ast.*;
@@ -33,8 +34,10 @@ public class AntlrJassParseTreeTransformer {
 
     public CompilationUnit transform(JassParser.CompilationUnitContext cu) {
         JassToplevelDeclarations jassDecls = Ast.JassToplevelDeclarations();
+        JassParser.JassTopLevelDeclarationContext current = null;
         try {
             for (JassParser.JassTopLevelDeclarationContext decl : cu.decls) {
+                current = decl;
                 jassDecls.add(transformJassToplevelDecl(decl));
             }
 
@@ -42,8 +45,16 @@ public class AntlrJassParseTreeTransformer {
             cuErrorHandler.sendError(e);
             e.printStackTrace();
         } catch (NullPointerException e) {
-            e.printStackTrace();
-            // ignore
+            // A part of the tree is missing. The recovery from a syntax error leaves such trees, and the error is
+            // reported already; anything else is a tree the translation does not know. Either way the rest of the
+            // file is not translated, which must never pass without an error. Since the grammar no longer accepts an
+            // empty type, no valid parse is known to get here: the JassSyntaxErrorTests reached it through the
+            // grammar as it was (an untyped local, global or parameter), before the grammar was fixed.
+            WLogger.warning("Error transforming Jass compilation unit " + file, e);
+            Token start = current == null ? cu.start : current.start;
+            cuErrorHandler.sendError(new CompileError(
+                new WPos(file, lineOffsets, start.getStartIndex(), start.getStopIndex() + 1),
+                "Could not translate this declaration, so it and the rest of the file are missing."));
         }
 
         return Ast.CompilationUnit(new CompilationUnitInfo(this.cuErrorHandler), jassDecls, Ast.WPackages());

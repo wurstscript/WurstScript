@@ -151,18 +151,24 @@ public class LuaAssertions {
      * Asserts that {@code luaCode} contains no raw call to any of the Jass hashtable
      * natives (SaveInteger, LoadBoolean, …) that should have been rewritten to their
      * {@code __wurst_} prefixed counterparts, and that every {@code __wurst_} hashtable
-     * helper that is called is also defined in the output.
+     * helper that is called is also defined in the output: a stub's helper is defined only
+     * where a call could not be printed in place, and the child constructor of an in-place
+     * save only where one is.
      */
     public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
         List<String> leaked = new ArrayList<>();
         List<String> missingHelpers = new ArrayList<>();
         Set<String> calledFunctionNames = collectCalledFunctionNames(luaCode);
         Set<String> definedFunctionNames = collectDefinedFunctionNames(luaCode);
+        List<String> helperNames = new ArrayList<>();
         for (String nativeName : LuaTranslator.allHashtableNativeNames()) {
             if (calledFunctionNames.contains(nativeName)) {
                 leaked.add(nativeName);
             }
-            String helperName = "__wurst_" + nativeName;
+            helperNames.add("__wurst_" + nativeName);
+        }
+        helperNames.add(LuaHashtableTranslation.NEW_CHILD);
+        for (String helperName : helperNames) {
             boolean helperCalled = calledFunctionNames.contains(helperName);
             boolean helperDefined = definedFunctionNames.contains(helperName);
             if (helperCalled && !helperDefined) {

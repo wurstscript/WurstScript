@@ -529,4 +529,590 @@ public class DeterministicChecks extends WurstScriptTest {
         assertEquals(outputStd1, outputStd2, "Output must be bit-for-bit identical across shuffled compilation unit order");
     }
 
+    /**
+     * Every closure of one interface method written in one function becomes a class with the same IM
+     * name, so no name-based sort key tells those classes apart. The Lua backend binds one dispatch
+     * slot on each of them; the order of those assignments used to be the iteration order of a
+     * {@code HashSet} of identity-hashed classes, which differs between compilations (and JVMs), while
+     * every name and number in the script stayed the same. Compiling the same program repeatedly, with
+     * the compilation units in a different order each time, must give one script.
+     */
+    @Test
+    public void classesSharingAnImNameBindTheirDispatchSlotInProgramOrder() throws IOException {
+        String[] types = {"int", "real", "string", "boolean"};
+        String[] literals = {"1", "1.5", "\"s\"", "true"};
+        List<String> library = new ArrayList<>(List.of(
+            "package Shapes",
+            "public interface Predicate<T:>",
+            "    function test(T t) returns boolean",
+            "public class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function matches(Predicate<T> p) returns boolean",
+            "        let result = p.test(value)",
+            "        destroy p",
+            "        return result",
+            "public class Foo",
+            "public class Impl implements Predicate<Foo>",
+            "    function test(Foo value) returns boolean",
+            "        return value != null"));
+        // A class beside the closures makes the family heterogeneous, which is what gives the
+        // closures a canonical slot of their own.
+        List<String> main = new ArrayList<>(List.of(
+            "package Main",
+            "import Shapes",
+            "native testSuccess()",
+            "init",
+            "    int successes = 0",
+            "    let ordinary = new Box<Foo>(new Foo())",
+            "    if ordinary.matches(x -> x != null)",
+            "        successes++",
+            "    let ordinaryImpl = new Box<Foo>(new Foo())",
+            "    if ordinaryImpl.matches(new Impl())",
+            "        successes++"));
+        int count = 0;
+        for (int a = 0; a < types.length; a++) {
+            for (int b = 0; b < 2; b++) {
+                String tuple = "shape" + count;
+                library.add("public tuple " + tuple + "(" + types[a] + " a, " + types[b] + " b)");
+                main.add("    let box" + count + " = new Box<" + tuple + ">(" + tuple + "("
+                    + literals[a] + ", " + literals[b] + "))");
+                main.add("    if box" + count + ".matches(x -> x.a == " + literals[a] + ")");
+                main.add("        successes++");
+                count++;
+            }
+        }
+        main.add("    if successes == " + (count + 2));
+        main.add("        testSuccess()");
+        CU shapesUnit = new CU("Shapes.wurst", String.join("\n", library));
+        CU mainUnit = new CU("Main.wurst", String.join("\n", main));
+
+        compileClosureReceivers(shapesUnit, mainUnit);
+        String first = readClosureReceiversLua();
+        // the premise: the closures (one per tuple, one over Foo) and Impl are bound to one slot
+        assertEquals(countOccurrences(first, ".__wurst_dispatch_test = "), count + 2, first);
+
+        for (int pass = 0; pass < 5; pass++) {
+            if (pass % 2 == 0) {
+                compileClosureReceivers(mainUnit, shapesUnit);
+            } else {
+                compileClosureReceivers(shapesUnit, mainUnit);
+            }
+            assertEquals(readClosureReceiversLua(), first,
+                "Lua output must not depend on the identity hashes of the receiver classes (pass " + pass + ")");
+        }
+    }
+
+    private void compileClosureReceivers(CU... units) {
+        test().testLua(true).executeProg().compilationUnits(units);
+    }
+
+    private String readClosureReceiversLua() throws IOException {
+        return Files.toString(new File("test-output/lua/DeterministicChecks_compileClosureReceivers.lua"),
+            Charsets.UTF_8);
+    }
+
+    private static int countOccurrences(String text, String part) {
+        int n = 0;
+        for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
+            n++;
+        }
+        return n;
+    }
+
+    /**
+     * A generic class implements two interfaces, each with one of two overloads it inherits, so it gets a function of
+     * its own for each, both named after the method. The interfaces are in packages of their own: the Jass and the
+     * Lua must not depend on which of them is translated first. Base comes first either way, so its own functions are
+     * made in its order: a class's functions are made when they are first asked for, which an interface translated
+     * before the class does in the order of the units. C comes after both interfaces.
+     */
+    @Test
+    public void bridgesOfAGenericClassAreTheSameInAnyUnitOrder() throws IOException {
+        List<CU> units = List.of(
+            compilationUnit("IntM.wurst",
+                "package IntM",
+                "public interface IntM",
+                "    function m(int x) returns int"),
+            compilationUnit("StrM.wurst",
+                "package StrM",
+                "public interface StrM",
+                "    function m(string s) returns int"),
+            compilationUnit("BaseLib.wurst",
+                "package BaseLib",
+                "public class Base",
+                "    function m(int x) returns int",
+                "        return x",
+                "    function m(string s) returns int",
+                "        return 7"),
+            compilationUnit("Lib.wurst",
+                "package Lib",
+                "import BaseLib",
+                "import IntM",
+                "import StrM",
+                "public class C<T:> extends Base implements IntM, StrM"),
+            compilationUnit("Main.wurst",
+                "package Main",
+                "import IntM",
+                "import StrM",
+                "import Lib",
+                "native testSuccess()",
+                "function viaInt(IntM i) returns int",
+                "    return i.m(5)",
+                "function viaStr(StrM s) returns int",
+                "    return s.m(\"a\")",
+                "init",
+                "    if viaInt(new C<int>()) == 5 and viaStr(new C<int>()) == 7",
+                "        testSuccess()"));
+        String name = "bridgesOfAGenericClass";
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(2), units.get(0), units.get(1), units.get(3), units.get(4));
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(2), units.get(1), units.get(0), units.get(3), units.get(4));
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass, "Jass must not depend on the unit order");
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "Lua must not depend on the unit order");
+    }
+
+    /** Compiles {@code units} to Lua, runs them, and returns the script, which is written under {@code name}. */
+    private String compileToLua(String name, List<CU> units) throws IOException {
+        testNamed(name).testLua(true).executeProg().compilationUnits(units.toArray(new CU[0]));
+        return Files.toString(new File("test-output/lua/DeterministicChecks_" + name + ".lua"), Charsets.UTF_8);
+    }
+
+    /**
+     * The Lua dispatch groups the methods of an override family into slots by the key of their signature. A type
+     * variable used to print with an identity hash there, so the parameter T of State and the T of NoOpState shared a
+     * key in some runs and not in others, and the FSM below got its slot named after either class: two copies of a
+     * program must give a type variable the same key, and two variables of different owners different ones.
+     */
+    @Test
+    public void dispatchSignatureKeysDoNotDependOnIdentityHashes() {
+        String[] first = typeVarKeys();
+        String[] second = typeVarKeys();
+        assertEquals(second, first);
+        assertTrue(!first[0].equals(first[1]), first[0] + " / " + first[1]);
+    }
+
+    private static String[] typeVarKeys() {
+        String[] keys = new String[2];
+        String[] owners = {"State", "NoOpState"};
+        for (int i = 0; i < 2; i++) {
+            de.peeeq.wurstscript.jassIm.ImTypeVar t = de.peeeq.wurstscript.jassIm.JassIm.ImTypeVar("T");
+            de.peeeq.wurstscript.jassIm.JassIm.ImClass(de.peeeq.wurstscript.ast.Ast.NoExpr(), owners[i], de.peeeq.wurstscript.jassIm.JassIm.ImTypeVars(t),
+                de.peeeq.wurstscript.jassIm.JassIm.ImVars(), de.peeeq.wurstscript.jassIm.JassIm.ImMethods(),
+                de.peeeq.wurstscript.jassIm.JassIm.ImFunctions(), new ArrayList<>());
+            keys[i] = de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation.typeKey(
+                de.peeeq.wurstscript.jassIm.JassIm.ImTypeVarRef(t));
+        }
+        return keys;
+    }
+
+    /**
+     * The FSM of AGENTS.md section 8 with each sibling state in a package of its own: every sibling binds the root
+     * slot FSM.update calls to its own update, never to NoOpState's, and the script is the same with the
+     * compilation units in the reverse order.
+     */
+    @Test
+    public void fsmSiblingsInSeparatePackagesBindRootSlotInAnyUnitOrder() throws IOException {
+        List<CU> units = new ArrayList<>();
+        units.add(compilationUnit("FsmLib.wurst",
+            "package FsmLib",
+            "public abstract class State<T:>",
+            "    function enter(T owner)",
+            "    function update(T owner, real dt)",
+            "    function exit(T owner)",
+            "public class NoOpState<T:> extends State<T>",
+            "    override function enter(T owner)",
+            "    override function update(T owner, real dt)",
+            "    override function exit(T owner)",
+            "public class FSM<T:>",
+            "    T owner",
+            "    State<T> currentState = null",
+            "    construct(T owner)",
+            "        this.owner = owner",
+            "    function setInitialState(State<T> st)",
+            "        currentState = st",
+            "        if currentState != null",
+            "            currentState.enter(owner)",
+            "    function update(real dt)",
+            "        if currentState != null",
+            "            currentState.update(owner, dt)"));
+        units.add(compilationUnit("FsmOwner.wurst",
+            "package FsmOwner",
+            "import FsmLib",
+            "public class Owner",
+            "    FSM<Owner> fsm = new FSM<Owner>(this)",
+            "    int ticks = 0"));
+        StringBuilder check = new StringBuilder("    if runOne(idle) == 0");
+        List<String> imports = new ArrayList<>();
+        for (int n = 1; n <= 5; n++) {
+            units.add(compilationUnit("FsmS" + n + ".wurst",
+                "package FsmS" + n,
+                "import FsmLib",
+                "import FsmOwner",
+                "public class St" + n + " extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += " + n,
+                "public constant st" + n + "State = new St" + n + "()"));
+            imports.add("import FsmS" + n);
+            check.append(" and runOne(st").append(n).append("State) == ").append(5 * n);
+        }
+        List<String> main = new ArrayList<>(List.of("package FsmMain", "import FsmLib", "import FsmOwner"));
+        main.addAll(imports);
+        main.addAll(List.of(
+            "native testSuccess()",
+            "public constant idle = new NoOpState<Owner>()",
+            "function runOne(State<Owner> st) returns int",
+            "    let o = new Owner()",
+            "    o.fsm.setInitialState(st)",
+            "    for i = 0 to 4",
+            "        o.fsm.update(0.1)",
+            "    return o.ticks",
+            "init",
+            check.toString(),
+            "        testSuccess()"));
+        units.add(compilationUnit("FsmMain.wurst", main.toArray(new String[0])));
+
+        String first = compileToLua("fsmSiblingsInSeparatePackages", units);
+        // the slot FSM.update calls, as in __wurst_objectClass[FSM_currentState_storage[this1]].State_update(..., dt)
+        java.util.regex.Matcher call = java.util.regex.Pattern
+            .compile("\\]\\.(\\w+)\\([^()\\n]*,\\s*dt\\w*\\)").matcher(first);
+        assertTrue(call.find(), first);
+        String slot = call.group(1);
+        for (int n = 1; n <= 5; n++) {
+            assertTrue(first.matches("(?s).*\\bSt" + n + "\\." + slot + " = St" + n + "_\\w*update\\b.*"),
+                "St" + n + " binds " + slot + " to its own update:\n" + first);
+        }
+        List<CU> reversed = new ArrayList<>(units);
+        java.util.Collections.reverse(reversed);
+        assertEquals(compileToLua("fsmSiblingsInSeparatePackages", reversed), first,
+            "Lua must not depend on the order of the compilation units");
+    }
+
+    /**
+     * Three packages each declare a class Node, extending a shared abstract class, and an implementor of a shared
+     * interface, with closures of it: receivers whose names are equal must bind their slots in an order which does
+     * not depend on the order of the compilation units.
+     */
+    @Test
+    public void sameNamedClassesInSeveralPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        List<CU> units = new ArrayList<>();
+        units.add(compilationUnit("Lib.wurst",
+            "package Lib",
+            "public interface Visitor",
+            "    function visit(int x) returns int",
+            "public abstract class Shape",
+            "    abstract function area() returns int",
+            "public function apply(Visitor v, int x) returns int",
+            "    return v.visit(x)",
+            "public function areaOf(Shape s) returns int",
+            "    return s.area()"));
+        for (String p : List.of("P1", "P2", "P3")) {
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "import Lib",
+                "public class Node extends Shape",
+                "    override function area() returns int",
+                "        return " + p.charAt(1) + "0",
+                "public class Impl implements Visitor",
+                "    override function visit(int x) returns int",
+                "        return x + 1",
+                "public function run" + p + "() returns int",
+                "    return areaOf(new Node()) + apply(new Impl(), 1) + apply((int x) -> x * 2, 3) + apply(x -> x * 3, 4)"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import P1",
+            "import P2",
+            "import P3",
+            "native testSuccess()",
+            "init",
+            // 10+2+6+12 + 20+2+6+12 + 30+2+6+12
+            "    if runP1() + runP2() + runP3() == 120",
+            "        testSuccess()"));
+        String first = compileToLua("sameNamedClassesInSeveralPackages", units);
+        List<CU> shuffled = List.of(units.get(4), units.get(2), units.get(0), units.get(3), units.get(1));
+        assertEquals(compileToLua("sameNamedClassesInSeveralPackages", shuffled), first,
+            "same-named receivers must bind in an order independent of the compilation units");
+    }
+
+    /**
+     * Two packages each declare the generic hierarchy Box, First and Second. The key of a dispatch group named its class,
+     * its method and the types of its signature by name only, so both families of pick had the same key and shared
+     * one group: the packages of the class and of what the signature names keep them apart, in any order of the
+     * compilation units.
+     */
+    @Test
+    public void sameNamedGenericHierarchiesInTwoPackagesKeepTheirOwnDispatchGroups() throws IOException {
+        assertOwnDispatchGroups("sameNamedOldGenericHierarchies", "T");
+    }
+
+    /** The same with new generics, whose signatures name the type variable and so its owner. */
+    @Test
+    public void sameNamedNewGenericHierarchiesInTwoPackagesKeepTheirOwnDispatchGroups() throws IOException {
+        assertOwnDispatchGroups("sameNamedNewGenericHierarchies", "T:");
+    }
+
+    /**
+     * One family across packages: Box in a shared package, and a class First overriding pick in each of two others.
+     * Both overrides belong to Box's group and must bind the slot a call through Box uses.
+     */
+    @Test
+    public void sameNamedOverridesInTwoPackagesShareTheirRootSlot() throws IOException {
+        assertSharedRootSlot("sameNamedOldGenericOverrides", "T");
+    }
+
+    @Test
+    public void sameNamedNewGenericOverridesInTwoPackagesShareTheirRootSlot() throws IOException {
+        assertSharedRootSlot("sameNamedNewGenericOverrides", "T:");
+    }
+
+    private void assertSharedRootSlot(String name, String typeParameter) throws IOException {
+        List<CU> units = new ArrayList<>();
+        units.add(compilationUnit("Common.wurst",
+            "package Common",
+            "public abstract class Box<" + typeParameter + ">",
+            "    abstract function pick(T a, T b) returns T",
+            "public function pickOf(Box<int> box) returns int",
+            "    return box.pick(10, 20)"));
+        for (String p : List.of("PA", "PB")) {
+            boolean first = p.equals("PA");
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "import Common",
+                "public class First<" + typeParameter + "> extends Box<T>",
+                "    override function pick(T a, T b) returns T",
+                "        return " + (first ? "a" : "b"),
+                "public function run" + p + "() returns int",
+                "    return pickOf(new First<int>())"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import PA",
+            "import PB",
+            "native testSuccess()",
+            "init",
+            "    if runPA() == 10 and runPB() == 20",
+            "        testSuccess()"));
+        String lua = compileAndRunToLua(name, units.toArray(new CU[0]));
+        List<CU> shuffled = List.of(units.get(3), units.get(2), units.get(0), units.get(1));
+        assertEquals(compileToLua(name, shuffled), lua, "the same in any order of the compilation units");
+    }
+
+    private void assertOwnDispatchGroups(String name, String typeParameter) throws IOException {
+        List<CU> units = new ArrayList<>();
+        for (String p : List.of("PA", "PB")) {
+            boolean first = p.equals("PA");
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "public abstract class Box<" + typeParameter + ">",
+                "    abstract function pick(T a, T b) returns T",
+                "public class First<" + typeParameter + "> extends Box<T>",
+                "    override function pick(T a, T b) returns T",
+                "        return " + (first ? "a" : "b"),
+                "public class Second<" + typeParameter + "> extends Box<T>",
+                "    override function pick(T a, T b) returns T",
+                "        return " + (first ? "b" : "a"),
+                "public function run" + p + "() returns int",
+                "    Box<int> x = new First<int>()",
+                "    Box<int> y = new Second<int>()",
+                "    return x.pick(10, 20) * 100 + y.pick(10, 20)"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import PA",
+            "import PB",
+            "native testSuccess()",
+            "init",
+            "    if runPA() == 1020 and runPB() == 2010",
+            "        testSuccess()"));
+        String lua = compileAndRunToLua(name, units.toArray(new CU[0]));
+        java.util.Set<String> slots = new java.util.TreeSet<>();
+        java.util.regex.Matcher binding = java.util.regex.Pattern.compile("\\n\\t\\w+\\.(\\w+) = First_First_pick\\w*\\n")
+            .matcher(lua);
+        while (binding.find()) {
+            slots.add(binding.group(1));
+        }
+        assertEquals(slots.size(), 2, "each package's First binds pick to a slot of its own:\n" + lua);
+        List<CU> shuffled = List.of(units.get(2), units.get(1), units.get(0));
+        assertEquals(compileToLua(name, shuffled), lua,
+            "the slots are the same in any order of the compilation units");
+    }
+
+    /** Compiles {@code units} for every backend, runs them, and returns the Lua script written under {@code name}. */
+    private String compileAndRunToLua(String name, CU... units) throws IOException {
+        testNamed(name).testLua(true).luaOnly(false).executeProg().compilationUnits(units);
+        return Files.toString(new File("test-output/lua/DeterministicChecks_" + name + ".lua"), Charsets.UTF_8);
+    }
+
+    /**
+     * The translation of an interface asks for the methods implementing it, which makes them before their class is
+     * translated. A class's overloads share a name, and the Lua backend numbers them in the order of the class's
+     * functions, so that order must not follow the order in which the interfaces were translated.
+     */
+    @Test
+    public void overloadsImplementingInterfacesOfOtherPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU intM = compilationUnit("IntM.wurst",
+            "package IntM",
+            "public interface IntM",
+            "    function m(int x) returns int");
+        CU strM = compilationUnit("StrM.wurst",
+            "package StrM",
+            "public interface StrM",
+            "    function m(string s) returns int");
+        CU lib = compilationUnit("Lib.wurst",
+            "package Lib",
+            "import IntM",
+            "import StrM",
+            "public class Base implements IntM, StrM",
+            "    function m(int x) returns int",
+            "        return x",
+            "    function m(string s) returns int",
+            "        return 7",
+            "public class C<T:> extends Base");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import IntM",
+            "import StrM",
+            "import Lib",
+            "native testSuccess()",
+            "function viaInt(IntM i) returns int",
+            "    return i.m(5)",
+            "function viaStr(StrM s) returns int",
+            "    return s.m(\"a\")",
+            "init",
+            "    if viaInt(new C<int>()) == 5 and viaStr(new C<int>()) == 7",
+            "        testSuccess()");
+        String name = "overloadsImplementingInterfacesOfOtherPackages";
+        String first = compileAndRunToLua(name, intM, strM, lib, main);
+        assertEquals(compileAndRunToLua(name, strM, intM, main, lib), first,
+            "the overloads of a class must be numbered in an order independent of the compilation units");
+    }
+
+    /**
+     * A superclass asks for the overrides in its subclasses, and an interface for the methods implementing it, each
+     * with the destroy function, when it is translated. Here they are in packages which do not import each other, so
+     * which of them asks first follows the order of the compilation units, and the Lua backend emits a class's
+     * functions in the order of the class's function list.
+     */
+    @Test
+    public void functionsAskedForByUnrelatedPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU supA = compilationUnit("SupA.wurst",
+            "package SupA",
+            "public abstract class Base",
+            "    abstract function b() returns int");
+        CU supB = compilationUnit("SupB.wurst",
+            "package SupB",
+            "public interface HasC",
+            "    function c() returns int");
+        CU sub = compilationUnit("Sub.wurst",
+            "package Sub",
+            "import SupA",
+            "import SupB",
+            "public class Sub extends Base implements HasC",
+            "    override function c() returns int",
+            "        return 1",
+            "    override function b() returns int",
+            "        return 2");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import SupA",
+            "import SupB",
+            "import Sub",
+            "native testSuccess()",
+            "init",
+            "    let s = new Sub()",
+            "    Base b = s",
+            "    HasC h = s",
+            "    if b.b() * 10 + h.c() == 21",
+            "        testSuccess()",
+            "    destroy s");
+        String name = "functionsAskedForByUnrelatedPackages";
+        String first = compileAndRunToLua(name, supA, supB, sub, main);
+        assertEquals(compileAndRunToLua(name, supB, supA, main, sub), first,
+            "a class's functions must be emitted in an order independent of the compilation units");
+    }
+
+    /**
+     * Of two packages which import each other, either can be translated first, depending on the order of the
+     * compilation units, so a call in one asks for a method of a class in the other before or after the class, and a
+     * subclass in one translates its superclass in the other first or finds it translated.
+     */
+    @Test
+    public void functionsAskedForAcrossAnImportCycleEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU cycA = compilationUnit("CycA.wurst",
+            "package CycA",
+            "import CycB",
+            "public class C",
+            "    function x() returns int",
+            "        return 1",
+            "    function y() returns int",
+            "        return twice(2)");
+        CU cycB = compilationUnit("CycB.wurst",
+            "package CycB",
+            "import initlater CycA",
+            "public function twice(int v) returns int",
+            "    return v * 2",
+            "public function useY(C c) returns int",
+            "    return c.y()",
+            "public class D extends C",
+            "    override function y() returns int",
+            "        return 3");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import CycA",
+            "import CycB",
+            "native testSuccess()",
+            "init",
+            "    let c = new C()",
+            "    if c.x() + useY(c) == 5 and useY(new D()) == 3",
+            "        testSuccess()");
+        String name = "functionsAskedForAcrossAnImportCycle";
+        String first = compileAndRunToLua(name, cycA, cycB, main);
+        assertEquals(compileAndRunToLua(name, cycB, cycA, main), first,
+            "a class's functions must be emitted in an order independent of the compilation units");
+    }
+
+    /**
+     * The Lua backend declares the locals of the hashtable operations it prints in place, and defines the helper of
+     * one it cannot, where it first needs them. Here the packages which first need each do not import each other.
+     */
+    @Test
+    public void hashtableHelpersNeededByUnrelatedPackagesEmitTheSameLuaInAnyUnitOrder() throws IOException {
+        CU first = compilationUnit("HtA.wurst",
+            "package HtA",
+            "@noinline function keyA(int k) returns int",
+            "    return k",
+            "public function useA(hashtable h) returns int",
+            "    SaveInteger(h, 1, 1, 7)",
+            "    return LoadInteger(h, keyA(1), 1)");
+        CU second = compilationUnit("HtB.wurst",
+            "package HtB",
+            "@noinline function keyB(int k) returns int",
+            "    return k",
+            "public function useB(hashtable h) returns int",
+            "    SaveReal(h, keyB(2), 1, 8.)",
+            "    return R2I(LoadReal(h, 2, 1))");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import HtA",
+            "import HtB",
+            "init",
+            "    let h = InitHashtable()",
+            "    if useA(h) + useB(h) == 15",
+            "        testSuccess()");
+        String name = "hashtableHelpersNeededByUnrelatedPackages";
+        testNamed(name).testLua(true).withStdLib().executeProg().compilationUnits(first, second, main);
+        File output = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String forward = Files.toString(output, Charsets.UTF_8);
+        testNamed(name).testLua(true).withStdLib().executeProg().compilationUnits(second, first, main);
+        assertEquals(Files.toString(output, Charsets.UTF_8), forward,
+            "the hashtable locals and helpers must be emitted in an order independent of the compilation units");
+    }
+
 }

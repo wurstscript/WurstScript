@@ -39,7 +39,7 @@ public class ErrorHandler {
         return errors;
     }
 
-    public void setProgress(String message, double percent) {
+    public void setProgress(String message) {
         gui.sendProgress(message);
     }
 

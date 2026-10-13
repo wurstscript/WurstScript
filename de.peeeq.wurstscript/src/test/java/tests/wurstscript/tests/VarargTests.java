@@ -206,7 +206,24 @@ public class VarargTests extends WurstScriptTest {
         testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
                 "package Test",
                 "class C",
-                "    construct()",
+                "    construct(string name)",
+                "        this(" + arguments(31) + ")",
+                "    construct(vararg int ints)",
+                "init",
+                "    new C(\"c\")"
+        );
+    }
+
+    /**
+     * The limit is a limit of the script, and a function nothing reaches is not in it: the functions nothing calls are
+     * dropped before the vararg lowering, which no longer reports a call in one of them.
+     */
+    @Test
+    public void varargCallInAFunctionNothingCallsIsNotInTheScript() {
+        testAssertOkLines(false,
+                "package Test",
+                "class C",
+                "    construct(string name)",
                 "        this(" + arguments(31) + ")",
                 "    construct(vararg int ints)"
         );

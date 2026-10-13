@@ -1,5 +1,133 @@
 ## 1.9 (in progress)
 
+- The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
+  exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
+  return` became a plain `return` and `eff` was never called (Jass and Lua, `-localOptimizations`). A statement which
+  may leave the block is moved now only when the condition has no effect. Castle fight compiles to the same script.
+
+- On Lua, a compile-time expression can run the generic keyed-map intrinsics (`keyedMapPutNative`,
+  `keyedMapGetNative`) again when nothing calls their Jass fallbacks at run time. The interpreter runs them through
+  those fallbacks and finds them by name, but the tree shake in front of the compile-time run kept the intrinsic
+  declarations on Jass only, so the run stopped with "The package declaring keyedMapPutNative must also declare the
+  existing keyedMapPut Jass fallback". They are roots of that shake on both targets now; the later shakes on Lua
+  still drop them. Castle fight compiles to the same script.
+
+- A file is parsed with ANTLR's SLL prediction first, and only a file which it does not accept is parsed again with the
+  full LL prediction. SLL ignores the context of the rule it is in, which makes it much cheaper, and it either returns
+  the tree the full prediction returns or reports a syntax error, so a valid file gives the same tree. A broken file is
+  parsed again from the first token with the error listener and the recovering strategy it always had, so it reports the
+  same diagnostics in the same order, each once (the lexer has run already and does not report twice). Of the 733 Wurst
+  files below castle fight (library sources included) 2 need the second parse. Parsing every one of them in a fresh
+  JVM, six alternating pairs: 5.7 s instead of 7.1 s on one thread (median, 5 of 6 pairs faster) and 2.9 s instead of
+  3.5 s on 8 threads (6 of 6), with 7 s less CPU of about 42 s. Whole builds are not told apart on this machine: the
+  median difference of six interleaved pairs was 1.7 s faster for castle fight without optimisations, 0.3 s slower
+  optimised and 0.4 s slower for zombie defense, against a scatter of several seconds, because parsing is already
+  parallel and what is left of it is a small part of a build. The scripts are byte for byte the same in all 28 pairs.
+  A file with a syntax error costs more than before, as it is parsed up to the error twice: 1.1 times as long with the
+  error in the middle of the largest library file, 1.2 to 1.3 times at its very end. `WurstParser.setSllFirst(false)`
+  restores the single pass. `SllParsingTests` compares trees and diagnostics of both on the standard library, `common.j`,
+  `blizzard.j` and about 40 broken sources.
+
+- Putting a file into the model while every unit is unchecked, as in the load of a project and of the libraries it
+  imports, no longer searches the whole model for what imports it: that search only adds units to the set of unchecked
+  ones, and they are all in it. `ModelManagerImpl.updateModel` was 4.1% of the samples of the compiler's thread in a
+  castle fight build without optimisations and is 1.6%. Six interleaved builds against the jar of master: 0.6 s faster
+  without optimisations (5 of 6, of about 29 s), 1.0 s optimised (5 of 6, of about 40 s), zombie defense the same within
+  the noise (4 of 6, 0.15 s of 24 s). A model which has checked units is reconciled as before, so a file added after a
+  check still makes what imports it unchecked.
+
+- A build parses the files of the project and of its libraries by several threads. It parsed them one after the other,
+  which was 13% (castle fight, optimised) to 18% (zombie defense) of the samples of the compiler's thread. The load
+  now parses the files of the project ahead, and the libraries which the imports need level by level (the imports of
+  the model, then those of the files they import), by as many threads as there are processors, up to 8. The model
+  takes the files in the order it did, and the imports resolve depth first as before, so the compilation units are
+  in the same order and the scripts are byte for byte the same (castle fight with and without optimisations, and
+  zombie defense, to Lua; nine pairs). Against `-Dwurst.parseThreads=1`, which parses nothing ahead, six interleaved
+  pairs of builds each were faster by a median of 1.4 s without optimisations (5 of 6 pairs, of about 31 s), 1.3 s
+  optimised (6 of 6, of about 42 s) and 1.6 s for zombie defense (6 of 6, of about 26 s). What is left of loading a
+  project is sequential (`BACKLOG.md`).
+
+- The analysis which tells the optimiser what depends on a client-local value (`GetLocalPlayer()`, the camera, the
+  keyboard, ...) is built in less than half the time, and once less in an optimised Lua build. It kept every node in
+  identity hash maps, with a list of edges per node and a second copy of the data edges, and grew them one doubling
+  at a time. It now keeps the flags and the edges in the nodes and in one table sized for the elements, leaves out the
+  leaves which cannot depend on anything (constants), resolves the implementations of a method once instead of per
+  call, and drops its graph once the answers are known. The wrapper inlining for Lua arithmetic after the local
+  optimisations built the analysis, and the liveness of every function, even when no call of a wrapper was left to
+  inline; it now builds them for the functions which have one. What the analysis concludes is the same: every query
+  was compared with the old implementation for every construction in the test suite, in castle fight and in zombie
+  defense, and the scripts of the suite (Jass and Lua) and of castle fight are byte for byte the same, zombie
+  defense's except for its build date. On castle fight an optimised Lua build constructs it five times instead of six,
+  it is 7% of the samples of the compiler's thread instead of 14% (about 4 s instead of 9 s), and the build takes
+  59.7 s instead of 66.8 s (medians of four interleaved pairs, Java 27; single runs vary by about 8 s on a laptop
+  which also runs other builds). Constructing it in a loop, new and old alternating on the same program, takes 2.6 s
+  instead of 5.7 s for the six constructions of that build.
+
+- A flatten leaves the functions which were not modified since a flatten left them: what a flatten leaves is flat, so
+  another one would rebuild the same body. The generated code of the IM counts the modifications of each function
+  (`ImFunction.modificationCount()`: every setter and every list of the function and of what is below it), so no
+  pass has to say what it changed. Castle fight to Lua skips 17,514 of 42,710 function rebuilds without
+  optimisations and 37,597 of 71,300 with them; to Jass without optimisations 1 of 42,315. The scripts of the whole
+  test suite and of castle fight are byte for byte the same.
+
+- The garbage removal runs until nothing is left. It stopped after ten rounds and a second removal finished what a long
+  chain of assignments had left, and it replaced each assignment to an unread variable by an empty statement
+  expression, for the next flatten to unwrap. It puts what the assignment does besides assigning in its place as
+  statements now, so no flatten and no second removal follow it. Those statement expressions made `GlobalsInliner` take the package initialisers
+  for code which may abort, so it did not inline their constants; it does now: of the 5,304 scripts of the test suite
+  358 are different and none is longer. The scripts of castle fight are the same apart from the numbers in
+  temporary names (6 of 360,423 lines of the optimised Jass one name another merged local). A round after the first
+  looks only at the functions the round before changed, and the removal walks the body of a function once, not three
+  times.
+
+- Lua and Jass builds drop the functions nothing reaches (and the methods which go with them), and the globals which
+  nothing reachable reads (with the assignments of constants to them), in three places: in front of the compile-time
+  functions, before the generics are specialised, and after them. They used to be dropped only after the tuples were
+  eliminated, so the compile-time functions, the generics and the passes in between (keyed tables, varargs, native
+  lowering, local types, tuples, class elimination) walked about four times the functions, and about five times the
+  globals, which end up in the script. What a type argument binds (the implementations of a type class, the
+  constructor of a class given to `wurstNewInstance`) counts as reached, and so do the compile-time functions, any
+  function holding a compile-time expression (evaluated whether anything calls the function or not), the helper
+  functions which the passes call themselves and, on Jass, the declarations of the compiler's own intrinsics. The scripts are the same
+  except for the order of independent global initialisers and the numbers in generated names and type ids, and the
+  passes no longer report a problem in a function nothing calls: a vararg call which would need more than 31 Jass
+  parameters in dead code now compiles. With the dead assignments gone, more constants of package initialisers are
+  inlined and the initialisers which held only those disappear. Opt-less builds of castle fight take 32.4 s instead
+  of 34.6 s on Lua and 31.8 s instead of 35.0 s on Jass, and zombie defense 36.0 s instead of 37.6 s and 37.4 s
+  instead of 39.8 s (command line builds, medians of three, interleaved, Java 27; one of the three zombie defense Jass
+  pairs went the other way).
+
+- A command line build (`-build`, used by grill) checks the project once. It used to check it after reading it, then
+  swap in the map script with the project config applied, which invalidates everything the check computed, and check
+  it again. It now reads the project, swaps the script in and checks once, with the script the map is compiled with.
+  Code which calls a function the config adds to the map script no longer fails the first check. Castle fight without
+  optimisations builds in 36.0 s instead of 41.3 s and zombie defense in 28.2 s instead of 31.3 s (medians of three,
+  interleaved); the script of castle fight is byte for byte the same.
+- The compiler and bundled runtime now use Java 27, with compact object headers enabled by default.
+  Tests retain ParallelGC; the shipped runtime uses Java 27's default G1 collector.
+
+- The runtime of the distribution carries the base class data sharing archive of the JVM, which it never did: the
+  slim runtime is built with jlink, and the AppCDS archive the build tried to make for the language server needs a
+  base archive to sit on, so it could not be made and was never shipped. The build now makes the base archive
+  (`jlink --generate-cds-archive`) and fails when the runtime has none, and the dead archive task and its
+  `-languageServerAppCdsTrain` option are gone. With wurst4vscode starting the server with an archive of its own
+  (written next to the compiler jar when the first session ends), the language server of a small project is ready
+  after 3.7 s instead of 4.4 s, and castle fight after 17.3 s instead of 19.0 s (medians of four starts).
+
+- The language server checks every file it was meant to check. A check which cannot start, because an import
+  does not resolve, used to forget the files it was planned for. A file edited in the meantime then got no
+  diagnostics once the import was fixed, since nothing it imports had changed. Those files are kept and checked
+  with the next check. Deleting one of two definitions of a package now also checks the other, which kept
+  its "defined multiple times" error. Editing a config package (`Foo_config`) now checks the package it
+  configures and everything importing that, which kept calling the function the config package used to
+  define until one of them was edited itself. The alternatives listed by a "call is ambiguous" error are sorted, where
+  they used to follow the order the files were loaded in.
+
+- Running a map no longer type checks again a model which the language server has checked completely and which
+  has not changed since. On castle fight without optimisations, building the same model again in one process took
+  14.6 and 12.6 s and takes 12.3 and 10.7 s, the script unchanged byte for byte. The first build of a model
+  still checks it, because it replaces the map script in the model with the one the project config was applied to.
+
 - The same source now compiles to the same script however the identity hashes of the compiler's syntax nodes
   happen to fall. A class which gets a function from a module and implements an interface declaring the same
   function made calls like `value.write(x)` bind to the module's implementation or to the interface's

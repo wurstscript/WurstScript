@@ -4,9 +4,11 @@ import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
@@ -34,7 +36,7 @@ public class CliBuildMap extends MapRequest {
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
         if (modelManager.hasErrors()) {
-            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.\n" + modelManager.getFirstErrorDescription());
+            throw errorsInTheModel(modelManager.getFirstErrorDescription());
         }
 
         WurstProjectConfigData projectConfig = WurstProjectConfigReader.load(workspaceRoot.getFile().toPath().resolve(FILE_NAME));
@@ -47,6 +49,8 @@ public class CliBuildMap extends MapRequest {
         try {
             File targetMapFile = executeBuildMapPipeline(modelManager, gui, projectConfig);
             return targetMapFile.getAbsolutePath();
+        } catch (ModelHasErrors e) {
+            throw errorsInTheModel(e.getMessage());
         } catch (CompileError e) {
             WLogger.info(e);
             throw new RequestFailedException(MessageType.Error, "A compilation error occurred when building the map:\n" + e);
@@ -58,6 +62,40 @@ public class CliBuildMap extends MapRequest {
                 gui.sendFinished();
             }
         }
+    }
+
+    /**
+     * The CLI loads the project and does not check it (see {@link ModelManager#loadProject()}): it is checked here,
+     * with the map script it is compiled with, and the compilation takes the check over. So the check reports to the
+     * gui of the compilation, whose warnings Main prints. A compilation with the legacy Jass type checks checks the
+     * model again and reports what it finds itself.
+     * <p>
+     * The warnings of the parser are reported to the gui too, after the check, which parses the libraries the project
+     * imports: no check reports them, as the files were parsed into the model, and the language server shows them as
+     * the diagnostics of the files instead.
+     */
+    @Override
+    protected void checkModelWithMapScript(ModelManager modelManager, WurstGui gui, RunArgs runArgs) {
+        if (!modelManager.isFullyChecked(modelManager.getModel())) {
+            modelManager.checkProject(checksLikeTheModelManager(runArgs) ? gui : new WurstGuiLogger());
+        }
+        if (modelManager.hasErrors()) {
+            throw new ModelHasErrors(modelManager);
+        }
+        for (CompileError warning : modelManager.getParseWarnings()) {
+            gui.sendError(warning);
+        }
+    }
+
+    /** The check found errors; the build fails with the message it always had for errors in the model. */
+    private static final class ModelHasErrors extends RuntimeException {
+        private ModelHasErrors(ModelManager modelManager) {
+            super(modelManager.getFirstErrorDescription());
+        }
+    }
+
+    private static RequestFailedException errorsInTheModel(String firstError) {
+        return new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.\n" + firstError);
     }
 
     @Override
