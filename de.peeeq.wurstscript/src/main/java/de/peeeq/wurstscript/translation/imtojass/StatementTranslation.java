@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.translation.imtojass;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.*;
 
+import de.peeeq.wurstscript.parser.WPos;
+
 import java.util.List;
 
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
@@ -76,8 +78,11 @@ public class StatementTranslation {
         for (ImStmt s : imStmts) {
             int first = stmts.size();
             s.translate(stmts, f, translator);
-            for (int i = first; i < stmts.size(); i++) {
-                translator.recordSource(stmts.get(i), s.attrTrace().attrSource());
+            if (stmts.size() > first) {
+                WPos source = s.attrTrace().attrSource();
+                for (int i = first; i < stmts.size(); i++) {
+                    translator.recordSource(stmts.get(i), source);
+                }
             }
         }
     }
