@@ -21,10 +21,16 @@ public class NameResolution {
     }
 
     private static ImmutableCollection<DefLink> scopeNameLinks(WScope scope, String name) {
+        if (scope instanceof WPackage p) {
+            return NameLinks.importedNameLinks(p, name);
+        }
         return scope.attrNameLinks().get(name);
     }
 
     private static ImmutableCollection<TypeLink> scopeTypeLinks(WScope scope, String name) {
+        if (scope instanceof WPackage p) {
+            return TypeNameLinks.importedTypeLinks(p, name);
+        }
         return scope.attrTypeNameLinks().get(name);
     }
 

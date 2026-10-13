@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import de.peeeq.wurstscript.ast.*;
 
@@ -71,6 +73,25 @@ public class TypeNameLinks {
             result.putAll(importedPackage.attrExportedTypeNameLinks());
         }
         return result.build();
+    }
+
+    /** What {@code p.attrTypeNameLinks().get(name)} holds, without building that table; see NameLinks.importedNameLinks. */
+    public static ImmutableSet<TypeLink> importedTypeLinks(WPackage p, String name) {
+        ImmutableSet.Builder<TypeLink> result = null;
+        for (WImport imp : p.getImports()) {
+            WPackage importedPackage = imp.attrImportedPackage();
+            if (importedPackage == null) {
+                continue;
+            }
+            ImmutableCollection<TypeLink> links = importedPackage.attrExportedTypeNameLinks().get(name);
+            if (!links.isEmpty()) {
+                if (result == null) {
+                    result = ImmutableSet.builder();
+                }
+                result.addAll(links);
+            }
+        }
+        return result == null ? ImmutableSet.of() : result.build();
     }
 
     public static ImmutableMultimap<String, TypeLink> calculate(WEntities wEntities) {
