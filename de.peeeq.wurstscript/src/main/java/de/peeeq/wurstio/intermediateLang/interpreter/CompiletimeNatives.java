@@ -158,14 +158,12 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     private void modifyObject(ObjMod.Obj od, ILconstString modification, ObjMod.ValType variableType, int level, int datapointer, DataType value) {
-        String modificationId = modification.getVal();
+        MetaFieldId field = MetaFieldId.valueOf(modification.getVal());
         // Replace every existing value of this field. Fields read from the object file of a type without levels
-        // (units, items, destructables, buffs) are plain mods and occupy the only slot there is.
+        // (units, items, destructables, buffs) are plain mods and occupy the only slot there is. The object keeps
+        // its mods by field, so only this field's are looked at; an ability with many levels has thousands.
         List<ObjMod.Obj.Mod> replaced = new ArrayList<>();
-        for (ObjMod.Obj.Mod m : od.getMods()) {
-            if (!m.getId().getVal().equals(modificationId)) {
-                continue;
-            }
+        for (ObjMod.Obj.Mod m : od.getModsOfField(field)) {
             if (m instanceof ObjMod.Obj.ExtendedMod extMod
                 && (extMod.getLevel() != level || extMod.getDataPt() != datapointer)) {
                 continue;
@@ -173,7 +171,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
             replaced.add(m);
         }
         replaced.forEach(od::remove);
-        od.addMod(new ObjMod.Obj.ExtendedMod(MetaFieldId.valueOf(modificationId), variableType, value, level, datapointer));
+        od.addMod(new ObjMod.Obj.ExtendedMod(field, variableType, value, level, datapointer));
 
     }
 

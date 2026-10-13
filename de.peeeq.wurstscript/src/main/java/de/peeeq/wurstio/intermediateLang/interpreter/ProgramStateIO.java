@@ -330,19 +330,19 @@ public class ProgramStateIO extends ProgramState {
     }
 
     /**
-     * Calculate hash of an object file's contents
+     * The object file as it is written into the map. It is serialised once and both hashed and written from
+     * these bytes: a big map's object files take a noticeable time to serialise.
      */
-    private String calculateObjectFileHash(ObjMod<? extends ObjMod.Obj> dataStore) {
+    private byte[] serializeObjectFile(ObjMod<? extends ObjMod.Obj> dataStore) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Wc3BinOutputStream out = new Wc3BinOutputStream(baos);
             dataStore.write(out, ObjMod.EncodingFormat.AS_DEFINED);
             out.close();
-            byte[] data = baos.toByteArray();
-            return ImportFile.calculateHash(data);
+            return baos.toByteArray();
         } catch (Exception e) {
-            WLogger.warning("Could not calculate object file hash: " + e.getMessage());
-            return String.valueOf(System.currentTimeMillis());
+            WLogger.severe(e);
+            throw new Error(e);
         }
     }
 
@@ -418,15 +418,15 @@ public class ProgramStateIO extends ProgramState {
             }
 
             // Compute hash of what we intend to write
-            String currentHash = calculateObjectFileHash(dataStore);
+            byte[] currentContent = serializeObjectFile(dataStore);
+            String currentHash = ImportFile.calculateHash(currentContent);
             dataStoreHashes.put(fileType, currentHash);
 
             boolean mpqHasSame = false;
             if (mpqEditor != null && mpqEditor.hasFile("war3map." + fileType.getExt())) {
                 try {
                     byte[] existing = mpqEditor.extractFile("war3map." + fileType.getExt());
-                    String existingHash = ImportFile.calculateHash(existing);
-                    mpqHasSame = existingHash.equals(currentHash);
+                    mpqHasSame = Arrays.equals(existing, currentContent);
                 } catch (Exception e) {
                     WLogger.info("Could not validate MPQ content for " + fileType.getExt() + ": " + e.getMessage());
                 }
@@ -447,7 +447,7 @@ public class ProgramStateIO extends ProgramState {
 
             WLogger.info("Object file " + fileType.getExt() + " changed or MPQ out of sync, writing back");
             filesUpdated++;
-            writebackObjectFile(dataStore, fileType, inject);
+            writebackObjectFile(currentContent, dataStore, fileType, inject);
             anyFileWritten = anyFileWritten || inject;
             if (inject) {
                 newManifest.putEntry(fileType.getExt(), currentHash, dataStore.getObjsList().size());
@@ -489,16 +489,10 @@ public class ProgramStateIO extends ProgramState {
         }
     }
 
-    private void writebackObjectFile(ObjMod<? extends ObjMod.Obj> dataStore, ObjectFileType fileType, boolean inject) throws Error {
+    private void writebackObjectFile(byte[] w3_, ObjMod<? extends ObjMod.Obj> dataStore, ObjectFileType fileType,
+                                     boolean inject) throws Error {
         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Wc3BinOutputStream out = new Wc3BinOutputStream(baos);
             Optional<File> folder = getObjectEditingOutputFolder();
-
-            dataStore.write(out, ObjMod.EncodingFormat.AS_DEFINED);
-
-            out.close();
-            byte[] w3_ = baos.toByteArray();
 
             exportToWurst(dataStore, fileType, new File(folder.get(), "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt").toPath());
 

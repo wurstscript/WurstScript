@@ -89,12 +89,10 @@ public class ReflectionNativeProvider implements NativesProvider {
         }
 
         // A method whose first parameter is a String implements several natives and is told which one was called.
-        Class<?>[] declared = candidate.getMethod().getParameterTypes();
+        Class<?>[] declared = candidate.parameterTypes();
         int offset = candidate.nameParameters();
         if (declared.length == args.length + offset) {
-            String[] parameterTypes = new String[args.length];
             for (int i = 0; i < args.length; i++) {
-                parameterTypes[i] = "" + args[i];
                 if (!declared[i + offset].isAssignableFrom(args[i].getClass())) {
                     if (args[i] instanceof ILconstNull) {
                         // handle null as a special case and pass it to the native as a Java null
@@ -102,7 +100,7 @@ public class ReflectionNativeProvider implements NativesProvider {
                         continue;
                     }
                     throw new Error("The native <" + funcname + "> expects different parameter " + i + "!" +
-                            "\n\tExpected: " + declared[i + offset].getSimpleName() + " Actual: " + parameterTypes[i]);
+                            "\n\tExpected: " + declared[i + offset].getSimpleName() + " Actual: " + args[i]);
                 }
             }
         }
