@@ -340,7 +340,7 @@ public class NameResolution {
         }
 
         if (receiverType instanceof WurstTypeClassOrInterface ct) {
-            Collection<DefLink> typeNameLinks = ct.nameLinks().get(name);
+            Collection<DefLink> typeNameLinks = ct.nameLinks(name);
             DefLinkMatch candidate = findBestMemberVarMatch(typeNameLinks, receiverType, node, showErrors);
             if (candidate != null && candidate.link.getVisibility().isPublic()) {
                 return candidate.link;
