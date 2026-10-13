@@ -131,9 +131,12 @@ Notes; finished-work narrative does not.
     attribute evaluation, see the next item.
   - *Translation to IM (2.4 s):* `ImTranslator.getClassesWithImplementation` is 20% of it: for each method a member
     lookup in every subclass, so a hierarchy where thousands of subclasses override one method pays methods times
-    subclasses lookups (the overrides are distinct, not duplicates). A subclass which declares no member of that
-    name could take its superclass's answer, but modules, interfaces and the binding of type arguments
-    (`matchDefLinkReceiver`) must come out the same: compare with the current answer on every call before switching.
+    subclasses lookups (the overrides are distinct, not duplicates). Tried and dropped: letting a subclass which
+    brings no function of that name take its superclass's answer agreed with the current answer on every call
+    (11,727 on that map, and the class and generics suites) but changed nothing measurable, because the subclasses
+    which make it slow override the method themselves. What would help is a cheaper lookup per overriding subclass
+    (its own declaration of the name is the candidate), with the binding of type arguments (`matchDefLinkReceiver`)
+    coming out the same.
 - **Parallel type check and per-function IM passes.** Parsing is parallel (above); the rest of a build is not, and
   JFR of fresh master says where the time is (shares of the compiler thread's samples, castle fight without
   optimisations / optimised / zombie defense): type check light and heavy phases (attribute evaluation, per unit and per
