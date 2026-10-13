@@ -24,7 +24,7 @@ public abstract class State {
     // in State:
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconst> values;
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues;
-    private final Map<ImVar, Set<List<Integer>>> modifiedArrayIndexes = new IdentityHashMap<>();
+    private @Nullable Map<ImVar, Set<List<Integer>>> modifiedArrayIndexes;
 
 
     private Object2ObjectOpenHashMap<ImVar, ILconst> ensureValues() {
@@ -83,6 +83,9 @@ public abstract class State {
     }
 
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        if (modifiedArrayIndexes == null) {
+            modifiedArrayIndexes = new IdentityHashMap<>();
+        }
         modifiedArrayIndexes.computeIfAbsent(v, ignored -> new HashSet<>())
             .add(Collections.unmodifiableList(new ArrayList<>(indexes)));
         setArrayValUntracked(v, indexes, val);
@@ -97,11 +100,11 @@ public abstract class State {
     }
 
     public Set<ImVar> getModifiedArrays() {
-        return modifiedArrayIndexes.keySet();
+        return modifiedArrayIndexes == null ? Collections.emptySet() : modifiedArrayIndexes.keySet();
     }
 
     public Set<List<Integer>> getModifiedArrayIndexes(ImVar v) {
-        return modifiedArrayIndexes.getOrDefault(v, Collections.emptySet());
+        return modifiedArrayIndexes == null ? Collections.emptySet() : modifiedArrayIndexes.getOrDefault(v, Collections.emptySet());
     }
 
     public @Nullable ILconst getArrayVal(ImVar v, List<Integer> indexes) {

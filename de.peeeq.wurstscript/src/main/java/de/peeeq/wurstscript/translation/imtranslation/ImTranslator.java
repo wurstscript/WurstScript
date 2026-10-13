@@ -1534,6 +1534,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (isExtern(funcDef)) {
             flags.add(FunctionFlagEnum.IS_EXTERN);
         }
+        // extension functions too: the object editing natives are extension functions of ObjectDefinition
+        if (funcDef instanceof FunctionImplementation impl && impl.attrHasAnnotation("compiletimenative")) {
+            flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
+        }
         if (funcDef instanceof FuncDef funcDef2) {
             if (funcDef2.attrIsCompiletime()) {
                 FunctionFlagCompiletime flag = compiletimeFlags.get(funcDef);
@@ -1541,9 +1545,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                     throw new CompileError(funcDef.getSource(), "Compiletime flag not supported here.");
                 }
                 flags.add(flag);
-            }
-            if (funcDef2.attrHasAnnotation("compiletimenative")) {
-                flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
             }
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);

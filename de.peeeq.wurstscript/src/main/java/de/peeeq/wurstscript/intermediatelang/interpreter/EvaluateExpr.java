@@ -17,9 +17,7 @@ import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -240,14 +238,7 @@ public class EvaluateExpr {
 
         List<ImExpr> args = mc.getArguments();
 
-        ImMethod mostPrecise = mc.getMethod();
-        for (ImMethod m : mc.getMethod().getSubMethods()) {
-            if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
-                if (globalState.isInstanceOf(receiver, m.attrClass(), mc.attrTrace())) {
-                    mostPrecise = m;
-                }
-            }
-        }
+        ImMethod mostPrecise = globalState.dispatch(mc.getMethod(), receiver.getImClass());
 
         ILconst[] eargs = new ILconst[args.size() + 1];
         eargs[0] = receiver;
@@ -255,17 +246,7 @@ public class EvaluateExpr {
             eargs[i + 1] = args.get(i).evaluate(globalState, localState);
         }
 
-        // NEW: push type substitutions for the method's owning class
-        ImFunction impl = mostPrecise.getImplementation();
-        Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
-        ImTypeVars typeParams = mostPrecise.getMethodClass().getClassDef().getTypeVariables();
-        ImTypeArguments typeArgs = mc.getTypeArguments(); // injected earlier by addMemberTypeArguments()
-
-        for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
-            typeSubstitutions.put(typeParams.get(i), typeArgs.get(i).getType());
-        }
-
-        return evaluateFunc(globalState, impl, mc, eargs);
+        return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, eargs);
     }
 
 

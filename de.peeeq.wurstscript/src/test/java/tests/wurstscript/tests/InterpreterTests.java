@@ -27,6 +27,50 @@ public class InterpreterTests extends WurstScriptTest {
     }
 
     /** What the game prints for a precision this large was not measured; the interpreter says so. */
+    /**
+     * One call site dispatches on receivers of several classes in turn. The interpreter remembers the
+     * implementation it chose per method and receiver class; a deeper class which inherits an override,
+     * a sibling and the base must each get their own.
+     */
+    @Test
+    public void methodDispatchPerReceiverClassAtOneCallSite() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@extern native I2S(int i) returns string",
+            "abstract class A",
+            "    abstract function f() returns int",
+            "class B extends A",
+            "    override function f() returns int",
+            "        return 1",
+            "class C extends B",
+            "    override function f() returns int",
+            "        return 2",
+            "class D extends C",
+            "class E extends A",
+            "    override function f() returns int",
+            "        return 4",
+            "function call(A a) returns int",
+            "    return a.f()",
+            "init",
+            "    A array objs",
+            "    objs[0] = new D",
+            "    objs[1] = new B",
+            "    objs[2] = new E",
+            "    objs[3] = new C",
+            "    objs[4] = new D",
+            "    objs[5] = new B",
+            "    int result = 0",
+            "    for i = 0 to 5",
+            "        result = result * 10 + call(objs[i])",
+            "    if result == 214221",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"dispatch gave \" + I2S(result))"
+        );
+    }
+
     @Test(expectedExceptions = {InterpreterException.class})
     public void r2swBeyondTheModelledRange() {
         test().executeProg(true).testLua(false).lines(
