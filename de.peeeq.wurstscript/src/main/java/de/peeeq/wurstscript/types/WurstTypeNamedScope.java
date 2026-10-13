@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
@@ -214,8 +215,21 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return res;
     }
 
+    /**
+     * The links of one name, what {@code nameLinks().get(name)} holds: only they are bound to the type arguments,
+     * not every name of the class, which a member lookup on a generic type did for each lookup.
+     */
     public ImmutableCollection<DefLink> nameLinks(String name) {
-        return nameLinks().get(name);
+        ImmutableCollection<DefLink> links = getDef().attrNameLinks().get(name);
+        VariableBinding binding = getTypeArgBinding();
+        if (binding.isEmpty() || links.isEmpty()) {
+            return links;
+        }
+        ImmutableList.Builder<DefLink> bound = ImmutableList.builderWithExpectedSize(links.size());
+        for (DefLink link : links) {
+            bound.add(link.withTypeArgBinding(getDef(), binding));
+        }
+        return bound.build();
     }
 
     @Override
