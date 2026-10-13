@@ -84,13 +84,6 @@ jobs:
       - name: Setup Gradle (cache)
         uses: gradle/actions/setup-gradle@v4
 
-      # Packaging is a release artifact, not a pull-request gate. Keeping it on
-      # master avoids paying for a second full build on every PR update.
-      - name: Package slim runtime (fail fast)
-        if: github.event_name == 'push'
-        shell: bash
-        run: ./gradlew packageSlimCompilerDist --no-daemon --stacktrace
-
       - name: Prepare bundled Lua runtime (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -113,6 +106,16 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: '1'
         shell: bash
         run: brew install lua
+
+      - name: Test release gate
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python ../scripts/test-release.py
+
+      - name: Test compiler version metadata
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python ../scripts/test-version-metadata.py
 
       - name: Test game-data helpers
         shell: bash
@@ -157,94 +160,3 @@ jobs:
             de.peeeq.wurstscript/test-output/determinism-second.lua
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Upload packaged artifact (per-OS)
-        if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wurst-compiler-${{ matrix.os }}
-          path: |
-            de.peeeq.wurstscript/build/releases/*.zip
-            de.peeeq.wurstscript/build/releases/*.tar.gz
-            de.peeeq.wurstscript/build/releases/*.sha256
-          if-no-files-found: error
-          retention-days: 7
-
-  nightly_release:
-    name: Nightly prerelease (master)
-    needs: build
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout (to update nightly tag)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Move 'nightly' tag to this commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f nightly "$GITHUB_SHA"
-          git push origin nightly --force
-
-      - name: Download all packaged artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Gather files (zip only)
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p upload
-          find artifacts -type f -name '*.zip' -print0 | xargs -0 -I{} cp "{}" upload/
-
-      - name: Verify we have all platform zips
-        shell: bash
-        run: |
-          shopt -s nullglob
-          zips=(upload/*.zip)
-          echo "Found ${#zips[@]} zip(s):"; ls -alh upload
-          if (( ${#zips[@]} < 4 )); then
-            echo "ERROR: expected Win + Linux + macOS arm64 + macOS x64 zips (got ${#zips[@]})."
-            exit 1
-          fi
-
-      - name: Normalize nightly filenames
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in upload/*.zip; do
-            base="$(basename "$f")"
-            stem="${base%.zip}"
-            new_stem="$(echo "$stem" | sed -E 's/-[0-9]+(\.[0-9]+)*-/-nightly-/' )"
-            new="upload/${new_stem}.zip"
-            if [[ "upload/$base" != "$new" ]]; then mv -f "upload/$base" "$new"; fi
-          done
-          echo "Renamed to:"; ls -alh upload
-
-      # Keep the existing release metadata and stable download URLs. The release
-      # action PATCHes the release before uploading, which GitHub currently
-      # rejects for the Actions integration even with contents: write.
-      - name: Ensure Nightly Release exists
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if ! gh release view nightly >/dev/null 2>&1; then
-            gh release create nightly \
-              --verify-tag \
-              --prerelease \
-              --title "Nightly Build (master)" \
-              --notes $'Nightly build for the latest commit on `master`.\nThis release is automatically updated on each push.'
-          fi
-
-      - name: Publish Nightly Release assets
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload nightly upload/*.zip --clobber
