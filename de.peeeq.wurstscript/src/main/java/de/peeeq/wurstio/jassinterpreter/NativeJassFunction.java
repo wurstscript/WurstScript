@@ -11,11 +11,20 @@ public class NativeJassFunction implements ExecutableJassFunction {
     private final String name;
     private final Method method;
     private final Object provider;
+    /** {@link Method#getParameterTypes} copies the array on every call, and this is asked on every native call. */
+    private final Class<?>[] parameterTypes;
+    private final int nameParameters;
 
     public NativeJassFunction(String name, Object provider, Method method) {
         this.name = name;
         this.provider = provider;
         this.method = method;
+        this.parameterTypes = method.getParameterTypes();
+        this.nameParameters = parameterTypes.length > 0 && parameterTypes[0] == String.class ? 1 : 0;
+    }
+
+    Class<?>[] parameterTypes() {
+        return parameterTypes;
     }
 
     /**
@@ -23,8 +32,7 @@ public class NativeJassFunction implements ExecutableJassFunction {
      * one called before the native's own arguments.
      */
     int nameParameters() {
-        Class<?>[] declared = method.getParameterTypes();
-        return declared.length > 0 && declared[0] == String.class ? 1 : 0;
+        return nameParameters;
     }
 
     /** The arguments the method is invoked with: the native's, after the native's name when the method takes it. */
@@ -44,7 +52,7 @@ public class NativeJassFunction implements ExecutableJassFunction {
             int offset = nameParameters();
             for (int i = 0; i < arguments.length; i++) {
                 if (arguments[i] instanceof ILconstNull
-                        && !method.getParameterTypes()[i + offset].isAssignableFrom(arguments[i].getClass())) {
+                        && !parameterTypes[i + offset].isAssignableFrom(arguments[i].getClass())) {
                     arguments[i] = null;
                 }
             }
