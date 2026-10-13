@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -393,6 +394,13 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
             try {
                 f.getBody().runStatements(globalState, localState);
+                if (localState.hasReturned()) {
+                    retVal = adjustTypeOfConstant(localState.takeReturn(), f.getReturnType());
+                    didReturn = true;
+                } else if (localState.consumeExit()) {
+                    // an exitwhen outside of any loop fails as it did when it was thrown
+                    throw ExitwhenException.instance();
+                }
             } catch (ReturnException e) {
                 retVal = adjustTypeOfConstant(e.getVal(), f.getReturnType());
                 didReturn = true;

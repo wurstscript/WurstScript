@@ -71,6 +71,61 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A return leaves the loops and ifs around it and the call, an exitwhen only its own loop, also from inside
+     * a vararg loop. The interpreter stops the statements around them by a flag, not by unwinding an exception.
+     */
+    @Test
+    public void returnAndExitwhenLeaveTheRightStatements() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@extern native I2S(int i) returns string",
+            "int calls = 0",
+            "function findInNested(int target) returns int",
+            "    for i = 0 to 9",
+            "        for j = 0 to 9",
+            "            if i * 10 + j == target",
+            "                return i * 100 + j",
+            "    return -1",
+            "function innerExit() returns int",
+            "    var count = 0",
+            "    for i = 0 to 4",
+            "        var j = 0",
+            "        while true",
+            "            if j == i",
+            "                break",
+            "            j++",
+            "            count++",
+            "    return count",
+            "int limit = 0",
+            "function firstAbove(vararg int xs) returns int",
+            "    for x in xs",
+            "        if x > limit",
+            "            return x",
+            "    return -1",
+            "function firstAboveFive() returns int",
+            "    limit = 5",
+            "    return firstAbove(1, 7, 9)",
+            "function firstAboveTen() returns int",
+            "    limit = 10",
+            "    return firstAbove(1, 2)",
+            "function earlyOut(int x)",
+            "    if x > 0",
+            "        return",
+            "    calls++",
+            "init",
+            "    earlyOut(1)",
+            "    earlyOut(0)",
+            "    let r = findInNested(37) + innerExit() * 1000 + firstAboveFive() * 100000 + calls * 10000000",
+            "    if r == 307 + 10000 + 700000 + 10000000 and firstAboveTen() == -1",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"got \" + I2S(r))"
+        );
+    }
+
     @Test(expectedExceptions = {InterpreterException.class})
     public void r2swBeyondTheModelledRange() {
         test().executeProg(true).testLua(false).lines(
