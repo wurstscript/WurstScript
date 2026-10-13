@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -36,6 +37,10 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<ImClass, Boolean> genericHierarchy = new IdentityHashMap<>();
     /** See {@link #dispatch}; only looked up, never iterated. */
     private final Map<ImMethod, Map<ImClass, ImMethod>> dispatchCache = new IdentityHashMap<>();
+    /** See {@link #mostSpecificOverride}; only looked up, never iterated. */
+    private final Map<ImMethod, Map<ImClass, IntArrayList>> overridePositions = new IdentityHashMap<>();
+    /** See {@link #ancestors}; iterated only to collect positions which are then sorted. */
+    private final Map<ImClass, Set<ImClass>> ancestorsCache = new IdentityHashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
     private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
     private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
@@ -253,6 +258,8 @@ public class ProgramState extends State implements AutoCloseable {
         classKeyLookup.clear();
         objectIdSpaces.clear();
         dispatchCache.clear();
+        overridePositions.clear();
+        ancestorsCache.clear();
         genericHierarchy.clear();
         buildClassKeyLookup();
         return this;
@@ -297,7 +304,7 @@ public class ProgramState extends State implements AutoCloseable {
             return false;
         }
         assertAllocated(obj, trace);
-        return obj.getImClass().isSubclassOf(clazz); // TODO more efficient check
+        return ancestors(obj.getImClass()).contains(clazz);
     }
 
     /**
@@ -309,13 +316,63 @@ public class ProgramState extends State implements AutoCloseable {
         Map<ImClass, ImMethod> byClass = dispatchCache.computeIfAbsent(method, m -> new IdentityHashMap<>());
         ImMethod result = byClass.get(receiverClass);
         if (result == null) {
-            result = method;
-            for (ImMethod m : method.getSubMethods()) {
-                if (m.attrClass().isSubclassOf(result.attrClass()) && receiverClass.isSubclassOf(m.attrClass())) {
-                    result = m;
+            result = mostSpecificOverride(method, receiverClass);
+            byClass.put(receiverClass, result);
+        }
+        return result;
+    }
+
+    /**
+     * Goes through the overrides of {@code method} in order and takes each one which belongs to a class the
+     * receiver inherits from and to a subclass of the one taken so far. Only overrides in the receiver's
+     * classes can be taken, so only they are looked at: a method of a big hierarchy has thousands of
+     * overrides, and a receiver class few ancestors.
+     */
+    private ImMethod mostSpecificOverride(ImMethod method, ImClass receiverClass) {
+        List<ImMethod> overrides = method.getSubMethods();
+        Map<ImClass, IntArrayList> positions = overridePositions.get(method);
+        if (positions == null) {
+            positions = new IdentityHashMap<>();
+            for (int i = 0; i < overrides.size(); i++) {
+                positions.computeIfAbsent(overrides.get(i).attrClass(), c -> new IntArrayList()).add(i);
+            }
+            overridePositions.put(method, positions);
+        }
+        IntArrayList candidates = new IntArrayList();
+        for (ImClass ancestor : ancestors(receiverClass)) {
+            IntArrayList at = positions.get(ancestor);
+            if (at != null) {
+                candidates.addAll(at);
+            }
+        }
+        // the ancestors come in no particular order; the overrides are taken in theirs
+        candidates.sort(null);
+        ImMethod result = method;
+        for (int i = 0; i < candidates.size(); i++) {
+            ImMethod m = overrides.get(candidates.getInt(i));
+            if (ancestors(m.attrClass()).contains(result.attrClass())) {
+                result = m;
+            }
+        }
+        return result;
+    }
+
+    /** The classes {@code c} is a subclass of, itself included, as {@link ImClass#isSubclassOf} answers. */
+    private Set<ImClass> ancestors(ImClass c) {
+        Set<ImClass> result = ancestorsCache.get(c);
+        if (result == null) {
+            result = Collections.newSetFromMap(new IdentityHashMap<>());
+            Deque<ImClass> todo = new ArrayDeque<>();
+            todo.push(c);
+            while (!todo.isEmpty()) {
+                ImClass next = todo.pop();
+                if (result.add(next)) {
+                    for (ImClassType superClass : next.getSuperClasses()) {
+                        todo.push(superClass.getClassDef());
+                    }
                 }
             }
-            byClass.put(receiverClass, result);
+            ancestorsCache.put(c, result);
         }
         return result;
     }
