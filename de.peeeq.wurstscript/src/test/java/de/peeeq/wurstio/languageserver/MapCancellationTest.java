@@ -9,6 +9,7 @@ import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
+import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
 import de.peeeq.wurstscript.intermediatelang.interpreter.RunStatement;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.utils.CompilationCancellation;
@@ -151,7 +152,8 @@ public class MapCancellationTest {
         AtomicInteger checks = new AtomicInteger();
         expectThrows(CancellationException.class, () -> CompilationCancellation.run(
             () -> checks.incrementAndGet() == 3,
-            () -> RunStatement.run(JassIm.ImLoop(Ast.NoExpr(), JassIm.ImStmts()), null, null)));
+            // a loop runs in the local state of its call, which records an exitwhen or a return
+            () -> RunStatement.run(JassIm.ImLoop(Ast.NoExpr(), JassIm.ImStmts()), null, new LocalState())));
         assertEquals(checks.get(), 3);
         CompilationCancellation.check();
     }

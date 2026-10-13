@@ -9,6 +9,8 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
+import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -131,12 +133,27 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImStatementExpr e, ProgramState globalState, LocalState localState) {
         e.getStatements().runStatements(globalState, localState);
+        leaveByException(localState);
         return e.getExpr().evaluate(globalState, localState);
     }
 
     public static ILaddress evaluateLvalue(ImStatementExpr e, ProgramState globalState, LocalState localState) {
         e.getStatements().runStatements(globalState, localState);
+        leaveByException(localState);
         return ((ImLExpr) e.getExpr()).evaluateLvalue(globalState, localState);
+    }
+
+    /**
+     * A return or exitwhen inside a statement expression cannot stop the expression around it by a flag, so
+     * it leaves by the exception which the call and the loop still catch.
+     */
+    private static void leaveByException(LocalState localState) {
+        if (localState.hasReturned()) {
+            throw new ReturnException(localState.takeReturn());
+        }
+        if (localState.consumeExit()) {
+            throw ExitwhenException.instance();
+        }
     }
 
     public static ILconst eval(ImStringVal e, ProgramState globalState, LocalState localState) {
