@@ -115,6 +115,28 @@ Notes; finished-work narrative does not.
   `wFile`, which canonicalises the path of each unit once. An index from file to unit would remove the scan, but the
   list of the model has several writers (`updateModel`, `removeCompilationUnit`, `retainCompilationUnits`, the
   incremental checks), so it has to stay in step with all of them; that is about 0.25 s of a castle fight build.
+  On a project of 1,625 files the comparisons were 40% of the loading thread's samples, yet keeping the hash of a
+  `WFile` (which made them integer comparisons) changed the load time by nothing measurable: the loading thread
+  waits for the parse threads, so the scan is not on the critical path while parsing is parallel.
+- **What a large map's build still spends, by step (`-measure`), and why.** Measured on a Jass map of 1,625 files
+  with thousands of compile-time functions:
+  - *MPQ, on every run and build:* `Applying Map Config` (1.2 s) and `Injecting map data` (1.8 s) are mostly two
+    lookups in JMPQ3 which are linear per call and called once per file: `MpqArchive.localesOf` scans every hash
+    table mapping (from `MpqArchiveWriter.from`) and `MpqArchiveWriter.contains` streams over every pending key
+    (from `Jmpq3BasedEditor.hasFile` per imported file). `Finalize map` (7.8 s, release builds only) recompresses every
+    file on one thread. Fix in JMPQ3 and bump the pin.
+  - *Type check (12 s):* Guava collections are about 11% of its samples (name tables about 5%, the dataflow states
+    about 4%). The dataflow anomaly analysis (`VarStates`, `VState`) copies its immutable maps and multimaps on every
+    read and write, about 7% with its merges; persistent or mutable states would remove most of that. The rest is
+    attribute evaluation, see the next item.
+  - *Translation to IM (2.4 s):* `ImTranslator.getClassesWithImplementation` is 20% of it: for each method a member
+    lookup in every subclass, so a hierarchy where thousands of subclasses override one method pays methods times
+    subclasses lookups (the overrides are distinct, not duplicates). Tried and dropped: letting a subclass which
+    brings no function of that name take its superclass's answer agreed with the current answer on every call
+    (11,727 on that map, and the class and generics suites) but changed nothing measurable, because the subclasses
+    which make it slow override the method themselves. What would help is a cheaper lookup per overriding subclass
+    (its own declaration of the name is the candidate), with the binding of type arguments (`matchDefLinkReceiver`)
+    coming out the same.
 - **Parallel type check and per-function IM passes.** Parsing is parallel (above); the rest of a build is not, and
   JFR of fresh master says where the time is (shares of the compiler thread's samples, castle fight without
   optimisations / optimised / zombie defense): type check light and heavy phases (attribute evaluation, per unit and per
