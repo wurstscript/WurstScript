@@ -207,11 +207,16 @@ public class ClosureTranslator {
                 e.getImplementation(), tr, impl, superMethod.attrReturnType());
         } else {
             translated = e.getImplementation().imTranslateExpr(tr, impl);
-            // Expression translation already decodes an old-generic value to its
-            // normalized type. Adapt that result to the closure return type,
-            // rather than decoding the raw source type a second time.
+            WurstType translatedType = e.getImplementation().attrTypRaw();
+            // A fromIndex conversion already decoded the expression. Keep other
+            // generic bindings: Lua still needs them to restore primitive defaults
+            // when adapting an erased result to a concrete closure return type.
+            if (translatedType instanceof WurstTypeBoundTypeParam boundType
+                && boundType.getFromIndex() != null) {
+                translatedType = translatedType.normalize();
+            }
             translated = ExprTranslation.wrapTranslation(e.getImplementation(), tr, translated,
-                e.getImplementation().attrTyp(), superMethod.attrReturnType());
+                translatedType, superMethod.attrReturnType());
         }
 
 

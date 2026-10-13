@@ -70,6 +70,32 @@ public class ClosureTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    @Test
+    public void erasedGenericPrimitiveDefaultsInClosures() {
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "native testSuccess()",
+            "interface IntSupplier",
+            "    function get() returns int",
+            "interface RealSupplier",
+            "    function get() returns real",
+            "interface BoolSupplier",
+            "    function get() returns bool",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let ints = new Box<int>",
+            "    let reals = new Box<real>",
+            "    let bools = new Box<bool>",
+            "    IntSupplier i = () -> ints.get()",
+            "    RealSupplier r = () -> reals.get()",
+            "    BoolSupplier b = () -> bools.get()",
+            "    if i.get() + 1 == 1 and r.get() + 0.5 == 0.5 and b.get() == false",
+            "        testSuccess()");
+    }
+
 
     @Test
     public void closure1() {
