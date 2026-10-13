@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
-import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 
 public class RunStatement {
 
@@ -20,7 +19,7 @@ public class RunStatement {
     public static void run(ImExitwhen s, ProgramState globalState, LocalState localState) {
         ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
         if (c.getVal()) {
-            throw ExitwhenException.instance();
+            localState.exitLoop();
         }
     }
 
@@ -42,9 +41,14 @@ public class RunStatement {
                     throw new InterpreterException(globalState, "Execution interrupted");
                 }
                 s.getBody().runStatements(globalState, localState);
+                if (localState.isLeaving()) {
+                    // an exitwhen ends this loop; a return stays set and ends the call
+                    localState.consumeExit();
+                    break;
+                }
             }
         } catch (ExitwhenException e) {
-            // end of loop
+            // end of loop: an exitwhen inside a statement expression, see EvaluateExpr.leaveByException
         }
 
     }
@@ -55,11 +59,18 @@ public class RunStatement {
             ImExpr e = (ImExpr) s.getReturnValue();
             r = e.evaluate(globalState, localState);
         }
-        throw new ReturnException(r);
+        localState.returnWith(r);
     }
 
     public static void run(ImSet s, ProgramState globalState, LocalState localState) {
         ImLExpr left = s.getLeft();
+        if (left instanceof ImVarAccess va) {
+            // a variable needs no address: finding its state evaluates nothing
+            ImVar var = va.getVar();
+            ILconst right = s.getRight().evaluate(globalState, localState);
+            (var.isGlobal() ? globalState : localState).setVal(var, right);
+            return;
+        }
         ILaddress v = left.evaluateLvalue(globalState, localState);
         ILconst right = s.getRight().evaluate(globalState, localState);
         v.set(right);
@@ -71,6 +82,9 @@ public class RunStatement {
             CompilationCancellation.check();
             globalState.setLastStatement(s);
             s.runStatement(globalState, localState);
+            if (localState.isLeaving()) {
+                return;
+            }
         }
     }
 
@@ -84,6 +98,10 @@ public class RunStatement {
         for (int i = 0; i < val.size(); i++) {
             localState.setVal(loop.getLoopVars().get(0).getVar(), val.get(i));
             loop.getBody().runStatements(globalState, localState);
+            if (localState.isLeaving()) {
+                // an exitwhen ends the enclosing loop, as a return ends the call
+                break;
+            }
         }
     }
 }
