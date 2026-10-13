@@ -130,6 +130,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
+            timeTaker.beginPhase("run compiletime functions");
             // Use try-with-resources to release open native resources (e.g., SQLite DB handles) after compiletime execution finishes.
             try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
                 CompiletimeFunctions, projectConfigData, isProd, cache)) {
@@ -138,6 +139,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 ctr.setOutputStream(new PrintStream(System.err));
                 ctr.run();
             }
+            timeTaker.endPhase();
         }
 
         if (gui.getErrorCount() > 0) {
@@ -473,6 +475,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
 
+        beginPhase(4, "eliminate varargs");
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
         imTranslator2.assertProperties();
@@ -575,6 +578,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(13, "froptimize");
             optimizer.optimize();
             printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
+            timeTaker.endPhase();
         }
 
 
@@ -584,13 +588,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // the last removal was followed by nothing which makes garbage (the code for the hot reload only calls and sets)
         optimizer.assertNoGarbage("only the code for the hot reload was added since the last removal");
         // the package initialisers which are empty now are removed, and then the variables only they used
+        timeTaker.beginPhase("remove empty package inits");
         imTranslator.removeEmptyPackageInits();
+        timeTaker.endPhase();
+        timeTaker.beginPhase("remove garbage");
         optimizer.removeGarbage();
+        timeTaker.endPhase();
         imTranslator.assertFlat("before it is translated to Jass, which has no statement expression");
+        timeTaker.beginPhase("call relations");
         getImTranslator().calculateCallRelationsAndReadVariables();
+        timeTaker.endPhase();
+        timeTaker.beginPhase("print IM as Jass");
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
         prog = translator.translate();
+        timeTaker.endPhase();
         if (errorHandler.getErrorCount() > 0) {
             prog = null;
         }

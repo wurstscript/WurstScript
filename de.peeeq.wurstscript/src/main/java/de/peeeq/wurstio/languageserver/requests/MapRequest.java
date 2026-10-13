@@ -232,7 +232,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             purgeUnimportedFiles(modelManager, model);
 
             gui.sendProgress("Check program");
-            checkModel(modelManager, compiler, model, runArgs);
+            timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs));
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
@@ -256,7 +256,8 @@ public abstract class MapRequest extends UserRequest<Object> {
 
             if (runArgs.isLua()) {
                 print("Translating program to Lua ... ");
-                Optional<LuaCompilationUnit> luaCode = Optional.ofNullable(compiler.transformProgToLua());
+                Optional<LuaCompilationUnit> luaCode = Optional.ofNullable(
+                    timeTaker.measure("Transform program to Lua", compiler::transformProgToLua));
 
                 if (!luaCode.isPresent()) {
                     print("Could not compile project\n");
@@ -264,7 +265,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
 
                 StringBuilder sb = new StringBuilder();
-                luaCode.get().print(sb, 0);
+                timeTaker.measure("Print Lua", () -> luaCode.get().print(sb, 0));
 
                 String compiledMapScript = sb.toString();
                 LuaTranslator.assertNoLeakedHashtableNativeCalls(compiledMapScript);
@@ -276,7 +277,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
             } else {
                 print("Translating program to jass ... ");
-                compiler.transformProgToJass();
+                timeTaker.measure("Transform program to Jass", compiler::transformProgToJass);
 
                 Optional<JassProg> jassProg = Optional.ofNullable(compiler.getProg());
                 if (!jassProg.isPresent()) {
@@ -286,7 +287,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 gui.sendProgress("Printing program");
                 JassPrinter printer = new JassPrinter(!runArgs.isOptimize(), jassProg.get());
-                String compiledMapScript = printer.printProg();
+                String compiledMapScript = timeTaker.measure("Print Jass", () -> printer.printProg());
                 File buildDir = getBuildDir();
                 File outFile = new File(buildDir, BUILD_COMPILED_JASS_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
@@ -455,13 +456,17 @@ public abstract class MapRequest extends UserRequest<Object> {
             // A shared-model rebuild must finish as a unit; cancellation resumes on the
             // private compilation copy, rather than leaving editor state half initialized.
             CompilationCancellation.run(() -> false, () -> {
-                modelManager.clean();
-                modelManager.buildProject();
+                timeTaker.measure("Rebuild project", () -> {
+                    modelManager.clean();
+                    modelManager.buildProject();
+                });
             });
         }
 
+        timeTaker.beginPhase("Replace map script");
         replaceBaseScriptWithConfig(modelManager, scriptFile);
-        checkModelWithMapScript(modelManager, gui, runArgs);
+        timeTaker.endPhase();
+        timeTaker.measure("Typecheck project with map script", () -> checkModelWithMapScript(modelManager, gui, runArgs));
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -475,7 +480,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             || CompilationCancellation.isScoped()) {
             // compilation will alter the model (e.g. remove unused imports),
             // so it is safer to create a copy
-            model = ModelManager.copy(model);
+            WurstModel original = model;
+            model = timeTaker.measure("Copy model", () -> ModelManager.copy(original));
         }
 
         return compileMap(modelManager, modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
@@ -733,7 +739,9 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         if (!runArgs.isHotReload()) {
             // Ensure we're working with the cached map
+            timeTaker.beginPhase("Prepare cached map");
             File cachedMap = ensureCachedMap(gui);
+            timeTaker.endPhase();
 
             // Update testMap to point to cached map
             testMap = Optional.of(cachedMap);
@@ -876,7 +884,9 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         CompilationResult result = compileScript(modelManager, gui, Optional.of(targetMapFile), projectConfig, buildDir, isProductionBuild());
         injectMapData(gui, Optional.of(targetMapFile), result);
+        timeTaker.beginPhase("Write requested script");
         writeRequestedScript(result);
+        timeTaker.endPhase();
 
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
         CompilationCancellation.check();
@@ -885,7 +895,9 @@ public abstract class MapRequest extends UserRequest<Object> {
         // honoring cancellation. Otherwise the output could replace a valid release with
         // an unfinished cached map.
         CompilationCancellation.run(() -> false, () -> {
+            timeTaker.beginPhase("Copy output map");
             java.nio.file.Files.copy(getCachedMapFile().toPath(), outputMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            timeTaker.endPhase();
 
             gui.sendProgress("Finalizing map");
             try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(outputMapFile))) {
@@ -894,13 +906,16 @@ public abstract class MapRequest extends UserRequest<Object> {
                     // not be present in the distributed map.
                     if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
                     if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    timeTaker.beginPhase("Finalize map");
                     mpq.closeWithCompression();
+                    timeTaker.endPhase();
                 }
             }
 
         });
 
         gui.sendProgress("Done.");
+        timeTaker.printReport();
         return targetMapFile;
     }
 
