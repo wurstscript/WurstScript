@@ -36,6 +36,14 @@ public class AttrPos {
         return getParentSource(e);
     }
 
+    /**
+     * The program spans its files, so it has no position of its own. Asking every compilation unit for
+     * one walked the whole program, and code the compiler generates is traced to the program.
+     */
+    public static WPos getPos(WurstModel e) {
+        return standIn(e);
+    }
+
     public static WPos getPos(WImports e) {
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
@@ -65,7 +73,19 @@ public class AttrPos {
             }
             parent = parent.getParent();
         }
-        return new WPos("<source of " + e + " not found>", new LineOffsets(), 0, -1);
+        return standIn(e);
+    }
+
+    /**
+     * An artificial position which names the kind of element. Not the element itself: printing it renders
+     * its whole subtree, and this is asked for often.
+     */
+    private static WPos standIn(Element e) {
+        String kind = e.getClass().getSimpleName();
+        if (kind.endsWith("Impl")) {
+            kind = kind.substring(0, kind.length() - "Impl".length());
+        }
+        return new WPos("<source of " + kind + " not found>", new LineOffsets(), 0, -1);
     }
 
 
