@@ -9,6 +9,10 @@
 -- type declarations carry no runtime information here
 TypeDefine = function() end
 
+-- ClosureForGroups creates a filter handle at package initialization.
+-- Keep its callback without invoking it, as the native factory does.
+function Filter(callback) return { callback = callback } end
+
 -- Enum-like handles (playercolor, race, attacktype, ...): the game returns
 -- the same handle for the same integer, so cache by (kind, value) to keep
 -- handle identity comparisons working.

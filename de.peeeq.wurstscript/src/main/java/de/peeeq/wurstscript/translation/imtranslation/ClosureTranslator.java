@@ -207,8 +207,11 @@ public class ClosureTranslator {
                 e.getImplementation(), tr, impl, superMethod.attrReturnType());
         } else {
             translated = e.getImplementation().imTranslateExpr(tr, impl);
+            // Expression translation already decodes an old-generic value to its
+            // normalized type. Adapt that result to the closure return type,
+            // rather than decoding the raw source type a second time.
             translated = ExprTranslation.wrapTranslation(e.getImplementation(), tr, translated,
-                e.getImplementation().attrTypRaw(), superMethod.attrReturnType());
+                e.getImplementation().attrTyp(), superMethod.attrReturnType());
         }
 
 

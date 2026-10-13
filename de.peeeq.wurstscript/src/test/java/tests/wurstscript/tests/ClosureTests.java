@@ -1,8 +1,74 @@
 package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
+import org.testng.Assert;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class ClosureTests extends WurstScriptTest {
+
+    @Test
+    public void oldGenericStringReadInClosure() throws IOException {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "import LinkedList",
+            "import Wurstunit",
+            "interface StringFn",
+            "    function get(int i) returns string",
+            "let names = asList(\"a\", \"b\")",
+            "init",
+            "    StringFn f = i -> names.get(i)",
+            "    if f.get(0) == \"a\" and f.get(1) == \"b\"",
+            "        testSuccess()");
+        String jass = Files.readString(Path.of(TEST_OUTPUT_PATH,
+            "ClosureTests_oldGenericStringReadInClosure_no_opts.j"));
+        Assert.assertTrue(jass.contains("return stringFromIndex(dispatch_LinkedList_LinkedList_get("), jass);
+        Assert.assertFalse(jass.contains("stringFromIndex(stringFromIndex("), jass);
+    }
+
+    @Test
+    public void newGenericStringReadInClosure() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "native testSuccess()",
+            "interface StringFn",
+            "    function get(int i) returns string",
+            "class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function get(int i) returns T",
+            "        return value",
+            "let names = new Box<string>(\"a\")",
+            "init",
+            "    StringFn f = i -> names.get(i)",
+            "    if f.get(0) == \"a\"",
+            "        testSuccess()");
+        String jass = Files.readString(Path.of(TEST_OUTPUT_PATH,
+            "ClosureTests_newGenericStringReadInClosure_no_opts.j"));
+        Assert.assertFalse(jass.contains("stringFromIndex"), jass);
+    }
+
+    @Test
+    public void oldGenericStringReadInCompiletimeClosure() {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true)
+            .executeProgOnlyAfterTransforms().lines(
+            "package Repro",
+            "import LinkedList",
+            "import Wurstunit",
+            "interface StringFn",
+            "    function get(int i) returns string",
+            "@compiletime let names = asList(\"a\", \"b\")",
+            "@compiletime string result",
+            "@compiletime function readName()",
+            "    StringFn f = i -> names.get(i)",
+            "    result = f.get(1)",
+            "init",
+            "    if result == \"b\"",
+            "        testSuccess()");
+    }
 
 
     @Test
