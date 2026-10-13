@@ -112,6 +112,8 @@ jobs:
           JAVA_BIN=build/dist/slim-${{ matrix.plat }}/wurst-runtime/bin/java
           if [[ "$RUNNER_OS" == "Windows" ]]; then JAVA_BIN="$JAVA_BIN.exe"; fi
           actual=$("$JAVA_BIN" -jar build/dist/slim-${{ matrix.plat }}/wurst-compiler/wurstscript.jar -version)
+          # Native Java prints CRLF on Windows; remove any CR left by command substitution.
+          actual=${actual%$'\r'}
           test "$actual" = "$RELEASE_VERSION"
       - uses: actions/upload-artifact@v4
         with:
