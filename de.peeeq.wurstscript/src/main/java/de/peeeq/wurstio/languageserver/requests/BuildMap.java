@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import java.util.concurrent.CancellationException;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
 import de.peeeq.wurstio.languageserver.ModelManager;
@@ -47,6 +48,8 @@ public class BuildMap extends MapRequest {
             WLogger.info(e);
             gui.sendError(e);
             throw new RequestFailedException(MessageType.Error, "Map build failed. See the Problems panel for details.");
+        } catch (CancellationException e) {
+            throw e;
         } catch (RequestFailedException e) {
             throw e;
         } catch (Exception e) {

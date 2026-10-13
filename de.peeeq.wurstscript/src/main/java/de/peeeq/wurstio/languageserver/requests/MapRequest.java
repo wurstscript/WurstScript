@@ -1,5 +1,10 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import java.util.concurrent.CancellationException;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -70,6 +75,22 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final W3InstallationData w3data;
     protected final TimeTaker timeTaker;
     private Either<String, Integer> workDoneToken;
+    private volatile boolean canceled;
+
+    public Either<String, Integer> getWorkDoneToken() {
+        return workDoneToken;
+    }
+
+    @Override
+    public void cancel() {
+        // Keep the completion pending until execution has unwound and released map resources.
+        canceled = true;
+    }
+
+    @Override
+    public void run(ModelManager modelManager) {
+        CompilationCancellation.run(() -> canceled, () -> super.run(modelManager));
+    }
 
     public void setWorkDoneToken(Either<String, Integer> workDoneToken) {
         this.workDoneToken = workDoneToken;
@@ -155,6 +176,13 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     @Override
     public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
+        if (canceled || err instanceof CancellationException) {
+            resFut.completeExceptionally(new ResponseErrorException(
+                new ResponseError(
+                    ResponseErrorCode.RequestCancelled,
+                    "Map command canceled", null)));
+            return;
+        }
         if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() == MessageType.Info)) {
             // The requesting editor owns the failure notification for this progress operation.
             resFut.completeExceptionally(err);
@@ -285,6 +313,8 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
                 return outFile;
             }
+        } catch (CancellationException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -421,9 +451,13 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && rebuildModelBeforeCompile) {
             // it is safer to rebuild the project, instead of taking the current editor state
             gui.sendProgress("Cleaning project");
-            modelManager.clean();
             gui.sendProgress("Building project");
-            modelManager.buildProject();
+            // A shared-model rebuild must finish as a unit; cancellation resumes on the
+            // private compilation copy, rather than leaving editor state half initialized.
+            CompilationCancellation.run(() -> false, () -> {
+                modelManager.clean();
+                modelManager.buildProject();
+            });
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
@@ -437,7 +471,8 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         WurstModel model = modelManager.getModel();
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty
+            || CompilationCancellation.isScoped()) {
             // compilation will alter the model (e.g. remove unused imports),
             // so it is safer to create a copy
             model = ModelManager.copy(model);
@@ -844,18 +879,26 @@ public abstract class MapRequest extends UserRequest<Object> {
         writeRequestedScript(result);
 
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
-        java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        CompilationCancellation.check();
+        final File outputMapFile = targetMapFile;
+        // Once publication begins, finish compression and stripping cache metadata before
+        // honoring cancellation. Otherwise the output could replace a valid release with
+        // an unfinished cached map.
+        CompilationCancellation.run(() -> false, () -> {
+            java.nio.file.Files.copy(getCachedMapFile().toPath(), outputMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        gui.sendProgress("Finalizing map");
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
-            if (mpq != null) {
-                // Strip internal Wurst cache files — they are dev-only metadata and should
-                // not be present in the distributed map.
-                if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
-                if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
-                mpq.closeWithCompression();
+            gui.sendProgress("Finalizing map");
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(outputMapFile))) {
+                if (mpq != null) {
+                    // Strip internal Wurst cache files — they are dev-only metadata and should
+                    // not be present in the distributed map.
+                    if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
+                    if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    mpq.closeWithCompression();
+                }
             }
-        }
+
+        });
 
         gui.sendProgress("Done.");
         return targetMapFile;

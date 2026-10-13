@@ -1,5 +1,6 @@
 package de.peeeq.wurstio;
 
+import java.util.concurrent.CancellationException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -145,6 +146,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             long tPartitioned = System.nanoTime();
             logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned);
 
+        } catch (CancellationException e) {
+            throw e;
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
             sendErrors(origin, e.getMessage(), e);
@@ -1195,6 +1198,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 successTests.add(f);
             } catch (TestFailException e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+            } catch (CancellationException e) {
+                throw e;
             } catch (Throwable e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
                 throw e;

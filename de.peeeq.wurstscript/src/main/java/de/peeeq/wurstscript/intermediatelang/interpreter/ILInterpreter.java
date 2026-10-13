@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import java.util.concurrent.CancellationException;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
@@ -178,6 +180,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
                                      ILconst... args) {
+        CompilationCancellation.check();
         if (Thread.currentThread().isInterrupted()) {
             throw new InterpreterException(globalState, "Execution interrupted");
         }
@@ -413,7 +416,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             e.setStacktrace(msg);
             e.setTrace(getTrace(globalState, f));
             throw e;
-        } catch (TestSuccessException | TestFailException | DebugPrintError e) {
+        } catch (TestSuccessException | TestFailException | DebugPrintError | CancellationException e) {
             throw e;
         } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);

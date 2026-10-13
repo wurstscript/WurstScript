@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import com.google.common.base.Preconditions;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
@@ -36,6 +37,7 @@ public class RunStatement {
     public static void run(ImLoop s, ProgramState globalState, LocalState localState) {
         try {
             while (true) {
+                CompilationCancellation.check();
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterpreterException(globalState, "Execution interrupted");
                 }
@@ -66,6 +68,7 @@ public class RunStatement {
 
     public static void run(ImStmts stmts, ProgramState globalState, LocalState localState) {
         for (ImStmt s : stmts) {
+            CompilationCancellation.check();
             globalState.setLastStatement(s);
             s.runStatement(globalState, localState);
         }

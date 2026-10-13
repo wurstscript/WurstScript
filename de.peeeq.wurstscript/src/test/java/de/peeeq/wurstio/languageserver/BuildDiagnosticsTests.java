@@ -154,7 +154,7 @@ public class BuildDiagnosticsTests {
         }
         WorkDoneProgressBegin begin = (WorkDoneProgressBegin) progress.get(0).getValue().getLeft();
         assertEquals(begin.getTitle(), "Building Wurst map");
-        assertEquals(begin.getCancellable(), Boolean.FALSE);
+        assertEquals(begin.getCancellable(), Boolean.TRUE);
         assertNull(begin.getPercentage());
         WorkDoneProgressReport report = (WorkDoneProgressReport) progress.get(1).getValue().getLeft();
         assertEquals(report.getMessage(), "Running PJass");
