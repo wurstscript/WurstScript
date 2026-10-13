@@ -40,6 +40,33 @@ public class PjassTests {
         return file.toFile();
     }
 
+    private static String parameterScript(int parameters, int arguments) {
+        StringBuilder signature = new StringBuilder();
+        StringBuilder call = new StringBuilder();
+        for (int i = 0; i < parameters; i++) {
+            if (i > 0) signature.append(", ");
+            signature.append("integer p").append(i);
+        }
+        for (int i = 0; i < arguments; i++) {
+            if (i > 0) call.append(", ");
+            call.append(i);
+        }
+        return "function callee takes " + signature + " returns nothing\nendfunction\n"
+            + "function main takes nothing returns nothing\n    call callee(" + call + ")\nendfunction\n";
+    }
+
+    @Test
+    public void checksArgumentCountAndJassCallLimit() throws IOException {
+        Path dir = Files.createTempDirectory("pjass-parameters");
+        Result boundary = Pjass.runPjass(script(dir, "boundary.j", parameterScript(31, 31)));
+        Assert.assertTrue(boundary.isOk(), boundary.getMessage());
+        Result oversized = Pjass.runPjass(script(dir, "oversized.j", parameterScript(32, 32)));
+        Assert.assertFalse(oversized.isOk(), oversized.getMessage());
+        Assert.assertTrue(oversized.getMessage().contains("at most 31 arguments"), oversized.getMessage());
+        Result mismatch = Pjass.runPjass(script(dir, "mismatch.j", parameterScript(1, 2)));
+        Assert.assertFalse(mismatch.isOk(), mismatch.getMessage());
+    }
+
     private static String longStringScript(String extraStatement) {
         return "function main takes nothing returns nothing\n"
             + "    local string s = \"" + "x".repeat(1024) + "\"\n"
