@@ -205,6 +205,13 @@ Notes; finished-work narrative does not.
   the shape being rejected.
 - A test that hangs looks exactly like a test that is slow. If the suite stops making progress, take
   a thread dump of the forked worker (`jstack <pid>`) before killing it.
+  Both Gradle test suites install `TestTimeoutWatchdog`: each test/configuration invocation has
+  3 minutes, then the worker dumps its threads and exits 124 (at most 2 seconds for diagnostics).
+  This keeps execution on the original thread and kills even uninterruptible work or stuck shutdown
+  hooks. A timed-out worker loses its pending XML report; its method name and stacks are in the job log.
+  Compiler/helper test tasks have 20/2-minute limits, CI jobs 25 minutes, release packaging 35 minutes;
+  suites and matrices stop at the first failure. `scripts/test-ci-timeouts.py` rejects unbounded jobs.
+  For deliberate longer local invocations only, use `-PtestTimeoutMillis=...`; CI job caps still apply.
 - Method names are not what the frontend called them. `LuaDispatchPreparation.normalizeMethodNames`
   renames a whole dispatch group to one name, records the slot segment on `ImTranslator`, and only
   then does the backend run. A question about which Lua slot something lands in is a question about

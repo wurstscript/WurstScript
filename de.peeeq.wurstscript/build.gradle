@@ -23,6 +23,7 @@ plugins {
 import de.undercouch.gradle.tasks.download.Download
 
 import java.util.regex.Pattern
+import java.time.Duration
 
 ext.mainClassName = "de.peeeq.wurstio.Main"
 
@@ -202,6 +203,7 @@ parseqFiles.files.each { File f ->
     File targetDir = new File(genDirFile, pkg.replace('.', '/'))
 
     def t = tasks.register("genAst_${f.name.replaceAll(/[^A-Za-z0-9_]/, '_')}", JavaExec) {
+        timeout = Duration.ofMinutes(5)
         // incremental + cache correctness for the generator
         inputs.file(f)
         inputs.files(astgenCp).withPropertyName("astgenClasspath")
@@ -328,6 +330,7 @@ int testForkCount() {
  * The pinned repository and commit stay defined in that one place rather than being repeated here.
  */
 tasks.register('ensureStdLib', JavaExec) {
+    timeout = Duration.ofMinutes(5)
     description "Fetches the pinned standard library used by the tests"
     classpath = sourceSets.test.runtimeClasspath
     mainClass.set('tests.wurstscript.tests.StdLib')
@@ -343,9 +346,19 @@ tasks.register('ensureStdLib', JavaExec) {
     outputs.upToDateWhen { false }
 }
 
+sourceSets.test.java.srcDir('../test-support')
+
 test {
     dependsOn 'ensureStdLib'
-    useTestNG()
+    timeout = Duration.ofMinutes(20)
+    failFast = true
+    useTestNG {
+        listeners.add('org.wurstscript.testing.TestTimeoutWatchdog')
+    }
+    // Override only for deliberately longer local profiling/oracle runs or timeout repros.
+    systemProperty 'wurst.test.timeoutMillis', project.findProperty('testTimeoutMillis') ?: '180000'
+    // These deliberately hanging fixtures run only in subprocesses of the watchdog regression.
+    exclude '**/TimeoutWatchdogProbe*.class'
     // Keep CI output focused on failures; compiler/runtime tests intentionally exercise native
     // print paths and can otherwise flood the log with expected diagnostic output.
     testLogging {

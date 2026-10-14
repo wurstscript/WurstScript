@@ -17,10 +17,11 @@ jobs:
   build:
     name: Gradle build on ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || '["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     permissions:
       checks: write
       contents: read
@@ -112,16 +113,24 @@ jobs:
         shell: bash
         run: python ../scripts/test-release.py
 
+      - name: Check CI runtime limits
+        if: runner.os == 'Linux'
+        timeout-minutes: 1
+        shell: bash
+        run: python ../scripts/test-ci-timeouts.py
+
       - name: Test compiler version metadata
         if: runner.os == 'Linux'
         shell: bash
         run: python ../scripts/test-version-metadata.py
 
       - name: Test game-data helpers
+        timeout-minutes: 5
         shell: bash
         run: ./gradlew -p ../HelperScripts test --no-daemon --stacktrace --quiet
 
       - name: Run tests
+        timeout-minutes: 22
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" == "Linux" ]]; then
