@@ -1533,6 +1533,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (functionMap.containsKey(funcDef)) {
             return requested(functionMap.get(funcDef));
         }
+        requireCompilationUnit(funcDef);
         String name = getNameFor(funcDef);
         List<FunctionFlag> flags = flags();
         if (funcDef instanceof NativeFunc) {
@@ -1831,6 +1832,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImVar getVarFor(VarDef varDef) {
         ImVar v = varMap.get(varDef);
         if (v == null) {
+            requireCompilationUnit(varDef);
             Map<TypeParamDef, ImTypeVar> ov = getOwnerTypeVarOverridesForStaticClassVar(varDef);
             pushTypeVarOverrides(ov);
             ImType type;
@@ -1848,6 +1850,15 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             varMap.put(varDef, v);
         }
         return v;
+    }
+
+    /** A checked editor model can resolve names outside the map's selected compilation units. */
+    private void requireCompilationUnit(de.peeeq.wurstscript.ast.Element definition) {
+        CompilationUnit cu = definition.attrCompilationUnit();
+        if (cu != null && !selectedCompilationUnits.contains(cu)) {
+            throw new CompileError(definition.attrSource(), "Referenced declaration from "
+                + cu.getCuInfo().getFile() + " is not included in this map compilation.");
+        }
     }
 
     private Map<TypeParamDef, ImTypeVar> getOwnerTypeVarOverridesForStaticClassVar(VarDef varDef) {
@@ -3099,6 +3110,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImClass getClassFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
+            requireCompilationUnit(s1);
             ImTypeVars typeVariables = JassIm.ImTypeVars();
 
             // 1) class' own type parameters (unchanged idea, but use name-based uniqueness)

@@ -4,6 +4,7 @@ import de.peeeq.wurstio.languageserver.*;
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.utils.CompilationCancellation;
@@ -21,6 +22,37 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
+    @Test(dataProvider = "commands")
+    public void referencesToExcludedJassDefinitionsFailBeforeEmission(boolean build, boolean lua) throws Exception {
+        for (String expression : List.of("editorOnly", "editorHelper()")) {
+            Project project = project();
+            File extra = new File(project.root, "wurst/editor-only.j");
+            String declarations = "globals\ninteger editorOnly = 1\nendglobals\n"
+                + "function editorHelper takes nothing returns integer\nreturn 2\nendfunction\n";
+            Files.writeString(extra.toPath(), declarations);
+            project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(extra), declarations));
+            String script = "function main takes nothing returns nothing\n"
+                + "call BJDebugMsg(I2S(" + expression + "))\nendfunction\n";
+            File base = new File(project.root, "wurst/war3map.j");
+            Files.writeString(base.toPath(), script);
+            project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(base), script));
+            assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+            Files.writeString(project.script.toPath(), script);
+            int units = project.manager.getModel().size();
+            List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+            Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+            CompileError error = expectThrows(CompileError.class,
+                () -> compile(request, project, new WurstGuiCliImpl()));
+            assertTrue(error.getMessage().contains("not included in this map compilation"), error.getMessage());
+            assertTrue(error.getMessage().contains("editor-only.j"), error.getMessage());
+            assertEquals(project.manager.getModel().size(), units);
+            assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
+            Files.writeString(project.script.toPath(), configuredScript(1));
+            compile(request, project, new WurstGuiCliImpl());
+            assertEquals(project.manager.cleanCalls, 0);
+        }
+    }
+
     @Test(dataProvider = "commands")
     public void replacingMapGlobalsInvalidatesLookupsInTheirUsers(boolean build, boolean lua) throws Exception {
         Project project = project();

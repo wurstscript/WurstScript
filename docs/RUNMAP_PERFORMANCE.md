@@ -194,6 +194,11 @@ Compilation now selects an import-root view for AST→IM without changing the ma
 ordering, class/interface discovery and error-helper selection use that view; package ordering follows
 the original package index. A focused repro fails with the old pruning path and covers preservation of
 editor units and configured globals, alongside fresh-build comparison on both targets and commands.
+Because checking the editor model can resolve names outside the compilation view, AST→IM rejects
+references to excluded function, variable or class definitions before creating their IM representation.
+Excluded Jass globals/functions have regression coverage on both targets and commands, including
+successful recompilation after removing the reference. This prevents incomplete scripts with PJass
+disabled and preserves the existing compilation source policy.
 
 After correcting this, all three requests passed PJass and map injection. Final sequential measurements,
 with identical source/map copies and JVM/JFR settings:
