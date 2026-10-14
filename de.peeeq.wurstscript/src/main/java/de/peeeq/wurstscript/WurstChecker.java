@@ -36,12 +36,18 @@ public class WurstChecker {
      * then nothing is known about the units.
      */
     public boolean checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
+        return checkProg(root, toCheck, root);
+    }
+
+    public boolean checkProg(WurstModel root, Collection<CompilationUnit> toCheck,
+                             Collection<CompilationUnit> compilationUnits) {
         Preconditions.checkNotNull(root);
         Preconditions.checkNotNull(toCheck);
         if (root.isEmpty()) {
             return true;
         }
-        new DesugarArrayLength().run(root);
+        DesugarArrayLength desugar = new DesugarArrayLength();
+        compilationUnits.forEach(cu -> cu.accept(desugar));
         gui.sendProgress("Checking Files");
 
         if (errorHandler.getErrorCount() > 0) return false;
@@ -49,7 +55,7 @@ public class WurstChecker {
         attachErrorHandler(root);
         clearGlobalCaches(root, toCheck);
 
-        expandModules(root);
+        compilationUnits.forEach(ModuleExpander::expandModules);
 
         if (errorHandler.getErrorCount() > 0) return false;
 
@@ -66,7 +72,7 @@ public class WurstChecker {
             }
 
             // validate the resource:
-            WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
+            WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks, compilationUnits);
             validator.validate(toCheck);
         } finally {
             syntacticSugar.restoreModuleTemplateFieldIterations(detachedTemplates);
@@ -82,6 +88,11 @@ public class WurstChecker {
         attachErrorHandler(root);
     }
 
+    public void adoptCheckedModel(WurstModel root, Collection<CompilationUnit> compilationUnits) {
+        attachErrorHandler(root);
+        new WurstValidator(root, legacyJassTypeChecks, compilationUnits).prepareNamePreservation();
+    }
+
     private void clearGlobalCaches(WurstModel root, Collection<CompilationUnit> toCheck) {
         if (toCheck == root || toCheck.size() >= root.size()) {
             GlobalCaches.clearAll();
@@ -93,12 +104,6 @@ public class WurstChecker {
     private void attachErrorHandler(WurstModel root) {
         for (CompilationUnit cu : root) {
             cu.getCuInfo().setCuErrorHandler(errorHandler);
-        }
-    }
-
-    private void expandModules(WurstModel root) {
-        for (CompilationUnit cu : root) {
-            ModuleExpander.expandModules(cu);
         }
     }
 

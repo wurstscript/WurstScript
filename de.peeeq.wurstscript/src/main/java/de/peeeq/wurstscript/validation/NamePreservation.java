@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.types.WurstTypeTuple;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,9 +61,9 @@ public final class NamePreservation {
      * The index is scoped to one validation run; the preservation marker itself remains attached to
      * the AST definition and is copied to the corresponding IM variables through their trace.
      */
-    public static RuntimeNameIndex indexGlobals(WurstModel model) {
+    public static RuntimeNameIndex indexGlobals(Collection<CompilationUnit> units) {
         RuntimeNameIndex result = new RuntimeNameIndex();
-        model.accept(new Element.DefaultVisitor() {
+        Element.DefaultVisitor visitor = new Element.DefaultVisitor() {
             @Override
             public void visit(GlobalVarDef variable) {
                 super.visit(variable);
@@ -71,7 +72,8 @@ public final class NamePreservation {
                 addTupleComponentNames(result, name, variable.attrTyp(), variable,
                     Collections.newSetFromMap(new IdentityHashMap<>()));
             }
-        });
+        };
+        units.forEach(cu -> cu.accept(visitor));
         return result;
     }
 

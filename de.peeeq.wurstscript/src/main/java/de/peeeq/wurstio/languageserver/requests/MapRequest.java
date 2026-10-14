@@ -194,10 +194,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                                    RunArgs runArgs, Collection<CompilationUnit> units) {
         boolean sameChecks = checksLikeTheModelManager(runArgs);
         if (sameChecks && modelManager.isChecked(model, units)) {
-            compiler.adoptCheckedModel(model);
+            compiler.adoptCheckedModel(model, units);
             return;
         }
-        boolean validated = compiler.checkProg(model, units);
+        boolean validated = compiler.checkProg(model, units, units);
         if (sameChecks && validated && compiler.getErrorHandler().getErrorCount() == 0) {
             modelManager.markChecked(model, units);
         }

@@ -23,6 +23,32 @@ import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
     @Test(dataProvider = "commands")
+    public void excludedVariableEventsDoNotPreserveSelectedGlobals(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        String script = "globals\nreal selectedGlobal = 1.0\nendglobals\n"
+            + "function main takes nothing returns nothing\nendfunction\n";
+        File base = new File(project.root, "wurst/war3map.j");
+        Files.writeString(base.toPath(), script);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(base), script));
+        File extra = new File(project.root, "wurst/editor-only.j");
+        String excluded = "function unusedEventRegistration takes nothing returns nothing\n"
+            + "call TriggerRegisterVariableEvent(null, \"selectedGlobal\", null, 0.0)\nendfunction\n";
+        Files.writeString(extra.toPath(), excluded);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(extra), excluded));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        Files.writeString(project.script.toPath(), script);
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        String output = compile(request, project, new WurstGuiCliImpl());
+        assertFalse(output.contains("selectedGlobal"), "an excluded registration must not keep a dead global alive");
+        assertEquals(compile(request, project, new WurstGuiCliImpl()), output);
+        Files.writeString(project.script.toPath(), script
+            + "function configuredHelper takes nothing returns integer\nreturn 2\nendfunction\n");
+        assertFalse(compile(request, project, new WurstGuiCliImpl()).contains("selectedGlobal"),
+            "validation of a changed configured script must also use the selected view");
+    }
+
+    @Test(dataProvider = "commands")
     public void excludedNativeTypesFailBeforeEmission(boolean build, boolean lua) throws Exception {
         for (String script : List.of(
             "globals\neditorhandle selectedGlobal = null\nendglobals\n"

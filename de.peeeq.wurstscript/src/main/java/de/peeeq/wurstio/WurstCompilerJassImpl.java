@@ -414,6 +414,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     /** @return whether the units were validated, see {@link WurstChecker#checkProg} */
     public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
+        return checkProg(model, toCheck, model);
+    }
+
+    public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck,
+                             Collection<CompilationUnit> compilationUnits) {
         for (CompilationUnit cu : toCheck) {
             Preconditions.checkNotNull(cu);
             if (!model.contains(cu)) {
@@ -422,12 +427,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             }
         }
 
-        return checker.checkProg(model, toCheck);
+        return checker.checkProg(model, toCheck, compilationUnits);
     }
 
     /** Takes over a model which was checked completely and has not changed since, instead of checking it again. */
     public void adoptCheckedModel(WurstModel model) {
         checker.adoptCheckedModel(model);
+    }
+
+    public void adoptCheckedModel(WurstModel model, Collection<CompilationUnit> compilationUnits) {
+        checker.adoptCheckedModel(model, compilationUnits);
     }
 
     public JassProg transformProgToJass() {

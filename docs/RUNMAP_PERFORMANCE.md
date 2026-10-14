@@ -203,6 +203,10 @@ references to excluded function, variable or class definitions before creating t
 Native types retain their source declarations too; translating one verifies its definition and all native
 supertypes, including default-value translation. Regressions cover globals, parameters, return types and
 a selected subtype whose parent is excluded, on both targets and commands.
+Whole-model validation prepasses also use the compilation view: array-length preparation, module expansion,
+global name indexing and variable-event preservation do not inspect excluded code. Reusing checked facts
+refreshes synthetic name-preservation markers for the view, so an earlier editor-wide check cannot retain
+an otherwise dead map global solely because an excluded unit registers a variable event for it.
 Excluded Jass globals/functions have regression coverage on both targets and commands, including
 successful recompilation after removing the reference. This prevents incomplete scripts with PJass
 disabled and preserves the existing compilation source policy.
