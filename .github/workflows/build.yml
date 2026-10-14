@@ -110,7 +110,9 @@ jobs:
       - name: Test release gate
         if: runner.os == 'Linux'
         shell: bash
-        run: python ../scripts/test-release.py
+        run: |
+          python ../scripts/test-release.py
+          python ../scripts/test-generate-release-notes.py
 
       - name: Test compiler version metadata
         if: runner.os == 'Linux'
