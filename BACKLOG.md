@@ -19,12 +19,19 @@ Notes; finished-work narrative does not.
   without optimisations the first build of a model takes 21 s and later ones 11 to 12 s in one JVM, and
   the stage samples show most of the difference in passes the swap does not touch, so JIT warm-up. Next,
   keep the unchanged top-level declarations of a changed Jass file and re-check only the units which
-  mention a changed name. Purging unimported units from the managed model in `compileMap` changes it
-  for the next run; consider retaining an import-root view instead. Run and build consume the current
+  mention a changed name. Compilation uses an import-root view and retains the editor's units. Run and build consume the current
   editor model (`readCompilationUnitContents` prefers an open buffer), so a build can contain text
   which is not on disk, while grill reads the disk. wurst4vscode
   sends `wurst.buildmap` and `wurst.startmap` without saving the open files first. Whether a build should
   save first, or refuse unsaved files, is open.
+
+- **Reuse translation work on unchanged map runs.** After checked-model reuse, Survival Chaos Reborn
+  takes 4.5–5.2 s for an unoptimised warm RunMap: AST→IM 1.3–1.4 s, required Jass lowering 1.3–1.7 s,
+  compile-time work 0.9–1.0 s, map injection 0.4–0.6 s. Whole-project typechecking is now skipped.
+  Investigate retaining a pristine IM snapshot keyed by model/config/target state, then copying it
+  before mutable compile-time/backend passes; compare snapshot cost with translation and test edits,
+  configuration changes, cancellation and both targets against fresh builds. This needs an explicit
+  AST/IM ownership and invalidation contract before implementation. See `docs/RUNMAP_PERFORMANCE.md`.
 
 - **A dead dispatch slot survives for overloads inside a specialised class.** Two overloads of one
   source method share a declared name, so a specialised class holding only overloads still composes

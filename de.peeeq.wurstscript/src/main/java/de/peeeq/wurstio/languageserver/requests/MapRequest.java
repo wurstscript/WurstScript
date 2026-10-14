@@ -304,14 +304,14 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     private void prepareImProgram(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
                                   WurstGui gui, RunArgs runArgs) {
-        purgeUnimportedFiles(modelManager, model);
         gui.sendProgress("Check program");
         timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs));
         if (gui.getErrorCount() > 0) {
             throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
         }
+        Set<CompilationUnit> compilationUnits = compilationUnits(model);
         print("translating program ... ");
-        compiler.translateProgToIm(model);
+        compiler.translateProgToIm(model, model.stream().filter(compilationUnits::contains).toList());
         if (gui.getErrorCount() > 0) {
             throw new RequestFailedException(MessageType.Error,
                 "Could not compile project (error in translation): " + gui.getErrorList().get(0));
@@ -338,12 +338,9 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     /**
-     * removes everything compilation unit which is neither
-     * - inside a wurst folder
-     * - a jass file
-     * - imported by a file in a wurst folder
+     * Selects project Wurst sources, the map/core Jass scripts and their imports, without changing the editor model.
      */
-    private void purgeUnimportedFiles(ModelManager modelManager, WurstModel model) {
+    private Set<CompilationUnit> compilationUnits(WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
             .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile())
@@ -352,8 +349,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             .collect(Collectors.toSet());
         addImports(imported, imported);
 
-        // the model may be the managed one (quick and dirty), which only the manager may change
-        modelManager.retainCompilationUnits(model, imported::contains);
+        return imported;
     }
 
     private boolean isProjectWar3MapScript(String file) {

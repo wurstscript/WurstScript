@@ -178,6 +178,54 @@ for unsaved buffers; these are separate from the cancellation regression fixed h
 
 ## Reproduction artifacts
 
+### Larger-map follow-up: Survival Chaos Reborn
+
+Measured an isolated copy of `SurvivelChaosReborn` at `baf9a190860d3c1c6fac2223dc87f4b02632e7d7`,
+including the existing local `wurst.build` and `wurst_run.args`. The original repository was untouched.
+The real arguments select Jass, compile-time functions and object injection, without optional optimisation,
+inlining, local optimisation or compile-time caching. PJass remains enabled. The checked editor model has
+1,700 compilation units. Editor initialisation is outside these request timings; the harness stops before
+launch after completing compilation and map-data injection.
+
+The first reuse implementation failed PJass on this project: references to two `gg_trg_*` globals survived,
+but their declarations were omitted. Destructive pruning scanned name references between map-script
+invalidation and checking, caching stale lookup results on the AST. It also removed editor-only units.
+Compilation now selects an import-root view for AST→IM without changing the managed model. Compile-time
+ordering, class/interface discovery and error-helper selection use that view; package ordering follows
+the original package index. A focused repro fails with the old pruning path and covers preservation of
+editor units and configured globals, alongside fresh-build comparison on both targets and commands.
+
+After correcting this, all three requests passed PJass and map injection. Final sequential measurements,
+with identical source/map copies and JVM/JFR settings:
+
+| Run | Baseline total | Reuse total | Baseline typecheck | Reuse typecheck |
+| --- | ---: | ---: | ---: | ---: |
+| R0 | 11,553 ms | 11,151 ms | 3,482 ms | 3,576 ms |
+| R1 | 8,660 ms | 5,194 ms | 3,613 ms | 0 ms |
+| R2 | 7,876 ms | 4,520 ms | 3,367 ms | 0 ms |
+
+Warm unchanged requests improve by 40–43%. R0 still needs a complete check after the configured-script
+swap. The 100,010-line emitted Jass matches baseline exactly except for the compiler-version header.
+Logs are `temp/runmap-chaos-baseline-verify.log` and `temp/runmap-chaos-final.log`; the latter's JFR files
+are `temp/runmap-chaos-final-{0,1,2}.jfr`. An earlier successful repetition measured 4,641–4,890 ms warm.
+
+The remaining warm costs are:
+
+| Stage | R1 | R2 | Finding |
+| --- | ---: | ---: | --- |
+| AST→IM | 1,308 ms | 1,403 ms | Rebuilds the entire selected program; class/closure and expression translation dominate. |
+| Required Jass lowering | 1,652 ms | 1,331 ms | Tuple elimination/flattening, class lowering and cyclic-function removal remain required with optimisations disabled. |
+| Compile-time stage | 1,038 ms | 883 ms | Reachability, interpreter execution and object-data serialisation rerun; no compile-time cache flag is enabled. |
+| Map-data injection | 551 ms | 406 ms | Import handling and MPQ finalisation. |
+| Applying map config | 284 ms | 240 ms | Rewrites configuration on every request. |
+
+JFR corroborates the translation/lowering concentration. NameLinks/NameResolution are no longer a leading
+warm-request cost once the checked model is reused. MPQ saving still allocates heavily. JFR allocation
+weights are sampled estimates, and TimeTaker's GC total is cumulative across the JVM, not per-request GC.
+The next substantial architectural trial is retaining a pristine IM snapshot and copying it for mutable
+compilation passes, with explicit invalidation and fresh-build oracles. Separately, selective map-script
+declaration invalidation would address the necessary first-run recheck; it does not reduce these warm costs.
+
 The reusable harness is in `docs/profiling/RunMapProfile.java`, its JFR analyzer in
 `docs/profiling/RunMapProfileReport.java`, and the Gradle init script in `docs/profiling/runmap-profile.gradle`.
 Use an isolated project copy: the actual pipeline writes cached maps, scripts, object data and build outputs.

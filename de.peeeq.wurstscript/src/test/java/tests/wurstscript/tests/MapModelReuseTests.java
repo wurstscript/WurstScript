@@ -21,6 +21,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
+    @Test(dataProvider = "commands")
+    public void replacingMapGlobalsInvalidatesLookupsInTheirUsers(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File base = new File(project.root, "wurst/war3map.j");
+        String script = "globals\ninteger gg_test = 1\nendglobals\n" + configuredScript(1);
+        Files.writeString(base.toPath(), script);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(base), script));
+        String source = source(7) + "init\n    BJDebugMsg(I2S(gg_test))\n";
+        Files.writeString(project.source.toPath(), source);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), source));
+        File extra = new File(project.root, "wurst/editor-only.j");
+        Files.writeString(extra.toPath(), "globals\ninteger editorOnly = 1\nendglobals\n");
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(extra), Files.readString(extra.toPath())));
+        int units = project.manager.getModel().size();
+        Files.writeString(project.script.toPath(), script.replace("gg_test = 1", "gg_test = 2"));
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        String output = compile(request, project, new WurstGuiCliImpl());
+        assertTrue(output.contains(lua ? "gg_test = 2" : "integer gg_test"), output);
+        assertEquals(project.manager.getModel().size(), units, "building must retain editor compilation units");
+        Project fresh = new Project(project.root, project.source, project.script, new CountingManager(project.root));
+        fresh.manager.buildProject();
+        Probe freshRequest = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        assertEquals(output, compile(freshRequest, fresh, new WurstGuiCliImpl()));
+    }
     @DataProvider(name = "commands")
     public Object[][] commands() {
         return new Object[][]{{false, false}, {false, true}, {true, false}, {true, true}};

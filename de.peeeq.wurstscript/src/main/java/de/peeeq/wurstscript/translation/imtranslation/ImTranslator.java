@@ -187,6 +187,8 @@ public class ImTranslator implements SpecialisationLookup {
     private final Map<VarDef, ImVar> varMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final WurstModel wurstProg;
+    private final List<CompilationUnit> compilationUnits;
+    private final Set<CompilationUnit> selectedCompilationUnits;
 
     private @Nullable ImFunction mainFunc = null;
 
@@ -396,7 +398,14 @@ public class ImTranslator implements SpecialisationLookup {
 
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
+        this(wurstProg, isUnitTestMode, runArgs, wurstProg);
+    }
+
+    public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs,
+                        Collection<CompilationUnit> compilationUnits) {
         this.wurstProg = wurstProg;
+        this.compilationUnits = List.copyOf(compilationUnits);
+        this.selectedCompilationUnits = Set.copyOf(compilationUnits);
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
         imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new Object2ObjectLinkedOpenHashMap<>());
@@ -427,7 +436,7 @@ public class ImTranslator implements SpecialisationLookup {
 
             calculateCompiletimeOrder();
 
-            for (CompilationUnit cu : wurstProg) {
+            for (CompilationUnit cu : compilationUnits) {
                 translateCompilationUnit(cu);
             }
             attachFunctionsAwaitingClass();
@@ -698,7 +707,8 @@ public class ImTranslator implements SpecialisationLookup {
      */
     private void calculateCompiletimeOrder() {
         Set<WPackage> visited = new HashSet<>();
-        ImmutableCollection<WPackage> packages = wurstProg.attrPackages().values();
+        List<WPackage> packages = wurstProg.attrPackages().values().stream()
+            .filter(p -> selectedCompilationUnits.contains(p.attrCompilationUnit())).toList();
 
         for (WPackage p : packages) {
             calculateCompiletimeOrder_walk(p, visited);
@@ -977,7 +987,7 @@ public class ImTranslator implements SpecialisationLookup {
         if (enumConverters == null) {
             // looked up by type, never iterated
             Map<String, NativeFunc> converters = new HashMap<>();
-            for (CompilationUnit cu : wurstProg) {
+            for (CompilationUnit cu : compilationUnits) {
                 for (JassToplevelDeclaration decl : cu.getJassDecls()) {
                     if (decl instanceof NativeFunc nativeFunc && isBJ(nativeFunc.getSource())
                         && nativeFunc.getNameId().getName().startsWith("Convert")
@@ -2460,7 +2470,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         // Insertion order, not hash order. The order of the compilation units still shows in it;
         // sortEverything fixes the order of the sub-methods which are made from it.
         interfaceInstances = LinkedHashMultimap.create();
-        for (CompilationUnit cu : wurstProg) {
+        for (CompilationUnit cu : compilationUnits) {
             for (ClassDef c : cu.attrGetByType().classes) {
                 for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
                     interfaceInstances.put(i.getDef(), c);
@@ -2510,7 +2520,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      */
     private List<ClassDef> classes() {
         List<ClassDef> result = new ArrayList<>();
-        for (CompilationUnit cu : wurstProg) {
+        for (CompilationUnit cu : compilationUnits) {
             for (WPackage p : cu.getPackages()) {
                 for (WEntity e : p.getElements()) {
                     if (e instanceof ClassDef c) {
@@ -3288,7 +3298,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     /** The function {@code error} of the ErrorHandling package, a native or one with a body. */
     private Optional<FunctionDefinition> findErrorFunc() throws CompileError {
         PackageLink p = wurstProg.lookupPackage("ErrorHandling");
-        if (p == null) {
+        if (p == null || !selectedCompilationUnits.contains(p.getDef().attrCompilationUnit())) {
             return Optional.empty();
         }
         ImmutableCollection<FuncLink> funcs = p.getDef().getElements().lookupFuncs("error");
