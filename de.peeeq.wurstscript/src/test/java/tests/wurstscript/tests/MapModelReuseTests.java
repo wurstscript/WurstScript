@@ -37,10 +37,27 @@ public class MapModelReuseTests {
         project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(extra), excluded));
         assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
         Files.writeString(project.script.toPath(), script);
+        de.peeeq.wurstscript.ast.GlobalVarDef[] selected = new de.peeeq.wurstscript.ast.GlobalVarDef[1];
+        project.manager.getModel().accept(new WurstModel.DefaultVisitor() {
+            @Override public void visit(de.peeeq.wurstscript.ast.GlobalVarDef variable) {
+                if (variable.getName().equals("selectedGlobal")) selected[0] = variable;
+            }
+        });
+        assertTrue(selected[0].hasAnnotation("@preserveName"), "the editor-wide check sees the excluded registration");
         List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
         Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
         String output = compile(request, project, new WurstGuiCliImpl());
         assertFalse(output.contains("selectedGlobal"), "an excluded registration must not keep a dead global alive");
+        assertTrue(selected[0].hasAnnotation("@preserveName"), "map compilation must restore editor-wide metadata");
+        assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
+        var full = new de.peeeq.wurstscript.translation.imtranslation.ImTranslator(
+            project.manager.getModel(), false, RunArgs.defaults()).translateProg();
+        assertTrue(de.peeeq.wurstscript.validation.NamePreservation.isPreserved(full.getGlobals().stream()
+            .filter(v -> v.getName().equals("selectedGlobal")).findFirst().orElseThrow()),
+            "a later full-model translation must still see the editor-wide preservation state");
+        assertTrue(de.peeeq.wurstscript.validation.NamePreservation.isPreserved(full.copyWithRefs().getGlobals().stream()
+            .filter(v -> v.getName().equals("selectedGlobal")).findFirst().orElseThrow()),
+            "private preservation metadata must survive IM copying");
         assertEquals(compile(request, project, new WurstGuiCliImpl()), output);
         Files.writeString(project.script.toPath(), script
             + "function configuredHelper takes nothing returns integer\nreturn 2\nendfunction\n");

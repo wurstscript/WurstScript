@@ -311,16 +311,19 @@ public abstract class MapRequest extends UserRequest<Object> {
                                   WurstGui gui, RunArgs runArgs) {
         Set<CompilationUnit> compilationUnits = compilationUnits(model);
         List<CompilationUnit> units = model.stream().filter(compilationUnits::contains).toList();
-        gui.sendProgress("Check program");
-        timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs, units));
-        if (gui.getErrorCount() > 0) {
-            throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
-        }
-        print("translating program ... ");
-        compiler.translateProgToIm(model, units);
-        if (gui.getErrorCount() > 0) {
-            throw new RequestFailedException(MessageType.Error,
-                "Could not compile project (error in translation): " + gui.getErrorList().get(0));
+        try (de.peeeq.wurstscript.validation.NamePreservation.SavedMarkers markers = units.size() == model.size()
+            ? null : de.peeeq.wurstscript.validation.NamePreservation.saveSyntheticMarkers(model)) {
+            gui.sendProgress("Check program");
+            timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs, units));
+            if (gui.getErrorCount() > 0) {
+                throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
+            }
+            print("translating program ... ");
+            compiler.translateProgToIm(model, units);
+            if (gui.getErrorCount() > 0) {
+                throw new RequestFailedException(MessageType.Error,
+                    "Could not compile project (error in translation): " + gui.getErrorList().get(0));
+            }
         }
     }
 

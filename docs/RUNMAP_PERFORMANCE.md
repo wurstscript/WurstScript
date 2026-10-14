@@ -207,6 +207,10 @@ Whole-model validation prepasses also use the compilation view: array-length pre
 global name indexing and variable-event preservation do not inspect excluded code. Reusing checked facts
 refreshes synthetic name-preservation markers for the view, so an earlier editor-wide check cannot retain
 an otherwise dead map global solely because an excluded unit registers a variable event for it.
+Preservation decisions are captured as source identities in private IM. Scoped compilation restores the
+editor's original synthetic annotations immediately after AST→IM preparation, including on failure and
+cancellation; private backend passes use the IM metadata. A regression translates the full model after
+the map build and checks preservation through IM copying, so later consumers do not depend on build history.
 Excluded Jass globals/functions have regression coverage on both targets and commands, including
 successful recompilation after removing the reference. This prevents incomplete scripts with PJass
 disabled and preserves the existing compilation source policy.

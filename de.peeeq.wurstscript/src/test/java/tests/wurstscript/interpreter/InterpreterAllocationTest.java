@@ -33,7 +33,7 @@ public class InterpreterAllocationTest {
         ImFunction function = JassIm.ImFunction(trace, "f", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
             JassIm.ImVars(local), JassIm.ImStmts(), Collections.emptyList());
         ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(function), JassIm.ImMethods(),
-            JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>());
+            JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>(), java.util.Set.of());
         return new ProgramState(new WurstGuiLogger(), prog, true);
     }
 

@@ -23,7 +23,7 @@ public class ProgramStateRecycleTest {
     public void reusesObjectIdsAfterDeallocateWithinIdSpace() {
         Element trace = Ast.NoExpr();
         ImClass clazz = JassIm.ImClass(trace, "A", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Collections.emptyList());
-        ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(clazz), JassIm.ImTypeClassFuncs(), new HashMap<>());
+        ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(clazz), JassIm.ImTypeClassFuncs(), new HashMap<>(), java.util.Set.of());
         ProgramState state = new ProgramState(new WurstGuiLogger(), prog, true);
 
         ImClassType classType = JassIm.ImClassType(clazz, JassIm.ImTypeArguments());
@@ -43,7 +43,7 @@ public class ProgramStateRecycleTest {
         ImClassType classASuperType = JassIm.ImClassType(classA, JassIm.ImTypeArguments());
         ImClass classC = JassIm.ImClass(trace, "C", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Collections.singletonList(classASuperType));
 
-        ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(classA, classB, classC), JassIm.ImTypeClassFuncs(), new HashMap<>());
+        ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(classA, classB, classC), JassIm.ImTypeClassFuncs(), new HashMap<>(), java.util.Set.of());
         ProgramState state = new ProgramState(new WurstGuiLogger(), prog, true);
 
         ImClassType typeA = JassIm.ImClassType(classA, JassIm.ImTypeArguments());
@@ -74,7 +74,7 @@ public class ProgramStateRecycleTest {
         ImClassType classASuperType = JassIm.ImClassType(classA, JassIm.ImTypeArguments());
         ImClass classC = JassIm.ImClass(trace, "C", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Collections.singletonList(classASuperType));
 
-        ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(classA, classB, classC), JassIm.ImTypeClassFuncs(), new HashMap<>());
+        ImProg prog = JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(classA, classB, classC), JassIm.ImTypeClassFuncs(), new HashMap<>(), java.util.Set.of());
         ProgramState state = new ProgramState(new WurstGuiLogger(), prog, true);
 
         ImClassType typeA = JassIm.ImClassType(classA, JassIm.ImTypeArguments());

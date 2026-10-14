@@ -4109,7 +4109,7 @@ public class OptimizerTests extends WurstScriptTest {
             JassIm.ImMethods(),
             JassIm.ImClasses(),
             JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>()
+            new java.util.HashMap<>(), java.util.Set.of()
         );
         LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
 
@@ -4144,7 +4144,7 @@ public class OptimizerTests extends WurstScriptTest {
             JassIm.ImMethods(),
             JassIm.ImClasses(),
             JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>()
+            new java.util.HashMap<>(), java.util.Set.of()
         );
 
         new LocalPlayerContextAnalyzer(prog);

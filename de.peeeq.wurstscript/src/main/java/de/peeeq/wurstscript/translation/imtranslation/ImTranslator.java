@@ -408,7 +408,8 @@ public class ImTranslator implements SpecialisationLookup {
         this.selectedCompilationUnits = Set.copyOf(compilationUnits);
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new Object2ObjectLinkedOpenHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(),
+            new Object2ObjectLinkedOpenHashMap<>(), NamePreservation.preservedVariables(compilationUnits));
         this.runArgs = runArgs;
     }
 
