@@ -595,9 +595,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         optimizer.removeGarbage();
         timeTaker.endPhase();
         imTranslator.assertFlat("before it is translated to Jass, which has no statement expression");
-        timeTaker.beginPhase("call relations");
-        getImTranslator().calculateCallRelationsAndReadVariables();
-        timeTaker.endPhase();
+        // The final garbage removal leaves current call relations; nothing modifies the program before emission.
         timeTaker.beginPhase("print IM as Jass");
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
