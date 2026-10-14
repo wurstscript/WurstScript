@@ -10,7 +10,7 @@ def job_blocks(workflow):
     jobs = re.split(r"^jobs:\s*$", workflow, maxsplit=1, flags=re.MULTILINE)
     if len(jobs) != 2:
         raise ValueError("expected a jobs section")
-    headers = list(re.finditer(r"^  ([\w-]+):([^\n]*)$", jobs[1], re.MULTILINE))
+    headers = list(re.finditer(r"^  ((?!#)[^\s:]+):([^\n]*)$", jobs[1], re.MULTILINE))
     if not headers:
         raise ValueError("expected block-style job definitions")
     for index, header in enumerate(headers):
@@ -47,8 +47,9 @@ class TimeoutPolicyTests(unittest.TestCase):
             check_limits("jobs:\n  first:\n    timeout-minutes: 25\n  second:\n    runs-on: ubuntu-latest\n")
 
     def test_inline_jobs_cannot_bypass_the_policy(self):
-        with self.assertRaisesRegex(ValueError, "second"):
-            check_limits("jobs:\n  first:\n    timeout-minutes: 25\n  second: {runs-on: ubuntu-latest}\n")
+        for name in ["second", "'second'", '"second"']:
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "second"):
+                check_limits(f"jobs:\n  first:\n    timeout-minutes: 25\n  {name}: {{runs-on: ubuntu-latest}}\n")
 
 
 if __name__ == "__main__":

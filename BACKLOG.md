@@ -206,7 +206,8 @@ Notes; finished-work narrative does not.
 - A test that hangs looks exactly like a test that is slow. If the suite stops making progress, take
   a thread dump of the forked worker (`jstack <pid>`) before killing it.
   Both Gradle test suites install `TestTimeoutWatchdog`: each test/configuration invocation has
-  3 minutes, then the worker dumps its threads and exits 124 (at most 2 seconds for diagnostics).
+  3 minutes for compiler tests, 1 minute for helpers, then the worker dumps its threads and exits 124
+  (at most 2 seconds for diagnostics).
   This keeps execution on the original thread and kills even uninterruptible work or stuck shutdown
   hooks. A timed-out worker loses its pending XML report; its method name and stacks are in the job log.
   Compiler/helper test tasks have 20/2-minute limits, CI jobs 25 minutes, release packaging 35 minutes;
