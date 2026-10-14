@@ -10,15 +10,17 @@ def job_blocks(workflow):
     jobs = re.split(r"^jobs:\s*$", workflow, maxsplit=1, flags=re.MULTILINE)
     if len(jobs) != 2:
         raise ValueError("expected a jobs section")
-    headers = list(re.finditer(r"^  ((?!#)[^\s:]+):([^\n]*)$", jobs[1], re.MULTILINE))
+    # A following root key ends the mapping; root comments do not.
+    mapping = re.split(r"^(?!#)\S", jobs[1], maxsplit=1, flags=re.MULTILINE)[0]
+    headers = list(re.finditer(r"^  ((?!#)[^\s:]+):([^\n]*)$", mapping, re.MULTILINE))
     if not headers:
         raise ValueError("expected block-style job definitions")
     for index, header in enumerate(headers):
         suffix = header.group(2).strip()
         if suffix and not suffix.startswith("#"):
             raise ValueError(f"job {header.group(1)} must use a block-style definition")
-        end = headers[index + 1].start() if index + 1 < len(headers) else len(jobs[1])
-        yield header.group(1), jobs[1][header.end():end]
+        end = headers[index + 1].start() if index + 1 < len(headers) else len(mapping)
+        yield header.group(1), mapping[header.end():end]
 
 
 def check_limits(workflow):
@@ -50,6 +52,10 @@ class TimeoutPolicyTests(unittest.TestCase):
         for name in ["second", "'second'", '"second"']:
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "second"):
                 check_limits(f"jobs:\n  first:\n    timeout-minutes: 25\n  {name}: {{runs-on: ubuntu-latest}}\n")
+
+    def test_top_level_sections_after_jobs_are_not_jobs(self):
+        check_limits("jobs:\n  build:\n    timeout-minutes: 25\n"
+                     "# A trailing root section is valid YAML.\npermissions:\n  contents: read\n")
 
 
 if __name__ == "__main__":
