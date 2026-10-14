@@ -10,10 +10,13 @@ def job_blocks(workflow):
     jobs = re.split(r"^jobs:\s*$", workflow, maxsplit=1, flags=re.MULTILINE)
     if len(jobs) != 2:
         raise ValueError("expected a jobs section")
-    headers = list(re.finditer(r"^  ([\w-]+):\s*$", jobs[1], re.MULTILINE))
+    headers = list(re.finditer(r"^  ([\w-]+):([^\n]*)$", jobs[1], re.MULTILINE))
     if not headers:
         raise ValueError("expected block-style job definitions")
     for index, header in enumerate(headers):
+        suffix = header.group(2).strip()
+        if suffix and not suffix.startswith("#"):
+            raise ValueError(f"job {header.group(1)} must use a block-style definition")
         end = headers[index + 1].start() if index + 1 < len(headers) else len(jobs[1])
         yield header.group(1), jobs[1][header.end():end]
 
@@ -42,6 +45,10 @@ class TimeoutPolicyTests(unittest.TestCase):
     def test_a_second_unbounded_job_is_not_hidden(self):
         with self.assertRaisesRegex(ValueError, "second"):
             check_limits("jobs:\n  first:\n    timeout-minutes: 25\n  second:\n    runs-on: ubuntu-latest\n")
+
+    def test_inline_jobs_cannot_bypass_the_policy(self):
+        with self.assertRaisesRegex(ValueError, "second"):
+            check_limits("jobs:\n  first:\n    timeout-minutes: 25\n  second: {runs-on: ubuntu-latest}\n")
 
 
 if __name__ == "__main__":
