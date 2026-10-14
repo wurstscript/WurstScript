@@ -15,6 +15,7 @@ jobs:
   validate:
     name: Validate release tag on master
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -24,6 +25,9 @@ jobs:
           fetch-depth: 0
       - name: Test release gate
         run: python scripts/test-release.py
+      - name: Check CI runtime limits
+        timeout-minutes: 1
+        run: python scripts/test-ci-timeouts.py
       - name: Validate tag and version
         id: version
         env:
@@ -40,7 +44,7 @@ jobs:
       contents: read
       checks: write
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - os: windows-latest
@@ -52,6 +56,7 @@ jobs:
           - os: macos-latest
             plat: macos-arm64
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
       JAVA_TOOL_OPTIONS: --enable-native-access=ALL-UNNAMED
@@ -103,8 +108,10 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: '1'
         run: brew install lua
       - name: Test game-data helpers
+        timeout-minutes: 5
         run: ./gradlew -p ../HelperScripts test --no-daemon --stacktrace --quiet
       - name: Test compiler and package runtime
+        timeout-minutes: 27
         run: ./gradlew test packageSlimCompilerDist --no-daemon --stacktrace
       - name: Verify packaged compiler version
         run: |
@@ -132,6 +139,7 @@ jobs:
     name: Publish complete versioned release
     needs: [validate, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     env:

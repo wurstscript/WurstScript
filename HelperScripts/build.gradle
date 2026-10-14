@@ -31,6 +31,13 @@ sourceSets {
     }
 }
 
+sourceSets.test.java.srcDir('../test-support')
+
 test {
-    useTestNG()
+    timeout = java.time.Duration.ofMinutes(2)
+    failFast = true
+    systemProperty 'wurst.test.timeoutMillis', project.findProperty('testTimeoutMillis') ?: '60000'
+    useTestNG {
+        listeners.add('org.wurstscript.testing.TestTimeoutWatchdog')
+    }
 }
