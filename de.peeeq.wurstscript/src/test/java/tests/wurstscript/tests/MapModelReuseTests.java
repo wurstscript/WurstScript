@@ -8,6 +8,9 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.utils.CompilationCancellation;
+import net.moonlightflower.wc3libs.port.Context;
+import net.moonlightflower.wc3libs.port.mac.MacGameExeFinder;
+import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -22,6 +25,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
+    @Test
+    public void runProbeDoesNotDiscoverAnInstalledGame() throws Exception {
+        Project project = project();
+        // A runner has no Warcraft installation. Discovery would open a modal folder chooser
+        // on Windows/macOS, so fail immediately if this compile-only fixture attempts it.
+        Context.pushService(WinGameExeFinder.class, new WinGameExeFinder() {
+            @Override public File find() { throw new AssertionError("RunProbe attempted Windows game discovery"); }
+        });
+        Context.pushService(MacGameExeFinder.class, new MacGameExeFinder() {
+            @Override public File find() { throw new AssertionError("RunProbe attempted macOS game discovery"); }
+        });
+        try {
+            compile(new RunProbe(project.root, List.of("-lua")), project, new WurstGuiCliImpl());
+        } finally {
+            Context.popService(MacGameExeFinder.class);
+            Context.popService(WinGameExeFinder.class);
+        }
+    }
+
     @Test(dataProvider = "commands")
     public void excludedVariableEventsDoNotPreserveSelectedGlobals(boolean build, boolean lua) throws Exception {
         Project project = project();
@@ -373,7 +395,10 @@ public class MapModelReuseTests {
     private static class RunProbe extends RunMap implements Probe {
         private WurstModel model;
         RunProbe(File root, List<String> args) {
-            super(null, WFile.create(root), Optional.empty(), Optional.empty(), args, Optional.empty());
+            // Only compilation is exercised; an explicit fixture path bypasses installation
+            // discovery and its modal folder chooser on runners without Warcraft.
+            super(null, WFile.create(root), Optional.empty(), Optional.empty(), args,
+                Optional.of(new File(root, "Warcraft III.exe").getAbsolutePath()));
         }
         @Override public File compile(WurstGui gui, ModelManager manager, File script) throws Exception {
             return compileScript(gui, manager, compileArgs, Optional.empty(), WurstProjectConfigData.empty(), false, script);
