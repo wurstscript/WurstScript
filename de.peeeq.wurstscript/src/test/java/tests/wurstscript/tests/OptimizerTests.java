@@ -4,6 +4,8 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.Element;
@@ -36,6 +38,66 @@ import java.util.Map;
 import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
+
+    /** The backend must consume the final removal's current graph, including callbacks and preserved entry points. */
+    @Test
+    public void jassTranslationReusesTheFinalGarbageRemovalsCallRelations() {
+        class CapturingTimeTaker extends TimeTaker.Default {
+            final java.util.Deque<String> phases = new java.util.ArrayDeque<>();
+            WurstCompilerJassImpl compiler;
+            com.google.common.collect.Multimap<ImFunction, ImFunction> finalRelations;
+
+            @Override public void beginPhase(String name) {
+                phases.push(name);
+            }
+
+            @Override public void endPhase() {
+                String finished = phases.pop();
+                if (finished.equals("remove garbage") && "translate to jass".equals(phases.peek())) {
+                    finalRelations = compiler.getImTranslator().getCalledFunctions();
+                }
+            }
+        }
+        for (boolean optimize : new boolean[]{false, true}) {
+            CapturingTimeTaker timeTaker = new CapturingTimeTaker();
+            WurstGuiCliImpl gui = new WurstGuiCliImpl();
+            RunArgs args = optimize ? new RunArgs().with("-inline", "-localOptimizations", "-opt") : new RunArgs();
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, null, gui, null, args);
+            timeTaker.compiler = compiler;
+            String source = String.join("\n",
+                "package Test",
+                "native register(code callback)",
+                "native effect()",
+                "@noinline function callback()",
+                "    effect()",
+                "@preserveName function externalEntry()",
+                "    effect()",
+                "function unused()",
+                "    effect()",
+                "init",
+                "    register(function callback)");
+            WurstModel model = parseFiles(Collections.emptyList(), List.of(new CU("ReuseRelations.wurst", source)),
+                false, compiler);
+            compiler.checkProg(model);
+            assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+            compiler.translateProgToIm(model);
+            compiler.runCompiletime(org.wurstscript.projectconfig.WurstProjectConfigData.empty(), false, false);
+            compiler.transformProgToJass();
+            assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+            assertNotNull(timeTaker.finalRelations, "the final removal must leave a call graph");
+            assertSame(compiler.getImTranslator().getCalledFunctions(), timeTaker.finalRelations,
+                "Jass emission must reuse the graph already calculated by the final garbage removal");
+            java.util.Set<String> callees = timeTaker.finalRelations.values().stream()
+                .map(f -> f.getTrace() instanceof de.peeeq.wurstscript.ast.FunctionDefinition definition
+                    ? definition.getName() : f.getName())
+                .collect(java.util.stream.Collectors.toSet());
+            assertTrue(callees.contains("callback"), callees.toString());
+            assertTrue(callees.contains("effect"), callees.toString());
+            assertFalse(callees.contains("unused"), callees.toString());
+            assertTrue(timeTaker.finalRelations.keySet().stream().anyMatch(f -> f.getName().equals("externalEntry")),
+                "the graph must retain the externally preserved entry point");
+        }
+    }
 
     /**
      * A common.j converter changes and reads nothing, so a call whose result nothing uses goes. The list is by name,
