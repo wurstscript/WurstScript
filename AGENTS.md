@@ -473,3 +473,23 @@ The game is the specification; the IM interpreter, the Lua test runtime and Bliz
 ## 12. Warcraft III Game Data Generation
 
 For refreshing object-data knowledge and ability-editing sources from the installed game, use the in-house sibling `../casc-ts` reader and follow [`HelperScripts/GAMEDATA.md`](HelperScripts/GAMEDATA.md). Do not use CascView or online game-data mirrors. Keep the extraction snapshot in ignored `HelperScripts/gamedata/`; generated JSON resources and ability-editing Wurst sources are checked in or merged into WurstStdlib2 as described in that guide.
+
+## 13. Release summaries
+
+When preparing and pushing an authorized semantic compiler release tag, the agent
+must also write a short user-facing summary of the changes since the previous
+semantic release. Group related changes into their overall impact (for example,
+"Faster overall map builds"), rather than listing internal optimizations or PR
+titles. Prioritize useful features, build performance, correctness, and compatibility;
+do not invent benchmarks or benefits.
+
+Prepare the release notes before pushing the tag. Start them with `## Highlights`
+and one to three flat, single-line bullets of at most 160 characters each, followed
+by the detailed changelog. Immediately after pushing the tag, create or update its
+GitHub draft release with those notes while the release builds run. The existing
+publish workflow preserves an existing draft's body; ensure the summary is present
+before publication. GitHub's generated changelog may be appended using
+`gh release create --draft --verify-tag --notes-file <file> --generate-notes`.
+
+This summary is written by the release-preparing agent and belongs to the compiler's
+GitHub release. The VS Code extension reads its `## Highlights` section automatically.
