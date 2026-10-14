@@ -23,9 +23,7 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
       - name: Test release gate
-        run: |
-          python scripts/test-release.py
-          python scripts/test-generate-release-notes.py
+        run: python scripts/test-release.py
       - name: Validate tag and version
         id: version
         env:
@@ -165,21 +163,6 @@ jobs:
             test -s "$file"
             sha256sum "$file" > "$file.sha256"
           done
-      - name: Generate user-facing release highlights
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          RELEASE_SUMMARY_MODEL: ${{ vars.RELEASE_SUMMARY_MODEL }}
-        run: |
-          set -euo pipefail
-          gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" --field tag_name="$RELEASE_TAG" --jq .body > compiler-changelog.md
-          python scripts/generate-release-notes.py "$RELEASE_VERSION" compiler-changelog.md release-notes.md
-      - uses: actions/upload-artifact@v4
-        with:
-          name: compiler-release-notes
-          overwrite: true
-          path: release-notes.md
-          if-no-files-found: error
-          retention-days: 14
       # Publish only after every platform passed; never update a published release.
       - name: Publish release
         run: |
@@ -190,7 +173,7 @@ jobs:
               exit 1
             fi
           else
-            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --notes-file release-notes.md
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" --generate-notes
           fi
           gh release upload "$RELEASE_TAG" release-assets/* --clobber
-          gh release edit "$RELEASE_TAG" --notes-file release-notes.md --draft=false --latest
+          gh release edit "$RELEASE_TAG" --draft=false --latest
