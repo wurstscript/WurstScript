@@ -1,0 +1,248 @@
+package tests.wurstscript.tests;
+
+import de.peeeq.wurstio.languageserver.*;
+import de.peeeq.wurstio.languageserver.requests.*;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.testng.Assert.*;
+
+public class MapModelReuseTests {
+    @DataProvider(name = "commands")
+    public Object[][] commands() {
+        return new Object[][]{{false, false}, {false, true}, {true, false}, {true, true}};
+    }
+
+    @Test(dataProvider = "commands")
+    public void scopedRunAndBuildReuseTheManagedModelAfterEdits(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        WurstModel original = project.manager.getModel();
+        String first = compile(request, project, new WurstGuiCliImpl());
+        assertSame(request.model(), original, "cancellation must not force an unchecked AST copy");
+        assertTrue(project.manager.isFullyChecked(original));
+        assertEquals(compile(request, project, new WurstGuiCliImpl()), first);
+        assertEquals(project.manager.cleanCalls, 0, "map compilation must not clean/reparse the editor model");
+
+        String edited = source(17);
+        Files.writeString(project.source.toPath(), edited);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), edited));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        String afterEdit = compile(request, project, new WurstGuiCliImpl());
+        assertNotEquals(afterEdit, first, "the edited method must reach the emitted script");
+
+        Project freshProject = new Project(project.root, project.source, project.script, new CountingManager(project.root));
+        freshProject.manager.buildProject();
+        Probe freshRequest = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        assertEquals(compile(freshRequest, freshProject, new WurstGuiCliImpl()), afterEdit,
+            "reusing the edited model must emit the same script as a fresh parse/check");
+        assertSame(request.model(), original);
+        assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    @Test
+    public void cancellationDuringSharedPreparationLeavesAUsableCheckedModel() throws Exception {
+        Project project = project();
+        String edited = source(23);
+        Files.writeString(project.source.toPath(), edited);
+        project.manager.syncCompilationUnitContent(WFile.create(project.source), edited);
+        assertFalse(project.manager.isFullyChecked(project.manager.getModel()));
+        AtomicBoolean canceled = new AtomicBoolean();
+        AtomicBoolean checkedStarted = new AtomicBoolean();
+        WurstGui gui = new WurstGuiCliImpl() {
+            @Override public void sendProgress(String message) {
+                if (message.equals("Checking Files")) {
+                    checkedStarted.set(true);
+                    canceled.set(true);
+                }
+                CompilationCancellation.check();
+            }
+        };
+        Probe request = new RunProbe(project.root, List.of("-lua"));
+        expectThrows(CancellationException.class, () -> CompilationCancellation.run(canceled::get,
+            () -> request.compile(gui, project.manager, project.script)));
+        assertTrue(checkedStarted.get());
+        assertTrue(project.manager.isFullyChecked(project.manager.getModel()),
+            "shared preparation must finish before honoring cancellation");
+        assertEquals(gui.getErrorCount(), 0);
+        CompilationCancellation.check();
+        compile(new RunProbe(project.root, List.of("-lua")), project, new WurstGuiCliImpl());
+        assertFalse(project.manager.hasErrors());
+        assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    @Test
+    public void cancellationDuringPrivateCompiletimeWorkKeepsTheModelReusable() throws Exception {
+        Project project = project();
+        AtomicBoolean canceled = new AtomicBoolean();
+        WurstGui gui = new WurstGuiCliImpl() {
+            @Override public void sendProgress(String message) {
+                if (message.equals("Running compiletime functions")) canceled.set(true);
+                CompilationCancellation.check();
+            }
+        };
+        Probe request = new RunProbe(project.root, List.of("-lua", "-runcompiletimefunctions"));
+        expectThrows(CancellationException.class, () -> CompilationCancellation.run(canceled::get,
+            () -> request.compile(gui, project.manager, project.script)));
+        assertTrue(canceled.get(), "private compilation must remain cancellable");
+        assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
+        assertEquals(gui.getErrorCount(), 0);
+        String afterCancel = compile(new RunProbe(project.root, List.of("-lua")), project, new WurstGuiCliImpl());
+        Project fresh = new Project(project.root, project.source, project.script, new CountingManager(project.root));
+        fresh.manager.buildProject();
+        assertEquals(compile(new RunProbe(project.root, List.of("-lua")), fresh, new WurstGuiCliImpl()), afterCancel);
+        assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    @Test(dataProvider = "commands")
+    public void invalidEditsFailAndARepairNeedsNoClean(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        String invalid = source(7).replace("return result", "return missingValue");
+        Files.writeString(project.source.toPath(), invalid);
+        project.manager.syncCompilationUnitContent(WFile.create(project.source), invalid);
+        WurstGui gui = new WurstGuiCliImpl();
+        expectThrows(RuntimeException.class, () -> CompilationCancellation.run(() -> false,
+            () -> request.compile(gui, project.manager, project.script)));
+        assertTrue(gui.getErrors().contains("missingValue"), gui.getErrors());
+        assertFalse(project.manager.isFullyChecked(project.manager.getModel()));
+
+        String repaired = source(31);
+        Files.writeString(project.source.toPath(), repaired);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), repaired));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        compile(request, project, new WurstGuiCliImpl());
+        assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
+        assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    @Test(dataProvider = "commands")
+    public void changedConfiguredScriptIsCheckedBeforeReusingTheModel(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File baseScript = new File(project.root, "wurst/war3map.j");
+        String base = configuredScript(1);
+        Files.writeString(baseScript.toPath(), base);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(baseScript), base));
+        String main = source(7) + "public int fromMap = getConfigured()\n"
+            + "init\n    BJDebugMsg(I2S(fromMap))\n";
+        Files.writeString(project.source.toPath(), main);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), main));
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+
+        Files.writeString(project.script.toPath(), configuredScript(2));
+        String first = compile(request, project, new WurstGuiCliImpl());
+        assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
+        Files.writeString(project.script.toPath(), configuredScript(3));
+        String changed = compile(request, project, new WurstGuiCliImpl());
+        assertNotEquals(changed, first);
+        assertEquals(compile(request, project, new WurstGuiCliImpl()), changed);
+
+        Project fresh = new Project(project.root, project.source, project.script, new CountingManager(project.root));
+        fresh.manager.buildProject();
+        Probe freshRequest = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        assertEquals(compile(freshRequest, fresh, new WurstGuiCliImpl()), changed);
+        assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    private static String configuredScript(int value) {
+        return "function main takes nothing returns nothing\nendfunction\n"
+            + "function getConfigured takes nothing returns integer\n    return " + value + "\nendfunction\n";
+    }
+
+    private static String compile(Probe request, Project project, WurstGui gui) throws Exception {
+        File[] output = new File[1];
+        CompilationCancellation.run(() -> false, () -> output[0] = request.compile(gui, project.manager, project.script));
+        assertEquals(gui.getErrorCount(), 0, gui.getErrors());
+        return Files.readString(output[0].toPath());
+    }
+
+    private static Project project() throws Exception {
+        File root = Files.createTempDirectory("wurst-map-model-reuse").toFile();
+        File wurst = new File(root, "wurst");
+        assertTrue(wurst.mkdirs());
+        Files.writeString(new File(root, "wurst.build").toPath(), "projectName: Test\nwc3Patch: v2.0\n");
+        Files.writeString(new File(wurst, "Wurst.wurst").toPath(), "package Wurst\n");
+        File source = new File(wurst, "Main.wurst");
+        Files.writeString(source.toPath(), source(7));
+        String jass = "function main takes nothing returns nothing\nendfunction\n";
+        Files.writeString(new File(wurst, "war3map.j").toPath(), jass);
+        File script = new File(root, "configured.j");
+        Files.writeString(script.toPath(), jass);
+        CountingManager manager = new CountingManager(root);
+        manager.buildProject();
+        assertFalse(manager.hasErrors(), manager.getFirstErrorDescription());
+        return new Project(root, source, script, manager);
+    }
+
+    private static String source(int value) {
+        return "package Main\nimport NoWurst\n"
+            + "module Value<T>\n    T stored\n    function get() returns T\n        return stored\n"
+            + "class Box<T>\n    use Value<T>\n    construct(T value)\n        stored = value\n"
+            + "class Modern<T:>\n    T stored\n    construct(T value)\n        stored = value\n"
+            + "function answer() returns int\n    let old = new Box<int>(" + value + ")\n"
+            + "    let newer = new Modern<int>(5)\n    let result = old.get() + newer.stored\n"
+            + "    destroy old\n    destroy newer\n    return result\n"
+            + "public int result = answer()\n";
+    }
+
+    private record Project(File root, File source, File script, CountingManager manager) {}
+
+    private static class CountingManager extends ModelManagerImpl {
+        int cleanCalls;
+        CountingManager(File root) { super(root, new BufferManager()); }
+        @Override public void clean() { cleanCalls++; super.clean(); }
+    }
+
+    private interface Probe {
+        File compile(WurstGui gui, ModelManager manager, File script) throws Exception;
+        WurstModel model();
+    }
+
+    private static class RunProbe extends RunMap implements Probe {
+        private WurstModel model;
+        RunProbe(File root, List<String> args) {
+            super(null, WFile.create(root), Optional.empty(), Optional.empty(), args, Optional.empty());
+        }
+        @Override public File compile(WurstGui gui, ModelManager manager, File script) throws Exception {
+            return compileScript(gui, manager, compileArgs, Optional.empty(), WurstProjectConfigData.empty(), false, script);
+        }
+        @Override public WurstModel model() { return model; }
+        @Override protected File compileMap(ModelManager manager, File root, WurstGui gui, Optional<File> map,
+            RunArgs args, WurstModel model, WurstProjectConfigData config, boolean prod) {
+            this.model = model;
+            return super.compileMap(manager, root, gui, map, args, model, config, prod);
+        }
+    }
+
+    private static class BuildProbe extends BuildMap implements Probe {
+        private WurstModel model;
+        BuildProbe(File root, List<String> args) {
+            super(null, WFile.create(root), Optional.empty(), Optional.empty(), args);
+        }
+        @Override public File compile(WurstGui gui, ModelManager manager, File script) throws Exception {
+            return compileScript(gui, manager, compileArgs, Optional.empty(), WurstProjectConfigData.empty(), true, script);
+        }
+        @Override public WurstModel model() { return model; }
+        @Override protected File compileMap(ModelManager manager, File root, WurstGui gui, Optional<File> map,
+            RunArgs args, WurstModel model, WurstProjectConfigData config, boolean prod) {
+            this.model = model;
+            return super.compileMap(manager, root, gui, map, args, model, config, prod);
+        }
+    }
+}

@@ -29,8 +29,6 @@ public class CliBuildMap extends MapRequest {
     public CliBuildMap(WFile workspaceRoot, Optional<File> map, List<String> compileArgs, Optional<String> wc3Path, WurstGui gui) {
         super(null, map, compileArgs, workspaceRoot, wc3Path, Optional.empty());
         this.gui = gui;
-        this.rebuildModelBeforeCompile = false;
-        this.safeCompilation = SafetyLevel.QuickAndDirty;
     }
 
     @Override

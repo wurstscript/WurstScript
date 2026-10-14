@@ -6,11 +6,10 @@ Notes; finished-work narrative does not.
 
 ## Open
 
-- **One model for run and build.** Run and build keep two ways to compile (`SafetyLevel`: the managed
-  model as it is, or a clean, rebuild and copy) because the incremental model was not trusted to be
-  complete. `IncrementalModelOracleTests` compares the model after random edits with a build from
-  scratch (`INCREMENTAL_ORACLE_SEEDS=100` runs 100 seeds) and found two propagation gaps, both fixed.
-  What is left: a `.j` change makes `calculateCUsToUpdate` return the whole model, and a compilation
+- **Incremental map-script declarations and build source policy.** Run, editor build and CLI build use
+  the managed model; cancellation is honored at safe boundaries around shared AST preparation and
+  throughout the private IM/backend work. See `docs/RUNMAP_PERFORMANCE.md`. What is left:
+  a `.j` change makes `calculateCUsToUpdate` return the whole model, and a compilation
   swaps the map script with the project config applied into the model (`replaceBaseScriptWithConfig`).
   The swap changes only function bodies (`config`, `InitCustomPlayerSlots`, ...) yet invalidates every
   attribute, so the first compilation of a model checks all of it again; later ones skip the check. The
@@ -19,12 +18,11 @@ Notes; finished-work narrative does not.
   run still checks again. The swap's own cost in the language server was not isolated: on castle fight
   without optimisations the first build of a model takes 21 s and later ones 11 to 12 s in one JVM, and
   the stage samples show most of the difference in passes the swap does not touch, so JIT warm-up. Next,
-  in this order: keep the unchanged top-level
-  declarations of a changed Jass file and re-check only the units which mention a changed name; then
-  drop `SafetyLevel` (purging unimported units from the managed model in `compileMap` changes it for the
-  next run, and a build could compare file hashes instead of cleaning). Run and build both read the
-  open editor buffers today (`readCompilationUnitContents` prefers an open buffer, also in the rebuild after
-  `clean()`), so a build can contain text which is not on disk, while grill reads the disk. wurst4vscode
+  keep the unchanged top-level declarations of a changed Jass file and re-check only the units which
+  mention a changed name. Purging unimported units from the managed model in `compileMap` changes it
+  for the next run; consider retaining an import-root view instead. Run and build consume the current
+  editor model (`readCompilationUnitContents` prefers an open buffer), so a build can contain text
+  which is not on disk, while grill reads the disk. wurst4vscode
   sends `wurst.buildmap` and `wurst.startmap` without saving the open files first. Whether a build should
   save first, or refuse unsaved files, is open.
 

@@ -115,25 +115,10 @@ public abstract class MapRequest extends UserRequest<Object> {
     /** RunArgs flag (see {@link RunArgs}) that relaxes Jass type checks and skips PJass; injected for pre-1.24 targets. */
     private static final String LEGACY_JASS_CHECKS_ARG = "-legacyJassChecks";
 
-    /**
-     * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
-     */
-    protected SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
-
-    /**
-     * Whether compiling first cleans and rebuilds the project model. That discards state from the editor,
-     * which a CLI build does not have: it has built the model itself immediately before.
-     */
-    protected boolean rebuildModelBeforeCompile = true;
-
     public TimeTaker getTimeTaker() {
         return timeTaker;
     }
 
-
-    enum SafetyLevel {
-        QuickAndDirty, KindOfSafe
-    }
 
     public static class CompilationResult {
         public File script;
@@ -229,20 +214,16 @@ public abstract class MapRequest extends UserRequest<Object> {
                 // The cached map holds the object data written back by the previous run, so start from the source map's.
                 compiler.setObjectDataSource(map.get());
             }
-            purgeUnimportedFiles(modelManager, model);
-
-            gui.sendProgress("Check program");
-            timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs));
-
-            if (gui.getErrorCount() > 0) {
-                throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
-            }
-
-            print("translating program ... ");
-            compiler.translateProgToIm(model);
-
-            if (gui.getErrorCount() > 0) {
-                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
+            if (model == modelManager.getModel()) {
+                // The language worker owns this model. Finish its mutations and attribute calculations before
+                // honoring cancellation; throwing out of a generated attribute leaves its cache in progress.
+                // From here on compilation mutates private IM, not the shared AST.
+                CompilationCancellation.check();
+                CompilationCancellation.run(() -> false,
+                    () -> prepareImProgram(modelManager, compiler, model, gui, runArgs));
+                CompilationCancellation.check();
+            } else {
+                prepareImProgram(modelManager, compiler, model, gui, runArgs);
             }
 
             if (runArgs.isRunTests()) {
@@ -318,6 +299,22 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void prepareImProgram(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
+                                  WurstGui gui, RunArgs runArgs) {
+        purgeUnimportedFiles(modelManager, model);
+        gui.sendProgress("Check program");
+        timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs));
+        if (gui.getErrorCount() > 0) {
+            throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
+        }
+        print("translating program ... ");
+        compiler.translateProgToIm(model);
+        if (gui.getErrorCount() > 0) {
+            throw new RequestFailedException(MessageType.Error,
+                "Could not compile project (error in translation): " + gui.getErrorList().get(0));
         }
     }
 
@@ -449,24 +446,14 @@ public abstract class MapRequest extends UserRequest<Object> {
             WLogger.debug("dep: " + dep.getPath());
         }
         print("Dependencies done.");
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && rebuildModelBeforeCompile) {
-            // it is safer to rebuild the project, instead of taking the current editor state
-            gui.sendProgress("Cleaning project");
-            gui.sendProgress("Building project");
-            // A shared-model rebuild must finish as a unit; cancellation resumes on the
-            // private compilation copy, rather than leaving editor state half initialized.
-            CompilationCancellation.run(() -> false, () -> {
-                timeTaker.measure("Rebuild project", () -> {
-                    modelManager.clean();
-                    modelManager.buildProject();
-                });
-            });
-        }
-
-        timeTaker.beginPhase("Replace map script");
-        replaceBaseScriptWithConfig(modelManager, scriptFile);
-        timeTaker.endPhase();
-        timeTaker.measure("Typecheck project with map script", () -> checkModelWithMapScript(modelManager, gui, runArgs));
+        CompilationCancellation.check();
+        CompilationCancellation.run(() -> false, () -> {
+            timeTaker.beginPhase("Replace map script");
+            replaceBaseScriptWithConfig(modelManager, scriptFile);
+            timeTaker.endPhase();
+            timeTaker.measure("Typecheck project with map script", () -> checkModelWithMapScript(modelManager, gui, runArgs));
+        });
+        CompilationCancellation.check();
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -476,14 +463,6 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         WurstModel model = modelManager.getModel();
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty
-            || CompilationCancellation.isScoped()) {
-            // compilation will alter the model (e.g. remove unused imports),
-            // so it is safer to create a copy
-            WurstModel original = model;
-            model = timeTaker.measure("Copy model", () -> ModelManager.copy(original));
-        }
-
         return compileMap(modelManager, modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
     }
 

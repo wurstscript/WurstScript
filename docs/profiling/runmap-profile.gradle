@@ -1,0 +1,35 @@
+// Run from de.peeeq.wurstscript with -I ../docs/profiling/runmap-profile.gradle.
+allprojects {
+    afterEvaluate {
+        tasks.register('compileRunMapProfile', JavaCompile) {
+            dependsOn tasks.named('classes')
+            source files('../docs/profiling/RunMapProfile.java', '../docs/profiling/RunMapProfileReport.java')
+            classpath = sourceSets.main.runtimeClasspath
+            destinationDirectory = layout.buildDirectory.dir('runmap-profile')
+            javaCompiler = javaToolchains.compilerFor(java.toolchain)
+            options.errorprone.enabled = false
+        }
+        tasks.register('runMapProfile', JavaExec) {
+            dependsOn tasks.named('compileRunMapProfile')
+            def runtime = sourceSets.main.runtimeClasspath
+            if (project.hasProperty('profileCompilerClasses')) {
+                runtime = files(project.property('profileCompilerClasses')) +
+                    (runtime - sourceSets.main.output.classesDirs)
+            }
+            classpath = files(layout.buildDirectory.dir('runmap-profile')) + runtime
+            mainClass = 'RunMapProfile'
+            args file(project.property('profileRoot')).absolutePath,
+                project.property('profileMap'), file('temp/' + project.property('profileLabel')).absolutePath
+            workingDir file(project.property('profileRoot'))
+            maxHeapSize = '4g'
+            jvmArgs '-XX:+UseParallelGC'
+            if (project.hasProperty('diagnosticNoCopy')) jvmArgs '-Dprofile.unscoped=true'
+        }
+        tasks.register('runMapProfileReport', JavaExec) {
+            dependsOn tasks.named('compileRunMapProfile')
+            classpath = files(layout.buildDirectory.dir('runmap-profile'))
+            mainClass = 'RunMapProfileReport'
+            args file('temp/' + project.property('profileLabel') + '.jfr').absolutePath
+        }
+    }
+}
