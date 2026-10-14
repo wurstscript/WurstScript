@@ -23,6 +23,37 @@ import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
     @Test(dataProvider = "commands")
+    public void excludedNativeTypesFailBeforeEmission(boolean build, boolean lua) throws Exception {
+        for (String script : List.of(
+            "globals\neditorhandle selectedGlobal = null\nendglobals\n"
+                + "function main takes nothing returns nothing\ncall DestroyTrigger(selectedGlobal)\nendfunction\n",
+            "type selectedhandle extends editorhandle\nglobals\nselectedhandle selectedGlobal = null\nendglobals\n"
+                + "function main takes nothing returns nothing\ncall DestroyTrigger(selectedGlobal)\nendfunction\n",
+            "function selectedHelper takes editorhandle value returns nothing\n"
+                + "call DestroyTrigger(value)\nendfunction\n"
+                + "function main takes nothing returns nothing\ncall selectedHelper(null)\nendfunction\n",
+            "function selectedHelper takes nothing returns editorhandle\nreturn null\nendfunction\n"
+                + "function main takes nothing returns nothing\ncall DestroyTrigger(selectedHelper())\nendfunction\n")) {
+            Project project = project();
+            File extra = new File(project.root, "wurst/editor-only.j");
+            String declaration = "type editorhandle extends trigger\n";
+            Files.writeString(extra.toPath(), declaration);
+            project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(extra), declaration));
+            File base = new File(project.root, "wurst/war3map.j");
+            Files.writeString(base.toPath(), script);
+            project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(base), script));
+            assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+            Files.writeString(project.script.toPath(), script);
+            List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+            Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+            CompileError error = expectThrows(CompileError.class,
+                () -> compile(request, project, new WurstGuiCliImpl()));
+            assertTrue(error.getMessage().contains("not included in this map compilation"), error.getMessage());
+            assertTrue(error.getMessage().contains("editor-only.j"), error.getMessage());
+        }
+    }
+
+    @Test(dataProvider = "commands")
     public void excludedEditorUnitsDoNotBlockConfiguredScriptCompilation(boolean build, boolean lua) throws Exception {
         Project project = project();
         File base = new File(project.root, "wurst/war3map.j");

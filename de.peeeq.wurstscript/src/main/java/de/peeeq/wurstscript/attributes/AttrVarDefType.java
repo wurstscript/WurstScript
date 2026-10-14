@@ -143,7 +143,7 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(NativeType n) {
-        WurstNativeType base = WurstNativeType.instance(n.getName(), n.getOptTyp().attrTyp());
+        WurstNativeType base = WurstNativeType.instance(n, n.getOptTyp().attrTyp());
         return new WurstTypeStaticTypeRef(base);
     }
 

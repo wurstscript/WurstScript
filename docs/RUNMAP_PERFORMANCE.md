@@ -200,6 +200,9 @@ changes, so their reverse dependencies cannot block an otherwise valid compilati
 builds still skip validation of the selected units. Because name resolution can find definitions outside
 the compilation view, AST→IM rejects
 references to excluded function, variable or class definitions before creating their IM representation.
+Native types retain their source declarations too; translating one verifies its definition and all native
+supertypes, including default-value translation. Regressions cover globals, parameters, return types and
+a selected subtype whose parent is excluded, on both targets and commands.
 Excluded Jass globals/functions have regression coverage on both targets and commands, including
 successful recompilation after removing the reference. This prevents incomplete scripts with PJass
 disabled and preserves the existing compilation source policy.

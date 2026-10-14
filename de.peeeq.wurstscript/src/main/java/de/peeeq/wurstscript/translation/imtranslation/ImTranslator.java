@@ -1853,7 +1853,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     /** A checked editor model can resolve names outside the map's selected compilation units. */
-    private void requireCompilationUnit(de.peeeq.wurstscript.ast.Element definition) {
+    public void requireCompilationUnit(de.peeeq.wurstscript.ast.Element definition) {
         CompilationUnit cu = definition.attrCompilationUnit();
         if (cu != null && !selectedCompilationUnits.contains(cu)) {
             throw new CompileError(definition.attrSource(), "Referenced declaration from "
