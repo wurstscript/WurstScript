@@ -157,10 +157,7 @@ dependencies {
     implementation 'commons-lang:commons-lang:2.6'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
-    // wc3libs requests a release tag, which otherwise wins over a commit pin.
-    implementation('com.github.inwc3:JMPQ3') {
-        version { strictly 'a7a771b48ba190f0e8734d20249efc1d72d2ed3a' }
-    }
+    implementation 'com.github.inwc3:JMPQ3:v2.0.2'
     implementation 'com.github.inwc3:wc3libs:0542c41400'
     implementation 'com.github.wurstscript:wurst-project-config:1897c53'
     implementation 'org.slf4j:slf4j-api:2.0.17'
