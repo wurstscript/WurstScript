@@ -23,6 +23,31 @@ import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
     @Test(dataProvider = "commands")
+    public void excludedEditorUnitsDoNotBlockConfiguredScriptCompilation(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File base = new File(project.root, "wurst/war3map.j");
+        String script = configuredScript(1);
+        Files.writeString(base.toPath(), script);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(base), script));
+        File extra = new File(project.root, "wurst/editor-only.j");
+        String editorOnly = "function unusedEditorHelper takes nothing returns integer\n"
+            + "return getConfigured()\nendfunction\n";
+        Files.writeString(extra.toPath(), editorOnly);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(extra), editorOnly));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        Files.writeString(project.script.toPath(), "function main takes nothing returns nothing\nendfunction\n");
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        int units = project.manager.getModel().size();
+        String output = compile(request, project, new WurstGuiCliImpl());
+        assertFalse(output.contains("unusedEditorHelper"));
+        assertEquals(project.manager.getModel().size(), units);
+        assertFalse(project.manager.isFullyChecked(project.manager.getModel()), "excluded units remain unchecked");
+        assertEquals(compile(request, project, new WurstGuiCliImpl()), output);
+        assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    @Test(dataProvider = "commands")
     public void referencesToExcludedJassDefinitionsFailBeforeEmission(boolean build, boolean lua) throws Exception {
         for (String expression : List.of("editorOnly", "editorHelper()")) {
             Project project = project();

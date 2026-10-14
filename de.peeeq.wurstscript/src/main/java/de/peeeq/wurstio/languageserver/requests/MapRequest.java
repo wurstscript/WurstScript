@@ -187,14 +187,19 @@ public abstract class MapRequest extends UserRequest<Object> {
      */
     public static void checkModel(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
                                   RunArgs runArgs) {
+        checkModel(modelManager, compiler, model, runArgs, model);
+    }
+
+    private static void checkModel(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
+                                   RunArgs runArgs, Collection<CompilationUnit> units) {
         boolean sameChecks = checksLikeTheModelManager(runArgs);
-        if (sameChecks && modelManager.isFullyChecked(model)) {
+        if (sameChecks && modelManager.isChecked(model, units)) {
             compiler.adoptCheckedModel(model);
             return;
         }
-        boolean validated = compiler.checkProg(model);
+        boolean validated = compiler.checkProg(model, units);
         if (sameChecks && validated && compiler.getErrorHandler().getErrorCount() == 0) {
-            modelManager.markFullyChecked(model);
+            modelManager.markChecked(model, units);
         }
     }
 
@@ -304,14 +309,15 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     private void prepareImProgram(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
                                   WurstGui gui, RunArgs runArgs) {
+        Set<CompilationUnit> compilationUnits = compilationUnits(model);
+        List<CompilationUnit> units = model.stream().filter(compilationUnits::contains).toList();
         gui.sendProgress("Check program");
-        timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs));
+        timeTaker.measure("Typecheck program", () -> checkModel(modelManager, compiler, model, runArgs, units));
         if (gui.getErrorCount() > 0) {
             throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
         }
-        Set<CompilationUnit> compilationUnits = compilationUnits(model);
         print("translating program ... ");
-        compiler.translateProgToIm(model, model.stream().filter(compilationUnits::contains).toList());
+        compiler.translateProgToIm(model, units);
         if (gui.getErrorCount() > 0) {
             throw new RequestFailedException(MessageType.Error,
                 "Could not compile project (error in translation): " + gui.getErrorList().get(0));

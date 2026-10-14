@@ -194,7 +194,11 @@ Compilation now selects an import-root view for AST→IM without changing the ma
 ordering, class/interface discovery and error-helper selection use that view; package ordering follows
 the original package index. A focused repro fails with the old pruning path and covers preservation of
 editor units and configured globals, alongside fresh-build comparison on both targets and commands.
-Because checking the editor model can resolve names outside the compilation view, AST→IM rejects
+Validation checks the selected units against the editor model's namespace and records only those units
+as checked. Excluded units stay in the editor model and remain unchecked when the configured script
+changes, so their reverse dependencies cannot block an otherwise valid compilation. Repeated unchanged
+builds still skip validation of the selected units. Because name resolution can find definitions outside
+the compilation view, AST→IM rejects
 references to excluded function, variable or class definitions before creating their IM representation.
 Excluded Jass globals/functions have regression coverage on both targets and commands, including
 successful recompilation after removing the reference. This prevents incomplete scripts with PJass
