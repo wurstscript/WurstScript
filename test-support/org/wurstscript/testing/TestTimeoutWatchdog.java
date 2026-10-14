@@ -20,7 +20,7 @@ public final class TestTimeoutWatchdog implements IInvokedMethodListener {
     // The process pipe remains visible even with showStandardStreams=false / --quiet.
     private static final PrintStream diagnostics =
         new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8);
-    private final long timeoutMillis = Long.getLong("wurst.test.timeoutMillis", 180_000L);
+    private final long timeoutMillis = readTimeoutMillis();
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(task -> {
         Thread thread = new Thread(task, "test-timeout-watchdog");
         thread.setDaemon(true);
@@ -29,8 +29,16 @@ public final class TestTimeoutWatchdog implements IInvokedMethodListener {
     private ScheduledFuture<?> pending;
     private Object active;
 
-    public TestTimeoutWatchdog() {
-        if (timeoutMillis <= 0) throw new IllegalArgumentException("wurst.test.timeoutMillis must be positive");
+    private static long readTimeoutMillis() {
+        String value = System.getProperty("wurst.test.timeoutMillis", "180000");
+        String message = "wurst.test.timeoutMillis must be a positive whole number of milliseconds: " + value;
+        try {
+            long timeout = Long.parseLong(value);
+            if (timeout <= 0) throw new IllegalArgumentException(message);
+            return timeout;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException(message, error);
+        }
     }
 
     @Override

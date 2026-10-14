@@ -40,7 +40,24 @@ public class TestTimeoutWatchdogTests {
         assertFalse(result.output.contains("TEST TIMEOUT:"), result.output);
     }
 
+    @DataProvider
+    public Object[][] invalidTimeouts() {
+        return new Object[][] {{"60000x"}, {"9223372036854775808"}, {"0"}, {"-1"}};
+    }
+
+    @Test(dataProvider = "invalidTimeouts")
+    public void rejectsMalformedTimeoutOverrides(String value) throws Exception {
+        Result result = probe("completed", value);
+        assertEquals(result.exit, 1, result.output);
+        assertTrue(result.output.contains("wurst.test.timeoutMillis must be a positive whole number"), result.output);
+        assertTrue(result.output.contains(value), result.output);
+    }
+
     private static Result probe(String mode) throws Exception {
+        return probe(mode, "250");
+    }
+
+    private static Result probe(String mode, String timeout) throws Exception {
         Set<String> classpath = new LinkedHashSet<>();
         for (Class<?> dependency : new Class<?>[] {TestTimeoutWatchdogTests.class,
             TestTimeoutWatchdog.class, TestNG.class, org.slf4j.LoggerFactory.class,
@@ -50,7 +67,7 @@ public class TestTimeoutWatchdogTests {
         Path output = Files.createTempFile("test-timeout-probe-", ".log");
         Process process = new ProcessBuilder(
             Path.of(System.getProperty("java.home"), "bin", "java").toString(),
-            "-Dwurst.test.timeoutMillis=250", "-cp", String.join(File.pathSeparator, classpath),
+            "-Dwurst.test.timeoutMillis=" + timeout, "-cp", String.join(File.pathSeparator, classpath),
             TimeoutWatchdogProbe.class.getName(), mode)
             .redirectErrorStream(true).redirectOutput(output.toFile()).start();
         try {
