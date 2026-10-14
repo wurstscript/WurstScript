@@ -720,6 +720,6 @@ public class CompiletimeNativesTest {
 
     private ImProg emptyProg() {
         Element trace = Ast.NoExpr();
-        return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>());
+        return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>(), java.util.Set.of());
     }
 }

@@ -12,6 +12,7 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.File;
 import java.util.List;
+import java.util.Collection;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -115,6 +116,18 @@ public interface ModelManager {
      * no error, with the same checks the manager makes. Nothing may have changed the model meanwhile.
      */
     default void markFullyChecked(WurstModel model) {
+    }
+
+    /** Whether every selected unit has been validated since it last changed. */
+    default boolean isChecked(WurstModel model, Collection<CompilationUnit> units) {
+        return isFullyChecked(model);
+    }
+
+    /** Record a successful check without claiming excluded units were checked. */
+    default void markChecked(WurstModel model, Collection<CompilationUnit> units) {
+        if (units.size() == model.size() && units.containsAll(model)) {
+            markFullyChecked(model);
+        }
     }
 
     static WurstModel copy(WurstModel model) {

@@ -414,6 +414,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     /** @return whether the units were validated, see {@link WurstChecker#checkProg} */
     public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
+        return checkProg(model, toCheck, model);
+    }
+
+    public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck,
+                             Collection<CompilationUnit> compilationUnits) {
         for (CompilationUnit cu : toCheck) {
             Preconditions.checkNotNull(cu);
             if (!model.contains(cu)) {
@@ -422,12 +427,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             }
         }
 
-        return checker.checkProg(model, toCheck);
+        return checker.checkProg(model, toCheck, compilationUnits);
     }
 
     /** Takes over a model which was checked completely and has not changed since, instead of checking it again. */
     public void adoptCheckedModel(WurstModel model) {
         checker.adoptCheckedModel(model);
+    }
+
+    public void adoptCheckedModel(WurstModel model, Collection<CompilationUnit> compilationUnits) {
+        checker.adoptCheckedModel(model, compilationUnits);
     }
 
     public JassProg transformProgToJass() {
@@ -703,12 +712,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public @Nullable ImProg translateProgToIm(WurstModel root) {
+        return translateProgToIm(root, root);
+    }
+
+    /** Translate a compilation view without removing units from the checked editor model. */
+    public @Nullable ImProg translateProgToIm(WurstModel root, Collection<CompilationUnit> compilationUnits) {
         beginPhase(1, "to intermediate lang");
         // Names of generated temporaries are counted from here, so that the same source compiles
         // to the same script whatever was compiled before it in this process.
         Flatten.resetTempVarCounters();
         // translate wurst to intermediate lang:
-        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
+        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs, compilationUnits);
         imProg = getImTranslator().translateProg();
         // Before any compile-time function runs: the library asks whether this compiler lowers CodeList.
         CodeListSupport.markSupported(imProg);

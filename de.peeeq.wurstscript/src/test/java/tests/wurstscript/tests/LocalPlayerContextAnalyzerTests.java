@@ -72,7 +72,7 @@ public class LocalPlayerContextAnalyzerTests {
             all.add(function);
         }
         return JassIm.ImProg(trace, globals, all, JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>());
+            new java.util.HashMap<>(), java.util.Set.of());
     }
 
     @Test

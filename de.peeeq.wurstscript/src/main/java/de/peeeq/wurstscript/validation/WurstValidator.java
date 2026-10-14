@@ -68,14 +68,20 @@ public class WurstValidator {
      * input Jass are reported as warnings instead of errors.
      */
     private final boolean legacyJassTypeChecks;
+    private final Collection<CompilationUnit> compilationUnits;
 
     public WurstValidator(WurstModel root) {
         this(root, false);
     }
 
     public WurstValidator(WurstModel root, boolean legacyJassTypeChecks) {
+        this(root, legacyJassTypeChecks, root);
+    }
+
+    public WurstValidator(WurstModel root, boolean legacyJassTypeChecks, Collection<CompilationUnit> compilationUnits) {
         this.prog = root;
         this.legacyJassTypeChecks = legacyJassTypeChecks;
+        this.compilationUnits = compilationUnits;
     }
 
     public void validate(Collection<CompilationUnit> toCheck) {
@@ -87,9 +93,7 @@ public class WurstValidator {
             moduleFieldCopiesIndexed = false;
             trveWrapperFuncs.clear();
             wrapperCalls.clear();
-            NamePreservation.clearSyntheticMarkers(prog);
-            runtimeNameIndex = NamePreservation.indexGlobals(prog);
-            recomputeTrvePreservation();
+            prepareNamePreservation();
 
             lightValidation(toCheck);
 
@@ -3730,8 +3734,15 @@ public class WurstValidator {
         }
     }
 
+    public void prepareNamePreservation() {
+        NamePreservation.clearSyntheticMarkers(prog);
+        runtimeNameIndex = NamePreservation.indexGlobals(compilationUnits);
+        trveWrapperFuncs.clear();
+        recomputeTrvePreservation();
+    }
+
     private void recomputeTrvePreservation() {
-        prog.accept(new Element.DefaultVisitor() {
+        Element.DefaultVisitor directCalls = new Element.DefaultVisitor() {
             @Override
             public void visit(ExprFunctionCall call) {
                 super.visit(call);
@@ -3747,10 +3758,11 @@ public class WurstValidator {
                 }
             }
 
-        });
+        };
+        compilationUnits.forEach(cu -> cu.accept(directCalls));
 
         // Repeat the cheap call pass so calls which precede their wrapper declaration are covered.
-        prog.accept(new Element.DefaultVisitor() {
+        Element.DefaultVisitor wrapperCalls = new Element.DefaultVisitor() {
             @Override
             public void visit(ExprFunctionCall call) {
                 super.visit(call);
@@ -3760,7 +3772,8 @@ public class WurstValidator {
                     preserveVariableName(varName.getValS());
                 }
             }
-        });
+        };
+        compilationUnits.forEach(cu -> cu.accept(wrapperCalls));
     }
 
     private @Nullable String trveWrapperName(ExprFunctionCall e) {

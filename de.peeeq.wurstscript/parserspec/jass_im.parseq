@@ -11,7 +11,8 @@ ImProg(
 	ImMethods methods,
 	ImClasses classes,
 	ImTypeClassFuncs typeClassFunctions,
-	java.util.Map<ImVar, java.util.List<ImSet>> globalInits)
+	java.util.Map<ImVar, java.util.List<ImSet>> globalInits,
+    @ignoreForEquality java.util.Set<de.peeeq.wurstscript.ast.NameDef> preservedVariables)
 
 ImVars * ImVar
 ImFunctions * ImFunction

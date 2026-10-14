@@ -1194,6 +1194,23 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
+    public boolean isChecked(WurstModel checkedModel, Collection<CompilationUnit> units) {
+        synchronized (modelLock) {
+            return checkedModel != null && checkedModel == model
+                && units.stream().noneMatch(uncheckedUnits::contains);
+        }
+    }
+
+    @Override
+    public void markChecked(WurstModel checkedModel, Collection<CompilationUnit> units) {
+        synchronized (modelLock) {
+            if (checkedModel != null && checkedModel == model) {
+                uncheckedUnits.removeAll(units);
+            }
+        }
+    }
+
+    @Override
     public boolean hasErrors() {
         return errorStream().findAny().isPresent();
     }

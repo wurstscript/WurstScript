@@ -159,7 +159,7 @@ public class SpecialisationOriginTest {
 
         ProgramState state = new ProgramState(new de.peeeq.wurstscript.gui.WurstGuiLogger(),
             JassIm.ImProg(de.peeeq.wurstscript.ast.Ast.NoExpr(), JassIm.ImVars(), JassIm.ImFunctions(),
-                JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>()),
+                JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>(), java.util.Set.of()),
             true);
         state.setSpecialisations(translator);
 
