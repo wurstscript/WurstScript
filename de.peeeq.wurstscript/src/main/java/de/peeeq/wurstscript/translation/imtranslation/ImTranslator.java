@@ -303,6 +303,25 @@ public class ImTranslator implements SpecialisationLookup {
         return result;
     }
 
+    private boolean classTypeIdsObserved;
+
+    /** A compile-time expression can expose an id and then disappear; later shakes must keep its numbering. */
+    public void preserveClassTypeIds() {
+        classTypeIdsObserved = true;
+    }
+
+    public boolean mustPreserveClassTypeIds() {
+        return classTypeIdsObserved;
+    }
+
+    /** Compile-time object state has already created these classes' allocator variables and initializers. */
+    public List<ImClass> pinnedClasses() {
+        if (classManagementVars == null) {
+            return Collections.emptyList();
+        }
+        return imProg.getClasses().stream().filter(classManagementVars::containsKey).toList();
+    }
+
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;

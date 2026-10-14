@@ -258,6 +258,9 @@ public class ClassTranslator {
             imClass.getFields().add(v);
             dynamicInits.add(Pair.create(v, s.getInitialExpr()));
         } else { // static class member
+            if (!imClass.getTypeVariables().isEmpty()) {
+                translator.recordGenericStaticOwner(v, imClass);
+            }
             translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());
             translator.addGlobal(v);
         }

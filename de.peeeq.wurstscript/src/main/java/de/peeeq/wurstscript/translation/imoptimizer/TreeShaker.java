@@ -1,19 +1,28 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
+import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ImAlloc;
+import de.peeeq.wurstscript.jassIm.ImArrayLikeType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImCast;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImClassRelatedExprWithClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
+import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
+import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImLExpr;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNull;
@@ -25,7 +34,11 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeArgument;
+import de.peeeq.wurstscript.jassIm.ImTypeIdOfClass;
+import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
@@ -48,7 +61,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Drops the functions and the globals which nothing can reach, before the passes which would otherwise process them.
+ * Drops unreachable functions, globals and classes before the passes which would otherwise process them.
  * <p>
  * The translation of a project produces every function and every global of every package it imports, and most of
  * them are never used: on castle fight 43,000 functions go into the passes after the specialisation of generics and
@@ -57,9 +70,10 @@ import java.util.Set;
  * <p>
  * This removes functions, the methods whose implementation goes with them, and the globals which no reachable code
  * mentions, with the assignments to them which have nothing else to do (a constant, a read, an operator on such: not
- * a call). It removes no class, no field and no other statement, so it is the part of garbage removal which is safe
- * where it is called, as long as no later pass uses a function or a global it did not find in a body: those are the
- * ones the translator keeps for such passes ({@link ImTranslator#pinnedFunctions}, {@link ImTranslator#pinnedGlobals}),
+ * a call). It also removes classes which no remaining function, type or superclass needs, but no field and no other
+ * statement. It is the part of garbage removal which is safe where it is called, as long as no later pass uses a
+ * function, global or class it did not find in a body: those are the ones the translator keeps for such passes
+ * ({@link ImTranslator#pinnedFunctions}, {@link ImTranslator#pinnedGlobals}, {@link ImTranslator#pinnedClasses}),
  * which count as roots here.
  * <p>
  * Both pipelines run it three times: in front of the compile-time functions (which walk the whole program and analyse
@@ -154,7 +168,182 @@ public final class TreeShaker {
         }
         removeUnusedMethods(prog, reachability.usedMethods);
         reachability.removeUnreadGlobals(prog, trans.pinnedGlobals());
+        reachability.classes.removeUnreferencedClasses();
         return removed;
+    }
+
+    /**
+     * Types are references, not children of the IM tree. Follow them explicitly, including field types and
+     * superclasses of each live class. A live implementation also needs its owning class even when no code allocates
+     * it (dispatch, preserved functions and generic specialization can all keep implementations this way).
+     * Reflection and explicit type-id reads expose the complete numbering, so they keep the class universe. The
+     * translator remembers that fact when compile-time evaluation subsequently removes the read.
+     */
+    private static final class ClassReachability {
+        private final ImTranslator trans;
+        private final ImProg prog;
+        private final Set<ImClass> needed = new ReferenceOpenHashSet<>();
+        private final Set<ImType> types = new ReferenceOpenHashSet<>();
+        private final ArrayDeque<ImClass> pending = new ArrayDeque<>();
+
+        private ClassReachability(ImTranslator trans, ImProg prog) {
+            this.trans = trans;
+            this.prog = prog;
+        }
+
+        void removeUnreferencedClasses() {
+            if (trans.mustPreserveClassTypeIds()) {
+                return;
+            }
+            collect(prog.getGlobals());
+            collect(prog.getMethods());
+            if (trans.mustPreserveClassTypeIds()) {
+                return;
+            }
+            for (ImVar global : prog.getGlobals()) {
+                for (ImSet initializer : prog.getGlobalInits().getOrDefault(global, Collections.emptyList())) {
+                    collect(initializer);
+                }
+            }
+            for (ImClass c : prog.getClasses()) {
+                if (!c.getFunctions().isEmpty() || !c.getMethods().isEmpty()) {
+                    add(c);
+                }
+            }
+            for (ImClass c : trans.pinnedClasses()) {
+                add(c);
+            }
+            followClasses();
+            if (trans.mustPreserveClassTypeIds()) {
+                return;
+            }
+            if (!trans.isLuaTarget()) {
+                keepAllocatorConnections();
+            }
+            prog.getClasses().retainAll(needed);
+        }
+
+        private void add(ImClass c) {
+            if (needed.add(c)) {
+                pending.add(c);
+                // Lua's targeted specializations use the source class for nominal identity and instanceof.
+                ImClass nominal = trans.canonical(c);
+                if (nominal != c && nominal.getParent() != null) {
+                    add(nominal);
+                }
+            }
+        }
+
+        private void followClasses() {
+            while (!pending.isEmpty()) {
+                ImClass c = pending.removeLast();
+                collect(c.getFields());
+                for (ImClassType superclass : c.getSuperClasses()) {
+                    type(superclass);
+                }
+            }
+        }
+
+        /**
+         * Jass shares one allocator across each inheritance component. Even an unallocated class can join two
+         * live interfaces, so removing it would give their objects separate integer id spaces. Keep the joins in
+         * components containing live classes; ordinary unused leaves can still go. Lua has one allocator already.
+         */
+        private void keepAllocatorConnections() {
+            Partitions<ImClass> partitions = new Partitions<>();
+            for (ImClass c : prog.getClasses()) {
+                partitions.add(c);
+                for (ImClassType superclass : c.getSuperClasses()) {
+                    partitions.union(c, superclass.getClassDef());
+                }
+            }
+            Set<ImClass> liveComponents = new ReferenceOpenHashSet<>();
+            boolean changed;
+            do {
+                for (ImClass c : needed) {
+                    liveComponents.add(partitions.getRep(c));
+                }
+                int before = needed.size();
+                for (ImClass c : prog.getClasses()) {
+                    if (c.getSuperClasses().size() > 1 && liveComponents.contains(partitions.getRep(c))) {
+                        add(c);
+                    }
+                }
+                followClasses();
+                changed = before != needed.size();
+            } while (changed);
+        }
+
+        private void type(ImType type) {
+            if (!types.add(type)) {
+                return;
+            }
+            switch (type) {
+                case ImClassType c -> {
+                    add(c.getClassDef());
+                    collect(c.getTypeArguments());
+                }
+                case ImArrayLikeType a -> type(a.getEntryType());
+                case ImTupleType tuple -> tuple.getTypes().forEach(this::type);
+                default -> { }
+            }
+        }
+
+        private void collect(Element e) {
+            if (trans.mustPreserveClassTypeIds()) {
+                return;
+            }
+            collectNode(e);
+            for (int i = 0; i < e.size(); i++) {
+                collect(e.get(i));
+            }
+        }
+
+        /** Also called by the function reachability walk, so class collection does not walk the bodies again. */
+        private void collectNode(Element e) {
+            if (trans.mustPreserveClassTypeIds()) {
+                return;
+            }
+            switch (e) {
+                case ImVar v -> {
+                    type(v.getType());
+                    // A generic static's type may only mention T. Its class owns that parameter and is needed
+                    // by specialization even when no instance of the class is ever constructed.
+                    ImClass owner = trans.genericStaticOwnerOf(v);
+                    if (owner != null && owner.getParent() != null) {
+                        add(owner);
+                    }
+                }
+                case ImFunction f -> {
+                    type(f.getReturnType());
+                    if (isReflection(f)) {
+                        trans.preserveClassTypeIds();
+                    }
+                }
+                case ImNull n -> type(n.getType());
+                case ImTypeArgument argument -> type(argument.getType());
+                case ImCast cast -> {
+                    type(cast.getFromType());
+                    type(cast.getToType());
+                }
+                case ImClassRelatedExprWithClass expr -> {
+                    type(expr.getClazz());
+                    if (expr instanceof ImTypeIdOfClass || expr instanceof ImTypeIdOfObj) {
+                        trans.preserveClassTypeIds();
+                    }
+                }
+                case ImMethod method -> type(method.getMethodClass());
+                case ImMemberAccess member -> type(member.getVar().getType());
+                default -> { }
+            }
+        }
+
+        private static boolean isReflection(ImFunction f) {
+            return f.isNative() && switch (f.getName()) {
+                case "typeIdToTypeName", "maxTypeId", "instanceCount", "maxInstanceCount" -> true;
+                default -> false;
+            };
+        }
     }
 
     /**
@@ -188,6 +377,7 @@ public final class TreeShaker {
      */
     private static final class Reachability extends ImFunction.DefaultVisitor {
         private final ImTranslator trans;
+        private final ClassReachability classes;
         private final boolean followTypeArguments;
         private final Set<ImFunction> reachable;
         private final Set<ImClass> constructedClasses = new ReferenceOpenHashSet<>();
@@ -201,6 +391,7 @@ public final class TreeShaker {
 
         private Reachability(ImTranslator trans, ImProg prog, boolean followTypeArguments) {
             this.trans = trans;
+            this.classes = new ClassReachability(trans, prog);
             this.followTypeArguments = followTypeArguments;
             this.reachable = new ReferenceOpenHashSet<>(Math.max(16, prog.getFunctions().size() / 2));
             this.globals = new ReferenceOpenHashSet<>(prog.getGlobals());
@@ -219,6 +410,66 @@ public final class TreeShaker {
                     f.accept(this);
                 }
             }
+        }
+
+        @Override
+        public void visit(ImFunction function) {
+            classes.collectNode(function);
+            super.visit(function);
+        }
+
+        @Override
+        public void visit(ImVar variable) {
+            classes.collectNode(variable);
+            super.visit(variable);
+        }
+
+        @Override
+        public void visit(ImNull value) {
+            classes.collectNode(value);
+            super.visit(value);
+        }
+
+        @Override
+        public void visit(ImCast cast) {
+            classes.collectNode(cast);
+            super.visit(cast);
+        }
+
+        @Override
+        public void visit(ImMemberAccess member) {
+            classes.collectNode(member);
+            super.visit(member);
+        }
+
+        @Override
+        public void visit(ImAlloc allocation) {
+            classes.collectNode(allocation);
+            super.visit(allocation);
+        }
+
+        @Override
+        public void visit(ImDealloc deallocation) {
+            classes.collectNode(deallocation);
+            super.visit(deallocation);
+        }
+
+        @Override
+        public void visit(ImInstanceof instanceOf) {
+            classes.collectNode(instanceOf);
+            super.visit(instanceOf);
+        }
+
+        @Override
+        public void visit(ImTypeIdOfObj id) {
+            classes.collectNode(id);
+            super.visit(id);
+        }
+
+        @Override
+        public void visit(ImTypeIdOfClass id) {
+            classes.collectNode(id);
+            super.visit(id);
         }
 
         /**
@@ -400,6 +651,7 @@ public final class TreeShaker {
 
         @Override
         public void visit(ImTypeArgument argument) {
+            classes.collectNode(argument);
             super.visit(argument);
             if (followTypeArguments) {
                 followTypeArgument(argument);

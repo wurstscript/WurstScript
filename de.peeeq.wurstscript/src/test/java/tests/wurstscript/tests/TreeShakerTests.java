@@ -30,6 +30,180 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class TreeShakerTests extends WurstScriptTest {
 
+    private static Set<String> classNames(WurstCompilerJassImpl compiler) {
+        Set<String> names = new TreeSet<>();
+        for (ImClass c : compiler.getImProg().getClasses()) {
+            names.add(c.getName());
+        }
+        return names;
+    }
+
+    @Test
+    public void removesClassesNamedOnlyByUnreachableCode() {
+        for (boolean lua : new boolean[]{false, true}) {
+            WurstCompilerJassImpl compiler = translate(lua,
+                "package Test",
+                "native testSuccess()",
+                "class Unused",
+                "    int deadField",
+                "class Base",
+                "    int value = 42",
+                "class Live extends Base",
+                "function unused() returns Unused",
+                "    return new Unused()",
+                "init",
+                "    if new Live().value == 42",
+                "        testSuccess()");
+            assertTrue(classNames(compiler).toString(), classNames(compiler).contains("Unused"));
+
+            TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+
+            assertEquals(Set.of("Base", "Live"), classNames(compiler));
+            compiler.getImTranslator().assertProperties();
+        }
+    }
+
+    @Test
+    public void keepsClassesNamedByFieldsAndNestedTypesWithoutAllocatingThem() {
+        for (boolean lua : new boolean[]{false, true}) {
+            WurstCompilerJassImpl compiler = translate(lua,
+                "package Test",
+                "native testSuccess()",
+                "class FieldType",
+                "class ResultType",
+                "class ParameterType",
+                "class Holder",
+                "    FieldType field",
+                "tuple pair(ResultType first, int second)",
+                "function value(ParameterType p) returns pair",
+                "    return pair(null, 42)",
+                "class Unused",
+                "init",
+                "    let h = new Holder()",
+                "    if h.field == null and value(null).second == 42",
+                "        testSuccess()");
+
+            TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+
+            assertEquals(Set.of("FieldType", "ResultType", "ParameterType", "Holder"), classNames(compiler));
+            compiler.getImTranslator().assertProperties();
+        }
+    }
+
+    @Test
+    public void genericStaticStorageKeepsItsClassWithoutAnInstance() {
+        String[] program = {
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    static T array values",
+            "    static function put(T value)",
+            "        values[0] = value",
+            "    static function get() returns T",
+            "        return values[0]",
+            "class Unused",
+            "init",
+            "    Box<int>.put(42)",
+            "    if Box<int>.get() == 42",
+            "        testSuccess()"};
+        for (boolean lua : new boolean[]{false, true}) {
+            WurstCompilerJassImpl compiler = translate(lua, program);
+            TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+            assertEquals(Set.of("Box"), classNames(compiler));
+        }
+        test().testLua(true).luaOnly(false).executeProg().lines(program);
+    }
+
+    @Test
+    public void observableTypeIdsKeepTheOriginalClassSet() {
+        for (boolean lua : new boolean[]{false, true}) {
+            WurstCompilerJassImpl compiler = translate(lua,
+                "package Test",
+                "native testSuccess()",
+                "class AUnused",
+                "class BLive",
+                "init",
+                "    if BLive.typeId == 2",
+                "        testSuccess()");
+            TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+            assertEquals(Set.of("AUnused", "BLive"), classNames(compiler));
+        }
+        // Lua's existing reflection natives are placeholders; reflection execution is a Jass contract.
+        test().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native maxTypeId() returns int",
+            "native typeIdToTypeName(int id) returns string",
+            "class AUnused",
+            "class BLive",
+            "init",
+            "    if maxTypeId() == 2 and typeIdToTypeName(1) == \"Test.AUnused\" and BLive.typeId == 2",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void aTypeIdCapturedAtCompiletimeKeepsItsNumberAfterTheExpressionDisappears() {
+        for (boolean lua : new boolean[]{false, true}) {
+            WurstCompilerJassImpl compiler = translateForCompiletimeFunctions(lua,
+                "package Test",
+                "class AUnused",
+                "class BLive",
+                "function compiletime(int i) returns int",
+                "    return i",
+                "int captured = compiletime(BLive.typeId)",
+                "init",
+                "    captured++");
+            compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+            TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+            assertEquals(Set.of("AUnused", "BLive"), classNames(compiler));
+        }
+    }
+
+    @Test
+    public void unallocatedClassesWhichJoinLiveJassAllocatorsStay() {
+        String[] program = {
+            "package Test",
+            "native testSuccess()",
+            "interface Left",
+            "interface Right",
+            "class First implements Left",
+            "class Second implements Right",
+            "class Join implements Left, Right",
+            "class Unused",
+            "init",
+            "    let a = new First()",
+            "    let b = new Second()",
+            "    if (a castTo int) != (b castTo int)",
+            "        testSuccess()"};
+        WurstCompilerJassImpl compiler = translate(false, program);
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+        assertTrue("Join keeps one allocator for Left and Right", classNames(compiler).contains("Join"));
+        assertFalse(classNames(compiler).toString(), classNames(compiler).contains("Unused"));
+        test().testLua(true).luaOnly(false).executeProg().lines(program);
+    }
+
+    @Test
+    public void unallocatedSiblingsCanGoWithoutDroppingTheLiveSuperclass() {
+        String[] program = {
+            "package Test",
+            "native testSuccess()",
+            "class Base",
+            "    int value = 42",
+            "class Live extends Base",
+            "class DeadSibling extends Base",
+            "init",
+            "    let a = new Live()",
+            "    Base b = a",
+            "    if b instanceof Live and b.value == 42",
+            "        testSuccess()"};
+        for (boolean lua : new boolean[]{false, true}) {
+            WurstCompilerJassImpl compiler = translate(lua, program);
+            TreeShaker.removeUnreachableFunctionsBeforeGenerics(compiler.getImTranslator());
+            assertEquals(Set.of("Base", "Live"), classNames(compiler));
+        }
+        test().testLua(true).luaOnly(false).executeProg().lines(program);
+    }
+
     /** The program as translated to IM, where {@link TreeShaker} has not run yet. */
     private WurstCompilerJassImpl translate(boolean lua, String... lines) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();
@@ -396,6 +570,8 @@ public class TreeShakerTests extends WurstScriptTest {
         Set<String> after = functionNames(compiler);
         assertTrue("the construction of State stays: " + after, after.contains("new_State"));
         assertFalse("the construction of a class nothing names goes: " + after, after.contains("new_Unused"));
+        assertFalse("the unreferenced class goes too", classNames(compiler).contains("Unused"));
+        assertTrue("the generic construction still needs State", classNames(compiler).contains("State"));
     }
 
     @Test
@@ -444,6 +620,8 @@ public class TreeShakerTests extends WurstScriptTest {
         Set<String> after = functionNames(compiler);
         assertTrue("the construction of State, named inside Loader<State>, stays: " + after, after.contains("new_State"));
         assertFalse("the construction of a class nothing names goes: " + after, after.contains("new_Unused"));
+        assertFalse("the unreferenced class goes too", classNames(compiler).contains("Unused"));
+        assertTrue("nested type arguments still need State", classNames(compiler).contains("State"));
     }
 
     @Test

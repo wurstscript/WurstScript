@@ -29,6 +29,43 @@ import static org.testng.Assert.assertTrue;
  */
 public class DeterministicChecks extends WurstScriptTest {
 
+    @Test
+    public void unreachableClassesAreRemovedDeterministicallyInBothBackends() throws IOException {
+        CU library = compilationUnit("Classes.wurst",
+            "package Classes",
+            "public class Base",
+            "    int value = 42",
+            "public class Box<T:> extends Base",
+            "    T payload",
+            "public class DeadSibling extends Base",
+            "    int unusedSiblingField",
+            "public class Unused",
+            "    int unusedClassField");
+        CU main = compilationUnit("Main.wurst",
+            "package Main",
+            "import Classes",
+            "native testSuccess()",
+            "init",
+            "    let b = new Box<int>()",
+            "    b.payload = 7",
+            "    if b.value + b.payload == 49",
+            "        testSuccess()",
+            "    destroy b");
+        String name = "unreachableClasses";
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        testNamed(name).testLua(true).luaOnly(false).executeProg().compilationUnits(library, main);
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        for (String dead : List.of("Unused", "DeadSibling", "unusedClassField", "unusedSiblingField")) {
+            assertTrue(!firstJass.contains(dead), "dead class storage reaches Jass: " + dead);
+            assertTrue(!firstLua.contains(dead), "dead class storage reaches Lua: " + dead);
+        }
+        testNamed(name).testLua(true).luaOnly(false).executeProg().compilationUnits(main, library);
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass, "class removal must not depend on unit order");
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "class removal must not depend on unit order");
+    }
+
 
     @Test
     public void simple() throws IOException {
