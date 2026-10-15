@@ -76,7 +76,9 @@ public class MapModelReuseTests {
             }
         };
         File published = new File((String) command.execute(project.manager));
-        assertEquals(published, new File(project.root, "_build/wurstCreatedObjects.w3o"));
+        // Exercise an aliased path on every host, like Windows' short temp-directory names.
+        File expected = new File(project.root, "./_build/wurstCreatedObjects.w3o");
+        assertTrue(Files.isSameFile(published.toPath(), expected.toPath()), "Export must publish to the build directory");
         assertEquals(Files.readAllBytes(published.toPath()), Files.readAllBytes(generated.toPath()));
     }
 
