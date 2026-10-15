@@ -113,6 +113,25 @@ The Gradle wrapper lives inside `de.peeeq.wurstscript/` (not the repo root); run
 * The test JVMs run ParallelGC (`-PtestGc='-XX:+UseG1GC'` or another flag overrides it): G1 spent 9-11% of a serial run in pauses, mostly mixed collections of data which lives for one test, and ParallelGC about 3%.
 * Tests fetch the pinned stdlib first (`ensureStdLib`, about a minute on a fresh checkout). `InitialBuildProgressTest` and `LanguageWorkerTest` are in package `de.peeeq.wurstio.languageserver`, so a `--tests` filter needs that prefix.
 
+### Cross-OS responsibility
+
+PR CI deliberately runs only Ubuntu to keep feedback cheap; master tests Windows and both macOS architectures too.
+**A green Ubuntu PR is not evidence of cross-OS compatibility.** Before finishing a change, inspect the changed code
+and tests for host assumptions, run focused checks on the available host, and report which relevant platforms remain
+unverified. Keep PR CI slim; do not expand its matrix or add full builds to compensate for missing portability work.
+Read [`docs/CROSS_OS_FOOTGUNS.md`](docs/CROSS_OS_FOOTGUNS.md) when changing filesystem assertions, process execution,
+tool discovery, map-build fixtures, or runtime packaging. Regressions have repeatedly escaped through those paths.
+
+* Compare existing file identity with `Files.isSameFile`, not `File.equals` or path strings. Windows temp paths can
+  use `RUNNER~1` while `WFile` canonicalises them to `runneradmin`; `Path.normalize()` does not resolve that alias.
+  Exercise an alias such as `./` in the repro so Linux can catch a spelling-dependent assertion too.
+* Use path APIs, explicit text encodings, and argument lists for subprocesses. Account for CRLF, executable suffixes,
+  executable bits, case sensitivity, open-file locks, and subprocess cleanup where the changed code depends on them.
+* Compile-only tests must not discover an installed game or open a folder chooser. Override discovery and fail if it
+  is reached; Linux's lack of a dialog does not prove that Windows/macOS cannot hang.
+* Verify tools and runtime images on their actual OS/architecture: JDK vendors, CDS archives, Lua executables and
+  native-library dependencies differ. Inspect the produced image, not just the build JVM or a passing compiler test.
+
 ### Runtime-executing tests
 
 * `test().executeProg()` runs the compiled program in the interpreter and requires a `testSuccess()` call.
@@ -162,8 +181,8 @@ runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-a
 usually has one, and `assembleSlimCompilerDist` dumps one with `java -Xshare:dump` when the JDK has none: the Temurin
 for macOS x64 on CI does not). `assembleSlimCompilerDist` then starts the runtime with `-Xshare:on`, which fails when
 there is no usable archive. Without one the JVM silently runs without any, which is how the earlier attempt went
-unnoticed. Pull-request CI packages nothing (only pushes to master do, on every host), so a change here is not tested
-on macOS before it merges. Java 27 enables compact object headers by default. The build clears the JVM option
+unnoticed. Pull-request CI packages nothing; the versioned release workflow packages every supported host, so a change
+here is not tested on macOS before it merges. Java 27 enables compact object headers by default. The build clears the JVM option
 environment variables when making and validating the base archive so it matches the shipped runtime defaults.
 The extension passes `-Xlog:disable` because the JVM reports archive trouble on stdout, which is the protocol stream:
 never print anything of your own there.
