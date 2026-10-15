@@ -190,40 +190,6 @@ public class JassInterpreter implements AbstractInterpreter {
         });
 
 
-//		if (s instanceof ILif) {
-//			translateStatementIf(localVarMap, (ILif)s);
-//		} else if (s instanceof ILsetVar) {
-//			translateIlcopy( localVarMap, (ILsetVar)s);
-//		} else if (s instanceof IlsetConst) {
-//			translateIlsetConst( localVarMap, (IlsetConst)s);
-//		} else if (s instanceof ILsetBinary) {
-//			translateIlbinary( localVarMap, (ILsetBinary)s);
-//		} else if (s instanceof IlsetUnary) {
-//			translateIlunary(localVarMap, (IlsetUnary) s);
-//		} else if (s instanceof ILreturn) {
-//			translateReturn(localVarMap, (ILreturn) s);
-//		} else if (s instanceof ILloop) {
-//			translateLoop(localVarMap, (ILloop) s);
-//		} else if (s instanceof ILexitwhen) {
-//			translateExitwhen(localVarMap, (ILexitwhen) s);
-//		} else if (s instanceof ILfunctionCall) {
-//			translateFunctionCall(localVarMap, (ILfunctionCall) s);
-//		} else if (s instanceof IlbuildinFunctionCall) {
-//			translateBuildinFunction(localVarMap, (IlbuildinFunctionCall) s);
-//		} else if (s instanceof ILsetBinaryCR) {
-//			translateILsetBinaryCR(localVarMap, (ILsetBinaryCR) s);
-//		} else if (s instanceof ILsetBinaryCL) {
-//			translateILsetBinaryCL(localVarMap, (ILsetBinaryCL) s);
-//		} else if (s instanceof ILarraySetVar) {
-//			translateILarraySetVar(localVarMap, (ILarraySetVar) s);
-//		} else if (s instanceof ILsetVarArray) {
-//			translateILsetVarArray(localVarMap, (ILsetVarArray) s);
-//		} else if (s instanceof ILerror) {
-//			throw new InterpreterException("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
-//		} else {
-//
-//			throw new InterpreterException("not implemented " + s);
-//		}
     }
 
 

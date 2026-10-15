@@ -688,7 +688,7 @@ public class ProgramStateIO extends ProgramState {
                 }
                 out.append(formatWrapperValue(m, info)).append(")\n");
             } else {
-                // No wrapper method for this field — emit as a commented raw call so the
+                // No wrapper method for this field; emit as a commented raw call so the
                 // user can see what needs to be handled and add it manually.
                 out.append("\t// TODO no wrapper: ");
                 appendRawMod(out, m, fileType);
@@ -716,7 +716,7 @@ public class ProgramStateIO extends ProgramState {
     /**
      * Returns the lookup key used to match a mod to a {@link StdlibObjectMappings.FieldMethodInfo}.
      * Uses the mod's actual dataPtr when it is an {@link ObjMod.Obj.ExtendedMod}, regardless of
-     * whether the file type reports {@code usesLevels()} — some types (e.g. buffs) store their
+     * whether the file type reports {@code usesLevels()}; some types (e.g. buffs) store their
      * data as extended mods even though the file type flag is false.
      */
     static String fieldKey(ObjMod.Obj.Mod m, ObjectFileType fileType) {

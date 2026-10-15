@@ -98,7 +98,7 @@ public class TypeClassTests extends WurstScriptTest {
     /**
      * The same closure on Lua, which keeps generics erased and specialises only what it can reach
      * from a concrete type. A closure is reached through its interface, so no call names the
-     * instantiation — the construction is the only thing that knows it, and that is what the
+     * instantiation; the construction is the only thing that knows it, and that is what the
      * specialisation is now driven from.
      */
     @Test
@@ -174,7 +174,7 @@ public class TypeClassTests extends WurstScriptTest {
 
     /**
      * The same on Lua. A constructor belongs to its class rather than to a generic function of its
-     * own, so it declares no type variables and specialising it was treated as nothing to do — the
+     * own, so it declares no type variables and specialising it was treated as nothing to do: the
      * call's type argument was stripped and the dispatch inside was left with no concrete type. The
      * argument was on the call all along; what was missing is that a function of a generic class is
      * matched against the class's type variables, since this target never lifts them onto it.
@@ -185,7 +185,7 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The closure has no dispatch of its own — it calls something that does. The gate deciding
+     * The closure has no dispatch of its own; it calls something that does. The gate deciding
      * whether a construction is the only place an instantiation is stated has to follow calls to
      * see that, or this reaches the backend with the bound unresolved.
      */
@@ -216,7 +216,7 @@ public class TypeClassTests extends WurstScriptTest {
      * Wurst and Lua reserve different words, so a method can be declared {@code repeat} and reach
      * the backend under that name. A closure adds the name it implements as a dispatch alias
      * directly, without the uniquing that protects method names, so the alias arrives as a bare
-     * keyword and is emitted as a table key — {@code <name> expected near 'repeat'} from luac.
+     * keyword and is emitted as a table key, causing {@code <name> expected near 'repeat'} from luac.
      */
     @Test
     public void closureImplementingALuaKeywordName() {
@@ -266,7 +266,7 @@ public class TypeClassTests extends WurstScriptTest {
     /**
      * A slot of a {@code T array} that was never written reads as the default of whatever T stands
      * for. The default is computed by a static attribute, which cannot see what T is bound to, so
-     * it produces a stand-in — and a stand-in compares equal only to another stand-in, which made
+     * it produces a stand-in, and a stand-in compares equal only to another stand-in, which made
      * this quietly false on the interpreter while both backends had it right.
      */
     @Test
@@ -343,8 +343,8 @@ public class TypeClassTests extends WurstScriptTest {
     /**
      * The same program on Lua, where the object stays erased. Both halves of that had to be met: the
      * specialised method is bound to the class the object is allocated from, so a virtual call finds
-     * it, and the super call — which names its target and so has no receiver to read type arguments
-     * from — is rewritten to the copy specialised for the instantiation the subclass extends.
+     * it, and the super call, which names its target and so has no receiver to read type arguments
+     * from, is rewritten to the copy specialised for the instantiation the subclass extends.
      */
     @Test
     public void subclassOfBoundedGenericLua() {
@@ -354,8 +354,8 @@ public class TypeClassTests extends WurstScriptTest {
     /**
      * Three receivers of one class reaching the same specialised slot, which the subclass makes
      * virtual: one built by a specialised generic function, one constructed directly, one a subclass
-     * instance. The first two stay erased — a specialised function's copy allocates the erased class
-     * as well — so this says that moving the slot to the class objects come from serves every way of
+     * instance. The first two stay erased (a specialised function's copy allocates the erased class
+     * as well), so this says that moving the slot to the class objects come from serves every way of
      * arriving at it, not only the construction written in place.
      */
     @Test
@@ -470,7 +470,7 @@ public class TypeClassTests extends WurstScriptTest {
 
     /**
      * The same program on Lua, which used to be rejected outright with "Generics should match class
-     * method type variables" — a method call there carries the class's type arguments followed by the
+     * method type variables": a method call there carries the class's type arguments followed by the
      * method's own, and a method declaring parameters of its own was read as already having both.
      * <p>
      * Running it is the point: both parameters reach one lookup only in this shape, so a version with
@@ -487,7 +487,7 @@ public class TypeClassTests extends WurstScriptTest {
 
     /**
      * A module may carry a bounded type parameter, and a class using it supplies the argument. Using
-     * a module copies its body into the class, substituting the module's type parameters — and a
+     * a module copies its body into the class, substituting the module's type parameters, and a
      * requirement is called on the parameter itself, {@code T.show(x)}, which is a name rather than a
      * type, so the substitution never reaches it. The instantiation declares the parameter so that
      * name still resolves.
@@ -515,7 +515,7 @@ public class TypeClassTests extends WurstScriptTest {
     };
 
     /**
-     * A module body resolves names in the module's own scope by design — {@code nextScope} sends a
+     * A module body resolves names in the module's own scope by design: {@code nextScope} sends a
      * {@code ModuleInstanciation} to {@code attrModuleOrigin()} rather than to the class using it, so
      * a module cannot capture the names of whoever uses it. The type replacement during expansion
      * therefore reaches every {@code T} used as a type, and cannot reach the one in {@code T.show(x)}

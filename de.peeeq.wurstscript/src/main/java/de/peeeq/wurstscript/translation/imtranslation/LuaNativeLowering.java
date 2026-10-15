@@ -12,16 +12,16 @@ import java.util.*;
  *
  * <p>Three classes of WC3 BJ calls are transformed:
  * <ol>
- *   <li><b>GetHandleId</b> – replaced 1:1 by {@code __wurst_GetHandleId}, whose Lua
+ *   <li><b>GetHandleId</b>: replaced 1:1 by {@code __wurst_GetHandleId}, whose Lua
  *       implementation uses a stable table counter for selected opaque runtime handle
  *       families only. Enum-like handle families keep native semantics in Lua.</li>
  *   <li><b>Hashtable natives</b> ({@code SaveInteger}, {@code LoadBoolean}, …) and
- *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …) –
+ *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …):
  *       replaced 1:1 by their {@code __wurst_} prefixed equivalents, whose Lua
  *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.
  *       The backend prints a hashtable operation where it is called instead, as the table accesses
  *       it stands for, and calls its helper only where it cannot ({@link LuaHashtable}).</li>
- *   <li><b>All other BJ calls with at least one handle-typed parameter</b> – wrapped
+ *   <li><b>All other BJ calls with at least one handle-typed parameter</b>: wrapped
  *       by a generated IM function that first checks each required handle param for
  *       {@code null} and returns the type-appropriate default (0 / 0.0 / false / "" / nil),
  *       then delegates to the original BJ function.  This matches Jass behavior, which
@@ -65,7 +65,7 @@ public final class LuaNativeLowering {
      * (eventid, playerevent, …) keep native {@code GetHandleId} semantics.
      *
      * When {@code false} (safe default), ALL {@code GetHandleId} calls are shimmed
-     * unconditionally — this matches the pre-selective-shim behaviour and avoids
+     * unconditionally; this matches the pre-selective-shim behaviour and avoids
      * any desync risk while the selective logic is being validated.
      */
     public static final boolean ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING = true;
@@ -853,7 +853,7 @@ public final class LuaNativeLowering {
         ImStmts body = JassIm.ImStmts();
 
         // Null-check each required handle param: if param == null then return <default> end
-        // boolexpr and code params are intentionally skipped — they are optional/nullable
+        // boolexpr and code params are intentionally skipped because they are optional/nullable
         // in Jass (e.g. the filter arg of TriggerRegisterPlayerUnitEvent).
         // A null enum handle is no missing handle: the engine reads it as the handle of id 0, so the
         // wrapper passes that one on (measured on the 3.0.0 client: GetUnitState(u, null) is the life,

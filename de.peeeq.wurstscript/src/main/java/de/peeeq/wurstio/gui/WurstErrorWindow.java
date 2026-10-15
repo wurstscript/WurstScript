@@ -44,7 +44,6 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     private javax.swing.JLabel currentStatus;
     private javax.swing.JTextArea errorDetailsPanel;
     private DefaultListModel<CompileError> errorListModel;
-    //    private javax.swing.JList errorList;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;

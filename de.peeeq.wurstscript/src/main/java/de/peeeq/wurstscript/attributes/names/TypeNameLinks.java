@@ -28,7 +28,6 @@ public class TypeNameLinks {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
         addJassTypes(result, cu);
         // TODO are packages types?
-//        addPackages(result, cu);
         return result.build();
     }
 
@@ -148,11 +147,6 @@ public class TypeNameLinks {
         }
     }
 
-//    private static void addPackages(ImmutableMultimap.Builder<String, TypeLink> result, CompilationUnit cu) {
-//        for (WPackage p : cu.getPackages()) {
-//            result.put(p.getName(), TypeLink.create(p, cu));
-//        }
-//    }
 
     public static ImmutableMultimap<String, TypeLink> calculate(ExprClosure exprClosure) {
         return ImmutableMultimap.of();

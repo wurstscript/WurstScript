@@ -18,7 +18,7 @@ import static org.testng.Assert.assertTrue;
  * <p>
  * A bump of the pinned version was otherwise only checked for still compiling, which is a weak
  * signal for a change whose point is behaviour, and a bad one for the parts of the library which
- * degrade quietly rather than failing — the multibyte detection in {@code String.wurst} concludes
+ * degrade quietly rather than failing: the multibyte detection in {@code String.wurst} concludes
  * the engine has no multibyte characters when it cannot find what it probes for, so a version where
  * it silently gave up would look exactly like one where it worked.
  * <p>

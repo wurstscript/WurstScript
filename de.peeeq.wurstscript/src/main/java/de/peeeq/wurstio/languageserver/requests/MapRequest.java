@@ -895,7 +895,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             gui.sendProgress("Finalizing map");
             try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(outputMapFile))) {
                 if (mpq != null) {
-                    // Strip internal Wurst cache files — they are dev-only metadata and should
+                    // Strip internal Wurst cache files; they are dev-only metadata and should
                     // not be present in the distributed map.
                     if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
                     if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");

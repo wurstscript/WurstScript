@@ -1071,7 +1071,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
 		completion.setSortText(ratingToString(rating));
         completionTypes.put(completion, f.getReturnType());
         // TODO use call signature instead for generics
-//        completion.set
 
         if (!isBeforeParenthesis()) {
             addParamSnippet(replacementString, f, completion);
@@ -1148,9 +1147,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private CompletionItem makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
         String replacementString = c.getName();
-//		if (!isBeforeParenthesis()) {
-//			replacementString += "()";
-//		}
 
         CompletionItem completion = new CompletionItem(c.getName());
         completion.setKind(CompletionItemKind.Constructor);

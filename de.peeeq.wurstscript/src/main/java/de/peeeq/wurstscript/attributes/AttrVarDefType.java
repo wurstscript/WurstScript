@@ -38,8 +38,6 @@ public class AttrVarDefType {
         // we have to look up the expected type of the lambda
         ExprClosure parentClosure = (ExprClosure) p.getParent().getParent();
         int paramIndex = parentClosure.getShortParameters().indexOf(p);
-//        WurstType expectedTyp = parentClosure.attrExpectedTypRaw();
-//        return WurstTypeInfer.instance();
         WurstType expectedTyp = parentClosure.attrExpectedTyp();
         return getParameterTypeFromClosureType(p, paramIndex, expectedTyp, true);
     }

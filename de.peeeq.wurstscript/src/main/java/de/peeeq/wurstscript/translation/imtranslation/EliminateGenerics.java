@@ -117,7 +117,6 @@ public class EliminateGenerics {
         dbg(checkDanglingMethodRefs("end"));
 
         // TODO fix or remove this check
-//        assertNoUnspecializedGenericGlobals();
     }
 
     /**
@@ -168,8 +167,8 @@ public class EliminateGenerics {
      * <p>
      * Specialising a method leaves the copy on the specialised class. That is where the object comes
      * from when a construction on this path was redirected there, and a virtual call finds the slot
-     * through the object as usual. Otherwise the object stays erased — which is this target's normal
-     * representation — and is allocated from the class the method was declared on, so the slot the
+     * through the object as usual. Otherwise the object stays erased (which is this target's normal
+     * representation) and is allocated from the class the method was declared on, so the slot the
      * call names resolves to nothing and the call fails at runtime rather than at compile time.
      * <p>
      * Decided from what the program allocates rather than from the shape of the class, because one
@@ -556,7 +555,7 @@ public class EliminateGenerics {
      * {@code super.m()} is the case that shows why: the call names its target, so there is no receiver
      * to read type arguments from, and this target never lifts the class's type variables onto the
      * function, so nothing on the call says which instantiation to specialise for and the erased
-     * original is reached instead — where the dispatch it contains is dead. The receiver is still the
+     * original is reached instead, where the dispatch it contains is dead. The receiver is still the
      * first argument, and the class it is used as gives the same answer the lift gives elsewhere. A
      * constructor's own body is reached the same way, its {@code this} being that first argument.
      * <p>
@@ -662,7 +661,7 @@ public class EliminateGenerics {
      * specialise what they need onto the erased class. A closure has no such call: it is reached
      * through the interface it implements, which is not generic, so the allocation is the only thing
      * that knows what the body dispatches on. Widening this beyond that case makes the two
-     * mechanisms disagree — the object comes from the specialised class while its methods were bound
+     * mechanisms disagree: the object comes from the specialised class while its methods were bound
      * to the erased one.
      */
     private boolean isConstructionOnlyInstantiation(ImClass classDef) {

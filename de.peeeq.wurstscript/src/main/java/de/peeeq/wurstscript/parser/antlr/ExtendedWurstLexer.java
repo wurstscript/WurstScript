@@ -216,27 +216,6 @@ public class ExtendedWurstLexer implements TokenSource {
                         state(State.INIT);
                         return firstNewline;
                     }
-//			case WRAP_CHAR:
-//				if (isWrapCharEndLine(token.getType())) {
-//					return token;
-//				} else if (token.getType() == WurstParser.NL) {
-//					firstNewline = token;
-//					numberOfTabs = 0;
-//					continue;
-//				} else if (token.getType() == WurstParser.TAB) {
-//					numberOfTabs++;
-//					continue;
-//				} else {
-//					state(State.INIT);
-//					if (numberOfTabs <= indentationLevels.peek()) {
-//						// when the number of tabs decreases we ignore wrap chars
-//						handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
-//						nextTokens.add(token);
-//						return firstNewline;
-//					} else {
-//						return token;
-//					}
-//				}
                 case BEGIN_LINE:
                     if (isTab(token)) {
                         readTabChar(token);
@@ -386,8 +365,6 @@ public class ExtendedWurstLexer implements TokenSource {
 
     private boolean isWrapChar(int type) {
         switch (type) {
-//		case WurstParser.PAREN_LEFT:
-//		case WurstParser.BRACKET_LEFT:
             case WurstParser.COMMA:
             case WurstParser.PLUS:
             case WurstParser.MULT:
@@ -398,7 +375,6 @@ public class ExtendedWurstLexer implements TokenSource {
             case WurstParser.MOD_REAL:
             case WurstParser.AND:
             case WurstParser.OR:
-//            case WurstParser.ARROW:
             case WurstParser.QUESTION:
             case WurstParser.COLON:
                 return true;

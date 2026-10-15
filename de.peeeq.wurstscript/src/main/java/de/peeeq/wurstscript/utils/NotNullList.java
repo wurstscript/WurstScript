@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 /**
- * a simple linked list which cannot have null elements in it
+ * An array list that rejects null elements on insertion and replacement.
  */
 public class NotNullList<T> extends ArrayList<T> {
     private static final long serialVersionUID = -2435064420633050305L;
@@ -37,17 +37,6 @@ public class NotNullList<T> extends ArrayList<T> {
         return super.addAll(index, c);
     }
 
-//	@Override
-//	public void addFirst(T e) {
-//		if (e == null) throw new IllegalArgumentException("Tried to insert null element"); 
-//		super.addFirst(e);
-//	}
-//
-//	@Override
-//	public void addLast(T e) {
-//		if (e == null) throw new IllegalArgumentException("Tried to insert null element"); 
-//		super.addLast(e);
-//	}
 
     @Override
     public T set(int index, T element) {

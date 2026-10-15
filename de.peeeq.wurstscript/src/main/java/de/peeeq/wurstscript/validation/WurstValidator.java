@@ -203,19 +203,12 @@ public class WurstValidator {
 
         collectUsedPackages(used, p.getElements());
 
-        // String usedToStr =
-        // used.stream().map(Utils::printElement).sorted().collect(Collectors.joining(",
-        // "));
-        // System.out.println("used = " + usedToStr);
 
         // contributed packages for each import
         Map<WImport, Set<WPackage>> contributions = new HashMap<>();
         for (WImport imp : p.getImports()) {
             Set<WPackage> contributedPackages = contributedPackages(imp.attrImportedPackage(), used, new HashSet<>());
             contributions.put(imp, contributedPackages);
-            // System.out.println( imp.getPackagename() + " contributes = " +
-            // contributedPackages.stream().map(Utils::printElement).sorted().collect(Collectors.joining(",
-            // ")));
         }
 
         // check for imports, which only contribute a subset of some other
@@ -906,7 +899,7 @@ public class WurstValidator {
                 }
                 // keep walking if the structure itself has no TPs
             }
-            // IMPORTANT: skip function owners entirely — method generics are allowed to mix.
+            // Skip function owners entirely; method generics are allowed to mix.
             if (p instanceof FuncDef) {
                 return null;
             }
@@ -2459,14 +2452,6 @@ public class WurstValidator {
         return null;
     }
 
-    // private void checkParams(Element where, List<Expr> args,
-    // FunctionDefinition calledFunc) {
-    // if (calledFunc == null) {
-    // return;
-    // }
-    // List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
-    // checkParams(where, args, parameterTypes);
-    // }
 
     @Deprecated
     private void checkParams(Element where, String preMsg, List<Expr> args, FunctionSignature sig) {
@@ -3605,12 +3590,6 @@ public class WurstValidator {
         if (p == null) {
             n.addError("Not in package or global: " + n.getName());
         }
-        // checkIfTypeDefExists(n, p);
-        // if (p instanceof WPackage) {
-        // // check global scope
-        // p = p.getParent().attrNearestPackage();
-        // checkIfTypeDefExists(n, p);
-        // }
     }
 
     /**

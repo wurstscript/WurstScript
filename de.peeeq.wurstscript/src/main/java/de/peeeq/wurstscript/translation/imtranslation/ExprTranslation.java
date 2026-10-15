@@ -169,16 +169,11 @@ public class ExprTranslation {
             }
         }
 
-//        System.out.println("CAll " + Utils.prettyPrintWithLine(trace));
-//        System.out.println("  actualType = " + actualType.getFullName());
-//        System.out.println("  expectedTypRaw = " + expectedTypRaw.getFullName());
 
         if (toIndex != null && fromIndex != null) {
-//            System.out.println("  --> cancel");
             // the two conversions cancel each other out
             return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
-//            System.out.println("  --> fromIndex");
             // Lua normalises the erased value to an int first, except for the conversions which
             // answer the same for every value a slot can hold (nil, 0, an index) without it.
             if (t.isLuaTarget() && !de.peeeq.wurstscript.translation.lua.translation.ExprTranslation
@@ -188,7 +183,6 @@ public class ExprTranslation {
             // no ensure type necessary here, because the fromIndex function is already type safe
             return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
-//            System.out.println("  --> toIndex");
             return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
         // Preserve Wurst's primitive defaults when an erased generic value is

@@ -492,12 +492,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         timeTaker.endPhase();
 
-        if (runArgs.isNoDebugMessages()) {
-            beginPhase(3, "remove debug messages");
-            DebugMessageRemover.removeDebugMessages(imProg2);
-            timeTaker.endPhase();
-        }
-
         imTranslator2.assertProperties();
 
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
@@ -1003,17 +997,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
         timeTaker.endPhase();
 
-        if (runArgs.isNoDebugMessages()) {
-            beginPhase(3, "remove debug messages");
-            DebugMessageRemover.removeDebugMessages(imProg);
+        if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
+            beginPhase(4, "add stack traces");
+            new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
             timeTaker.endPhase();
-        } else {
-            // debug: add stacktraces
-            if (runArgs.isIncludeStacktraces()) {
-                beginPhase(4, "add stack traces");
-                new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
-                timeTaker.endPhase();
-            }
         }
         // Same position as on Jass: after stack traces, before lowering and inlining. Calls with a
         // static argument count go to fixed-arity copies, so the emitted Lua packs no table and the

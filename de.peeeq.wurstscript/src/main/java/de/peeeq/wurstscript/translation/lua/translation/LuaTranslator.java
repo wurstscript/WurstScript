@@ -444,7 +444,6 @@ public class LuaTranslator {
 
         normalizeFieldNames();
 
-//        NormalizeNames.normalizeNames(prog);
 
         createObjectManagement();
         createInstanceOfFunction();
@@ -717,7 +716,7 @@ public class LuaTranslator {
      * class.
      * <p>
      * A specialised class holds a copy of each field, and the accesses reaching either still name the
-     * original's variable — so the two must end up as one table key. They cannot be normalised
+     * original's variable, so the two must end up as one table key. They cannot be normalised
      * independently: the classes need not hold the same methods once unused ones are dropped, and a
      * specialisation has slots of its own that the original never had. Naming each side around only
      * its own methods leaves them different; restoring the original's name afterwards puts back
@@ -1521,12 +1520,12 @@ public class LuaTranslator {
         }
 
         // Slots are assigned in two passes: a slot name that is the (normalized)
-        // name of a method in a group is a DIRECT claim of that group — call sites
+        // name of a method in a group is a DIRECT claim of that group; call sites
         // dispatch through exactly these names. All other slot names (semantic
         // aliases like ClassName_x, closure/generics bridging aliases) are DERIVED.
         // A derived claim may take over a direct slot only when the two methods
         // have the same runtime arity (that is how overrides of erased generic
-        // groups are bridged — their full signatures differ in the erased type
+        // groups are bridged; their full signatures differ in the erased type
         // parameter positions); otherwise an unrelated method whose name merely
         // shares an underscore-suffix (my_x(int) vs x()) could steal a real slot.
         Map<String, ImMethod> slotToImpl = new TreeMap<>();

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-// Expose static fields only if you already have them there; otherwise, just clear via dedicated methods.
 public final class GlobalCaches {
     // Stats are useful for diagnostics but expensive on very hot cache paths.
     private static final boolean ENABLE_CACHE_STATS = false;

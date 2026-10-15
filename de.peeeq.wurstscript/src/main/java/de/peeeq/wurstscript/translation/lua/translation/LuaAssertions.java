@@ -337,7 +337,7 @@ public class LuaAssertions {
         int pos = skipWhitespace(text, index);
 
         if (pos >= length || !isIdentifierStart(text.charAt(pos))) {
-            // Anonymous function: 'function(' — no name to skip
+            // Anonymous function: 'function(' has no name to skip
             return pos;
         }
 
@@ -411,7 +411,7 @@ public class LuaAssertions {
             } else if (ch == quote) {
                 return pos + 1;
             } else if (ch == '\n') {
-                // Unfinished string literal — treat as ended
+                // Treat an unfinished string literal as ended
                 return pos;
             } else {
                 pos++;

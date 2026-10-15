@@ -205,8 +205,6 @@ public class ExtendedJurstLexer implements TokenSource {
 
     private boolean isWrapChar(int type) {
         switch (type) {
-//		case JurstParser.PAREN_LEFT:
-//		case JurstParser.BRACKET_LEFT:
             case JurstParser.COMMA:
             case JurstParser.PLUS:
             case JurstParser.MULT:

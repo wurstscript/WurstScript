@@ -176,7 +176,6 @@ public class ImInliner {
                         && getFuncSize(called) >= LUA_LIVENESS_REFRESH_INLINE_SIZE) {
                         getLuaRegisterBudget(f).refresh();
                     }
-//					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
                     changed[0] = true;
                     int newSize = estimateSize(f);
                     funcSizes.put(f, newSize);

@@ -167,9 +167,6 @@ public abstract class WurstTypeNamedScope extends WurstType {
             typeParams.add(new WurstTypeBoundTypeParam(tpDef, baseType, typeArg));
         }
 
-//		List<WurstType> newTypes = node.getTypeArgs().stream()
-//				.map((TypeExpr te) -> te.attrTyp().dynamic())
-//				.collect(Collectors.toList());
 
         return replaceTypeVars(typeParams);
     }

@@ -132,7 +132,7 @@ Lambdas used as the Jass `code` type cannot accept parameters or capture locals.
 
 ## Classes, interfaces, modules, and tuples
 
-Objects created with `new` generally need `destroy`; tuples are value types and must not be destroyed. Destructors (`ondestroy`) remain explicit for Lua output—Lua garbage collection does not replace Wurst ownership and cleanup.
+Objects created with `new` generally need `destroy`; tuples are value types and must not be destroyed. Destructors (`ondestroy`) remain explicit for Lua output: Lua garbage collection does not replace Wurst ownership and cleanup.
 
 ```wurst
 class Missile
@@ -266,7 +266,7 @@ A string is a sequence of bytes on both targets, as it is in the game. `.length(
 "ä".substring(0, 1)     // half a character
 ```
 
-The standard library's `String` package handles this explicitly — `isCharBoundary` and `isMultibytePartial` — when `ENABLE_MULTIBYTE_SUPPORT` is on, which it is by default. Compiletime code sees the same semantics, so a length computed while building the map is the length the game agrees with. One thing does not carry across: a compiletime expression cannot return half a character, because a generated script has no way to write that byte down.
+The standard library's `String` package handles this explicitly (`isCharBoundary` and `isMultibytePartial`) when `ENABLE_MULTIBYTE_SUPPORT` is on, which it is by default. Compiletime code sees the same semantics, so a length computed while building the map is the length the game agrees with. One thing does not carry across: a compiletime expression cannot return half a character, because a generated script has no way to write that byte down.
 
 ## Lua and Jass targets
 

@@ -185,7 +185,7 @@ public class FuncLink extends DefLink {
         WurstType newReceiverType = adjustType(context, getReceiverType(), binding);
         changed = changed || newReceiverType != getReceiverType();
         // Also check if any type params are being bound (even if types don't
-        // change structurally — e.g., T bound to itself within a generic module)
+        // change structurally, e.g., T bound to itself within a generic module)
         if (!changed) {
             for (TypeParamDef tp : getTypeParams()) {
                 if (binding.contains(tp)) {

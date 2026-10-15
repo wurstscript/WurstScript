@@ -53,7 +53,7 @@ public class DeterministicChecks extends WurstScriptTest {
     /**
      * The same source has to emit the same script whatever was compiled before it. Names of
      * generated temporaries used to be counted per thread and never reset, so a program compiled
-     * alone got {@code temp0} and the same program compiled after other work got {@code temp70} —
+     * alone got {@code temp0} and the same program compiled after other work got {@code temp70},
      * which is what made generated Jass impossible to compare across runs. Compiling something
      * else in between is the part that matters here; two runs on their own would agree either way.
      * The inlining configuration is the one that emits a temporary for this source.

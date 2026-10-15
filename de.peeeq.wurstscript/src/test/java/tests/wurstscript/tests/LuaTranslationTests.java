@@ -3598,7 +3598,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesXpcallInsteadOfTriggerEvaluateInMain.lua"), Charsets.UTF_8);
-        // Package inits use direct xpcall — no WC3 trigger handle overhead
+        // Package inits use direct xpcall, no WC3 trigger handle overhead
         assertTrue(compiled.contains("if not xpcall(init_"));
         // TriggerEvaluate pattern must NOT appear for init functions
         assertFalse(compiled.contains("if not(TriggerEvaluate("));
@@ -3989,7 +3989,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // Regression: ExprTranslation used f.setName("tostring") to rename the shared
         // LuaFunction for I2S. After the first ordinary I2S(x) call was translated, f.getName()
         // returned "tostring", so the sentinel check "I2S".equals(f.getName()) silently failed
-        // for any later I2S(1/0) abort call — leaving actual //0 division in the Lua output.
+        // for any later I2S(1/0) abort call, leaving actual //0 division in the Lua output.
         // This test forces a normal I2S call before the abort to expose the mutation bug.
         test().testLua(true).withStdLib().lines(
             "package Test",
@@ -3997,7 +3997,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "import ErrorHandling",
             "init",
             "    let x = 42",
-            "    print(I2S(x))",   // normal I2S call first — used to corrupt the cached LuaFunction
+            "    print(I2S(x))",   // normal I2S call first, used to corrupt the cached LuaFunction
             "    error(\"test\")"  // triggers I2S(1 div 0) inside ErrorHandling.error()
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_i2sAbortSentinelNotBrokenByEarlierI2SCallInLua.lua"), Charsets.UTF_8);
@@ -4309,7 +4309,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
         // A function declaration named GetHandleId (e.g. from a class method) must not
-        // trigger the assertion — only actual calls should.
+        // trigger the assertion; only actual calls should.
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("function Foo:GetHandleId(x) return 0 end");
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator

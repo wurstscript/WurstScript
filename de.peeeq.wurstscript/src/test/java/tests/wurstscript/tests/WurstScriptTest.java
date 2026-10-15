@@ -778,7 +778,7 @@ public class WurstScriptTest {
 
     /**
      * Drains {@code stream} into {@code out}, keeping only the first {@link #RETAINED_OUTPUT_LIMIT}
-     * characters. Reading never stops — that is what blocks the process and deadlocks the run — but
+     * characters. Reading never stops (that would block the process and deadlock the run), but
      * a program that loops while printing would fill the heap before the timeout could fire.
      * <p>
      * Whatever the caller is looking for is recognised here rather than read back out of

@@ -91,7 +91,7 @@ public class Wc3StringHashTest extends WurstScriptTest {
     /**
      * The Lua test runtime carries a second implementation of this hash, because a program running
      * there computes it too. Two transcriptions of one algorithm drift, so this runs the inputs
-     * through both and compares — asserting the Java side against written-down numbers would stay
+     * through both and compares; asserting the Java side against written-down numbers would stay
      * green if only the Lua side changed, which is the case worth catching.
      */
     @Test
