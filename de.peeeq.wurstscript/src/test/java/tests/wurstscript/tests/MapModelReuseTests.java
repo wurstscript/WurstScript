@@ -26,6 +26,77 @@ import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
     @Test
+    public void objectExportRunsGenerationWithoutEmittingScriptOrChangingInputMap() throws Exception {
+        Project project = project();
+        String source = """
+            package Main
+            import NoWurst
+            tuple ObjectDefinition(string key)
+            native createObjectDefinition(string fileType, int newUnitId, int deriveFrom) returns ObjectDefinition
+            @compiletime function generate()
+                createObjectDefinition("w3u", 'h002', 'hfoo')
+            """;
+        Files.writeString(project.source.toPath(), source);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), source));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        File map = new File(project.root, "input.w3x");
+        de.peeeq.wurstio.mpq.MpqEditorFactory.createEmptyArchive(map);
+        byte[] originalMap = Files.readAllBytes(map.toPath());
+        for (boolean lua : new boolean[]{false, true}) {
+            ExportProbe request = new ExportProbe(project.root, map, lua);
+            WurstGui gui = new WurstGuiCliImpl();
+            File exported = request.compile(gui, project.manager, project.script);
+            assertEquals(gui.getErrorCount(), 0, gui.getErrors());
+            assertTrue(exported.isFile());
+            try (var in = new net.moonlightflower.wc3libs.bin.Wc3BinInputStream(exported)) {
+                assertEquals(in.readInt32(), 1);
+                assertEquals(in.readInt32(), 1);
+                var units = new net.moonlightflower.wc3libs.bin.app.objMod.W3U();
+                units.read(in, net.moonlightflower.wc3libs.bin.ObjMod.EncodingFormat.OBJ_0x2);
+                assertTrue(units.getObjs().containsKey(net.moonlightflower.wc3libs.misc.ObjId.valueOf("h002")));
+            }
+            assertEquals(Files.readAllBytes(map.toPath()), originalMap, "Export must not inject generated objects into the input map");
+            assertFalse(new File(project.root, "_build/" + MapRequest.BUILD_COMPILED_JASS_NAME).exists());
+            assertFalse(new File(project.root, "_build/" + MapRequest.BUILD_COMPILED_LUA_NAME).exists());
+        }
+        File generated = new File(project.root, "objectEditingOutput/wurstCreatedObjects.w3o");
+        BuildMap command = new BuildMap(null, WFile.create(project.root), Optional.empty(), Optional.of(map), List.of(), true) {
+            @Override protected WurstGui createGui(ModelManager manager, String title) {
+                return new WurstGuiCliImpl();
+            }
+            @Override protected CompilationResult compileScript(ModelManager manager, WurstGui gui, Optional<File> map,
+                WurstProjectConfigData config, File buildDir, boolean prod) {
+                assertFalse(prod, "World Editor exports use development object definitions");
+                CompilationResult result = new CompilationResult();
+                result.script = generated;
+                return result;
+            }
+            @Override protected File executeBuildMapPipeline(ModelManager manager, WurstGui gui, WurstProjectConfigData config) {
+                throw new AssertionError("Object export must not package a release map");
+            }
+        };
+        File published = new File((String) command.execute(project.manager));
+        assertEquals(published, new File(project.root, "_build/wurstCreatedObjects.w3o"));
+        assertEquals(Files.readAllBytes(published.toPath()), Files.readAllBytes(generated.toPath()));
+    }
+
+    private static class ExportProbe extends BuildMap {
+        private final File mapFile;
+        ExportProbe(File root, File mapFile, boolean lua) {
+            super(null, WFile.create(root), Optional.empty(), Optional.of(mapFile),
+                lua ? List.of("-lua", "-injectobjects", "-hotreload") : List.of("-injectobjects", "-hotreload"), true);
+            this.mapFile = mapFile;
+        }
+        File compile(WurstGui gui, ModelManager manager, File script) throws Exception {
+            assertTrue(runArgs.runCompiletimeFunctions());
+            assertTrue(runArgs.isExportW3o());
+            assertFalse(runArgs.isInjectObjects());
+            assertFalse(runArgs.isHotReload());
+            return compileScript(gui, manager, compileArgs, Optional.of(mapFile), WurstProjectConfigData.empty(), false, script);
+        }
+    }
+
+    @Test
     public void runProbeDoesNotDiscoverAnInstalledGame() throws Exception {
         Project project = project();
         // A runner has no Warcraft installation. Discovery would open a modal folder chooser

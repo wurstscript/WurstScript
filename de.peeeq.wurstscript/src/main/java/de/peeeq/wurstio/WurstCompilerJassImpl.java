@@ -135,6 +135,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
                 CompiletimeFunctions, projectConfigData, isProd, cache)) {
                 ctr.setInjectObjects(runArgs.isInjectObjects());
+                ctr.getGlobalState().setExportW3o(runArgs.isExportW3o());
                 ctr.getGlobalState().setObjectDataSource(objectDataSource);
                 ctr.setOutputStream(new PrintStream(System.err));
                 ctr.run();
