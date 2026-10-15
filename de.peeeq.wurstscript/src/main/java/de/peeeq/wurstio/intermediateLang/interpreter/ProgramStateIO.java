@@ -50,6 +50,7 @@ public class ProgramStateIO extends ProgramState {
      * are no longer set would survive from that run.
      */
     private @Nullable File objectDataSource;
+    private boolean exportW3o;
     private @Nullable Map<String, byte[]> baseObjectFiles;
 
     /**
@@ -138,6 +139,10 @@ public class ProgramStateIO extends ProgramState {
         super(gui, prog, isCompiletime);
         this.mapFile = mapFile;
         this.mpqEditor = mpqEditor;
+    }
+
+    public void setExportW3o(boolean exportW3o) {
+        this.exportW3o = exportW3o;
     }
 
     @Override
@@ -454,8 +459,10 @@ public class ProgramStateIO extends ProgramState {
             }
         }
 
-        // Always write the .w3o (debug aid) – but do NOT touch the manifest for it
-//        writeW3oFile();
+        // Export independently of the MPQ cache: an explicit request must also work on an unchanged build.
+        if (exportW3o) {
+            writeW3oFile();
+        }
 
         // Only persist a new manifest if we actually injected files
         if (inject && anyFileWritten) {
@@ -472,8 +479,17 @@ public class ProgramStateIO extends ProgramState {
 
 
     private void writeW3oFile() {
-        Optional<File> objFile = getObjectEditingOutputFolder().map(fo -> new File(fo, "wurstCreatedObjects.w3o"));
-        try (Wc3BinOutputStream objFileStream = new Wc3BinOutputStream(objFile.get())) {
+        if (!unreadableObjectFiles.isEmpty()) {
+            compilationError("Could not export combined object data because the map's object files could not be read: " + unreadableObjectFiles);
+            return;
+        }
+        Optional<File> folder = getObjectEditingOutputFolder();
+        if (folder.isEmpty()) {
+            compilationError("Could not create the output folder for the combined object data export.");
+            return;
+        }
+        File objFile = new File(folder.get(), "wurstCreatedObjects.w3o");
+        try (Wc3BinOutputStream objFileStream = new Wc3BinOutputStream(objFile)) {
             objFileStream.writeInt32(1); // version
             for (ObjectFileType fileType : ObjectFileType.values()) {
                 ObjMod<? extends ObjMod.Obj> dataStore = getDataStore(fileType);
@@ -484,8 +500,9 @@ public class ProgramStateIO extends ProgramState {
                     objFileStream.writeInt32(0); // does not exist
                 }
             }
-        } catch (Error | IOException e) {
+        } catch (IOException e) {
             WLogger.severe(e);
+            compilationError("Could not export combined object data to " + objFile + ": " + e.getMessage());
         }
     }
 

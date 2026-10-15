@@ -203,6 +203,10 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
+    protected boolean isObjectExportOnly() {
+        return false;
+    }
+
     protected File compileMap(ModelManager modelManager, File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs,
                               WurstModel model, WurstProjectConfigData projectConfigData, boolean isProd) {
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
@@ -239,6 +243,11 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
 
             timeTaker.measure("Runinng Compiletime Functions", () -> compiler.runCompiletime(projectConfigData, isProd, runArgs.isCompiletimeCache()));
+
+            if (isObjectExportOnly()) {
+                // Object generation is complete; the export command does not need a runtime script.
+                return new File(mapCopy.orElseThrow().getParentFile(), "objectEditingOutput/wurstCreatedObjects.w3o");
+            }
 
             if (runArgs.isLua()) {
                 print("Translating program to Lua ... ");
