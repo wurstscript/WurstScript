@@ -40,11 +40,6 @@ Notes; finished-work narrative does not.
   separating real parameter differences; the dispatch group key cannot be used because it embeds each
   class's type variable (`void|T192,real` against `void|T636,real`). Worth doing only if this stops
   being dead weight.
-  A separate runtime miss was reproduced on unmodified master: `Root<T:>` overloads `value(T)` and
-  `value(string)`, `Parent<U:> implements Root<U>` returns 10/20, `Child extends Parent<int>` uses a module
-  whose `value(int)` returns 42, and `Grandchild` overrides it to return 43. Calls through `Root<int>`
-  reach the parent implementation (10) on Lua instead of 42/43; Jass succeeds. The same hierarchy without
-  the module passes on both targets (`DispatchImplementationTests.boundGenericOverloadsKeepTheirDispatch`).
 
 - **Implement `RawHashMap<K, V>` from [docs/NATIVE_KEYED_STORE_DESIGN.md](docs/NATIVE_KEYED_STORE_DESIGN.md).**
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
