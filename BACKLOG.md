@@ -40,6 +40,11 @@ Notes; finished-work narrative does not.
   separating real parameter differences; the dispatch group key cannot be used because it embeds each
   class's type variable (`void|T192,real` against `void|T636,real`). Worth doing only if this stops
   being dead weight.
+  A separate runtime miss was reproduced on unmodified master: `Root<T:>` overloads `value(T)` and
+  `value(string)`, `Parent<U:> implements Root<U>` returns 10/20, `Child extends Parent<int>` uses a module
+  whose `value(int)` returns 42, and `Grandchild` overrides it to return 43. Calls through `Root<int>`
+  reach the parent implementation (10) on Lua instead of 42/43; Jass succeeds. The same hierarchy without
+  the module passes on both targets (`DispatchImplementationTests.boundGenericOverloadsKeepTheirDispatch`).
 
 - **Implement `RawHashMap<K, V>` from [docs/NATIVE_KEYED_STORE_DESIGN.md](docs/NATIVE_KEYED_STORE_DESIGN.md).**
   The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
@@ -135,14 +140,6 @@ Notes; finished-work narrative does not.
     about 4%). The dataflow anomaly analysis (`VarStates`, `VState`) copies its immutable maps and multimaps on every
     read and write, about 7% with its merges; persistent or mutable states would remove most of that. The rest is
     attribute evaluation, see the next item.
-  - *Translation to IM (2.4 s):* `ImTranslator.getClassesWithImplementation` is 20% of it: for each method a member
-    lookup in every subclass, so a hierarchy where thousands of subclasses override one method pays methods times
-    subclasses lookups (the overrides are distinct, not duplicates). Tried and dropped: letting a subclass which
-    brings no function of that name take its superclass's answer agreed with the current answer on every call
-    (11,727 on that map, and the class and generics suites) but changed nothing measurable, because the subclasses
-    which make it slow override the method themselves. What would help is a cheaper lookup per overriding subclass
-    (its own declaration of the name is the candidate), with the binding of type arguments (`matchDefLinkReceiver`)
-    coming out the same.
 - **Parallel type check and per-function IM passes.** Parsing is parallel (above); the rest of a build is not, and
   JFR of fresh master says where the time is (shares of the compiler thread's samples, castle fight without
   optimisations / optimised / zombie defense): type check light and heavy phases (attribute evaluation, per unit and per
