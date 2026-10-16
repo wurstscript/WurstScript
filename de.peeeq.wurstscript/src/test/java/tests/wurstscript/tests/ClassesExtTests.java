@@ -654,23 +654,6 @@ public class ClassesExtTests extends WurstScriptTest {
         );
     }
 
-    // TODO @Test
-    public void testMultiTuple() {
-        testAssertOkLines(true,
-                "package test",
-                "    native testSuccess()",
-                "    tuple v(int x, int y)",
-                "    class A",
-                "        v array[5] foo",
-                "    init",
-                "        let a = new A()",
-                "        a.foo[3] = v(3,4)",
-                "        if a.foo[3] == v(3,4)",
-                "            testSuccess()",
-                "endpackage"
-        );
-    }
-
 
     @Test
     public void subTypeGeneric1() { // see #595
