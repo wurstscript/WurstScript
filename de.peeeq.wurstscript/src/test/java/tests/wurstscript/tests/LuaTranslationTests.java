@@ -2702,6 +2702,29 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
     }
 
+    /**
+     * A concatenation lowered to the nil-safe helper is a call the IM operator it replaces did not
+     * have, so its stack-trace position comes from the enclosing statement. It used to be empty.
+     */
+    @Test
+    public void aLoweredConcatenationKeepsItsPositionInAStackTrace() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "function describe(int a) returns string",
+            "    return getStackTraceString() + a.toString()",
+            "init",
+            "    print(describe(1))",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_aLoweredConcatenationKeepsItsPositionInAStackTrace.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("the concatenation should go through the helper",
+            compiled.contains("\"when calling __wurst_stringConcat in aLoweredConcatenationKeepsItsPositionInAStackTrace, line 3\""));
+        assertFalse("no helper call may lose its position", compiled.contains("\"when calling __wurst_stringConcat\""));
+    }
+
     @Test
     public void keyedTableStaysNativeWithStackTraces() throws IOException {
         test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
