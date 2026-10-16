@@ -1,7 +1,5 @@
 package tests.wurstscript.tests;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -10,7 +8,6 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import org.testng.annotations.Test;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,10 +25,6 @@ import static org.testng.AssertJUnit.assertTrue;
  * function. Each test runs the emitted Lua; most also check its shape.
  */
 public class LuaMultipleResultsTests extends WurstScriptTest {
-
-    private String compiledLua(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/LuaMultipleResultsTests_" + testName + ".lua"), Charsets.UTF_8);
-    }
 
     private String compileLua(RunArgs runArgs, String... lines) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();

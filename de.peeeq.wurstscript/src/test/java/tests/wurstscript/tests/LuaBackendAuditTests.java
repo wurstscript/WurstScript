@@ -45,10 +45,6 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class LuaBackendAuditTests extends WurstScriptTest {
 
-    private String compiledLua(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua"), Charsets.UTF_8);
-    }
-
     private static final java.util.regex.Pattern SLOT_ASSIGNMENT =
         java.util.regex.Pattern.compile("(?m)^\\s*(\\w+)\\.(\\w+) = (\\w+)\\s*$");
 

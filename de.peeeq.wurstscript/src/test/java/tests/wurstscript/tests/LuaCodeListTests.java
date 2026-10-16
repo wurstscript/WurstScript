@@ -1,10 +1,7 @@
 package tests.wurstscript.tests;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,10 +47,6 @@ public class LuaCodeListTests extends WurstScriptTest {
         return matcher.group(1);
     }
 
-    private String compiled(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/LuaCodeListTests_" + testName + ".lua"), Charsets.UTF_8);
-    }
-
     @Test
     public void codeListLowersToATableOfFunctionsOnLua() throws IOException {
         test().testLua(true).withStdLib().lines(withCodeList(
@@ -68,7 +61,7 @@ public class LuaCodeListTests extends WurstScriptTest {
             "    codeListRun(list)",
             "endpackage"));
 
-        String compiled = compiled("codeListLowersToATableOfFunctionsOnLua");
+        String compiled = compiledLua("codeListLowersToATableOfFunctionsOnLua");
         assertTrue("create is a bare table", getFunctionBody(compiled, "__wurst_codeListCreate").contains("return {}"));
         assertTrue("add appends", getFunctionBody(compiled, "__wurst_codeListAdd").contains("t[#t + 1] = c"));
         assertTrue("run calls each in order",
@@ -170,7 +163,7 @@ public class LuaCodeListTests extends WurstScriptTest {
             "    print(count.toString())",
             "endpackage"));
 
-        String compiled = compiled("codeListStaysNativeWithStackTraces");
+        String compiled = compiledLua("codeListStaysNativeWithStackTraces");
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("the caller must call the stubs directly: " + init,
             init.contains("__wurst_codeListAdd(") && init.contains("__wurst_codeListRun("));
@@ -195,7 +188,7 @@ public class LuaCodeListTests extends WurstScriptTest {
             "        testSuccess()",
             "endpackage");
 
-        String compiled = compiled("genericDeclarationsNamedLikeListOperationsAreNotLowered");
+        String compiled = compiledLua("genericDeclarationsNamedLikeListOperationsAreNotLowered");
         assertFalse("neither is replaced by a stub", compiled.contains("__wurst_codeList"));
     }
 
@@ -221,7 +214,7 @@ public class LuaCodeListTests extends WurstScriptTest {
             "        testSuccess()",
             "endpackage");
 
-        String compiled = compiled("varargAndClassFunctionsNamedLikeListOperationsAreNotLowered");
+        String compiled = compiledLua("varargAndClassFunctionsNamedLikeListOperationsAreNotLowered");
         assertFalse("neither is replaced by a stub", compiled.contains("__wurst_codeList"));
     }
 
@@ -244,7 +237,7 @@ public class LuaCodeListTests extends WurstScriptTest {
             "        testSuccess()",
             "endpackage");
 
-        String compiled = compiled("otherFunctionsNamedLikeListOperationsAreNotLowered");
+        String compiled = compiledLua("otherFunctionsNamedLikeListOperationsAreNotLowered");
         assertFalse("none of them is replaced by a stub", compiled.contains("__wurst_codeList"));
     }
 }
