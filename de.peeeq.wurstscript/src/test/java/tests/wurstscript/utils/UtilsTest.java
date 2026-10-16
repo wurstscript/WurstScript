@@ -54,6 +54,14 @@ public class UtilsTest {
     }
 
     @Test
+    public void printExceptionPrintsTheExceptionOnce() {
+        String printed = Utils.printException(new IllegalStateException("boom", new RuntimeException("cause")));
+        Assert.assertTrue(printed.startsWith("java.lang.IllegalStateException: boom\n"), printed);
+        Assert.assertEquals(printed.split("IllegalStateException: boom", -1).length - 1, 1, printed);
+        Assert.assertTrue(printed.contains("Caused by: java.lang.RuntimeException: cause\n"), printed);
+    }
+
+    @Test
     public void array() {
         int[] ar1 = {1, 2, 3};
         int[] ar2 = {1, 2, 3};

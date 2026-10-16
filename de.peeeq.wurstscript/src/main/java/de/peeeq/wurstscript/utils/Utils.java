@@ -616,7 +616,7 @@ public class Utils {
     }
 
     public static String printException(Throwable e) {
-        return e + "\n" + Utils.printExceptionWithStackTrace(e);
+        return printExceptionWithStackTrace(e);
     }
 
 
