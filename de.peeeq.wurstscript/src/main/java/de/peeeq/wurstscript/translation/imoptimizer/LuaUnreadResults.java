@@ -198,7 +198,6 @@ final class LuaUnreadResults {
                 dropFromReturn(member, ret, read, analyzer);
             }
             member.setReturnType(newType.copy());
-            trans.functionChanged(member);
         }
 
         for (ImVar local : locals) {
@@ -233,7 +232,6 @@ final class LuaUnreadResults {
             } else {
                 local.setType(newType.copy());
             }
-            trans.functionChanged(owner);
         }
     }
 

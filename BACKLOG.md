@@ -99,13 +99,11 @@ Notes; finished-work narrative does not.
   keeps: `modification counts: ImFunction` in `jass_im.parseq`). Left:
   (1) more removals which remove nothing: one which the test suite shows to find nothing becomes an `assertNoGarbage`,
   as the second removal, the one in `optimize` and the one in front of the empty package initialisers did (the one in
-  front of the first local optimisation is a candidate); (2) facts which live longer than one removal, valid
-  while `modificationCount()` of the function is the same (it replaces `ImTranslator.functionChanged`, which a pass
-  can forget to call), so that the first round of a removal does not walk the functions no pass touched; (3) `LocalPlayerContextAnalyzer`, built again for the whole program after each
-  pass which is not local-player aware (see "Build the local-player analysis fewer times" above); (4) the flatten after the tuples
+  front of the first local optimisation is a candidate); (2) `LocalPlayerContextAnalyzer`, built again for the whole program after each
+  pass which is not local-player aware (see "Build the local-player analysis fewer times" above); (3) the flatten after the tuples
   are eliminated is the one which does work (about 565 to 800 functions of castle fight): the producers of
   statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does;
-  (5) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
+  (4) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
   each link, and a round costs the functions which changed (a walk of each, the rewrite of its statement list, its
   locals), so the cost grows with the square of the length. Measured in a unit test (the checks of unit-test mode on,
   one removal): a chain inside one function takes 0.24 s for 1,000 links, 1.5 s for 4,000 and 16.7 s for 16,000; with

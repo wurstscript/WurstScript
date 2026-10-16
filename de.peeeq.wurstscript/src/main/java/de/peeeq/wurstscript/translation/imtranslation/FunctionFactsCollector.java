@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.jassIm.*;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Set;
 
 /**
@@ -20,6 +22,7 @@ import java.util.Set;
 final class FunctionFactsCollector extends ImFunction.DefaultVisitor {
     final Set<ImFunction> usedFunctions = new LinkedHashSet<>();
     final Set<ImVar> readVariables = new LinkedHashSet<>();
+    final Map<ImMethod, List<ImFunction>> methodTargets = new LinkedHashMap<>();
     /** The assignments, the ones inside another assignment before it; null when they were not asked for. */
     final List<ImSet> sets;
 
@@ -48,6 +51,14 @@ final class FunctionFactsCollector extends ImFunction.DefaultVisitor {
     @Override
     public void visit(ImMethodCall e) {
         super.visit(e);
+        methodTargets.computeIfAbsent(e.getMethod(), method -> {
+            List<ImFunction> targets = new ArrayList<>(method.getSubMethods().size() + 1);
+            targets.add(method.getImplementation());
+            for (ImMethod sub : method.getSubMethods()) {
+                targets.add(sub.getImplementation());
+            }
+            return targets;
+        });
         for (ImMethod sub : e.getMethod().getSubMethods()) {
             usedFunctions.add(sub.getImplementation());
         }
