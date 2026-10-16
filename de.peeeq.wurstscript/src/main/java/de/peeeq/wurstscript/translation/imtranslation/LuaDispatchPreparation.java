@@ -283,7 +283,10 @@ public final class LuaDispatchPreparation {
         List<ImMethod> candidates = sortedMethodsForClass(c, sortedMethodsByClass);
         for (int i = 0; i < candidates.size(); i++) {
             ImMethod candidate = candidates.get(i);
-            if (!dispatchKey.equals(dispatchParameterSignatureKey(candidate))) {
+            // An override's parameters may be concrete where its generic root still has type variables.
+            // The explicit override graph establishes that identity without comparing unbound signatures.
+            if (!dispatchKey.equals(dispatchParameterSignatureKey(candidate))
+                && !sameOverrideFamily(method, candidate)) {
                 continue;
             }
             if (!sharesSemanticName(method, candidate, semanticNames, tr)) {

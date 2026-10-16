@@ -29,6 +29,20 @@ import static org.testng.Assert.assertTrue;
  */
 public class DeterministicChecks extends WurstScriptTest {
 
+    @Test
+    public void moduleGenericRootDispatchIsIdenticalAcrossCompilations() throws IOException {
+        String name = "moduleGenericRootDispatch";
+        String[] source = DispatchImplementationTests.moduleStateSource(false);
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(source);
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(source);
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass);
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua);
+    }
+
 
     @Test
     public void simple() throws IOException {
