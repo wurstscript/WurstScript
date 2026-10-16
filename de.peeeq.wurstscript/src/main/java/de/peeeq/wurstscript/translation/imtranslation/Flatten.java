@@ -252,9 +252,14 @@ public class Flatten {
         return !(divisor instanceof ImIntVal value) || value.getValI() == 0;
     }
 
+    /** These effects have no statement form on both backends, so retain an assignment even if unread. */
+    public static boolean requiresDiscardAssignment(ImExpr expr) {
+        return expr instanceof ImAlloc || mayStopTheThread(expr);
+    }
+
     /**
      * Puts the effects of evaluating {@code e} into {@code result} as statements: the calls, deallocations and method
-     * calls, an and/or whose right side has statements as an if, and an operator which may stop the thread as an
+     * calls, an and/or whose right side has statements as an if, and an allocation or trapping operator as an
      * assignment. The rest of an expression only produces a value, and it goes.
      */
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
@@ -273,11 +278,11 @@ public class Flatten {
         } else if (e instanceof ImStatementExpr e2) {
             flattenStatementsInto(result, e2.getStatements(), t, f);
             exprToStatements(result, e2, t, f);
-        } else if (e instanceof ImOperatorCall oc && mayStopTheThread(oc)) {
+        } else if (e instanceof ImExpr expr && requiresDiscardAssignment(expr)) {
             // Jass and Lua have no expression statement, so the value goes in a local which nothing reads.
-            ImType type = oc.attrTyp();
-            de.peeeq.wurstscript.ast.Element trace = oc.attrTrace();
-            Result res = flatten(oc, t, f);
+            ImType type = expr.attrTyp();
+            de.peeeq.wurstscript.ast.Element trace = expr.attrTrace();
+            Result res = expr.flatten(t, f);
             result.addAll(res.stmts);
             ImVar tempVar = JassIm.ImVar(trace, type, getTempVarName(), false);
             f.getLocals().add(tempVar);

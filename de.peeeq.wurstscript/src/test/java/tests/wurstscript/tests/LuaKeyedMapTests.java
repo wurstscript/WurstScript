@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.testng.Assert.expectThrows;
+import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 import static org.testng.AssertJUnit.fail;
@@ -511,9 +512,9 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertFalse("generic values and handle keys need no index conversions: " + init,
             init.contains("GetHandleId") || init.contains("__wurst_objectToIndex")
                 || init.contains("__wurst_classToIndex") || init.contains("__wurst_classFromIndex"));
-        assertTrue("each generic put is one direct table store: " + init,
-            init.contains("KeyedMap_map_storage[this10][key1] = value4")
-                && init.contains("KeyedMap_map_storage[this11][key2] = value5"));
+        assertEquals("each generic put is one direct table store: " + init, 2,
+            Pattern.compile("KeyedMap_map_storage\\[this[0-9]*\\]\\[key[0-9]*\\] = value[0-9]*\\b")
+                .matcher(init).results().count());
         assertFalse("generic get and put are table accesses, with no stub to define",
             lua.contains("function __wurst_keyedMapGet(") || lua.contains("function __wurst_keyedMapPut("));
     }
@@ -1348,7 +1349,8 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         String compiled = compiled("intKeyedClassMapLowersToSingleLuaIndexes");
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("writes under an int key lower to unguarded table stores and reads to the table index: " + init,
-            init.contains("[1093677104] = this6") && init.contains("m[1093677104] = nil")
+            Pattern.compile("\\[1093677104\\] = this[0-9]*\\b").matcher(init).find()
+                && init.contains("m[1093677104] = nil")
                 && init.contains("] ~= nil)") && !init.contains("__wurst_keyedMapPut")
                 && !init.contains("__wurst_keyedMapRemove") && !init.contains("__wurst_keyedMapGet"));
         assertFalse("an int key is never nil and needs no test: " + init, init.contains("(1093677104 ~= nil)"));

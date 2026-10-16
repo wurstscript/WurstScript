@@ -262,6 +262,7 @@ public class SideEffectAnalyzer {
      */
     public Set<ImFunction> directlyCalledFunctions(Element e) {
         Set<ImFunction> calledFunctions = new LinkedHashSet<>();
+        Set<ImMethod> visitedMethods = new LinkedHashSet<>();
         e.accept(new ImFunction.DefaultVisitor() {
 
             @Override
@@ -273,11 +274,33 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImMethodCall c) {
                 super.visit(c);
-                calledFunctions.add(c.getMethod().getImplementation());
+                collectImplementations(c.getMethod(), visitedMethods, calledFunctions);
             }
         });
         return calledFunctions;
 
+    }
+
+    private void collectImplementations(ImMethod method, Set<ImMethod> visited, Set<ImFunction> functions) {
+        if (!visited.add(method)) {
+            return;
+        }
+        functions.add(method.getImplementation());
+        for (ImMethod subMethod : method.getSubMethods()) {
+            collectImplementations(subMethod, visited, functions);
+        }
+    }
+
+    private static boolean hasObjectLifetimeEffects(Element elem) {
+        if (elem instanceof ImAlloc || elem instanceof ImDealloc) {
+            return true;
+        }
+        for (int i = 0; i < elem.size(); i++) {
+            if (hasObjectLifetimeEffects(elem.get(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -456,7 +479,7 @@ public class SideEffectAnalyzer {
         Set<ImFunction> natives = calledNatives(elem);
         Set<ImFunction> directFuncs = calledFunctions(elem);
         Set<ImVar> imVars = directlySetVariables(elem);
-        return natives.size() + directFuncs.size() + imVars.size() > 0;
+        return natives.size() + directFuncs.size() + imVars.size() > 0 || hasObjectLifetimeEffects(elem);
     }
 
     /**
@@ -477,7 +500,7 @@ public class SideEffectAnalyzer {
         }
 
         private boolean hasSideEffects(Element elem) {
-            if (!directlySetVariables(elem).isEmpty()) {
+            if (!directlySetVariables(elem).isEmpty() || hasObjectLifetimeEffects(elem)) {
                 return true;
             }
             for (ImFunction nativeFunc : calledNatives(elem)) {
@@ -518,7 +541,7 @@ public class SideEffectAnalyzer {
         }
 
         private boolean hasGlobalSideEffects(Element elem) {
-            if (hasMemberWrites(elem)) {
+            if (hasMemberWrites(elem) || hasObjectLifetimeEffects(elem)) {
                 return true;
             }
             for (ImVar var : directlySetVariables(elem)) {
