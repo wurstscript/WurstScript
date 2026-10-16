@@ -155,10 +155,6 @@ public class FastHashMapTests extends WurstScriptTest {
 
     private static final String[] METHOD_NAMES = {"slotFor", "put", "get", "has", "size", "remove"};
 
-    private String compiledLua(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/FastHashMapTests_" + testName + ".lua"), Charsets.UTF_8);
-    }
-
     /**
      * A dispatch slot is named after the method it belongs to, and nothing else in the emitted Lua
      * records which implementation belongs there, so this is the only place the two can be checked

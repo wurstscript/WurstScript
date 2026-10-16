@@ -498,6 +498,12 @@ public class WurstScriptTest {
         return new TestConfig(this.getClass().getSimpleName() + "_" + name);
     }
 
+    /** The Lua written for {@code testName}, a test of this class compiled with {@code testLua(true)}. */
+    protected String compiledLua(String testName) throws IOException {
+        File luaFile = new File(TEST_OUTPUT_PATH, "lua/" + getClass().getSimpleName() + "_" + testName + ".lua");
+        return java.nio.file.Files.readString(luaFile.toPath());
+    }
+
     void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
         test().executeProg(excuteProg).withStdLib(withStdLib).compilationUnits(units);
     }
