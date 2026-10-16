@@ -172,7 +172,14 @@ public final class SideEffectFreeNatives {
         "BlzGetDoodadVariation", "BlzGetDoodadId", "BlzGetNumDoodads",
         "BlzGetUnitAbilityCooldownPercent", "BlzIsMetaKeyPressed", "BlzIsKeyPressed",
         "BlzIsMouseButtonPressed", "BlzGetMouseScreenPosX", "BlzGetMouseScreenPosY",
-        "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY"
+        "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY",
+        // Reforged 3.0.1 reads mutable gameplay or client state; none are pure.
+        "BlzGetCameraAllowsHotkeyTargetLock", "BlzGetHUDScale",
+        "BlzGetItemEquipmentType", "BlzGetItemTag", "BlzIsItemEquipped", "BlzIsItemInBag",
+        "BlzUnitCanEquipItemOfEquipmentType", "BlzUnitExtendedInventorySize",
+        "BlzUnitHasAnyItemEquipped", "BlzUnitHasItemBagged", "BlzUnitHasItemEquipmentOfType",
+        "BlzUnitHasItemEquipped", "BlzUnitHasLoadoutSlotEmpty", "BlzUnitIsAlive",
+        "BlzUnitItemInBagSlot", "BlzUnitItemInEquipmentSlot"
         );
 
     private static final Set<String> pureFunctions = HashSet.of(

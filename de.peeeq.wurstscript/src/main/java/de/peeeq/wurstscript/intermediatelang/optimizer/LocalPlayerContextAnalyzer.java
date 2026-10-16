@@ -59,6 +59,8 @@ public final class LocalPlayerContextAnalyzer {
         "GetCameraEyePositionLoc",
         "GetCameraFieldControlledByInput",
         "BlzCameraGetCameraType",
+        "BlzGetCameraAllowsHotkeyTargetLock",
+        "BlzGetHUDScale",
 
         // Localized data may vary with the client's language.
         "GetLocalizedString",

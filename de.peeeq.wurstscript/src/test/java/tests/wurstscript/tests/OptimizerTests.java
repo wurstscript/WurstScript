@@ -841,6 +841,47 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void reforged301NativesAreClassified() {
+        for (String name : java.util.Set.of(
+            "BlzGetCameraAllowsHotkeyTargetLock",
+            "BlzGetHUDScale",
+            "BlzGetItemEquipmentType",
+            "BlzGetItemTag",
+            "BlzIsItemEquipped",
+            "BlzIsItemInBag",
+            "BlzUnitCanEquipItemOfEquipmentType",
+            "BlzUnitExtendedInventorySize",
+            "BlzUnitHasAnyItemEquipped",
+            "BlzUnitHasItemBagged",
+            "BlzUnitHasItemEquipmentOfType",
+            "BlzUnitHasItemEquipped",
+            "BlzUnitHasLoadoutSlotEmpty",
+            "BlzUnitIsAlive",
+            "BlzUnitItemInBagSlot",
+            "BlzUnitItemInEquipmentSlot")) {
+            assertTrue(SideEffectFreeNatives.isFunctionWithoutSideEffect(name), name + " only reads state");
+            assertFalse(SideEffectFreeNatives.isFunctionPure(name), name + " depends on mutable state");
+            assertEquals(LocalPlayerContextAnalyzer.isLocalPlayerSource(nativeIntFunction(Ast.NoExpr(), name)),
+                name.equals("BlzGetHUDScale") || name.equals("BlzGetCameraAllowsHotkeyTargetLock"),
+                name + " locality classification");
+        }
+        for (String name : java.util.Set.of(
+            "BlzRemoveEffect",
+            "BlzResetUnitTalents",
+            "BlzSetCameraAllowsHotkeyTargetLock",
+            "BlzSetItemColor",
+            "BlzSetThematicMusicAbsoluteVolume",
+            "BlzUnitEquipItem",
+            "BlzUnitHeal",
+            "BlzUnitUnequipItem",
+            "BlzUnitUnequipItemFromSlot",
+            "ChooseRandomItemExWithFilterAndIncludes")) {
+            assertFalse(SideEffectFreeNatives.isFunctionWithoutSideEffect(name), name + " must retain effects");
+            assertFalse(SideEffectFreeNatives.isFunctionPure(name), name + " must not be treated as pure");
+        }
+    }
+
+    @Test
     public void reforged3ReadOnlyNativesAreClassified() {
         java.util.Set<String> readOnlyNatives = java.util.Set.of(
             "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot",
@@ -3990,6 +4031,8 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzGetMinShadowCastingPointLightCount",
             "GetCameraFieldControlledByInput",
             "BlzCameraGetCameraType",
+            "BlzGetCameraAllowsHotkeyTargetLock",
+            "BlzGetHUDScale",
             "BlzIsMetaKeyPressed",
             "BlzIsKeyPressed",
             "BlzIsMouseButtonPressed",
