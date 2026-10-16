@@ -21,11 +21,9 @@ import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
-import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 
@@ -574,7 +572,8 @@ public class WurstValidator {
         return findImplementationLink(c, abstractFunc) != null;
     }
 
-    private @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
+    /** The most specific non-abstract implementation of {@code abstractFunc} visible in {@code c}, if any. */
+    public static @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
         FuncLink best = null;
         int bestDistance = Integer.MAX_VALUE;
         for (NameLink nameLink : c.attrNameLinks().get(abstractFunc.getName())) {
@@ -607,7 +606,7 @@ public class WurstValidator {
         return best;
     }
 
-    private int distanceToOwner(ClassDef start, ClassDef owner) {
+    private static int distanceToOwner(ClassDef start, ClassDef owner) {
         int distance = 0;
         ClassDef current = start;
         Set<ClassDef> visited = new HashSet<>();
@@ -884,26 +883,6 @@ public class WurstValidator {
     private @Nullable GenericFlavor flavorOf(TypeDef def) {
         if (def instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
             return flavorOf(astElementWithTypeParameters);
-        }
-        return null;
-    }
-
-    /** Walk up to the nearest *structure* (ClassDef/InterfaceDef) which actually has type parameters. */
-    private @Nullable AstElementWithTypeParameters nearestGenericStructureOwner(Element e) {
-        Element p = e;
-        while (p != null) {
-            if (p instanceof ClassDef || p instanceof InterfaceDef) {
-                AstElementWithTypeParameters a = (AstElementWithTypeParameters) p;
-                if (a.getTypeParameters() != null && a.getTypeParameters().size() > 0) {
-                    return a;
-                }
-                // keep walking if the structure itself has no TPs
-            }
-            // Skip function owners entirely; method generics are allowed to mix.
-            if (p instanceof FuncDef) {
-                return null;
-            }
-            p = p.getParent();
         }
         return null;
     }
@@ -1928,10 +1907,6 @@ public class WurstValidator {
 
     private boolean isCurrentInstanceAccess(NameRef access) {
         return access.attrImplicitParameter() instanceof ExprThis;
-    }
-
-    private boolean isInNestedClosure(NameRef access) {
-        return access.attrNearestExprClosure() != null;
     }
 
     private boolean isWholeFieldAccess(NameRef access) {

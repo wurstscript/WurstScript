@@ -395,10 +395,6 @@ public class ImPrinter {
     }
 
 
-    public static String printToString(ImPrintable p) {
-        return asString(p);
-    }
-
     public static String asString(ImPrintable p) {
         Appendable sb = new StringBuilder();
         try {

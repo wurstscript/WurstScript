@@ -6,8 +6,6 @@ import com.google.gson.JsonObject;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ConfigurationItem;
 import org.eclipse.lsp4j.ConfigurationParams;
-import org.eclipse.lsp4j.MessageParams;
-import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.util.Collections;

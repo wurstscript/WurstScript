@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.*;
 import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs;
@@ -328,7 +327,7 @@ public class AttrFuncDef {
         return null;
     }
 
-    private static boolean isConstructorThisCall(ExprFunctionCall node) {
+    static boolean isConstructorThisCall(ExprFunctionCall node) {
         if (!node.getFuncName().equals("this")) {
             return false;
         }
@@ -566,7 +565,7 @@ public class AttrFuncDef {
             && hasApplicableUserFunction(exprFunctionCall)) {
             ImmutableList<FuncLink> ordinaryFunctions = funcs1.stream()
                 .filter(f -> !CompilerIntrinsics.isDeclaration(f.getDef()))
-                .collect(Utils.toImmutableList());
+                .collect(ImmutableList.toImmutableList());
             if (!ordinaryFunctions.isEmpty()) {
                 funcs1 = ordinaryFunctions;
             }
@@ -631,7 +630,7 @@ public class AttrFuncDef {
         }
         ImmutableList<FuncLink> res = funcs1.stream()
                 .filter(filter)
-                .collect(Utils.toImmutableList());
+                .collect(ImmutableList.toImmutableList());
         if (res.isEmpty()) {
             return ImmutableList.copyOf(funcs1);
         }

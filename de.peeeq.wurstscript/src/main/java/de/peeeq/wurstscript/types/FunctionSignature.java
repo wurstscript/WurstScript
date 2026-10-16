@@ -83,27 +83,6 @@ public class FunctionSignature {
         return new FunctionSignature(trace, newMapping, receiverType, name, pt2, paramNames, r2);
     }
 
-
-    public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
-        if (f == null) {
-            return FunctionSignature.empty;
-        }
-        WurstType returnType = f.attrReturnTyp();
-        if (f instanceof TupleDef tupleDef) {
-            returnType = tupleDef.attrTyp().dynamic();
-        }
-
-
-        List<WurstType> paramTypes = f.attrParameterTypes();
-        List<String> paramNames = getParamNames(f.getParameters());
-        List<TypeParamDef> typeParams = Collections.emptyList();
-        if (f instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
-            typeParams = astElementWithTypeParameters.getTypeParameters();
-        }
-        return new FunctionSignature(f, VariableBinding.emptyMapping().withTypeVariables(typeParams), f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
-    }
-
-
     public static List<String> getParamNames(WParameters parameters) {
         List<String> list = new ArrayList<>();
         for (WParameter parameter : parameters) {

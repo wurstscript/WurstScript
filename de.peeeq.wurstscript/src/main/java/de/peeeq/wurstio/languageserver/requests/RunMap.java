@@ -19,14 +19,12 @@ import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -430,7 +428,7 @@ public class RunMap extends MapRequest {
         ProcessBuilder pb = new ProcessBuilder(langServer.getConfigProvider().getJhcrExe(), "update", mapScript.getName(), "--asm",
             "--preload-path", customMapDataPath.toAbsolutePath().toString());
         pb.directory(mapScriptFolder);
-        Utils.ExecResult $ = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
+        Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
     }
 
     /**
@@ -458,15 +456,6 @@ public class RunMap extends MapRequest {
             documents = homeFolder.resolve("Documents");
         }
         return documents.resolve(Paths.get("Warcraft III", "CustomMapData"));
-    }
-
-    @NotNull
-    private String getWorkspaceAbsolute() {
-        try {
-            return workspaceRoot.getFile().getAbsolutePath();
-        } catch (FileNotFoundException e) {
-            throw new RequestFailedException(MessageType.Error, "Could not open workspace root: ", e);
-        }
     }
 
     /**

@@ -36,8 +36,4 @@ public final class CompilationCancellation {
             throw new CancellationException("Map command canceled");
         }
     }
-
-    public static boolean isScoped() {
-        return CURRENT.get() != null;
-    }
 }

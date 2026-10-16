@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  *

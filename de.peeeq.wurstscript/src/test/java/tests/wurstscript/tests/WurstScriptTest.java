@@ -82,14 +82,6 @@ public class WurstScriptTest {
     private static volatile String extractedLuacWin;
     private static volatile String extractedLuacUnix;
 
-    protected boolean testOptimizer() {
-        return true;
-    }
-
-    protected boolean printDebugScripts() {
-        return false;
-    }
-
     /**
      * How many Wurst tests the last run executed. Tests are stripped by the time the second pass
      * happens, so this keeps the largest either saw. Zero means the program held none, which a
@@ -1201,6 +1193,15 @@ public class WurstScriptTest {
         }
     }
 
+    /** The number of non-overlapping occurrences of {@code needle} in {@code text}. */
+    protected static int countOccurrences(String text, String needle) {
+        int count = 0;
+        for (int at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + needle.length())) {
+            count++;
+        }
+        return count;
+    }
+
     private static File getFile(String name) {
         return new File(WurstScriptTest.class.getClassLoader().getResource(name).getFile());
     }
@@ -1301,10 +1302,6 @@ public class WurstScriptTest {
     }
 
     private static String currentTestEnv = "";
-
-    public static String getCurrentTestEnv() {
-        return currentTestEnv;
-    }
 
     public static void setCurrentTestEnv(String env) {
         currentTestEnv = env;

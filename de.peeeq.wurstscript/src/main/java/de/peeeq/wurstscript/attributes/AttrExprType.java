@@ -74,12 +74,8 @@ public class AttrExprType {
             return WurstTypeUnknown.instance();
         }
         if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof VarDef) {
-            // Compare the enclosing VarDef to the one this access resolves to. Both sides used
-            // to be wrapped in fresh Optionals and compared with ==, which is never true, so
-            // this check silently did nothing. getParentVarDef returns null (not empty) when
-            // there is no enclosing VarDef, hence the explicit null guard.
-            Optional<VarDef> enclosingVarDef = Utils.getParentVarDef(Optional.of(term));
-            if (enclosingVarDef != null && enclosingVarDef.orElse(null) == varDef.getDef()) {
+            // The access must not resolve to the variable definition it is part of.
+            if (Utils.getNearestByType(Optional.of(term), VarDef.class).orElse(null) == varDef.getDef()) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
@@ -660,7 +656,7 @@ public class AttrExprType {
         return de.peeeq.wurstscript.types.WurstTypeUnknown.instance();
     }
 
-    private static boolean isWriteAccess(NameRef node) {
+    static boolean isWriteAccess(NameRef node) {
         if (node.getParent() instanceof StmtSet) {
             StmtSet stmtSet = (StmtSet) node.getParent();
             return stmtSet.getUpdatedExpr() == node;

@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -100,11 +99,8 @@ public class PrettyUtils {
         System.out.println(StringUtils.repeat("\t", indent) + printElement(e));
     }
 
-    private static @Nullable Element lastElement = null;
     private static void walkTree(Element e, int indent) {
-        lastElement = e;
         check(e, indent);
-        lastElement = null;
         for (int i = 0; i < e.size(); i++) {
             walkTree(e.get(i), indent+1);
         }

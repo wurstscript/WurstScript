@@ -221,7 +221,7 @@ function parseObjEditingFile(content: string): ClassDef[] {
       continue;
     }
 
-    // Pattern 2: def.set[Type]("fieldId", value)  — no level at all (units, items, buffs)
+    // Pattern 2: def.set[Type]("fieldId", value): no level at all (units, items, buffs)
     const noLvlMatch = line.match(
       /^\t\tdef\.(set(?!Lvl|Levels)(?:String|Int|Unreal|Real|Boolean))\("([^"]{4})",/
     );
@@ -424,7 +424,7 @@ function generateJson(
 
 // ===========================================================================
 // KNOWLEDGE BASE GENERATION
-// Reads all gamedata SLK/txt files and produces wc3-knowledge-base.json —
+// Reads all gamedata SLK/txt files and produces wc3-knowledge-base.json,
 // a self-contained description of all WC3 object types, their field schemas
 // (display names, types, categories) and all base-game object records.
 // ===========================================================================
@@ -590,7 +590,7 @@ function mergeFuncMaps(
 }
 
 // ---------------------------------------------------------------------------
-// Field schema — derived from *metadata.slk files
+// Field schema, derived from *metadata.slk files
 // ---------------------------------------------------------------------------
 
 interface KBFieldSchema {
@@ -695,7 +695,7 @@ function buildSchemas(
 }
 
 // ---------------------------------------------------------------------------
-// Object records — merge SLK maps + func/skin map for each object type
+// Object records: merge SLK maps + func/skin map for each object type
 // ---------------------------------------------------------------------------
 
 type ObjRecord = Record<string, string | number>;
@@ -775,7 +775,7 @@ function generateKnowledgeBase(
 
   // --- Object data: merge SLK + func/skin sources per object type ---
 
-  // Units — five SLK files, all keyed by the same 4-char unit ID
+  // Units: five SLK files, all keyed by the same 4-char unit ID
   const unitFunc = loadFunc(
     "humanunitfunc.txt", "orcunitfunc.txt", "nightelfunitfunc.txt",
     "undeadunitfunc.txt", "neutralunitfunc.txt", "campaignunitfunc.txt",
@@ -801,7 +801,7 @@ function generateKnowledgeBase(
   );
   const abilityObjects = buildObjectMap([loadSLK("abilitydata.slk")], abilityFunc);
 
-  // Buffs/effects — abilitybuffdata.slk; buff IDs may also appear in ability func files
+  // Buffs/effects: abilitybuffdata.slk; buff IDs may also appear in ability func files
   const buffObjects = buildObjectMap([loadSLK("abilitybuffdata.slk")], abilityFunc);
 
   // Items
@@ -943,7 +943,7 @@ console.log(`Total classes with own fields: ${totalClasses}`);
 
 const westringsContent = tryRead(gdPath("WorldEditStrings.txt"));
 if (!westringsContent) {
-  console.log("\nHelperScripts/gamedata/ not found — skipping knowledge base generation.");
+  console.log("\nHelperScripts/gamedata/ not found; skipping knowledge base generation.");
   console.log("Place WC3 game data files in HelperScripts/gamedata/ to enable this output.");
 } else {
   console.log("\n--- Generating wc3-knowledge-base.json ---");

@@ -31,7 +31,6 @@ public class ExtendedWurstLexer implements TokenSource {
     private final Pair<TokenSource, CharStream> sourcePair;
     private boolean isWurst = false;
     private boolean lastCharWasWrap = false;
-    private @Nullable Token lastToken = null;
     // which character is used for indentation
     private TabChoice tabChoice = TabChoice.Unknown;
     private CompileError tabWarning = null;
@@ -99,7 +98,6 @@ public class ExtendedWurstLexer implements TokenSource {
     @Override
     public Token nextToken() {
         Token t = nextTokenIntern();
-        lastToken = t;
 
         if (debug) WLogger.trace(() -> "		new token: " + t);
         return t;
@@ -354,12 +352,6 @@ public class ExtendedWurstLexer implements TokenSource {
             }
         }
 
-    }
-
-    private void reportError(int line, int charPositionInLine, String msg) {
-        for (ANTLRErrorListener el : orig.getErrorListeners()) {
-            el.syntaxError(orig, "", line, charPositionInLine, msg, null);
-        }
     }
 
 

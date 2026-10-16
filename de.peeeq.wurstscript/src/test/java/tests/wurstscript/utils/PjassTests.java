@@ -2,10 +2,7 @@ package tests.wurstscript.utils;
 
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
-import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstscript.attributes.CompileError;
 import org.testng.Assert;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -16,23 +13,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PjassTests {
-
-    @Test
-    @Ignore
-    public void test() {
-        Result result = Pjass.runPjass(new File("./testscripts/invalid/fail.j"));
-        System.out.println(result.getMessage());
-
-
-        WurstGuiImpl gui = new WurstGuiImpl();
-
-        for (CompileError err : result.getErrors()) {
-            System.out.println(err);
-            System.out.println(err.getSource().getLeftPos());
-            gui.sendError(err);
-        }
-
-    }
 
     private static File script(Path dir, String name, String content) throws IOException {
         Path file = dir.resolve(name);
@@ -170,21 +150,6 @@ public class PjassTests {
 
         Assert.assertFalse(results.get(0).isOk(), results.get(0).getMessage());
         Assert.assertTrue(results.get(0).getMessage().contains("blizzard.j"), results.get(0).getMessage());
-    }
-
-    public static void main(String[] args) {
-
-        WurstGuiImpl gui = new WurstGuiImpl();
-        Result result = Pjass.runPjass(new File("./testscripts/invalid/fail.j"));
-        System.out.println(result.getMessage());
-
-
-        for (CompileError err : result.getErrors()) {
-            System.out.println(err);
-            System.out.println(err.getSource().getLeftPos());
-            gui.sendError(err);
-        }
-        gui.sendFinished();
     }
 
 }

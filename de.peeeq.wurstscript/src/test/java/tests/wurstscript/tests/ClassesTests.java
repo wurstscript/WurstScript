@@ -1,7 +1,6 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -792,16 +791,6 @@ public class ClassesTests extends WurstScriptTest {
             );
     }
 
-    private static int countOccurrences(String text, String needle) {
-        int c = 0;
-        int i = 0;
-        while ((i = text.indexOf(needle, i)) >= 0) {
-            c++;
-            i += needle.length();
-        }
-        return c;
-    }
-
     @Test
     public void classes_static_func() {
         testAssertErrorsLines(false, "static",
@@ -841,16 +830,6 @@ public class ClassesTests extends WurstScriptTest {
     }
 
 
-//	@Test
-//	public void array_members() {
-//		testAssertErrorsLines(false, "must be static",
-//				"package test",
-//				"	class C",
-//				"		int array blub",
-//				"endpackage"
-//			);
-//	}
-
     @Test
     public void code_members() {
         testAssertErrorsLines(false, "code members not allowed",
@@ -885,17 +864,6 @@ public class ClassesTests extends WurstScriptTest {
             "endpackage"
         );
     }
-
-//		@Test
-//		public void constantVars2() {
-//			testAssertErrorsLines(false, "", // TODO "initial value",
-//					"package test",
-//					"	class C",
-//					"		constant int i",
-//					"endpackage"
-//				);
-//		}
-
 
     @Test
     public void classes_static_var_set() {

@@ -157,7 +157,6 @@ public class LuaTranslator {
     }
 
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
-    List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
     private final Map<ImFunction, LuaFunction> callbackAdapters = new IdentityHashMap<>();
     private LuaFunction callbackErrorHandler;
 
@@ -937,7 +936,7 @@ public class LuaTranslator {
         if (f.isNative()) {
             LuaNatives.get(lf);
         } else {
-            if (LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && rewriteGetHandleIdCompatFunction(f, lf)) {
+            if (rewriteGetHandleIdCompatFunction(f, lf)) {
                 luaModel.add(lf);
                 return;
             }
@@ -1008,7 +1007,6 @@ public class LuaTranslator {
             return false;
         }
         LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
-        // Only called when ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING is true.
         // Shim opaque runtime handles; keep native GetHandleId for enum-like handles.
         String targetFunction = LuaNativeLowering.usesLuaObjectIdentityHandleId(firstParam.getType())
             ? "__wurst_GetHandleId" : "GetHandleId";
@@ -2749,7 +2747,7 @@ public class LuaTranslator {
     /**
      * One shared metatable (and default-value factory) per distinct entry
      * type that needs a fresh, independently mutable default per slot
-     * (tuples, nested arrays). Memoized like {@link ExprTranslation#getTupleCopyFunc}.
+     * (tuples, nested arrays).
      */
     private LuaVariable getOrCreateLazyArrayMetatable(ImType entryType) {
         for (LazyArrayDefault info : lazyArrayDefaults) {

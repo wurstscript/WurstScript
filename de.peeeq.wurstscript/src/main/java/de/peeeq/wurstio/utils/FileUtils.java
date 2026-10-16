@@ -3,7 +3,6 @@ package de.peeeq.wurstio.utils;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.languageserver.WFile;
-import de.peeeq.wurstscript.parser.WPos;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,15 +49,5 @@ public class FileUtils {
         if (!ok) {
             throw new IOException("Could not delete file " + f);
         }
-    }
-
-    public static String getWPosParent(WPos pos) {
-        String parentName = "";
-        try {
-            parentName = WFile.create(pos.getFile()).getPath().getParent().getFileName().toString();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        return parentName;
     }
 }

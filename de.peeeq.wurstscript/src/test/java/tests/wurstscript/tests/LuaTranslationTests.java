@@ -79,13 +79,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
-    /** Skip the calling test when selective GetHandleId shimming is disabled. */
-    private static void requireSelectiveGetHandleIdShimming() {
-        if (!de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING) {
-            throw new org.testng.SkipException("Skipped: selective GetHandleId shimming is disabled (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING=false)");
-        }
-    }
-
     /**
      * Returns the text of the __wurst_init_bootstrap function (it is the last
      * function in the generated output; getFunctionBody cannot be used because
@@ -478,14 +471,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         }
         assertEquals("5000 parts are four levels of groups", 4, maxDepth);
         assertTrue("no group joins more than sixteen operands: " + longestRun, longestRun < 16);
-    }
-
-    private static int countOccurrences(String haystack, String needle) {
-        int count = 0;
-        for (int at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + needle.length())) {
-            count++;
-        }
-        return count;
     }
 
     @Test
@@ -4122,7 +4107,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void getHandleIdIsRemappedToWurstPolyfillInLua() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         // Direct GetHandleId calls on opaque runtime handles should still use the Lua-side
         // identity shim.
         test().testLua(true).withStdLib().lines(
@@ -4164,7 +4148,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void closureEventsEventIdCompatDoesNotUseOpaqueHandleShimInLua() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import ClosureEvents",
@@ -4188,7 +4171,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void registerEventsSpellCastKeepsNativeEventHandleIdsWhileUnitHandlesStayShimmedInLua() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import RegisterEvents",
@@ -4214,7 +4196,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void eventGetHandleIdMethodKeepsNativeSemanticsWhileOpaqueHandleMethodUsesLuaShim() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
@@ -4297,7 +4278,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void conservativeLuaHandleIdLoweringDoesNotEmitCanonicalEnumHelpers() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import MagicFunctions",

@@ -2,16 +2,5 @@
 allprojects {
     afterEvaluate {
         sourceSets.test.java.srcDir('../docs/profiling/lua-opportunities')
-        tasks.named('test') {
-            if (project.hasProperty('knownLuaDefects')) {
-                // Collect both optimization controls, even when the first repro fails.
-                failFast = false
-            } else {
-                filter {
-                    excludeTestsMatching('*.ignoredVirtualResultStillRunsOverrideEffects*')
-                    excludeTestsMatching('*.unusedAllocationStillConsumesAnId*')
-                }
-            }
-        }
     }
 }

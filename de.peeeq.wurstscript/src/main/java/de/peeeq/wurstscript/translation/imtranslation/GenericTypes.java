@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * wraps an imType and adds a hashmap and equals method

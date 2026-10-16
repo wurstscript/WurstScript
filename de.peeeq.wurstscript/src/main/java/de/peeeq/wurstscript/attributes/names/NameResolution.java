@@ -507,19 +507,6 @@ public class NameResolution {
         return n.withTypeArgBinding(node, mapping);
     }
 
-    private static Iterable<TypeParamDef> typeParamsOfReceiverType(WurstType t) {
-        if (t instanceof WurstTypeClassOrInterface wurstTypeClassOrInterface) {
-            return wurstTypeClassOrInterface.getDef().getTypeParameters();
-        }
-        if (t instanceof WurstTypeClass wurstTypeClass) {
-            return wurstTypeClass.getClassDef().getTypeParameters();
-        }
-        if (t instanceof WurstTypeInterface wurstTypeInterface) {
-            return wurstTypeInterface.getInterfaceDef().getTypeParameters();
-        }
-        return java.util.Collections.emptyList();
-    }
-
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
         if (!showErrors) {
             GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.TYPE);

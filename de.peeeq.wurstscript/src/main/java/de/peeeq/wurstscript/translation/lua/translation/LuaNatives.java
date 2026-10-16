@@ -383,7 +383,7 @@ public class LuaNatives {
         addHashtableSave(withWurstPrefix("SaveReal"), "__wurst_ht_real", null);
         addHashtableSave(withWurstPrefix("SaveStr"), "__wurst_ht_str", null);
         for (String name : HASHTABLE_HANDLE_SAVE_NAMES) {
-            addHashtableSave(withWurstPrefix(name), "__wurst_ht_handle", handleTypeOf(name));
+            addHashtableSave(withWurstPrefix(name), "__wurst_ht_handle", LuaHashtable.handleTypeOf(name));
         }
 
         addHashtableLoad(withWurstPrefix("LoadInteger"), "__wurst_ht_int", "0", "x[c] or 0");
@@ -393,7 +393,7 @@ public class LuaNatives {
         // the null string when absent, which on Lua is "": the game's natives raise on nil
         addHashtableLoad(withWurstPrefix("LoadStr"), "__wurst_ht_str", "\"\"", "x[c] or \"\"");
         for (String name : HASHTABLE_HANDLE_LOAD_NAMES) {
-            String type = handleTypeOf(name);
+            String type = LuaHashtable.handleTypeOf(name);
             StringBuilder accepted = new StringBuilder();
             for (String tag : LuaHashtable.acceptedTags(type)) {
                 accepted.append(accepted.length() == 0 ? "" : " or ").append("tag == \"").append(tag).append("\"");
@@ -518,15 +518,6 @@ public class LuaNatives {
                 f.getBody().add(LuaAst.LuaLiteral(line));
             }
         });
-    }
-
-    /** The handle type of a handle save or load native ("SaveUnitHandle" is "Unit"), as LuaHashtable tags it. */
-    private static String handleTypeOf(String nativeName) {
-        LuaHashtable.Op op = LuaHashtable.opOfName(nativeName);
-        if (op == null || op.handleType() == null) {
-            throw new IllegalStateException("not a handle save or load: " + nativeName);
-        }
-        return op.handleType();
     }
 
     private static void addParams(LuaFunction f, String... names) {

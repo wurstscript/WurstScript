@@ -1,8 +1,0 @@
-package test 
-	
-
-	init 
-		string s = "Hi"
-		integer i = s
-	
-

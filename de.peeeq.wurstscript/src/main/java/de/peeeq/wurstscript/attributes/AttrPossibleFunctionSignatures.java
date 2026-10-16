@@ -68,7 +68,7 @@ public class AttrPossibleFunctionSignatures {
             if (t instanceof WurstTypeUnknown) { allKnown = false; break; }
         }
 
-        int n = sigs.size(), bestIdx = -1, bestBad = Integer.MAX_VALUE;
+        int n = sigs.size(), bestBad = Integer.MAX_VALUE;
         FunctionSignature[] inferred = new FunctionSignature[n];
         FunctionSignature.ArgsMatchResult best = null;
 
@@ -76,7 +76,7 @@ public class AttrPossibleFunctionSignatures {
         for (int i = 0; i < n; i++) {
             var r = sigs.get(i).tryMatchAgainstArgs(argTypes, argsNode, fc);
             inferred[i] = r.getSig();
-            if (r.getBadness() < bestBad) { bestBad = r.getBadness(); bestIdx = i; best = r; }
+            if (r.getBadness() < bestBad) { bestBad = r.getBadness(); best = r; }
         }
 
         if (allKnown && best != null) {

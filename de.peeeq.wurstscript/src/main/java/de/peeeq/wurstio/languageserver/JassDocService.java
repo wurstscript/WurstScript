@@ -118,7 +118,6 @@ public final class JassDocService {
 
     private final Map<LookupKey, Optional<String>> lookupCache = new ConcurrentHashMap<>();
     private volatile @Nullable CachedDb cachedDb;
-    private volatile boolean triedInit;
     private volatile boolean initFailed;
     private volatile boolean missingSourceWarningShown;
     private final AtomicBoolean initRequested = new AtomicBoolean(false);
@@ -233,7 +232,6 @@ public final class JassDocService {
         lookupCache.clear();
         closeSharedConnection();
         cachedDb = null;
-        triedInit = false;
         initFailed = false;
         missingSourceWarningShown = false;
         initRequested.set(false);
@@ -267,7 +265,6 @@ public final class JassDocService {
             if (initFailed) {
                 return null;
             }
-            triedInit = true;
             try {
                 Optional<Path> dbPath = ensureDbAvailable();
                 if (!dbPath.isPresent()) {

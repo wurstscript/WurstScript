@@ -14,7 +14,6 @@ import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 

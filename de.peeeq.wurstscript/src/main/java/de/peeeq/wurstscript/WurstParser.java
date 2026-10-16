@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.regex.Pattern;
 
 public class WurstParser {
     private static final int MAX_SYNTAX_ERRORS = 15;

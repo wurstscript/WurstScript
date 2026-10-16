@@ -107,14 +107,6 @@ public class PrettyPrinter {
         }
     }
 
-    private static String calculateIndent(int indent) {
-        String s = "";
-        for (int i = 0; i < indent; i++) {
-            s += "\t";
-        }
-        return s;
-    }
-
     public static void prettyPrint(JassToplevelDeclarations e, Spacer spacer, StringBuilder sb, int indent) {
     }
 
@@ -1337,10 +1329,6 @@ public class PrettyPrinter {
         for (CompilationUnit compilationUnit : wurstModel) {
             compilationUnit.prettyPrint(spacer, sb, indent);
         }
-    }
-
-    private static String spaces(int indentation) {
-        return " " + "{" + indentation + "}";
     }
 
     public static void prettyPrint(WurstDoc wurstDoc, Spacer spacer, StringBuilder sb, int indent) {

@@ -237,11 +237,6 @@ public class ExpressionTests extends WurstScriptTest {
         assertOk("- 3*4 == -12");
     }
 
-//	@Test
-//	public void div2() {
-//		assertError("Cannot compare types", "14 / 4 == 7");
-//	}
-
     @Test
     public void div3() {
         assertOk("14 / 3 > 4.0");
@@ -267,29 +262,24 @@ public class ExpressionTests extends WurstScriptTest {
         assertOk("0xaffe == 45054");
     }
 
-//	@Test // not supported (strange notation - do not want ;)
-//	public void ints3() {
-//		assertOk("$affe == 45054");
-//	}
+    @Test
+    public void ints3() {
+        assertOk("$affe == 45054");
+    }
 
     @Test
     public void ints4() {
         assertOk("'a' == 97");
     }
 
-//	@Test // not yet supported 
-//	public void ints5() {
-//		assertOk("'\n' == 11");
-//	}
-
     @Test
     public void ints6() {
-        assertOk("'hfoo' == 1751543663"); // or 1781543663 ?
+        assertOk("'hfoo' == 1751543663");
     }
 
     @Test
     public void ints7() {
-        assertOk("'wc 3' == 2002985011"); // or 2002985611 ?
+        assertOk("'wc 3' == 2002985011");
     }
 
     @Test

@@ -59,17 +59,6 @@ public final class LuaNativeLowering {
         "image", "ubersplat", "framehandle", "fogmodifier", "hashtable"
     ));
 
-    /**
-     * When {@code true}, only opaque runtime-handle families (unit, item, timer, …)
-     * are shimmed via {@code __wurst_GetHandleId}; enum-like handle families
-     * (eventid, playerevent, …) keep native {@code GetHandleId} semantics.
-     *
-     * When {@code false} (safe default), ALL {@code GetHandleId} calls are shimmed
-     * unconditionally; this matches the pre-selective-shim behaviour and avoids
-     * any desync risk while the selective logic is being validated.
-     */
-    public static final boolean ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING = true;
-
     private LuaNativeLowering() {}
 
     /**
@@ -217,7 +206,7 @@ public final class LuaNativeLowering {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 ImFunction f = call.getFunc();
-                if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && isCompatGetHandleIdFunction(f)) {
+                if (isCompatGetHandleIdFunction(f)) {
                     if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
                             name -> createNativeStub(name, f));
@@ -234,7 +223,7 @@ public final class LuaNativeLowering {
                 }
                 if (!f.isBj()) return;
                 if ("GetHandleId".equals(f.getName())) {
-                    if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && shouldRewriteGetHandleId(call)) {
+                    if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
                             name -> createNativeStub(name, f));
                         if (!deferredAdditions.contains(replacement)) {

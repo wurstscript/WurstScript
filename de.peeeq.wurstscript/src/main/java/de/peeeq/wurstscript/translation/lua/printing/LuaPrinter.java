@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static de.peeeq.wurstscript.utils.Utils.printIndent;
+
 public class LuaPrinter {
 
     public static void print(LuaAssignment s, StringBuilder sb, int indent) {
@@ -233,12 +235,6 @@ public class LuaPrinter {
         e.getBody().print(sb, indent + 2);
         printIndent(sb, indent + 1);
         sb.append("end");
-    }
-
-    private static void printIndent(StringBuilder sb, int indent) {
-        for (int i = 0; i < indent; i++) {
-            sb.append("	");
-        }
     }
 
     public static void print(LuaExprFunctionCall e, StringBuilder sb, int indent) {

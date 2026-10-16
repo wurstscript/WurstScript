@@ -627,14 +627,6 @@ public class DeterministicChecks extends WurstScriptTest {
             Charsets.UTF_8);
     }
 
-    private static int countOccurrences(String text, String part) {
-        int n = 0;
-        for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + part.length())) {
-            n++;
-        }
-        return n;
-    }
-
     /**
      * A generic class implements two interfaces, each with one of two overloads it inherits, so it gets a function of
      * its own for each, both named after the method. The interfaces are in packages of their own: the Jass and the

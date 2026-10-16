@@ -179,10 +179,6 @@ class VarStates {
         return sb.toString();
     }
 
-    public boolean isThisDestroyed() {
-        return thisDestroyed;
-    }
-
     public VarStates withThisDestroyed(boolean thisDestroyed) {
         return new VarStates(states, destroyedParameters, thisDestroyed);
     }

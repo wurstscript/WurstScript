@@ -22,7 +22,7 @@ Separate repositories, checked out next to this repository's main checkout (in a
 * **WurstSetup** (`grill`): the CLI that installs dependencies and runs `-build` through `CliBuildMap`.
 * **wurst4vscode**: the VS Code extension, the LSP client (§5).
 * **wurst-project-config**: the shared `wurst.build` model (§6).
-* **wc3libs** (pinned in `build.gradle`) and **JMPQ3** (reached through wc3libs): Warcraft file formats and MPQ.
+* **wc3libs** and **JMPQ3** (both pinned in `build.gradle`): Warcraft file formats and MPQ.
 * **jass-history**: `common.j`, `blizzard.j` and Lua dumps per patch (§6, `luaruntime/README.md`).
 * **abstractsyntaxgen**: the `.parseq` generator (above). **casc-ts**: the CASC reader for game data (§12).
 
@@ -178,8 +178,8 @@ This repository has multiple entry points that may trigger compilation/build beh
 wurst4vscode starts the server with `-XX:+AutoCreateSharedArchive`: the JVM writes an AppCDS archive next to the
 compiler jar when the first session ends, and the sessions after it start from it. That archive sits on the
 runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-archive`; macOS copies a full JDK, which
-usually has one, and `assembleSlimCompilerDist` dumps one with `java -Xshare:dump` when the JDK has none: the Temurin
-for macOS x64 on CI does not). `assembleSlimCompilerDist` then starts the runtime with `-Xshare:on`, which fails when
+usually has one, and `assembleSlimCompilerDist` dumps one with `java -Xshare:dump` when the JDK has none: a copied JDK
+need not ship one). `assembleSlimCompilerDist` then starts the runtime with `-Xshare:on`, which fails when
 there is no usable archive. Without one the JVM silently runs without any, which is how the earlier attempt went
 unnoticed. Pull-request CI packages nothing; the versioned release workflow packages every supported host, so a change
 here is not tested on macOS before it merges. Java 27 enables compact object headers by default. The build clears the JVM option
@@ -483,7 +483,7 @@ The game is the specification; the IM interpreter, the Lua test runtime and Bliz
 
 * **Wurst has no garbage collector.** An instance is an integer id on both targets, `destroy` is the only release, and `ondestroy` is an observable side effect. Never elide, duplicate, reorder or "tidy" an alloc, dealloc or `ondestroy`, and never rely on Lua to collect a Wurst object. Both targets hand the most recently freed id out first, so a stale reference reads the next object, which may belong to a related class on Jass (one allocator per inheritance group) and to any class on Lua (one id space).
 * **The game's Lua is not the test Lua.** Tests run a stock Lua with every library and double reals (5.3 on Windows and the Linux CI, unchecked elsewhere). Emit no `debug`, `collectgarbage`, `io`, `os`, `package` or `require`. Two tests guard it: `emittedLuaUsesOnlyLibrariesTheGameProvides` over one program's output, and `noLuaBackendLiteralNamesALibraryTheGameWithholds`, which scans the string literals under `translation/` because natives and fallback helpers are emitted only on demand and no program reaches them all. Only the test-only `testSuccess` is exempt. Never take a passing Lua test run as evidence about the game.
-* **Nothing optimises the emitted script at run time** (the reference Lua 5.3 neither inlines nor caches lookups, and the game is reported to run it). The inliner and the local optimisations are the only optimiser, so a helper call, global read, table index or allocation left in the script is paid on every execution, and `-stacktraces` adds a push and a pop to each instrumented function (`wurst_stack`). Benchmark like a shipping map: `-inline -localOptimizations`, no `-stacktraces` (the `wurst_run.args` default is the opposite).
+* **Nothing optimises the emitted script at run time** (the reference Lua 5.3 neither inlines nor caches lookups, and the game is reported to run it). The inliner and the local optimisations are the only optimiser, so a helper call, global read, table index or allocation left in the script is paid on every execution, and `-stacktraces` adds a push and a pop to each instrumented function (`wurst_stack`). Benchmark like a shipping map: `-inline -localOptimizations`, no `-stacktraces` (a generated `wurst_run.args` keeps `-stacktraces` and inlines builds only).
 * **Lockstep: never iterate a Lua table whose order is observable** (`pairs`, `next`). The order differs between players and desyncs the game. A table is safe as a membership set; anything iterated needs an insertion-ordered array. Decide this when designing a structure, not afterwards.
 * **`I2S(1 div 0)` is the deliberate thread abort** (Jass has no `throw`); Lua lowers that exact shape to `error("__wurst_abort_thread", 0)`. A rewrite of `div` or `I2S` must keep the shape (`LuaBackendAuditTests`, `OptimizerTests` cover it).
 * **Death is life <= 0.405, never 0**, and reals are not doubles: see "Interpreter native mocks" and "Reference semantics for arithmetic" in §7.

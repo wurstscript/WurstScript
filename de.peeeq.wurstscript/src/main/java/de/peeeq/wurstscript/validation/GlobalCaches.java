@@ -9,54 +9,8 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 public final class GlobalCaches {
-    // Stats are useful for diagnostics but expensive on very hot cache paths.
-    private static final boolean ENABLE_CACHE_STATS = false;
-
-    // Statistics tracking
-    public static class CacheStats {
-        final AtomicLong hits = new AtomicLong();
-        final AtomicLong misses = new AtomicLong();
-        final AtomicLong evictions = new AtomicLong();
-        final String name;
-
-        CacheStats(String name) {
-            this.name = name;
-        }
-
-        void recordHit() {
-            if (!ENABLE_CACHE_STATS) return;
-            hits.incrementAndGet();
-        }
-
-        void recordMiss() {
-            if (!ENABLE_CACHE_STATS) return;
-            misses.incrementAndGet();
-        }
-
-        void recordEviction(int count) {
-            if (!ENABLE_CACHE_STATS) return;
-            evictions.addAndGet(count);
-        }
-
-        double hitRate() {
-            long h = hits.get();
-            long m = misses.get();
-            long total = h + m;
-            return total == 0 ? 0.0 : (double) h / total;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s: hits=%d, misses=%d, hitRate=%.2f%%, evictions=%d",
-                name, hits.get(), misses.get(), hitRate() * 100, evictions.get());
-        }
-    }
-
-    private static final CacheStats lookupStats = new CacheStats("LookupCache");
-
     public enum Mode {TEST_ISOLATED, DEV_PERSISTENT}
 
     private static volatile Mode mode = Mode.DEV_PERSISTENT;
@@ -130,50 +84,5 @@ public final class GlobalCaches {
         }
     }
 
-    public static final Map<CacheKey, Object> lookupCache = new Object2ObjectOpenHashMap<CacheKey, Object>() {
-        @Override
-        public Object get(Object key) {
-            Object result = super.get(key);
-            if (result != null) {
-                lookupStats.recordHit();
-            } else {
-                lookupStats.recordMiss();
-            }
-            return result;
-        }
-
-        @Override
-        public Object put(CacheKey key, Object value) {
-            // Note: put returns old value, null if new entry
-            Object old = super.put(key, value);
-            if (old == null) {
-                // New entry, the miss was already recorded in get()
-            }
-            return old;
-        }
-
-        @Override
-        public void clear() {
-            lookupStats.recordEviction(size());
-            super.clear();
-        }
-    };
-
-    // Statistics methods
-    public static void printStats() {
-        System.out.println("=== GlobalCaches Statistics ===");
-        System.out.println(lookupStats);
-        System.out.println("Current sizes: lookup=" + lookupCache.size());
-        System.out.println("==============================");
-    }
-
-    public static void resetStats() {
-        lookupStats.hits.set(0);
-        lookupStats.misses.set(0);
-        lookupStats.evictions.set(0);
-    }
-
-    public static CacheStats getLookupStats() {
-        return lookupStats;
-    }
+    public static final Map<CacheKey, Object> lookupCache = new Object2ObjectOpenHashMap<>();
 }

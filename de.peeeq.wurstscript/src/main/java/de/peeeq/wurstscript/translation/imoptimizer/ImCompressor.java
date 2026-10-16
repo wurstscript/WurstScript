@@ -12,13 +12,11 @@ import java.util.Set;
 
 public class ImCompressor {
 
-    private final ImTranslator trans;
     private final ImProg prog;
     private final NameGenerator ng;
     private final Set<String> preservedNames = new HashSet<>();
 
     public ImCompressor(ImTranslator translator) {
-        this.trans = translator;
         this.prog = translator.getImProg();
         ng = new NameGenerator();
         for (ImVar global : prog.getGlobals()) {

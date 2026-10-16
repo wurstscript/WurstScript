@@ -108,31 +108,6 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    private List<CompilationUnit> getJassdocCUs(Path jassdoc, WurstGui gui) {
-        ArrayList<CompilationUnit> units = new ArrayList<>();
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
-
-        File[] jassdocFiles = jassdoc.toFile().listFiles();
-        if (jassdocFiles == null) {
-            WLogger.warning("Could not list jassdoc folder " + jassdoc);
-        } else {
-            Arrays.sort(jassdocFiles, Comparator.comparing(File::getName));
-            for (File f : jassdocFiles) {
-                if (f.getName().endsWith(".j") && ! f.getName().startsWith("builtin-types")) {
-                    try (InputStreamReader reader = new FileReader(f)) {
-                        CompilationUnit cu = comp.parse(f.getAbsolutePath(), reader);
-                        cu.getCuInfo().setFile(getCanonicalPath(f));
-                        units.add(cu);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-
-        return units;
-    }
-
     @Override
     public Changes removeCompilationUnit(WFile resource) {
         WurstModel model2 = model;
@@ -580,19 +555,6 @@ public class ModelManagerImpl implements ModelManager {
         for (ClassDef innerClass : elem.getInnerClasses()) {
             clearModuleInstantiation(innerClass);
         }
-    }
-
-    /**
-     * check whether cu imports something from 'toCheck'
-     */
-    private boolean imports(CompilationUnit cu, Set<String> packageNames) {
-        for (WPackage p : cu.getPackages()) {
-            if (imports(p, packageNames, false, Sets.newHashSet())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

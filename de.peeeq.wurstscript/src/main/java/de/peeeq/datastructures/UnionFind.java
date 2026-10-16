@@ -1,9 +1,7 @@
 package de.peeeq.datastructures;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of https://en.wikipedia.org/wiki/Disjoint-set_data_structure
@@ -46,17 +44,6 @@ public class UnionFind<T> {
         if (rank.get(xRoot).equals(rank.get(yRoot))) {
             rank.put(xRoot, rank.get(xRoot));
         }
-    }
-
-    public Map<T, Set<T>> groups() {
-        Map<T, Set<T>> result = new LinkedHashMap<>();
-        for (T t : parent.keySet()) {
-            result.put(t, new LinkedHashSet<>());
-        }
-        for (Map.Entry<T, T> e : parent.entrySet()) {
-            result.get(e.getValue()).add(e.getKey());
-        }
-        return result;
     }
 
 }

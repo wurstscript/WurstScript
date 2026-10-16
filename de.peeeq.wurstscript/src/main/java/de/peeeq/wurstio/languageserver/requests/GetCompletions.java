@@ -715,17 +715,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         return true;
     }
 
-	/*
-    private ICompletionProposal[] toCompletionsArray(List<CompletionItem> completions) {
-		Collections.sort(completions);
-		ICompletionProposal[] result = new ICompletionProposal[completions.size()];
-		for (int i = 0; i < result.length; i++) {
-			result[i] = completions.get(i).getProposal();
-		}
-		return result;
-	}
-	*/
-
     /**
      * checks if we are currently entering a real number
      * (autocomplete might have triggered because of the dot)
@@ -860,7 +849,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(n.getTyp() + " [" + nearestScopeName(n.getDef()) + "]");
+        completion.setDetail(n.getTyp() + " [" + Utils.nearestScopeName(n.getDef()) + "]");
         docTargets.put(completion, n.getDef());
         double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
@@ -1038,25 +1027,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
         return isPotentialMatch(name);
     }
 
-    private static String nearestScopeName(NameDef n) {
-        if (n.attrNearestNamedScope() != null) {
-            return Utils.printElement(n.attrNearestNamedScope());
-        } else {
-            return "Global";
-        }
-    }
-
-    private static String nearestScopeName(Element e) {
-        if (e.attrNearestNamedScope() != null) {
-            return Utils.printElement(e.attrNearestNamedScope());
-        } else {
-            return "Global";
-        }
-    }
-
     private CompletionItem makeFunctionCompletion(FuncLink f) {
         String replacementString = f.getName();
-        List<WurstType> params = f.getParameterTypes();
 
 
         CompletionItem completion = new CompletionItem(f.getName());
@@ -1141,7 +1113,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (!(returnType instanceof WurstTypeVoid)) {
             displayString += " returns " + returnType;
         }
-        displayString += " [" + nearestScopeName(f) + "]";
+        displayString += " [" + Utils.nearestScopeName(f) + "]";
         return displayString;
     }
 

@@ -671,11 +671,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return findFunctionInternal(funcName, trace, true);
     }
 
-    @NotNull
-    private ImFunction findFunction(String funcName, WPos trace) {
-        return findFunctionInternal(funcName, trace, false);
-    }
-
 
     @NotNull
     private ImFunctionCall callExtern(Element trace, CallType callType, String functionName, ImExpr... arguments) {
