@@ -42,7 +42,6 @@ public class FuncSkeleton {
     }
 
     public static void create(TupleDef tupleDef, ImTranslator translator, ImFunction f) {
-        // TODO Auto-generated method stub
         throw new Error("not implemented");
     }
 

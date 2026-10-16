@@ -1018,9 +1018,6 @@ public class AntlrWurstParseTreeTransformer {
             return Ast.NoExpr();
         }
         Expr r = transformExpr(e);
-//		if (r instanceof ExprEmpty) {
-//			return Ast.NoExpr();
-//		}
         return r;
     }
 

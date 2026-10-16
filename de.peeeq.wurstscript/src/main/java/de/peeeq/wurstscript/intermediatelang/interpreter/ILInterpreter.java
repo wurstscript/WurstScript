@@ -39,7 +39,6 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         this.prog = prog;
         this.globalState = globalState;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
-//        globalState.addNativeProvider(new NativeFunctions());
     }
 
     public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {

@@ -32,7 +32,6 @@ public class ClassTranslator {
         this.classDef = classDef;
         this.translator = translator;
         this.prog = translator.getImProg();
-//		initStatements = translator.getInitStatement(classDef);
         dynamicInits = translator.getDynamicInits(classDef);
     }
 
@@ -301,7 +300,6 @@ public class ClassTranslator {
 
 
                 OverrideUtils.addOverride(translator, s, subClass, subMethod, subM, typeBinding);
-//				m.getSubMethods().add(translator.getMethodFor(subM));
             }
         }
     }

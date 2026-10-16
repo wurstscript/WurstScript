@@ -387,7 +387,6 @@ public class EliminateTuples {
         String before = f.toString();
         try {
             step.apply(f.getBody(), translator, f);
-//            translator.assertProperties(Collections.emptySet(), f.getBody());
         } catch (Throwable t) {
             throw new RuntimeException("\n//// Before -----------\n" + before
                     + "\n\n// After -------------------\n" + f, t);

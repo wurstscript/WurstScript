@@ -1982,7 +1982,7 @@ public class BugTests extends WurstScriptTest {
             "        d = d.next        // type D",
             "",
             "init",
-            "    // We don’t rely on runtime behavior here—this test targets typing/name resolution.",
+            "    // We don’t rely on runtime behavior here; this test targets typing/name resolution.",
             "    // If all lines above typecheck and run, we count it as success:",
             "    doSmth()",
             "    testSuccess()"

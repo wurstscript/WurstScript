@@ -224,10 +224,10 @@ with identical source/map copies and JVM/JFR settings:
 | R1 | 8,660 ms | 5,194 ms | 3,613 ms | 0 ms |
 | R2 | 7,876 ms | 4,520 ms | 3,367 ms | 0 ms |
 
-Warm unchanged requests improve by 40–43%. R0 still needs a complete check after the configured-script
+Warm unchanged requests improve by 40 to 43%. R0 still needs a complete check after the configured-script
 swap. The 100,010-line emitted Jass matches baseline exactly except for the compiler-version header.
 Logs are `temp/runmap-chaos-baseline-verify.log` and `temp/runmap-chaos-final.log`; the latter's JFR files
-are `temp/runmap-chaos-final-{0,1,2}.jfr`. An earlier successful repetition measured 4,641–4,890 ms warm.
+are `temp/runmap-chaos-final-{0,1,2}.jfr`. An earlier successful repetition measured 4,641 to 4,890 ms warm.
 
 The remaining warm costs are:
 

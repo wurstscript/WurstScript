@@ -26,9 +26,6 @@ public abstract class WurstType {
         return matchAgainstSupertype(other, location, VariableBinding.emptyMapping(), RIGHT) != null;
     }
 
-    //    public final VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location) {
-//        return this.matchAgainstSupertype(other, location, TreeMap.empty(TypeParamOrd.instance()));
-//    }
 
 
     /**

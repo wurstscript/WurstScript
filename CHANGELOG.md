@@ -240,12 +240,12 @@
   from inside a constructor. A generic object stays erased there and only the paths needing a concrete
   type are specialised, so the concrete type has to reach those paths rather than the object: a
   specialised method is bound to the class its objects are allocated from, a call which names its target
-  — `super.m()` is one — takes the instantiation from the class its receiver is used as, and a function
+  (such as `super.m()`) takes the instantiation from the class its receiver is used as, and a function
   of a generic class is matched against that class's type variables rather than being read as having
   none of its own. A specialisation nothing allocates is no longer emitted at all.
 
     One shape remains unsupported on Lua: a method combining its own type parameters with those of the
-    generic class owning it, though it is no longer rejected outright — the arity check it tripped over
+    generic class owning it, though it is no longer rejected outright: the arity check it tripped over
     counted the class's type arguments against a call that had only supplied the method's.
 
 - Added new pseudo-natives for debugging memory leaks:

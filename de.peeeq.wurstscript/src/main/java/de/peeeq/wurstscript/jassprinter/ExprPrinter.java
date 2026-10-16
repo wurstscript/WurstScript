@@ -21,9 +21,6 @@ public class ExprPrinter {
         String val = String.valueOf(e.getValI());
 
         // Disabled due digitbug
-//		if(!withSpace) {
-//			val = intShort(val);
-//		}
 
         sb.append(val);
     }
@@ -122,14 +119,6 @@ public class ExprPrinter {
     }
 
 
-//	private static String intShort(String val){
-//		int d = Integer.valueOf(val);
-//		if ( d > 792646 && containsOnlyNumbers(val) ) {
-//			String s = Integer.toHexString(d).toUpperCase();
-//			return "$" + s;
-//		}
-//		return String.valueOf(d);
-//	}
 
 
 }

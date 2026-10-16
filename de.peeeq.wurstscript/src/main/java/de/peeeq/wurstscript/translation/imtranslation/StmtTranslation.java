@@ -170,7 +170,7 @@ public class StmtTranslation {
                 ImClass imIterClass = t.getClassFor(rtClassDef);
                 iteratorImType = JassIm.ImClassType(imIterClass, iterTypeArgs.copy());
             } else {
-                // fallback – should not happen for a well-formed iterator()
+                // fallback: should not happen for a well-formed iterator()
                 iteratorImType = retWT.imTranslateType(t);
             }
 
@@ -522,14 +522,11 @@ public class StmtTranslation {
             throw new CompileError(switchStmt.attrSource(), "No cases in switch?");
         }
 
-//		WLogger.info("it is a " + switchStmt.getSwitchDefault().getClass());
         if (switchStmt.getSwitchDefault() instanceof SwitchDefaultCaseStatements) {
 
-//			WLogger.info("indeed it is");
             SwitchDefaultCaseStatements dflt = (SwitchDefaultCaseStatements) switchStmt.getSwitchDefault();
             lastIf.setElseBlock(ImStmts(t.translateStatements(f, dflt.getStmts())));
         } else if (switchStmt.getSwitchDefault() instanceof NoDefaultCase) {
-//			WLogger.info("wtf?");
         }
 
 

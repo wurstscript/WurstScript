@@ -490,7 +490,7 @@ public class ExpressionTests extends WurstScriptTest {
      * An integer literal is a proper subtype of both int and real. Addition collapses two of them
      * to int, so {@code real r = 1} is allowed while {@code real r = 1 + 1} is not; {@code div} and
      * {@code mod} return the left operand's type instead, so a literal stays assignable to a real
-     * through them. This pins the asymmetry rather than endorsing it — see backlog item 8.
+     * through them. This pins the asymmetry rather than endorsing it.
      */
     @Test
     public void integerDivisionOfLiteralsIsStillAssignableToReal() {

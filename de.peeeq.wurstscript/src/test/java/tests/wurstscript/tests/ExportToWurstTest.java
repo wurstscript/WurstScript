@@ -18,7 +18,7 @@ import java.util.List;
 import static org.testng.Assert.*;
 
 /**
- * Tests for {@link ProgramStateIO#exportToWurst} — verifies that the enriched
+ * Tests for {@link ProgramStateIO#exportToWurst}, verifying that the enriched
  * wrapper-class output is produced for known types and that the raw fallback is
  * used when the base ID has no mapping or a field has no wrapper method.
  */
@@ -98,7 +98,7 @@ public class ExportToWurstTest extends WurstScriptTest {
     }
 
     // -------------------------------------------------------------------------
-    // Ability (w3a) — known base ID
+    // Ability (w3a), known base ID
     // -------------------------------------------------------------------------
 
     @Test
@@ -307,7 +307,7 @@ public class ExportToWurstTest extends WurstScriptTest {
         W3A w3a = new W3A();
         W3A.Obj obj = w3a.addObj(ObjId.valueOf("A01M"), ObjId.valueOf("Aslo"));
         addLvlMod(obj, "acdn", ObjMod.ValType.UNREAL, 1, 0, 5.0);  // mapped
-        // "zzzz" is not a real field — has no wrapper method
+        // "zzzz" is not a real field and has no wrapper method
         addLvlMod(obj, "zzzz", ObjMod.ValType.INT, 1, 0, 42);
 
         String out = export(obj, ObjectFileType.ABILITIES);
@@ -504,10 +504,10 @@ public class ExportToWurstTest extends WurstScriptTest {
     @Test
     public void buildingBaseIdUsesBuildingDefinition() throws IOException {
         W3U w3u = new W3U();
-        // 'hhou' = Human Farm — a stock building (isbldg=1 in unitbalance.slk)
+        // 'hhou' = Human Farm, a stock building (isbldg=1 in unitbalance.slk)
         W3U.Obj obj = w3u.addObj(ObjId.valueOf("H002"), ObjId.valueOf("hhou"));
         addMod(obj, "unam", ObjMod.ValType.STRING, "My Farm");
-        addMod(obj, "uubs", ObjMod.ValType.STRING, "HSMA");  // setGroundTexture — building-only
+        addMod(obj, "uubs", ObjMod.ValType.STRING, "HSMA");  // setGroundTexture, building-only
 
         String out = export(obj, ObjectFileType.UNITS);
 
@@ -522,7 +522,7 @@ public class ExportToWurstTest extends WurstScriptTest {
     @Test
     public void buildingFieldsResearchesPathingMap() throws IOException {
         W3U w3u = new W3U();
-        // 'hgtw' = Guard Tower — building
+        // 'hgtw' = Guard Tower, building
         W3U.Obj obj = w3u.addObj(ObjId.valueOf("H003"), ObjId.valueOf("hgtw"));
         addMod(obj, "ures", ObjMod.ValType.STRING, "");    // setResearchesAvailable
         addMod(obj, "upat", ObjMod.ValType.STRING, "PathTextures\\4x4SimpleSolid.tga");  // setPathingMap
@@ -542,11 +542,11 @@ public class ExportToWurstTest extends WurstScriptTest {
     @Test
     public void heroBaseIdUsesHeroDefinition() throws IOException {
         W3U w3u = new W3U();
-        // 'Hamg' = Archmage — a stock hero
+        // 'Hamg' = Archmage, a stock hero
         W3U.Obj obj = w3u.addObj(ObjId.valueOf("H004"), ObjId.valueOf("Hamg"));
         addMod(obj, "unam", ObjMod.ValType.STRING, "My Archmage");
-        addMod(obj, "uint", ObjMod.ValType.INT, 20);   // setStartingIntelligence — hero-only
-        addMod(obj, "upra", ObjMod.ValType.STRING, "INT"); // setPrimaryAttribute — hero-only
+        addMod(obj, "uint", ObjMod.ValType.INT, 20);   // setStartingIntelligence, hero-only
+        addMod(obj, "upra", ObjMod.ValType.STRING, "INT"); // setPrimaryAttribute, hero-only
 
         String out = export(obj, ObjectFileType.UNITS);
 
@@ -565,7 +565,7 @@ public class ExportToWurstTest extends WurstScriptTest {
         // WC3 convention: uppercase new ID = hero unit.
         W3U.Obj obj = w3u.addObj(ObjId.valueOf("X00O"), ObjId.valueOf("hpea"));
         addMod(obj, "unam", ObjMod.ValType.STRING, "Custom Hero");
-        addMod(obj, "upro", ObjMod.ValType.STRING, "Race Builder");  // setProperNames — hero-only
+        addMod(obj, "upro", ObjMod.ValType.STRING, "Race Builder");  // setProperNames, hero-only
         addMod(obj, "upru", ObjMod.ValType.INT, 1);                  // setProperNamesUsed
 
         String out = export(obj, ObjectFileType.UNITS);
@@ -625,7 +625,7 @@ public class ExportToWurstTest extends WurstScriptTest {
     }
 
     // -------------------------------------------------------------------------
-    // Inherited fields — child abilities that inherit specific fields from parent
+    // Inherited fields, child abilities that inherit specific fields from parent
     // -------------------------------------------------------------------------
 
     @Test

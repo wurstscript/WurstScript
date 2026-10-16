@@ -610,17 +610,17 @@ public class ExprTranslation {
     public static LuaExpr translate(ImStatementExpr e, LuaTranslator tr) {
         // The statement-expr becomes an immediately-invoked closure. An exitwhen
         // that targets a loop OUTSIDE the statement-expr would emit 'break' inside
-        // the closure, which is invalid Lua — fail loudly instead of emitting it.
+        // the closure, which is invalid Lua; fail loudly instead of emitting it.
         // (flatten() normally hoists statement-exprs so this should not occur.)
         e.getStatements().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImLoop loop) {
-                // breaks inside a nested loop are fine — do not descend
+                // breaks inside a nested loop are fine; do not descend
             }
 
             @Override
             public void visit(ImVarargLoop loop) {
-                // breaks inside a nested loop are fine — do not descend
+                // breaks inside a nested loop are fine; do not descend
             }
 
             @Override
@@ -690,7 +690,6 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
-//        return LuaAst.LuaLiteral("debug.traceback()");
         return LuaAst.LuaLiteral("\"$Stacktrace$\"");
     }
 

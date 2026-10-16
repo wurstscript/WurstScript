@@ -68,7 +68,6 @@ public class ModelManagerImpl implements ModelManager {
     private final File projectPath;
     // dependency project folders discovered in _build/dependencies
     private final Set<File> dependencies = Sets.newLinkedHashSet();
-    // private WurstGui gui = new WurstGuiLogger();
     private final List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
     // compile errors for each file
     private final Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();

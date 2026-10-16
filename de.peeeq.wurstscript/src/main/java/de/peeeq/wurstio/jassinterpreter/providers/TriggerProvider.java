@@ -41,13 +41,11 @@ public class TriggerProvider extends Provider {
             exactMatchOnly) {
         TriggerMock triggerMock = (TriggerMock) trigger.getObj();
         // TODO
-//        triggerMock.registerEvent();
     }
 
     public void TriggerRegisterVariableEvent(IlConstHandle trigger, ILconstString varName, IlConstHandle opcode, ILconstReal limitval) {
         TriggerMock triggerMock = (TriggerMock) trigger.getObj();
         // TODO
-//        triggerMock.registerEvent();
     }
 
     public IlConstHandle Condition(ILconstFuncRef code) {

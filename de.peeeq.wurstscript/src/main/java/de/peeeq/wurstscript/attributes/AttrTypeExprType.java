@@ -32,25 +32,6 @@ public class AttrTypeExprType {
             scope = node;
         }
         return AttrExprType.caclulateThistype(scope, false, "thistype");
-//		ClassOrModule n = node.attrNearestClassOrModule();
-//		if (n == null) {
-//			node.addError("'thistype' can only be used in classes and modules.");
-//			return WurstTypeUnknown.instance();
-//		}
-//		return n.match(new ClassOrModule.Matcher<WurstType>() {
-//
-//			@Override
-//			public WurstType case_ClassDef(ClassDef classDef) {
-//				WurstTypeClass t = (WurstTypeClass) classDef.attrTyp();
-//				t.gett
-//			}
-//
-//			@Override
-//			public WurstType case_ModuleDef(ModuleDef moduleDef) {
-//				return new WurstTypeModule(moduleDef, true);
-//			}
-//
-//		});
     }
 
     public static WurstType calculate(NoTypeExpr optType) {

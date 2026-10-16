@@ -26,8 +26,8 @@ Notes; finished-work narrative does not.
   save first, or refuse unsaved files, is open.
 
 - **Reuse translation work on unchanged map runs.** After checked-model reuse, Survival Chaos Reborn
-  takes 4.5–5.2 s for an unoptimised warm RunMap: AST→IM 1.3–1.4 s, required Jass lowering 1.3–1.7 s,
-  compile-time work 0.9–1.0 s, map injection 0.4–0.6 s. Whole-project typechecking is now skipped.
+  takes 4.5 to 5.2 s for an unoptimised warm RunMap: AST→IM 1.3 to 1.4 s, required Jass lowering 1.3 to 1.7 s,
+  compile-time work 0.9 to 1.0 s, map injection 0.4 to 0.6 s. Whole-project typechecking is now skipped.
   Investigate retaining a pristine IM snapshot keyed by model/config/target state, then copying it
   before mutable compile-time/backend passes; compare snapshot cost with translation and test edits,
   configuration changes, cancellation and both targets against fresh builds. This needs an explicit

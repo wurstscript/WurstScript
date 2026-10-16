@@ -260,7 +260,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
      * re-executes it. Called after a parameter is (re)bound: without this, binding new
      * values after a step (but before a sqlite_reset) would be silently ignored and the
      * new values never queried/written. Note this also closes any open result set, so a
-     * column must be read before the next bind — the contract is bind, step, read, then
+     * column must be read before the next bind; the contract is bind, step, read, then
      * (re)bind and step again.
      */
     private void markStatementForReexecution(int handle) {
@@ -345,7 +345,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     // Column indices are 0-based, mirroring the SQLite C API (sqlite3_column_*); the +1
     // converts to JDBC's 1-based ResultSet indexing. Note this asymmetry with the 1-based
-    // bind indices above — both match the C API.
+    // bind indices above; both match the C API.
     public ILconstInt sqlite_column_int(ILconstInt statement, ILconstInt index) {
         ResultSet rs = sqliteResultSets.get(statement.getVal());
         if (rs == null) throw new InterpreterException("No result set for statement handle: " + statement.getVal());
@@ -411,7 +411,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         try {
             stmt.clearParameters();
             // Clearing bindings mutates the parameters (all become NULL), so it must
-            // invalidate any prior execution just like sqlite_bind_* — otherwise a
+            // invalidate any prior execution just like sqlite_bind_*; otherwise a
             // step after clearing on an already-executed statement would return false
             // and silently skip re-running with the now-NULL parameters.
             markStatementForReexecution(statement.getVal());
@@ -439,7 +439,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         if (conn == null) throw new InterpreterException("Invalid SQLite connection handle: " + connection.getVal());
         // Finalize every statement belonging to this connection, then always close the
         // connection itself. A failure finalizing one statement must not abort the loop or
-        // skip conn.close() — otherwise the connection (already removed from the map above)
+        // skip conn.close(); otherwise the connection (already removed from the map above)
         // would leak permanently, unreachable even by closeAllSqliteResources().
         List<String> errors = new ArrayList<>();
         for (int statement : sqliteStatementConnections.entrySet().stream()

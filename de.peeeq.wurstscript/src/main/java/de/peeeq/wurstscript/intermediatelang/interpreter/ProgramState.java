@@ -426,7 +426,6 @@ public class ProgramState extends State implements AutoCloseable {
         WLogger.trace(() -> "pushStackframe " + f + " with receiver " + receiver
             + " and args " + Arrays.toString(args) + " and typesubst " + frameTypes);
 
-//        new Exception().printStackTrace(System.out);
 
         stackFrames.push(new ILStackFrame(f, receiver, args, entry, frameTypes));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
@@ -672,7 +671,6 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
     public void popStackframe() {
-//        new Exception().printStackTrace(System.out);
         WLogger.trace(() -> "popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();

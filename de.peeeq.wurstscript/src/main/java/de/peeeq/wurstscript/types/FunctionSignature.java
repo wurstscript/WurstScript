@@ -85,7 +85,6 @@ public class FunctionSignature {
 
 
     public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
-//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.attrReturnTyp());
         if (f == null) {
             return FunctionSignature.empty;
         }
@@ -119,7 +118,7 @@ public class FunctionSignature {
         VariableBinding mapping = f.getVariableBinding();
         FunctionDefinition def = f.getDef();
         // Only add the function's own type params that are still unbound (i.e., still in
-        // f.getTypeParams() — withTypeArgBinding removes them as they get resolved).
+        // f.getTypeParams(), withTypeArgBinding removes them as they get resolved).
         // We must NOT add enclosing structure (module/class) type params, which would
         // appear as spurious unbound inference variables.
         if (def instanceof AstElementWithTypeParameters astElementWithTypeParameters) {

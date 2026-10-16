@@ -5155,7 +5155,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * after the last underscore of a method name. A user method containing
      * an underscore (my_x) therefore produced phantom alias slots
      * (Base_x, Child_x) that collided with the real dispatch slot of an
-     * unrelated method named x — and could win the slot, so calls to x()
+     * unrelated method named x, and could win the slot, so calls to x()
      * dispatched into my_x(int) with a missing argument.
      */
     @Test
@@ -6364,7 +6364,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /**
      * The wc3shim's GetLocalPlayer used to return a generic enum-handle table
      * ({handleKind, value}) while the generated Player/GetPlayerId fallbacks
-     * use {id = x} with their own cache — so GetPlayerId(GetLocalPlayer())
+     * use {id = x} with their own cache, so GetPlayerId(GetLocalPlayer())
      * returned nil and Player(0) was not identical to GetLocalPlayer().
      */
     @Test
@@ -6430,7 +6430,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * Regular class fields are scope-prefixed by the IM translator, but
      * closure-captured locals become fields with their raw source name, so a
      * captured local named after a Lua keyword (until, local, ...) used to
-     * produce {@code obj.until} — a syntax error.
+     * produce {@code obj.until}, a syntax error.
      */
     @Test
     public void luaKeywordFieldNamesAreRenamed() throws IOException {

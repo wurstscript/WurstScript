@@ -299,7 +299,7 @@ tasks.named('compileJava') { it.dependsOn('gen') }
  * Cores decide how much parallelism is useful; memory decides how much is survivable. Each worker
  * is a JVM with the heap set below, and the Gradle daemon holds its own on top, so a machine with
  * many cores and little memory has to be counted the other way. Measured on eight cores: serial
- * 13m11s, four forks 8m39s, eight forks 7m03s — more forks kept winning even though each test runs
+ * 13m11s, four forks 8m39s, eight forks 7m03s; more forks kept winning even though each test runs
  * slower under the contention, so this errs towards cores where memory allows.
  */
 int testForkCount() {

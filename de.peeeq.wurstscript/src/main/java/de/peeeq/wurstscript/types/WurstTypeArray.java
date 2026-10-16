@@ -99,7 +99,6 @@ public class WurstTypeArray extends WurstType {
 
     @Override
     public String getName() {
-        // TODO Auto-generated method stub
         return baseType.getName() + " array(dimensions = " + getDimensions() + ")";
     }
 

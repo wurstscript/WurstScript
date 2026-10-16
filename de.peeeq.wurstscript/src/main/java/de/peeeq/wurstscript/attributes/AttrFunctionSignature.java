@@ -35,7 +35,6 @@ public class AttrFunctionSignature {
         // ---- DEBUG: what did we pick, and what did we bind? ----
         if (fc instanceof FunctionCall) {
             WLogger.trace(() -> "[IMPLCONV] call=" + name(fc) + " args=" + at);
-//            WLogger.trace("[IMPLCONV] pickedSig=" + sig);
             WLogger.trace(() -> "[IMPLCONV] mapping=" + sig.getMapping()
                 + " unbound=" + sig.getMapping().printUnboundTypeVars());
             if (fc instanceof ExprMemberMethodDot emmd) {

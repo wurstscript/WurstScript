@@ -16,7 +16,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.Map.Entry;
 
-//w(11)->{r(17), r(19)} & w(19)->{r(17), r(19)} & w(22)
 class VarStates {
     final ImmutableMap<LocalVarDef, VState> states;
     final ImmutableSet<NameDef> destroyedParameters;
@@ -382,13 +381,6 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
         NameDef n = getInitializedVar(s);
         if (n != null) {
-//			ImmutableSet<WStatement> unreadWrites = incoming.getUnreadWrites(n);
-//			for (WStatement wr : unreadWrites) {
-//				Element parent = s.getParent();
-//				if (isNested(wr, parent)) {
-////					s.addError("Assigning to " + Utils.printElement(n) + " overrides previous assignment in line " + wr.attrSource().getLine());
-//				}
-//			}
             if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);

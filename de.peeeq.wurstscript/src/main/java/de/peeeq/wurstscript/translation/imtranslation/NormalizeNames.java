@@ -19,19 +19,10 @@ public class NormalizeNames {
      */
     public static void normalizeNames(ImProg prog) {
         Multimap<ImMethod, ImMethod> superMethods = calculateSuperMethods(prog);
-//        for (ImVar g : prog.getGlobals()) {
-//            normalizeName(g);
-//        }
-//        for (ImFunction f : prog.getFunctions()) {
-//            normalizeName(f);
-//        }
         for (ImClass c : prog.getClasses()) {
             for (ImVar g : c.getFields()) {
                 normalizeName(g);
             }
-//            for (ImFunction f : c.getFunctions()) {
-//                normalizeName(f);
-//            }
             for (ImMethod m : c.getMethods()) {
                 Element trace = m.attrTrace();
                 if (trace instanceof AstElementWithNameId astElementWithNameId) {
@@ -50,10 +41,6 @@ public class NormalizeNames {
 
             }
 
-//            Element trace = c.attrTrace();
-//            if (trace instanceof AstElementWithNameId) {
-//                c.setName(((AstElementWithNameId) trace).getNameId().getName());
-//            }
         }
     }
 

@@ -96,8 +96,8 @@ public class LocalState extends State {
     /**
      * The argument bound to this type variable.
      * <p>
-     * One source type parameter can be represented by several {@code ImTypeVar} nodes — a class and
-     * its constructor hold separate ones — so fall back to matching by name, as generic elimination
+     * One source type parameter can be represented by several {@code ImTypeVar} nodes (a class and
+     * its constructor hold separate ones), so fall back to matching by name, as generic elimination
      * does.
      */
     public @Nullable ImTypeArgument getTypeArgument(ImTypeVar typeVar) {

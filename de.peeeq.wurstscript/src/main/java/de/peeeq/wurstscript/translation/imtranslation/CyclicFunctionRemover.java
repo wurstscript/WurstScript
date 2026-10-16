@@ -129,9 +129,6 @@ public class CyclicFunctionRemover {
 
         // remove the old funcs
         prog.getFunctions().removeAll(funcs);
-//		System.out.println("----------------------------------");
-//		System.out.println(prog.toString());
-//		System.out.println("----------------------------------");
     }
 
     private void replaceVars(Element e, Map<ImVar, ImVar> oldToNewVar) {
