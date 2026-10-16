@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
@@ -135,18 +134,6 @@ public class ImHelper {
                 e.setVar(newVar);
             }
         }
-    }
-
-    public static void replaceElem(Element oldElem, Element newElement) {
-        Element parent = oldElem.getParent();
-        if (parent == null) throw new Error("Element has no parent: " + oldElem);
-        for (int i = 0; i < parent.size(); i++) {
-            if (parent.get(i) == oldElem) {
-                parent.set(i, newElement);
-                return;
-            }
-        }
-        throw new Error("Element " + oldElem + " not found in parent. This should never happen ;)");
     }
 
     public static ImExpr defaultValueForType(ImSimpleType t) {

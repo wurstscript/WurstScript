@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrPos {
 
@@ -88,16 +87,6 @@ public class AttrPos {
         return new WPos("<source of " + kind + " not found>", new LineOffsets(), 0, -1);
     }
 
-
-    private static @Nullable LineOffsets getLineOffsets(WPos p) {
-        LineOffsets lineOffsets;
-        if (p.getLineOffsets() instanceof LineOffsets) {
-            lineOffsets = p.getLineOffsets();
-        } else {
-            lineOffsets = new LineOffsets();
-        }
-        return lineOffsets;
-    }
 
 
     public static WPos getErrorPos(Element e) {

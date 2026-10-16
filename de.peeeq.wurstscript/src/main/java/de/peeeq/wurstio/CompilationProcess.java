@@ -15,7 +15,6 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
@@ -203,7 +202,7 @@ public class CompilationProcess {
             gui.sendError(new CompileError(e.getFunction(), e.getMessage()));
             if (runArgs.isGui()) {
                 // when using graphical user interface, send stack trace to GUI
-                for (ILStackFrame sf : Utils.iterateReverse(e.getStackTrace().getStackFrames())) {
+                for (ILStackFrame sf : e.getStackTrace().getStackFrames().reversed()) {
                     gui.sendError(sf.makeCompileError());
                 }
             }

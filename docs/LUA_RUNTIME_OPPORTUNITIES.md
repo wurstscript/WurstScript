@@ -6,46 +6,20 @@ The probes live in [profiling/lua-opportunities](profiling/lua-opportunities/).
 
 ## Priorities
 
-1. Fix the two observable-effect defects below before relying on the effect analysis for more work.
-2. Evaluate exact-receiver devirtualization and temporary reuse for complex receivers. Both fit the
+1. Evaluate exact-receiver devirtualization and temporary reuse for complex receivers. Both fit the
    existing IM better than introducing cached descriptor/function values.
-3. Profile actual repeated dispatch before implementing descriptor reuse. The bounded version is
+2. Profile actual repeated dispatch before implementing descriptor reuse. The bounded version is
    possible without runtime guards, but the proof and register budget are the work.
-4. Evaluate bulk copying for sufficiently large, compatible ranges.
-5. Treat Lua hot reload as a separate, opt-in development feature, starting with an engine capability
+3. Evaluate bulk copying for sufficiently large, compatible ranges.
+4. Treat Lua hot reload as a separate, opt-in development feature, starting with an engine capability
    probe and a deliberately restricted body-replacement contract.
 
-## Two failing correctness repros
+## Two observable-effect repros (fixed)
 
-`LuaRuntimeOpportunityProbe` contains opt-in failing repros. They are excluded by the supplied init
-script unless `-PknownLuaDefects` is passed; ordinary repository tests do not discover this directory.
-
-| Repro | Jass harness configurations | Lua without optimization flags | Lua `-inline -localOptimizations` |
-|---|---|---|---|
-| Unused virtual result, override increments a global | Pass | Fail | Fail |
-| Unused empty-class allocation between two retained allocations | Pass | Pass | Fail |
-
-The virtual repro calls `Base.value()` through a receiver returned by a non-inlined chooser.
-`Base.value` returns a constant; `Child.value` increments `hits`. Assigning the return to an unread
-local causes the Lua pipeline to remove the call and leave `hits == 0`. The emitted initializer
-contains the failing assertion but no call. This also occurs without optional optimization flags:
-garbage removal runs in that mode too.
-
-`SideEffectAnalyzer.directlyCalledFunctions` follows only `getMethod().getImplementation()` for a
-virtual call. Its observable-effect checker consequently misses effects in overrides. The owning
-analysis must include every possible implementation, transitively, using method identity. Test
-global/member writes, natives, destruction, generic/module overrides, and genuinely inert methods.
-Do not compensate with a Lua output filter or make a new dispatch optimization depend on this
-incomplete summary.
-
-The allocation repro creates an `Empty`, evaluates an unused `new Empty()`, then creates another
-retained `Empty`. The final ID must be the first ID plus two. Optimized Lua instead removes the middle
-allocation. Jass retains it. This violates the existing object-identity contract, even when no
-constructor writes fields. Investigate both effect collection and statement conversion:
-`ObservableSideEffectChecker` has no explicit allocation/lifetime effect, and
-`Flatten.exprToStatements` does not preserve `ImAlloc` as an evaluated statement. A correct fix must
-keep the allocation through unread-assignment removal and flattening; it must not add a replacement
-allocation later in the backend. Also test exhausted allocators, destruction and ID reuse.
+The investigation found two Lua miscompiles: an unread virtual call was removed although an override
+incremented a global, and optimized Lua dropped an unused `new Empty()`, shifting later object IDs.
+Jass was correct in both. #1471 fixed both in the effect analysis and the flatten; `ObservableEffectsTests`
+holds the regressions, and the two `LuaRuntimeOpportunityProbe` repros now pass.
 
 ## What dispatch currently costs
 
@@ -217,8 +191,6 @@ From `de.peeeq.wurstscript`, use the normal JDK/Gradle prerequisites:
 
 ```powershell
 .\gradlew.bat --no-configuration-cache -I ../docs/profiling/lua-opportunities.gradle test --tests tests.wurstscript.tests.LuaRuntimeOpportunityProbe
-# Deliberately failing research repros; currently three failures across four cases:
-.\gradlew.bat --no-configuration-cache -I ../docs/profiling/lua-opportunities.gradle test --tests tests.wurstscript.tests.LuaRuntimeOpportunityProbe.ignoredVirtualResultStillRunsOverrideEffects --tests tests.wurstscript.tests.LuaRuntimeOpportunityProbe.unusedAllocationStillConsumesAnId -PknownLuaDefects
 .\src\test\resources\lua.exe ../docs/profiling/lua-opportunities/dispatch-cost.lua 10000000 9
 .\src\test\resources\lua.exe ../docs/profiling/lua-opportunities/bulk-copy.lua 9 16000000
 .\src\test\resources\lua.exe ../docs/profiling/lua-opportunities/reload-model.lua

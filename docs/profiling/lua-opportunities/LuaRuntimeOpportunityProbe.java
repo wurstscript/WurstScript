@@ -2,7 +2,7 @@ package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
 
-/** Opt-in investigation fixtures; two methods intentionally reproduce unfixed compiler defects. */
+/** Opt-in investigation fixtures; two methods reproduce the defects #1471 fixed. */
 public class LuaRuntimeOpportunityProbe extends WurstScriptTest {
     @Test(dataProvider = "optimizationOptions")
     public void ignoredVirtualResultStillRunsOverrideEffects(boolean optimized) {

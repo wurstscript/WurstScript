@@ -7,13 +7,10 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
-import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
@@ -1161,23 +1158,6 @@ public class EliminateGenerics {
                         + " requires its type argument to resolve to a concrete class.");
                 }
                 super.visit(call);
-            }
-        });
-    }
-
-    private void assertNoUnspecializedGenericGlobals() {
-        prog.accept(new Element.DefaultVisitor() {
-            @Override public void visit(ImVarAccess va) {
-                super.visit(va);
-                if (globalToClass.containsKey(va.getVar())) {
-                    throw new CompileError(va, "Unspecialized generic global still used: " + va.getVar().getName());
-                }
-            }
-            @Override public void visit(ImVarArrayAccess vaa) {
-                super.visit(vaa);
-                if (globalToClass.containsKey(vaa.getVar())) {
-                    throw new CompileError(vaa, "Unspecialized generic global array still used: " + vaa.getVar().getName());
-                }
             }
         });
     }

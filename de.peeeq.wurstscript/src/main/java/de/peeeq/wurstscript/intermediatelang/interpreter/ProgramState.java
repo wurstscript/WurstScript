@@ -13,7 +13,6 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -56,7 +55,6 @@ public class ProgramState extends State implements AutoCloseable {
     private final Set<String> modifiedGenericArrays = new HashSet<>();
     private final Map<String, Set<List<Integer>>> modifiedGenericArrayIndexes = new HashMap<>();
     private final Map<String, List<ImTypeArgument>> genericArrayTypeArguments = new HashMap<>();
-    private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
 
@@ -72,46 +70,6 @@ public class ProgramState extends State implements AutoCloseable {
         // is better than the one read out of a name - so ask again now that it can be asked.
         genericStaticOwner.clear();
         identifyGenericStaticGlobals();
-    }
-
-    private static boolean containsTypeVariable(ImType type) {
-        return type.match(new ImType.Matcher<Boolean>() {
-            @Override public Boolean case_ImTypeVarRef(ImTypeVarRef t) { return true; }
-            @Override public Boolean case_ImArrayType(ImArrayType t) { return containsTypeVariable(t.getEntryType()); }
-            @Override public Boolean case_ImArrayTypeMulti(ImArrayTypeMulti t) { return containsTypeVariable(t.getEntryType()); }
-            @Override public Boolean case_ImClassType(ImClassType t) {
-                for (ImTypeArgument a : t.getTypeArguments()) {
-                    if (containsTypeVariable(a.getType())) return true;
-                }
-                return false;
-            }
-            @Override public Boolean case_ImTupleType(ImTupleType t) {
-                for (ImType x : t.getTypes()) if (containsTypeVariable(x)) return true;
-                return false;
-            }
-            @Override public Boolean case_ImSimpleType(ImSimpleType t) { return false; }
-            @Override public Boolean case_ImVoid(ImVoid t) { return false; }
-            @Override public Boolean case_ImAnyType(ImAnyType t) { return false; }
-        });
-    }
-
-    private String instantiationKey(ImType t) {
-        if (t instanceof ImClassType ct) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(ct.getClassDef().getName());
-            if (!ct.getTypeArguments().isEmpty()) {
-                sb.append('<');
-                boolean first = true;
-                for (ImTypeArgument ta : ct.getTypeArguments()) {
-                    if (!first) sb.append(',');
-                    first = false;
-                    sb.append(ta.getType().toString());
-                }
-                sb.append('>');
-            }
-            return sb.toString();
-        }
-        return t.toString();
     }
 
 
@@ -201,10 +159,6 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
 
-    public PrintStream getOutStream() {
-        return outStream;
-    }
-
     public void setOutStream(PrintStream os) {
         outStream = os;
         for (NativesProvider natives : nativeProviders) {
@@ -251,18 +205,6 @@ public class ProgramState extends State implements AutoCloseable {
 
     public void markMissingNative(String funcName) {
         missingNativeFuncs.add(funcName);
-    }
-
-    public ProgramState setProg(ImProg p) {
-        prog = p;
-        classKeyLookup.clear();
-        objectIdSpaces.clear();
-        dispatchCache.clear();
-        overridePositions.clear();
-        ancestorsCache.clear();
-        genericHierarchy.clear();
-        buildClassKeyLookup();
-        return this;
     }
 
     public ImProg getProg() {
@@ -697,7 +639,7 @@ public class ProgramState extends State implements AutoCloseable {
         } else {
             getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), errorMessage));
         }
-        for (ILStackFrame sf : Utils.iterateReverse(getStackFrames().getStackFrames())) {
+        for (ILStackFrame sf : getStackFrames().getStackFrames().reversed()) {
             getGui().sendError(sf.makeCompileError());
         }
     }
@@ -790,22 +732,6 @@ public class ProgramState extends State implements AutoCloseable {
         public List<ILStackFrame> getStackFrames() {
             return stackFrames;
         }
-
-        public Iterable<ILStackFrame> getStackFramesReversed() {
-            return () -> new Iterator<ILStackFrame>() {
-                int i = stackFrames.size() - 1;
-
-                @Override
-                public boolean hasNext() {
-                    return i >= 0;
-                }
-
-                @Override
-                public ILStackFrame next() {
-                    return stackFrames.get(i--);
-                }
-            };
-        }
     }
 
     public String instantiationKey(ImClassType ct) {
@@ -822,10 +748,6 @@ public class ProgramState extends State implements AutoCloseable {
             sb.append('>');
         }
         return sb.toString();
-    }
-
-    private static String vid(ImVar v) {
-        return v.getName() + "@" + System.identityHashCode(v);
     }
 
     @Override
@@ -991,11 +913,6 @@ public class ProgramState extends State implements AutoCloseable {
             result.add(typeArgument.copy());
         }
         return result;
-    }
-
-    /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
-    public ILconstArray getArrayValue(ImVar v) {
-        return getArray(v);
     }
 
     public static final class ArrayState {

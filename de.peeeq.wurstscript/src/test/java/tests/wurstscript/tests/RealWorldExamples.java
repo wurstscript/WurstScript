@@ -13,11 +13,6 @@ public class RealWorldExamples extends WurstScriptTest {
     private static final String TEST_DIR = "./testscripts/concept/";
     private static final String BUG_DIR = "./testscripts/realbugs/";
 
-    @Override
-    protected boolean testOptimizer() {
-        return true;
-    }
-
 
     @Test
     public void arrayindex() throws IOException {

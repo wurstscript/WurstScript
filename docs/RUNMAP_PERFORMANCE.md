@@ -178,9 +178,9 @@ for unsaved buffers; these are separate from the cancellation regression fixed h
 
 ## Reproduction artifacts
 
-### Larger-map follow-up: Survival Chaos Reborn
+### Larger-map follow-up
 
-Measured an isolated copy of `SurvivelChaosReborn` at `baf9a190860d3c1c6fac2223dc87f4b02632e7d7`,
+Measured an isolated copy of a larger Jass map project,
 including the existing local `wurst.build` and `wurst_run.args`. The original repository was untouched.
 The real arguments select Jass, compile-time functions and object injection, without optional optimisation,
 inlining, local optimisation or compile-time caching. PJass remains enabled. The checked editor model has
@@ -226,8 +226,7 @@ with identical source/map copies and JVM/JFR settings:
 
 Warm unchanged requests improve by 40 to 43%. R0 still needs a complete check after the configured-script
 swap. The 100,010-line emitted Jass matches baseline exactly except for the compiler-version header.
-Logs are `temp/runmap-chaos-baseline-verify.log` and `temp/runmap-chaos-final.log`; the latter's JFR files
-are `temp/runmap-chaos-final-{0,1,2}.jfr`. An earlier successful repetition measured 4,641 to 4,890 ms warm.
+An earlier successful repetition measured 4,641 to 4,890 ms warm.
 
 The remaining warm costs are:
 
@@ -254,11 +253,11 @@ The harness stops before launch and asserts optional optimizations are disabled.
 From `de.peeeq.wurstscript`, after installing dependencies into the isolated copy:
 
 ```powershell
-rtk proxy .\gradlew.bat -I ../docs/profiling/runmap-profile.gradle runMapProfile `
+.\gradlew.bat -I ../docs/profiling/runmap-profile.gradle runMapProfile `
   '-PprofileRoot=temp/map-profiles/castle' '-PprofileMap=CFDE_base_map-folder.w3x' `
   '-PprofileLabel=runmap-castle' '-PprofileCompilerClasses=temp/baseline-classes'
 
-rtk proxy .\gradlew.bat -I ../docs/profiling/runmap-profile.gradle runMapProfileReport `
+.\gradlew.bat -I ../docs/profiling/runmap-profile.gradle runMapProfileReport `
   '-PprofileLabel=runmap-castle-2'
 ```
 

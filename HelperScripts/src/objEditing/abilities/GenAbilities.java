@@ -7,7 +7,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import net.moonlightflower.wc3libs.misc.FieldId;
-import net.moonlightflower.wc3libs.misc.ObjId;
 import net.moonlightflower.wc3libs.slk.MetaSLK;
 import net.moonlightflower.wc3libs.slk.app.meta.AbilityMetaSLK;
 import net.moonlightflower.wc3libs.slk.app.objs.AbilSLK;
@@ -155,7 +154,7 @@ public class GenAbilities {
         }
     }
 
-    /** Null-safe field getter for SLK objects — returns null instead of throwing when the field is absent. */
+    /** Null-safe field getter for SLK objects: returns null instead of throwing when the field is absent. */
     private static String safeGet(net.moonlightflower.wc3libs.slk.SLK.Obj<?> obj, String field) {
         net.moonlightflower.wc3libs.dataTypes.DataType val = obj.get(FieldId.valueOf(field));
         return val == null ? null : val.toString();
@@ -295,7 +294,7 @@ public class GenAbilities {
             }
         }
 
-        // Abilities with specific fields (including inherited ones) — output to main wurst file
+        // Abilities with specific fields (including inherited ones): output to main wurst file
         // and to the additions file (for stdlib integration), both using AbilityIds.xxx
         StringBuilder idsBlock = new StringBuilder();
         StringBuilder completeIds = new StringBuilder("package AbilityIds\nimport NoWurst\n\npublic class AbilityIds\n");

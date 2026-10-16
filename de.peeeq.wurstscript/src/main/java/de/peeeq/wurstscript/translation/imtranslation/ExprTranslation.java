@@ -384,7 +384,6 @@ public class ExprTranslation {
                 Expr implicitParam = (Expr) e.attrImplicitParameter();
 
                 if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
-                    WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
                     if (e instanceof ExprMemberVar e2) {
                         return translateTupleSelection(t, f, e2);
                     } else {
@@ -454,98 +453,6 @@ public class ExprTranslation {
                     ImTupleSelection(ImVarAccess(v), tupleIndex)
             );
         }
-    }
-
-    /*
-    private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
-        List<WParameter> indexes = new ArrayList<>();
-
-        Expr expr = mv;
-        while (true) {
-            if (expr instanceof ExprMemberVar) {
-                ExprMemberVar mv2 = (ExprMemberVar) expr;
-                Expr left = mv2.getLeft();
-                if (left.attrTyp() instanceof WurstTypeTuple) {
-                    indexes.add(0, (WParameter) mv2.attrNameDef());
-                    expr = left;
-                    continue;
-                }
-            }
-            break;
-        }
-
-        WurstTypeTuple tt = (WurstTypeTuple) expr.attrTyp();
-        int tupleIndex = 0;
-        WurstType resultTupleType = null;
-        for (int i = 0; i < indexes.size(); i++) {
-            WParameter param = indexes.get(i);
-            TupleDef tdef = tt.getTupleDef();
-            int pos = 0;
-            while (tdef.getParameters().get(pos) != param) {
-                tupleIndex += tupleSize(tdef.getParameters().get(pos).getTyp().attrTyp());
-                pos++;
-            }
-            resultTupleType = tdef.getParameters().get(pos).getTyp().attrTyp();
-            if (i < indexes.size() - 1) {
-                tt = (WurstTypeTuple) tdef.getParameters().get(pos).getTyp().attrTyp();
-            }
-        }
-        ImExpr exprTr = expr.imTranslateExpr(t, f);
-        if (resultTupleType instanceof WurstTypeTuple) {
-            // if the result is a tuple, create it:
-            int tupleSize = tupleSize(resultTupleType);
-
-            if (exprTr instanceof ImLExpr
-                    && (exprTr.attrPurity() instanceof Pure || exprTr.attrPurity() instanceof ReadsGlobals)) {
-                ImExprs exprs = JassIm.ImExprs();
-                for (int i = 0; i < tupleSize; i++) {
-                    exprs.add(ImTupleSelection((ImLExpr) exprTr.copy(), tupleIndex + i));
-                }
-                return ImTupleExpr(exprs);
-            } else {
-                ImVar temp = JassIm.ImVar(expr, exprTr.attrTyp(), "temp", false);
-                // for impure expressions use a temporary:
-                f.getLocals().add(temp);
-
-                ImExprs exprs = JassIm.ImExprs();
-                for (int i = 0; i < tupleSize; i++) {
-                    // TODO use temporary var
-                    exprs.add(ImTupleSelection(JassIm.ImVarAccess(temp), tupleIndex + i));
-                }
-                return JassIm.ImStatementExpr(JassIm.ImStmts(ImSet(expr, ImVarAccess(temp), exprTr)), ImTupleExpr(exprs));
-            }
-        } else {
-            if (exprTr instanceof ImLExpr) {
-                return ImTupleSelection((ImLExpr) exprTr, tupleIndex);
-            } else {
-                // if tupleExpr is not an l-value (e.g. foo().x)
-                // store result in intermediate variable first:
-                ImVar v = ImVar(exprTr.attrTrace(), exprTr.attrTyp(), "temp_tuple", false);
-                f.getLocals().add(v);
-                return JassIm.ImStatementExpr(
-                        JassIm.ImStmts(
-                                ImSet(exprTr.attrTrace(), ImVarAccess(v), exprTr)
-                        ),
-                        ImTupleSelection(ImVarAccess(v), tupleIndex)
-                );
-            }
-        }
-    }
-    */
-
-    /**
-     * counts the components of a tuple (including nested)
-     */
-    private static int tupleSize(WurstType t) {
-        if (t instanceof WurstTypeTuple tt) {
-            int sum = 0;
-            for (WParameter p : tt.getTupleDef().getParameters()) {
-                sum += tupleSize(p.getTyp().attrTyp());
-            }
-            return sum;
-        }
-        // all other types have size 1
-        return 1;
     }
 
     public static ImExpr translateIntern(ExprCast e, ImTranslator t, ImFunction f) {
@@ -847,10 +754,6 @@ public class ExprTranslation {
         if (e instanceof ExprMemberMethod mm) {
             return mm.getLeft().attrTyp().allowsDynamicDispatch();
         } else return e.attrIsDynamicContext();
-    }
-
-    private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f) {
-        return translateExprs(arguments, t, f, null);
     }
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,

@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;

@@ -25,7 +25,7 @@ Notes; finished-work narrative does not.
   sends `wurst.buildmap` and `wurst.startmap` without saving the open files first. Whether a build should
   save first, or refuse unsaved files, is open.
 
-- **Reuse translation work on unchanged map runs.** After checked-model reuse, Survival Chaos Reborn
+- **Reuse translation work on unchanged map runs.** After checked-model reuse, a large Jass map
   takes 4.5 to 5.2 s for an unoptimised warm RunMap: AST→IM 1.3 to 1.4 s, required Jass lowering 1.3 to 1.7 s,
   compile-time work 0.9 to 1.0 s, map injection 0.4 to 0.6 s. Whole-project typechecking is now skipped.
   Investigate retaining a pristine IM snapshot keyed by model/config/target state, then copying it
@@ -76,9 +76,10 @@ Notes; finished-work narrative does not.
   class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
 
 - **Build the local-player analysis fewer times, or incrementally.** An optimised Lua build of castle fight
-  constructs `LocalPlayerContextAnalyzer` five times: for the compile-time state function the splitter optimises
-  (`FunctionSplitter`, once per split target), for `ImInliner.doInlining`, once per `ImOptimizer.runLocalOptimizationSweep`
-  (two sweeps) and for `LuaOldGenericsCasts`, about 4 s of the compiler thread (7% of its samples). Each one is the
+  constructs `LocalPlayerContextAnalyzer` four times: for the compile-time state function the splitter optimises
+  (`FunctionSplitter`, once per split target with locals), for `ImInliner.doInlining` and once per
+  `ImOptimizer.runLocalOptimizationSweep` (two sweeps). With a fifth (`LuaOldGenericsCasts`, since removed) they
+  took about 4 s of the compiler thread (7% of its samples). Each one is the
   whole program, because the fact about a variable or a function depends on every caller and every writer.
   Keeping the analysis of the first sweep for the second is not output-neutral: it changed about 40,000 lines of the
   castle fight script (different local merges), so a construction per sweep stays until the analysis can retract a
@@ -126,11 +127,6 @@ Notes; finished-work narrative does not.
   waits for the parse threads, so the scan is not on the critical path while parsing is parallel.
 - **What a large map's build still spends, by step (`-measure`), and why.** Measured on a Jass map of 1,625 files
   with thousands of compile-time functions:
-  - *MPQ, on every run and build:* `Applying Map Config` (1.2 s) and `Injecting map data` (1.8 s) are mostly two
-    lookups in JMPQ3 which are linear per call and called once per file: `MpqArchive.localesOf` scans every hash
-    table mapping (from `MpqArchiveWriter.from`) and `MpqArchiveWriter.contains` streams over every pending key
-    (from `Jmpq3BasedEditor.hasFile` per imported file). `Finalize map` (7.8 s, release builds only) recompresses every
-    file on one thread. Fix in JMPQ3 and bump the pin.
   - *Type check (12 s):* Guava collections are about 11% of its samples (name tables about 5%, the dataflow states
     about 4%). The dataflow anomaly analysis (`VarStates`, `VState`) copies its immutable maps and multimaps on every
     read and write, about 7% with its merges; persistent or mutable states would remove most of that. The rest is
@@ -155,19 +151,6 @@ Notes; finished-work narrative does not.
   way. Find the decisions of the Wurst and Jass grammars which need the context of the calling rule (the syntax
   error the SLL pass reports on such a file, with the full-prediction pass switched off, names the place) and
   left-factor them. That removes the second parse for valid files, which would then only be paid by broken ones.
-- **Preserve effects of every virtual implementation.** A reproduced Lua miscompile drops an unread
-  `Base.value()` call when only `Child.value()` increments a global; all Jass harness modes pass.
-  It fails even without optional Lua optimization flags. `SideEffectAnalyzer.directlyCalledFunctions`
-  follows only the root implementation. Fix the owning effect/call analysis to include all possible
-  overrides transitively, including generic/module paths, destruction and native effects. This is a
-  correctness prerequisite for more dispatch caching. Repro and controls:
-  [docs/LUA_RUNTIME_OPPORTUNITIES.md](docs/LUA_RUNTIME_OPPORTUNITIES.md).
-- **Preserve unused allocations on optimized Lua.** `new Empty(); new Empty(); new Empty()` with only
-  the first/last IDs retained must advance by two. Jass and unoptimized Lua pass; Lua with
-  `-inline -localOptimizations` drops the middle allocation. Investigate allocation effects in
-  `SideEffectAnalyzer` and statement conversion in `Flatten.exprToStatements`; preserve the original
-  allocation through every pass, including unread assignments. Add ID-reuse and allocator-limit
-  regressions. The opt-in failing repro is in the same investigation note.
 - **Devirtualize proven exact receivers before inlining.** Optimized Lua still dispatches an interface
   local initialized with `new A()` virtually when the method has sibling implementations.
   `LuaMethodCallLowering` currently considers only methods with no submethods. Start with bounded
@@ -272,13 +255,13 @@ Notes; finished-work narrative does not.
   reach is bounded by how much of the roughly one thousand natives the shim models, so those tests
   stay small and targeted. There is no Wurst-level end-to-end feature; correctness in a real map on
   the Lua target is asserted in the agent workflow.
-- `wurst_run.args` in a generated project defaults to `-stacktraces` and no `-inline`, so every
-  emitted function pays `wurst_stack` bookkeeping and no leaf is inlined. Benchmarks that inform
+- `wurst_run.args` in a generated project turns on `-stacktraces` for runs and builds and `-inline` only
+  for builds, so every emitted function pays `wurst_stack` bookkeeping and a run inlines no leaf. Benchmarks that inform
   stdlib design must use `-inline -localOptimizations` without `-stacktraces`, or they measure the
   debug configuration.
 - Test forks: eight forks won on eight cores (7m03s wall against 13m11s serial) even though each
-  test runs 2.6 times slower there. Wall time cannot go below the slowest class, `ExportToWurstTest`
-  at 108s, until it is split.
+  test runs 2.6 times slower there. Wall time cannot go below the slowest class (`BugTests`, 73 s in
+  `test-class-weights.txt`) until it is split.
 - The stdlib copy under `de.peeeq.wurstscript/temp/WurstStdlib2` is a fetched artefact for tests.
   Real stdlib changes belong in the WurstStdlib2 repo.
 - `WURST_LANGUAGE.md` ships as a compiler resource at

@@ -118,9 +118,7 @@ public class StackTraceInjector2 {
         if (tr.isLuaTarget()) {
             Set<ImFunction> configOnlyFuncs = getConfigOnlyFunctions(directCalls, callRelation);
             // in Lua all functions are potentially affected, because we don't know where Lua might crash
-            Stream.concat(
-                prog.getFunctions().stream(),
-                prog.getClasses().stream().flatMap(c -> c.getFunctions().stream()))
+            ImHelper.calculateFunctionsOfProg(prog).stream()
                 .filter((ImFunction f) ->
                     !f.hasFlag(FunctionFlagEnum.IS_NATIVE)
                         && !f.hasFlag(FunctionFlagEnum.IS_BJ)
@@ -172,9 +170,7 @@ public class StackTraceInjector2 {
     }
 
     private static Stream<ImFunction> compilerOwnedFunctions(ImProg prog) {
-        return Stream.concat(
-                prog.getFunctions().stream(),
-                prog.getClasses().stream().flatMap(c -> c.getFunctions().stream()))
+        return ImHelper.calculateFunctionsOfProg(prog).stream()
             .filter(StackTraceInjector2::isCompilerOwned);
     }
 
@@ -202,9 +198,7 @@ public class StackTraceInjector2 {
     private Set<ImFunction> getFunctionsReachableFrom(String functionName, Multimap<ImFunction, ImFunction> directCalls) {
         Set<ImFunction> reachable = Sets.newLinkedHashSet();
         Deque<ImFunction> worklist = new ArrayDeque<>();
-        Stream.concat(
-                prog.getFunctions().stream(),
-                prog.getClasses().stream().flatMap(c -> c.getFunctions().stream()))
+        ImHelper.calculateFunctionsOfProg(prog).stream()
             .filter(f -> f.getName().equals(functionName))
             .forEach(worklist::addLast);
         while (!worklist.isEmpty()) {

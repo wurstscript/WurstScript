@@ -415,19 +415,6 @@ public class ClosureTranslator {
         return capturedClass == owner || capturedClass.isSubclassOf(owner);
     }
 
-    private ImVar findOuterThisVar(ImClass owner) {
-        // in instance methods, the first parameter is typically "this"
-        for (ImVar p : f.getParameters()) {
-            ImType t = p.getType();
-            if (t instanceof ImClassType ct) {
-                if (ct.getClassDef() == owner) {
-                    return p;
-                }
-            }
-        }
-        return null;
-    }
-
     private ImVarAccess closureThis() {
         return JassIm.ImVarAccess(tr.getThisVar(e));
     }

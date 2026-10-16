@@ -2,7 +2,6 @@ package de.peeeq.wurstio;
 
 import java.util.concurrent.CancellationException;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
@@ -31,7 +30,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ClassManagementVars;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,7 +45,6 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private final ILInterpreter interpreter;
     private final WurstGui gui;
     private final FunctionFlagToRun functionFlag;
-    private final List<ImFunction> successTests = Lists.newArrayList();
     private final Map<ImFunction, Pair<de.peeeq.wurstscript.jassIm.Element, String>> failTests = Maps.newLinkedHashMap();
     private final ProgramStateIO globalState;
     private final ImTranslator translator;
@@ -240,7 +237,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 CompileError.ErrorType.ERROR, ex));
 
         // stackframe messages ...
-        for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {
+        for (ILStackFrame sf : interpreter.getStackFrames().getStackFrames().reversed()) {
             gui.sendError(sf.makeCompileError());
         }
     }
@@ -1193,9 +1190,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 }
                 WLogger.trace(() -> "running " + functionFlag + " function " + f.getName());
                 interpreter.runVoidFunc(f, null);
-                successTests.add(f);
             } catch (TestSuccessException e) {
-                successTests.add(f);
+                // testSuccess() ended the function early
             } catch (TestFailException e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
             } catch (CancellationException e) {
@@ -1207,10 +1203,6 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 compiletimeFunctionNanos.merge(f.getName(), System.nanoTime() - t0, Long::sum);
             }
         }
-    }
-
-    public List<ImFunction> getSuccessTests() {
-        return successTests;
     }
 
 

@@ -7,6 +7,9 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclarations.intrinsicName;
+import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclarations.packageOf;
+
 /**
  * Gives {@code wurstKeyOf} a body on Jass, so a keyed set works on both backends.
  *
@@ -101,7 +104,7 @@ public final class JassKeyOfLowering {
     private static ImFunction findProjection(ImProg prog, WPackage owner, String name, ImFunction f) {
         if (owner != null) {
             for (ImFunction candidate : prog.getFunctions()) {
-                if (!name.equals(annotatedName(candidate)) || packageOf(candidate) != owner) {
+                if (!name.equals(intrinsicName(candidate)) || packageOf(candidate) != owner) {
                     continue;
                 }
                 if (candidate.getParameters().size() != 1
@@ -118,13 +121,6 @@ public final class JassKeyOfLowering {
             "The package declaring " + KEY_OF + " must also declare " + name + ".");
     }
 
-    /** The package a compiler-intrinsic declaration belongs to, or null if it has no trace. */
-    private static WPackage packageOf(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p
-            ? p
-            : null;
-    }
-
     /** Which projection a concrete element type needs. */
     private static String projectionFor(ImType t, ImFunction f) {
         if (TypesHelper.isRealType(t) || TypesHelper.isBoolType(t)) {
@@ -139,7 +135,7 @@ public final class JassKeyOfLowering {
                     + "stable identity to key on.");
         }
         if (TypesHelper.isStringType(t)) {
-            // StringHash is not identity. This repository's own MultibyteDiagnostics records that
+            // StringHash is not identity. The standard library's MultibyteDiagnostics records that
             // it collapses whole classes of strings to one marker hash and that its behaviour has
             // changed between game versions - so membership would be wrong for ordinary inputs,
             // and wrong differently per patch, while Lua keyed on the string itself would be
@@ -178,13 +174,5 @@ public final class JassKeyOfLowering {
 
     private static String typeNameOf(ImType t) {
         return t instanceof ImSimpleType st ? st.getTypename() : t.toString();
-    }
-
-    /** The source name of {@code f} if it is a compiler intrinsic declaration, else null. */
-    private static String annotatedName(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd
-            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
-            ? fd.getName()
-            : null;
     }
 }

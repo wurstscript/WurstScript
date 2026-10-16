@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import com.google.common.base.Objects;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;

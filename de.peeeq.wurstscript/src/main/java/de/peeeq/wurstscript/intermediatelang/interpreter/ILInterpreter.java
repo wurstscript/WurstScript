@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -17,7 +16,6 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.JassKeyOfLowering;
 import de.peeeq.wurstscript.translation.imtranslation.JassKeyedMapLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -679,12 +677,6 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
     public void addNativeProvider(NativesProvider np) {
         globalState.addNativeProvider(np);
-    }
-
-    public void setProgram(ImProg imProg) {
-        this.prog = imProg;
-        this.getGlobalState().setProg(imProg);
-        globalState.resetStackframes();
     }
 
     public ProgramState.StackTrace getStackFrames() {

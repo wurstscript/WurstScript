@@ -6351,16 +6351,6 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_arrIndex"));
     }
 
-    private static int countOccurrences(String haystack, String needle) {
-        int count = 0;
-        int idx = 0;
-        while ((idx = haystack.indexOf(needle, idx)) >= 0) {
-            count++;
-            idx += needle.length();
-        }
-        return count;
-    }
-
     /**
      * The wc3shim's GetLocalPlayer used to return a generic enum-handle table
      * ({handleKind, value}) while the generated Player/GetPlayerId fallbacks

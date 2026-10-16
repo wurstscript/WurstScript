@@ -227,7 +227,6 @@ public class EliminateTuples {
                 }
                 for (int i = 0; i < tupleExpr.getExprs().size(); i++) {
                     ImExpr te = tupleExpr.getExprs().get(i);
-                    de.peeeq.wurstscript.ast.Element trace = te.attrTrace();
                     te.setParent(null);
                     if (i != ti) {
                         // Constructing a tuple evaluates every component. A read can be free of

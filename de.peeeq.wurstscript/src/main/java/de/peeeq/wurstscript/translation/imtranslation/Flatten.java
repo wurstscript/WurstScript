@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -166,10 +165,6 @@ public class Flatten {
 
         public ImExpr getExpr() {
             return expr;
-        }
-
-        public ImStatementExpr toStatementExpr() {
-            return JassIm.ImStatementExpr(JassIm.ImStmts(stmts), expr);
         }
 
         public void addStmts(List<ImStmt> stmts) {
@@ -618,10 +613,6 @@ public class Flatten {
         return new Result(e);
     }
 
-
-    private static MultiResult flattenExprs(ImTranslator t, ImFunction f, ImExpr... exprs) {
-        return flattenExprs(t, f, Arrays.asList(exprs));
-    }
 
     private static MultiResult flattenExprs(ImTranslator t, ImFunction f, List<ImExpr> exprs) {
         int n = exprs.size();

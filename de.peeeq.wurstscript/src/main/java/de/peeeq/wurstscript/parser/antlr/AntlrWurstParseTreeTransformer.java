@@ -28,7 +28,6 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")
 public class AntlrWurstParseTreeTransformer {
@@ -163,13 +162,6 @@ public class AntlrWurstParseTreeTransformer {
             return Ast.Identifier(new WPos(file, lineOffsets, 1, 0), "");
         }
         return Ast.Identifier(source(c), c.getText());
-    }
-
-    private String rawText(@Nullable ParserRuleContext c) {
-        if (c == null) {
-            return "";
-        }
-        return c.getText();
     }
 
     private String rawText(@Nullable Token c) {

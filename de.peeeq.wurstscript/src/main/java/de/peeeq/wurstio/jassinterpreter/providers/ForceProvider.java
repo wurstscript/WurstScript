@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;

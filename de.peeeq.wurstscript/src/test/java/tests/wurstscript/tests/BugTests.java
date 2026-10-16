@@ -1822,7 +1822,7 @@ public class BugTests extends WurstScriptTest {
 
 
     @Test
-    public void overloadsHiddenBySubclassName_onlyZeroArgSeen_errorsOnArgs() {
+    public void subclassOverloadsDoNotHideInheritedOverloads() {
         testAssertOkLines(true,
             "package Test",
             "native testSuccess()",

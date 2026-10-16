@@ -1,7 +1,0 @@
-package one {
-	function blub() {
-		int i
-		i =
-	}
-
-}

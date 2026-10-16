@@ -122,7 +122,7 @@ public class KeyedTableTests extends WurstScriptTest {
     }
 
     /**
-     * StringHash is not identity - this repo's MultibyteDiagnostics records that it collapses
+     * StringHash is not identity: the standard library's MultibyteDiagnostics records that it collapses
      * whole classes of strings and has changed between patches - so Jass membership would
      * disagree with Lua, which keys on the string itself.
      */

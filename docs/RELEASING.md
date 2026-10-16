@@ -1,6 +1,6 @@
 # Compiler releases
 
-Master is the development branch. Merging a pull request runs CI but does not publish or move a release tag. The extension installs published semantic-version releases, and users can select an older compiler through **Wurst: Choose Compiler Version**.
+Master is the development branch. Merging a pull request runs CI but does not publish or move a release tag. The extension installs published semantic-version releases, and users can select an older compiler through **wurst: Choose WurstScript compiler version**.
 
 The release baseline is **2.0.0**, stored in `de.peeeq.wurstscript/version.txt`. Use three numeric components without a `v` prefix. Increment the patch for compatible fixes, the minor for compatible features, and the major for breaking compiler/language changes. Choose the version as part of release preparation; master can contain unreleased work throughout that interval.
 
@@ -20,11 +20,11 @@ At the exact `v2.0.0` tag, `wurstscript -version` prints `2.0.0`. An untagged bu
 
 Each release has `wurst-compiler-VERSION-PLATFORM.zip` plus `.sha256` assets. The archive keeps the runtime, compiler, and launcher layout used by the extension.
 
-## Transition from nightly
+## Nightly and version selection
 
-The old nightly release remains available for existing installations, but master no longer updates it. Merge the compiler release workflow, publish the first `v2.0.0` release, then ship the extension's release-selection changes. Before the first versioned release exists, that extension has no stable compiler to install and reports that clearly.
+The old nightly release remains available for existing installations, but master no longer updates it.
 
-Automatic checks offer newer released versions when following latest stable. Explicit selection supports upgrading or downgrading and pins that version until the user chooses **Follow latest stable**. Version changes retain the existing staged installation and rollback behavior. Source builds remain identifiable as development versions; no published release is created by this migration PR itself.
+Automatic checks offer newer released versions when following latest stable. Explicit selection supports upgrading or downgrading and pins that version until the user chooses **Follow latest stable**. Version changes retain the existing staged installation and rollback behavior. Source builds remain identifiable as development versions.
 
 ## Local checks
 

@@ -72,11 +72,11 @@ public class AttrNameDef {
     }
 
     public static NameLink calculate(ExprMemberVar term) {
-        return memberVarCase(term.getLeft(), term.getVarName(), isWriteAccess(term), term);
+        return memberVarCase(term.getLeft(), term.getVarName(), AttrExprType.isWriteAccess(term), term);
     }
 
     public static @Nullable NameLink calculate(ExprMemberArrayVar term) {
-        return memberVarCase(term.getLeft(), term.getVarName(), isWriteAccess(term), term);
+        return memberVarCase(term.getLeft(), term.getVarName(), AttrExprType.isWriteAccess(term), term);
     }
 
 
@@ -193,14 +193,6 @@ public class AttrNameDef {
                 return de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess(t.getThisVar(closure));
             }
         };
-    }
-
-    private static boolean isWriteAccess(final NameRef node) {
-        if (node.getParent() instanceof StmtSet) {
-            StmtSet stmtSet = (StmtSet) node.getParent();
-            return stmtSet.getUpdatedExpr() == node;
-        }
-        return false;
     }
 
     private static @Nullable NameLink memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {

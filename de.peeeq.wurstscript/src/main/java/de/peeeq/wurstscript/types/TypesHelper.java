@@ -34,10 +34,6 @@ public class TypesHelper {
         return JassIm.ImSimpleType("hashtable");
     }
 
-    public static ImArrayType imIntArray() {
-        return JassIm.ImArrayType(imInt());
-    }
-
     public static ImArrayType imStringArray() {
         return JassIm.ImArrayType(imString());
     }

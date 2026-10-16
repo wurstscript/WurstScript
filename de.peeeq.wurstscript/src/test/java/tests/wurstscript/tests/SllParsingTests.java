@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.testng.SkipException;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;

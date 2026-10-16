@@ -1,7 +1,7 @@
 import org.gradle.internal.os.OperatingSystem
 import javax.inject.Inject
 
-// ----------------------- Publishing (kept from your original) -----------------------
+// ----------------------- Publishing -----------------------
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -249,7 +249,7 @@ tasks.register("assembleSlimCompilerDist", Copy) {
         def runtime = new File(distRoot.get().asFile, "wurst-runtime")
         def java = new File(runtime, "bin/" + javaExecutableName)
         // jlink made the archive of the slim runtime, and a full JDK (macOS) normally brings its own, but not every
-        // build does: the Temurin for macOS x64 on CI has none. -Xshare:dump writes it next to the JVM library.
+        // build does (the macOS x64 JDK on CI once had none). -Xshare:dump writes it next to the JVM library.
         if (!["bin/server/classes.jsa", "lib/server/classes.jsa", "bin/server/classes_coh.jsa", "lib/server/classes_coh.jsa"].any { new File(runtime, it).exists() }) {
             logger.lifecycle("[dist] The runtime has no base CDS archive, dumping it")
             RuntimeJava.run(java, ["-Xshare:dump"])

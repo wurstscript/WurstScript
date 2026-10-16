@@ -1,11 +1,9 @@
 package de.peeeq.wurstscript.parser;
 
 import com.google.common.collect.ImmutableList;
-import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -18,10 +16,6 @@ public class WPosWithComments extends WPos {
 
     public WPosWithComments(String file, @Nullable LineOffsets lineOffsets, int leftPos, int rightPos) {
         super(file, lineOffsets, leftPos, rightPos);
-    }
-
-    public static List<Comment> createList(CompilationUnit cu) {
-        return new ArrayList<>();
     }
 
     public void addCommentBefore(Comment comment) {

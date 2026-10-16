@@ -511,25 +511,6 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    /**
-     * Checks if we can use the cached map
-     */
-    protected boolean canUseCachedMap(File cachedMap) {
-        if (!cachedMap.exists()) {
-            WLogger.info("No cached map found");
-            return false;
-        }
-
-        // Check if source map is newer
-        if (map.isPresent() && getSourceMapLastModified(map.get()) > cachedMap.lastModified()) {
-            WLogger.info("Source map is newer than cache");
-            return false;
-        }
-
-        WLogger.info("Using cached map from previous build");
-        return true;
-    }
-
 
     /**
      * Gets or creates the cached map file location

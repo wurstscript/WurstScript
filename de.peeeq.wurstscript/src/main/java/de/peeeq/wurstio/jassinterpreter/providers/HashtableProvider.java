@@ -145,16 +145,8 @@ public class HashtableProvider extends Provider {
         WurstHashtable table = (WurstHashtable) ht.getObj();
         table.save(key1.getVal(), key2.getVal(), value);
         if (value instanceof IlConstHandle) {
-            table.saveHandleType(key1.getVal(), key2.getVal(), handleTypeOf(nativeName));
+            table.saveHandleType(key1.getVal(), key2.getVal(), LuaHashtable.handleTypeOf(nativeName));
         }
-    }
-
-    private static String handleTypeOf(String nativeName) {
-        LuaHashtable.Op op = LuaHashtable.opOfName(nativeName);
-        if (op == null || op.handleType() == null) {
-            throw new IllegalStateException("not a handle save or load: " + nativeName);
-        }
-        return op.handleType();
     }
 
     private static @org.eclipse.jdt.annotation.Nullable WurstHashtable tableOf(IlConstHandle ht) {
@@ -219,7 +211,7 @@ public class HashtableProvider extends Provider {
         }
         // Measured on the 3.0.0 client: handle loads are typed. A saved unit loads as itself through LoadUnitHandle
         // and LoadWidgetHandle and as null through LoadItemHandle or LoadTimerHandle.
-        String type = handleTypeOf(nativeName);
+        String type = LuaHashtable.handleTypeOf(nativeName);
         String saved = table.handleType(key1.getVal(), key2.getVal());
         if (saved == null || !LuaHashtable.acceptedTags(type).contains(saved)) {
             return ILconstNull.instance();

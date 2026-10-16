@@ -150,26 +150,4 @@ public abstract class GraphInterpreter<T> {
 
         return sccs;
     }
-
-    public String generateDotFile(List<T> nodes) {
-        StringBuilder sb = new StringBuilder();
-        Set<T> visited = new HashSet<>();
-        Deque<T> todo = new ArrayDeque<>(nodes);
-        sb.append("digraph G{\n");
-        while (!todo.isEmpty()) {
-            T node = todo.removeFirst();
-            if (!visited.add(node)) {
-                continue;
-            }
-            sb.append("  \"").append(node).append("\";\n");
-            for (T n : getIncidentNodes(node)) {
-                sb.append("  ");
-                sb.append("\"").append(node).append("\" -> ");
-                sb.append("\"").append(n.toString()).append("\";\n\n");
-                todo.addFirst(n);
-            }
-        }
-        sb.append("}\n");
-        return sb.toString();
-    }
 }

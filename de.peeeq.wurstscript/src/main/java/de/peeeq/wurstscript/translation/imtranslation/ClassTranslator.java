@@ -4,7 +4,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.AttrExprExpectedType;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
-import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
@@ -13,7 +12,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -120,12 +118,7 @@ public class ClassTranslator {
     }
 
     private ImClassType imClassType() {
-        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
-        for (ImTypeVar tv : imClass.getTypeVariables()) {
-            ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap());
-            typeArgs.add(imTypeArgument);
-        }
-        return JassIm.ImClassType(imClass, typeArgs);
+        return JassIm.ImClassType(imClass, classTypeArgs());
     }
 
     /**
@@ -172,7 +165,7 @@ public class ClassTranslator {
     private void addOnDestroyActions(ImFunction f, List<ImStmt> addTo, ClassOrModuleInstanciation c, ImVar thisVar) {
         // translate ondestroy statements
         List<ImStmt> stmts = translator.translateStatements(f, c.getOnDestroy().getBody());
-        replaceThisExpr(stmts, translator.getThisVar(c.getOnDestroy()), thisVar);
+        ImHelper.replaceVar(stmts, translator.getThisVar(c.getOnDestroy()), thisVar);
         addTo.addAll(stmts);
 
         // add onDestroy actions from modules
@@ -195,26 +188,6 @@ public class ClassTranslator {
                 addTo.add(ImFunctionCall(c, onDestroy, typeArgs, ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
         }
-    }
-
-    private void replaceThisExpr(List<ImStmt> stmts, final ImVar oldThis, final ImVar newThis) {
-        if (oldThis == newThis) {
-            return;
-        }
-        DefaultVisitor replacer = new DefaultVisitor() {
-            @Override
-            public void visit(ImVarAccess v) {
-                super.visit(v);
-                if (v.getVar() == oldThis) {
-                    v.setVar(newThis);
-                }
-            }
-
-        };
-        for (ImStmt s : stmts) {
-            s.accept(replacer);
-        }
-
     }
 
     private void translateConstructors() {
@@ -363,11 +336,7 @@ public class ClassTranslator {
         for (ImVar a : f.getParameters()) {
             arguments.add(ImVarAccess(a));
         }
-        ImTypeArguments typeArgs = ImTypeArguments();
-        for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
-        }
-        f.getBody().add(ImFunctionCall(trace, constrFunc, typeArgs, arguments, false, CallType.NORMAL));
+        f.getBody().add(ImFunctionCall(trace, constrFunc, classTypeArgs(), arguments, false, CallType.NORMAL));
 
 
         // return this

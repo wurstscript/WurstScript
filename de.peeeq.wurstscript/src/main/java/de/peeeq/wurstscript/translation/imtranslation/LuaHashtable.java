@@ -132,6 +132,15 @@ public final class LuaHashtable {
         return op != null ? op : OPS.get(stubName(name));
     }
 
+    /** The handle type of a handle save or load native ("SaveUnitHandle" is "Unit"), as the tables tag it. */
+    public static String handleTypeOf(String nativeName) {
+        Op op = opOfName(nativeName);
+        if (op == null || op.handleType() == null) {
+            throw new IllegalStateException("not a handle save or load: " + nativeName);
+        }
+        return op.handleType();
+    }
+
     private LuaHashtable() {
     }
 

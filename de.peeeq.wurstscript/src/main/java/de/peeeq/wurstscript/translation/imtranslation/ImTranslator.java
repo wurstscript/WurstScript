@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.*;
@@ -35,7 +34,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -310,8 +308,6 @@ public class ImTranslator implements SpecialisationLookup {
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;
-
-    private final ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", false);
 
     private int compiletimeOrderCounter = 1;
     private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
@@ -1890,10 +1886,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return varDef.getParent().getParent() instanceof NamedScope;
     }
 
-    public WurstModel getWurstProg() {
-        return wurstProg;
-    }
-
     public ImProg imProg() {
         return imProg;
     }
@@ -1949,12 +1941,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             calculateCallRelationsAndReadVariables();
         }
         return callRelations;
-    }
-
-
-
-    public void calculateCallRelationsAndUsedVariables() {
-        calculateCallRelationsAndVariables(true);
     }
 
     public void calculateCallRelationsAndReadVariables() {
@@ -2281,10 +2267,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         }
     }
 
-    private Multimap<ImFunction, ImFunction> getCallRelations() {
-        return callRelations;
-    }
-
     public ImFunction getMainFunc() { return mainFunc; }
     public ImFunction getConfFunc() { return configFunc; }
 
@@ -2313,7 +2295,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                     + " in "
                     + Utils.printElementWithSource(Optional.of(c)));
             }
-            FuncLink implementationLink = findImplementationLink(c, funcNameLink);
+            FuncLink implementationLink = WurstValidator.findImplementationLink(c, funcNameLink);
             if (implementationLink != null && implementationLink.getDef() instanceof FuncDef) {
                 result.put(c, (FuncDef) implementationLink.getDef());
             }
@@ -2321,64 +2303,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return result;
     }
 
-    private @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink target) {
-        FuncLink best = null;
-        int bestDistance = Integer.MAX_VALUE;
-        for (NameLink candidateLink : c.attrNameLinks().get(target.getName())) {
-            if (!(candidateLink instanceof FuncLink candidate)) {
-                continue;
-            }
-            if (!WurstValidator.canOverride(candidate, target, false)) {
-                continue;
-            }
-            FunctionDefinition candidateDef = candidate.getDef();
-            if (!(candidateDef instanceof FuncDef)) {
-                continue;
-            }
-            if (candidateDef.attrIsAbstract()) {
-                continue;
-            }
-            ClassDef owner = candidateDef.attrNearestClassDef();
-            if (owner == null) {
-                continue;
-            }
-            int distance = distanceToOwner(c, owner);
-            if (distance == Integer.MAX_VALUE) {
-                continue;
-            }
-            if (best == null || distance < bestDistance) {
-                best = candidate;
-                bestDistance = distance;
-            }
-        }
-        return best;
-    }
-
-    private int distanceToOwner(ClassDef start, ClassDef owner) {
-        int distance = 0;
-        ClassDef current = start;
-        Set<ClassDef> visited = new HashSet<>();
-        while (current != null && visited.add(current)) {
-            if (current == owner) {
-                return distance;
-            }
-            WurstTypeClass type = current.attrTypC();
-            if (type == null) {
-                break;
-            }
-            WurstTypeClass superType = type.extendedClass();
-            if (superType == null) {
-                break;
-            }
-            current = superType.getClassDef();
-            distance++;
-        }
-        return Integer.MAX_VALUE;
-    }
-
 
     private final Map<ClassDef, List<Pair<ImVar, VarInitialization>>> classDynamicInitMap = Maps.newLinkedHashMap();
-    private final Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
     public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
         return classDynamicInitMap.computeIfAbsent(c, k -> Lists.newArrayList());
@@ -2845,24 +2771,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
 
-    private void addVarsForType(List<ImVar> result, String name, ImType type, de.peeeq.wurstscript.ast.Element tr) {
-        Preconditions.checkNotNull(type);
-        Preconditions.checkNotNull(result);
-        // TODO handle names
-        if (type instanceof ImTupleType tt) {
-            int i = 0;
-            for (ImType t : tt.getTypes()) {
-                addVarsForType(result, name + "_" + tt.getNames().get(i), t, tr);
-                i++;
-            }
-        } else if (type instanceof ImVoid) {
-            // nothing to add
-        } else {
-            result.add(JassIm.ImVar(tr, type, name, false));
-        }
-
-    }
-
     private final Map<ImFunction, VarsForTupleResult> tempReturnVars = Maps.newLinkedHashMap();
 
     public VarsForTupleResult getTupleTempReturnVarsFor(ImFunction f) {
@@ -2937,13 +2845,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 throw new Error("program contains tuple var " + left);
             }
         }
-    }
-
-    public Set<ImVar> getUsedVariables() {
-        if (usedVariables == null) {
-            calculateCallRelationsAndUsedVariables();
-        }
-        return usedVariables;
     }
 
     public Set<ImVar> getReadVariables() {

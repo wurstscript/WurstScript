@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class AttrFunctionSignature {
 
@@ -104,7 +103,7 @@ public class AttrFunctionSignature {
             Collection<FunctionSignature> sigs,
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
-            if (location instanceof ExprFunctionCall exprFunctionCall && isConstructorThisCall(exprFunctionCall)) {
+            if (location instanceof ExprFunctionCall exprFunctionCall && AttrFuncDef.isConstructorThisCall(exprFunctionCall)) {
                 return FunctionSignature.empty;
             }
             if (!isInitTrigFunc(location)) {
@@ -158,20 +157,6 @@ public class AttrFunctionSignature {
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
-    }
-
-    private static boolean isConstructorThisCall(ExprFunctionCall call) {
-        if (!call.getFuncName().equals("this")) {
-            return false;
-        }
-        Element current = call;
-        while (current != null) {
-            if (current instanceof ConstructorDef) {
-                return true;
-            }
-            current = current.getParent();
-        }
-        return false;
     }
 
     private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {
@@ -233,22 +218,6 @@ public class AttrFunctionSignature {
             return "function " + e.getFuncName();
         }
         return Utils.printElement(s);
-    }
-
-    private static boolean paramTypesMatch(FunctionSignature sig, List<WurstType> argTypes, Element location) {
-        return paramTypesMatch(sig.getParamTypes(), argTypes, location);
-    }
-
-    private static boolean paramTypesMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
-        if (paramTypes.size() != argTypes.size()) {
-            return false;
-        }
-        for (int i = 0; i < paramTypes.size(); i++) {
-            if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static List<WurstType> argTypes(AstElementWithArgs fc) {

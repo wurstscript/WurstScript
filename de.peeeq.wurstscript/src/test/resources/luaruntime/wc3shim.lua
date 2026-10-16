@@ -178,7 +178,7 @@ function GetPlayerNeutralPassive() return 27 end
 function CreateGroup() return { units = {} } end
 function CreateTimer() return {} end
 
--- Player handles: one cached {id = x} table per id — the same shape and
+-- Player handles: one cached {id = x} table per id, the same shape and
 -- cache the generated LuaNatives fallback uses, so GetPlayerId(p) reads p.id
 -- and identity comparisons like Player(0) == GetLocalPlayer() hold.
 __wurst_test_players = __wurst_test_players or {}

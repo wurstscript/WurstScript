@@ -55,7 +55,6 @@ public class RunTests extends UserRequest<Object> {
     private final List<ImFunction> successTests = Lists.newArrayList();
     private final List<TestFailure> failTests = Lists.newArrayList();
 
-    private static ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 
     static public class TestFailure {
 
@@ -485,8 +484,4 @@ public class RunTests extends UserRequest<Object> {
         }
     }
 
-
-    public static ScheduledExecutorService getService() {
-        return service;
-    }
 }

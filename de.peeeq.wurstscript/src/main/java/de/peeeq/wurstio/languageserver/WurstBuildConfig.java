@@ -85,10 +85,6 @@ public final class WurstBuildConfig {
             .map(GameVersion::new);
     }
 
-    public Wc3Patch wc3PatchOrReforged() {
-        return wc3Patch().orElse(Wc3Patch.REFORGED);
-    }
-
     /**
      * Whether the configured target is a patch before 1.24. These legacy patches ship
      * Blizzard common.j/blizzard.j with return-type mismatches the Jass VM tolerates,

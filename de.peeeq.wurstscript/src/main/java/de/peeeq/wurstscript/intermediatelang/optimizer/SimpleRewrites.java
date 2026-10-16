@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.math.BigDecimal;
-import java.util.Iterator;
 import java.util.List;
 
 public class SimpleRewrites implements OptimizerPass {

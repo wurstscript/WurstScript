@@ -386,35 +386,6 @@ public class SideEffectAnalyzer {
     /**
      * Variables directly used in e
      */
-    public Set<ImVar> directlyAccessedVariables(Element e) {
-        Set<ImVar> imVars = new LinkedHashSet<>();
-        e.accept(new ImStmt.DefaultVisitor() {
-
-            @Override
-            public void visit(ImVarAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
-            public void visit(ImVarArrayAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
-            public void visit(ImMemberAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-        });
-        return imVars;
-    }
-
-    /**
-     * Variables directly used in e
-     */
     public Set<ImVar> directlySetVariables(Element e) {
         Set<ImVar> imVars = new LinkedHashSet<>();
         e.accept(new ImStmt.DefaultVisitor() {
@@ -435,27 +406,6 @@ public class SideEffectAnalyzer {
         return imVars;
     }
 
-
-    /**
-     * Checks if two statements might affect each other.
-     * When this returns true, it is certain that it does not matter whether stmt1 or stmt2 are called first
-     * <p>
-     * The only difference between executing stmt1; stmt2 vs stmt2; stmt1 would be if one of the statement
-     * crashes and thus the second statement would not be executed.
-     * But for optimizations, we assume the program already is correct and thus we can ignore crashes.
-     */
-    public boolean mightAffect(ImStmt stmt1, ImStmt stmt2) {
-        if (!calledNatives(stmt1).isEmpty() || !calledNatives(stmt2).isEmpty()) {
-            // there are natives that can affect other natives
-            // be safe
-            return true;
-        }
-        Set<ImVar> used1 = usedVariables(stmt1);
-        Set<ImVar> used2 = usedVariables(stmt2);
-
-        // check that there are no variables, that both use
-        return used1.stream().anyMatch(used2::contains);
-    }
 
     /**
      * Checks if the given statement cannot use the variable v

@@ -1,11 +1,12 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.CompilerIntrinsics;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
+
+import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclarations.intrinsicName;
+import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclarations.packageOf;
 
 /**
  * Lowers new-generic KeyedMap value operations to the existing integer Jass fallback after
@@ -207,19 +208,6 @@ public final class JassKeyedMapLowering {
 
     private static boolean sameKeyRepresentation(ImType fallback, ImType keyType) {
         return TypesHelper.isStringType(keyType) ? TypesHelper.isStringType(fallback) : isHandle(fallback);
-    }
-
-    private static String intrinsicName(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd
-            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
-            ? fd.getName()
-            : null;
-    }
-
-    private static WPackage packageOf(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p
-            ? p
-            : null;
     }
 
     private static CompileError invalidSpecialization(ImFunction f, String message) {
