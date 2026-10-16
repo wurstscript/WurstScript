@@ -313,7 +313,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
      * that in their place.
      *
      * @return whether the statements which replaced an assignment assign a local which the flatten of an effect made
-     *         (the assignment of a division which may stop the thread)
+     *         (the assignment of an allocation or a division which may stop the thread)
      */
     private boolean eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
         int locals = func.getLocals().size();
@@ -338,8 +338,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
             if (v == null || v.isGlobal()) continue;
 
-            if (!livenessInfo.get(s).contains(v) && !Flatten.mayStopTheThread(set.getRight())) {
-                // (an assignment of a division which may stop the thread is the statement which evaluates it)
+            if (!livenessInfo.get(s).contains(v) && !Flatten.requiresDiscardAssignment(set.getRight())) {
+                // These effects need their assignment even when the assigned value is dead.
                 final List<ImExpr> raw = new ArrayList<>();
                 collectLhsSideEffects(lhs, raw);
                 if (hasSideEffects(set.getRight())) raw.add(set.getRight());
@@ -389,10 +389,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
 
     private boolean hasSideEffects(Element e) {
-        if (e instanceof ImMethodCall) return true;
+        if (e instanceof ImMethodCall || e instanceof ImDealloc) return true;
         if (e instanceof ImFunctionCall call
             && (translator == null || !translator.isTrapFreeLuaIntrinsicCall(call))) return true;
-        if (e instanceof ImExpr expr && Flatten.mayStopTheThread(expr)) return true;
+        if (e instanceof ImExpr expr && Flatten.requiresDiscardAssignment(expr)) return true;
         for (int i = 0; i < e.size(); i++) if (hasSideEffects(e.get(i))) return true;
         return false;
     }

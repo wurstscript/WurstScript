@@ -326,7 +326,7 @@ public class ImOptimizer {
             }
             // remove set statements to unread variables
             final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
-            // the unread locals of the assignments which stay because they evaluate a division which may stop the thread
+            // Unread locals which still evaluate an allocation or a potentially trapping division.
             final Set<ImVar> keptLocals = new LinkedHashSet<>();
             if (countThings) {
                 things += trans.setStatementsOf(f).size() + f.getLocals().size();
@@ -335,9 +335,8 @@ public class ImOptimizer {
                 if (e.getLeft() instanceof ImVarAccess) {
                     ImVarAccess va = (ImVarAccess) e.getLeft();
                     if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
-                        if (va.getVar().getParent() == f.getLocals() && Flatten.mayStopTheThread(e.getRight())) {
-                            // What it does besides assigning is the division, and the statement which evaluates
-                            // that is an assignment to a local (a flatten makes one): this one.
+                        if (va.getVar().getParent() == f.getLocals() && Flatten.requiresDiscardAssignment(e.getRight())) {
+                            // Flatten already gave this effect its necessary assignment; keep it stable across rounds.
                             keptLocals.add(va.getVar());
                         } else {
                             List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);

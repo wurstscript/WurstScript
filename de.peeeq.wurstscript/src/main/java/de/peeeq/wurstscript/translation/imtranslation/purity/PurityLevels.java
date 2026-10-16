@@ -24,6 +24,14 @@ public class PurityLevels {
         return ChangesTheWorld.instance;
     }
 
+    public static PurityLevel calculate(ImAlloc s) {
+        return ChangesTheWorld.instance;
+    }
+
+    public static PurityLevel calculate(ImDealloc s) {
+        return ChangesTheWorld.instance;
+    }
+
     public static PurityLevel calculate(ImSet s) {
         return mergeWithChildren(s, WritesGlobals.instance);
     }
