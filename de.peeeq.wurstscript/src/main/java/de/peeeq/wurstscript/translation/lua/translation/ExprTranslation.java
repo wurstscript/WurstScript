@@ -690,7 +690,9 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
-        return LuaAst.LuaLiteral("\"$Stacktrace$\"");
+        // With instrumentation enabled StackTraceInjector2 has already replaced this expression.
+        // Otherwise match Jass: requesting a disabled stacktrace yields an empty string.
+        return LuaAst.LuaLiteral("\"\"");
     }
 
     public static LuaExpr translate(ImCompiletimeExpr imCompiletimeExpr, LuaTranslator tr) {

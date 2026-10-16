@@ -556,6 +556,53 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaStacktraceEmissionHonorsBuildOptions() {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "native BJDebugMsg(string msg)",
+            "function getStackTraceString() returns string",
+            "    return \"unlowered intrinsic\"",
+            "public function error(string msg)",
+            "    BJDebugMsg(msg + getStackTraceString())"));
+        String[][] options = {
+            {"-lua"},
+            {"-lua", "-inline", "-localOptimizations"},
+            {"-lua", "-stacktraces", "-nodebug"},
+            {"-lua", "-stacktraces"},
+            {"-lua", "-stacktraces", "-inline", "-localOptimizations"}
+        };
+        for (int i = 0; i < options.length; i++) {
+            String compiled = compileLuaWithCUs(
+                "LuaTranslationTests_luaStacktraceEmissionHonorsBuildOptions_" + i,
+                false, Collections.singletonList(errorHandling), new RunArgs(options[i]),
+                "package Test",
+                "import ErrorHandling",
+                "native apply(code c)",
+                "init",
+                "    error(\"direct\")",
+                "    apply(() -> error(\"callback\"))");
+            assertFalse("stacktrace marker leaked for options " + i, compiled.contains("$Stacktrace$"));
+            assertFalse(compiled.contains("unlowered intrinsic"));
+            boolean instrumented = i >= 3;
+            assertEquals("stack storage for options " + i, instrumented, compiled.contains("wurst_stack"));
+            assertEquals("trace formatting for options " + i, instrumented, compiled.contains(" Stacktrace:"));
+            assertTrue("callback error boundary must be retained", compiled.contains("lua callback error: "));
+        }
+    }
+
+    @Test
+    public void luaDisabledStacktraceReturnsEmptyString() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function getStackTraceString() returns string",
+            "    return \"unlowered intrinsic\"",
+            "init",
+            "    if getStackTraceString() == \"\"",
+            "        testSuccess()");
+    }
+
+    @Test
     public void luaErrorWrappersAvoidUnavailableNativeTraceback() throws IOException {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler",
