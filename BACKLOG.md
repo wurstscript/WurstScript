@@ -155,6 +155,53 @@ Notes; finished-work narrative does not.
   way. Find the decisions of the Wurst and Jass grammars which need the context of the calling rule (the syntax
   error the SLL pass reports on such a file, with the full-prediction pass switched off, names the place) and
   left-factor them. That removes the second parse for valid files, which would then only be paid by broken ones.
+- **Preserve effects of every virtual implementation.** A reproduced Lua miscompile drops an unread
+  `Base.value()` call when only `Child.value()` increments a global; all Jass harness modes pass.
+  It fails even without optional Lua optimization flags. `SideEffectAnalyzer.directlyCalledFunctions`
+  follows only the root implementation. Fix the owning effect/call analysis to include all possible
+  overrides transitively, including generic/module paths, destruction and native effects. This is a
+  correctness prerequisite for more dispatch caching. Repro and controls:
+  [docs/LUA_RUNTIME_OPPORTUNITIES.md](docs/LUA_RUNTIME_OPPORTUNITIES.md).
+- **Preserve unused allocations on optimized Lua.** `new Empty(); new Empty(); new Empty()` with only
+  the first/last IDs retained must advance by two. Jass and unoptimized Lua pass; Lua with
+  `-inline -localOptimizations` drops the middle allocation. Investigate allocation effects in
+  `SideEffectAnalyzer` and statement conversion in `Flatten.exprToStatements`; preserve the original
+  allocation through every pass, including unread assignments. Add ID-reuse and allocator-limit
+  regressions. The opt-in failing repro is in the same investigation note.
+- **Devirtualize proven exact receivers before inlining.** Optimized Lua still dispatches an interface
+  local initialized with `new A()` virtually when the method has sibling implementations.
+  `LuaMethodCallLowering` currently considers only methods with no submethods. Start with bounded
+  straight-line exact-type propagation through locals/copies, stopping at possible destruction,
+  unknown calls and callback/yield barriers, and use existing direct IM calls. Constructors can expose
+  or destroy the allocation; preserve their effects. Measure useful sites and total compiler cost
+  before expanding alias/generic analysis. See the investigation note for emitted examples.
+- **Materialize complex Lua dispatch receivers within a locals budget.** A call-valued receiver still
+  needs a vararg dispatch stub. A disposable nine-line flatten prototype replaced it with a temporary
+  and direct descriptor call, passed 378 tests, and the isolated stock-Lua shape was about 28% faster.
+  But it made a 199-local function spill every local into a table where master did not. The prototype
+  was discarded. Reuse temporaries or respect the register budget, preserve evaluation order and
+  short circuits, and measure optimized real-map hot paths; no in-game speedup is established.
+- **Evaluate bounded repeated-dispatch reuse after profiling.** Cache a descriptor only for a stable
+  local receiver across calls proven not to destroy/reallocate it; ordinary field writes need not
+  invalidate its class, but field-expression caching requires a separate alias/write proof. Include
+  every virtual target, callbacks, unknown natives and yields; do not memoize return values based
+  only on absence of writes. No runtime epochs or guards. Stock-Lua descriptor caching saved about
+  9% in an isolated three-call loop with overlapping sample ranges; caching a slot too was worse.
+  An unoptimized map scan found only 10 simple-local repeated groups, not proven hot or eligible.
+  Require optimized-map evidence before paying for a general analysis or extending IM value types.
+- **Evaluate Lua-native bulk copying for large compatible ranges.** `table.move` is a candidate for
+  ArrayList relocation/shifts or a compiler-owned bulk operation, with the Jass loop preserved.
+  Stock-Lua medians improved for 64/1,024-element copies but regressed for eight elements. Forward
+  overlapping loops can mean something different from `table.move`; prove overlap/direction, bounds,
+  defaults and counter semantics. Establish game availability, crossover and hot consumers before
+  selecting an API or automatic lowering. Scripts and raw samples are in the investigation note.
+- **Scope an opt-in Lua body hot reload.** Stock-Lua model and actual generated-code probes replace
+  a body on an existing object without resetting storage/allocators. This is not implemented in the
+  existing JHCR command. First verify engine `load` and delivery, then design stable semantic IDs,
+  explicit lexical storage bindings, all slot aliases, ABI/version rejection, inlining dependencies,
+  saved callbacks and active-frame policy. Begin with named function bodies in single-player dev
+  mode; no schema/init/closure migration and no release overhead. Multiplayer needs synchronized
+  payload/application ordering. See the investigation note for a staged plan and capability probe.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
