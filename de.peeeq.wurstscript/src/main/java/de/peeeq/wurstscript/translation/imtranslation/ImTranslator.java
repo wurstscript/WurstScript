@@ -10,8 +10,10 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.Element;
@@ -2294,20 +2296,18 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      * returns a list of classes and functions implementing funcDef
      */
     public Map<ClassDef, FuncDef> getClassesWithImplementation(Collection<ClassDef> instances, FuncDef func) {
-        if (func.attrIsPrivate()) {
+        if (instances.isEmpty() || func.attrIsPrivate()) {
             // private functions cannot be overridden
             return Collections.emptyMap();
         }
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
+        // The declaration is already known. General member lookup also searches every enclosing scope and
+        // adapts all same-named overloads for each subclass; only this declaration's receiver needs binding.
+        FuncLink declaration = FuncLink.create(func, func.getParent().attrNearestScope()).withConfigDef();
         for (ClassDef c : instances) {
-            FuncLink funcNameLink = null;
             WurstTypeClass cType = c.attrTypC();
-            for (FuncLink nameLink : func.lookupMemberFuncs(cType, func.getName())) {
-                if (nameLink.getDef() == func) {
-                    funcNameLink = nameLink;
-                }
-            }
-            if (funcNameLink == null) {
+            DefLink bound = NameResolution.matchDefLinkReceiver(declaration, cType, func, false);
+            if (!(bound instanceof FuncLink funcNameLink)) {
                 throw new Error("Could not find "
                     + Utils.printElementWithSource(Optional.of(func))
                     + " in "
