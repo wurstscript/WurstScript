@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imoptimizer.NameGenerator;
 import de.peeeq.wurstscript.translation.imoptimizer.SideEffectFreeNatives;
 import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -390,6 +391,48 @@ public class OptimizerTests extends WurstScriptTest {
             "		real r = testVar2",
             "		string s = testVar3",
             "		boolean b = testVar4",
+            "endpackage");
+    }
+
+    /**
+     * A function of the user's which happens to be called initGlobals is not the globals initialiser: its write of
+     * the default value is a reset, which must stay.
+     */
+    @Test
+    public void globalsInlinerDoesNotTakeAJassInitGlobalsForTheInitialiser() {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "	integer mode",
+                "endglobals",
+                "function initGlobals takes nothing returns nothing",
+                "	set mode = 0",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    mode = 5",
+                "    initGlobals()",
+                "    if mode == 0",
+                "        testSuccess()",
+                "endpackage"));
+    }
+
+    /** The same for a Wurst function of that name. */
+    @Test
+    public void globalsInlinerDoesNotTakeAWurstInitGlobalsForTheInitialiser() {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int mode",
+            "function initGlobals()",
+            "    mode = 0",
+            "init",
+            "    mode = 5",
+            "    initGlobals()",
+            "    if mode == 0",
+            "        testSuccess()",
             "endpackage");
     }
 
@@ -838,6 +881,48 @@ public class OptimizerTests extends WurstScriptTest {
             Charsets.UTF_8);
         assertFalse(output.contains("function w takes"),
             "Compression must not reuse a native API name.\n" + output);
+    }
+
+    @Test
+    public void compressedNamesAreUnique() {
+        // globals, functions and locals all draw from this one stream
+        NameGenerator generator = new NameGenerator();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 200000; i++) {
+            String token = generator.getUniqueToken();
+            assertTrue(seen.add(token), "Token " + token + " was handed out twice, the second time as token " + i);
+        }
+    }
+
+    @Test
+    public void compressionGivesThousandsOfGlobalsDistinctNames() throws IOException {
+        // more compressed names than the 3213 at which the generator used to repeat a token
+        int count = 3300;
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("    native consume(int i)");
+        for (int i = 0; i < count; i++) {
+            lines.add("    int g" + i + " = " + i);
+        }
+        lines.add("    init");
+        for (int i = 0; i < count; i++) {
+            lines.add("        consume(g" + i + ")");
+        }
+        lines.add("endpackage");
+        test().optimize().lines(lines.toArray(new String[0]));
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_compressionGivesThousandsOfGlobalsDistinctNames_no_opts.j"),
+            Charsets.UTF_8);
+        // the backend appends a suffix such as _1 to a name it has already declared
+        java.util.regex.Matcher global = java.util.regex.Pattern.compile("(?m)^integer (\\w+)=").matcher(output);
+        int globals = 0;
+        while (global.find()) {
+            globals++;
+            assertFalse(global.group(1).contains("_"),
+                "Compression handed out the name of global " + global.group(1) + " twice.");
+        }
+        assertEquals(globals, count);
     }
 
     @Test
@@ -2105,7 +2190,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(sink);
         prog.getFunctions().add(caller);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         ImFunctionCall optimizedCall = (ImFunctionCall) caller.getBody().get(0);
         ImVar first = ((ImVarAccess) optimizedCall.getArguments().get(0)).getVar();
@@ -2505,7 +2590,7 @@ public class OptimizerTests extends WurstScriptTest {
             Collections.emptyList());
         prog.getFunctions().add(f);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         List<ImVar> assigned = new ArrayList<>();
         List<ImVar> read = new ArrayList<>();
@@ -2553,7 +2638,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(tick);
         prog.getFunctions().add(f);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         assertEquals(f.getLocals().size(), 1, "a and b are merged: " + f.getLocals());
         for (ImStmt s : f.getBody()) {
@@ -2593,7 +2678,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(tick);
         prog.getFunctions().add(f);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         List<ImStatementExpr> statementExprs = new ArrayList<>();
         boolean[] divides = {false};

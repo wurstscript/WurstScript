@@ -72,7 +72,7 @@ public class GlobalsInliner implements OptimizerPass {
                 } else {
                     for (ImVarWrite write : v.attrWrites()) {
                         ImFunction func = write.getNearestFunc();
-                        if (isInInitGlobals(func)) {
+                        if (isInInitGlobals(trans, func)) {
                             right = write.getRight();
                             obs = write;
                             break;
@@ -96,7 +96,7 @@ public class GlobalsInliner implements OptimizerPass {
                 List<ImVarWrite> initWrites = new ArrayList<>();
                 for (ImVarWrite imVarWrite : v.attrWrites()) {
                     ImFunction nearestFunc = imVarWrite.getNearestFunc();
-                    if (isInInitGlobals(nearestFunc)) {
+                    if (isInInitGlobals(trans, nearestFunc)) {
                         initWrites.add(imVarWrite);
                     }
                 }
@@ -171,8 +171,9 @@ public class GlobalsInliner implements OptimizerPass {
     }
 
 
-    private static boolean isInInitGlobals(ImFunction func) {
-        return func != null && func.getName().equals("initGlobals");
+    /** The globals initialiser of the compiler, not a function which happens to have its name. */
+    private static boolean isInInitGlobals(ImTranslator trans, ImFunction func) {
+        return func != null && func == trans.getGlobalInitFunc();
     }
 
     /**
