@@ -294,8 +294,8 @@ Rules for backend work:
   counts the changes of a function and of everything below it, through every setter and list) is the same exactly
   while nothing in the function was modified. A pass which is only needed for the functions which changed, or a
   result which is kept for a function (the flatten does this), compares the count it saw. Prefer it to a
-  `functionChanged(f)` call which a pass has to remember (the facts of the garbage removal still use one, see
-  `BACKLOG.md`).
+  `functionChanged(f)` call which a pass has to remember. Facts which follow references outside the function also
+  validate those dependencies: the garbage removal checks the implementations of virtual call targets.
 
 ### Lua performance policy
 

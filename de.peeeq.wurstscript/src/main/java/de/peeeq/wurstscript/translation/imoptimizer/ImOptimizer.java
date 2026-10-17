@@ -159,7 +159,7 @@ public class ImOptimizer {
     }
 
     private boolean removeGarbageWithFacts() {
-        // The rounds change one function at a time and say which, so the analysis keeps what it read of the others.
+        // Reuse unchanged bodies across rounds and across separate removals.
         trans.rememberFunctionFacts();
         try {
             return removeGarbageInRounds();
@@ -373,7 +373,6 @@ public class ImOptimizer {
             if (!replacements.isEmpty()) {
                 changes = true;
                 replaceByEffects(f, replacements);
-                trans.functionChanged(f);
                 replacedIn.add(f);
             }
         }

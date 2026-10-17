@@ -1959,7 +1959,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         readVariables = new ObjectOpenHashSet<>(varEstimate);
         readCounts = null;
         readByBjInitialisers = new ObjectOpenHashSet<>();
-        retiredFacts = functionFacts == null ? null : new IdentityHashMap<>();
+        retiredFacts = null;
 
         final ImFunction main = getMainFunc();
         if (main != null) calculateCallRelations(main, includeUsedVariables);
@@ -2001,6 +2001,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 }
             }
         }
+        retiredFacts = functionFacts == null ? null : new IdentityHashMap<>();
     }
 
     private void calculateCallRelations(ImFunction rootFunction, boolean includeUsedVariables) {
@@ -2043,27 +2044,55 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     /**
-     * What the analysis read out of the body of a function, and its assignments, kept while garbage is removed.
-     * <p>
-     * The removal analyses the program once per round, and each of the three questions about a function is a walk
-     * over its whole body, which is not cached. A round changes a few functions only, and says which
-     * ({@link #functionChanged}); the rest keep their answers until {@link #forgetFunctionFacts}.
+     * Body facts survive separate garbage removals while the function's modification count and the implementations
+     * of its virtual call targets are unchanged. The active map is null outside a removal; the saved map belongs to
+     * this translator only, and drops unreachable functions when a removal finishes.
      */
+    private final Map<ImFunction, FunctionFacts> savedFunctionFacts = new IdentityHashMap<>();
     private @Nullable Map<ImFunction, FunctionFacts> functionFacts;
 
     private static final class FunctionFacts {
+        final int modificationCount;
         @Nullable Set<ImVar> usedVariables;
         @Nullable Set<ImVar> readVariables;
         @Nullable Set<ImFunction> usedFunctions;
         @Nullable List<ImSet> sets;
+        Map<ImMethod, List<ImFunction>> methodTargets = Collections.emptyMap();
+
+        FunctionFacts(ImFunction function) {
+            modificationCount = function.modificationCount();
+        }
+
+        boolean isCurrent(ImFunction function) {
+            if (modificationCount != function.modificationCount()) {
+                return false;
+            }
+            // Methods and their submethod lists are references, outside the caller's counted tree.
+            for (var entry : methodTargets.entrySet()) {
+                ImMethod method = entry.getKey();
+                List<ImFunction> targets = entry.getValue();
+                if (method.getImplementation() != targets.get(0) || method.getSubMethods().size() + 1 != targets.size()) {
+                    return false;
+                }
+                for (int i = 0; i < method.getSubMethods().size(); i++) {
+                    if (method.getSubMethods().get(i).getImplementation() != targets.get(i + 1)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
     }
 
-    /** From now on the analysis keeps what it learns of a function, until it is told that the function changed. */
+    /** Use the saved facts, checking their dependencies before each reuse. */
     public void rememberFunctionFacts() {
-        functionFacts = new IdentityHashMap<>();
+        functionFacts = savedFunctionFacts;
     }
 
     public void forgetFunctionFacts() {
+        if (usedFunctions != null) {
+            savedFunctionFacts.keySet().retainAll(usedFunctions);
+        }
         functionFacts = null;
         retiredFacts = null;
         readCounts = null;
@@ -2078,16 +2107,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     private @Nullable Object2IntOpenHashMap<ImVar> readCounts;
     /** The variables which the initialisers of the common.j and blizzard.j globals which are read, read. */
     private @Nullable Set<ImVar> readByBjInitialisers;
-
-    /** The body of the function was changed: the analysis has to look at it again. */
-    public void functionChanged(ImFunction function) {
-        if (functionFacts != null) {
-            FunctionFacts old = functionFacts.remove(function);
-            if (old != null && retiredFacts != null) {
-                retiredFacts.putIfAbsent(function, old);
-            }
-        }
-    }
 
     /**
      * Brings the read variables of the last call relation analysis in line with functions which changed, without
@@ -2127,10 +2146,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         List<ImVar> lostReads = new ArrayList<>();
         for (ImFunction function : changed) {
             FunctionFacts before = retiredFacts.remove(function);
+            if (before == null) {
+                before = functionFacts.get(function);
+            }
             if (before == null || before.usedFunctions == null || before.readVariables == null) {
                 return null;
             }
             FunctionFacts now = relationFactsOf(function);
+            retiredFacts.remove(function);
             if (!now.usedFunctions.equals(before.usedFunctions)) {
                 return null;
             }
@@ -2178,7 +2201,18 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private @Nullable FunctionFacts factsOf(ImFunction function) {
-        return functionFacts == null ? null : functionFacts.computeIfAbsent(function, f -> new FunctionFacts());
+        if (functionFacts == null) {
+            return null;
+        }
+        FunctionFacts facts = functionFacts.get(function);
+        if (facts == null || !facts.isCurrent(function)) {
+            if (facts != null && retiredFacts != null) {
+                retiredFacts.putIfAbsent(function, facts);
+            }
+            facts = new FunctionFacts(function);
+            functionFacts.put(function, facts);
+        }
+        return facts;
     }
 
     private Set<ImVar> usedVariablesOf(ImFunction function) {
@@ -2200,18 +2234,19 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         FunctionFacts facts = factsOf(function);
         boolean kept = facts != null;
         if (facts == null) {
-            facts = new FunctionFacts();
+            facts = new FunctionFacts(function);
         }
         if (facts.usedFunctions == null || facts.readVariables == null) {
             FunctionFactsCollector collector = FunctionFactsCollector.collect(function, kept && facts.sets == null);
-            if (isUnitTestMode) {
-                assertSameAsSeparateWalks(function, collector);
-            }
             facts.usedFunctions = collector.usedFunctions;
             facts.readVariables = collector.readVariables;
+            facts.methodTargets = collector.methodTargets;
             if (collector.sets != null) {
                 facts.sets = collector.sets;
             }
+        }
+        if (isUnitTestMode) {
+            assertSameAsSeparateWalks(function, facts);
         }
         return facts;
     }
@@ -2245,14 +2280,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      * What the single walk answers has to be what the separate walks answer, in the same order: unit tests compare
      * every function the analysis meets, with the walks which {@link FunctionFactsCollector} replaces.
      */
-    private static void assertSameAsSeparateWalks(ImFunction function, FunctionFactsCollector collector) {
+    private static void assertSameAsSeparateWalks(ImFunction function, FunctionFacts facts) {
         List<ImFunction> expectedUsed = new ArrayList<>(function.calcUsedFunctions());
-        List<ImFunction> actualUsed = new ArrayList<>(collector.usedFunctions);
+        List<ImFunction> actualUsed = new ArrayList<>(facts.usedFunctions);
         assertSameElements("functions used by " + function.getName(), expectedUsed, actualUsed);
         assertSameElements("variables read by " + function.getName(),
-            new ArrayList<>(function.calcReadVariables()), new ArrayList<>(collector.readVariables));
-        if (collector.sets != null) {
-            assertSameElements("assignments in " + function.getName(), referenceSetStatementsOf(function), collector.sets);
+            new ArrayList<>(function.calcReadVariables()), new ArrayList<>(facts.readVariables));
+        if (facts.sets != null) {
+            assertSameElements("assignments in " + function.getName(), referenceSetStatementsOf(function), facts.sets);
         }
     }
 
