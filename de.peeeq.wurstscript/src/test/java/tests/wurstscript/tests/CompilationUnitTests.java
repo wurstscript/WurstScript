@@ -177,6 +177,79 @@ public class CompilationUnitTests extends WurstScriptTest {
             );
     }
 
+    /**
+     * pjass rejects an integer returned from a function declared to return a real, so it is an error in Jass as
+     * in Wurst. Accepted, it would compile only where the call is inlined, and there `f(n) / m` becomes the
+     * integer division `n / m`.
+     */
+    @Test
+    public void jassIntReturnedFromRealFunctionIsError() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectError("Cannot return int, expected expression of type real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "function jassToReal takes integer n returns real",
+                    "    return n",
+                    "endfunction",
+                    "function jassDivReturn takes integer n, integer m returns real",
+                    "    return jassToReal(n) / m",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** pjass rejects an integer literal there too. */
+    @Test
+    public void jassIntLiteralReturnedFromRealFunctionIsError() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectError("expected expression of type real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "function jassZero takes nothing returns real",
+                    "    return 0",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** For a legacy target the integer return is a warning, like the other Jass return mismatches. */
+    @Test
+    public void jassIntReturnedFromRealFunctionIsWarningForLegacyTarget() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .legacyJassTypeChecks()
+            .expectWarning("Cannot return int, expected expression of type real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "function jassToReal takes integer n returns real",
+                    "    return n",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** An integer stored into or passed as a real stays valid Jass, as pjass has it. */
+    @Test
+    public void jassIntStoredOrPassedAsRealIsOk() {
+        testAssertOk(false, false,
+            compilationUnit("input.j",
+                "function jassHalf takes real x returns real",
+                "    return x / 2",
+                "endfunction",
+                "function jassToReal takes integer n returns real",
+                "    local real r = n",
+                "    set r = jassHalf(n) + r",
+                "    return r",
+                "endfunction"
+            )
+        );
+    }
+
     /** The same return-type mismatch in user Wurst code must always be an error. */
     @Test
     public void wurstReturnTypeMismatchIsError() {
