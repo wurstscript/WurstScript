@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.NamePreservation;
 import org.jetbrains.annotations.Nullable;
@@ -83,7 +84,7 @@ public class GlobalsInliner implements OptimizerPass {
                     continue;
                 }
 
-                ImExpr replacement = findReplacement(right, obs);
+                ImExpr replacement = findReplacement(right, obs, v.getType());
                 if (replacement != null) {
                     for (ImVarRead v3 : v.attrReads()) {
                         v3.replaceBy(replacement.copy());
@@ -137,10 +138,14 @@ public class GlobalsInliner implements OptimizerPass {
     }
 
     @Nullable
-    private ImExpr findReplacement(ImExpr right, ImVarWrite obs) {
+    private ImExpr findReplacement(ImExpr right, ImVarWrite obs, ImType varType) {
         ImExpr replacement;
         if (right instanceof ImIntVal val) {
-            replacement = (JassIm.ImIntVal(val.getValI()));
+            // Jass converts an integer stored into a real, so the global holds a real.
+            // The integer in place of a read would make `g / m` an integer division.
+            replacement = TypesHelper.isRealType(varType)
+                ? JassIm.ImRealVal(val.getValI() + ".")
+                : JassIm.ImIntVal(val.getValI());
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
         } else if (right instanceof ImRealVal val) {

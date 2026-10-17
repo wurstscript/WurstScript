@@ -172,6 +172,45 @@ public class BugTests extends WurstScriptTest {
                 "endfunction"));
     }
 
+    /** Jass converts an integer stored into a real variable, so the division that follows is real. */
+    @Test
+    public void jassIntStoredIntoRealLocalDividesAsReal() {
+        test().testLua(true).luaOnly(false).executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassDiv takes integer n, integer m returns real",
+                "\tlocal real r = n",
+                "\treturn r / m",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassDiv(7, 2) > 3.4",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+    }
+
+    /** The same conversion keeps a product of the stored value from wrapping at 32 bits. */
+    @Test
+    public void jassIntStoredIntoRealGlobalMultipliesAsReal() {
+        test().testLua(true).luaOnly(false).executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\treal g",
+                "endglobals",
+                "function jassSquare takes integer n returns real",
+                "\tset g = n",
+                "\treturn g * g",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassSquare(65536) > 4000000000.",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+    }
+
     @Test
     public void test_init_order_jass_warning() {
         testAssertErrorsLines(false, "Variable b may not have been initialized",

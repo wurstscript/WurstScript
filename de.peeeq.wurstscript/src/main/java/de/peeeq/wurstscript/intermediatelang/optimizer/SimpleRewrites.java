@@ -654,7 +654,10 @@ public class SimpleRewrites implements OptimizerPass {
                     if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
                         if (imVarAccess2.getVar() == leftVar2 && !hasMergeLimitOfOperators(rightExpr1)) {
-                            if (sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
+                            // Jass converts an integer stored into a real: the integer in place of the
+                            // variable would make `r / m` an integer division.
+                            if (!(TypesHelper.isRealType(leftVar1.getType()) && TypesHelper.isIntType(rightExpr1.attrTyp()))
+                                && sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
                                 rightExpr1.setParent(null);
                                 imVarAccess2.replaceBy(rightExpr1);
                                 imSet1.replaceBy(ImHelper.nullExpr());

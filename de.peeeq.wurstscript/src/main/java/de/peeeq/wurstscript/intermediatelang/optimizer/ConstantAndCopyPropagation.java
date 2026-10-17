@@ -325,7 +325,14 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
                             // Constant folding is intentionally centralized in SimpleRewrites.
                             // This pass performs propagation only to keep fold semantics in one place.
-                            if (right instanceof ImConst) {
+                            if (TypesHelper.isRealType(var.getType()) && TypesHelper.isIntType(right.attrTyp())) {
+                                // Jass converts an integer stored into a real, so the variable holds a real.
+                                // Its integer source in place of a read would make `r / n` an integer division.
+                                // A literal can be converted here; a copy of an integer variable cannot.
+                                newValue = right instanceof ImIntVal intVal
+                                    ? new Value(JassIm.ImRealVal(intVal.getValI() + "."))
+                                    : null;
+                            } else if (right instanceof ImConst) {
                                 newValue = Value.tryValue(right);
                             } else if (right instanceof ImVarAccess imVarAccess) {
                                 ImVar varRight = imVarAccess.getVar();
