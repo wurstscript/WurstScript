@@ -609,6 +609,16 @@ public class SimpleRewrites implements OptimizerPass {
     }
 
     /**
+     * The most operators {@link #optimizeConsecutiveSet} nests in the left operand of one assignment. Each merge
+     * makes the expression one level deeper, and one walk merges a whole run of statements, so a generated run of
+     * {@code sum += gN} became one expression as deep as the run is long. The recursive walkers after it overflowed
+     * the Java stack from about a thousand statements, the flatten first; and where the operators alternate, each
+     * level is a parenthesis in the Lua output, and luac rejects more than 200 levels. A merge saves one assignment,
+     * so a long run still loses all but one assignment in this many.
+     */
+    public static final int MAX_MERGED_OPERATORS = 64;
+
+    /**
      * Optimizes
      * <p>
      * set x = expr1
@@ -618,7 +628,8 @@ public class SimpleRewrites implements OptimizerPass {
      * <p>
      * set x  = expr1 ⊕ expr2
      * <p>
-     * like code that is created by the branch merger
+     * like code that is created by the branch merger, while expr1 has fewer than {@link #MAX_MERGED_OPERATORS}
+     * operators in its left operands.
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
         ImVar leftVar1;
@@ -642,7 +653,7 @@ public class SimpleRewrites implements OptimizerPass {
                 if (rightOpCall2.getArguments().size() == 2) {
                     if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
-                        if (imVarAccess2.getVar() == leftVar2) {
+                        if (imVarAccess2.getVar() == leftVar2 && !hasMergeLimitOfOperators(rightExpr1)) {
                             if (sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
                                 rightExpr1.setParent(null);
                                 imVarAccess2.replaceBy(rightExpr1);
@@ -654,6 +665,18 @@ public class SimpleRewrites implements OptimizerPass {
                 }
             }
         }
+    }
+
+    /** Whether {@code e} and its left operands are {@link #MAX_MERGED_OPERATORS} operators or more. */
+    private static boolean hasMergeLimitOfOperators(ImExpr e) {
+        int operators = 0;
+        while (e instanceof ImOperatorCall opCall && !opCall.getArguments().isEmpty()) {
+            if (++operators >= MAX_MERGED_OPERATORS) {
+                return true;
+            }
+            e = opCall.getArguments().get(0);
+        }
+        return false;
     }
 
 }
