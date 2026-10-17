@@ -118,13 +118,12 @@ public class FunctionFactsTests {
         main.getBody().add(call(other));
         ImTranslator translator = translator(main, other);
         translator.rememberFunctionFacts();
-        translator.calculateCallRelationsAndUsedVariables();
+        translator.calculateCallRelationsAndReadVariables();
         assertEquals(translator.setStatementsOf(other), List.of(assignment));
         main.getBody().addAllMoved(other.getBody());
-        translator.calculateCallRelationsAndUsedVariables();
+        translator.calculateCallRelationsAndReadVariables();
         assertTrue(translator.setStatementsOf(other).isEmpty());
         assertEquals(translator.setStatementsOf(main), List.of(assignment));
-        assertTrue(translator.getUsedVariables().containsAll(List.of(a, b)));
         assertTrue(translator.getReadVariables().contains(b));
         translator.forgetFunctionFacts();
     }
