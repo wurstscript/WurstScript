@@ -42,7 +42,7 @@ public class UnionFind<T> {
         // merge yRoot into xRoot
         parent.put(yRoot, xRoot);
         if (rank.get(xRoot).equals(rank.get(yRoot))) {
-            rank.put(xRoot, rank.get(xRoot));
+            rank.put(xRoot, rank.get(xRoot) + 1);
         }
     }
 
