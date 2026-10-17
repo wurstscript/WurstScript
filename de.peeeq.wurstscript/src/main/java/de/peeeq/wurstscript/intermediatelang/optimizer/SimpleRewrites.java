@@ -628,8 +628,8 @@ public class SimpleRewrites implements OptimizerPass {
      * <p>
      * set x  = expr1 ⊕ expr2
      * <p>
-     * like code that is created by the branch merger, while expr1 has fewer than {@link #MAX_MERGED_OPERATORS}
-     * operators in its left operands.
+     * like code that is created by the branch merger, while expr1 is nested fewer than {@link #MAX_MERGED_OPERATORS}
+     * levels deep.
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
         ImVar leftVar1;
@@ -667,14 +667,26 @@ public class SimpleRewrites implements OptimizerPass {
         }
     }
 
-    /** Whether {@code e} and its left operands are {@link #MAX_MERGED_OPERATORS} operators or more. */
+    /**
+     * Whether {@code e} is nested {@link #MAX_MERGED_OPERATORS} levels deep or more, on any of its operands: each merge
+     * puts it one level deeper. The walk stops at the limit, so it costs at most the part of {@code e} above it.
+     */
     private static boolean hasMergeLimitOfOperators(ImExpr e) {
-        int operators = 0;
-        while (e instanceof ImOperatorCall opCall && !opCall.getArguments().isEmpty()) {
-            if (++operators >= MAX_MERGED_OPERATORS) {
+        return reachesDepth(e, MAX_MERGED_OPERATORS);
+    }
+
+    /** Whether {@code e} holds expressions nested {@code levels} deep; a list of arguments is no level of its own. */
+    private static boolean reachesDepth(Element e, int levels) {
+        if (e instanceof ImExpr) {
+            if (levels <= 1) {
                 return true;
             }
-            e = opCall.getArguments().get(0);
+            levels--;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (reachesDepth(e.get(i), levels)) {
+                return true;
+            }
         }
         return false;
     }

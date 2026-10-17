@@ -531,6 +531,30 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void runMergedOntoADeepRightOperandLoadsInLua() {
+        // The first value is 90 levels deep on its right operands, which the bound did not count: merging 64 pairs
+        // of `h *= a` and `h += b` onto it made more nested levels than luac takes (200).
+        String deep = "b";
+        for (int i = 0; i < 90; i++) {
+            deep = "(a + " + deep + ")";
+        }
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        lines.add("function mix(int a, int b) returns int");
+        lines.add("	var h = " + deep);
+        for (int i = 0; i < 64; i++) {
+            lines.add("	h *= a");
+            lines.add("	h += b");
+        }
+        lines.add("	return h");
+        lines.add("init");
+        lines.add("	if mix(1, 1) == 155");
+        lines.add("		testSuccess()");
+        test().testLua(true).localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
     public void longRunOfAlternatingOperatorsLoadsInLua() {
         // Merged into one assignment, 150 pairs of `h *= a` and `h += b` were 300 nested parentheses in Lua, and
         // luac stops at 200 levels.
