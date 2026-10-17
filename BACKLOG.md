@@ -125,10 +125,8 @@ Notes; finished-work narrative does not.
   waits for the parse threads, so the scan is not on the critical path while parsing is parallel.
 - **What a large map's build still spends, by step (`-measure`), and why.** Measured on a Jass map of 1,625 files
   with thousands of compile-time functions:
-  - *Type check (12 s):* Guava collections are about 11% of its samples (name tables about 5%, the dataflow states
-    about 4%). The dataflow anomaly analysis (`VarStates`, `VState`) copies its immutable maps and multimaps on every
-    read and write, about 7% with its merges; persistent or mutable states would remove most of that. The rest is
-    attribute evaluation, see the next item.
+  - *Type check (12 s):* the Guava name tables are about 5% of its samples; the rest is attribute evaluation, see
+    the next item.
 - **Parallel type check and per-function IM passes.** Parsing is parallel (above); the rest of a build is not, and
   JFR of fresh master says where the time is (shares of the compiler thread's samples, castle fight without
   optimisations / optimised / zombie defense): type check light and heavy phases (attribute evaluation, per unit and per
