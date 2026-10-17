@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.RestrictedCompressedNames;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.translation.imtranslation.UsedFunctions;
 import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -27,6 +28,14 @@ public class ImToJassTranslator {
     private @Nullable JassProg prog;
     private final Stack<ImFunction> translatingFunctions = new Stack<>();
     private final Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
+    /** Functions reached only through ExecuteFunc, which are translated after the ordered traversal. */
+    private final Deque<ImFunction> executeOnlyTargets = new ArrayDeque<>();
+    /**
+     * Functions which take their place in the script when they are translated rather than when they are first
+     * named. Any other function is translated before a body names it, but an ExecuteFunc target is named by its
+     * caller first, and its place has to come after the functions it calls.
+     */
+    private final Set<ImFunction> awaitingPlacement = Sets.newLinkedHashSet();
     private final Set<String> usedNames = Sets.newLinkedHashSet();
     private final Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
@@ -59,6 +68,18 @@ public class ImToJassTranslator {
         for (ImFunction function : ImHelper.calculateFunctionsOfProg(imProg)) {
             if (NamePreservation.isPreserved(function)) {
                 translateFunctionTransitive(function);
+            }
+        }
+        while (!executeOnlyTargets.isEmpty()) {
+            translateFunctionTransitive(executeOnlyTargets.poll());
+        }
+        // a named function which translateFunction skips still needs its place
+        for (ImFunction f : new ArrayList<>(awaitingPlacement)) {
+            JassFunctionOrNative created = jassFuncs.get(f);
+            if (created == null) {
+                awaitingPlacement.remove(f);
+            } else {
+                placeIfHeldBack(f, created);
             }
         }
 
@@ -151,8 +172,15 @@ public class ImToJassTranslator {
             return;
         }
         translatingFunctions.push(imFunc);
+        // An ExecuteFunc target need not be declared first, and it may call back into a function on this stack,
+        // which is no cyclic dependency. So it waits until the traversal has unwound.
+        Set<ImFunction> ordering = UsedFunctions.orderingRelevantTargets(imFunc);
         for (ImFunction f : sorted(calledFunctions.get(imFunc))) {
-            translateFunctionTransitive(f);
+            if (ordering.contains(f)) {
+                translateFunctionTransitive(f);
+            } else if (!translatedFunctions.contains(f) && awaitingPlacement.add(f)) {
+                executeOnlyTargets.add(f);
+            }
         }
 
         translateFunction(imFunc);
@@ -176,6 +204,7 @@ public class ImToJassTranslator {
         }
         // not a native
         JassFunctionOrNative f = getJassFuncFor(imFunc);
+        placeIfHeldBack(imFunc, f);
 
         f.setReturnType(imFunc.getReturnType().translateType());
 
@@ -193,6 +222,12 @@ public class ImToJassTranslator {
 
     }
 
+
+    private void placeIfHeldBack(ImFunction imFunc, JassFunctionOrNative f) {
+        if (awaitingPlacement.remove(imFunc) && f instanceof JassFunction jf && !imFunc.isBj() && !imFunc.isExtern()) {
+            prog.getFunctions().add(jf);
+        }
+    }
 
     private String getUniqueGlobalName(String name) { // TODO find local names
         name = jassifyName(name);
@@ -317,7 +352,7 @@ public class ImToJassTranslator {
                 }
                 boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
                 f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements(), isCompiletimeNative);
-                if (!func.isBj() && !func.isExtern()) {
+                if (!func.isBj() && !func.isExtern() && !awaitingPlacement.contains(func)) {
                     prog.getFunctions().add((JassFunction) f);
                 }
             }

@@ -75,18 +75,14 @@ Notes; finished-work narrative does not.
   specialised method goes from the allocations in the program, so a dead `new_Parent` no longer keeps it on the erased
   class (a generic parent which nothing allocates directly keeps a specialised class table with the method).
 
-- **Build the local-player analysis fewer times, or incrementally.** An optimised Lua build of castle fight
-  constructs `LocalPlayerContextAnalyzer` four times: for the compile-time state function the splitter optimises
-  (`FunctionSplitter`, once per split target with locals), for `ImInliner.doInlining` and once per
-  `ImOptimizer.runLocalOptimizationSweep` (two sweeps). With a fifth (`LuaOldGenericsCasts`, since removed) they
-  took about 4 s of the compiler thread (7% of its samples). Each one is the
-  whole program, because the fact about a variable or a function depends on every caller and every writer.
-  Keeping the analysis of the first sweep for the second is not output-neutral: it changed about 40,000 lines of the
-  castle fight script (different local merges), so a construction per sweep stays until the analysis can retract a
-  fact (the propagation is a least fixpoint, so a rewrite which removes a flow cannot be undone in place) or the passes
-  report which functions they changed. What is left of a construction is the walk itself: the first touch of every IM
-  node (`indexElement`, `isInert`, `markReturns`) is about half of the samples, so the cost follows the size of the IM
-  and a flatter IM would help more than another rewrite of the analysis.
+- **The inliner's Lua register model still splits locals by locality.** No local optimisation reads the
+  local-player analysis any more (copy propagation and the local merger preserve what each client computes), so an
+  optimised build constructs it once, in `ImInliner.doInlining`, where it refuses to inline client-local functions and
+  feeds the register budget, and again lazily in the late arithmetic-helper phase when a helper call is left. The budget
+  (`ImInliner.pressureOf`) still counts client-local and synchronised locals as separate register classes, as the
+  merger used to keep them; that over-estimates now, which is safe. Counting per type lets more helpers fit: measured on
+  castle fight, the late phase then inlines some and re-runs the local optimisations (+3.2 s), and the main inliner's
+  decisions change (+0.17% instructions). Decide it with a runtime measurement of the helpers it would inline.
 
 - **Fewer whole-program passes between the optimiser's phases.** The garbage removal and the flatten each walk the
   whole program, and a build runs them many times (castle fight: the removal 3 to 8 times with 11 to 29 rounds, the
@@ -100,11 +96,10 @@ Notes; finished-work narrative does not.
   keeps: `modification counts: ImFunction` in `jass_im.parseq`). Left:
   (1) more removals which remove nothing: one which the test suite shows to find nothing becomes an `assertNoGarbage`,
   as the second removal, the one in `optimize` and the one in front of the empty package initialisers did (the one in
-  front of the first local optimisation is a candidate); (2) `LocalPlayerContextAnalyzer`, built again for the whole program after each
-  pass which is not local-player aware (see "Build the local-player analysis fewer times" above); (3) the flatten after the tuples
+  front of the first local optimisation is a candidate); (2) the flatten after the tuples
   are eliminated is the one which does work (about 565 to 800 functions of castle fight): the producers of
   statement expressions (`EliminateTuples`, `SimpleRewrites`, the inliner) could emit statements as the removal does;
-  (4) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
+  (3) a chain of assignments to unread variables (`v1 = v0; v2 = v1; ...`, nothing reads the last) takes a round for
   each link, and a round costs the functions which changed (a walk of each, the rewrite of its statement list, its
   locals), so the cost grows with the square of the length. Measured in a unit test (the checks of unit-test mode on,
   one removal): a chain inside one function takes 0.24 s for 1,000 links, 1.5 s for 4,000 and 16.7 s for 16,000; with
@@ -217,6 +212,12 @@ Notes; finished-work narrative does not.
   type-id, compile-time state, allocator and specialization obligations. Reopen only with a representative measured
   build-time or memory benefit, or evidence of a substantially smaller correct implementation; speculative future
   benefits and raw class counts are insufficient.
+
+- **Fuzz an optimiser change against client-local code.** `LocalPlayerFuzzTests` compiles random programs full of
+  `GetLocalPlayer()` and UI-state branches without and with optimisations and compares, client by client, what the Lua
+  does. CI runs 25 programs; before changing what a pass does around client-local values, run a campaign
+  (`WURST_FUZZ_PROGRAMS=3000`, a fresh `WURST_FUZZ_SEED`, `-PtestTimeoutMillis=3600000`) and plant a bug in the pass
+  to see the campaign catch it.
 
 - **Making the grammars SLL-clean is not worth it.** The SLL-first parse (`AntlrTokenPipeline`) parses a file again
   with the full LL prediction when SLL does not accept it, which also happens to a few valid files (`blizzard.j`,

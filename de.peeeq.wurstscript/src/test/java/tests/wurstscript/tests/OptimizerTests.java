@@ -2105,7 +2105,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(sink);
         prog.getFunctions().add(caller);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         ImFunctionCall optimizedCall = (ImFunctionCall) caller.getBody().get(0);
         ImVar first = ((ImVarAccess) optimizedCall.getArguments().get(0)).getVar();
@@ -2505,7 +2505,7 @@ public class OptimizerTests extends WurstScriptTest {
             Collections.emptyList());
         prog.getFunctions().add(f);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         List<ImVar> assigned = new ArrayList<>();
         List<ImVar> read = new ArrayList<>();
@@ -2553,7 +2553,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(tick);
         prog.getFunctions().add(f);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         assertEquals(f.getLocals().size(), 1, "a and b are merged: " + f.getLocals());
         for (ImStmt s : f.getBody()) {
@@ -2593,7 +2593,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(tick);
         prog.getFunctions().add(f);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         List<ImStatementExpr> statementExprs = new ArrayList<>();
         boolean[] divides = {false};
