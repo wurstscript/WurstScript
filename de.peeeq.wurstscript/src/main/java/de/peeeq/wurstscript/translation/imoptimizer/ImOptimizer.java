@@ -5,8 +5,6 @@ import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
 import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator;
-import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
-import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.RedundantFieldStores;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
@@ -31,8 +29,6 @@ public class ImOptimizer {
     static {
         localPasses.add(new SimpleRewrites());
         localPasses.add(new LocalMerger());
-        // After the pass which uses the local-player analysis: a pass which does not use it discards it, and none
-        // after this one needs it again in the same sweep.
         localPasses.add(new ConstantAndCopyPropagation());
         localPasses.add(new RedundantFieldStores());
         localPasses.add(new GlobalsInliner());
@@ -92,27 +88,12 @@ public class ImOptimizer {
 
     private int runLocalOptimizationSweep() {
         int optCount = 0;
-        LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
         for (OptimizerPass pass : localPasses) {
             if (pass instanceof DispatchCheckDeduplicator && trans.isLuaTarget()) {
                 // The dispatch checks it merges are made by the class elimination, which Lua does not run.
                 continue;
             }
-            int count;
-            if (pass instanceof LocalPlayerAwareOptimizerPass localPlayerAwarePass) {
-                if (localPlayerContextAnalyzer == null) {
-                    localPlayerContextAnalyzer =
-                        new LocalPlayerContextAnalyzer(trans.getImProg());
-                }
-                LocalPlayerContextAnalyzer analyzer = localPlayerContextAnalyzer;
-                count = timeTaker.measure(
-                    pass.getName(),
-                    () -> localPlayerAwarePass.optimize(trans, analyzer));
-            } else {
-                count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
-                // A general mutating pass may invalidate dependency edges.
-                localPlayerContextAnalyzer = null;
-            }
+            int count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
             optCount += count;
             totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
         }

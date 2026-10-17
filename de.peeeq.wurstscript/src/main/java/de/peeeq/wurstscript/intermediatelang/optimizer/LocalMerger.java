@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.Flatten;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -14,16 +15,19 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
 
-public class LocalMerger implements LocalPlayerAwareOptimizerPass {
+/**
+ * Gives locals whose live ranges are disjoint one variable. It needs no locality analysis: a merged local holds on
+ * every client the values the separate locals held, so a value which depends on the local player shares a variable
+ * with a synchronised one like any other.
+ */
+public class LocalMerger implements OptimizerPass {
     private int totalLocalsMerged = 0;
-    private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
     private ImTranslator translator;
 
     @Override
-    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
+    public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
         translator = trans;
-        localPlayerContextAnalyzer = analyzer;
         totalLocalsMerged = 0;
         optimizeFunctions(prog.getFunctions());
         List<ImClass> classes = prog.getClasses();
@@ -65,19 +69,14 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         mergeLocals(liveness.liveOut, liveness.liveAtEntry, func);
     }
 
-    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
-        localPlayerContextAnalyzer = analyzer;
-        optimizeFunc(func);
-    }
-
     /**
      * Entry point for callers which optimise one function outside {@link #optimize}: the translator
      * identifies the Lua operator intrinsics whose unused calls may be dropped. Without one, every
      * call is kept as a side effect.
      */
-    public void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer, ImTranslator trans) {
+    public void optimizeFunc(ImFunction func, ImTranslator trans) {
         translator = trans;
-        optimizeFunc(func, analyzer);
+        optimizeFunc(func);
     }
 
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
@@ -117,13 +116,6 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             for (int colorIndex = 0; colorIndex < colors.size(); colorIndex++) {
                 ImVar color = colors.get(colorIndex);
                 if (!canMerge(color.getType(), v.getType())) {
-                    continue;
-                }
-                // A merged local would hold both values while the analysis, made before this pass, still answers for
-                // each: keeping them apart keeps it true for the passes which use it after this one.
-                if (localPlayerContextAnalyzer != null
-                    && localPlayerContextAnalyzer.isLocalPlayerDependent(v)
-                    != localPlayerContextAnalyzer.isLocalPlayerDependent(color)) {
                     continue;
                 }
 
