@@ -375,8 +375,8 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
                 case 8 -> line(ind, "traceBool(" + boolExpr(2) + ")");
                 case 9 -> {
                     switch (r.nextInt(5)) {
-                        case 0 -> line(ind, "g0 = " + mod(intExpr(2)));
-                        case 1 -> line(ind, "g1 = " + mod(intExpr(2)));
+                        case 0 -> line(ind, "g0 = " + (r.nextBoolean() ? String.valueOf(r.nextInt(10)) : mod(intExpr(2))));
+                        case 1 -> line(ind, "g1 = " + (r.nextBoolean() ? String.valueOf(r.nextInt(10)) : mod(intExpr(2))));
                         case 2 -> line(ind, "ga[" + r.nextInt(4) + "] = " + mod(intExpr(2)));
                         case 3 -> line(ind, "gb = " + boolExpr(2));
                         default -> line(ind, box + "." + (r.nextBoolean() ? "v" : "w") + " = " + mod(intExpr(2)));
@@ -405,8 +405,18 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
                     loopDepth--;
                 }
                 case 13 -> {
-                    line(ind, "if " + condition());
-                    line(ind + 1, "return " + intExpr(1));
+                    String flag = pick(all(s -> s.bools));
+                    String target = pick(all(s -> s.mutableInts));
+                    if (flag != null && target != null && r.nextBoolean()) {
+                        // two ifs on one boolean local: an assignment in the first, reads in the second
+                        line(ind, "if " + flag);
+                        line(ind + 1, target + " = " + (r.nextBoolean() ? String.valueOf(r.nextInt(10)) : pick(all(s -> s.ints))));
+                        line(ind, "if " + flag);
+                        line(ind + 1, "traceInt(" + target + " + " + intExpr(1) + ")");
+                    } else {
+                        line(ind, "if " + condition());
+                        line(ind + 1, "return " + intExpr(1));
+                    }
                 }
                 default -> {
                     String target = pick(all(s -> s.mutableInts));
