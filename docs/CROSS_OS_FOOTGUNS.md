@@ -35,11 +35,9 @@ an unintended interactive call.
 ## Test tools and packaged runtimes differ by host
 
 The [Intel macOS packaging failure](https://github.com/wurstscript/WurstScript/actions/runs/37778085905)
-is one example of a host-specific runtime problem. See `deploy.gradle` and AGENTS.md's startup-archive notes:
-macOS copies a signed full JDK, other hosts use jlink, and a copied JDK need not contain a base CDS archive.
-Generate one when absent and verify the shipped runtime with `-Xshare:on`. Check the actual runtime image, and
-clear JVM option environment variables when generating/validating its archive. JDK availability also differs:
-the workflows use Zulu for Java 27 on Intel macOS.
+is one example of a host-specific runtime problem: macOS copies a signed full JDK where other hosts use jlink, so
+the base CDS archive comes about differently (AGENTS.md §5, "Language server startup archive", and `deploy.gradle`).
+JDK availability also differs: the workflows use Zulu for Java 27 on Intel macOS.
 
 The checked-in Linux Lua fallback needs `libreadline.so.6`, absent on current Ubuntu images. CI installs Lua 5.3
 instead. Windows uses bundled `.exe` tools; macOS installs Homebrew Lua, whose version is not pinned to 5.3.

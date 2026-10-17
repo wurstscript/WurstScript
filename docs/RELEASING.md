@@ -9,10 +9,16 @@ The release baseline is **2.0.0**, stored in `de.peeeq.wurstscript/version.txt`.
 1. Merge the intended changes and version bump to master. Review the release scope and CI results.
 2. Fetch master and tags, then check out the intended master commit. A release can use an older master commit when newer work is not ready.
 3. Create an annotated tag matching that commit's version file, for example `git tag -a v2.0.0 -m "WurstScript 2.0.0"`.
-4. Push that one tag: `git push origin v2.0.0`.
-5. Watch **Release versioned compiler**. It validates the tag, version file, and master ancestry, runs tests and packages Windows x64, Linux x64, macOS x64, and macOS arm64. Publication waits for every platform to pass.
+4. Write the release notes (below) into a file before pushing the tag: the build can finish before you do.
+5. Push that one tag: `git push origin v2.0.0`.
+6. Create the draft release with those notes right away: `gh release create v2.0.0 --draft --verify-tag --notes-file <file> --generate-notes`, which appends GitHub's generated changelog. If the workflow has already published the release, set the notes with `gh release edit v2.0.0 --notes-file <file>`.
+7. Watch **Release versioned compiler**. It validates the tag, version file, and master ancestry, runs tests and packages Windows x64, Linux x64, macOS x64, and macOS arm64. Publication waits for every platform to pass.
 
-The workflow assembles the complete assets in a draft release, uploads checksums, then publishes it. A published version is never overwritten. For a failed build, rerun the failed workflow; for a defect in a published compiler, bump the version and publish a new tag. Do not move an existing release tag.
+The workflow assembles the complete assets in a draft release, uploads checksums, then publishes it. It keeps the body of a draft which already exists; without one it creates the release with only GitHub's generated notes. The assets of a published version are never replaced. For a failed build, rerun the failed workflow; for a defect in a published compiler, bump the version and publish a new tag. Do not move an existing release tag.
+
+## Release notes
+
+Start the notes with `## Highlights`: one to three flat, single-line bullets of at most 160 characters each, describing what users gain, then the detailed changelog. The VS Code extension shows those bullets in its status hover for the installed version and for an available update; it reads the first three, strips backticks and asterisks, and cuts each at 160 characters.
 
 ## Version metadata
 
