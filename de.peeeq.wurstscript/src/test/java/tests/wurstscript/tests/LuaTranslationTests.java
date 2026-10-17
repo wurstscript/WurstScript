@@ -2451,7 +2451,10 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
 
         // update dispatches the global state and then the current state, both through the root slot.
-        List<String> slots = uniqueMatches(getFunctionBody(compiled, "FSM_FSM_update"), DISPATCH_CALL_SITE, 1);
+        String update = getFunctionBody(compiled, "FSM_FSM_update");
+        assertEquals("FSM update must dispatch the global and the current state: " + update,
+            2, countMatches(update, DISPATCH_CALL_SITE));
+        List<String> slots = uniqueMatches(update, DISPATCH_CALL_SITE, 1);
         assertEquals("FSM update must dispatch both states through one slot: " + slots, 1, slots.size());
         String dispatchedSlot = slots.get(0);
         assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
