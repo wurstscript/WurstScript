@@ -2598,9 +2598,15 @@ public class WurstValidator {
      * operand, where {@code f(n) / m} is the integer division {@code n / m}.
      */
     private static boolean isIntReturnedAsJassReal(WurstType returnedType, WurstType returnType, StmtReturn s) {
-        return returnType instanceof WurstTypeReal
-            && (returnedType instanceof WurstTypeInt || returnedType instanceof WurstTypeIntLiteral)
+        WurstType returned = rootOfNativeType(returnedType);
+        return rootOfNativeType(returnType) instanceof WurstTypeReal
+            && (returned instanceof WurstTypeInt || returned instanceof WurstTypeIntLiteral)
             && Utils.isJassCode(s);
+    }
+
+    /** A Jass {@code type myint extends integer} is an integer here, as it is to pjass. */
+    private static WurstType rootOfNativeType(WurstType type) {
+        return type instanceof WurstNativeType nativeType ? nativeType.rootSupertype() : type;
     }
 
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {

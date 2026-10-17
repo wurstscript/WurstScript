@@ -216,6 +216,40 @@ public class CompilationUnitTests extends WurstScriptTest {
             );
     }
 
+    /** A type derived from integer is an integer to pjass, returned as a real. */
+    @Test
+    public void jassDerivedIntReturnedFromRealFunctionIsError() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectError("Cannot convert returned value from integer to real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "type myint extends integer",
+                    "function jassMyToReal takes myint n returns real",
+                    "    return n",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** And a type derived from real is a real to pjass, returned from. */
+    @Test
+    public void jassIntReturnedFromDerivedRealFunctionIsError() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectError("Cannot convert returned value from integer to real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "type myreal extends real",
+                    "function jassToMyReal takes integer n returns myreal",
+                    "    return n",
+                    "endfunction"
+                )
+            );
+    }
+
     /** For a legacy target the integer return is a warning, like the other Jass return mismatches. */
     @Test
     public void jassIntReturnedFromRealFunctionIsWarningForLegacyTarget() {
