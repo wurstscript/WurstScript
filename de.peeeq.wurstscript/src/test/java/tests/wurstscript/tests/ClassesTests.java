@@ -667,6 +667,76 @@ public class ClassesTests extends WurstScriptTest {
             "Expected inlopt output to contain a single dispatch guard, found " + inlOptGuardCount);
     }
 
+    /**
+     * Only a guard which calls the compiler's error function, which does not return, may be dropped as a repeat.
+     * User code of the same shape calls a function which returns, so both copies run.
+     */
+    @Test
+    public void guardShapedUserCodeIsNotDeduped() {
+        test().executeProg().lines(
+            "package test",
+            "    native testSuccess()",
+            "    int array typeId",
+            "    int array input",
+            "    int count = 0",
+            "    @noinline function report(string s)",
+            "        count += 1",
+            "    init",
+            "        let obj = input[0]",
+            "        if typeId[obj] == 0",
+            "            if obj == 0",
+            "                report(\"null\")",
+            "            else",
+            "                report(\"invalid\")",
+            "        if typeId[obj] == 0",
+            "            if obj == 0",
+            "                report(\"null\")",
+            "            else",
+            "                report(\"invalid\")",
+            "        if count == 2",
+            "            testSuccess()",
+            "endpackage");
+    }
+
+    /** The same shape in a Jass compilation unit. */
+    @Test
+    public void guardShapedJassCodeIsNotDeduped() {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\tinteger array typeId",
+                "\tinteger count = 0",
+                "endglobals",
+                "function report takes string s returns nothing",
+                "\tset count = count + 1",
+                "endfunction",
+                "function guarded takes integer this returns integer",
+                "\tif typeId[this] == 0 then",
+                "\t\tif this == 0 then",
+                "\t\t\tcall report(\"null\")",
+                "\t\telse",
+                "\t\t\tcall report(\"invalid\")",
+                "\t\tendif",
+                "\tendif",
+                "\tif typeId[this] == 0 then",
+                "\t\tif this == 0 then",
+                "\t\t\tcall report(\"null\")",
+                "\t\telse",
+                "\t\t\tcall report(\"invalid\")",
+                "\t\tendif",
+                "\tendif",
+                "\treturn count",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array input",
+                "init",
+                "    if guarded(input[0]) == 2",
+                "        testSuccess()",
+                "endpackage"));
+    }
+
     @Test
     public void dispatchGuardNotDedupedAcrossRhsSideEffects() throws IOException {
         testAssertOkLines(false,

@@ -24,6 +24,7 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     private int rewrites;
     private final IdentityHashMap<ImFunction, IdentityHashMap<ImVar, Boolean>> mayWriteTypeIdMemo = new IdentityHashMap<>();
     private SideEffectAnalyzer sideEffectAnalyzer;
+    private ImFunction errorFunc;
 
     @Override
     public int optimize(ImTranslator trans) {
@@ -31,6 +32,7 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         mayWriteTypeIdMemo.clear();
         ImProg prog = trans.getImProg();
         sideEffectAnalyzer = new SideEffectAnalyzer(prog);
+        errorFunc = trans.getErrorFuncIfPresent();
         for (ImFunction f : prog.getFunctions()) {
             optimizeStmts(f.getBody());
         }
@@ -267,11 +269,16 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
             && imIntVal.getValI() == 0;
     }
 
-    private static ErrorCall parseSingleErrorCall(ImStmt stmt) {
+    private ErrorCall parseSingleErrorCall(ImStmt stmt) {
         if (!(stmt instanceof ImFunctionCall fc)) {
             return null;
         }
         if (fc.getArguments().size() != 1 || !(fc.getArguments().get(0) instanceof ImStringVal)) {
+            return null;
+        }
+        // A repeated guard may only be dropped because its call does not return, which holds for the compiler's
+        // error function, not for any function taking one string.
+        if (errorFunc == null || fc.getFunc() != errorFunc) {
             return null;
         }
         return new ErrorCall(fc.getFunc(), ((ImStringVal) fc.getArguments().get(0)).getValS());
