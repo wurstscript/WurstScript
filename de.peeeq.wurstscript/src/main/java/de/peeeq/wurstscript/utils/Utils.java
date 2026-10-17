@@ -584,51 +584,6 @@ public class Utils {
         return result;
     }
 
-    public static <K, V> ImmutableMap<K, V> mergeMaps(
-            ImmutableMap<K, V> a,
-            ImmutableMap<K, V> b,
-            Function2<V, V, V> mergeFunc) {
-        if (a.isEmpty()) return b;
-        if (b.isEmpty()) return a;
-
-        ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
-
-        for (Entry<K, V> e : a.entrySet()) {
-            K key = e.getKey();
-            if (b.containsKey(key)) {
-                builder.put(key, mergeFunc.apply(e.getValue(), b.get(key)));
-            } else {
-                builder.put(e);
-            }
-        }
-
-        for (Entry<K, V> e : b.entrySet()) {
-            K key = e.getKey();
-            if (!a.containsKey(key)) {
-                builder.put(e);
-            }
-        }
-
-        return builder.build();
-    }
-
-    public static <K, V> ImmutableSetMultimap<K, V> mergeMultiMaps(
-            ImmutableSetMultimap<K, V> a, ImmutableSetMultimap<K, V> b) {
-        if (a.isEmpty()) return b;
-        if (b.isEmpty()) return a;
-
-        ImmutableSetMultimap.Builder<K, V> builder = ImmutableSetMultimap.builder();
-        builder.putAll(a);
-        builder.putAll(b);
-        return builder.build();
-    }
-
-    public static <T> ImmutableSet<T> mergeSets(ImmutableSet<T> a, ImmutableSet<T> b) {
-        ImmutableSet.Builder<T> builder = ImmutableSet.builder();
-        builder.addAll(a).addAll(b);
-        return builder.build();
-    }
-
     public static <T> T[] joinArrays(T[] a, T[] b) {
         T[] res = Arrays.copyOf(a, a.length + b.length);
         System.arraycopy(b, 0, res, a.length, b.length);
