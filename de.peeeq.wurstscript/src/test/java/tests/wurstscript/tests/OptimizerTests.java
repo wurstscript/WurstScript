@@ -3462,6 +3462,41 @@ public class OptimizerTests extends WurstScriptTest {
             "local-player-dependent expressions must not be discarded");
     }
 
+    /**
+     * A copy of a value which depends on the local player is propagated like any other: the read which replaces it
+     * reads the same value on every client, and nothing moves. The source stays live after the copy, so the local
+     * merger cannot remove the copy; only the propagation can.
+     */
+    @Test
+    public void copyOfLocalPlayerValueIsPropagated() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native GetPlayerId(player p) returns integer",
+            "native print(integer i)",
+            "class Box",
+            "    player owner",
+            "@noinline function show(Box b)",
+            "    player voter = b.owner",
+            "    player q = voter",
+            "    print(GetPlayerId(q))",
+            "    print(GetPlayerId(voter) + 1)",
+            "    print(GetPlayerId(q) + 2)",
+            "init",
+            "    let b = new Box",
+            "    b.owner = GetLocalPlayer()",
+            "    show(b)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_copyOfLocalPlayerValueIsPropagated_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(optimized.contains("GetLocalPlayer()"), optimized);
+        assertFalse(optimized.contains("q = voter"), optimized);
+        assertTrue(optimized.contains("GetPlayerId(voter)"), optimized);
+    }
+
     @Test
     public void synchronizedValueMustNotMoveIntoLocalPlayerBranch() throws Exception {
         test().lines(
