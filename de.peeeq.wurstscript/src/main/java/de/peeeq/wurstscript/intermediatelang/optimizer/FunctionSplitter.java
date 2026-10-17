@@ -39,12 +39,7 @@ public class FunctionSplitter {
         // run some basic optimizations first:
         func.flatten(tr);
         new ConstantAndCopyPropagation().optimizeFunc(func);
-        // The merge asks the locality analysis only about locals and the values assigned to them (the function has
-        // no parameters), and the compile-time state usually has none, so the analysis is made only when it has some.
-        LocalPlayerContextAnalyzer localPlayerContextAnalyzer = func.getLocals().isEmpty()
-            ? null
-            : new LocalPlayerContextAnalyzer(tr.getImProg());
-        new LocalMerger().optimizeFunc(func, localPlayerContextAnalyzer, tr);
+        new LocalMerger().optimizeFunc(func, tr);
         Set<ImVar> usedVars = UsedVariables.calculate(func);
         func.getLocals().removeIf(v -> !usedVars.contains(v));
         func.flatten(tr);

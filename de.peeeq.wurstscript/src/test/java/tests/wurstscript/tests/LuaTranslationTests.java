@@ -3412,6 +3412,34 @@ public class LuaTranslationTests extends WurstScriptTest {
             1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
     }
 
+    /**
+     * A client-local value and a synchronised one with disjoint live ranges share one local as well: on every
+     * client the local holds what each of them held.
+     */
+    @Test
+    public void luaLocalMergerReusesSlotsAcrossLocality() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerReusesSlotsAcrossLocality",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "@extern native takesPlayer(player p)",
+            "@noinline function caller()",
+            "    let first = GetLocalPlayer()",
+            "    takesPlayer(first)",
+            "    let second = Player(0)",
+            "    takesPlayer(second)",
+            "init",
+            "    caller()"
+        );
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertEquals("a client-local and a synchronised value with disjoint live ranges share one Lua register:\n"
+            + callerBody, 1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
+    }
+
     @Test
     public void luaLocalMergerKeepsTupleVarargLoopBindingsDistinct() {
         List<String> lines = new ArrayList<>();
