@@ -7968,11 +7968,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * Jass converts an integer stored where a real is declared: into a variable, as an argument for a real parameter
-     * and as the result of a function which returns real. Lua keeps the integer unless the script converts it, and
-     * the game's Lua computes integers in 32 bits, so a product of the stored value wraps where Jass multiplies reals
-     * (measured on the 3.0.0 client: 65536 stored into a real global, squared and divided by 65536. gives 0 on Lua and
-     * 65536 on Jass). The test Lua's integers have 64 bits, so the fourth power, 2^64, wraps there too.
+     * Jass converts an integer stored where a real is declared: into a variable or as an argument for a real
+     * parameter. Lua keeps the integer unless the script converts it, and the game's Lua computes integers in 32 bits,
+     * so a product of the stored value wraps where Jass multiplies reals (measured on the 3.0.0 client: 65536 stored
+     * into a real global, squared and divided by 65536. gives 0 on Lua and 65536 on Jass). The test Lua's integers
+     * have 64 bits, so the fourth power, 2^64, wraps there too. An integer returned from a function which returns real
+     * is left out: pjass rejects it.
      */
     @Test
     public void jassIntStoredIntoRealIsARealOnLua() throws IOException {
@@ -7982,10 +7983,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue(compiled, luaFunctionBody(compiled, "jassGlobal").contains("[1] = (a + 0.)"));
         assertTrue(compiled, luaFunctionBody(compiled, "jassLocal").contains("rb = (b + 0.)"));
         assertTrue(compiled, luaFunctionBody(compiled, "jassParameter").contains("jassFourth((c + 0.))"));
-        assertTrue(compiled, luaFunctionBody(compiled, "jassReturnsReal").contains("return (d + 0.)"));
     }
 
-    /** The same through the optimiser: an inlined function which returns real keeps the conversion of its result. */
+    /** The same through the optimiser, whose copy propagation and inlining made each of them {@code n * n * n * n}. */
     @Test
     public void jassIntStoredIntoRealStaysARealWhenInlinedOnLua() {
         test().testLua(true).inline().localOptimizations().executeProg().compilationUnits(jassIntStoredIntoReal());
@@ -8012,12 +8012,6 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                 "endfunction",
                 "function jassParameter takes integer c returns real",
                 "\treturn jassFourth(c)",
-                "endfunction",
-                "function jassReturnsReal takes integer d returns real",
-                "\treturn d",
-                "endfunction",
-                "function jassReturn takes integer e returns real",
-                "\treturn jassReturnsReal(e) * jassReturnsReal(e) * jassReturnsReal(e) * jassReturnsReal(e)",
                 "endfunction"),
             compilationUnit("test.wurst",
                 "package test",
@@ -8028,7 +8022,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                 "    let n = ints[0]",
                 "    let twoTo64 = 18446744073709551616.",
                 "    if jassGlobal(n) == twoTo64 and jassLocal(n) == twoTo64",
-                "        and jassParameter(n) == twoTo64 and jassReturn(n) == twoTo64",
+                "        and jassParameter(n) == twoTo64",
                 "        testSuccess()")
         };
     }
