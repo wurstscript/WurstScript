@@ -2595,9 +2595,10 @@ public class WurstValidator {
     /**
      * Jass takes an integer where a real is stored or passed, but pjass rejects one returned from a function
      * declared to return a real. Inlining would hide that return from pjass and leave the integer in an
-     * operand, where {@code f(n) / m} is the integer division {@code n / m}.
+     * operand, where {@code f(n) / m} is the integer division {@code n / m}. A legacy target accepts it, so the
+     * translation keeps such a function a call ({@code FunctionFlagEnum.RETURNS_INT_AS_REAL}).
      */
-    private static boolean isIntReturnedAsJassReal(WurstType returnedType, WurstType returnType, StmtReturn s) {
+    public static boolean isIntReturnedAsJassReal(WurstType returnedType, WurstType returnType, StmtReturn s) {
         WurstType returned = rootOfNativeType(returnedType);
         return rootOfNativeType(returnType) instanceof WurstTypeReal
             && (returned instanceof WurstTypeInt || returned instanceof WurstTypeIntLiteral)

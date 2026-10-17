@@ -1956,6 +1956,36 @@ public class OptimizerTests extends WurstScriptTest {
         }
     }
 
+    /** The same with a type derived from integer, which the IM names only by its own name. */
+    @Test
+    public void inlinerKeepsALegacyDerivedIntReturnedAsRealACall() throws IOException {
+        test().setStopOnFirstError(false).executeProg(false).legacyJassTypeChecks()
+            .expectWarning("Cannot convert returned value from integer to real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "type myint extends integer",
+                    "function jassMyToReal takes myint n returns real",
+                    "\treturn n",
+                    "endfunction",
+                    "function jassDivMy takes myint n, integer m returns real",
+                    "\treturn jassMyToReal(n) / m",
+                    "endfunction"),
+                compilationUnit("test.wurst",
+                    "package test",
+                    "native testSuccess()",
+                    "int array arr",
+                    "init",
+                    "    arr[1] = 2",
+                    "    if jassDivMy(null, arr[1]) > -1.",
+                    "        testSuccess()",
+                    "endpackage"));
+        for (String variant : new String[]{"_inl.j", "_inlopt.j"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_inlinerKeepsALegacyDerivedIntReturnedAsRealACall"
+                + variant), Charsets.UTF_8);
+            assertTrue(out.contains("jassMyToReal("), variant + ":\n" + out);
+        }
+    }
+
     @Test
     public void inlinerIntRealsConstantFolding() {
         testAssertOkLines(true,

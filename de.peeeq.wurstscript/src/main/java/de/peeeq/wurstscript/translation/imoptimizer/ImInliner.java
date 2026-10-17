@@ -1315,29 +1315,12 @@ public class ImInliner {
             // can wrap them in xpcall. Inlining removes the call site and loses the guard.
             return false;
         }
-        if (returnsIntAsReal(f)) {
-            // Only Jass for a legacy target gets here (elsewhere it is a type error). The call is the one
-            // place where the integer becomes the declared real; inlined, `f(n) / m` would divide integers.
+        if (f.hasFlag(FunctionFlagEnum.RETURNS_INT_AS_REAL)) {
+            // Only Jass for a legacy target gets here (elsewhere it is a type error). Inlined, the integer it
+            // returns as a real would land in an operand, where `f(n) / m` divides integers.
             return false;
         }
         return true;
-    }
-
-    private static boolean returnsIntAsReal(ImFunction f) {
-        if (!TypesHelper.isRealType(f.getReturnType())) {
-            return false;
-        }
-        boolean[] found = {false};
-        f.getBody().accept(new ImStmts.DefaultVisitor() {
-            @Override
-            public void visit(ImReturn ret) {
-                super.visit(ret);
-                if (ret.getReturnValue() instanceof ImExpr value && TypesHelper.isIntType(value.attrTyp())) {
-                    found[0] = true;
-                }
-            }
-        });
-        return found[0];
     }
 
     private boolean isLuaTypeCastingCompatFunction(ImFunction f) {
