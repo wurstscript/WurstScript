@@ -7979,6 +7979,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).executeProg().compilationUnits(jassIntStoredIntoReal());
         String compiled = compiledLua("jassIntStoredIntoRealIsARealOnLua");
         assertTrue(compiled, luaFunctionBody(compiled, "jassGlobal").contains("g = (a + 0.)"));
+        assertTrue(compiled, luaFunctionBody(compiled, "jassGlobal").contains("[1] = (a + 0.)"));
         assertTrue(compiled, luaFunctionBody(compiled, "jassLocal").contains("rb = (b + 0.)"));
         assertTrue(compiled, luaFunctionBody(compiled, "jassParameter").contains("jassFourth((c + 0.))"));
         assertTrue(compiled, luaFunctionBody(compiled, "jassReturnsReal").contains("return (d + 0.)"));
@@ -7995,10 +7996,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compilationUnit("input.j",
                 "globals",
                 "\treal g",
+                "\treal array ga",
                 "endglobals",
                 "function jassGlobal takes integer a returns real",
                 "\tset g = a",
-                "\treturn g * g * g * g",
+                "\tset ga[1] = a",
+                "\treturn g * g * ga[1] * ga[1]",
                 "endfunction",
                 "function jassLocal takes integer b returns real",
                 "\tlocal real rb = b",
