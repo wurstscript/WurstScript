@@ -85,6 +85,8 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
             + String.join("\n", failures), failures.isEmpty());
         assertTrue("too few programs behave differently on different clients: " + clientsDiffer,
             clientsDiffer * 2 >= programs);
+        assertTrue("too few optimised scripts differ from the reference: " + scriptsDiffer,
+            scriptsDiffer * 2 >= programs * OPTIMISED.length);
     }
 
     private String compile(String source, String... args) {
