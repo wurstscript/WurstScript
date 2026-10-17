@@ -552,6 +552,114 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
     }
 
+    @Test
+    public void longRunOfAccumulatingStatementsCompiles() {
+        // A long generated init function, `sum += g0` ... `sum += g3299`. Merging the run into one assignment made an
+        // expression 3300 levels deep, and the flatten after the merge overflowed the stack.
+        int count = 3300;
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        for (int i = 0; i < count; i++) {
+            lines.add("int g" + i + " = " + i);
+        }
+        lines.add("init");
+        lines.add("	var sum = 0");
+        for (int i = 0; i < count; i++) {
+            lines.add("	sum += g" + i);
+        }
+        lines.add("	if sum > 0");
+        lines.add("		testSuccess()");
+        test().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
+    public void runMergedOntoADeepRightOperandLoadsInLua() {
+        // The first value is 90 levels deep on its right operands, which the bound did not count: merging 64 pairs
+        // of `h *= a` and `h += b` onto it made more nested levels than luac takes (200).
+        String deep = "b";
+        for (int i = 0; i < 90; i++) {
+            deep = "(a + " + deep + ")";
+        }
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        lines.add("function mix(int a, int b) returns int");
+        lines.add("	var h = " + deep);
+        for (int i = 0; i < 64; i++) {
+            lines.add("	h *= a");
+            lines.add("	h += b");
+        }
+        lines.add("	return h");
+        lines.add("init");
+        lines.add("	if mix(1, 1) == 155");
+        lines.add("		testSuccess()");
+        test().testLua(true).localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
+    public void longRunOfAlternatingOperatorsLoadsInLua() {
+        // Merged into one assignment, 150 pairs of `h *= a` and `h += b` were 300 nested parentheses in Lua, and
+        // luac stops at 200 levels.
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        lines.add("function mix(int a, int b) returns int");
+        lines.add("	var h = a");
+        for (int i = 0; i < 150; i++) {
+            lines.add("	h *= a");
+            lines.add("	h += b");
+        }
+        lines.add("	return h");
+        lines.add("init");
+        lines.add("	if mix(1, 1) == 151");
+        lines.add("		testSuccess()");
+        test().testLua(true).localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
+    public void mergingConsecutiveAssignmentsNestsBoundedly() {
+        // `x = 0` and then `x = x + gI` a thousand times: the assignments still merge, but no merged expression has
+        // more than MAX_MERGED_OPERATORS operators down its left operands.
+        int count = 1000;
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImStmts body = JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(x), JassIm.ImIntVal(0)));
+        for (int i = 0; i < count; i++) {
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            prog.getGlobals().add(g);
+            body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), JassIm.ImOperatorCall(
+                de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImVarAccess(g)))));
+        }
+        ImVar p = JassIm.ImVar(model, TypesHelper.imInt(), "p", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), JassIm.ImVars(p), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), List.of(FunctionFlagEnum.IS_NATIVE));
+        prog.getFunctions().add(sink);
+        body.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(x)),
+            false, CallType.NORMAL));
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(x), body, Collections.emptyList());
+        prog.getFunctions().add(main);
+
+        new de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites().optimize(translator);
+
+        int max = de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites.MAX_MERGED_OPERATORS;
+        int sets = 0;
+        for (ImStmt s : main.getBody()) {
+            if (s instanceof ImSet set) {
+                sets++;
+                int operators = 0;
+                for (ImExpr e = set.getRight(); e instanceof ImOperatorCall op; e = op.getArguments().get(0)) {
+                    operators++;
+                }
+                assertTrue(operators <= max, "a merged assignment has " + operators + " operators");
+            }
+        }
+        assertTrue(sets <= count / max + 2, "the assignments did not merge: " + sets + " are left");
+    }
+
 
     private String makeCode(String... body) {
         return Utils.join(body, "\n");

@@ -609,6 +609,16 @@ public class SimpleRewrites implements OptimizerPass {
     }
 
     /**
+     * The most operators {@link #optimizeConsecutiveSet} nests in the left operand of one assignment. Each merge
+     * makes the expression one level deeper, and one walk merges a whole run of statements, so a generated run of
+     * {@code sum += gN} became one expression as deep as the run is long. The recursive walkers after it overflowed
+     * the Java stack from about a thousand statements, the flatten first; and where the operators alternate, each
+     * level is a parenthesis in the Lua output, and luac rejects more than 200 levels. A merge saves one assignment,
+     * so a long run still loses all but one assignment in this many.
+     */
+    public static final int MAX_MERGED_OPERATORS = 64;
+
+    /**
      * Optimizes
      * <p>
      * set x = expr1
@@ -618,7 +628,8 @@ public class SimpleRewrites implements OptimizerPass {
      * <p>
      * set x  = expr1 ⊕ expr2
      * <p>
-     * like code that is created by the branch merger
+     * like code that is created by the branch merger, while expr1 is nested fewer than {@link #MAX_MERGED_OPERATORS}
+     * levels deep.
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
         ImVar leftVar1;
@@ -642,7 +653,7 @@ public class SimpleRewrites implements OptimizerPass {
                 if (rightOpCall2.getArguments().size() == 2) {
                     if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
-                        if (imVarAccess2.getVar() == leftVar2) {
+                        if (imVarAccess2.getVar() == leftVar2 && !hasMergeLimitOfOperators(rightExpr1)) {
                             // Jass converts an integer stored into a real: the integer in place of the
                             // variable would make `r / m` an integer division.
                             if (!(TypesHelper.isRealType(leftVar1.getType()) && TypesHelper.isIntType(rightExpr1.attrTyp()))
@@ -657,6 +668,30 @@ public class SimpleRewrites implements OptimizerPass {
                 }
             }
         }
+    }
+
+    /**
+     * Whether {@code e} is nested {@link #MAX_MERGED_OPERATORS} levels deep or more, on any of its operands: each merge
+     * puts it one level deeper. The walk stops at the limit, so it costs at most the part of {@code e} above it.
+     */
+    private static boolean hasMergeLimitOfOperators(ImExpr e) {
+        return reachesDepth(e, MAX_MERGED_OPERATORS);
+    }
+
+    /** Whether {@code e} holds expressions nested {@code levels} deep; a list of arguments is no level of its own. */
+    private static boolean reachesDepth(Element e, int levels) {
+        if (e instanceof ImExpr) {
+            if (levels <= 1) {
+                return true;
+            }
+            levels--;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (reachesDepth(e.get(i), levels)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
