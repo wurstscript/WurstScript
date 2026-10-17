@@ -3212,6 +3212,49 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(out.contains("return 7. / m"), out);
     }
 
+    /** The globals inliner puts an integer constant stored into a real global in place of its reads as a real. */
+    @Test
+    public void intConstantStoredIntoRealGlobalIsInlinedAsReal() throws IOException {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int array arr",
+            "constant real g = 14 div 2",
+            "function divide(int m) returns real",
+            "    return g / m",
+            "init",
+            "    arr[0] = 2",
+            "    if divide(arr[0]) > 3.4",
+            "        testSuccess()",
+            "endpackage");
+        String out = Files.toString(new File("test-output/OptimizerTests_intConstantStoredIntoRealGlobalIsInlinedAsReal_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("return 7. / m"), out);
+    }
+
+    /** The same for a Jass real global initialised with an integer expression, which folds to an integer. */
+    @Test
+    public void jassIntExpressionInRealGlobalIsInlinedAsReal() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\treal g = 14 / 2",
+                "endglobals",
+                "function jassDiv takes integer m returns real",
+                "\treturn g / m",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array arr",
+                "init",
+                "    arr[0] = 2",
+                "    if jassDiv(arr[0]) > 3.4",
+                "        testSuccess()",
+                "endpackage"));
+        String out = Files.toString(new File("test-output/OptimizerTests_jassIntExpressionInRealGlobalIsInlinedAsReal_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("return 7. / m"), out);
+    }
+
     /** `set r = n` followed by `set r = r / m` must not become the integer division `set r = n / m`. */
     @Test
     public void intStoredIntoRealIsNotSplicedIntoTheNextSet() throws IOException {
