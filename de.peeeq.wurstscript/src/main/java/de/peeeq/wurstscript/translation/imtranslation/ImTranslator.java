@@ -1559,6 +1559,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
+            if (returnsIntAsJassReal(funcDef2)) {
+                flags.add(RETURNS_INT_AS_REAL);
+            }
         }
 
         // Check if last parameter is vararg
@@ -1594,6 +1597,26 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         addFunction(f, funcDef);
         functionMap.put(funcDef, f);
         return requested(f);
+    }
+
+    /** Whether a Jass function returns an integer as its real, which only a legacy target accepts. */
+    private static boolean returnsIntAsJassReal(FuncDef funcDef) {
+        if (!Utils.isJassCode(funcDef)) {
+            return false;
+        }
+        WurstType returnType = funcDef.attrReturnTyp();
+        boolean[] found = {false};
+        funcDef.getBody().accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
+            @Override
+            public void visit(StmtReturn ret) {
+                super.visit(ret);
+                if (ret.getReturnedObj() instanceof Expr returned
+                    && WurstValidator.isIntReturnedAsJassReal(returned.attrTyp(), returnType, ret)) {
+                    found[0] = true;
+                }
+            }
+        });
+        return found[0];
     }
 
     private ImClass getClassForFunc(TranslatedToImFunction funcDef) {

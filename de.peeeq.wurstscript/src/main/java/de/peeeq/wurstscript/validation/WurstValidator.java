@@ -2592,6 +2592,24 @@ public class WurstValidator {
         return abstractMethod != null && abstractMethod.getReturnType().isVoid();
     }
 
+    /**
+     * Jass takes an integer where a real is stored or passed, but pjass rejects one returned from a function
+     * declared to return a real. Inlining would hide that return from pjass and leave the integer in an
+     * operand, where {@code f(n) / m} is the integer division {@code n / m}. A legacy target accepts it, so the
+     * translation keeps such a function a call ({@code FunctionFlagEnum.RETURNS_INT_AS_REAL}).
+     */
+    public static boolean isIntReturnedAsJassReal(WurstType returnedType, WurstType returnType, StmtReturn s) {
+        WurstType returned = rootOfNativeType(returnedType);
+        return rootOfNativeType(returnType) instanceof WurstTypeReal
+            && (returned instanceof WurstTypeInt || returned instanceof WurstTypeIntLiteral)
+            && Utils.isJassCode(s);
+    }
+
+    /** A Jass {@code type myint extends integer} is an integer here, as it is to pjass. */
+    private static WurstType rootOfNativeType(WurstType type) {
+        return type instanceof WurstNativeType nativeType ? nativeType.rootSupertype() : type;
+    }
+
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
         WurstType returnType = func.attrReturnTyp();
         if (s.getReturnedObj() instanceof Expr) {
@@ -2600,6 +2618,16 @@ public class WurstValidator {
                 s.addError("Cannot return a value from a function which returns nothing");
             } else {
                 WurstType returnedType = returned.attrTyp();
+                if (isIntReturnedAsJassReal(returnedType, returnType, s)) {
+                    String message = "Cannot convert returned value from integer to real: "
+                        + "a function which returns real must return a real, for example I2R(...).";
+                    if (legacyJassTypeChecks) {
+                        s.addWarning(message);
+                    } else {
+                        s.addError(message);
+                    }
+                    return;
+                }
                 if (!returnedType.isSubtypeOf(returnType, s)) {
                     // NEW: Allow returning null for generic type parameters
                     if (returnedType instanceof WurstTypeNull &&

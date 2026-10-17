@@ -50,6 +50,15 @@ public class WurstNativeType extends WurstType {
         return t;
     }
 
+    /** The type at the end of the supertype chain: integer for {@code type myint extends integer}. */
+    public WurstType rootSupertype() {
+        WurstType type = this;
+        while (type instanceof WurstNativeType nativeType) {
+            type = nativeType.superType;
+        }
+        return type;
+    }
+
     @Override
     public ImType imTranslateType(ImTranslator tr) {
         // Native types keep their source identity, including their supertypes: a selected subtype

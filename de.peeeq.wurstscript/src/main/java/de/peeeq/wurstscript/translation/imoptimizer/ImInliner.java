@@ -1315,6 +1315,11 @@ public class ImInliner {
             // can wrap them in xpcall. Inlining removes the call site and loses the guard.
             return false;
         }
+        if (f.hasFlag(FunctionFlagEnum.RETURNS_INT_AS_REAL)) {
+            // Only Jass for a legacy target gets here (elsewhere it is a type error). Inlined, the integer it
+            // returns as a real would land in an operand, where `f(n) / m` divides integers.
+            return false;
+        }
         return true;
     }
 
