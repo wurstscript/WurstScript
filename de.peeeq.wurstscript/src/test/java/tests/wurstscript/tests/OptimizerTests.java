@@ -393,6 +393,48 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
     }
 
+    /**
+     * A function of the user's which happens to be called initGlobals is not the globals initialiser: its write of
+     * the default value is a reset, which must stay.
+     */
+    @Test
+    public void globalsInlinerDoesNotTakeAJassInitGlobalsForTheInitialiser() {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "	integer mode",
+                "endglobals",
+                "function initGlobals takes nothing returns nothing",
+                "	set mode = 0",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    mode = 5",
+                "    initGlobals()",
+                "    if mode == 0",
+                "        testSuccess()",
+                "endpackage"));
+    }
+
+    /** The same for a Wurst function of that name. */
+    @Test
+    public void globalsInlinerDoesNotTakeAWurstInitGlobalsForTheInitialiser() {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int mode",
+            "function initGlobals()",
+            "    mode = 0",
+            "init",
+            "    mode = 5",
+            "    initGlobals()",
+            "    if mode == 0",
+            "        testSuccess()",
+            "endpackage");
+    }
+
     @Test
     public void globalsInlinerDoesNotRemoveNonInitDefaultWrite() {
         test().executeProg().lines(
