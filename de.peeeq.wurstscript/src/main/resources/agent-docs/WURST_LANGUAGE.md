@@ -1,4 +1,4 @@
-<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-09-27 -->
+<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-10-16 -->
 # WurstScript language digest
 
 This is the compact, agent-oriented language reference shipped with the WurstScript compiler. It covers language semantics and compiler-facing syntax; standard-library APIs, dependency conventions, UI rules, and object-editor policies belong to the project or dependency documentation.

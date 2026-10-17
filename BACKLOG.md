@@ -231,16 +231,6 @@ Notes; finished-work narrative does not.
   distinguishes before replacing it with a tidier one.
 - The suite is the specification. Before changing what the type checker accepts, grep the tests for
   the shape being rejected.
-- A test that hangs looks exactly like a test that is slow. If the suite stops making progress, take
-  a thread dump of the forked worker (`jstack <pid>`) before killing it.
-  Both Gradle test suites install `TestTimeoutWatchdog`: each test/configuration invocation has
-  3 minutes for compiler tests, 1 minute for helpers, then the worker dumps its threads and exits 124
-  (at most 2 seconds for diagnostics).
-  This keeps execution on the original thread and kills even uninterruptible work or stuck shutdown
-  hooks. A timed-out worker loses its pending XML report; its method name and stacks are in the job log.
-  Compiler/helper test tasks have 20/2-minute limits, CI jobs 25 minutes, release packaging 35 minutes;
-  suites and matrices stop at the first failure. `scripts/test-ci-timeouts.py` rejects unbounded jobs.
-  For deliberate longer local invocations only, use `-PtestTimeoutMillis=...`; CI job caps still apply.
 - Method names are not what the frontend called them. `LuaDispatchPreparation.normalizeMethodNames`
   renames a whole dispatch group to one name, records the slot segment on `ImTranslator`, and only
   then does the backend run. A question about which Lua slot something lands in is a question about
@@ -253,15 +243,6 @@ Notes; finished-work narrative does not.
   reach is bounded by how much of the roughly one thousand natives the shim models, so those tests
   stay small and targeted. There is no Wurst-level end-to-end feature; correctness in a real map on
   the Lua target is asserted in the agent workflow.
-- `wurst_run.args` in a generated project turns on `-stacktraces` for runs and builds and `-inline` only
-  for builds, so every emitted function pays `wurst_stack` bookkeeping and a run inlines no leaf. Benchmarks that inform
-  stdlib design must use `-inline -localOptimizations` without `-stacktraces`, or they measure the
-  debug configuration.
-- Test forks: eight forks won on eight cores (7m03s wall against 13m11s serial) even though each
-  test runs 2.6 times slower there. Wall time cannot go below the slowest class (`BugTests`, 73 s in
-  `test-class-weights.txt`) until it is split.
-- The stdlib copy under `de.peeeq.wurstscript/temp/WurstStdlib2` is a fetched artefact for tests.
-  Real stdlib changes belong in the WurstStdlib2 repo.
 - `WURST_LANGUAGE.md` ships as a compiler resource at
   `de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md`, not at the repository
   root. Keep it current in the PR that changes the behaviour.

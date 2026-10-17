@@ -10,7 +10,7 @@ This repository contains the **WurstScript compiler**. Its main code lives in:
 de.peeeq.wurstscript/
 ```
 
-`HelperScripts/` holds the generators for the compiler's game-data resources and the stdlib's ability wrappers (see `HelperScripts/GAMEDATA.md`); change it only for that work. Design notes live in `docs/`. `BACKLOG.md` holds open work and standing notes (test conventions, benchmark flags).
+`HelperScripts/` holds the generators for the compiler's game-data resources and the stdlib's ability wrappers (see `HelperScripts/GAMEDATA.md`); change it only for that work. Design notes live in `docs/`. `BACKLOG.md` holds open work and standing notes (test conventions).
 
 **Read §11 and [`docs/WC3_RUNTIME.md`](docs/WC3_RUNTIME.md) before changing a backend, the optimiser or an interpreter mock.** The game differs from what the code, the interpreter and the tests suggest: Wurst has no garbage collector, the game's Lua is not the test Lua, and nothing optimises the emitted script at run time.
 
@@ -109,6 +109,7 @@ The Gradle wrapper lives inside `de.peeeq.wurstscript/` (not the repo root); run
 
 * **Run the test classes you touched, not the suite.** The full suite takes 7-13 minutes (`build.gradle`, `testForkCount`) and needs memory for every fork. CI (`.github/workflows/build.yml`) runs it on pull requests and on pushes to master only, so a branch push alone tests nothing.
 * To repeat a test use `--rerun --no-build-cache`: a cached result shows identical timings. The real stack trace is in `build/test-results/test/TEST-<class>.xml` when the console summary lacks it. Do not pipe gradle into `tail`: the pipe hides its exit code; read the XML.
+* A test gets 3 minutes (`TestTimeoutWatchdog`), then its worker prints every thread to the console and exits 124: that test has no XML report, so read the console or job log. Pass `-PtestTimeoutMillis=<ms>` for a deliberately longer local run, such as an oracle or a profile. The suite stops at its first failure (`failFast`).
 * The harness writes an IM dump (`test-output/<name>.jim`) only for a test which asks with `test().imDump()`; a test which reads one must ask. `./gradlew test -PimDumps` writes them for every test, to read a failing test's IM.
 * The test JVMs run ParallelGC (`-PtestGc='-XX:+UseG1GC'` or another flag overrides it): G1 spent 9-11% of a serial run in pauses, mostly mixed collections of data which lives for one test, and ParallelGC about 3%.
 * Tests fetch the pinned stdlib first (`ensureStdLib`, about a minute on a fresh checkout). `InitialBuildProgressTest` and `LanguageWorkerTest` are in package `de.peeeq.wurstio.languageserver`, so a `--tests` filter needs that prefix.
@@ -180,10 +181,10 @@ compiler jar when the first session ends, and the sessions after it start from i
 runtime's own base archive, which `deploy.gradle` makes (`jlink --generate-cds-archive`; macOS copies a full JDK, which
 usually has one, and `assembleSlimCompilerDist` dumps one with `java -Xshare:dump` when the JDK has none: a copied JDK
 need not ship one). `assembleSlimCompilerDist` then starts the runtime with `-Xshare:on`, which fails when
-there is no usable archive. Without one the JVM silently runs without any, which is how the earlier attempt went
-unnoticed. Pull-request CI packages nothing; the versioned release workflow packages every supported host, so a change
-here is not tested on macOS before it merges. Java 27 enables compact object headers by default. The build clears the JVM option
-environment variables when making and validating the base archive so it matches the shipped runtime defaults.
+there is no usable archive; otherwise the JVM would silently run without one. Pull-request CI packages nothing; the
+versioned release workflow packages every supported host, so a change here is not tested on macOS before it merges.
+Java 27 enables compact object headers by default. The build clears the JVM option environment variables when making
+and validating the base archive so it matches the shipped runtime defaults.
 The extension passes `-Xlog:disable` because the JVM reports archive trouble on stdout, which is the protocol stream:
 never print anything of your own there.
 
@@ -293,9 +294,9 @@ Rules for backend work:
 * **Do not tell a cache which function changed; ask the function.** `ImFunction.modificationCount()` (the generator
   counts the changes of a function and of everything below it, through every setter and list) is the same exactly
   while nothing in the function was modified. A pass which is only needed for the functions which changed, or a
-  result which is kept for a function (the flatten does this), compares the count it saw. Prefer it to a
-  `functionChanged(f)` call which a pass has to remember. Facts which follow references outside the function also
-  validate those dependencies: the garbage removal checks the implementations of virtual call targets.
+  result which is kept for a function (the flatten does this), compares the count it saw, so no pass has to remember
+  to report its changes. Facts which follow references outside the function also validate those dependencies: the
+  garbage removal checks the implementations of virtual call targets.
 
 ### Lua performance policy
 
@@ -495,20 +496,8 @@ For refreshing object-data knowledge and ability-editing sources from the instal
 
 ## 13. Release summaries
 
-When preparing and pushing an authorized semantic compiler release tag, the agent
-must also write a short user-facing summary of the changes since the previous
-semantic release. Group related changes into their overall impact (for example,
-"Faster overall map builds"), rather than listing internal optimizations or PR
-titles. Prioritize useful features, build performance, correctness, and compatibility;
-do not invent benchmarks or benefits.
-
-Prepare the release notes before pushing the tag. Start them with `## Highlights`
-and one to three flat, single-line bullets of at most 160 characters each, followed
-by the detailed changelog. Immediately after pushing the tag, create or update its
-GitHub draft release with those notes while the release builds run. The existing
-publish workflow preserves an existing draft's body; ensure the summary is present
-before publication. GitHub's generated changelog may be appended using
-`gh release create --draft --verify-tag --notes-file <file> --generate-notes`.
-
-This summary is written by the release-preparing agent and belongs to the compiler's
-GitHub release. The VS Code extension reads its `## Highlights` section automatically.
+An agent which prepares and pushes an authorized semantic release tag also writes that release's notes, in the
+format and at the step [`docs/RELEASING.md`](docs/RELEASING.md) gives: the extension shows their `## Highlights`.
+Summarise the changes since the previous semantic release by their overall impact (for example, "Faster overall map
+builds"), not by PR titles or internal optimizations. Put useful features, build performance, correctness and
+compatibility first, and invent no benchmarks or benefits.
