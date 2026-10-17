@@ -3198,6 +3198,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
 
+    /** The error function, or null while nothing has needed one: asking does not make it. */
+    public @Nullable ImFunction getErrorFuncIfPresent() {
+        return errorFunc;
+    }
+
     public ImFunctionCall imError(de.peeeq.wurstscript.ast.Element trace, ImExpr message) {
         ImFunction ef = errorFunc;
         if (ef == null) {
