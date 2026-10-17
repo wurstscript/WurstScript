@@ -1974,6 +1974,30 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
 
+    /**
+     * A statement which reads a copy and overwrites it drops everything known when it comes in, so nothing goes out
+     * of it: its own read of the copy is still propagated. On Lua the inliner leaves this shape around a native with
+     * a nil guard, once the local merger has given the argument and the result one variable.
+     */
+    @Test
+    public void copyPropagationIntoAStatementWhichOverwritesTheCopy() throws IOException {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native S2I(string s) returns int",
+            "@noinline function next(int i) returns int",
+            "    return i + 1",
+            "init",
+            "    let a = S2I(\"7\")",
+            "    var b = a",
+            "    b = next(b)",
+            "    if b == 8 and a == 7",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagationIntoAStatementWhichOverwritesTheCopy_opt.j"), Charsets.UTF_8);
+        assertTrue(compiled.contains("next(a)"), compiled);
+    }
+
     @Test
     public void localMergerLiveness() throws IOException {
         LocalMerger localMerger = new LocalMerger();
