@@ -59,6 +59,13 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
             String source = new ProgramGenerator(new Random(programSeed)).program();
             String referenceScript = compile(source, "-lua");
             String reference = run(lua, referenceScript);
+            // A reference which stops early would compare truncated runs: the generator or the prelude is wrong.
+            String stopped = stopped(reference);
+            if (stopped != null) {
+                failures.add("seed " + programSeed + ": the unoptimised program stops early: " + stopped);
+                keep(programSeed, source, referenceScript, null, reference, null);
+                continue;
+            }
             if (clientsDiffer(reference)) {
                 clientsDiffer++;
             }
@@ -133,7 +140,7 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
                 + "traceBool = function(b) count(); io.write('b', tostring(b), '\\n') end; "
                 // the script's path comes through the environment, as the temporary directory may contain a quote
                 + "local ok, err = pcall(function() dofile(os.getenv('WURST_FUZZ_SCRIPT')); main() end); "
-                + "if not ok then io.write('#error\\n') end "
+                + "if not ok then io.write('#error ', tostring(err), '\\n') end "
                 + "end";
             ProcessBuilder builder = new ProcessBuilder(lua, "-e", chunk)
                 .redirectErrorStream(true).redirectOutput(output);
@@ -169,6 +176,16 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
         return "?";
     }
 
+    /** The line which says that a run stopped before its end, or null. */
+    private static String stopped(String trace) {
+        for (String line : trace.split("\n")) {
+            if (line.startsWith("#error") || line.equals("#timeout")) {
+                return line;
+            }
+        }
+        return null;
+    }
+
     /** Whether the clients made different calls. */
     private static boolean clientsDiffer(String trace) {
         String[] perClient = trace.split("#client \\d+\n");
@@ -186,9 +203,11 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
         dir.mkdirs();
         Files.writeString(new File(dir, seed + ".wurst").toPath(), source, StandardCharsets.UTF_8);
         Files.writeString(new File(dir, seed + "_reference.lua").toPath(), referenceScript, StandardCharsets.UTF_8);
-        Files.writeString(new File(dir, seed + "_optimised.lua").toPath(), optimisedScript, StandardCharsets.UTF_8);
         Files.writeString(new File(dir, seed + "_reference.txt").toPath(), reference, StandardCharsets.UTF_8);
-        Files.writeString(new File(dir, seed + "_optimised.txt").toPath(), optimised, StandardCharsets.UTF_8);
+        if (optimisedScript != null) {
+            Files.writeString(new File(dir, seed + "_optimised.lua").toPath(), optimisedScript, StandardCharsets.UTF_8);
+            Files.writeString(new File(dir, seed + "_optimised.txt").toPath(), optimised, StandardCharsets.UTF_8);
+        }
     }
 
     private static int envInt(String name, int fallback) {
