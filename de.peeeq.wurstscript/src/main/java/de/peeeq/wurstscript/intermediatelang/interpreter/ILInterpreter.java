@@ -489,7 +489,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
 
     @SuppressWarnings("null")
-    private static ILconst adjustTypeOfConstant(@Nullable ILconst retVal, ImType expectedType) {
+    static ILconst adjustTypeOfConstant(@Nullable ILconst retVal, ImType expectedType) {
         if (retVal instanceof ILconstInt && isTypeReal(expectedType)) {
             ILconstInt retValI = (ILconstInt) retVal;
             retVal = new ILconstReal(retValI.getVal());

@@ -3082,6 +3082,76 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Jass converts an integer stored into a real variable, so propagating the integer into the variable's reads
+     * would turn `r / m` into the integer division `n / m`.
+     */
+    @Test
+    public void intCopiedIntoRealIsNotPropagatedIntoRealDivision() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassDiv takes integer n, integer m returns real",
+                "\tlocal real r = n",
+                "\treturn r / m",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array arr",
+                "init",
+                "    arr[0] = 7",
+                "    arr[1] = 2",
+                "    if jassDiv(arr[0], arr[1]) > 3.4",
+                "        testSuccess()",
+                "endpackage"));
+        String out = Files.toString(new File("test-output/OptimizerTests_intCopiedIntoRealIsNotPropagatedIntoRealDivision_opt.j"), Charsets.UTF_8);
+        assertFalse(java.util.regex.Pattern.compile("\\bn / m\\b").matcher(out).find(), out);
+    }
+
+    /** An integer constant stored into a real is propagated as the real it becomes, here from Wurst. */
+    @Test
+    public void intConstantStoredIntoRealIsPropagatedAsReal() throws IOException {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int array arr",
+            "function divide(int m) returns real",
+            "    real r = 14 div 2",
+            "    return r / m",
+            "init",
+            "    arr[0] = 2",
+            "    if divide(arr[0]) > 3.4",
+            "        testSuccess()",
+            "endpackage");
+        String out = Files.toString(new File("test-output/OptimizerTests_intConstantStoredIntoRealIsPropagatedAsReal_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("return 7. / m"), out);
+    }
+
+    /** `set r = n` followed by `set r = r / m` must not become the integer division `set r = n / m`. */
+    @Test
+    public void intStoredIntoRealIsNotSplicedIntoTheNextSet() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassSplice takes integer n, integer m returns real",
+                "\tlocal real r",
+                "\tset r = n",
+                "\tset r = r / m",
+                "\treturn r",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array arr",
+                "init",
+                "    arr[0] = 7",
+                "    arr[1] = 2",
+                "    if jassSplice(arr[0], arr[1]) > 3.4",
+                "        testSuccess()",
+                "endpackage"));
+        String out = Files.toString(new File("test-output/OptimizerTests_intStoredIntoRealIsNotSplicedIntoTheNextSet_opt.j"), Charsets.UTF_8);
+        assertFalse(java.util.regex.Pattern.compile("\\bn / m\\b").matcher(out).find(), out);
+    }
+
     @Test
     public void realFormatting_consistent_fromIntOps() throws Exception {
         test().lines(
@@ -3097,7 +3167,7 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
         String out = Files.toString(new File("test-output/OptimizerTests_realFormatting_consistent_fromIntOps_opt.j"), Charsets.UTF_8);
         assertTrue(out.contains("(0.5)"));
-        assertTrue(out.contains("(1)"));
+        assertTrue(out.contains("(1.)"), out);
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*")); // no scientific notation
     }
 

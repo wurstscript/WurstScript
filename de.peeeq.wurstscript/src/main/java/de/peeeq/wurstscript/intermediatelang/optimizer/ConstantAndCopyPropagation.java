@@ -331,6 +331,13 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                                 // variable boundary. This is deliberately conservative:
                                 // later rewrites must still be able to see that boundary.
                                 newValue = null;
+                            } else if (TypesHelper.isRealType(var.getType()) && TypesHelper.isIntType(right.attrTyp())) {
+                                // Jass converts an integer stored into a real, so the variable holds a real.
+                                // Its integer source in place of a read would make `r / n` an integer division.
+                                // A literal can be converted here; a copy of an integer variable cannot.
+                                newValue = right instanceof ImIntVal intVal
+                                    ? new Value(JassIm.ImRealVal(intVal.getValI() + "."))
+                                    : null;
                             } else if (right instanceof ImConst) {
                                 newValue = Value.tryValue(right);
                             } else if (right instanceof ImVarAccess imVarAccess) {

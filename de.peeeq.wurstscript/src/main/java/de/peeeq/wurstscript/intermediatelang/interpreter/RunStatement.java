@@ -7,6 +7,7 @@ import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.intermediatelang.ILaddress;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
+import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 
@@ -67,12 +68,16 @@ public class RunStatement {
         if (left instanceof ImVarAccess va) {
             // a variable needs no address: finding its state evaluates nothing
             ImVar var = va.getVar();
-            ILconst right = s.getRight().evaluate(globalState, localState);
+            // Jass converts an integer stored into a real, as it does for a parameter or a return value
+            ILconst right = ILInterpreter.adjustTypeOfConstant(s.getRight().evaluate(globalState, localState), var.getType());
             (var.isGlobal() ? globalState : localState).setVal(var, right);
             return;
         }
         ILaddress v = left.evaluateLvalue(globalState, localState);
         ILconst right = s.getRight().evaluate(globalState, localState);
+        if (right instanceof ILconstInt) {
+            right = ILInterpreter.adjustTypeOfConstant(right, left.attrTyp());
+        }
         v.set(right);
     }
 
