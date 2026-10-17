@@ -62,13 +62,18 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function call to function " + functionName + " with arguments (" + arguments + ") was not found.", findAtLeastOne);
     }
 
+    /** Matches each definition of {@code functionName}; group 2 is its body, up to the {@code end} indented like it. */
+    private static Matcher functionBodies(String output, String functionName) {
+        return Pattern.compile("(?m)^([ \\t]*)(?:local\\s+)?function\\s*" + functionName + "\\s*\\(.*\\).*\\n"
+            + "((?:\\n|.)*?)^\\1end\\b").matcher(output);
+    }
+
     private void assertFunctionBodyContains(String output, String functionName, String search, boolean mustContain) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
-        Matcher matcher = pattern.matcher(output);
+        Matcher matcher = functionBodies(output, functionName);
         boolean found = false;
         while (matcher.find()) {
             found = true;
-            String body = matcher.group(1);
+            String body = matcher.group(2);
             if(!body.contains(search) && mustContain) {
                 fail("Function " + functionName + " must contain " + search + ".");
             }
@@ -79,11 +84,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
-    /**
-     * Returns the text of the __wurst_init_bootstrap function (it is the last
-     * function in the generated output; getFunctionBody cannot be used because
-     * the guard line "if ... then return end" contains an early 'end').
-     */
+    /** Returns the output from the __wurst_init_bootstrap function on (it is the last function in the output). */
     private String bootstrapSection(String compiled) {
         int pos = compiled.indexOf("function __wurst_init_bootstrap(");
         assertTrue("expected a __wurst_init_bootstrap function", pos >= 0);
@@ -91,12 +92,11 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private String getFunctionBody(String output, String functionName) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
-        Matcher matcher = pattern.matcher(output);
+        Matcher matcher = functionBodies(output, functionName);
         if (!matcher.find()) {
             fail("Function " + functionName + " was not found.");
         }
-        return matcher.group(1);
+        return matcher.group(2);
     }
 
     private void assertDoesNotContainRegex(String output, String regex) {
@@ -2450,7 +2450,13 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideGlobalStateReproUnits());
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
 
-        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "FSM_FSM_update"));
+        // update dispatches the global state and then the current state, both through the root slot.
+        String update = getFunctionBody(compiled, "FSM_FSM_update");
+        assertEquals("FSM update must dispatch the global and the current state: " + update,
+            2, countMatches(update, DISPATCH_CALL_SITE));
+        List<String> slots = uniqueMatches(update, DISPATCH_CALL_SITE, 1);
+        assertEquals("FSM update must dispatch both states through one slot: " + slots, 1, slots.size());
+        String dispatchedSlot = slots.get(0);
         assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
 
         assertContainsRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*GlobalCheckState_GlobalCheckState_update");

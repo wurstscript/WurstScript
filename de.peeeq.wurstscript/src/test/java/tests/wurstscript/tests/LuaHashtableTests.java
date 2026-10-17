@@ -1,14 +1,11 @@
 package tests.wurstscript.tests;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaStatement;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,10 +20,6 @@ import static org.testng.AssertJUnit.fail;
  * accesses its helper consists of, and calls the helper only where an operand has an effect.
  */
 public class LuaHashtableTests extends WurstScriptTest {
-
-    private String compiled(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/LuaHashtableTests_" + testName + ".lua"), Charsets.UTF_8);
-    }
 
     private String functionBody(String output, String functionName) {
         // Up to the closing 'end' at column 0; nested blocks are indented.
@@ -61,7 +54,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             "        FlushParentHashtable(h)",
             "        testSuccess()");
 
-        String compiled = compiled("hashtableOperationsArePrintedWhereTheyAreCalled");
+        String compiled = compiledLua("hashtableOperationsArePrintedWhereTheyAreCalled");
         LuaTranslator.assertNoLeakedHashtableNativeCalls(compiled);
         assertTrue("the shared empty child is a main-chunk local:\n" + compiled,
             compiled.contains("local __wurst_htEmpty = ({})\n"));
@@ -264,7 +257,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             "        testFail(\"removed and flushed\")",
             "    testSuccess()");
 
-        String compiled = compiled("anOperandWithAnEffectKeepsTheCallOfTheHelper");
+        String compiled = compiledLua("anOperandWithAnEffectKeepsTheCallOfTheHelper");
         LuaTranslator.assertNoLeakedHashtableNativeCalls(compiled);
         String init = functionBody(compiled, "init_Test");
         for (String helper : new String[]{"SaveInteger", "LoadInteger", "HaveSavedInteger", "RemoveSavedInteger",
@@ -306,7 +299,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             "        if not t.hasInt(5)",
             "            testSuccess()");
 
-        String init = functionBody(compiled("aTableOperationIsPrintedInPlace"), "init_Test");
+        String init = functionBody(compiledLua("aTableOperationIsPrintedInPlace"), "init_Test");
         assertFalse("no hashtable helper is called:\n" + init,
             Pattern.compile("__wurst_(Save|Load|HaveSaved|RemoveSaved)\\w*\\(").matcher(init).find());
         assertMatches("the save is printed in place",
@@ -332,7 +325,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             "    if l.has(3) and not l.has(4) and l.size() == 2",
             "        testSuccess()");
 
-        String lua = compiled("anOldGenericsKeyIsPrintedInPlace");
+        String lua = compiledLua("anOldGenericsKeyIsPrintedInPlace");
         String init = functionBody(lua, "init_Test");
         assertFalse("no hashtable helper is called:\n" + init,
             Pattern.compile("__wurst_(Save|Load|HaveSaved|RemoveSaved)\\w*\\(").matcher(init).find());
@@ -355,7 +348,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             "    if LoadInteger(h, 1, 2) == 6",
             "        testSuccess()");
 
-        String init = functionBody(compiled("aStoreStartingWithAParenthesisIsSeparatedFromTheStatementBefore"),
+        String init = functionBody(compiledLua("aStoreStartingWithAParenthesisIsSeparatedFromTheStatementBefore"),
             "init_Test");
         assertMatches("the save, under the test of the hashtable, starts with a ';'",
             "= \\(\\w+ \\+ 1\\)\n\\s*if \\w+ then\n\\s*;\\(", init);
@@ -401,7 +394,7 @@ public class LuaHashtableTests extends WurstScriptTest {
             "    if LoadInteger(h, 1, 1) == 5",
             "        testSuccess()");
 
-        String compiled = compiled("anUnusedLoadIsDropped");
+        String compiled = compiledLua("anUnusedLoadIsDropped");
         int start = compiled.indexOf("function discard(");
         assertTrue("expected function discard:\n" + compiled, start >= 0);
         String discard = compiled.substring(start, compiled.indexOf("\nend", start));

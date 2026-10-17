@@ -80,7 +80,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    destroy other",
             "    testSuccess()",
             "endpackage");
-        String lua = getFunctionBody(compiled("stringKeysInFastKeyedMap"), "init_Test");
+        String lua = getFunctionBody(compiledLua("stringKeysInFastKeyedMap"), "init_Test");
         assertFalse(lua.contains("StringHash("));
         assertFalse(lua.contains("GetHandleId("));
         assertFalse(lua.contains("keyedMapPutString("));
@@ -126,10 +126,10 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         };
         File jassFile = new File("test-output/LuaKeyedMapTests_stringMapEmissionIsDeterministic_no_opts.j");
         test().withStdLib().testLua(true).luaOnly(false).lines(source);
-        String firstLua = compiled("stringMapEmissionIsDeterministic");
+        String firstLua = compiledLua("stringMapEmissionIsDeterministic");
         String firstJass = Files.toString(jassFile, Charsets.UTF_8);
         test().withStdLib().testLua(true).luaOnly(false).lines(source);
-        org.testng.Assert.assertEquals(compiled("stringMapEmissionIsDeterministic"), firstLua);
+        org.testng.Assert.assertEquals(compiledLua("stringMapEmissionIsDeterministic"), firstLua);
         org.testng.Assert.assertEquals(Files.toString(jassFile, Charsets.UTF_8), firstJass);
     }
 
@@ -141,10 +141,6 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             fail("Function " + functionName + " was not found.");
         }
         return matcher.group(1);
-    }
-
-    private String compiled(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/LuaKeyedMapTests_" + testName + ".lua"), Charsets.UTF_8);
     }
 
     /** Integer-keyed source with Jass bodies, so it runs on both backends. */
@@ -182,7 +178,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapRemove(m, 7)",
             "endpackage"));
 
-        String compiled = compiled("keyedMapLowersToSingleLuaIndexes");
+        String compiled = compiledLua("keyedMapLowersToSingleLuaIndexes");
         assertTrue("create allocates a bare table", getFunctionBody(compiled, "__wurst_keyedMapCreate").contains("return {}"));
 
         String init = getFunctionBody(compiled, "init_Test");
@@ -242,7 +238,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "        print(\"stored\")",
             "endpackage"));
 
-        String compiled = compiled("keyedMapStaysNativeWithStackTraces");
+        String compiled = compiledLua("keyedMapStaysNativeWithStackTraces");
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("the caller must read and store into the table itself: " + init,
             init.contains("] or 0)") && init.contains("m[7] = 70"));
@@ -272,7 +268,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    print(lookup(m, 7).toString())",
             "endpackage"));
 
-        String compiled = compiled("keyedMapLookupIsExpandedAndAnUnusedReadIsDropped");
+        String compiled = compiledLua("keyedMapLookupIsExpandedAndAnUnusedReadIsDropped");
         String lookup = getFunctionBody(compiled, "lookup");
         assertTrue("the lookup is the table index with the int default: " + lookup, lookup.contains("] or 0)"));
         int discardStart = compiled.indexOf("function discard(");
@@ -295,7 +291,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapDestroy(m)",
             "endpackage"));
 
-        String compiled = compiled("keyedMapDestroyClearsLuaStore");
+        String compiled = compiledLua("keyedMapDestroyClearsLuaStore");
         assertTrue("destroy must clear the native Lua table", compiled.contains("__wurst_keyedMapDestroy"));
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("the map destruction call should reach its clear stub: " + init,
@@ -341,7 +337,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    print(d.value.toString())",
             "endpackage");
 
-        String compiled = compiled("keyedMapGenericKeyAndValueReachLuaUncast");
+        String compiled = compiledLua("keyedMapGenericKeyAndValueReachLuaUncast");
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("generic operations lower to the table store and the table read: " + init,
             init.contains("[u] = 5") && init.contains("] or 0)") && !compiled.contains("__wurst_keyedMapPut"));
@@ -387,7 +383,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage"));
 
         // The small specialized wrappers are expanded into the caller, which is all that is left to read.
-        String lua = compiled("handleBoundWrapperSpecializesToOneLuaTableAccess");
+        String lua = compiledLua("handleBoundWrapperSpecializesToOneLuaTableAccess");
         String init = getFunctionBody(lua, "init_Test");
         assertTrue("the unchanged put intrinsic is one direct Lua table store: " + init,
             init.contains("[key2] = value6") && init.indexOf("] = ") == init.lastIndexOf("] = "));
@@ -504,7 +500,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage");
 
         // The small specialized wrappers are expanded into the caller, which is all that is left to read.
-        String lua = compiled("handleBoundGenericValuesKeepTheirNativeLuaRepresentation");
+        String lua = compiledLua("handleBoundGenericValuesKeepTheirNativeLuaRepresentation");
         String init = getFunctionBody(lua, "init_Test");
         assertTrue("the caller stores into the table directly: " + init, init.contains("[u] = 7"));
         assertTrue("and reads the table directly: " + init,
@@ -544,7 +540,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    print(value.toString())",
             "endpackage");
 
-        String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaIndex");
+        String lua = compiledLua("nativeIntegerGetterThroughGenericWrapperUsesRawLuaIndex");
         String init = getFunctionBody(lua, "init_Test");
         // Used as an int, the wrapper's read is the typed read (LuaTypedKeyedReads): a typed copy of
         // the wrapper reads the table with the int default, so no ensure is left around the call.
@@ -803,7 +799,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage"));
 
         // readAll is inlined into init, so its loop is cut out of init by the global it updates.
-        String init = getFunctionBody(compiled("fastKeyedMapReadsUsedAsPrimitivesAreTyped"), "init_Test");
+        String init = getFunctionBody(compiledLua("fastKeyedMapReadsUsedAsPrimitivesAreTyped"), "init_Test");
         String[] lines = init.split("\n");
         int update = -1;
         for (int i = 0; i < lines.length; i++) {
@@ -852,7 +848,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage"));
 
-        String lua = compiled("fastKeyedMapIntReadsAreTypedWithStackTraces");
+        String lua = compiledLua("fastKeyedMapIntReadsAreTypedWithStackTraces");
         assertTrue("the typed read is emitted: " + lua.length(), lua.contains("] or 0)"));
         assertFalse("no int ensure is left anywhere a FastKeyedMap<timer, int> is read",
             lua.contains("__wurst_ensureInt(FastKeyedMap") || lua.contains("__wurst_ensureInt(readAll"));
@@ -887,7 +883,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage"));
 
-        String init = getFunctionBody(compiled("delegatedFastKeyedMapIntReadsAreTyped"), "init_Test");
+        String init = getFunctionBody(compiledLua("delegatedFastKeyedMapIntReadsAreTyped"), "init_Test");
         assertTrue("the delegated int read is the typed read: " + init, init.contains("] or 0)"));
         assertFalse("no ensure left on the delegated int read: " + init,
             init.contains("math.tointeger") || init.contains("__wurst_ensureInt("));
@@ -923,7 +919,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage"));
 
-        String lua = compiled("fastKeyedMapReadsOutsideLoopsAreTyped");
+        String lua = compiledLua("fastKeyedMapReadsOutsideLoopsAreTyped");
         for (String function : new String[] {"idOf", "scaleOf"}) {
             String body = getFunctionBody(lua, function);
             assertFalse("no ensure left on the read in " + function + ": " + body,
@@ -1056,7 +1052,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapRemove(m, u)",
             "endpackage"));
 
-        String compiled = compiled("unitKeyedMapKeysTheUnitItselfOnLua");
+        String compiled = compiledLua("unitKeyedMapKeysTheUnitItselfOnLua");
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("writes lower to nil-guarded table stores and reads to the table index: " + init,
             init.contains("if (u ~= nil) then\n\t\tm[u] = 5\n\tend") && init.contains("] or 0)")
@@ -1170,7 +1166,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage");
 
-        String init = getFunctionBody(compiled("keyedMapWritesEvaluateEachOperandOnceAndInOrder"), "init_Test");
+        String init = getFunctionBody(compiledLua("keyedMapWritesEvaluateEachOperandOnceAndInOrder"), "init_Test");
         assertTrue("operands with effects are evaluated into locals before the guarded store: " + init,
             init.contains("local __wurst_key = keyOf(\"k\", ") && init.contains("(__wurst_key ~= nil) then"));
         assertFalse("no write stub is called: " + init,
@@ -1210,7 +1206,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage");
 
-        String init = getFunctionBody(compiled("aKeyedMapWriteEvaluatesAValueWhichCanRaiseEvenForANilKey"), "init_Test");
+        String init = getFunctionBody(compiledLua("aKeyedMapWriteEvaluatesAValueWhichCanRaiseEvenForANilKey"), "init_Test");
         java.util.regex.Matcher read = java.util.regex.Pattern
             .compile("local (\\w+) = Holder_arr_storage\\[\\w+\\]\\[0\\]\\s*\\n\\s*if \\(\\w+ ~= nil\\) then")
             .matcher(init);
@@ -1302,7 +1298,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "        testSuccess()",
             "endpackage");
 
-        String compiled = compiled("varargAndClassFunctionsNamedLikeMapOperationsAreNotLowered");
+        String compiled = compiledLua("varargAndClassFunctionsNamedLikeMapOperationsAreNotLowered");
         assertFalse("none of them is replaced by a stub", compiled.contains("__wurst_keyedMap"));
     }
 
@@ -1346,7 +1342,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapRemove(m, 'A000')",
             "endpackage"));
 
-        String compiled = compiled("intKeyedClassMapLowersToSingleLuaIndexes");
+        String compiled = compiledLua("intKeyedClassMapLowersToSingleLuaIndexes");
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("writes under an int key lower to unguarded table stores and reads to the table index: " + init,
             Pattern.compile("\\[1093677104\\] = this[0-9]*\\b").matcher(init).find()
