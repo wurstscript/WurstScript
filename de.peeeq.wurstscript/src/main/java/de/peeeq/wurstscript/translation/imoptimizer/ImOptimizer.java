@@ -31,9 +31,9 @@ public class ImOptimizer {
     static {
         localPasses.add(new SimpleRewrites());
         localPasses.add(new LocalMerger());
-        localPasses.add(new ConstantAndCopyPropagation());
-        // After the passes which use the local-player analysis: a pass which does not use it discards it, and none
+        // After the pass which uses the local-player analysis: a pass which does not use it discards it, and none
         // after this one needs it again in the same sweep.
+        localPasses.add(new ConstantAndCopyPropagation());
         localPasses.add(new RedundantFieldStores());
         localPasses.add(new GlobalsInliner());
         localPasses.add(new DispatchCheckDeduplicator());
