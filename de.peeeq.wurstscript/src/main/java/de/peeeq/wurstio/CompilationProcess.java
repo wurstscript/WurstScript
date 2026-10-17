@@ -14,7 +14,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
+import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
@@ -102,8 +102,7 @@ public class CompilationProcess {
             StringBuilder luaOutput = new StringBuilder();
             timeTaker.measure("Print Lua", () -> luaCode.print(luaOutput, 0));
             mapScript = luaOutput;
-            LuaTranslator.assertNoLeakedHashtableNativeCalls(mapScript.toString());
-            LuaTranslator.assertNoLeakedGetHandleIdCalls(mapScript.toString());
+            LuaAssertions.assertNoLeakedNativeCalls(mapScript.toString());
             CharSequence compiledLua = mapScript;
             outputMapscript = timeTaker.measure("Write Lua",
                 () -> writeMapscript(compiledLua));

@@ -141,19 +141,19 @@ Notes; finished-work narrative does not.
   the tree while validating. The per-function IM passes need a translator whose caches and generated names are per
   function and deterministic. Do not start with the attribute protocol: make the caches, the error handler and the
   validator per unit first, and measure that against the 2.6 s of attribute evaluation in the warm check.
-- **Make the grammars SLL-clean.** The SLL-first parse (`AntlrTokenPipeline`) parses a file again with the full LL
-  prediction when SLL does not accept it, which also happens to a few valid files: 2 of the 733 `.wurst` files below
-  castle fight (one is `util/Cinematic.wurst` of the standard library) and `blizzard.j`, whose trees are the same either
-  way. Find the decisions of the Wurst and Jass grammars which need the context of the calling rule (the syntax
-  error the SLL pass reports on such a file, with the full-prediction pass switched off, names the place) and
-  left-factor them. That removes the second parse for valid files, which would then only be paid by broken ones.
 - **Devirtualize proven exact receivers before inlining.** Optimized Lua still dispatches an interface
   local initialized with `new A()` virtually when the method has sibling implementations.
   `LuaMethodCallLowering` currently considers only methods with no submethods. Start with bounded
   straight-line exact-type propagation through locals/copies, stopping at possible destruction,
   unknown calls and callback/yield barriers, and use existing direct IM calls. Constructors can expose
-  or destroy the allocation; preserve their effects. Measure useful sites and total compiler cost
-  before expanding alias/generic analysis. See the investigation note for emitted examples.
+  or destroy the allocation; preserve their effects. See the investigation note for emitted examples.
+  Measured on the optimised Lua of two large maps (Oct 2026): 222 and 456 dispatch sites are left, of which 125
+  and 105 dispatch on a local assigned a fresh allocation in the same function, nearly all the closure of an
+  inlined higher-order function. Only 83 and 19 of those have no call between the allocation and the dispatch,
+  mostly code which runs once (building a UI); 11 and 61 are inside a loop (`forEach`), which needs a
+  whole-program proof that no call in the loop destroys the receiver; the rest have calls in between. A dispatch
+  costs about 10 ns more than a direct call in stock Lua, so the straight-line version alone does not pay for
+  an analysis; start from the loop case, and only with evidence that such a loop is hot.
 - **Materialize complex Lua dispatch receivers within a locals budget.** A call-valued receiver still
   needs a vararg dispatch stub. A disposable nine-line flatten prototype replaced it with a temporary
   and direct descriptor call, passed 378 tests, and the isolated stock-Lua shape was about 28% faster.
@@ -217,6 +217,11 @@ Notes; finished-work narrative does not.
   type-id, compile-time state, allocator and specialization obligations. Reopen only with a representative measured
   build-time or memory benefit, or evidence of a substantially smaller correct implementation; speculative future
   benefits and raw class counts are insufficient.
+
+- **Making the grammars SLL-clean is not worth it.** The SLL-first parse (`AntlrTokenPipeline`) parses a file again
+  with the full LL prediction when SLL does not accept it, which also happens to a few valid files (`blizzard.j`,
+  the standard library's `util/Cinematic.wurst`). In an unoptimised build of a large map that second parse was 2 of
+  417 samples of the parse threads and none of the main thread's (Oct 2026).
 
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`. `div` and `mod`
   return the left operand's type, so `real r = 7 div 2` compiles and is meant to

@@ -132,15 +132,27 @@ public class LuaAssertions {
     }
 
     /**
+     * The checks of {@link #assertNoLeakedHashtableNativeCalls} and {@link #assertNoLeakedGetHandleIdCalls} on one
+     * scan of the text: what a build runs on its finished script, which is several megabytes for a large map.
+     */
+    public static void assertNoLeakedNativeCalls(String luaCode) {
+        FunctionNames names = collectFunctionNames(luaCode);
+        assertNoLeakedHashtableNativeCalls(names);
+        assertNoLeakedGetHandleIdCalls(names);
+    }
+
+    /**
      * Asserts that every emitted call to {@code __wurst_GetHandleId} has a helper definition.
      *
      * The Lua backend now rewrites only selected opaque runtime-handle families and
      * intentionally leaves enum-like handle families on native {@code GetHandleId}.
      */
     public static void assertNoLeakedGetHandleIdCalls(String luaCode) {
-        Set<String> called = collectCalledFunctionNames(luaCode);
-        Set<String> defined = collectDefinedFunctionNames(luaCode);
-        if (called.contains("__wurst_GetHandleId") && !defined.contains("__wurst_GetHandleId")) {
+        assertNoLeakedGetHandleIdCalls(collectFunctionNames(luaCode));
+    }
+
+    private static void assertNoLeakedGetHandleIdCalls(FunctionNames names) {
+        if (names.called().contains("__wurst_GetHandleId") && !names.defined().contains("__wurst_GetHandleId")) {
             throw new RuntimeException(
                 "Wurst Lua backend assertion failed: __wurst_GetHandleId() call found in generated Lua "
                 + "without a matching helper definition.");
@@ -156,21 +168,23 @@ public class LuaAssertions {
      * save only where one is.
      */
     public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
+        assertNoLeakedHashtableNativeCalls(collectFunctionNames(luaCode));
+    }
+
+    private static void assertNoLeakedHashtableNativeCalls(FunctionNames names) {
         List<String> leaked = new ArrayList<>();
         List<String> missingHelpers = new ArrayList<>();
-        Set<String> calledFunctionNames = collectCalledFunctionNames(luaCode);
-        Set<String> definedFunctionNames = collectDefinedFunctionNames(luaCode);
         List<String> helperNames = new ArrayList<>();
         for (String nativeName : LuaTranslator.allHashtableNativeNames()) {
-            if (calledFunctionNames.contains(nativeName)) {
+            if (names.called().contains(nativeName)) {
                 leaked.add(nativeName);
             }
             helperNames.add("__wurst_" + nativeName);
         }
         helperNames.add(LuaHashtableTranslation.NEW_CHILD);
         for (String helperName : helperNames) {
-            boolean helperCalled = calledFunctionNames.contains(helperName);
-            boolean helperDefined = definedFunctionNames.contains(helperName);
+            boolean helperCalled = names.called().contains(helperName);
+            boolean helperDefined = names.defined().contains(helperName);
             if (helperCalled && !helperDefined) {
                 missingHelpers.add(helperName);
             }
@@ -185,15 +199,22 @@ public class LuaAssertions {
         }
     }
 
+    /** The names a Lua text calls, and the names it defines as functions. */
+    record FunctionNames(Set<String> called, Set<String> defined) {
+    }
+
     /**
-     * Collects all function names that appear as CALLS in the Lua source.
+     * Collects the function names that appear as CALLS in the Lua source, and those that
+     * appear as DEFINITIONS, in one pass.
      *
-     * Skips string literals, comments, and function declaration names (including
-     * method-syntax declarations like {@code function Foo:bar()} or
-     * {@code function Foo.bar()}) to avoid false positives.
+     * A call is an identifier followed by {@code (}. A definition is the last name after the
+     * {@code function} keyword, simple ({@code function name(}) or method syntax
+     * ({@code function A:name(} or {@code function A.name(}); the names of a declaration are
+     * not calls. String literals and comments are skipped.
      */
-    static Set<String> collectCalledFunctionNames(String text) {
-        Set<String> result = new HashSet<>();
+    static FunctionNames collectFunctionNames(String text) {
+        Set<String> called = new HashSet<>();
+        Set<String> defined = new HashSet<>();
         int length = text.length();
         int index = 0;
         while (index < length) {
@@ -228,19 +249,21 @@ public class LuaAssertions {
                 }
             }
 
-            // Skip function declarations: after the 'function' keyword the name tokens
-            // (including A.B or A:B method syntax) are NOT calls.
-            if (matchesWord(text, index, "function")) {
-                index = skipFunctionDeclarationName(text, index + "function".length());
-                continue;
-            }
-
-            // Check identifier followed by '(' → function call
             if (isIdentifierStart(ch)) {
+                // A function declaration: its last name is defined, and none of its names is a call.
+                if (matchesWord(text, index, "function")) {
+                    String name = declaredFunctionName(text, index + "function".length());
+                    if (name != null) {
+                        defined.add(name);
+                    }
+                    index = skipFunctionDeclarationName(text, index + "function".length());
+                    continue;
+                }
+                // An identifier followed by '(' is a call.
                 int end = scanIdentifierEnd(text, index + 1);
                 int next = skipWhitespace(text, end);
                 if (next < length && text.charAt(next) == '(') {
-                    result.add(text.substring(index, end));
+                    called.add(text.substring(index, end));
                 }
                 index = end;
                 continue;
@@ -248,81 +271,29 @@ public class LuaAssertions {
 
             index++;
         }
-        return result;
+        return new FunctionNames(called, defined);
     }
 
     /**
-     * Collects function names that appear as DEFINITIONS in the Lua source.
-     *
-     * Handles both simple ({@code function name(}) and method-syntax
-     * ({@code function A:name(} or {@code function A.name(}) declarations.
-     * Skips string literals and comments.
+     * The name a declaration defines: after the {@code function} keyword, the last name of an
+     * {@code A.B.c} or {@code A:b} chain when a {@code (} follows it, otherwise null.
      */
-    static Set<String> collectDefinedFunctionNames(String text) {
-        Set<String> result = new HashSet<>();
+    private static String declaredFunctionName(String text, int index) {
         int length = text.length();
-        int index = 0;
-        while (index < length) {
-            char ch = text.charAt(index);
-
-            // Skip comments
-            if (ch == '-' && index + 1 < length && text.charAt(index + 1) == '-') {
-                int longLevel = countLongBracketLevel(text, index + 2);
-                if (longLevel >= 0) {
-                    index = skipLongString(text, index + 2, longLevel);
-                } else {
-                    while (index < length && text.charAt(index) != '\n') {
-                        index++;
-                    }
-                }
-                continue;
+        int pos = skipWhitespace(text, index);
+        String lastName = null;
+        while (pos < length && isIdentifierStart(text.charAt(pos))) {
+            int nameEnd = scanIdentifierEnd(text, pos + 1);
+            lastName = text.substring(pos, nameEnd);
+            pos = nameEnd;
+            if (pos < length && (text.charAt(pos) == '.' || text.charAt(pos) == ':')) {
+                pos++; // consume '.' or ':'
+            } else {
+                break;
             }
-
-            // Skip string literals
-            if (ch == '"' || ch == '\'') {
-                index = skipQuotedString(text, index, ch);
-                continue;
-            }
-            if (ch == '[') {
-                int longLevel = countLongBracketLevel(text, index);
-                if (longLevel >= 0) {
-                    index = skipLongString(text, index, longLevel);
-                    continue;
-                }
-            }
-
-            if (!matchesWord(text, index, "function")) {
-                index++;
-                continue;
-            }
-
-            // Skip past 'function', then scan the name
-            int pos = skipWhitespace(text, index + "function".length());
-            if (pos >= length || !isIdentifierStart(text.charAt(pos))) {
-                index++;
-                continue;
-            }
-
-            // Walk A.B.C or A:B chains, keeping track of the last identifier
-            String lastName = null;
-            while (pos < length && isIdentifierStart(text.charAt(pos))) {
-                int nameEnd = scanIdentifierEnd(text, pos + 1);
-                lastName = text.substring(pos, nameEnd);
-                pos = nameEnd;
-                if (pos < length && (text.charAt(pos) == '.' || text.charAt(pos) == ':')) {
-                    pos++; // consume '.' or ':'
-                } else {
-                    break;
-                }
-            }
-
-            int next = skipWhitespace(text, pos);
-            if (lastName != null && next < length && text.charAt(next) == '(') {
-                result.add(lastName);
-            }
-            index = pos;
         }
-        return result;
+        int next = skipWhitespace(text, pos);
+        return lastName != null && next < length && text.charAt(next) == '(' ? lastName : null;
     }
 
     /**

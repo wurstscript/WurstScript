@@ -4378,6 +4378,43 @@ public class LuaTranslationTests extends WurstScriptTest {
             .assertNoLeakedGetHandleIdCalls("function __wurst_GetHandleId(h) return 0 end\n__wurst_GetHandleId(x)");
     }
 
+    /** A build runs both checks on one scan of its script: it rejects what either check rejects, with its message. */
+    @Test
+    public void combinedNativeCallCheckRejectsWhatEitherCheckRejects() {
+        String[] scripts = {
+            "GetHandleId(x)",
+            "__wurst_GetHandleId(x)",
+            "function __wurst_GetHandleId(h) return 0 end\n__wurst_GetHandleId(x)",
+            "SaveInteger(h, 1, 2, 3)",
+            "local s = \"SaveInteger(h, 1, 2, 3)\"",
+            "-- LoadInteger(h, 1, 2)",
+            "function Foo.SaveInteger(h) end",
+            "__wurst_SaveInteger(h, 1, 2, 3)",
+            "function __wurst_SaveInteger(h, p, c, v) end\n__wurst_SaveInteger(h, 1, 2, 3)",
+            "SaveInteger(h, 1, 2, 3)\n__wurst_GetHandleId(x)",
+        };
+        boolean[] rejected = {false, true, false, true, false, false, false, true, false, true};
+        for (int i = 0; i < scripts.length; i++) {
+            String script = scripts[i];
+            String separately = rejection(() -> {
+                LuaAssertions.assertNoLeakedHashtableNativeCalls(script);
+                LuaAssertions.assertNoLeakedGetHandleIdCalls(script);
+            });
+            String combined = rejection(() -> LuaAssertions.assertNoLeakedNativeCalls(script));
+            assertEquals(script, rejected[i], separately != null);
+            assertEquals(script, separately, combined);
+        }
+    }
+
+    private static String rejection(Runnable check) {
+        try {
+            check.run();
+            return null;
+        } catch (RuntimeException e) {
+            return e.getMessage();
+        }
+    }
+
     // ----- Null-safe extern native wrappers -----
 
     @Test
