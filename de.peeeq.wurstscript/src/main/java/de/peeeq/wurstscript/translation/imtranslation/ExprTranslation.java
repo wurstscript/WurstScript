@@ -99,6 +99,9 @@ public class ExprTranslation {
     }
 
     private static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated) {
+        if (t.isLuaTarget() && isIntStoredAsReal(e)) {
+            return ImOperatorCall(WurstOperator.PLUS, ImExprs(translated, ImRealVal("0.")));
+        }
         WurstType actualType = e.attrTypRaw();
         WurstType expectedTypRaw = t.isLuaTarget()
             && actualType instanceof WurstTypeBoundTypeParam
@@ -106,6 +109,25 @@ public class ExprTranslation {
             ? AttrExprExpectedType.afterOverloading(e)
             : e.attrExpectedTypRaw();
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
+    }
+
+    /**
+     * Whether e is an integer stored where a real is declared: assigned, initialising a variable, passed as an
+     * argument, or returned (which pjass rejects, so only a legacy target gets that far). Only Jass code may do that
+     * (an int is a real only there), and Jass converts it at the store.
+     * Lua keeps the integer, which the game's Lua computes in 32 bits, so a product of the stored value would wrap
+     * where Jass multiplies reals: measured on the 3.0.0 client, 65536 stored into a real global, squared and divided
+     * by 65536. gave 0 on Lua and 65536 on Jass. So on Lua the store adds 0., the conversion Lua's own arithmetic
+     * does; a literal is already translated as the real it stands for. An operand of an operator converts in the
+     * operation itself and gets nothing.
+     */
+    private static boolean isIntStoredAsReal(Expr e) {
+        if (!(e.attrTypRaw() instanceof WurstTypeInt) || !(e.attrExpectedTypRaw() instanceof WurstTypeReal)) {
+            return false;
+        }
+        Element parent = e.getParent();
+        return parent instanceof StmtSet || parent instanceof VarDef || parent instanceof StmtReturn
+            || parent instanceof Arguments;
     }
 
     static ImExpr wrapLua(Element trace, ImTranslator t, ImExpr translated, WurstType actualType) {

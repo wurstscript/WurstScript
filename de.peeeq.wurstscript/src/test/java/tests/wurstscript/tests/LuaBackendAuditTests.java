@@ -7966,4 +7966,81 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init_Test");
         assertTrue(compiled, compiled.contains(" / 360.)") && !compiled.contains(" % ") && !compiled.contains("math.fmod("));
     }
+
+    /**
+     * Jass converts an integer stored where a real is declared: into a variable or as an argument for a real
+     * parameter. Lua keeps the integer unless the script converts it, and the game's Lua computes integers in 32 bits,
+     * so a product of the stored value wraps where Jass multiplies reals (measured on the 3.0.0 client: 65536 stored
+     * into a real global, squared and divided by 65536. gives 0 on Lua and 65536 on Jass). The test Lua's integers
+     * have 64 bits, so the fourth power, 2^64, wraps there too. An integer returned from a function which returns real
+     * is left out: pjass rejects it.
+     */
+    @Test
+    public void jassIntStoredIntoRealIsARealOnLua() throws IOException {
+        test().testLua(true).executeProg().compilationUnits(jassIntStoredIntoReal());
+        String compiled = compiledLua("jassIntStoredIntoRealIsARealOnLua");
+        assertTrue(compiled, luaFunctionBody(compiled, "jassGlobal").contains("g = (a + 0.)"));
+        assertTrue(compiled, luaFunctionBody(compiled, "jassGlobal").contains("[1] = (a + 0.)"));
+        assertTrue(compiled, luaFunctionBody(compiled, "jassLocal").contains("rb = (b + 0.)"));
+        assertTrue(compiled, luaFunctionBody(compiled, "jassParameter").contains("jassFourth((c + 0.))"));
+    }
+
+    /** The same through the optimiser, whose copy propagation and inlining made each of them {@code n * n * n * n}. */
+    @Test
+    public void jassIntStoredIntoRealStaysARealWhenInlinedOnLua() {
+        test().testLua(true).inline().localOptimizations().executeProg().compilationUnits(jassIntStoredIntoReal());
+    }
+
+    private CU[] jassIntStoredIntoReal() {
+        return new CU[] {
+            compilationUnit("input.j",
+                "globals",
+                "\treal g",
+                "\treal array ga",
+                "endglobals",
+                "function jassGlobal takes integer a returns real",
+                "\tset g = a",
+                "\tset ga[1] = a",
+                "\treturn g * g * ga[1] * ga[1]",
+                "endfunction",
+                "function jassLocal takes integer b returns real",
+                "\tlocal real rb = b",
+                "\treturn rb * rb * rb * rb",
+                "endfunction",
+                "function jassFourth takes real r returns real",
+                "\treturn r * r * r * r",
+                "endfunction",
+                "function jassParameter takes integer c returns real",
+                "\treturn jassFourth(c)",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array ints",
+                "init",
+                "    ints[0] = 65536",
+                "    let n = ints[0]",
+                "    let twoTo64 = 18446744073709551616.",
+                "    if jassGlobal(n) == twoTo64 and jassLocal(n) == twoTo64",
+                "        and jassParameter(n) == twoTo64",
+                "        testSuccess()")
+        };
+    }
+
+    /** Wurst stores no integer where a real is declared, so its real code gets no conversion. */
+    @Test
+    public void wurstRealCodeGetsNoIntConversionOnLua() {
+        String compiled = compileOptimizedLua("wurstRealCodeGetsNoIntConversionOnLua",
+            "package Test",
+            "native consume(real value)",
+            "real g = 7",
+            "@noinline function scale(real r, int n) returns real",
+            "    real s = r * 2",
+            "    g = r * n + 3",
+            "    consume(n * r)",
+            "    return s * r * n",
+            "init",
+            "    consume(scale(2, 3))");
+        assertFalse(compiled, compiled.contains("+ 0.)"));
+    }
 }
