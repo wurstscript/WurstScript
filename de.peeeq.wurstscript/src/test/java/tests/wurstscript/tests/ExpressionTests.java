@@ -3,7 +3,12 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstio.UtilsIO;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ExpressionTests extends WurstScriptTest {
 
@@ -513,6 +518,32 @@ public class ExpressionTests extends WurstScriptTest {
                 "    if d == 3 and m == 1",
                 "        testSuccess()"
         );
+    }
+
+    /**
+     * A real is a 32 bit float in the game, where addition and multiplication are not associative, so the Jass keeps
+     * the grouping of a right operand: `a + b + c` is `(a + b) + c`. Only `and` and `or` may lose it.
+     */
+    @Test
+    public void jassKeepsTheGroupingOfARealSumAndProduct() throws IOException {
+        test().lines(
+            "package test",
+            "native printReal(real r)",
+            "native printBool(boolean b)",
+            "real array reals",
+            "boolean array bools",
+            "init",
+            "    let a = reals[0]",
+            "    let b = reals[1]",
+            "    let c = reals[2]",
+            "    printReal(a + (b + c))",
+            "    printReal(a * (b * c))",
+            "    printBool(bools[0] or (bools[1] or bools[2]))",
+            "endpackage");
+        String jass = Files.readString(Path.of(TEST_OUTPUT_PATH, "ExpressionTests_jassKeepsTheGroupingOfARealSumAndProduct_no_opts.j"));
+        assertTrue(jass.contains("a + (b + c)"), jass);
+        assertTrue(jass.contains("a * (b * c)"), jass);
+        assertTrue(jass.contains("test_bools[0] or test_bools[1] or test_bools[2]"), jass);
     }
 
     public void assertOk(String booleanExpr) {
