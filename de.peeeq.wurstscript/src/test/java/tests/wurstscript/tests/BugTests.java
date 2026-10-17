@@ -1731,6 +1731,101 @@ public class BugTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * ExecuteFunc runs its target on a new thread with an op limit of its own, so a loop through it is no recursion
+     * and its functions must not be merged into one, which turns each ExecuteFunc into a direct call.
+     */
+    @Test
+    public void executeFuncLoopIsNotMergedIntoOneFunction() throws IOException {
+        test().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native ExecuteFunc(string f)",
+            "int count = 0",
+            "function pingA()",
+            "    count++",
+            "    if count < 4",
+            "        ExecuteFunc(\"pingB\")",
+            "function pingB()",
+            "    count++",
+            "    ExecuteFunc(\"pingA\")",
+            "init",
+            "    pingA()",
+            "    if count == 5",
+            "        testSuccess()");
+        for (String variant : new String[]{"_no_opts", "_inlopt", "_stacktraceinlopt"}) {
+            String jass = Files.toString(new File(TEST_OUTPUT_PATH
+                + "BugTests_executeFuncLoopIsNotMergedIntoOneFunction" + variant + ".j"), Charsets.UTF_8);
+            Assert.assertFalse(jass.contains("funcChoice"), variant + ":\n" + jass);
+            Assert.assertTrue(jass.contains("ExecuteFunc(\"pingA\")") && jass.contains("ExecuteFunc(\"pingB\")"),
+                variant + ":\n" + jass);
+        }
+    }
+
+    /**
+     * An ExecuteFunc target which calls back into its caller is valid Jass: only the direct call orders the
+     * functions, and the input declares the caller first. pjass checks the order of the emitted script.
+     */
+    @Test
+    public void executeFuncTargetCallingBackIntoItsCallerCompiles() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\tinteger depth = 0",
+                "endglobals",
+                "native ExecuteFunc takes string funcName returns nothing",
+                "function dispatcher takes nothing returns nothing",
+                "\tcall ExecuteFunc(\"worker\")",
+                "endfunction",
+                "function worker takes nothing returns nothing",
+                "\tset depth = depth + 1",
+                "\tif depth < 3 then",
+                "\t\tcall dispatcher()",
+                "\tendif",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    dispatcher()",
+                "    if depth == 3",
+                "        testSuccess()",
+                "endpackage"));
+        String jass = Files.toString(new File(TEST_OUTPUT_PATH
+            + "BugTests_executeFuncTargetCallingBackIntoItsCallerCompiles_no_opts.j"), Charsets.UTF_8);
+        Assert.assertTrue(jass.contains("ExecuteFunc(\"worker\")"), jass);
+        Assert.assertTrue(jass.indexOf("function dispatcher takes") < jass.indexOf("function worker takes"), jass);
+    }
+
+    /**
+     * The same with the call back landing above the caller of ExecuteFunc: the target has to wait until everything
+     * it calls is emitted, not only its caller.
+     */
+    @Test
+    public void executeFuncTargetCallingBackAboveItsCallerCompiles() throws IOException {
+        test().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native ExecuteFunc(string f)",
+            "int depth = 0",
+            "function inner()",
+            "    ExecuteFunc(\"worker\")",
+            "function outer()",
+            "    inner()",
+            "function worker()",
+            "    depth++",
+            "    if depth < 3",
+            "        outer()",
+            "init",
+            "    outer()",
+            "    if depth == 3",
+            "        testSuccess()");
+        String jass = Files.toString(new File(TEST_OUTPUT_PATH
+            + "BugTests_executeFuncTargetCallingBackAboveItsCallerCompiles_no_opts.j"), Charsets.UTF_8);
+        Assert.assertTrue(jass.contains("ExecuteFunc(\"worker\")"), jass);
+        Assert.assertTrue(jass.indexOf("function Test_outer takes") < jass.indexOf("function worker takes"), jass);
+    }
+
     @Test
     public void agentTypeComparisonsWurst() {
         testAssertErrorsLinesWithStdLib(true, "Cannot compare types sound with rect",

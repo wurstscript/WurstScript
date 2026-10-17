@@ -346,7 +346,11 @@ public class CyclicFunctionRemover {
 
         @Override
         protected Collection<ImFunction> getIncidentNodes(ImFunction f) {
-            return tr.getCalledFunctions().get(f);
+            // A loop through ExecuteFunc is no cycle to break: each call runs on a new thread, which merging the
+            // functions would turn into a recursion.
+            Set<ImFunction> targets = new LinkedHashSet<>(tr.getCalledFunctions().get(f));
+            targets.retainAll(UsedFunctions.orderingRelevantTargets(f));
+            return targets;
         }
 
     }
