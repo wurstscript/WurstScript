@@ -372,7 +372,12 @@ public class WurstScriptTest {
 
                 testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-                runPendingPjass();
+                if (legacyJassTypeChecks) {
+                    // a legacy target is not checked with pjass, as in a build
+                    pjassPending.clear();
+                } else {
+                    runPendingPjass();
+                }
             }
 
             if (testLua) {

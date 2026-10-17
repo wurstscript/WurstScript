@@ -1923,6 +1923,39 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A legacy target accepts an integer returned from a real Jass function (with a warning). The call is where
+     * the integer becomes the declared real, so it stays a call: inlined, `f(n) / m` would divide integers.
+     */
+    @Test
+    public void inlinerKeepsALegacyIntReturnedAsRealACall() throws IOException {
+        test().setStopOnFirstError(false).executeProg(false).legacyJassTypeChecks()
+            .expectWarning("Cannot convert returned value from integer to real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "function jassToReal takes integer n returns real",
+                    "\treturn n",
+                    "endfunction",
+                    "function jassDivReturn takes integer n, integer m returns real",
+                    "\treturn jassToReal(n) / m",
+                    "endfunction"),
+                compilationUnit("test.wurst",
+                    "package test",
+                    "native testSuccess()",
+                    "int array arr",
+                    "init",
+                    "    arr[0] = 7",
+                    "    arr[1] = 2",
+                    "    if jassDivReturn(arr[0], arr[1]) > 3.4",
+                    "        testSuccess()",
+                    "endpackage"));
+        for (String variant : new String[]{"_inl.j", "_inlopt.j"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_inlinerKeepsALegacyIntReturnedAsRealACall"
+                + variant), Charsets.UTF_8);
+            assertTrue(out.contains("jassToReal("), variant + ":\n" + out);
+        }
+    }
+
     @Test
     public void inlinerIntRealsConstantFolding() {
         testAssertOkLines(true,

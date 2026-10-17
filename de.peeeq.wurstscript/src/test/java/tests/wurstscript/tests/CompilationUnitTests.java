@@ -187,7 +187,7 @@ public class CompilationUnitTests extends WurstScriptTest {
         test()
             .setStopOnFirstError(false)
             .executeProg(false)
-            .expectError("Cannot return int, expected expression of type real")
+            .expectError("Cannot convert returned value from integer to real")
             .compilationUnits(
                 compilationUnit("input.j",
                     "function jassToReal takes integer n returns real",
@@ -206,7 +206,7 @@ public class CompilationUnitTests extends WurstScriptTest {
         test()
             .setStopOnFirstError(false)
             .executeProg(false)
-            .expectError("expected expression of type real")
+            .expectError("Cannot convert returned value from integer to real")
             .compilationUnits(
                 compilationUnit("input.j",
                     "function jassZero takes nothing returns real",
@@ -223,7 +223,7 @@ public class CompilationUnitTests extends WurstScriptTest {
             .setStopOnFirstError(false)
             .executeProg(false)
             .legacyJassTypeChecks()
-            .expectWarning("Cannot return int, expected expression of type real")
+            .expectWarning("Cannot convert returned value from integer to real")
             .compilationUnits(
                 compilationUnit("input.j",
                     "function jassToReal takes integer n returns real",

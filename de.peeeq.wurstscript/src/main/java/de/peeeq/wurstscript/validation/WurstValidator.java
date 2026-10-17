@@ -2611,7 +2611,17 @@ public class WurstValidator {
                 s.addError("Cannot return a value from a function which returns nothing");
             } else {
                 WurstType returnedType = returned.attrTyp();
-                if (!returnedType.isSubtypeOf(returnType, s) || isIntReturnedAsJassReal(returnedType, returnType, s)) {
+                if (isIntReturnedAsJassReal(returnedType, returnType, s)) {
+                    String message = "Cannot convert returned value from integer to real: "
+                        + "a function which returns real must return a real, for example I2R(...).";
+                    if (legacyJassTypeChecks) {
+                        s.addWarning(message);
+                    } else {
+                        s.addError(message);
+                    }
+                    return;
+                }
+                if (!returnedType.isSubtypeOf(returnType, s)) {
                     // NEW: Allow returning null for generic type parameters
                     if (returnedType instanceof WurstTypeNull &&
                         (returnType instanceof WurstTypeBoundTypeParam || returnType instanceof WurstTypeTypeParam)) {
