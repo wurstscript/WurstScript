@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 
@@ -44,6 +45,12 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
         int programs = envInt("WURST_FUZZ_PROGRAMS", 25);
         long seed = envLong("WURST_FUZZ_SEED", 20261017L);
         boolean keepAll = System.getenv("WURST_FUZZ_KEEP") != null;
+        String lua;
+        try {
+            lua = getLuaExecutable();
+        } catch (IllegalStateException e) {
+            throw new SkipException("Skipped the fuzzer, which runs the scripts in Lua: " + e.getMessage());
+        }
         List<String> failures = new ArrayList<>();
         int clientsDiffer = 0;
         int scriptsDiffer = 0;
@@ -51,7 +58,7 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
             long programSeed = seed + i;
             String source = new ProgramGenerator(new Random(programSeed)).program();
             String referenceScript = compile(source, "-lua");
-            String reference = run(referenceScript);
+            String reference = run(lua, referenceScript);
             if (clientsDiffer(reference)) {
                 clientsDiffer++;
             }
@@ -60,7 +67,7 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
                 if (!optimisedScript.equals(referenceScript)) {
                     scriptsDiffer++;
                 }
-                String optimised = run(optimisedScript);
+                String optimised = run(lua, optimisedScript);
                 if (!reference.equals(optimised)) {
                     failures.add("seed " + programSeed + " " + String.join(" ", args) + ": "
                         + firstDifference(reference, optimised));
@@ -102,12 +109,11 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
     }
 
     /** Runs the script once per client and returns what each client did, one call per line. */
-    private String run(String script) throws IOException, InterruptedException {
+    private String run(String lua, String script) throws IOException, InterruptedException {
         File file = File.createTempFile("fuzz", ".lua");
         File output = File.createTempFile("fuzz", ".txt");
         try {
             Files.writeString(file.toPath(), script, StandardCharsets.UTF_8);
-            String path = file.getPath().replace('\\', '/');
             String chunk = "for c = 0, " + (CLIENTS - 1) + " do "
                 + "CLIENT = c; io.write('#client ', c, '\\n'); "
                 + "local players = {}; for i = 0, 15 do players[i] = {id = i} end; "
@@ -123,11 +129,14 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
                 + "CreateGroup = function() count(); groups = groups + 1; io.write('g', groups, '\\n'); return {} end; "
                 + "traceInt = function(x) count(); io.write('i', string.format('%d', x), '\\n') end; "
                 + "traceBool = function(b) count(); io.write('b', tostring(b), '\\n') end; "
-                + "local ok, err = pcall(function() dofile('" + path + "'); main() end); "
+                // the script's path comes through the environment, as the temporary directory may contain a quote
+                + "local ok, err = pcall(function() dofile(os.getenv('WURST_FUZZ_SCRIPT')); main() end); "
                 + "if not ok then io.write('#error\\n') end "
                 + "end";
-            Process p = new ProcessBuilder(getLuaExecutable(), "-e", chunk)
-                .redirectErrorStream(true).redirectOutput(output).start();
+            ProcessBuilder builder = new ProcessBuilder(lua, "-e", chunk)
+                .redirectErrorStream(true).redirectOutput(output);
+            builder.environment().put("WURST_FUZZ_SCRIPT", file.getPath());
+            Process p = builder.start();
             // A wrong optimisation can make a loop endless: that is a difference, not a hang of the suite.
             boolean finished = p.waitFor(10, TimeUnit.SECONDS);
             if (!finished) {
