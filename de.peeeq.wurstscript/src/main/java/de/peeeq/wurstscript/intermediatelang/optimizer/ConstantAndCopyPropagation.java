@@ -422,9 +422,13 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                 }
             }
 
+            // Kept from every evaluation, not only when what goes out changes: the reads of the statement itself are
+            // rewritten with it. A statement which drops everything that reaches it (p = f(p), with p known to be a
+            // copy) sends out what it sent before, so this was never kept for it and no read in it was rewritten.
+            kn.varKnowledge = newKnowledge;
+
             // --- PROPAGATE CHANGES ---
             if (!kn.varKnowledgeOut.equals(newOut)) {
-                kn.varKnowledge = newKnowledge;
                 kn.varKnowledgeOut = newOut;
 
                 for (Node succ : n.getSuccessors()) {
