@@ -152,7 +152,11 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
                 p.destroyForcibly().waitFor(10, TimeUnit.SECONDS);
             }
             String trace = Files.readString(output.toPath(), StandardCharsets.UTF_8).replace("\r\n", "\n");
-            return finished ? trace : trace + "#timeout\n";
+            if (!finished) {
+                return endedBy(trace, "#timeout");
+            }
+            // an error outside the protected call ends the interpreter, so the output is not a whole run
+            return p.exitValue() == 0 ? trace : endedBy(trace, "#exit " + p.exitValue());
         } finally {
             file.delete();
             output.delete();
@@ -176,10 +180,15 @@ public class LocalPlayerFuzzTests extends WurstScriptTest {
         return "?";
     }
 
+    /** The trace with a last line which says how the run ended. */
+    private static String endedBy(String trace, String marker) {
+        return trace + (trace.isEmpty() || trace.endsWith("\n") ? "" : "\n") + marker + "\n";
+    }
+
     /** The line which says that a run stopped before its end, or null. */
     private static String stopped(String trace) {
         for (String line : trace.split("\n")) {
-            if (line.startsWith("#error") || line.equals("#timeout")) {
+            if (line.startsWith("#error") || line.equals("#timeout") || line.startsWith("#exit")) {
                 return line;
             }
         }
