@@ -4,6 +4,7 @@ import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.NodeWorklist;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
@@ -14,13 +15,17 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 
-public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass {
+/**
+ * Replaces a read of a local by the constant or the other local it is known to hold. It needs no locality analysis:
+ * a read which is replaced reads the same value on every client, and no computation moves, so a value which depends
+ * on the local player is propagated like any other.
+ */
+public class ConstantAndCopyPropagation implements OptimizerPass {
     private int totalPropagated = 0;
-    private @Nullable LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
-    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
+    @Override
+    public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
-        localPlayerContextAnalyzer = analyzer;
 
         totalPropagated = 0;
         for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
@@ -151,11 +156,6 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Knowledge> knowledge = calculateKnowledge(cfg);
         rewriteCode(cfg, knowledge);
-    }
-
-    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
-        localPlayerContextAnalyzer = analyzer;
-        optimizeFunc(func);
     }
 
     private void rewriteCode(ControlFlowGraph cfg, Map<Node, Knowledge> knowledge) {
@@ -325,13 +325,7 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
                             // Constant folding is intentionally centralized in SimpleRewrites.
                             // This pass performs propagation only to keep fold semantics in one place.
-                            if (localPlayerContextAnalyzer != null
-                                && localPlayerContextAnalyzer.isLocalPlayerDependent(right)) {
-                                // Keep GetLocalPlayer-derived values at their original
-                                // variable boundary. This is deliberately conservative:
-                                // later rewrites must still be able to see that boundary.
-                                newValue = null;
-                            } else if (right instanceof ImConst) {
+                            if (right instanceof ImConst) {
                                 newValue = Value.tryValue(right);
                             } else if (right instanceof ImVarAccess imVarAccess) {
                                 ImVar varRight = imVarAccess.getVar();
