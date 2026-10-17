@@ -411,6 +411,79 @@ public class MapModelReuseTests {
         assertEquals(project.manager.cleanCalls, 0);
     }
 
+    @Test(dataProvider = "commands")
+    public void onlyImportedDependencyPackagesAreCompiled(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File dependency = dependencyWurstFolder(project);
+        Files.writeString(new File(dependency, "ImportedDep.wurst").toPath(),
+            "package ImportedDep\nimport NoWurst\ninit\n    BJDebugMsg(\"fromImportedDep\")\n");
+        Files.writeString(new File(dependency, "UnimportedDep.wurst").toPath(),
+            "package UnimportedDep\nimport NoWurst\ninit\n    BJDebugMsg(\"fromUnimportedDep\")\n");
+        project.manager.reconcile(project.manager.syncDependencyCompilationUnits());
+        String main = source(7).replace("import NoWurst\n", "import NoWurst\nimport ImportedDep\n");
+        Files.writeString(project.source.toPath(), main);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), main));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        int units = project.manager.getModel().size();
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        String output = compile(request, project, new WurstGuiCliImpl());
+        assertTrue(output.contains("fromImportedDep"), output);
+        assertFalse(output.contains("fromUnimportedDep"), output);
+        assertEquals(project.manager.getModel().size(), units, "map compilation must leave the editor model alone");
+    }
+
+    @Test(dataProvider = "commands")
+    public void aDependencyMapScriptIsNotCompiled(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File dependency = dependencyWurstFolder(project);
+        project.manager.refreshDependencies();
+        File dependencyScript = new File(dependency, "war3map.j");
+        String script = "globals\ninteger dependencyMapGlobal = 4242\nendglobals\n";
+        Files.writeString(dependencyScript.toPath(), script);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(dependencyScript), script));
+        assertNotNull(project.manager.getCompilationUnit(WFile.create(dependencyScript)));
+        String main = source(7) + "init\n    BJDebugMsg(I2S(dependencyMapGlobal))\n";
+        Files.writeString(project.source.toPath(), main);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), main));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        int units = project.manager.getModel().size();
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        CompileError error = expectThrows(CompileError.class,
+            () -> compile(request, project, new WurstGuiCliImpl()));
+        assertTrue(error.getMessage().contains("not included in this map compilation"), error.getMessage());
+        assertTrue(error.getMessage().contains("dependencies"), error.getMessage());
+        assertEquals(project.manager.getModel().size(), units, "map compilation must leave the editor model alone");
+    }
+
+    /** Runs used to drop unimported units from the model after the config overrides were computed, detaching them. */
+    @Test(dataProvider = "commands")
+    public void unimportedDependencyConfigPackagesAreNotCompiled(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File dependency = dependencyWurstFolder(project);
+        Files.writeString(new File(dependency, "Configured.wurst").toPath(),
+            "package Configured\nimport NoWurst\n@configurable public int configuredValue = 1\n"
+                + "init\n    BJDebugMsg(\"fromConfigured\" + I2S(configuredValue))\n");
+        Files.writeString(new File(dependency, "Configured_config.wurst").toPath(),
+            "package Configured_config\nimport NoWurst\n@config public int configuredValue = 2\n");
+        project.manager.reconcile(project.manager.syncDependencyCompilationUnits());
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        assertFalse(project.manager.getModel().attrConfigOverridePackages().isEmpty());
+        int units = project.manager.getModel().size();
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+        String output = compile(request, project, new WurstGuiCliImpl());
+        assertFalse(output.contains("fromConfigured"), output);
+        assertEquals(project.manager.getModel().size(), units, "map compilation must leave the editor model alone");
+    }
+
+    private static File dependencyWurstFolder(Project project) {
+        File folder = new File(project.root, "_build/dependencies/dep/wurst");
+        assertTrue(folder.mkdirs());
+        return folder;
+    }
+
     private static String configuredScript(int value) {
         return "function main takes nothing returns nothing\nendfunction\n"
             + "function getConfigured takes nothing returns integer\n    return " + value + "\nendfunction\n";
