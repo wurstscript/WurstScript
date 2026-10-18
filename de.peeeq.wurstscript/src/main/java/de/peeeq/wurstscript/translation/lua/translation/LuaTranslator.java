@@ -646,8 +646,8 @@ public class LuaTranslator {
         if (mainIm == null && confIm == null) {
             return;
         }
-        LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaExprNull());
-        luaModel.add(doneFlag);
+        // nil until the bootstrap runs, which is how a global Lua has not seen reads: it needs no declaration
+        LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaNoExpr());
         LuaFunction boot = LuaAst.LuaFunction(uniqueName("__wurst_init_bootstrap"), LuaAst.LuaParams(), LuaAst.LuaStatements());
         bootstrapFunction = boot;
         boot.getBody().add(LuaAst.LuaLiteral("if " + doneFlag.getName() + " then return end"));
@@ -2693,8 +2693,8 @@ public class LuaTranslator {
         if (v.getType() instanceof ImArrayType || v.getType() instanceof ImArrayTypeMulti) {
             localizableStorageTables.add(lv);
         }
-        lv.setInitialValue(LuaAst.LuaExprNull());
-        luaModel.add(lv);
+        // Not declared at the top of the script: a global Lua has not seen reads as nil, and the bootstrap, which
+        // main runs first, gives it its default.
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(lv), defaultValue(v.getType())));
     }
 

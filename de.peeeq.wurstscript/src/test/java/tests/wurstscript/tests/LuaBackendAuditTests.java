@@ -2814,13 +2814,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String compiled = compiledLua("nestedConcreteGenericStaticStorageCompilesInLua");
-        java.util.regex.Matcher storageDeclarations = java.util.regex.Pattern
-            .compile("(?m)^(List_store\\S*) = nil$")
-            .matcher(compiled);
-        List<String> storageNames = new ArrayList<>();
-        while (storageDeclarations.find()) {
-            storageNames.add(storageDeclarations.group(1));
-        }
+        List<String> storageNames = bootstrapDefaults(compiled, "List_store");
         assertEquals("each concrete List instantiation needs independent static storage",
             3, storageNames.size());
         assertEquals("each structural List specialization must emit one storage slot",
@@ -2846,15 +2840,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String compiled = compiledLua("genericStaticsAreIndependentWithoutTupleInstantiation");
-        java.util.regex.Matcher storageDeclarations = java.util.regex.Pattern
-            .compile("(?m)^Slot_value_\\S* = nil$")
-            .matcher(compiled);
-        int storages = 0;
-        while (storageDeclarations.find()) {
-            storages++;
-        }
-        assertEquals("each concrete Slot instantiation needs its own static",
-            2, storages);
+        List<String> storages = bootstrapDefaults(compiled, "Slot_value_");
+        assertEquals("each concrete Slot instantiation needs its own static: " + storages,
+            2, storages.size());
     }
 
     @Test
@@ -2896,15 +2884,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         LuaCompilationUnit luaCode = compiler.transformProgToLua();
         StringBuilder output = new StringBuilder();
         luaCode.print(output, 0);
-        java.util.regex.Matcher declarations = java.util.regex.Pattern
-            .compile("(?m)^Slot_value_\\S* = nil$")
-            .matcher(output);
-        int storages = 0;
-        while (declarations.find()) {
-            storages++;
-        }
-        assertEquals("both concrete static specializations must survive detached initialization",
-            2, storages);
+        List<String> storages = bootstrapDefaults(output.toString(), "Slot_value_");
+        assertEquals("both concrete static specializations must survive detached initialization: " + storages,
+            2, storages.size());
     }
 
     @Test
@@ -3013,13 +2995,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String compiled = compiledLua("inheritedGenericStaticUsesDeclaringOwnerSpecialization");
-        java.util.regex.Matcher declarations = java.util.regex.Pattern
-            .compile("(?m)^Base_value_\\S* = nil$").matcher(compiled);
-        int storages = 0;
-        while (declarations.find()) {
-            storages++;
-        }
-        assertEquals("each inherited Base<T> static needs independent storage", 2, storages);
+        List<String> storages = bootstrapDefaults(compiled, "Base_value_");
+        assertEquals("each inherited Base<T> static needs independent storage: " + storages, 2, storages.size());
     }
 
     @Test
@@ -5699,6 +5676,22 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return compiled.substring(start, end);
     }
 
+    /**
+     * The globals whose name starts with {@code prefix} which the bootstrap gives their default, in order, once
+     * for each assignment: every global the script uses gets exactly one there.
+     */
+    private static List<String> bootstrapDefaults(String compiled, String prefix) {
+        String bootstrap = topLevelFunctionBodyWithPrefix(compiled, "__wurst_init_bootstrap");
+        java.util.regex.Matcher defaults = java.util.regex.Pattern
+            .compile("(?m)^\\t(" + java.util.regex.Pattern.quote(prefix) + "\\S*) = ")
+            .matcher(bootstrap);
+        List<String> names = new ArrayList<>();
+        while (defaults.find()) {
+            names.add(defaults.group(1));
+        }
+        return names;
+    }
+
     private static String topLevelFunctionBodyWithPrefix(String compiled, String functionNamePrefix) {
         int start = compiled.indexOf("function " + functionNamePrefix);
         assertTrue("expected function starting with " + functionNamePrefix, start >= 0);
@@ -6236,6 +6229,44 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String grid = topLevelFunctionBodyWithPrefix(compiled, "Grid:create");
         assertTrue("the array field's table is made on allocation:\n" + grid, grid.contains("Grid_cells_storage[new_inst]"));
         assertFalse("which allocates in place:\n" + grid, grid.contains("__wurst_allocObject"));
+    }
+
+    /**
+     * A global is given its default by the bootstrap which main runs first, and a global Lua has not seen reads as
+     * nil, so the script declares none of them as nil at its top: each declaration was a table write at load which
+     * changed nothing.
+     */
+    @Test
+    public void globalsAreNotDeclaredAsNilAtTheTopOfTheScript() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "int count = 0",
+            "real ratio = 0",
+            "boolean flag = false",
+            "string name = null",
+            "A obj = null",
+            "int array counts",
+            "function bump()",
+            "    count++",
+            "    ratio += 0.5",
+            "    counts[2] += 3",
+            "init",
+            "    bump()",
+            "    if count == 1 and ratio == 0.5 and not flag and name == null and obj == null",
+            "        and counts[2] == 3 and counts[1] == 0",
+            "        name = \"set\"",
+            "        obj = new A",
+            "        if name == \"set\" and obj != null",
+            "            testSuccess()");
+        String compiled = compiledLua("globalsAreNotDeclaredAsNilAtTheTopOfTheScript");
+        java.util.regex.Matcher nilDeclaration = java.util.regex.Pattern
+            .compile("(?m)^[A-Za-z_][A-Za-z0-9_]* = nil$").matcher(compiled);
+        assertFalse("a global declared as nil:\n" + compiled, nilDeclaration.find());
+        String bootstrap = topLevelFunctionBodyWithPrefix(compiled, "__wurst_init_bootstrap");
+        assertTrue("the bootstrap gives the globals their defaults:\n" + bootstrap,
+            bootstrap.contains("Test_count = 0") && bootstrap.contains("Test_flag = false"));
     }
 
     /**

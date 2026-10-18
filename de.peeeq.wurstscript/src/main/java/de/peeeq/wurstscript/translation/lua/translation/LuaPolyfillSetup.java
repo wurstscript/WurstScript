@@ -31,14 +31,13 @@ class LuaPolyfillSetup {
      * typecasting handles in unbounded quantities.
      */
     static void createObjectIndexFunctions(LuaTranslator tr) {
-        LuaVariable objectIndexMap = LuaAst.LuaVariable("__wurst_objectIndexMap", LuaAst.LuaExprNull());
-        tr.luaModel.add(objectIndexMap);
+        // The maps are made by the bootstrap; until then they read as nil, so they need no declaration.
+        LuaVariable objectIndexMap = LuaAst.LuaVariable("__wurst_objectIndexMap", LuaAst.LuaNoExpr());
         tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectIndexMap), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
         ))));
 
-        LuaVariable numberWrapperMap = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaExprNull());
-        tr.luaModel.add(numberWrapperMap);
+        LuaVariable numberWrapperMap = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaNoExpr());
         tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(numberWrapperMap), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
         ))));
@@ -129,8 +128,8 @@ class LuaPolyfillSetup {
     }
 
     static void createStringIndexFunctions(LuaTranslator tr) {
-        LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
-        tr.luaModel.add(map);
+        // made by the bootstrap, like the object index maps
+        LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaNoExpr());
         tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(map), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0")),
             LuaAst.LuaTableNamedField("byString", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())),
