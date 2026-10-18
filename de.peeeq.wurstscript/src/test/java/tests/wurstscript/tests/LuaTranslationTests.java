@@ -170,10 +170,13 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private List<String> subclassCreateClasses(String output, String baseName) {
-        Matcher matcher = Pattern.compile("function\\s+(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+):create\\d*\\s*\\(").matcher(output);
+        // a class with its own allocator, or one which allocates with the shared one
+        String ownerPattern = "(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+)";
+        Matcher matcher = Pattern.compile("function\\s+" + ownerPattern + ":create\\d*\\s*\\(|__wurst_allocObject\\(" + ownerPattern + "\\)")
+            .matcher(output);
         List<String> result = new ArrayList<>();
         while (matcher.find()) {
-            String owner = matcher.group(1);
+            String owner = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
             if (!result.contains(owner)) {
                 result.add(owner);
             }
@@ -1907,9 +1910,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).lines(
             "package Test",
             "class A",
+            // an array field's table is made on allocation, so A has an allocator of its own
+            "    int array[2] cells",
             "init",
             "    let a = new A()",
-            "    if a == null",
+            "    a.cells[1] = 3",
+            "    if a.cells[1] == 2",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassTablesExistBeforeCreateMethodDefinitions.lua"), Charsets.UTF_8);
