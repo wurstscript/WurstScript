@@ -166,14 +166,9 @@ public class StmtTranslation {
     private static void emitLuaInitXpcall(ImFunction initFunc, List<LuaStatement> res, LuaTranslator tr) {
         String funcName = tr.luaFunc.getFor(initFunc).getName();
         String packageName = tr.imTr.luaInitFunctions.getOrDefault(initFunc, "?");
-        String errHandler = "function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end"
-                + " BJDebugMsg(\"lua init error: \" .. tostring(err))"
-                + " xpcall(function() " + ExprTranslation.callErrorFunc(tr, "tostring(err)") + " end,"
-                + " function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end"
-                + " BJDebugMsg(\"error reporting error: \" .. tostring(err2)) end) end";
         // no local/do-block: locals hidden in literals are invisible to the
         // 200-locals accounting in enforceLuaLocalLimits
-        res.add(LuaAst.LuaLiteral("if not xpcall(" + funcName + ", " + errHandler + ") then"));
+        res.add(LuaAst.LuaLiteral("if not xpcall(" + funcName + ", " + tr.initErrorHandler().getName() + ") then"));
         res.add(LuaAst.LuaLiteral("    " + ExprTranslation.callErrorFunc(tr, "\"Could not initialize package " + packageName + ".\"")));
         res.add(LuaAst.LuaLiteral("end"));
     }

@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -3694,6 +3695,31 @@ public class LuaTranslationTests extends WurstScriptTest {
         // TriggerEvaluate pattern must NOT appear for init functions
         assertFalse(compiled.contains("if not(TriggerEvaluate("));
         assertFalse(compiled.contains("TriggerClearConditions"));
+    }
+
+    /** Every package init reports a raise through one handler, defined once, not a copy of it for each package. */
+    @Test
+    public void packageInitsShareOneErrorHandler() throws IOException {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "init",
+            "    testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_packageInitsShareOneErrorHandler.lua"), Charsets.UTF_8);
+        int initCount = compiled.split("if not xpcall\\(init_", -1).length - 1;
+        assertTrue("the standard library has package inits", initCount > 10);
+        Matcher inits = Pattern.compile("if not xpcall\\(init_\\w+, (\\w+)\\) then").matcher(compiled);
+        Set<String> handlers = new HashSet<>();
+        int byName = 0;
+        while (inits.find()) {
+            byName++;
+            handlers.add(inits.group(1));
+        }
+        assertEquals("package inits which pass their handler by name", initCount, byName);
+        assertEquals("handlers: " + handlers, 1, handlers.size());
+        assertTrue(handlers.iterator().next().startsWith("__wurst_init_error"));
+        assertEquals(1, compiled.split("lua init error: ", -1).length - 1);
     }
 
     @Test

@@ -159,6 +159,7 @@ public class LuaTranslator {
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     private final Map<ImFunction, LuaFunction> callbackAdapters = new IdentityHashMap<>();
     private LuaFunction callbackErrorHandler;
+    private LuaFunction initErrorHandler;
 
     // Array-default infrastructure (metatables/helper functions) shared across
     // every array of a given entry type, instead of allocated per array
@@ -563,6 +564,26 @@ public class LuaTranslator {
                 + " BJDebugMsg(\"while reporting: \" .. tostring(err)) end)"));
         luaModel.add(callbackErrorHandler);
         return callbackErrorHandler;
+    }
+
+    /** The handler every package init is called with ({@code StmtTranslation.emitLuaInitXpcall}), defined once. */
+    LuaFunction initErrorHandler() {
+        if (initErrorHandler != null) {
+            return initErrorHandler;
+        }
+        LuaVariable err = LuaAst.LuaVariable("err", LuaAst.LuaNoExpr());
+        initErrorHandler = LuaAst.LuaFunction(uniqueName("__wurst_init_error"),
+            LuaAst.LuaParams(err), LuaAst.LuaStatements());
+        initErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "if err == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL + "\" then return end"));
+        initErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "BJDebugMsg(\"lua init error: \" .. tostring(err))"));
+        initErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "xpcall(function() " + ExprTranslation.callErrorFunc(this, "tostring(err)")
+                + " end, function(err2) if err2 == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL
+                + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) end)"));
+        luaModel.add(initErrorHandler);
+        return initErrorHandler;
     }
 
     /**
