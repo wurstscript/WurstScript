@@ -445,8 +445,11 @@ public class LuaTranslator {
         normalizeFieldNames();
 
 
+        findClassMetadataReads();
         createObjectManagement();
-        createInstanceOfFunction();
+        if (readsSupertypes) {
+            createInstanceOfFunction();
+        }
         createObjectIndexFunctions();
         createStringIndexFunctions();
 
@@ -826,12 +829,36 @@ public class LuaTranslator {
         }
     }
 
+    /**
+     * The class tables carry metadata for two reads alone, {@code instanceof} and the type id of an object; the
+     * program as it is translated says whether it has either.
+     */
+    private void findClassMetadataReads() {
+        prog.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof e) {
+                super.visit(e);
+                readsSupertypes = true;
+            }
+
+            @Override
+            public void visit(ImTypeIdOfObj e) {
+                super.visit(e);
+                readsObjectTypeId = true;
+            }
+        });
+    }
+
     private void createInstanceOfFunction() {
         LuaPolyfillSetup.createInstanceOfFunction(this);
     }
 
     /** For each class, the fields whose default its allocation writes ({@link LuaFieldDefaults}). */
     private Map<ImClass, Set<ImVar>> fieldDefaultsOnAllocation = Collections.emptyMap();
+    /** Whether the program has an {@code instanceof}, the only reader of a class table's supertypes. */
+    private boolean readsSupertypes;
+    /** Whether the program reads the type id of an object, the only reader of a class table's type id. */
+    private boolean readsObjectTypeId;
     private final Map<ImClass, Boolean> allocatesOnly = new IdentityHashMap<>();
     private final Lazy<LuaFunction> objectAlloc = Lazy.create(this::createObjectAlloc);
 
@@ -1538,23 +1565,27 @@ public class LuaTranslator {
         createMethods(c, classVar);
 
         // set supertype metadata:
-        LuaTableFields superClasses = LuaAst.LuaTableFields();
-        collectSuperClasses(superClasses, c, new HashSet<>());
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            WURST_SUPERTYPES),
-            LuaAst.LuaTableConstructor(superClasses)
-        ));
+        if (readsSupertypes) {
+            LuaTableFields superClasses = LuaAst.LuaTableFields();
+            collectSuperClasses(superClasses, c, new HashSet<>());
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                WURST_SUPERTYPES),
+                LuaAst.LuaTableConstructor(superClasses)
+            ));
+        }
 
         // set typeid metadata:
-        // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
-        // retains this canonical metadata dependency before emission.
-        ImClass typeIdClass = imTr.canonical(c);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
-        ));
+        if (readsObjectTypeId) {
+            // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
+            // retains this canonical metadata dependency before emission.
+            ImClass typeIdClass = imTr.canonical(c);
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                ExprTranslation.TYPE_ID),
+                LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
+            ));
+        }
 
 
     }

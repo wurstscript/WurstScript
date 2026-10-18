@@ -1846,7 +1846,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaClassDispatchTablesAreInitializedInsideMain() throws IOException {
-        // The call goes through the interface, so it reads a slot and A's table binds one.
+        // The call goes through the interface, so it reads a slot and A's table binds one; the instanceof and
+        // the type id read the metadata.
         test().testLua(true).lines(
             "package Test",
             "interface I",
@@ -1856,7 +1857,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "init",
             "    I a = new A()",
-            "    if a.f() > 0",
+            "    if a.f() > 0 and a instanceof A and a.typeId != 0",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassDispatchTablesAreInitializedInsideMain.lua"), Charsets.UTF_8);
@@ -1876,7 +1877,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaDeferredBootstrapRunsBeforeInitGlobalsInMain() throws IOException {
-        // The call goes through the interface, so it reads a slot and C's table binds one.
+        // The call goes through the interface, so it reads a slot and C's table binds one; the instanceof and
+        // the type id read the metadata.
         test().testLua(true).lines(
             "package Test",
             "interface I",
@@ -1886,7 +1888,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "init",
             "    I c = new C()",
-            "    if c.f() > 0",
+            "    if c.f() > 0 and c instanceof C and c.typeId != 0",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaDeferredBootstrapRunsBeforeInitGlobalsInMain.lua"), Charsets.UTF_8);

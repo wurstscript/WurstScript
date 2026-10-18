@@ -6239,6 +6239,46 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * A class table carries its supertypes for {@code instanceof} and its type id for {@code x.typeId}, and nothing
+     * else reads them: a program which does neither gets neither, and no instanceof helper.
+     */
+    @Test
+    public void classMetadataIsEmittedOnlyForTheReadsWhichNeedIt() throws IOException {
+        String[] shapes = {
+            "abstract class Shape",
+            "    abstract function area() returns int",
+            "class Square extends Shape",
+            "    override function area() returns int",
+            "        return 4",
+            "class Circle extends Shape",
+            "    override function area() returns int",
+            "        return 3"};
+        test().testLua(true).luaOnly(false).executeProg().lines(concat(new String[] {"package Test", "native testSuccess()"},
+            shapes, new String[] {
+            "init",
+            "    Shape s = new Square()",
+            "    if s.area() == 4",
+            "        testSuccess()"}));
+        String plain = compiledLua("classMetadataIsEmittedOnlyForTheReadsWhichNeedIt");
+        assertFalse(plain, plain.contains("__wurst_supertypes") || plain.contains("__typeId__") || plain.contains("isInstanceOf"));
+
+        test().testLua(true).luaOnly(false).executeProg().lines(concat(new String[] {"package Test2", "native testSuccess()"},
+            shapes, new String[] {
+            "init",
+            "    Shape s = new Square()",
+            "    Shape c = new Circle()",
+            "    if s instanceof Square and not (c instanceof Square)",
+            "        and s.typeId == Square.typeId and c.typeId != Square.typeId",
+            "        testSuccess()"}));
+        String reads = compiledLua("classMetadataIsEmittedOnlyForTheReadsWhichNeedIt");
+        assertTrue(reads, reads.contains("Square.__wurst_supertypes = ") && reads.contains("Square.__typeId__ = "));
+    }
+
+    private static String[] concat(String[]... parts) {
+        return java.util.Arrays.stream(parts).flatMap(java.util.Arrays::stream).toArray(String[]::new);
+    }
+
+    /**
      * Every old-generics cast reads the zero sentinel, so it is a main-chunk local too. It stays
      * {@code math.mininteger}, never a literal: the game's integers need not have the test Lua's 64 bits.
      */
