@@ -41,19 +41,17 @@ Notes; finished-work narrative does not.
   class's type variable (`void|T192,real` against `void|T636,real`). Worth doing only if this stops
   being dead weight.
 
-- **Implement `RawHashMap<K, V>` from [docs/NATIVE_KEYED_STORE_DESIGN.md](docs/NATIVE_KEYED_STORE_DESIGN.md).**
-  The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
-  requirements, and regression cases; the data structure itself is not implemented.
-
 - **Shake what is left, and earlier.** `TreeShaker` drops the functions (and the methods whose implementation goes
   with them) which nothing reaches, and the globals which no reachable code reads together with the assignments of
   constants to them (not a call, and a division only by a constant: those may have an effect), on both targets, in
   front of the compile-time functions, before the generics and after them. On castle fight (Lua) that takes the 34,200
   functions of the translation to 10,500 and the statements from 258,000 to 110,000 before the generics, and the script
-  has 92,000. Class-metadata pruning was tried and deferred (see Notes). Next, in this order, each its own
-  change with its own proof: (1) globals
-  and fields which only assignments with an effect write, which keeps the effect and drops the variable (what
-  `ImOptimizer.removeGarbage` does late); (2) the work before the IM exists, which no pass over the IM can reach:
+  has 92,000. Class-metadata pruning was tried and deferred (see Notes). Globals which only calls write are not
+  worth shaking early: on castle fight (Lua) the first shake keeps 67 of 26,366 globals only for that and the second 7,
+  and the calls stay as statements anyway. The shaker also cannot tell a call without an effect (`BlzGetOriginFrame`,
+  a getter) without the whole-program `SideEffectAnalyzer` the late removal uses, so keeping each call in place
+  leaves calls the late removal drops (Oct 2026, prototype discarded). Next: the work before the IM exists, which no
+  pass over the IM can reach:
   about 2.6 s of a warm castle fight build is outside the phases the IM passes cover, and the translation takes 1.3 s
   to produce 34,000 functions of which 10,500 are used. Translating only function bodies which are reachable saves
   about 0.17 s of that (measured), because the cost is per class and per method (`getClassesWithImplementation`,
