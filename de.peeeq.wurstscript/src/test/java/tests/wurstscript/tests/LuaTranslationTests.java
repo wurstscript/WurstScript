@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -169,10 +170,13 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private List<String> subclassCreateClasses(String output, String baseName) {
-        Matcher matcher = Pattern.compile("function\\s+(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+):create\\d*\\s*\\(").matcher(output);
+        // a class with its own allocator, or one which allocates with the shared one
+        String ownerPattern = "(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+)";
+        Matcher matcher = Pattern.compile("function\\s+" + ownerPattern + ":create\\d*\\s*\\(|__wurst_allocObject\\(" + ownerPattern + "\\)")
+            .matcher(output);
         List<String> result = new ArrayList<>();
         while (matcher.find()) {
-            String owner = matcher.group(1);
+            String owner = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
             if (!result.contains(owner)) {
                 result.add(owner);
             }
@@ -1842,7 +1846,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaClassDispatchTablesAreInitializedInsideMain() throws IOException {
-        // The call goes through the interface, so it reads a slot and A's table binds one.
+        // The call goes through the interface, so it reads a slot and A's table binds one; the instanceof and
+        // the type id read the metadata.
         test().testLua(true).lines(
             "package Test",
             "interface I",
@@ -1852,7 +1857,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "init",
             "    I a = new A()",
-            "    if a.f() > 0",
+            "    if a.f() > 0 and a instanceof A and a.typeId != 0",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassDispatchTablesAreInitializedInsideMain.lua"), Charsets.UTF_8);
@@ -1872,7 +1877,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaDeferredBootstrapRunsBeforeInitGlobalsInMain() throws IOException {
-        // The call goes through the interface, so it reads a slot and C's table binds one.
+        // The call goes through the interface, so it reads a slot and C's table binds one; the instanceof and
+        // the type id read the metadata.
         test().testLua(true).lines(
             "package Test",
             "interface I",
@@ -1882,7 +1888,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "init",
             "    I c = new C()",
-            "    if c.f() > 0",
+            "    if c.f() > 0 and c instanceof C and c.typeId != 0",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaDeferredBootstrapRunsBeforeInitGlobalsInMain.lua"), Charsets.UTF_8);
@@ -1906,9 +1912,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).lines(
             "package Test",
             "class A",
+            // an array field's table is made on allocation, so A has an allocator of its own
+            "    int array[2] cells",
             "init",
             "    let a = new A()",
-            "    if a == null",
+            "    a.cells[1] = 3",
+            "    if a.cells[1] == 2",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassTablesExistBeforeCreateMethodDefinitions.lua"), Charsets.UTF_8);
@@ -3694,6 +3703,31 @@ public class LuaTranslationTests extends WurstScriptTest {
         // TriggerEvaluate pattern must NOT appear for init functions
         assertFalse(compiled.contains("if not(TriggerEvaluate("));
         assertFalse(compiled.contains("TriggerClearConditions"));
+    }
+
+    /** Every package init reports a raise through one handler, defined once, not a copy of it for each package. */
+    @Test
+    public void packageInitsShareOneErrorHandler() throws IOException {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "init",
+            "    testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_packageInitsShareOneErrorHandler.lua"), Charsets.UTF_8);
+        int initCount = compiled.split("if not xpcall\\(init_", -1).length - 1;
+        assertTrue("the standard library has package inits", initCount > 10);
+        Matcher inits = Pattern.compile("if not xpcall\\(init_\\w+, (\\w+)\\) then").matcher(compiled);
+        Set<String> handlers = new HashSet<>();
+        int byName = 0;
+        while (inits.find()) {
+            byName++;
+            handlers.add(inits.group(1));
+        }
+        assertEquals("package inits which pass their handler by name", initCount, byName);
+        assertEquals("handlers: " + handlers, 1, handlers.size());
+        assertTrue(handlers.iterator().next().startsWith("__wurst_init_error"));
+        assertEquals(1, compiled.split("lua init error: ", -1).length - 1);
     }
 
     @Test

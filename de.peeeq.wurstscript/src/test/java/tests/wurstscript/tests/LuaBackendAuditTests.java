@@ -2984,7 +2984,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
         String compiled = compiledLua("genericFactoryAllocationSpecializesStaticOwningClass");
         assertEquals("the shared constructor must allocate ordinary objects on the erased Lua class",
-            1, countOccurrences(compiled, "= Box:create()"));
+            1, countOccurrences(compiled, "= __wurst_allocObject(Box)"));
         assertFalse("static specialization must not create specialized object classes",
             java.util.regex.Pattern.compile("(?m)^Box_specialized\\S* = \\(\\{\\}\\)$")
                 .matcher(compiled).find());
@@ -6184,11 +6184,98 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        and following == freshId + 1",
             "        testSuccess()");
         String create = topLevelFunctionBodyWithPrefix(
-            compiledLua("recycledIdIsPoppedWithoutClearingItsSlot"), "Node:create");
+            compiledLua("recycledIdIsPoppedWithoutClearingItsSlot"), "__wurst_allocObject");
         assertTrue("the id comes off the free stack:\n" + create,
             create.contains("new_inst = __wurst_objectFree[__wurst_objectFreeCount]"));
         assertFalse("the popped slot is not cleared:\n" + create,
             create.contains("__wurst_objectFree[__wurst_objectFreeCount] = nil"));
+    }
+
+    /**
+     * A class whose allocation only takes an id and records the class has no allocator of its own: its
+     * allocations call the one shared allocator, a main-chunk local like the deallocator. A class which also
+     * makes the table of an array field per object keeps its own, which does that in the same call.
+     */
+    @Test
+    public void classesWhichOnlyAllocateShareOneAllocator() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "abstract class Shape",
+            "    abstract function area() returns int",
+            "class Square extends Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "class Circle extends Shape",
+            "    override function area() returns int",
+            "        return 3",
+            "class Grid",
+            "    int array[4] cells",
+            "init",
+            "    Shape s = new Square(2)",
+            "    Shape c = new Circle()",
+            "    let sid = s castTo int",
+            "    destroy s",
+            "    Shape again = new Circle()",
+            "    let g = new Grid()",
+            "    g.cells[1] = 5",
+            "    if again castTo int == sid and again instanceof Circle and not (again instanceof Square)",
+            "        and again.area() == 3 and c.area() == 3 and g.cells[1] == 5 and g.cells[2] == 0",
+            "        and new Square(4).area() == 16",
+            "        testSuccess()");
+        String compiled = compiledLua("classesWhichOnlyAllocateShareOneAllocator");
+        assertEquals("the shared allocator and one for each class which keeps its own:\n" + compiled,
+            1 + java.util.regex.Pattern.compile("(?m)^function \\w+:create\\d*\\(").matcher(compiled).results().count(),
+            countOccurrences(compiled, "if (__wurst_objectFreeCount == 0) then"));
+        assertTrue(compiled, compiled.contains("local function __wurst_allocObject(class) \n"));
+        assertFalse(compiled, compiled.contains("Circle:create"));
+        assertTrue(compiled, compiled.contains("__wurst_allocObject(Circle)"));
+        String grid = topLevelFunctionBodyWithPrefix(compiled, "Grid:create");
+        assertTrue("the array field's table is made on allocation:\n" + grid, grid.contains("Grid_cells_storage[new_inst]"));
+        assertFalse("which allocates in place:\n" + grid, grid.contains("__wurst_allocObject"));
+    }
+
+    /**
+     * A class table carries its supertypes for {@code instanceof} and its type id for {@code x.typeId}, and nothing
+     * else reads them: a program which does neither gets neither, and no instanceof helper.
+     */
+    @Test
+    public void classMetadataIsEmittedOnlyForTheReadsWhichNeedIt() throws IOException {
+        String[] shapes = {
+            "abstract class Shape",
+            "    abstract function area() returns int",
+            "class Square extends Shape",
+            "    override function area() returns int",
+            "        return 4",
+            "class Circle extends Shape",
+            "    override function area() returns int",
+            "        return 3"};
+        test().testLua(true).luaOnly(false).executeProg().lines(concat(new String[] {"package Test", "native testSuccess()"},
+            shapes, new String[] {
+            "init",
+            "    Shape s = new Square()",
+            "    if s.area() == 4",
+            "        testSuccess()"}));
+        String plain = compiledLua("classMetadataIsEmittedOnlyForTheReadsWhichNeedIt");
+        assertFalse(plain, plain.contains("__wurst_supertypes") || plain.contains("__typeId__") || plain.contains("isInstanceOf"));
+
+        test().testLua(true).luaOnly(false).executeProg().lines(concat(new String[] {"package Test2", "native testSuccess()"},
+            shapes, new String[] {
+            "init",
+            "    Shape s = new Square()",
+            "    Shape c = new Circle()",
+            "    if s instanceof Square and not (c instanceof Square)",
+            "        and s.typeId == Square.typeId and c.typeId != Square.typeId",
+            "        testSuccess()"}));
+        String reads = compiledLua("classMetadataIsEmittedOnlyForTheReadsWhichNeedIt");
+        assertTrue(reads, reads.contains("Square.__wurst_supertypes = ") && reads.contains("Square.__typeId__ = "));
+    }
+
+    private static String[] concat(String[]... parts) {
+        return java.util.Arrays.stream(parts).flatMap(java.util.Arrays::stream).toArray(String[]::new);
     }
 
     /**
@@ -7533,10 +7620,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if h.amount == 12 and h.factor == 1.5 and h.crit and h.label == \"hit\" and h.next == null",
             "        testSuccess()");
         String compiled = compiledLua("aConstructedFieldIsWrittenOnceNotFirstWithItsDefault");
-        java.util.regex.Matcher create = java.util.regex.Pattern
-            .compile("function Hit:create\\d*\\(\\) \\n(.*?)\\nend", java.util.regex.Pattern.DOTALL).matcher(compiled);
-        assertTrue("the allocation:\n" + compiled, create.find());
-        assertFalse("the allocation writes no field:\n" + create.group(1), create.group(1).contains("_storage["));
+        // an allocation which writes no field is the shared allocator's (classesWhichOnlyAllocateShareOneAllocator)
+        assertFalse("the allocation writes no field:\n" + compiled, compiled.contains("Hit:create"));
+        assertTrue("the allocation:\n" + compiled, compiled.contains("__wurst_allocObject(Hit)"));
         for (String field : new String[] {"amount", "factor", "crit", "label", "next"}) {
             int writes = compiled.split("Hit_" + field + "_storage(_local\\d*)?\\[[^\\]]+\\] = ", -1).length - 1;
             assertEquals("Hit." + field + " is written once:\n" + compiled, 1, writes);

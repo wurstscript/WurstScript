@@ -74,7 +74,7 @@ public class ObservableEffectsTests extends WurstScriptTest {
             "    testSuccess()");
         if (optimized && !stacktraces) {
             String body = luaInitializer("unreadAllocationPreservesObjectIds", true, false);
-            assertEquals(body.split("Empty:create[0-9]*\\(", -1).length - 1, 3,
+            assertEquals(body.split("__wurst_allocObject\\(Empty\\)", -1).length - 1, 3,
                 "all three allocations must survive inlined constructors");
         }
     }

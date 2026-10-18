@@ -159,6 +159,7 @@ public class LuaTranslator {
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     private final Map<ImFunction, LuaFunction> callbackAdapters = new IdentityHashMap<>();
     private LuaFunction callbackErrorHandler;
+    private LuaFunction initErrorHandler;
 
     // Array-default infrastructure (metatables/helper functions) shared across
     // every array of a given entry type, instead of allocated per array
@@ -444,8 +445,11 @@ public class LuaTranslator {
         normalizeFieldNames();
 
 
+        findClassMetadataReads();
         createObjectManagement();
-        createInstanceOfFunction();
+        if (readsSupertypes) {
+            createInstanceOfFunction();
+        }
         createObjectIndexFunctions();
         createStringIndexFunctions();
 
@@ -563,6 +567,26 @@ public class LuaTranslator {
                 + " BJDebugMsg(\"while reporting: \" .. tostring(err)) end)"));
         luaModel.add(callbackErrorHandler);
         return callbackErrorHandler;
+    }
+
+    /** The handler every package init is called with ({@code StmtTranslation.emitLuaInitXpcall}), defined once. */
+    LuaFunction initErrorHandler() {
+        if (initErrorHandler != null) {
+            return initErrorHandler;
+        }
+        LuaVariable err = LuaAst.LuaVariable("err", LuaAst.LuaNoExpr());
+        initErrorHandler = LuaAst.LuaFunction(uniqueName("__wurst_init_error"),
+            LuaAst.LuaParams(err), LuaAst.LuaStatements());
+        initErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "if err == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL + "\" then return end"));
+        initErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "BJDebugMsg(\"lua init error: \" .. tostring(err))"));
+        initErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "xpcall(function() " + ExprTranslation.callErrorFunc(this, "tostring(err)")
+                + " end, function(err2) if err2 == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL
+                + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) end)"));
+        luaModel.add(initErrorHandler);
+        return initErrorHandler;
     }
 
     /**
@@ -805,12 +829,38 @@ public class LuaTranslator {
         }
     }
 
+    /**
+     * The class tables carry metadata for two reads alone, {@code instanceof} and the type id of an object; the
+     * program as it is translated says whether it has either.
+     */
+    private void findClassMetadataReads() {
+        prog.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof e) {
+                super.visit(e);
+                readsSupertypes = true;
+            }
+
+            @Override
+            public void visit(ImTypeIdOfObj e) {
+                super.visit(e);
+                readsObjectTypeId = true;
+            }
+        });
+    }
+
     private void createInstanceOfFunction() {
         LuaPolyfillSetup.createInstanceOfFunction(this);
     }
 
     /** For each class, the fields whose default its allocation writes ({@link LuaFieldDefaults}). */
     private Map<ImClass, Set<ImVar>> fieldDefaultsOnAllocation = Collections.emptyMap();
+    /** Whether the program has an {@code instanceof}, the only reader of a class table's supertypes. */
+    private boolean readsSupertypes;
+    /** Whether the program reads the type id of an object, the only reader of a class table's type id. */
+    private boolean readsObjectTypeId;
+    private final Map<ImClass, Boolean> allocatesOnly = new IdentityHashMap<>();
+    private final Lazy<LuaFunction> objectAlloc = Lazy.create(this::createObjectAlloc);
 
     LuaVariable fieldStorage(ImVar field) {
         return luaFieldStorage.getFor(imTr.canonical(field));
@@ -1402,9 +1452,11 @@ public class LuaTranslator {
 
         // following the code at http://lua-users.org/wiki/InheritanceTutorial
         LuaVariable classVar = luaClassVar.getFor(c);
-        LuaMethod initMethod = luaClassInitMethod.getFor(c);
-
-        luaModel.add(initMethod);
+        // a class which only allocates has no allocator of its own (allocatesOnly)
+        LuaMethod initMethod = allocatesOnly(c) ? null : luaClassInitMethod.getFor(c);
+        if (initMethod != null) {
+            luaModel.add(initMethod);
+        }
 
         // translate functions
         for (ImFunction f : c.getFunctions()) {
@@ -1412,7 +1464,42 @@ public class LuaTranslator {
             luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
         }
 
-        createClassInitFunction(c, classVar, initMethod);
+        if (initMethod != null) {
+            createClassInitFunction(c, classVar, initMethod);
+        }
+    }
+
+    /**
+     * Whether allocating an object of {@code c} takes an id and records its class and nothing else: no array field
+     * needs its table and no default survived at an allocation ({@link LuaFieldDefaults}). Such a class has no
+     * allocator of its own; its allocations call the shared {@link #objectAlloc()}.
+     */
+    boolean allocatesOnly(ImClass c) {
+        return allocatesOnly.computeIfAbsent(c, k -> {
+            Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(k, Collections.emptySet());
+            for (ImVar field : LuaFieldDefaults.fieldsOf(k, imTr)) {
+                if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    /** {@code __wurst_allocObject(class)}: a fresh or recycled id, recorded as an object of the class given. */
+    LuaFunction objectAlloc() {
+        return objectAlloc.get();
+    }
+
+    private LuaFunction createObjectAlloc() {
+        LuaVariable classParam = LuaAst.LuaVariable("class", LuaAst.LuaNoExpr());
+        LuaFunction alloc = LuaAst.LuaFunction(uniqueName("__wurst_allocObject"), LuaAst.LuaParams(classParam),
+            LuaAst.LuaStatements());
+        LuaVariable newInst = addAllocation(alloc.getBody(), LuaAst.LuaExprVarAccess(classParam));
+        alloc.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+        // Called by every allocation of most classes, so a local function like the deallocator.
+        declareChunkLocal(alloc);
+        return alloc;
     }
 
     /**
@@ -1430,6 +1517,23 @@ public class LuaTranslator {
     private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaMethod initMethod) {
         // create init function:
         LuaStatements body = initMethod.getBody();
+        LuaVariable newInst = addAllocation(body, LuaAst.LuaExprVarAccess(classVar));
+        // The defaults the optimiser did not remove at some allocation of this class (LuaFieldDefaults), and the
+        // table an array field needs per object, which only the backend can make.
+        Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(c, Collections.emptySet());
+        for (ImVar field : LuaFieldDefaults.fieldsOf(c, imTr)) {
+            if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
+                body.add(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+                    defaultValue(field.getType())));
+            }
+        }
+        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+    }
+
+    /** Adds to {@code body} the local {@code new_inst}, a fresh or recycled id recorded as an object of {@code classExpr}. */
+    private LuaVariable addAllocation(LuaStatements body, LuaExpr classExpr) {
         LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaNoExpr());
         body.add(newInst);
         LuaStatements fresh = LuaAst.LuaStatements(
@@ -1451,19 +1555,8 @@ public class LuaTranslator {
         body.add(LuaAst.LuaAssignment(
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
-            LuaAst.LuaExprVarAccess(classVar)));
-        // The defaults the optimiser did not remove at some allocation of this class (LuaFieldDefaults), and the
-        // table an array field needs per object, which only the backend can make.
-        Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(c, Collections.emptySet());
-        for (ImVar field : LuaFieldDefaults.fieldsOf(c, imTr)) {
-            if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
-                body.add(LuaAst.LuaAssignment(
-                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
-                        LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
-                    defaultValue(field.getType())));
-            }
-        }
-        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+            classExpr));
+        return newInst;
     }
 
     private void initClassTables(ImClass c) {
@@ -1472,23 +1565,27 @@ public class LuaTranslator {
         createMethods(c, classVar);
 
         // set supertype metadata:
-        LuaTableFields superClasses = LuaAst.LuaTableFields();
-        collectSuperClasses(superClasses, c, new HashSet<>());
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            WURST_SUPERTYPES),
-            LuaAst.LuaTableConstructor(superClasses)
-        ));
+        if (readsSupertypes) {
+            LuaTableFields superClasses = LuaAst.LuaTableFields();
+            collectSuperClasses(superClasses, c, new HashSet<>());
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                WURST_SUPERTYPES),
+                LuaAst.LuaTableConstructor(superClasses)
+            ));
+        }
 
         // set typeid metadata:
-        // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
-        // retains this canonical metadata dependency before emission.
-        ImClass typeIdClass = imTr.canonical(c);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
-        ));
+        if (readsObjectTypeId) {
+            // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
+            // retains this canonical metadata dependency before emission.
+            ImClass typeIdClass = imTr.canonical(c);
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                ExprTranslation.TYPE_ID),
+                LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
+            ));
+        }
 
 
     }
@@ -1582,9 +1679,11 @@ public class LuaTranslator {
         // key namespace as dispatch slots. If a slot would overwrite this class's
         // constructor at main() time, rename the constructor instead (allocation
         // sites reference the shared LuaMethod object, so a rename is safe here).
-        LuaMethod initMethod = luaClassInitMethod.getFor(c);
-        while (slotToImpl.containsKey(initMethod.getName())) {
-            initMethod.setName(uniqueName(c.getName() + "_create"));
+        if (!allocatesOnly(c)) {
+            LuaMethod initMethod = luaClassInitMethod.getFor(c);
+            while (slotToImpl.containsKey(initMethod.getName())) {
+                initMethod.setName(uniqueName(c.getName() + "_create"));
+            }
         }
 
         for (Map.Entry<String, ImMethod> e : slotToImpl.entrySet()) {

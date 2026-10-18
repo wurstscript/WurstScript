@@ -42,8 +42,12 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         ImClass c = e.getClazz().getClassDef();
-        LuaMethod m = tr.luaClassInitMethod.getFor(c);
         LuaVariable classVar = tr.luaClassVar.getFor(c);
+        if (tr.allocatesOnly(c)) {
+            return LuaAst.LuaExprFunctionCall(tr.objectAlloc(),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(classVar)));
+        }
+        LuaMethod m = tr.luaClassInitMethod.getFor(c);
         return LuaAst.LuaExprMethodCall(
             LuaAst.LuaExprVarAccess(classVar),
             m,
