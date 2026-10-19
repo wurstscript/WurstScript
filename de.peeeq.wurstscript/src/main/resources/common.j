@@ -3771,6 +3771,9 @@ native EnableDragSelect             takes boolean state, boolean ui returns noth
 native EnablePreSelect              takes boolean state, boolean ui returns nothing
 native EnableSelect                 takes boolean state, boolean ui returns nothing
 native BlzGetHUDScale               takes nothing returns real
+native BlzSetHUDScale               takes integer percentage returns nothing
+native BlzLockHUDScale              takes nothing returns nothing
+native BlzUnlockHUDScale            takes nothing returns nothing
 
 //============================================================================
 // Trackable API
