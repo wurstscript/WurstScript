@@ -30,6 +30,18 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void compressedLuaDescriptorsAreIdenticalAcrossCompilations() throws IOException {
+        String name = "compressedLuaDescriptors";
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        testNamed(name).testLua(true).optimize().inline().localOptimizations()
+            .executeProg().lines(LuaNameCompressionTests.source());
+        String first = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).optimize().inline().localOptimizations()
+            .executeProg().lines(LuaNameCompressionTests.source());
+        assertEquals(Files.toString(lua, Charsets.UTF_8), first);
+    }
+
+    @Test
     public void moduleGenericRootDispatchIsIdenticalAcrossCompilations() throws IOException {
         String name = "moduleGenericRootDispatch";
         String[] source = DispatchImplementationTests.moduleStateSource(false);

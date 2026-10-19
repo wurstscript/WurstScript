@@ -1079,13 +1079,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
 
-        stage = 12;
-        if (runArgs.isOptimize()) {
-            beginPhase(12, "froptimize");
-            optimizer.optimize();
-            printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
-            timeTaker.endPhase();
-        }
+        // Lua assigns compressed names after lowering: class descriptors, dispatch slots and
+        // backend-generated declarations do not exist in the IM compressor's namespace.
         beginPhase(13, "lua remove garbage");
         RemoveGarbage.removeGarbage(imProg, imTranslator);
         timeTaker.endPhase();

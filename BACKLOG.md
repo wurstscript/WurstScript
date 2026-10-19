@@ -6,6 +6,12 @@ Notes; finished-work narrative does not.
 
 ## Open
 
+- **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
+  lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still
+  embeds helper bindings and references as text (for example the object/string index helpers), so
+  compression must reserve identifiers appearing there. Move those bindings and references into
+  `luaAst` before shortening them; do not substitute names through arbitrary Lua text or strings.
+
 - **Incremental map-script declarations and build source policy.** Run, editor build and CLI build use
   the managed model; cancellation is honored at safe boundaries around shared AST preparation and
   throughout the private IM/backend work. See `docs/RUNMAP_PERFORMANCE.md`. What is left:
