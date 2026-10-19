@@ -499,6 +499,26 @@ public class LuaTranslator {
         enforceLuaLocalLimits();
         LuaAssertions.assertNoDroppedSlotIsRead(luaModel, objectClass, droppedSlots);
 
+        if (imTr.getRunArgs().isOptimize()) {
+            Set<String> preserved = new HashSet<>();
+            for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
+                if (function.isNative() || function.isBj() || function.isExtern()
+                    || NamePreservation.isPreserved(function)) {
+                    preserved.add(luaFunc.getFor(function).getName());
+                }
+            }
+            for (ImVar global : prog.getGlobals()) {
+                if (global.getIsBJ() || NamePreservation.isPreserved(global)) {
+                    preserved.add(luaVar.getFor(global).getName());
+                }
+            }
+            Set<LuaVariable> descriptors = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImClass c : prog.getClasses()) descriptors.add(luaClassVar.getFor(c));
+            Set<LuaExprFieldAccess> targets = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (PendingDispatch pending : pendingDispatches) targets.add(pending.target);
+            LuaNameCompressor.compress(luaModel, preserved, descriptors, emittedDispatchSlots, targets);
+        }
+
         return luaModel;
     }
 
