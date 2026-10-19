@@ -8,6 +8,10 @@ import org.testng.annotations.Test;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.testng.AssertJUnit.*;
@@ -81,13 +85,44 @@ public class LuaNameCompressionTests extends WurstScriptTest {
         assertTrue("Expected virtual dispatch", call.find());
         String slot = call.group(1);
         assertTrue("Expected a compressed slot: " + slot, slot.length() <= 3);
-        var bindings = Pattern.compile("(?m)^\\s*[A-Za-z_][A-Za-z_0-9]*\\." + Pattern.quote(slot) + " = ").matcher(lua);
-        int count = 0;
-        while (bindings.find()) count++;
-        assertTrue("All four siblings must bind the called slot", count >= 4);
+        assertSiblingBindings(lua, slot);
         assertEquals(lua, compile(true));
         assertTrue("Preserved function", lua.contains("function u("));
         assertTrue("Preserved global", lua.contains("w = 7"));
+    }
+
+    private void assertSiblingBindings(String lua, String slot) {
+        String identifier = "[A-Za-z_][A-Za-z_0-9]*";
+        // Each sibling's unique field initializer identifies its allocated descriptor and field
+        // table even after all names are compressed. Both a shared allocator(descriptor) and
+        // descriptor:create() identify the descriptor used by the allocation.
+        var allocations = Pattern.compile("(?m)^\\s*(" + identifier + ") = (" + identifier
+            + ")(?::" + identifier + ")?\\((" + identifier + ")?\\)\\s*\\R\\s*(" + identifier
+            + ")\\[\\1\\] = ([1-4])\\b").matcher(lua);
+        Map<Integer, String> descriptors = new HashMap<>();
+        Set<String> implementations = new HashSet<>();
+        Set<String> noOps = new HashSet<>();
+        var noOpFunctions = Pattern.compile("(?m)^function (" + identifier
+            + ")\\([^\\r\\n]*\\)\\s+return 0\\s+end\\b").matcher(lua);
+        while (noOpFunctions.find()) noOps.add(noOpFunctions.group(1));
+        while (allocations.find()) {
+            int sibling = Integer.parseInt(allocations.group(5));
+            String descriptor = allocations.group(3) == null ? allocations.group(2) : allocations.group(3);
+            assertNull("One allocation anchor per sibling " + sibling, descriptors.put(sibling, descriptor));
+            String storage = allocations.group(4);
+            var override = Pattern.compile("(?m)^function (" + identifier + ")\\((" + identifier
+                + ")[^\\r\\n]*\\)\\s+return " + Pattern.quote(storage) + "\\[\\2\\]\\s+end\\b").matcher(lua);
+            assertTrue("Find sibling " + sibling + " override reading its own field", override.find());
+            String implementation = override.group(1);
+            assertTrue("Each sibling has its own override", implementations.add(implementation));
+            var binding = Pattern.compile("(?m)^\\s*" + Pattern.quote(descriptor + "." + slot)
+                + " = (" + identifier + ")\\s*$").matcher(lua);
+            assertTrue("Sibling " + sibling + " binds the actual dispatched slot", binding.find());
+            assertFalse("Sibling " + sibling + " must not bind a no-op base", noOps.contains(binding.group(1)));
+            assertEquals("Sibling " + sibling + " binds its own override", implementation, binding.group(1));
+        }
+        assertEquals("Identify all four concrete siblings", Set.of(1, 2, 3, 4), descriptors.keySet());
+        assertEquals("Each sibling has its own descriptor", 4, new HashSet<>(descriptors.values()).size());
     }
 
     @Test
