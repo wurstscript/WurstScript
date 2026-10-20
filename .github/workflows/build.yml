@@ -133,10 +133,17 @@ jobs:
         timeout-minutes: 22
         shell: bash
         run: |
+          # Master pushes also run every executing test on Lua (-PallBackends) where the Lua is 5.3, as
+          # the exemptions were established on: Linux installs lua5.3 and Windows uses the bundled lua.exe.
+          # macOS takes Homebrew's unpinned Lua and runs a single test fork.
+          ALL_BACKENDS=""
+          if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" != "macOS" ]]; then
+            ALL_BACKENDS="-PallBackends"
+          fi
           if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" == "Linux" ]]; then
-            ./gradlew test jacocoTestReport --no-daemon --stacktrace --quiet
+            ./gradlew test jacocoTestReport $ALL_BACKENDS --no-daemon --stacktrace --quiet
           else
-            ./gradlew test --no-daemon --stacktrace --quiet
+            ./gradlew test $ALL_BACKENDS --no-daemon --stacktrace --quiet
           fi
 
       - name: Upload coverage to Coveralls

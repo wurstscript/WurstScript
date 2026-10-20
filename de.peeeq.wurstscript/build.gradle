@@ -390,6 +390,16 @@ test {
         systemProperty 'wurst.test.imDumps', 'true'
     }
 
+    // -PallBackends (master CI): every executing test runs the Lua target after its Jass runs too, and a test
+    // exempt from Lua (luaExempt) must fail there; -PallBackends=full adds Lua with -inline -localOptimizations.
+    if (project.hasProperty('allBackends')) {
+        def allBackends = project.findProperty('allBackends').toString()
+        if (!(allBackends in ['', 'true', 'full'])) {
+            throw new GradleException("-PallBackends takes no value or 'full', not '$allBackends'")
+        }
+        systemProperty 'wurst.test.allBackends', allBackends == 'full' ? 'full' : 'lua'
+    }
+
     // The collector for the test JVMs; -PtestGc='-XX:+UseG1GC' (or another flag) overrides it.
     jvmArgs((project.findProperty('testGc') ?: '-XX:+UseParallelGC').toString().split(' '))
 

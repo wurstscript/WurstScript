@@ -3758,7 +3758,7 @@ public class LuaTranslationTests extends WurstScriptTest {
      */
     @Test
     public void newGenericInstantiationsAreOneClassOnLua() {
-        test().executeProg(true).executeProgOnlyAfterTransforms().lines(reflectionOfGenericInstantiations(
+        test().executeProg(true).executeProgOnlyAfterTransforms().luaExempt(LuaExemption.OBJECT_BOOKKEEPING, "max=2 bi=1:Test.Box:3/3 bs=1:Test.Box:3/3 si=2:Test.Sub:3/3").lines(reflectionOfGenericInstantiations(
             "max=3 bi=1:Test.Box:2/2 bs=3:Test.Box:1/1 si=2:Test.Sub:2/2"
                 + " id=1:Test.Box:2/2 id=2:Test.Sub:2/2 id=3:Test.Box:1/1"));
         test().executeProg(true).testLua(true).lines(reflectionOfGenericInstantiations(
@@ -3862,7 +3862,7 @@ public class LuaTranslationTests extends WurstScriptTest {
      */
     @Test
     public void classExtendingASpecialisedClassHasItsOwnTypeId() {
-        test().executeProg(true).executeProgOnlyAfterTransforms().lines(subOfSpecialisedClass(
+        test().executeProg(true).executeProgOnlyAfterTransforms().luaExempt(LuaExemption.OBJECT_BOOKKEEPING, "max=3 p=2:Test.Box:3/3 s=3:Test.Sub:3/3 t=2:Test.Box:3/3").lines(subOfSpecialisedClass(
             "max=4 p=2:Test.Box:3/3 s=3:Test.Sub:3/3 t=4:Test.Box:3/3"
                 + " id=1:Test.Marker:3/3 id=2:Test.Box:3/3 id=3:Test.Sub:3/3 id=4:Test.Box:3/3"));
         test().executeProg(true).testLua(true).lines(subOfSpecialisedClass(
@@ -3913,7 +3913,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     public void compiletimeObjectsAreCountedDifferentlyOnJassAndLua() {
         test().testLua(true).executeProg(true).runCompiletimeFunctions(true).executeProgOnlyAfterTransforms()
             .lines(countsOfCompiletimeObjects(2));
-        test().executeProg(true).runCompiletimeFunctions(true).executeProgOnlyAfterTransforms()
+        test().executeProg(true).runCompiletimeFunctions(true).executeProgOnlyAfterTransforms().luaExempt(LuaExemption.OBJECT_BOOKKEEPING, "Succeed function not called")
             .lines(countsOfCompiletimeObjects(5));
     }
 

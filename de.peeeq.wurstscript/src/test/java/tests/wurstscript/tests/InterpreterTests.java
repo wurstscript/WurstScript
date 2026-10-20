@@ -5,12 +5,14 @@ import org.testng.annotations.Test;
 
 public class InterpreterTests extends WurstScriptTest {
 
+    private static final String LUA_HANDLE_IDS =
+        "`GetHandleId` of a unit or another agent is the compiler's own counter on Lua.";
 
 
 
     @Test
     public void testR2SW() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -128,7 +130,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test(expectedExceptions = {InterpreterException.class})
     public void r2swBeyondTheModelledRange() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).lines(
             "package Test",
             "native testSuccess()",
             "@extern native R2SW(real r, integer width, integer precision) returns string",
@@ -140,7 +142,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test(expectedExceptions = {InterpreterException.class})
     public void arrayDefaultTestFail() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -180,7 +182,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void setPlayerTechMaxAllowed() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    SetPlayerTechMaxAllowed(Player(0), 'hfoo', 3)",
@@ -191,7 +193,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void playerStateAndSlotNatives() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GetPlayerSlotState").lines(
             "package Test",
             "init",
             "    let gold = ConvertPlayerState(1)",
@@ -220,7 +222,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void unitStateAbilityAndOrderNatives() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GetOwningPlayer").lines(
             "package Test",
             "init",
             "    let u = CreateUnit(Player(2), 'hfoo', 12.5, -3.25, 90.0)",
@@ -402,7 +404,7 @@ public class InterpreterTests extends WurstScriptTest {
      *  unselectable. */
     @Test
     public void unitSelectableAndAliveNatives() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "BlzIsUnitSelectable").lines(
             "package Test",
             "init",
             "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
@@ -460,7 +462,7 @@ public class InterpreterTests extends WurstScriptTest {
      *  evaluate their ConvertX initialisers itself. */
     @Test
     public void commonJConstantsCarryTheirHandles() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "IsUnitType").lines(
             "package Test",
             "init",
             "    if UNIT_TYPE_DEAD == null",
@@ -512,7 +514,7 @@ public class InterpreterTests extends WurstScriptTest {
      */
     @Test
     public void stringNativesAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "S2R").lines(
             "package Test",
             "@noinline function w(real x) returns real",
             "    return x",
@@ -572,7 +574,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void mathNativesAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "R2S").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -591,7 +593,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void hashtableNativesAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "CreateItem").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -624,7 +626,8 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void conversionNativesAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, LUA_HANDLE_IDS,
+            "GetHandleId of a unit gave false").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -647,7 +650,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void playerResourcesAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    let p = Player(1)",
@@ -666,7 +669,7 @@ public class InterpreterTests extends WurstScriptTest {
      *  data: a new unit has 100 life and no mana. */
     @Test
     public void unitLifeAndManaAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GetUnitState").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -753,7 +756,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void abilityNativesAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "UnitAddAbility").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -777,7 +780,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client, with the default experience table. */
     @Test
     public void heroLevelsAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GetHeroLevel").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -814,7 +817,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void groupOrderAsMeasured() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GroupAddUnit").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -874,7 +877,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void destructableWidgetLifeNatives() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GetWidgetLife").lines(
             "package Test",
             "init",
             "    let d = CreateDestructable('LTlt', 1.0, 2.0, 0.0, 1.0, 0)",
@@ -897,7 +900,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void unitAndAbilityInfoNatives() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "RemoveUnit").lines(
             "package Test",
             "native GetUnitBuildTime(integer unitid) returns integer",
             "init",
@@ -924,7 +927,7 @@ public class InterpreterTests extends WurstScriptTest {
      *  != and the orderings compare exactly. So a != b is not not (a == b) for reals. */
     @Test
     public void jassRealEqualityAllowsAThousandth() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).luaExempt(LuaExemption.REAL_EQUALITY_TOLERANCE, "within 0.001 is equal").lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",

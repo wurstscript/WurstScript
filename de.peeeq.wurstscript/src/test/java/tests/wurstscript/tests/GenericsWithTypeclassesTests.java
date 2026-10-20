@@ -18,6 +18,8 @@ import static tests.wurstscript.tests.BugTests.TEST_DIR;
 
 public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
+    private static final String STATIC_SPLIT_BY_CONSTANT_ARGUMENT_ON_LUA =
+        "A generic class's static is split on Lua when its constructor passes a constant static to a method.";
 
     @Test
     public void identity() {
@@ -1779,7 +1781,8 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void arrayListInClosure() {
-        testAssertOkLines(true,
+        test().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, STATIC_SPLIT_BY_CONSTANT_ARGUMENT_ON_LUA,
+            "uses the erased generic static ArrayList_nextFreeIndex, which has specialised copies").lines(
             "package Hello",
             "import NoWurst",
             "",

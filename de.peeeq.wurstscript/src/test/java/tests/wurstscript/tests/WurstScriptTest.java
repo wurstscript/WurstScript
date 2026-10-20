@@ -62,6 +62,24 @@ public class WurstScriptTest {
     private static final boolean IM_DUMPS_FOR_ALL_TESTS = Boolean.getBoolean("wurst.test.imDumps");
     private boolean writeImDumps;
 
+    /**
+     * {@code -PallBackends} (master CI): every executing test which does not run Lua itself also runs the Lua
+     * target after its Jass runs, and an exempt test ({@link TestConfig#luaExempt}) must fail there.
+     * {@code -PallBackends=full} adds a Lua run with {@code -inline -localOptimizations}. Empty when off.
+     */
+    private static final String ALL_BACKENDS = System.getProperty("wurst.test.allBackends", "");
+    private static final boolean ALL_BACKENDS_ON = !ALL_BACKENDS.isEmpty();
+    private static final boolean ALL_BACKENDS_FULL = ALL_BACKENDS.equals("full");
+
+    static {
+        if (ALL_BACKENDS_ON && !ALL_BACKENDS.equals("lua") && !ALL_BACKENDS_FULL) {
+            throw new IllegalStateException("wurst.test.allBackends is 'lua' or 'full', not '" + ALL_BACKENDS + "'");
+        }
+    }
+
+    /** BACKLOG.md with its whitespace collapsed, read once, for the citations of {@link LuaExemption#KNOWN_LUA_DEFECT}. */
+    private static volatile String backlogText;
+
     /** Generous enough for the slowest test program, short enough that a loop fails the run. */
     private static final int LUA_EXECUTION_TIMEOUT_SECONDS = 60;
 
@@ -127,6 +145,10 @@ public class WurstScriptTest {
         private boolean uncheckedDispatch = false;
         private boolean legacyJassTypeChecks = false;
         private boolean imDump = false;
+        private LuaExemption luaExemption;
+        private String luaExemptionDetail;
+        private String luaExpectedFailure;
+        private boolean runLuaAsAllBackends = false;
 
         TestConfig(String name) {
             this.name = name;
@@ -303,6 +325,10 @@ public class WurstScriptTest {
         }
 
         private CompilationResult testScript() {
+            if (testLua && luaExemption != null) {
+                throw new IllegalStateException("a test which runs Lua cannot also be exempt from it ("
+                    + luaExemption + ")");
+            }
             writeImDumps = imDump || IM_DUMPS_FOR_ALL_TESTS;
             pjassPending.clear();
             RunArgs runArgs = new RunArgs();
@@ -386,11 +412,66 @@ public class WurstScriptTest {
                 runArgs = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
                 compiler.setRunArgs(runArgs);
                 translateAndTestLua(name, executeProg, gui, model, compiler);
+            } else if (executeProg && (ALL_BACKENDS_ON || runLuaAsAllBackends)) {
+                runLuaForAllBackends(gui, model, compiler, runArgs);
             }
 
             RecycleCodeGeneratorQueue.setTestMode = false;
 
             return new CompilationResult(model, gui);
+        }
+
+        /**
+         * The Lua runs {@code -PallBackends} adds after the Jass runs of an executing test which does not run Lua
+         * itself. They must pass; for an exempt test one of them must fail with the failure its exemption expects
+         * and of the kind its reason produces ({@link LuaExemption#mismatch}).
+         */
+        private void runLuaForAllBackends(WurstGui gui, WurstModel model, WurstCompilerJassImpl compiler, RunArgs runArgs) {
+            RunArgs plain = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
+            Map<String, RunArgs> variants = new LinkedHashMap<>();
+            variants.put("", plain);
+            if (ALL_BACKENDS_FULL) {
+                variants.put("_inlopt", plain.with("-inline", "-localOptimizations"));
+            }
+            for (Entry<String, RunArgs> variant : variants.entrySet()) {
+                String env = "-PallBackends Lua" + (variant.getKey().isEmpty() ? "" : " with -inline -localOptimizations");
+                setCurrentTestEnv(env);
+                compiler.setRunArgs(variant.getValue());
+                Throwable failure;
+                try {
+                    translateAndTestLua(name + variant.getKey(), true, gui, model, compiler);
+                    continue;
+                } catch (org.testng.SkipException | VirtualMachineError e) {
+                    throw e;
+                } catch (RuntimeException | Error e) {
+                    failure = e;
+                }
+                if (luaExemption == null) {
+                    throw new AssertionError(env + ": the test holds on Jass and fails on Lua. Fix the Lua"
+                        + " translation, or say why with luaExempt(LuaExemption...).", failure);
+                }
+                String actual = failureText(failure);
+                String signature = luaExemption.signature(luaExpectedFailure);
+                String mismatch = !actual.contains(signature)
+                    ? "it does not contain \"" + signature + "\""
+                    : luaExemption.mismatch(failure, actual, luaExpectedFailure);
+                if (mismatch != null) {
+                    throw new AssertionError(env + ": " + exemptionText() + " expects its own failure on Lua, but "
+                        + mismatch + ". A new Lua failure is a defect: fix it, or change the exemption."
+                        + "\nexpected: " + signature + "\nactual: " + actual, failure);
+                }
+                System.out.println(env + ": failed as its exemption (" + luaExemption + ") says: " + failure);
+                return;
+            }
+            if (luaExemption != null) {
+                throw new AssertionError("-PallBackends: " + exemptionText() + " is stale, the test passes on Lua."
+                    + " Remove the exemption and run Lua with testLua(true).luaOnly(false).");
+            }
+        }
+
+        private String exemptionText() {
+            return "luaExempt(" + luaExemption + (luaExemptionDetail == null ? "" : ", \"" + luaExemptionDetail + "\"")
+                + ", \"" + luaExpectedFailure + "\")";
         }
 
         public void file(File file) throws IOException {
@@ -436,8 +517,55 @@ public class WurstScriptTest {
         }
 
         public TestConfig testLua(boolean b) {
+            if (!b) {
+                throw new IllegalArgumentException("testLua(false) opts out of Lua without saying why:"
+                    + " use luaExempt(LuaExemption...)");
+            }
             this.testLua = b;
             this.luaOnly = b;
+            return this;
+        }
+
+        /**
+         * This executing test does not hold on Lua, for {@code reason}, and fails there with {@code expectedFailure}:
+         * text of the Lua failure specific to this test, such as its testFail message, or for
+         * {@link LuaExemption#MISSING_TEST_NATIVE} the native's name. It runs no Lua, except under
+         * {@code -PallBackends}, where its Lua run must fail with that failure and of its reason's kind: a run
+         * which passes, or fails otherwise, fails the test.
+         */
+        public TestConfig luaExempt(LuaExemption reason, String expectedFailure) {
+            if (reason.needsBacklogItem()) {
+                throw new IllegalArgumentException(reason + " names its item of " + reason.record()
+                    + ": use luaExempt(reason, backlogTitle, expectedFailure)");
+            }
+            return exempt(reason, null, expectedFailure);
+        }
+
+        /**
+         * {@link #luaExempt(LuaExemption, String)} for {@link LuaExemption#KNOWN_LUA_DEFECT}, with the title of its
+         * BACKLOG.md item, exactly as it is written there in bold.
+         */
+        public TestConfig luaExempt(LuaExemption reason, String backlogTitle, String expectedFailure) {
+            if (!reason.needsBacklogItem()) {
+                throw new IllegalArgumentException(reason + " names no backlog item: its record is " + reason.record());
+            }
+            requireBacklogItem(backlogTitle);
+            return exempt(reason, backlogTitle, expectedFailure);
+        }
+
+        private TestConfig exempt(LuaExemption reason, String backlogTitle, String expectedFailure) {
+            if (expectedFailure == null || expectedFailure.isBlank()) {
+                throw new IllegalArgumentException("luaExempt(" + reason + ") needs the Lua failure it expects");
+            }
+            this.luaExemption = reason;
+            this.luaExemptionDetail = backlogTitle;
+            this.luaExpectedFailure = expectedFailure;
+            return this;
+        }
+
+        /** Runs Lua as -PallBackends does, for the tests of the harness itself. */
+        TestConfig runLuaAsAllBackends() {
+            this.runLuaAsAllBackends = true;
             return this;
         }
 
@@ -502,6 +630,37 @@ public class WurstScriptTest {
      */
     public TestConfig testNamed(String name) {
         return new TestConfig(this.getClass().getSimpleName() + "_" + name);
+    }
+
+    /**
+     * Fails unless BACKLOG.md holds an item titled {@code title}, so a {@link LuaExemption#KNOWN_LUA_DEFECT}
+     * exemption outlives its backlog item in no run, with or without {@code -PallBackends}.
+     */
+    private static void requireBacklogItem(String title) {
+        String backlog = backlogText;
+        if (backlog == null) {
+            Path file = Path.of("..", "BACKLOG.md");
+            try {
+                backlog = java.nio.file.Files.readString(file, StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+            } catch (IOException e) {
+                throw new UncheckedIOException("cannot read " + file.toAbsolutePath()
+                    + " for a KNOWN_LUA_DEFECT exemption", e);
+            }
+            backlogText = backlog;
+        }
+        if (!backlog.contains("**" + title.replaceAll("\\s+", " ") + "**")) {
+            fail("luaExempt(KNOWN_LUA_DEFECT, \"" + title + "\") cites no BACKLOG.md item: give the item's bold"
+                + " title, and remove the exemption with the item when the defect is fixed");
+        }
+    }
+
+    /** The messages of {@code failure} and its causes, one per line. */
+    private static String failureText(Throwable failure) {
+        StringBuilder sb = new StringBuilder();
+        for (Throwable t = failure; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            sb.append(t.getClass().getSimpleName()).append(": ").append(t.getMessage()).append('\n');
+        }
+        return sb.toString();
     }
 
     /** The Lua written for {@code testName}, a test of this class compiled with {@code testLua(true)}. */

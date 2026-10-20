@@ -245,20 +245,20 @@ Notes; finished-work narrative does not.
           testSuccess()
   ```
 
-- **Run every executing test on Lua on master CI (`-PallBackends`).** Forcing `translateAndTestLua`
-  after the Jass runs of every `executeProg` test that does not opt into Lua (686 tests, October 2026)
-  passed 645 on plain Lua and 644 with `-inline -localOptimizations`; the failures found the
-  generic-static item below, four defects with their own fixes (compile-time object ids, old-generic
-  tuple arguments, a direct `wurstKeyOf` call, the `Reflection` natives) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
-  cost about 300 s of test time each over the suite. Proposal: `-PallBackends` (master CI only, PR CI
-  unchanged) runs Lua after Jass for every executing test, `-PallBackends=full` adds the inlined
-  variant. A test that cannot hold on Lua says why with `.luaExempt(LuaExemption.X)` instead of
-  `testLua(false)`: an enum whose every reason names its record (`REAL_EQUALITY_TOLERANCE`, AGENTS.md §7;
-  `CLASS_AND_METHOD_TYPE_PARAMS`, §9; `TEST_LUA_COMPUTES_IN_DOUBLE`, docs/WC3_RUNTIME.md "Numbers";
-  `INTERPRETER_MOCK_ONLY`; `MISSING_TEST_NATIVE` with the native's name; `KNOWN_LUA_DEFECT` with the
-  backlog item). In that mode an exempt test still runs on Lua and must fail there, so a stale
-  exemption fails the run (21 of 48 `testLua(false)` were stale and now run Lua). Land the shim natives
-  first. `executeTests()` (Wurst `@Test` functions) has no Lua path in the harness at all.
+- **Executing tests left off Lua.** Master CI runs every executing test on Lua too (`-PallBackends`) on
+  its Linux and Windows jobs, whose Lua is 5.3; macOS, with Homebrew's unpinned Lua, does not. The 13
+  `MISSING_TEST_NATIVE` exemptions wait for natives in `wc3shim.lua`, and `executeTests()` (Wurst `@Test`
+  functions) has no Lua path in the harness at all. `-PallBackends=full`, which adds
+  `-inline -localOptimizations`, found nothing the plain run did not (October 2026), so CI runs only that.
+
+- **A generic class's static is split on Lua when its constructor passes a constant static to a method.**
+  `GenericsWithTypeclassesTests.arrayListInClosure` stops on Lua at `ImTranslator.assertNoLiveErasedGenericStatic`
+  ("init_Hello uses the erased generic static ArrayList_nextFreeIndex, which has specialised copies"),
+  and is exempt from Lua. Reduced: `class L<T:>` with `static int next = 0` and `static constant int CAP = 16`,
+  a constructor calling `alloc(CAP)`, a private method which reads and writes `next`, and `new L<C>()` for a
+  class `C`. With the literal `16` for `CAP`, or with the constructor using `next` itself, it passes; the
+  closure the test is named after plays no part, and it still fails after #1509. Fix it in
+  `EliminateGenerics`, where the store is split, and replace the exemption with `testLua(true).luaOnly(false)`.
 
 - **A generic class constructed with a tuple loses the static its constructor writes, on Lua.** In
   `class Outer<T:>` with `static T last` and `construct(T value)` / `last = value`,
@@ -284,6 +284,15 @@ Notes; finished-work narrative does not.
   interpreter only on the translated program (`LuaTranslationTests.reflectionNativesAnswerAsOnJass`).
   Bound the Jass search and make the interpreter answer as the backends do (docs/WC3_RUNTIME.md
   "Objects and memory").
+
+- **`GetHandleId` of a unit or another agent is the compiler's own counter on Lua.** `LuaNativeLowering`
+  replaces `GetHandleId` of the `OPAQUE_RUNTIME_HANDLE_TYPES` (unit, item, timer, trigger, ...) with
+  `__wurst_GetHandleId`, which numbers handles from 1 in `__wurst_objectIndexMap` and keeps every handle it
+  numbered. The game's ids start at 0x100000 (measured on the 3.0.0 client), as the interpreter's do, so
+  `InterpreterTests.conversionNativesAsMeasured` is exempt from Lua, and a program which subtracts 0x100000
+  to index an array reads a negative index there. The tests check the remap's shape
+  (`LuaTranslationTests.getHandleIdIsRemappedToWurstPolyfillInLua`), not this difference. Call the game's
+  `GetHandleId`, or record why the remap is needed and document the difference (AGENTS.md §7).
 
 - **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
   lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still
@@ -525,9 +534,9 @@ Notes; finished-work narrative does not.
 - Tests run five Jass configurations plus the interpreter, then the Lua target separately.
   `testAssertOkLines(true, ...)` covers both the pre-transform interpreter and full monomorphisation.
 - `@Test` functions are interpreter unit tests by design; `StdLibOwnTests` and `grill test` run them
-  there. The only Lua-target execution the suite has is `test().testLua(true).executeProg()`, which
-  runs the emitted script in a real Lua 5.3 against the shim in `src/test/resources/luaruntime/`. Its
-  reach is bounded by how much of the roughly one thousand natives the shim models, so those tests
+  there. The suite executes Lua only in `test().testLua(true).executeProg()` and, under `-PallBackends`,
+  in every other executing test: the emitted script runs in a real Lua 5.3 against the shim in
+  `src/test/resources/luaruntime/`. Its reach is bounded by how much of the roughly one thousand natives the shim models, so those tests
   stay small and targeted. There is no Wurst-level end-to-end feature; correctness in a real map on
   the Lua target is asserted in the agent workflow.
 - `WURST_LANGUAGE.md` ships as a compiler resource at
