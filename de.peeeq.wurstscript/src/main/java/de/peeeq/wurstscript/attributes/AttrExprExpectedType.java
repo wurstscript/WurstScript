@@ -213,14 +213,18 @@ public class AttrExprExpectedType {
         return e.attrExpectedTypRaw().normalize();
     }
 
+    /**
+     * The raw parameter type of the overload the call selected. It is not normalised: a parameter of
+     * an old generic is a bound type parameter, whose toIndex conversion the translation needs.
+     */
     public static WurstType afterOverloading(Expr e) {
         Element parent = e.getParent();
         if (parent instanceof Arguments args) {
             Element parent2 = args.getParent();
             if (parent2 instanceof StmtCall stmtCall) {
-                return expectedTypeAfterOverloading(e, args, stmtCall).normalize();
+                return expectedTypeAfterOverloading(e, args, stmtCall);
             }
         }
-        return e.attrExpectedTyp();
+        return e.attrExpectedTypRaw();
     }
 }

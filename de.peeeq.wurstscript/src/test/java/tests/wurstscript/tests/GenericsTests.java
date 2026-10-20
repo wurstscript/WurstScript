@@ -184,7 +184,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions2() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package test",
             "	native testSuccess()",
             "	class Cell<T>",
@@ -207,6 +207,46 @@ public class GenericsTests extends WurstScriptTest {
             "			testSuccess()",
             "endpackage"
         );
+    }
+
+    /**
+     * A value read from a generic and passed straight back into one: the blaFromIndex of the
+     * read and the blaToIndex of the write cancel out. They must cancel on both sides, so the
+     * conversions are not symmetric here (blaToIndex multiplies), which shows a missing one.
+     */
+    private static final String[] NESTED_OLD_GENERIC_CONVERSIONS = {
+        "package test",
+        "	native testSuccess()",
+        "	class Cell<T>",
+        "		T elem",
+        "		function set(T t)",
+        "			elem = t",
+        "		function get() returns T",
+        "			return elem",
+        "",
+        "	tuple bla(int z, int y)",
+        "	function blaToIndex(bla b) returns int",
+        "		return b.z * 10",
+        "	function blaFromIndex(int i) returns bla",
+        "		return bla(i div 10, 2)",
+        "	init",
+        "		Cell<bla> c = new Cell<bla>()",
+        "		c.set(bla(5, 3))",
+        "		c.set(c.get())",
+        "		if c.get() == bla(5, 2)",
+        "			testSuccess()",
+        "endpackage"
+    };
+
+    @Test
+    public void nestedOldGenericConversionsCancel() {
+        test().executeProg(true).testLua(true).luaOnly(false).lines(NESTED_OLD_GENERIC_CONVERSIONS);
+    }
+
+    @Test
+    public void nestedOldGenericConversionsCancelOptimized() {
+        test().executeProg(true).testLua(true).luaOnly(false).inline().localOptimizations()
+            .lines(NESTED_OLD_GENERIC_CONVERSIONS);
     }
 
     @Test
