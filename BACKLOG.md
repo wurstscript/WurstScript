@@ -50,16 +50,25 @@ Notes; finished-work narrative does not.
   `static int cnt = 0` reads nil when `r` also calls a `Codec<T>` method on a `T` static and is reached
   through a non-generic base class.
 
-- **`lua-instanceof-erased`: `instanceof Box<int>` is true for a `Box<string>` on Lua**, and for
-  `Box<CB>` against `Box<CA>`; tuple instantiations are told apart. No generic code is needed:
+- **`lua-instanceof-erased`: `instanceof Box<T>` in a generic class reached through a non-generic
+  interface, base class or destroy, or in a closure, accepts every `Box` on Lua**, because the method
+  stays erased (a closure is not specialised for an instanceof: that is `lua-closure-receiver`). A
+  `new Box<T>()` there allocates a `Box` of no instantiation, so while one is reachable every check of
+  `Box`, even `instanceof Box<int>`, stays erased too (`keepErasedChecksWhereAnAllocationStaysErased`).
+  Otherwise an `instanceof` which names its instantiation, or is reached through calls which give it,
+  tells the instantiations apart:
 
   ```wurst
   interface Marker
   class Box<T:> implements Marker
-      T item
+  interface Check
+      function holds(Marker m) returns bool
+  class G<T:> implements Check
+      function holds(Marker m) returns bool
+          return m instanceof Box<T>
   init
-      Marker s = new Box<string>()
-      if not (s instanceof Box<int>)   // Lua: true
+      Check c = new G<int>()
+      if not c.holds(new Box<string>())   // Lua: true
           testSuccess()
   ```
 
@@ -239,8 +248,8 @@ Notes; finished-work narrative does not.
 - **Run every executing test on Lua on master CI (`-PallBackends`).** Forcing `translateAndTestLua`
   after the Jass runs of every `executeProg` test that does not opt into Lua (686 tests, October 2026)
   passed 645 on plain Lua and 644 with `-inline -localOptimizations`; the failures found the
-  generic-static, `wurstKeyOf` and type-id items below, two defects with their own fixes (compile-time
-  object ids, old-generic tuple arguments) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
+  generic-static item below, four defects with their own fixes (compile-time object ids, old-generic
+  tuple arguments, a direct `wurstKeyOf` call, the `Reflection` natives) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
   cost about 300 s of test time each over the suite. Proposal: `-PallBackends` (master CI only, PR CI
   unchanged) runs Lua after Jass for every executing test, `-PallBackends=full` adds the inlined
   variant. A test that cannot hold on Lua says why with `.luaExempt(LuaExemption.X)` instead of
@@ -251,33 +260,30 @@ Notes; finished-work narrative does not.
   exemption fails the run (21 of 48 `testLua(false)` were stale and now run Lua). Land the shim natives
   first. `executeTests()` (Wurst `@Test` functions) has no Lua path in the harness at all.
 
-- **A generic class's static is dropped on Lua when only a static inner class reads it.**
-  `GenericsWithTypeclassesTests.genericClassWithStaticInnerClass` and `genericModuleThistypeSmall` pass
-  on the interpreter and Jass and fail on Lua, also after #1498; neither opts into Lua. In
-  `class Outer<T:>` with `static T t`, the specialised constructor's `t = iVal` is not emitted and
-  `Inner.next()` reads the erased `Outer_t`, which stays nil. A static function of `Outer` reading `t`
-  instead passes on both Lua variants, so the reader in the unspecialised inner class splits the store.
-  The module form (`static thistype t` in a module used by `class A<T:>`) loses `t = this` the same way
-  with `-inline -localOptimizations`, and without it the Lua translation crashes in
-  `TypeSubst.resolve` ("Could not find replacement for T... when replacing [T...] with []"), from
-  `ExprTranslation.translateEquals` typing `a.iterator().next()`. Fix in `EliminateGenerics`, where the
-  store is split, and turn on `testLua(true).luaOnly(false)` for both tests.
+- **A generic class constructed with a tuple loses the static its constructor writes, on Lua.** In
+  `class Outer<T:>` with `static T last` and `construct(T value)` / `last = value`,
+  `new Outer<pair>(pair(2, 3))` leaves `Outer<pair>.get().y` unset on Lua; Jass passes. The constructor's
+  copy keeps the class's `T` as its parameter type, so the emitted function takes one parameter more than
+  the call passes tuple components: `EliminateGenerics.specializeFunction` rewrites the type variables only
+  of a function which declares some, and a function which writes a generic static takes that branch, while
+  this target does not lift the class's variables onto its functions (`specializeClassFunction` does it).
 
-- **A direct `wurstKeyOf` call answers its placeholder on Lua.** `KeyedTableTests.intKeyIsIdentity`
-  (`wurstKeyOf(7)` is 0) and `classInstanceKeyIsStable` (two instances share key 0) pass on the
-  interpreter and Jass and fail on Lua: the emitted `wurstKeyOf` is its source body, `return 0`. On Lua
-  the keyed-table operations are replaced as a whole (`LuaNativeLowering.lowerKeyedTables`), and the
-  tests' class calls itself "the Jass side", but nothing stops a program from calling the intrinsic
-  directly, and that placeholder answer is the failure `lowerKeyedTables` was moved to avoid. Either
-  lower it on Lua (the value itself for `int` and class instances, the handle id for handles) or reject
-  a direct call there with a diagnostic (AGENTS.md §3: no silent fallback).
+- **`EliminateGenerics.fillMissingTypeArgsFromScope` matches type variables by name.** On the Jass path it
+  completed the owner type arguments of a static inner class's type, which the IM translation now gives
+  itself (`WurstTypeClassOrInterface.imTranslateType`). Made to throw whenever it fills one, it is reached by
+  none of the generics, closure, module, class and Lua audit test classes (October 2026). Check the whole
+  suite and remove it.
 
-- **`typeIdToTypeName`, `maxTypeId`, `instanceCount` and `maxInstanceCount` answer defaults on Lua.**
-  Only `EliminateClasses` implements them, on the Jass path. On Lua they compile to the generic native
-  fallback, which returns `""` or 0 without a diagnostic, so `NewFeatureTests.typeName`, `typeName2`,
-  `maxTypeId`, `instanceCount` and `instanceMaxCount` hold only with `testLua(false)`. Nothing documents
-  this as a backend difference. Implement them on Lua (one id space for every class, docs/WC3_RUNTIME.md
-  "Objects and memory", so `instanceCount` counts one class's live descriptors) or reject them there.
+- **The `Reflection` natives answer otherwise on Jass for a number which is no type id, and in the
+  interpreter.** `EliminateClasses` searches the type ids without bounds, so on Jass
+  `typeIdToTypeName(0)` is the first class's name and a number above `maxTypeId()` answers for the last
+  class, where the search's own default (`"unknown"`, 0) and Lua answer the default. The interpreter
+  (`WurstflectionProvider`, `ILInterpreter.getInstanceCount`) counts the objects of the class alone, not
+  of its allocator group, gives as `maxInstanceCount` the number of objects ever made, and raises in
+  `typeIdToTypeName` for an unknown number. Compile-time code sees that, and the parity tests run the
+  interpreter only on the translated program (`LuaTranslationTests.reflectionNativesAnswerAsOnJass`).
+  Bound the Jass search and make the interpreter answer as the backends do (docs/WC3_RUNTIME.md
+  "Objects and memory").
 
 - **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
   lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still

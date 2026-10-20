@@ -708,6 +708,60 @@ public class DeterministicChecks extends WurstScriptTest {
         assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "Lua must not depend on the unit order");
     }
 
+    /**
+     * A static inner class of a generic class takes the owner's instantiation from the type it is handed out as, and
+     * Lua specialises its reader of the owner's static for that instantiation. Two such owners in packages of their
+     * own: what is specialised, and its names, must not depend on which is translated first.
+     */
+    @Test
+    public void staticInnerClassesOfGenericOwnersAreTheSameInAnyUnitOrder() throws IOException {
+        List<CU> units = List.of(
+            compilationUnit("OuterLib.wurst",
+                "package OuterLib",
+                "public class Outer<T:>",
+                "    static T last",
+                "    construct(T value)",
+                "        last = value",
+                "    function reader() returns Reader",
+                "        return new Reader()",
+                "    static class Reader",
+                "        function read() returns T",
+                "            return last"),
+            compilationUnit("BoxLib.wurst",
+                "package BoxLib",
+                "public class Box<T:>",
+                "    static T held",
+                "    construct(T value)",
+                "        held = value",
+                "    function reader() returns Reader",
+                "        return new Reader()",
+                "    static class Reader",
+                "        function read() returns T",
+                "            return held"),
+            compilationUnit("Main.wurst",
+                "package Main",
+                "import OuterLib",
+                "import BoxLib",
+                "native testSuccess()",
+                "init",
+                "    let ints = new Outer<int>(7)",
+                "    let strings = new Outer<string>(\"ok\")",
+                "    let box = new Box<int>(3)",
+                "    if ints.reader().read() == 7 and strings.reader().read() == \"ok\" and box.reader().read() == 3",
+                "        testSuccess()"));
+        String name = "staticInnerClassesOfGenericOwners";
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(0), units.get(1), units.get(2));
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg()
+            .compilationUnits(units.get(1), units.get(0), units.get(2));
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass, "Jass must not depend on the unit order");
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua, "Lua must not depend on the unit order");
+    }
+
     /** Compiles {@code units} to Lua, runs them, and returns the script, which is written under {@code name}. */
     private String compileToLua(String name, List<CU> units) throws IOException {
         testNamed(name).testLua(true).executeProg().compilationUnits(units.toArray(new CU[0]));
@@ -869,6 +923,48 @@ public class DeterministicChecks extends WurstScriptTest {
         List<CU> shuffled = List.of(units.get(4), units.get(2), units.get(0), units.get(3), units.get(1));
         assertEquals(compileToLua("sameNamedClassesInSeveralPackages", shuffled), first,
             "same-named receivers must bind in an order independent of the compilation units");
+    }
+
+    /**
+     * On Lua the natives of Reflection number the counted allocation groups and print the names and the groups of
+     * the type ids in tables, in the order of the type ids, which the order of the units must not change.
+     */
+    @Test
+    public void reflectionTablesAreTheSameInAnyUnitOrder() throws IOException {
+        List<CU> units = new ArrayList<>();
+        for (String p : List.of("P1", "P2", "P3")) {
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "public class Node",
+                "public class Leaf extends Node",
+                "public function make" + p + "() returns Node",
+                "    return new Leaf()"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import P1",
+            "import P2",
+            "import P3",
+            "native testSuccess()",
+            "native typeIdToTypeName(int typeId) returns string",
+            "native maxTypeId() returns int",
+            "native instanceCount(int typeId) returns int",
+            "native maxInstanceCount(int typeId) returns int",
+            "init",
+            "    let nodes = makeP1().typeId + makeP2().typeId + makeP3().typeId",
+            "    var total = 0",
+            "    for i = 1 to maxTypeId()",
+            "        if typeIdToTypeName(i) != \"unknown\"",
+            "            total += instanceCount(i) + maxInstanceCount(i)",
+            // each package: Node and Leaf are one group, with one live Leaf and a peak of one
+            "    if nodes > 0 and maxTypeId() == 6 and total == 12",
+            "        testSuccess()"));
+        String first = compileToLua("reflectionTables", units);
+        assertTrue(first.contains("__wurst_typeNames") && first.contains("__wurst_typeGroups"),
+            "the type ids are known only at run time, so they are looked up in tables");
+        List<CU> shuffled = List.of(units.get(3), units.get(2), units.get(0), units.get(1));
+        assertEquals(compileToLua("reflectionTables", shuffled), first,
+            "the tables and the group numbers must not depend on the order of the compilation units");
     }
 
     /**

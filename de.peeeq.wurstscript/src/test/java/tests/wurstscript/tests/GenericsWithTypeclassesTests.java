@@ -2088,7 +2088,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericClassWithStaticInnerClass() {
-        testAssertOkLines(true,
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "   native testSuccess()",
             "   class Outer<T:>",
@@ -2110,8 +2110,35 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericClassWithStaticInnerClassHeldInLocals() {
+        // A local typed by the owner's method keeps the owner's instantiation, which is all that tells
+        // the two readers apart.
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "   native testSuccess()",
+            "   class Outer<T:>",
+            "      static T t = null",
+            "      construct(T iVal)",
+            "         t = iVal",
+            "      function iterator() returns Inner",
+            "         return new Inner()",
+            "      static class Inner",
+            "         function next() returns T",
+            "            return t",
+            "   init",
+            "      let ints = new Outer<int>(3)",
+            "      let strings = new Outer<string>(\"ok\")",
+            "      let intIterator = ints.iterator()",
+            "      let stringIterator = strings.iterator()",
+            "      if intIterator.next() == 3 and stringIterator.next() == \"ok\"",
+            "         testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
     public void genericModuleThistypeSmall() {
-        testAssertOkLines(true,
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "   native testSuccess()",
             "   module LLM",
@@ -2503,6 +2530,82 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "    let d = new D()",
             "    if viaBase(new Base()) == 1 and viaBase(new C<int>()) == 2 and viaBase(d) == 4 and d.n() == 8",
             "        testSuccess()");
+    }
+
+    /** Runs a program on Jass and on Lua; optimised adds -inline -localOptimizations to every run, the Lua one too. */
+    private void runOnBothTargets(String name, boolean optimised, String... lines) {
+        TestConfig config = testNamed(name).testLua(true).luaOnly(false).executeProg();
+        if (optimised) {
+            config = config.inline().localOptimizations();
+        }
+        config.compilationUnits(new CU(name, String.join("\n", lines) + "\n"));
+    }
+
+    /**
+     * A field of the tuple which a method of a generic superclass returns. The translation keeps the result in a
+     * temporary of the call's IM type, which named the superclass's type parameter when the receiver was a subclass.
+     */
+    private static final String[] TUPLE_FIELD_OF_INHERITED_GENERIC_METHOD = {
+        "package test",
+        "native testSuccess()",
+        "tuple pa(int x, int y)",
+        "class G<T:>",
+        "    static T sv",
+        "    function w(T v)",
+        "        sv = v",
+        "    function r() returns T",
+        "        return sv",
+        "class Sub extends G<pa>",
+        "class GenericSub<U:> extends G<U>",
+        "init",
+        "    let g = new Sub()",
+        "    g.w(pa(1, 2))",
+        "    let first = g.r().x == 1 and g.r().y == 2",
+        "    let h = new GenericSub<pa>()",
+        "    h.w(pa(3, 4))",
+        "    if first and h.r().x == 3 and h.r().y == 4",
+        "        testSuccess()"
+    };
+
+    @Test
+    public void tupleFieldOfInheritedGenericMethodResult() {
+        runOnBothTargets("tupleFieldOfInheritedGenericMethodResult", false, TUPLE_FIELD_OF_INHERITED_GENERIC_METHOD);
+    }
+
+    @Test
+    public void tupleFieldOfInheritedGenericMethodResult_opt() {
+        runOnBothTargets("tupleFieldOfInheritedGenericMethodResult_opt", true, TUPLE_FIELD_OF_INHERITED_GENERIC_METHOD);
+    }
+
+    /**
+     * The same call as a branch of a conditional expression, whose temporary takes the branch's IM type. Only without
+     * the optimiser: the inliner folds the conditional away before the temporary's type matters.
+     */
+    private static final String[] CONDITIONAL_OF_INHERITED_GENERIC_METHOD = {
+        "package test",
+        "native testSuccess()",
+        "tuple pa(int x, int y)",
+        "class G<T:>",
+        "    static T sv",
+        "    function w(T v)",
+        "        sv = v",
+        "    function r() returns T",
+        "        return sv",
+        "class Sub extends G<pa>",
+        "function pick(Sub g, boolean b) returns pa",
+        "    return b ? g.r() : pa(0, 0)",
+        "init",
+        "    let g = new Sub()",
+        "    g.w(pa(1, 2))",
+        "    let p = pick(g, true)",
+        "    let q = pick(g, false)",
+        "    if p.x == 1 and p.y == 2 and q.x == 0 and q.y == 0",
+        "        testSuccess()"
+    };
+
+    @Test
+    public void conditionalOfInheritedGenericMethodResult() {
+        runOnBothTargets("conditionalOfInheritedGenericMethodResult", false, CONDITIONAL_OF_INHERITED_GENERIC_METHOD);
     }
 
 }

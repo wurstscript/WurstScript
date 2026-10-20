@@ -2310,6 +2310,303 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An instanceof naming one instantiation of a new generic class rejects every other one, as on
+     * Jass, where each instantiation is a class of its own. Lua keeps objects erased and gives a
+     * distinct identity only to an instantiation such a check names.
+     * <p>
+     * These tests run the interpreter on the translated program only: on the generic program it
+     * compares the class without its type arguments, so it takes every Box for a Box&lt;int&gt;.
+     */
+    @Test
+    public void genericInstanceofRejectsAnotherPrimitiveInstantiation() throws IOException {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "init",
+            "    Marker s = new Box<string>()",
+            "    if not (s instanceof Box<int>)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericInstanceofRejectsAnotherPrimitiveInstantiation");
+        assertTrue(compiled.contains("Box_specialized_integer"));
+        assertFalse(compiled.contains("Box_specialized_string"));
+    }
+
+    @Test
+    public void genericInstanceofRejectsAnotherClassInstantiation() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class CA",
+            "class CB extends CA",
+            "init",
+            "    Marker b = new Box<CB>()",
+            "    if not (b instanceof Box<CA>)",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericInstanceofAcceptsItsOwnInstantiation() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "    function get() returns T",
+            "        return item",
+            "init",
+            "    Box<int> box = new Box<int>()",
+            "    box.item = 5",
+            "    Marker i = box",
+            "    Marker s = new Box<string>()",
+            "    if i instanceof Box<int> and not (s instanceof Box<int>) and box.get() == 5",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericInstanceofSeesTheInstantiationOfASuperclass() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Sub<T:> extends Box<T>",
+            "init",
+            "    Marker i = new Sub<int>()",
+            "    Marker s = new Sub<string>()",
+            "    if i instanceof Box<int> and not (i instanceof Box<string>)",
+            "        and s instanceof Box<string> and not (s instanceof Box<int>)",
+            "        and i instanceof Sub<int> and not (s instanceof Sub<int>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The check and the allocation sit in generic code, which only the instantiation makes concrete. */
+    @Test
+    public void genericInstanceofThroughGenericCode() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "function isBoxOf<T:>(Marker m) returns bool",
+            "    return m instanceof Box<T>",
+            "function make<T:>() returns Marker",
+            "    return new Box<T>()",
+            "init",
+            "    Marker i = make<int>()",
+            "    Marker s = make<string>()",
+            "    if isBoxOf<int>(i) and not isBoxOf<int>(s)",
+            "        and isBoxOf<string>(s) and not isBoxOf<string>(i)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same in the methods of a generic class, whose type argument the receiver gives. */
+    @Test
+    public void genericInstanceofThroughAGenericClass() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Holder<T:>",
+            "    Marker held = null",
+            "    function fill()",
+            "        held = new Box<T>()",
+            "    function holds(Marker m) returns bool",
+            "        return m instanceof Box<T>",
+            "init",
+            "    let i = new Holder<int>()",
+            "    let s = new Holder<string>()",
+            "    i.fill()",
+            "    s.fill()",
+            "    if i.holds(i.held) and not i.holds(s.held)",
+            "        and s.holds(s.held) and not s.holds(i.held)",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * An object given an identity of its own for an instanceof is still reached through the virtual
+     * methods of its interface and base class, including a method a subclass overrides.
+     */
+    @Test
+    public void genericInstanceofIdentityKeepsVirtualDispatch() throws IOException {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "    function tag() returns int",
+            "abstract class Base",
+            "    abstract function size() returns int",
+            "class Box<T:> extends Base implements Marker",
+            "    T item",
+            "    function tag() returns int",
+            "        return 3",
+            "    override function size() returns int",
+            "        return 4",
+            "class Sub<T:> extends Box<T>",
+            "    override function tag() returns int",
+            "        return 5",
+            "class Lone<T:> implements Marker",
+            "    function tag() returns int",
+            "        return 6",
+            "init",
+            "    Marker m = new Box<int>()",
+            "    Base b = new Box<int>()",
+            "    Marker sm = new Sub<int>()",
+            "    Base sb = new Sub<int>()",
+            "    Marker other = new Box<string>()",
+            "    Marker lone = new Lone<string>()",
+            "    Marker subOther = new Sub<string>()",
+            "    if m instanceof Box<int> and b instanceof Box<int>",
+            "        and sm instanceof Box<int> and sb instanceof Box<int>",
+            "        and not (other instanceof Box<int>)",
+            "        and not (lone instanceof Lone<int>)",
+            "        and m.tag() == 3 and b.size() == 4",
+            "        and sm.tag() == 5 and sb.size() == 4",
+            "        and other.tag() == 3 and lone.tag() == 6 and subOther.tag() == 5",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericInstanceofIdentityKeepsVirtualDispatch");
+        Map<String, List<String>> slots = boundSlotsByClass(compiled);
+        // Every class allocated for an observed instantiation binds the slots its erased class binds.
+        for (String specialized : List.of("Box_specialized_integer", "Sub_specialized_integer")) {
+            String erased = specialized.substring(0, specialized.indexOf("_specialized"));
+            assertTrue(specialized + " binds " + slots.get(specialized) + ", " + erased + " binds "
+                    + slots.get(erased),
+                slots.containsKey(specialized)
+                    && slots.get(specialized).containsAll(slots.getOrDefault(erased, List.of())));
+        }
+    }
+
+    /**
+     * A Box&lt;int&gt; allocated by a method reached through a non-generic interface stays erased, so
+     * the check keeps accepting every Box rather than reject the object it asks about.
+     */
+    @Test
+    public void genericInstanceofAcceptsAnObjectAllocatedByErasedCode() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Maker",
+            "    function make() returns Marker",
+            "class G<T:> implements Maker",
+            "    function make() returns Marker",
+            "        return new Box<T>()",
+            "init",
+            "    Maker mk = new G<int>()",
+            "    Marker m = mk.make()",
+            "    Marker direct = new Box<int>()",
+            "    if m instanceof Box<int> and direct instanceof Box<int>",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A closure in a generic class which reads a field of its receiver and checks it with an
+     * instanceof of the class's type argument.
+     */
+    @Test
+    public void genericInstanceofInAClosureReadingItsReceiver() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Fn",
+            "    function get() returns int",
+            "function b2i(bool b) returns int",
+            "    if b",
+            "        return 1",
+            "    return 0",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function r() returns int",
+            "        Fn f = () -> begin",
+            "            let h = held",
+            "            return b2i(h instanceof Box<T>)",
+            "        end",
+            "        let v = f.get()",
+            "        destroy f",
+            "        return v",
+            "init",
+            "    let g = new G<int>()",
+            "    g.held = new Box<int>()",
+            "    if g.r() == 1",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure in a generic class which constructs into a field of its receiver. */
+    @Test
+    public void genericInstanceofOfAnObjectAClosureConstructs() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Act",
+            "    function run()",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function w()",
+            "        Act a = () -> begin",
+            "            held = new Box<T>()",
+            "        end",
+            "        a.run()",
+            "        destroy a",
+            "init",
+            "    let g = new G<int>()",
+            "    g.w()",
+            "    let h = g.held",
+            "    if h instanceof Box<int>",
+            "        testSuccess()"
+        );
+    }
+
+    /** A program which names no instantiation in an instanceof keeps every object erased. */
+    @Test
+    public void genericObjectsStayErasedWithoutParameterizedInstanceof() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Other implements Marker",
+            "init",
+            "    Marker s = new Box<string>()",
+            "    Marker i = new Box<int>()",
+            "    if not (s instanceof Other) and not (i instanceof Other)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericObjectsStayErasedWithoutParameterizedInstanceof");
+        assertFalse(compiled.contains("_specialized_"));
+    }
+
     @Test
     public void tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm() throws IOException {
         test().testLua(true).executeProg().lines(
@@ -2939,6 +3236,86 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         CompileError error = expectThrows(CompileError.class, compiler::transformProgToLua);
         assertTrue(error.getMessage(), error.getMessage().contains(value.getName())
             && error.getMessage().contains("main"));
+    }
+
+    @Test
+    public void staticInnerClassReadsTheStaticOfItsOwnersInstantiation() throws IOException {
+        // A static inner class of a generic class captures the owner's type parameter. The owner's
+        // method hands out the inner object typed with that instantiation, which is what takes the
+        // inner class's reader of the owner's static to the store the constructor writes.
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T value)",
+            "        last = value",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let ints = new Outer<int>(7)",
+            "    let strings = new Outer<string>(\"ok\")",
+            "    if ints.reader().read() == 7 and strings.reader().read() == \"ok\"",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("staticInnerClassReadsTheStaticOfItsOwnersInstantiation");
+        List<String> storages = bootstrapDefaults(compiled, "Outer_last_");
+        assertEquals("each concrete Outer instantiation needs its own static: " + storages,
+            2, storages.size());
+    }
+
+    @Test
+    public void staticInnerClassReadsTheStaticOfItsOwnersGenericSuperclass() {
+        // The static belongs to the owner's superclass: the inner class's instantiation is the owner's,
+        // and the owner's reaches the superclass's through the superclass edge.
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Base<T:>",
+            "    static T last",
+            "class Outer<T:> extends Base<T>",
+            "    construct(T value)",
+            "        last = value",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let ints = new Outer<int>(7)",
+            "    let strings = new Outer<string>(\"ok\")",
+            "    if ints.reader().read() == 7 and strings.reader().read() == \"ok\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void moduleStaticInnerClassReadsTheStaticOfItsOwnersInstantiationInlined() {
+        // The module form, inlined and optimised, where the constructor's write was dropped.
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "module Registry",
+            "    static thistype last = null",
+            "    construct()",
+            "        last = this",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    static class Reader",
+            "        function read() returns Registry.thistype",
+            "            return last",
+            "class A<T:>",
+            "    use Registry",
+            "init",
+            "    let ints = new A<int>",
+            "    let strings = new A<string>",
+            "    if ints.reader().read() == ints and strings.reader().read() == strings",
+            "        testSuccess()"
+        );
     }
 
     @Test

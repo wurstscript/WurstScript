@@ -344,6 +344,8 @@ public class ImTranslator implements SpecialisationLookup {
     private final RunArgs runArgs;
 
     private final Map<ClassDef, Map<TypeParamDef, ImTypeVar>> capturedOwnerTypeVarsByStaticClass = new IdentityHashMap<>();
+    /** The class or interface whose type parameters a static inner class captured. */
+    private final Map<ClassDef, ClassOrInterface> capturingOwnerByStaticClass = new IdentityHashMap<>();
     private final Deque<Map<TypeParamDef, ImTypeVar>> typeVarOverrideStack = new ArrayDeque<>();
     private final Deque<ImVar> continueFlagStack = new ArrayDeque<>();
 
@@ -387,6 +389,51 @@ public class ImTranslator implements SpecialisationLookup {
     public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForClass(ClassDef cd) {
         Map<TypeParamDef, ImTypeVar> m = capturedOwnerTypeVarsByStaticClass.get(cd);
         return (m == null) ? Collections.emptyMap() : m;
+    }
+
+    /**
+     * The owner's type parameters a static inner class captured ({@link #addCapturedTypeVarsFromOwningGeneric}), in
+     * the order of the class's type variables, which follow its own. A type naming the class supplies them after its
+     * own type arguments.
+     */
+    public List<TypeParamDef> capturedOwnerTypeParameters(ImClass imClass) {
+        if (!(imClass.getTrace() instanceof ClassDef classDef)) {
+            return Collections.emptyList();
+        }
+        Map<TypeParamDef, ImTypeVar> captured = capturedOwnerTypeVarsByStaticClass.get(classDef);
+        if (captured == null || captured.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<TypeParamDef> result = new ArrayList<>();
+        for (ImTypeVar typeVariable : imClass.getTypeVariables()) {
+            TypeParamDef ownerParameter = typeVariableReverse.get(typeVariable);
+            if (ownerParameter != null && captured.get(ownerParameter) == typeVariable) {
+                result.add(ownerParameter);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public @Nullable ImClassType capturedOwnerType(ImClass imClass) {
+        if (!(imClass.getTrace() instanceof ClassDef classDef)) {
+            return null;
+        }
+        Map<TypeParamDef, ImTypeVar> captured = capturedOwnerTypeVarsByStaticClass.get(classDef);
+        ClassOrInterface owner = capturingOwnerByStaticClass.get(classDef);
+        ImClass ownerClass = owner == null ? null : classForStructureDef.get(owner);
+        if (captured == null || captured.isEmpty() || ownerClass == null) {
+            return null;
+        }
+        ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+        for (ImTypeVar ownerVariable : ownerClass.getTypeVariables()) {
+            ImTypeVar capturedVariable = captured.get(typeVariableReverse.get(ownerVariable));
+            if (capturedVariable == null || !imClass.getTypeVariables().contains(capturedVariable)) {
+                return null;
+            }
+            typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(capturedVariable), Collections.emptyMap()));
+        }
+        return JassIm.ImClassType(ownerClass, typeArguments);
     }
 
     public void pushTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
@@ -1028,6 +1075,17 @@ public class ImTranslator implements SpecialisationLookup {
         }
         NativeFunc converter = enumConverters.get(typename);
         return converter == null ? null : getFuncFor(converter);
+    }
+
+    /**
+     * The common.j native {@code GetHandleId}, or null when the program has no such native. The Lua lowering of a
+     * handle key calls it. Nothing else need have called it, so it may never have been translated (it is then appended
+     * to the program's functions here, as {@link #enumConverter} does) or may have been shaken out of the program (its
+     * parent is then null, and the caller adds it).
+     */
+    public @Nullable ImFunction handleIdNative() {
+        ImFunction f = getNativeFunc("GetHandleId");
+        return f != null && f.isBj() && f.isNative() ? f : null;
     }
 
     private ImFunction getNativeFunc(String funcName) {
@@ -3187,6 +3245,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
         if (owner == null) return;
         if (owner == cd) return;
+        if (owner instanceof ClassOrInterface ownerScope) {
+            capturingOwnerByStaticClass.put(cd, ownerScope);
+        }
 
         // override map for this static inner class: owner TypeParamDef -> captured ImTypeVar (fresh node)
         Map<TypeParamDef, ImTypeVar> override =

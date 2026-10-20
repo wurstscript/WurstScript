@@ -969,29 +969,31 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         TreeShaker.removeUnreachableFunctionsBeforeGenerics(getImTranslator());
         timeTaker.endPhase();
         boolean specializeTupleValueTypes = containsTupleTypeArgument();
+        boolean observesGenericIdentity = containsParameterizedInstanceof();
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
         if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
-            || luaGenerics.hasGenericStatics()) {
+            || observesGenericIdentity || luaGenerics.hasGenericStatics()) {
             beginPhase(2, "Specialize generics for Lua-only concrete operations");
-            luaGenerics.transformGenericNewOnly(specializeTupleValueTypes);
+            luaGenerics.transformGenericNewOnly(specializeTupleValueTypes, observesGenericIdentity);
             // Remove phantom erased initialization before optimization can preserve only its side
             // effect. A specialized static owns its copied initializer unless the erased static is live.
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
             timeTaker.endPhase();
         }
+        // Before stack traces: that pass appends a parameter to every affected function, and on
+        // Lua every non-native function is affected, so the exact signatures the keyed-table
+        // operations are recognised by would stop matching and leave their Jass bodies on Lua, which
+        // key through wurstKeyOf. Before the tree shake, which then drops those replaced bodies: the
+        // native lowering lowers each call of wurstKeyOf it finds, and rejects one from generic code.
+        beginPhase(2, "lower keyed tables");
+        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
+        timeTaker.endPhase();
         // What nothing calls (most of the imported libraries) would go through every pass below, and the garbage
         // removal after the tuples is the first thing to drop it. The helpers the passes below call are pinned.
         beginPhase(2, "remove unreachable functions");
         TreeShaker.removeUnreachableFunctions(getImTranslator());
         timeTaker.endPhase();
         imTranslator.assertNoLiveErasedGenericStatic();
-        // Before stack traces: that pass appends a parameter to every affected function, and on
-        // Lua every non-native function is affected, so the exact signatures the keyed-table
-        // operations are recognised by would stop matching - silently leaving their Jass bodies on
-        // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
-        beginPhase(4, "lower keyed tables");
-        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
-        timeTaker.endPhase();
 
         if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
             beginPhase(4, "add stack traces");
@@ -1128,6 +1130,24 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
                 found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    /**
+     * Whether an instanceof names an instantiation of a generic class, such as {@code x instanceof Box<int>}. Such a
+     * check tells the instantiations of the class apart, so they cannot all share the erased class.
+     */
+    private boolean containsParameterizedInstanceof() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                if (!instanceOf.getClazz().getTypeArguments().isEmpty()) {
+                    found[0] = true;
+                }
+                super.visit(instanceOf);
             }
         });
         return found[0];

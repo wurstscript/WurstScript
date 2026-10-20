@@ -60,11 +60,16 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImDealloc e, LuaTranslator tr) {
-        return LuaAst.LuaExprFunctionCall(tr.objectDealloc,
+        return LuaAst.LuaExprFunctionCall(tr.deallocFor(e.getClazz().getClassDef()),
             LuaAst.LuaExprlist(e.getObj().translateToLua(tr)));
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
+        if (LuaReflection.isReflectionNative(e.getFunc())) {
+            // It has no definition (LuaReflection), as on Jass, where the class elimination replaces only its calls.
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: " + e.getFunc().getName() + " can only be called, not used as a function reference.");
+        }
         return LuaAst.LuaExprFuncRef(tr.callbackAdapterFor(e.getFunc()));
     }
 
@@ -89,6 +94,14 @@ public class ExprTranslation {
         // function now (see LuaEnsureFunctions), so it needs no special-casing
         // here - the generic function-call translation below handles it, the same
         // way it handles any other Wurst-internal function.
+        if (LuaReflection.isReflectionNative(e.getFunc())) {
+            LuaReflection reflection = tr.reflection();
+            if (reflection == null) {
+                throw new IllegalStateException("A call of " + e.getFunc().getName()
+                    + " was not seen before the translation: " + e);
+            }
+            return reflection.translateCall(e);
+        }
         String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
         if (tcFunc != null && !e.getArguments().isEmpty()) {
             LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
