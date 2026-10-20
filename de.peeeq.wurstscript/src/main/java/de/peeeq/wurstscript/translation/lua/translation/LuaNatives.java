@@ -443,25 +443,8 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return __wurst_objectToIndex(h)"));
         });
 
-        addNative("typeIdToTypeName", f -> {
-            f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return \"\""));
-        });
-
-        addNative("maxTypeId", f -> {
-            f.getBody().add(LuaAst.LuaLiteral("return 0"));
-        });
-
-        addNative("instanceCount", f -> {
-            f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return 0"));
-        });
-
-        addNative("maxInstanceCount", f -> {
-            f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return 0"));
-        });
-
+        // typeIdToTypeName, maxTypeId, instanceCount and maxInstanceCount are printed where they are called
+        // (LuaReflection).
     }
 
     private static void addNative(String name, Consumer<LuaFunction> g) {

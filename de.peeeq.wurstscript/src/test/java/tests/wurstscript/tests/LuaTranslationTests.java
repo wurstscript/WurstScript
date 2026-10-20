@@ -6,6 +6,7 @@ import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -34,6 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.testng.Assert.expectThrows;
 import static org.testng.AssertJUnit.*;
 
 
@@ -3618,76 +3620,431 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertContainsRegex(compiled, "(\\w+) = 41\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\1 = 42");
     }
 
-    @Test
-    public void reflectionNativesStubbedForLua() throws IOException {
-        test().testLua(true).lines(
-            "package Test",
-            "native typeIdToTypeName(int typeId) returns string",
-            "native maxTypeId() returns int",
-            "native instanceCount(int typeId) returns int",
-            "native maxInstanceCount(int typeId) returns int",
-            "class A",
-            "init",
-            "    let name = typeIdToTypeName(A.typeId)",
-            "    let m = maxTypeId()",
-            "    let c = instanceCount(A.typeId)",
-            "    let mc = maxInstanceCount(A.typeId)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativesStubbedForLua.lua"), Charsets.UTF_8);
-        assertFalse(compiled.contains("The native 'typeIdToTypeName' is not implemented."));
-        assertFalse(compiled.contains("The native 'maxTypeId' is not implemented."));
-        assertFalse(compiled.contains("The native 'instanceCount' is not implemented."));
-        assertFalse(compiled.contains("The native 'maxInstanceCount' is not implemented."));
-        assertTrue(compiled.contains("typeIdToTypeName = function"));
-        assertTrue(compiled.contains("maxTypeId = function"));
-        assertTrue(compiled.contains("instanceCount = function"));
-        assertTrue(compiled.contains("maxInstanceCount = function"));
+    private static final String[] REFLECTION_NATIVES = {
+        "native typeIdToTypeName(int typeId) returns string",
+        "native maxTypeId() returns int",
+        "native instanceCount(int typeId) returns int",
+        "native maxInstanceCount(int typeId) returns int"
+    };
+
+    private static String[] withReflectionNatives(String... lines) {
+        List<String> result = new ArrayList<>();
+        result.add(lines[0]);
+        Collections.addAll(result, REFLECTION_NATIVES);
+        result.addAll(List.of(lines).subList(1, lines.length));
+        return result.toArray(new String[0]);
     }
 
+    /**
+     * The natives of Reflection answer on Lua what EliminateClasses answers on Jass: the qualified name of a type id's
+     * class, the largest type id, and for instanceCount and maxInstanceCount the live objects and the peak of the
+     * class's allocation group, every class joined to it by inheritance (one allocator on Jass), not of the class
+     * alone. The interpreter counts the class alone, so it runs only on the translated program here.
+     */
     @Test
-    public void reflectionNativeStubBodiesReturnDefaults() throws IOException {
-        test().testLua(true).lines(
+    public void reflectionNativesAnswerAsOnJass() throws IOException {
+        String[] program = withReflectionNatives(
             "package Test",
-            "native typeIdToTypeName(int typeId) returns string",
-            "native maxTypeId() returns int",
-            "native instanceCount(int typeId) returns int",
-            "native maxInstanceCount(int typeId) returns int",
+            "native testSuccess()",
             "class A",
+            "class B extends A",
+            "class C extends A",
+            "class D",
             "init",
-            "    let _n = typeIdToTypeName(A.typeId)",
-            "    let _m = maxTypeId()",
-            "    let _c = instanceCount(A.typeId)",
-            "    let _mc = maxInstanceCount(A.typeId)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativeStubBodiesReturnDefaults.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("typeIdToTypeName = function"));
-        assertTrue(compiled.contains("return \"\""));
-        assertTrue(compiled.contains("maxTypeId = function"));
-        assertTrue(compiled.contains("instanceCount = function"));
-        assertTrue(compiled.contains("maxInstanceCount = function"));
-        assertTrue(compiled.contains("return 0"));
+            "    let a = new A",
+            "    let b1 = new B",
+            "    let b2 = new B",
+            "    let c = new C",
+            "    let d = new D",
+            "    let liveBefore = instanceCount(B.typeId)",
+            "    destroy b1",
+            "    destroy c",
+            "    let b3 = new B",
+            "    let liveAfter = instanceCount(C.typeId)",
+            "    let peak = maxInstanceCount(A.typeId)",
+            "    destroy d",
+            "    let groupOk = liveBefore == 4 and liveAfter == 3 and peak == 4",
+            "    let otherOk = instanceCount(D.typeId) == 0 and maxInstanceCount(D.typeId) == 1",
+            "    let idsOk = typeIdToTypeName(C.typeId) == \"Test.C\" and maxTypeId() == 4 and typeIdToTypeName(4) == \"Test.D\"",
+            "    if groupOk and otherOk and idsOk",
+            "        testSuccess()");
+        test().executeProg(true).executeProgOnlyAfterTransforms().testLua(true).luaOnly(false).lines(program);
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativesAnswerAsOnJass.lua"), Charsets.UTF_8);
+        // Printed in place, so no native is defined, and a known type id reads no table.
+        for (String nativeName : List.of("typeIdToTypeName", "maxTypeId", "instanceCount", "maxInstanceCount")) {
+            assertDoesNotContainRegex(compiled, "\\b" + nativeName + "\\b");
+        }
+        assertFalse(compiled.contains("__wurst_typeNames"));
+        assertFalse(compiled.contains("__wurst_typeGroups"));
+        assertTrue(compiled.contains("\"Test.C\""));
+        // and as a map is built: inlined, optimised and with compressed names
+        test().executeProg(true).testLua(true).optimize().inline().localOptimizations().lines(program);
     }
 
+    /**
+     * A type id which is not known before the program runs reads the names and the groups from tables indexed by
+     * type id. Such a program can see how the classes are numbered, so every class is kept, as on Jass, which numbers
+     * the classes nothing uses as well.
+     */
     @Test
-    public void reflectionNativeStubsAreGuardedByExistingDefinitions() throws IOException {
-        test().testLua(true).lines(
+    public void reflectionWithTypeIdsKnownOnlyAtRunTime() throws IOException {
+        String[] program = withReflectionNatives(
             "package Test",
-            "native typeIdToTypeName(int typeId) returns string",
-            "native maxTypeId() returns int",
-            "native instanceCount(int typeId) returns int",
-            "native maxInstanceCount(int typeId) returns int",
+            "native testSuccess()",
             "class A",
+            "class B extends A",
+            "class C",
+            "class Unused",
+            "function digit(int d) returns string",
+            "    if d == 0",
+            "        return \"0\"",
+            "    if d == 1",
+            "        return \"1\"",
+            "    if d == 2",
+            "        return \"2\"",
+            "    return \"?\"",
+            "function describe() returns string",
+            "    var s = \"\"",
+            "    for i = 1 to maxTypeId()",
+            "        s = s + typeIdToTypeName(i) + \":\" + digit(instanceCount(i)) + \"/\" + digit(maxInstanceCount(i)) + \" \"",
+            "    return s",
             "init",
-            "    let _n = typeIdToTypeName(A.typeId)",
-            "    let _m = maxTypeId()",
-            "    let _c = instanceCount(A.typeId)",
-            "    let _mc = maxInstanceCount(A.typeId)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativeStubsAreGuardedByExistingDefinitions.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("if typeIdToTypeName then"));
-        assertTrue(compiled.contains("if maxTypeId then"));
-        assertTrue(compiled.contains("if instanceCount then"));
-        assertTrue(compiled.contains("if maxInstanceCount then"));
+            "    let a = new A",
+            "    let b = new B",
+            "    let c1 = new C",
+            "    let c2 = new C",
+            "    destroy c1",
+            "    let expected = \"Test.A:2/2 Test.B:2/2 Test.C:1/2 Test.Unused:0/0 \"",
+            "    if describe() == expected and typeIdToTypeName(b.typeId) == \"Test.B\" and instanceCount(c2.typeId) == 1",
+            "        testSuccess()");
+        test().executeProg(true).executeProgOnlyAfterTransforms().testLua(true).luaOnly(false).lines(program);
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionWithTypeIdsKnownOnlyAtRunTime.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "__wurst_typeNames = \\(\\{\"Test\\.A\", \"Test\\.B\", \"Test\\.C\", \"Test\\.Unused\", \\}\\)");
+        assertContainsRegex(compiled, "__wurst_typeGroups = \\(\\{1, 1, 2, 3, \\}\\)");
+        assertContainsRegex(compiled, "(?m)^Unused = \\(\\{\\}\\)");
+        // and as a map is built: inlined, optimised and with compressed names
+        test().executeProg(true).testLua(true).optimize().inline().localOptimizations().lines(program);
+    }
+
+    /**
+     * A number which is no type id answers "unknown" and 0 on Lua, what EliminateClasses returns when its search finds
+     * no class. That search has no bounds, so on Jass a number below 1 answers for the first class and one above
+     * maxTypeId for the last (BACKLOG.md, docs/WC3_RUNTIME.md); Lua does not copy that.
+     */
+    @Test
+    public void reflectionAnswersDefaultsForNumbersWhichAreNoTypeId() {
+        test().executeProg(true).testLua(true).lines(withReflectionNatives(
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "class B",
+            "function above() returns int",
+            "    return maxTypeId() + 1",
+            "init",
+            "    let a = new A",
+            "    let known = typeIdToTypeName(0) == \"unknown\" and instanceCount(3) == 0 and maxInstanceCount(0) == 0",
+            "    let atRunTime = typeIdToTypeName(above()) == \"unknown\" and instanceCount(above()) == 0",
+            "    let peakAtRunTime = maxInstanceCount(above()) == 0",
+            "    if known and atRunTime and peakAtRunTime and instanceCount(1) == 1",
+            "        testSuccess()"));
+    }
+
+    /**
+     * A new-generic class is a class per instantiation on Jass, which specialises it, and one erased class on Lua,
+     * which specialises it only for what needs the concrete type (AGENTS.md §9). So {@code Box<int>}, {@code Sub<int>}
+     * and {@code Box<string>} are the type ids 1, 2 and 3 in two groups on Jass, and Box and Sub the type ids 1 and 2
+     * in one group on Lua; the names agree. Matching Jass would take a class per instantiation on Lua, or the type arguments
+     * at every allocation, which erased generic code does not have (docs/WC3_RUNTIME.md).
+     */
+    @Test
+    public void newGenericInstantiationsAreOneClassOnLua() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().luaExempt(LuaExemption.OBJECT_BOOKKEEPING).lines(reflectionOfGenericInstantiations(
+            "max=3 bi=1:Test.Box:2/2 bs=3:Test.Box:1/1 si=2:Test.Sub:2/2"
+                + " id=1:Test.Box:2/2 id=2:Test.Sub:2/2 id=3:Test.Box:1/1"));
+        test().executeProg(true).testLua(true).lines(reflectionOfGenericInstantiations(
+            "max=2 bi=1:Test.Box:3/3 bs=1:Test.Box:3/3 si=2:Test.Sub:3/3"
+                + " id=1:Test.Box:3/3 id=2:Test.Sub:3/3"));
+    }
+
+    private static String[] reflectionOfGenericInstantiations(String expected) {
+        return reflectionListing(expected,
+            List.of(
+                "class Box<T:>",
+                "    T value",
+                "class Sub<T:> extends Box<T>"),
+            List.of(
+                "    let bi = new Box<int>()",
+                "    let bs = new Box<string>()",
+                "    let si = new Sub<int>()",
+                "    s = s + show(\"bi\", bi.typeId) + show(\"bs\", bs.typeId) + show(\"si\", si.typeId)"));
+    }
+
+    /**
+     * A program which runs {@code initLines}, which append to {@code s}, then lists every type id with its name and
+     * counts, and succeeds when the listing is {@code expected}, and else fails with the listing.
+     */
+    private static String[] reflectionListing(String expected, List<String> declarations, List<String> initLines) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)"));
+        lines.addAll(declarations);
+        lines.addAll(List.of(
+            "function digit(int d) returns string",
+            "    if d == 0",
+            "        return \"0\"",
+            "    if d == 1",
+            "        return \"1\"",
+            "    if d == 2",
+            "        return \"2\"",
+            "    if d == 3",
+            "        return \"3\"",
+            "    if d == 4",
+            "        return \"4\"",
+            "    if d == 5",
+            "        return \"5\"",
+            "    if d == 6",
+            "        return \"6\"",
+            "    if d == 7",
+            "        return \"7\"",
+            "    if d == 8",
+            "        return \"8\"",
+            "    return \"9\"",
+            "function num(int n) returns string",
+            "    if n < 0",
+            "        return \"-\" + num(-n)",
+            "    if n >= 10",
+            "        return num(n div 10) + digit(n mod 10)",
+            "    return digit(n)",
+            "function show(string label, int id) returns string",
+            "    return \" \" + label + \"=\" + num(id) + \":\" + typeIdToTypeName(id) + \":\" + num(instanceCount(id)) + \"/\" + num(maxInstanceCount(id))",
+            "init",
+            "    var s = \"max=\" + num(maxTypeId())"));
+        lines.addAll(initLines);
+        lines.addAll(List.of(
+            "    for i = 1 to maxTypeId()",
+            "        s = s + show(\"id\", i)",
+            "    if s == \"" + expected + "\"",
+            "        testSuccess()",
+            "    else",
+            "        testFail(s)"));
+        return withReflectionNatives(lines.toArray(new String[0]));
+    }
+
+    /**
+     * A tuple type argument makes the Lua backend specialise Box for its storage, which keeps the erased Box too. The
+     * copy is Box, so it has no type id of its own: its objects carry Box's and count in Box's group, and listing the
+     * type ids shows Box once, as on Jass.
+     */
+    @Test
+    public void specialisedClassesShareTheTypeIdOfTheirClass() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().testLua(true).luaOnly(false).lines(reflectionListing(
+            "max=2 p=1:Test.Box:2/2 q=1:Test.Box:2/2 o=2:Test.Other:1/1 id=1:Test.Box:2/2 id=2:Test.Other:1/1",
+            List.of(
+                "tuple pair(int a, int b)",
+                "class Box<T:>",
+                "    T value",
+                "class Other"),
+            List.of(
+                "    let p = new Box<pair>()",
+                "    p.value = pair(1, 2)",
+                "    let q = new Box<pair>()",
+                "    q.value = pair(3, 4)",
+                "    let o = new Other",
+                "    s = s + show(\"p\", p.typeId) + show(\"q\", q.typeId) + show(\"o\", o.typeId)")));
+    }
+
+    /**
+     * {@code instanceof Box<int>} makes the Lua backend specialise {@code Box<int>} and point Sub's superclass at that
+     * copy. Sub is numbered and grouped through the class the copy was made from, so it has its own type id after
+     * Box's and counts in Box's group on both backends. The listings differ only as
+     * {@link #newGenericInstantiationsAreOneClassOnLua} pins: Jass has a Box per instantiation.
+     */
+    @Test
+    public void classExtendingASpecialisedClassHasItsOwnTypeId() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().luaExempt(LuaExemption.OBJECT_BOOKKEEPING).lines(subOfSpecialisedClass(
+            "max=4 p=2:Test.Box:3/3 s=3:Test.Sub:3/3 t=4:Test.Box:3/3"
+                + " id=1:Test.Marker:3/3 id=2:Test.Box:3/3 id=3:Test.Sub:3/3 id=4:Test.Box:3/3"));
+        test().executeProg(true).testLua(true).lines(subOfSpecialisedClass(
+            "max=3 p=2:Test.Box:3/3 s=3:Test.Sub:3/3 t=2:Test.Box:3/3"
+                + " id=1:Test.Marker:3/3 id=2:Test.Box:3/3 id=3:Test.Sub:3/3"));
+    }
+
+    private static String[] subOfSpecialisedClass(String expected) {
+        return reflectionListing(expected,
+            List.of(
+                "tuple pair(int a, int b)",
+                "interface Marker",
+                "class Box<T:> implements Marker",
+                "    T value",
+                "class Sub extends Box<int>"),
+            List.of(
+                "    let p = new Box<int>()",
+                "    let sub = new Sub",
+                "    let t = new Box<pair>()",
+                "    t.value = pair(1, 2)",
+                "    Marker m = sub",
+                "    if not (m instanceof Box<int>)",
+                "        s = \"instanceof failed \"",
+                "    s = s + show(\"p\", p.typeId) + show(\"s\", sub.typeId) + show(\"t\", t.typeId)"));
+    }
+
+    /** Without a class, maxTypeId is -1 and every number answers "unknown" and 0, on both backends. */
+    @Test
+    public void reflectionWithoutClasses() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().testLua(true).luaOnly(false).lines(withReflectionNatives(
+            "package Test",
+            "native testSuccess()",
+            "@noinline function one() returns int",
+            "    return 1",
+            "init",
+            "    let counts = instanceCount(one()) == 0 and maxInstanceCount(one()) == 0",
+            "    if maxTypeId() == -1 and typeIdToTypeName(one()) == \"unknown\" and counts",
+            "        testSuccess()"));
+    }
+
+    /**
+     * Lua counts the objects its allocators make, so of the compile-time
+     * objects only those the compile-time state makes again, the ones a global keeps: here the kept object and the
+     * one made at run time. Jass sets the group's highest id to the highest id used at compile time and counts every
+     * id up to it as live, those of the objects destroyed or dropped at compile time too (docs/WC3_RUNTIME.md).
+     */
+    @Test
+    public void compiletimeObjectsAreCountedDifferentlyOnJassAndLua() {
+        test().testLua(true).executeProg(true).runCompiletimeFunctions(true).executeProgOnlyAfterTransforms()
+            .lines(countsOfCompiletimeObjects(2));
+        test().executeProg(true).runCompiletimeFunctions(true).executeProgOnlyAfterTransforms().luaExempt(LuaExemption.OBJECT_BOOKKEEPING)
+            .lines(countsOfCompiletimeObjects(5));
+    }
+
+    private static String[] countsOfCompiletimeObjects(int expected) {
+        return withReflectionNatives(
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "function compiletime<T:>(T t) returns T",
+            "    return t",
+            "@compiletime function build() returns A",
+            "    let temporary = new A",
+            "    new A",
+            "    destroy temporary",
+            "    return new A",
+            "let kept = compiletime(build())",
+            "init",
+            "    let other = new A",
+            "    if kept != other and instanceCount(A.typeId) == " + expected
+                + " and maxInstanceCount(A.typeId) == " + expected,
+            "        testSuccess()");
+    }
+
+    /**
+     * Counting costs only the groups a call asks about: the other classes keep the shared allocator and deallocator,
+     * and the peak is kept only for maxInstanceCount.
+     */
+    @Test
+    public void reflectionCountsOnlyTheGroupsItAsksAbout() {
+        String compiled = compileLuaWithRunArgs("reflectionCountsOnlyTheGroupsItAsksAbout", false, withReflectionNatives(
+            "package Test",
+            "native takesInt(int i)",
+            "class Counted",
+            "class Other",
+            "init",
+            "    let c = new Counted",
+            "    let o = new Other",
+            "    takesInt(instanceCount(Counted.typeId))",
+            "    destroy c",
+            "    destroy o"));
+        assertEquals(1, countOccurrences(compiled, "__wurst_instanceLive[1] = (__wurst_instanceLive[1] + 1)"));
+        assertEquals(1, countOccurrences(compiled, "__wurst_instanceLive[group] = (__wurst_instanceLive[group] - 1)"));
+        assertTrue(compiled.contains("Counted.__wurst_instanceGroup = 1"));
+        assertFalse(compiled.contains("Other.__wurst_instanceGroup"));
+        assertTrue(compiled.contains("__wurst_allocObject(Other)"));
+        assertContainsRegex(compiled, "__wurst_deallocCounted\\(c\\)");
+        assertContainsRegex(compiled, "__wurst_deallocObject\\(o\\)");
+        assertFalse(compiled.contains("__wurst_instancePeak"));
+        assertFalse(compiled.contains("__wurst_typeGroups"));
+    }
+
+    /** A native of Reflection has no definition to refer to, so a reference to one is an error, not a dangling name. */
+    @Test
+    public void reflectionNativeAsFunctionReferenceIsAnError() {
+        CompileError error = expectThrows(CompileError.class, () ->
+            compileLuaWithRunArgs("reflectionNativeAsFunctionReference", false, withReflectionNatives(
+                "package Test",
+                "native takesCode(code c)",
+                "init",
+                "    takesCode(function maxTypeId)")));
+        assertTrue(error.getMessage(), error.getMessage().contains("maxTypeId can only be called"));
+    }
+
+    /**
+     * A program which does not reach the natives of Reflection emits exactly what it emits without them: no counter,
+     * no table and no allocator of its own for any class.
+     */
+    @Test
+    public void unreachedReflectionLeavesTheLuaUnchanged() {
+        String[] program = {
+            "package Test",
+            "native takesInt(int i)",
+            "native takesString(string s)",
+            "interface Shape",
+            "    function area() returns int",
+            "class Square implements Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "class Base",
+            "class Derived extends Base",
+            "init",
+            "    let s = new Square(3)",
+            "    Base b = new Derived",
+            "    takesInt(s.area() + Derived.typeId + b.typeId)",
+            "    if b instanceof Derived",
+            "        destroy b",
+            "    destroy s"
+        };
+        // After the program, so that its line numbers, which the stack traces print, stay the same.
+        List<String> unreached = new ArrayList<>(List.of(program));
+        Collections.addAll(unreached, REFLECTION_NATIVES);
+        Collections.addAll(unreached,
+            "function neverCalled()",
+            "    takesString(typeIdToTypeName(Base.typeId))",
+            "    takesInt(maxTypeId() + instanceCount(Derived.typeId) + maxInstanceCount(1))");
+        String withUnreached = String.join("\n", unreached);
+        for (RunArgs runArgs : List.of(
+            new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces"),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations", "-opt"))) {
+            String plain = compileLuaWithCUs("unreachedReflection", false, Collections.emptyList(), runArgs, program);
+            String declared = compileLuaWithCUs("unreachedReflection", false, Collections.emptyList(), runArgs,
+                withUnreached.split("\n"));
+            assertEquals(plain, declared);
+            assertFalse(plain.contains("__wurst_instance"));
+            assertFalse(plain.contains("__wurst_deallocCounted"));
+        }
+    }
+
+    /**
+     * With the standard library every class is kept for its type id, each allocator counts and every type id has a
+     * name.
+     */
+    @Test
+    public void reflectionOverEveryClassOfTheStandardLibrary() {
+        test().testLua(true).withStdLib().executeProg(true).lines(
+            "package Test",
+            "import Wurstunit",
+            "import Reflection",
+            "import LinkedList",
+            "init",
+            "    let list = new LinkedList<int>()",
+            "    list.add(1)",
+            "    var named = 0",
+            "    for i = 1 to maxTypeId()",
+            "        if typeIdToTypeName(i) != \"unknown\" and maxInstanceCount(i) >= instanceCount(i)",
+            "            named++",
+            "    if maxTypeId() > 10 and named == maxTypeId() and instanceCount(list.typeId) > 0",
+            "        testSuccess()");
     }
 
     @Test

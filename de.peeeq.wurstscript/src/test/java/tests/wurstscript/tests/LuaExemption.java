@@ -13,8 +13,11 @@ public enum LuaExemption {
     REAL_EQUALITY_TOLERANCE("AGENTS.md §7, \"Reference semantics for arithmetic\"", false),
     /** A method combining its class's type parameters with its own is not supported on Lua. */
     CLASS_AND_METHOD_TYPE_PARAMS("AGENTS.md §9, \"Lowering and backend rules\"", false),
-    /** Jass has one object id allocator per inheritance group; Lua has one id space for every class. */
-    ONE_OBJECT_ID_SPACE("docs/WC3_RUNTIME.md, \"Objects and memory\"", false),
+    /**
+     * Lua keeps objects and classes otherwise than Jass, as documented: one id space for every class, one erased
+     * class for the instantiations of a new generic, and only the compile-time objects it makes again counted.
+     */
+    OBJECT_BOOKKEEPING("docs/WC3_RUNTIME.md, \"Objects and memory\"", false),
     /** The test Lua computes reals in double; the game and the interpreters do not. */
     TEST_LUA_COMPUTES_IN_DOUBLE("docs/WC3_RUNTIME.md, \"Numbers\"", false),
     /** The test checks the interpreter's model of a native, which the Lua test runtime does not share. */

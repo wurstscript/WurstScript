@@ -12,10 +12,12 @@ import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class TypeId {
@@ -27,14 +29,27 @@ public class TypeId {
                     .thenComparing(TypeId::sourceKey);
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
+        return calculate(prog.getClasses(), TypeId::superClassDefs);
+    }
+
+    /**
+     * Type ids for {@code classesToNumber}, numbered along the superclass edges {@code superClasses} gives, which
+     * must lead to classes among them.
+     */
+    public static Map<ImClass, Integer> calculate(Collection<ImClass> classesToNumber,
+                                                  Function<ImClass, List<ImClass>> superClasses) {
         AtomicInteger count = new AtomicInteger();
         Map<ImClass, Integer> result = Maps.newLinkedHashMap();
 
-        List<ImClass> classes = prog.getClasses().stream()
+        List<ImClass> classes = classesToNumber.stream()
                 .sorted(class_comparator)
                 .collect(Collectors.toList());
-        assignIds(count, result, classes);
+        assignIds(count, result, classes, superClasses);
         return result;
+    }
+
+    private static List<ImClass> superClassDefs(ImClass c) {
+        return c.getSuperClasses().stream().map(ImClassType::getClassDef).collect(Collectors.toList());
     }
 
     private static String packageName(ImClass ic) {
@@ -63,22 +78,22 @@ public class TypeId {
     }
 
     private static void assignIds(AtomicInteger count, Map<ImClass, Integer> result,
-                                  List<ImClass> classes) {
-        Multimap<ImClass, ImClass> subClasses = calculateSubclasses(classes);
+                                  List<ImClass> classes, Function<ImClass, List<ImClass>> superClasses) {
+        Multimap<ImClass, ImClass> subClasses = calculateSubclasses(classes, superClasses);
 
         // start with the classes that do not have any super classes (preorder traversal)
         for (ImClass c : classes) {
-            if (c.getSuperClasses().isEmpty()) {
+            if (superClasses.apply(c).isEmpty()) {
                 assignId(count, result, c, subClasses);
             }
         }
     }
 
-    private static Multimap<ImClass, ImClass> calculateSubclasses(List<ImClass> classes) {
+    private static Multimap<ImClass, ImClass> calculateSubclasses(List<ImClass> classes,
+                                                                Function<ImClass, List<ImClass>> superClasses) {
         Multimap<ImClass, ImClass> subClasses = LinkedHashMultimap.create();
         for (ImClass c : classes) {
-            c.getSuperClasses().stream()
-                    .map(ImClassType::getClassDef)
+            superClasses.apply(c).stream()
                     .sorted(class_comparator).forEach(superClass ->
                     subClasses.put(superClass, c)
             );

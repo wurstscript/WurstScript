@@ -29,6 +29,7 @@ import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
+import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.Assert;
@@ -1296,7 +1297,8 @@ public class WurstScriptTest {
                 WLogger.info("Executing imProg before jass transformation");
                 String currentEnv = currentTestEnv;
                 setCurrentTestEnv("ImProg before jass transformation");
-                executeImProg(gui, imProg);
+                // As a compile-time run is given it: what the translation recorded about the generic program.
+                executeImProg(gui, imProg, compiler.getImTranslator());
                 currentTestEnv = currentEnv;
             }
         }
@@ -1453,9 +1455,15 @@ public class WurstScriptTest {
     }
 
     private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
+        executeImProg(gui, imProg, SpecialisationLookup.NONE);
+    }
+
+    private void executeImProg(WurstGui gui, ImProg imProg, SpecialisationLookup specialisations)
+            throws TestFailException {
         try {
             // run the interpreter on the intermediate language
             ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false);
+            interpreter.getGlobalState().setSpecialisations(specialisations);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
