@@ -741,7 +741,7 @@ public class WurstScriptTest {
 
     }
 
-    private void checkLuaSyntax(String luacExecutable, File luaFile) throws IOException {
+    protected void checkLuaSyntax(String luacExecutable, File luaFile) throws IOException {
         Path outFile = java.nio.file.Files.createTempFile("wurst-luac-", ".out");
         outFile.toFile().deleteOnExit();
         ProcessBuilder pb = new ProcessBuilder(
