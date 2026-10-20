@@ -8589,4 +8589,364 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    consume(scale(2, 3))");
         assertFalse(compiled, compiled.contains("+ 0.)"));
     }
+
+    // Erased dispatch into code which needs the concrete type argument (lua-*-erased and friends in
+    // GenericSpecialisationMatrixTests). Lua keeps new generics erased, so an object reached through a
+    // non-generic interface, a non-generic base class, destroy, a closure, a super call or an erased generic
+    // function runs the erased body; Jass, which specialises every instantiation, is the oracle.
+
+    /** Two instantiations, one static each, read through a non-generic interface (lua-static-erased). */
+    @Test
+    public void genericStaticReadThroughErasedInterfaceDispatch() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Iface",
+            "    function r() returns int",
+            "class G<T:> implements Iface",
+            "    static int cnt = 0",
+            "    function w()",
+            "        cnt += 1",
+            "    function r() returns int",
+            "        return cnt",
+            "init",
+            "    let a = new G<int>()",
+            "    let b = new G<string>()",
+            "    a.w()",
+            "    b.w()",
+            "    Iface i = a",
+            "    if i.r() == 1",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * Two instantiations allocated only by erased code, a generic class reached through a non-generic interface,
+     * so that no specialised copy of the static exists at all: the erased one served both (lua-static-erased).
+     */
+    @Test
+    public void genericStaticOfInstantiationsAllocatedThroughErasedDispatch() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Counter",
+            "    function count() returns int",
+            "class Slot<T:> implements Counter",
+            "    static int n = 0",
+            "    construct()",
+            "        n++",
+            "    function count() returns int",
+            "        return n",
+            "interface Maker",
+            "    function make() returns Counter",
+            "class Factory<T:> implements Maker",
+            "    function make() returns Counter",
+            "        return new Slot<T>()",
+            "init",
+            "    Maker a = new Factory<int>()",
+            "    Maker b = new Factory<string>()",
+            "    let ca = a.make()",
+            "    let cb = b.make()",
+            "    if ca.count() == 1 and cb.count() == 1",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure written in the generic class writes its static; the closure's type parameter is the class's. */
+    @Test
+    public void genericStaticWrittenInAClosure() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Act",
+            "    function run()",
+            "interface Iface",
+            "    function w()",
+            "    function r() returns int",
+            "class G<T:> implements Iface",
+            "    static int cnt = 0",
+            "    function w()",
+            "        Act a = () -> begin",
+            "            cnt += 1",
+            "        end",
+            "        a.run()",
+            "        destroy a",
+            "    function r() returns int",
+            "        return cnt",
+            "init",
+            "    Iface a = new G<int>()",
+            "    Iface b = new G<string>()",
+            "    a.w()",
+            "    b.w()",
+            "    b.w()",
+            "    if a.r() == 1 and b.r() == 2",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A subclass of a tuple instantiation whose second constructor, reached through super calls, writes the tuple
+     * static: the constructor's copy needs the class's type variable replaced as well as the static.
+     */
+    @Test
+    public void tupleSubclassStaticWrittenInASecondConstructor() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pa(int x, int y)",
+            "class G<T:>",
+            "    static T sv",
+            "    construct()",
+            "    construct(G<T> t, T v)",
+            "        sv = v",
+            "    function w(T v)",
+            "        destroy new G<T>(this, v)",
+            "    function r() returns T",
+            "        return sv",
+            "class Sub1 extends G<pa>",
+            "    override function w(pa v)",
+            "        super.w(v)",
+            "    override function r() returns pa",
+            "        return super.r()",
+            "init",
+            "    let g0 = new Sub1()",
+            "    g0.w(pa(1, 2))",
+            "    let p = g0.r()",
+            "    if p.x == 1 and p.y == 2",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same class reached through a generic interface, which is specialised along with it. */
+    @Test
+    public void genericStaticWrittenThroughAGenericInterface() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface GIface<T:>",
+            "    function w(int k)",
+            "    function r() returns int",
+            "class G<T:> implements GIface<T>",
+            "    static int cnt = 0",
+            "    function w(int k)",
+            "        cnt += k",
+            "    function r() returns int",
+            "        return cnt",
+            "init",
+            "    let a = new G<string>()",
+            "    let b = new G<int>()",
+            "    GIface<string> ga = a",
+            "    GIface<int> gb = b",
+            "    ga.w(1)",
+            "    gb.w(10)",
+            "    if a.r() == 1 and gb.r() == 10",
+            "        testSuccess()"
+        );
+    }
+
+    /** A static's initialiser, read through a non-generic base class (lua-static-erased, the nil read). */
+    @Test
+    public void genericStaticInitialiserReadThroughErasedBaseClassDispatch() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Codec<T:>",
+            "    function key(T v) returns int",
+            "class CodecInt implements Codec<int>",
+            "    function key(int v) returns int",
+            "        return v",
+            "abstract class Base",
+            "    abstract function r() returns int",
+            "class G<T:> extends Base",
+            "    static T sv",
+            "    static int cnt = 5",
+            "    Codec<T> codec",
+            "    construct(Codec<T> c, T v)",
+            "        codec = c",
+            "        sv = v",
+            "    override function r() returns int",
+            "        return codec.key(sv) + cnt",
+            "init",
+            "    Base b = new G<int>(new CodecInt(), 7)",
+            "    if b.r() == 12",
+            "        testSuccess()"
+        );
+    }
+
+    /** A bound's requirement reached through a non-generic interface (lua-bound-unresolved). */
+    @Test
+    public void boundDispatchThroughErasedInterfaceDispatch() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n",
+            "interface Iface",
+            "    function w()",
+            "class G<T: Kc> implements Iface",
+            "    T bv",
+            "    function w()",
+            "        bv = T.kmk(10)",
+            "init",
+            "    let g = new G<int>()",
+            "    Iface i = g",
+            "    i.w()",
+            "    if g.bv == 10",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure in a bounded class which writes a field of the class (lua-closure-receiver). */
+    @Test
+    public void boundDispatchInAClosureWritingAField() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n",
+            "interface Act",
+            "    function run()",
+            "class G<T: Kc>",
+            "    T bv",
+            "    function w()",
+            "        Act a = () -> begin",
+            "            bv = T.kmk(10)",
+            "        end",
+            "        a.run()",
+            "init",
+            "    let g = new G<int>()",
+            "    g.w()",
+            "    if g.bv == 10",
+            "        testSuccess()"
+        );
+    }
+
+    /** wurstNewInstance behind a super call (lua-new-instance-unresolved). */
+    @Test
+    public void newInstanceBehindASuperCall() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class CA",
+            "    int tag = 73",
+            "class G<T:>",
+            "    T made",
+            "    function w()",
+            "        made = wurstNewInstance<T>()",
+            "class Sub extends G<CA>",
+            "    override function w()",
+            "        super.w()",
+            "init",
+            "    let g = new Sub()",
+            "    g.w()",
+            "    if g.made.tag == 73",
+            "        testSuccess()"
+        );
+    }
+
+    /** wurstNewInstance in a constructor, which a method calls for its own instantiation (lua-new-instance-unresolved). */
+    @Test
+    public void newInstanceInAConstructorCalledFromAMethod() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class CA",
+            "    int tag = 73",
+            "class G<T:>",
+            "    T made",
+            "    construct()",
+            "    construct(G<T> t)",
+            "        t.made = wurstNewInstance<T>()",
+            "    function w()",
+            "        new G<T>(this)",
+            "init",
+            "    let g = new G<CA>()",
+            "    g.w()",
+            "    if g.made.tag == 73",
+            "        testSuccess()"
+        );
+    }
+
+    /** wurstNewInstance reached through a non-generic interface (lua-new-instance-erased). */
+    @Test
+    public void newInstanceThroughErasedInterfaceDispatch() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(newInstanceThroughErasedInterfaceDispatchProgram());
+    }
+
+    /** The same with the optimiser, which compiled it and read null. */
+    @Test
+    public void newInstanceThroughErasedInterfaceDispatchOptimised() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProgOnlyAfterTransforms()
+            .executeProg()
+            .lines(newInstanceThroughErasedInterfaceDispatchProgram());
+    }
+
+    private static String[] newInstanceThroughErasedInterfaceDispatchProgram() {
+        return new String[]{
+            "package Test",
+            "native testSuccess()",
+            "class CA",
+            "    int tag = 73",
+            "interface Iface",
+            "    function w()",
+            "class G<T:> implements Iface",
+            "    T made",
+            "    function w()",
+            "        made = wurstNewInstance<T>()",
+            "init",
+            "    let g = new G<CA>()",
+            "    Iface i = g",
+            "    i.w()",
+            "    if g.made.tag == 73",
+            "        testSuccess()"
+        };
+    }
+
+    /**
+     * A T field written by a second constructor through another instance, read through a non-generic base class
+     * (lua-field-split).
+     */
+    @Test
+    public void boundFieldWrittenInAConstructorReadThroughErasedBaseClassDispatch() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "    function kkey(T v) returns int",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n",
+            "    function kkey(int v) returns int",
+            "        return v",
+            "abstract class Base",
+            "    abstract function r() returns int",
+            "class G<T: Kc> extends Base",
+            "    T bv",
+            "    int seen = 0",
+            "    construct()",
+            "    construct(G<T> t, int mode)",
+            "        if mode == 1",
+            "            t.bv = T.kmk(10)",
+            "        else",
+            "            t.seen = T.kkey(t.bv)",
+            "    function w()",
+            "        new G<T>(this, 1)",
+            "    override function r() returns int",
+            "        new G<T>(this, 2)",
+            "        return seen",
+            "init",
+            "    let g = new G<int>()",
+            "    g.w()",
+            "    Base b = g",
+            "    if b.r() == 10",
+            "        testSuccess()"
+        );
+    }
 }

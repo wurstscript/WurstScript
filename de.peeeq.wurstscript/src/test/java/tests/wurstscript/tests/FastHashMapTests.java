@@ -425,15 +425,20 @@ public class FastHashMapTests extends WurstScriptTest {
      * and an instance allocated from the specialised class comes out with no fields at all while the
      * emitted code goes on reading them by name.
      * <p>
-     * A specialisation whose methods are bound to the erased class the objects come from has nothing
-     * left to allocate and is not emitted, which is the shape this target aims for and leaves no field
-     * set to disagree. One emitted without being allocated is neither: dead weight, and the two class
-     * shapes coexisting is what produced the bug above. Both accepted states are named, so this cannot
-     * pass by finding nothing.
+     * The map dispatches on its bound, so its instantiations need their type argument and their objects
+     * come from the class specialised for each (EliminateGenerics.allocatesFromSpecialisedClass): the
+     * erased class is then allocated nowhere and not emitted, and the specialised class must allocate the
+     * fields. Where both are allocated they agree. A specialised class emitted without being allocated is
+     * dead weight, and the two class shapes coexisting is what produced the bug above. Each accepted state
+     * is named, so this cannot pass by finding nothing.
      */
     private static void assertSpecialisedClassesAllocateTheirFields(String compiled) {
-        String erasedFields = allocatedFields(compiled, "FastHashMap");
+        String erasedFields = allocatedFieldsOrNull(compiled, "FastHashMap");
         String specialisedFields = allocatedFieldsOrNull(compiled, "FastHashMap_specialized\\w*");
+        if (erasedFields == null) {
+            allocatedFields(compiled, "FastHashMap_specialized\\w*");
+            return;
+        }
         if (specialisedFields == null) {
             // The class table, not any name containing it: a specialised function is named after the
             // one it was copied from, so matching the bare name would read those as a class.

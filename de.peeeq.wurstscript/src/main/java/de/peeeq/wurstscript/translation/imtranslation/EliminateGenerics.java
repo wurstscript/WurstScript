@@ -364,6 +364,7 @@ public class EliminateGenerics {
     }
 
     private void collectGenericNewRootsInProgram() {
+        collectSpecialisedSuperclasses();
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
@@ -446,6 +447,33 @@ public class EliminateGenerics {
                 }
             }
         });
+    }
+
+    /**
+     * A class which extends an instantiation that is allocated from its specialised class
+     * ({@link #allocatesFromSpecialisedClass}) extends the specialised class instead, so that its objects inherit
+     * the code for that instantiation: {@code class Sub extends G<int>} makes objects of {@code G<int>} which no
+     * construction of {@code G} allocates. Only a class written with concrete type arguments for its superclass is
+     * asked; a generic class's superclasses are specialised together with the class.
+     */
+    private void collectSpecialisedSuperclasses() {
+        for (ImClass c : prog.getClasses()) {
+            if (!c.getTypeVariables().isEmpty()) {
+                continue;
+            }
+            for (ImClassType superType : c.getSuperClasses()) {
+                if (superType.getTypeArguments().isEmpty()
+                    || typeArgumentsContainTypeVariable(superType.getTypeArguments())) {
+                    continue;
+                }
+                ImClass superClass = superType.getClassDef();
+                GenericTypes generics = new GenericTypes(superType.getTypeArguments());
+                if (inheritsFromSpecialisedClass(superClass, generics)) {
+                    genericsUses.add(() -> rewriteRuntimeTypeSuperEdges(superClass, generics,
+                        specializeClass(superClass, generics)));
+                }
+            }
+        }
     }
 
     /**
@@ -708,8 +736,10 @@ public class EliminateGenerics {
             classByFunction = new IdentityHashMap<>();
             Map<ClassDef, ImClass> classBySource = new IdentityHashMap<>();
             for (ImClass imClass : prog.getClasses()) {
-                if (imClass.getTrace() instanceof ClassDef sourceClass) {
-                    classBySource.put(sourceClass, imClass);
+                // A specialised class carries the trace of the class it was copied from; a function written in the
+                // source class belongs to the original, whose type variables it uses.
+                if (imClass.getTrace() instanceof ClassDef sourceClass && translator.canonical(imClass) == imClass) {
+                    classBySource.putIfAbsent(sourceClass, imClass);
                 }
                 for (ImFunction f : imClass.getFunctions()) {
                     classByFunction.putIfAbsent(f, imClass);
@@ -738,11 +768,8 @@ public class EliminateGenerics {
     private @Nullable Map<ImFunction, ImClass> classByFunction;
 
     /**
-     * A construction states an instantiation that no call site has to mention. A closure is the case
-     * that needs it: its class is built from the enclosing type variables and reached through its
-     * interface, so the call carries no type arguments at all and only the allocation knows what the
-     * body dispatches on. Restricted to classes that actually dispatch on a bound, so this stays a
-     * targeted specialisation rather than general monomorphisation on Lua.
+     * Allocates an instantiation which needs an identity of its own ({@link #allocatesFromSpecialisedClass}) from the
+     * class specialised for it. Every other construction keeps the erased class, this target's normal representation.
      */
     private void collectGenericNewUse(ImAlloc alloc) {
         ImClassType clazz = alloc.getClazz();
@@ -750,9 +777,7 @@ public class EliminateGenerics {
             || typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
             return;
         }
-        if (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
-            && !needsRuntimeTypeSpecialization(clazz)
-            && !isConstructionOnlyInstantiation(clazz.getClassDef())) {
+        if (!allocatesFromSpecialisedClass(clazz.getClassDef(), new GenericTypes(clazz.getTypeArguments()))) {
             if (classOwnsGenericGlobals(clazz.getClassDef())) {
                 recordErasedStaticInstantiation(alloc, clazz.getClassDef(), clazz.getTypeArguments());
             }
@@ -762,19 +787,115 @@ public class EliminateGenerics {
     }
 
     /**
-     * Whether the construction is the only place a class's instantiation is stated.
+     * Whether the objects of an instantiation come from the class specialised for it rather than from the erased class.
      * <p>
-     * A class the user writes is used through calls that carry its type arguments, and those already
-     * specialise what they need onto the erased class. A closure has no such call: it is reached
-     * through the interface it implements, which is not generic, so the allocation is the only thing
-     * that knows what the body dispatches on. Widening this beyond that case makes the two
-     * mechanisms disagree: the object comes from the specialised class while its methods were bound
-     * to the erased one.
+     * This is the one place that decides it, and {@link #specializeClass} asks it too: such a class gets every method
+     * of the original attached in its specialised form, bound to the same dispatch roots, and the classes which extend
+     * this instantiation extend the specialised class. An object from the specialised class therefore reaches the code
+     * for its instantiation through every dispatch, including those which do not name the instantiation: a
+     * non-generic interface or base class, destroy, a closure, a super call or an erased generic function. An object of
+     * the erased class reaches the erased body, which is only right while nothing in it depends on the type argument.
+     * <p>
+     * That is the case when the instantiation is a tuple, whose values the erased class cannot hold; when an
+     * {@code instanceof} tells it apart from the other instantiations; and when a member of the class needs its type
+     * argument ({@link #classNeedsIdentity}). Every other instantiation stays erased, so this is not general
+     * monomorphisation.
      */
-    private boolean isConstructionOnlyInstantiation(ImClass classDef) {
-        return classDef.attrTrace() instanceof ExprClosure closure
-            && !isInsideAnotherClosure(closure)
-            && classReachesDispatch(classDef);
+    private boolean allocatesFromSpecialisedClass(ImClass clazz, GenericTypes generics) {
+        if (clazz.getTypeVariables().isEmpty() || generics.containsTypeVariable()) {
+            return false;
+        }
+        return (specializeTupleValueTypes && genericTypesContainTuple(generics))
+            || needsRuntimeTypeSpecialization(clazz, generics, new HashSet<>())
+            || classNeedsIdentity(clazz);
+    }
+
+    /**
+     * Whether a class which extends this instantiation extends the specialised class
+     * ({@link #collectSpecialisedSuperclasses}): when its objects come from the specialised class, unless it is an
+     * interface, which has no code to inherit and whose identity matters only to an {@code instanceof}
+     * ({@link #needsRuntimeTypeSpecialization}).
+     */
+    private boolean inheritsFromSpecialisedClass(ImClass clazz, GenericTypes generics) {
+        return !(clazz.attrTrace() instanceof InterfaceDef)
+            && (allocatesFromSpecialisedClass(clazz, generics)
+                || needsRuntimeTypeSpecialization(clazz, generics, new HashSet<>()));
+    }
+
+    /**
+     * Whether a member reached through the objects of this generic class needs the class's type argument: a method of
+     * the class or of a superclass it inherits from (destroy and ondestroy included) reads or writes a static, which
+     * exists once per instantiation, dispatches on a type-class bound, constructs with {@code wurstNewInstance},
+     * checks {@code instanceof} against an instantiation of the type parameter, or calls or constructs something which
+     * does ({@link #functionNeedsSpecialization}). Each instantiation of such a class has to be told apart at run time,
+     * because the erased body of such a method has no single right answer for all of them.
+     * <p>
+     * A property of the class alone, decided once: its first answer is the answer, so that the construction redirected
+     * to the specialised class and the methods attached to it can never disagree. Answers only grow while the
+     * specialisation runs (a call is completed with type arguments, never stripped of the ones it depends on), so the
+     * first answer is the safe one.
+     * <p>
+     * A closure written inside another closure is left out ({@link #isInsideAnotherClosure}).
+     */
+    private boolean classNeedsIdentity(ImClass clazz) {
+        Boolean known = classNeedsIdentityAnswers.get(clazz);
+        if (known != null) {
+            return known;
+        }
+        boolean outer = identityIgnored;
+        // A closure is not given an identity for an instanceof alone (wurstscript/WurstScript#1507): its check
+        // stays erased while the closure's own constructions do. Programs with tuple type arguments keep what
+        // they always counted.
+        identityIgnored = isClosureClass(clazz) && !specializeTupleValueTypes;
+        boolean answer;
+        try {
+            answer = !clazz.getTypeVariables().isEmpty()
+                && !(clazz.attrTrace() instanceof ExprClosure closure && isInsideAnotherClosure(closure))
+                && classMembersNeedTypeArgument(clazz, Collections.newSetFromMap(new IdentityHashMap<>()),
+                    Collections.newSetFromMap(new IdentityHashMap<>()));
+        } finally {
+            identityIgnored = outer;
+        }
+        classNeedsIdentityAnswers.put(clazz, answer);
+        return answer;
+    }
+
+    /** Set while {@link #classNeedsIdentity} asks about a closure: instanceof identity does not count. */
+    private boolean identityIgnored;
+
+    private final Map<ImClass, Boolean> classNeedsIdentityAnswers = new IdentityHashMap<>();
+
+    /**
+     * Whether a method of the class or of one of its superclasses needs the type argument. The query shares its
+     * visited sets with the one which asked, so a class reached again while it is being explored adds nothing, and
+     * the answer is whether anything reachable needs the type argument.
+     */
+    private boolean classMembersNeedTypeArgument(ImClass clazz, Set<ImFunction> visitedFunctions,
+                                                 Set<ImMethod> visitedMethods) {
+        Deque<ImClass> remaining = new ArrayDeque<>();
+        Set<ImClass> visitedClasses = Collections.newSetFromMap(new IdentityHashMap<>());
+        remaining.add(clazz);
+        while (!remaining.isEmpty()) {
+            ImClass current = remaining.removeFirst();
+            if (!visitedClasses.add(current)) {
+                continue;
+            }
+            for (ImMethod method : current.getMethods()) {
+                if (method.getImplementation() != null
+                    && functionNeedsSpecialization(method.getImplementation(), visitedFunctions, visitedMethods)) {
+                    return true;
+                }
+            }
+            for (ImClassType superType : current.getSuperClasses()) {
+                remaining.add(superType.getClassDef());
+            }
+        }
+        return false;
+    }
+
+    /** Whether the class is a closure's. */
+    private static boolean isClosureClass(ImClass classDef) {
+        return classDef.attrTrace() instanceof ExprClosure;
     }
 
     /**
@@ -792,52 +913,9 @@ public class EliminateGenerics {
     }
 
     /**
-     * Whether anything the class does ends in a dispatch on a bound, including through the
-     * functions it calls. `classNeedsSpecialization` asks only whether a dispatch sits in the class
-     * itself, which is the wrong question here: a closure whose body is `() -> helper(x)` has no
-     * dispatch of its own, and the instantiation it needs is still only known at its construction.
-     * That question is kept as it is, because widening it would change what gets specialised on
-     * paths that have nothing to do with closures.
-     */
-    private boolean classReachesDispatch(ImClass classDef) {
-        boolean outer = identityIgnored;
-        // Only what a closure dispatches on or constructs by its type argument is a reason to specialise it on
-        // construction. An instanceof is not: specialising the closure leaves its captured receiver typed by the
-        // erased class (lua-closure-receiver), and its check stays erased anyway while the closure's own
-        // constructions do. Programs with tuple type arguments keep what they always counted.
-        identityIgnored = !specializeTupleValueTypes;
-        try {
-            return closureReachesDispatch(classDef);
-        } finally {
-            identityIgnored = outer;
-        }
-    }
-
-    /** Set while {@link #classReachesDispatch} asks: instanceof identity does not count. */
-    private boolean identityIgnored;
-
-    private boolean closureReachesDispatch(ImClass classDef) {
-        for (ImFunction f : classDef.getFunctions()) {
-            if (functionNeedsSpecialization(f, Collections.newSetFromMap(new IdentityHashMap<>()),
-                Collections.newSetFromMap(new IdentityHashMap<>()))) {
-                return true;
-            }
-        }
-        for (ImMethod m : classDef.getMethods()) {
-            if (m.getImplementation() != null
-                && functionNeedsSpecialization(m.getImplementation(),
-                    Collections.newSetFromMap(new IdentityHashMap<>()),
-                    Collections.newSetFromMap(new IdentityHashMap<>()))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * A field of a class specialised from a construction has to be reached on the copy. The write
-     * that captures a closure's environment is the case that needs it: it names the field of the
-     * generic class, which nothing allocates any more once the construction was redirected.
+     * A field of a closure's class specialised from a construction has to be reached on the copy. The write that
+     * captures a closure's environment is the case that needs it: it names the field of the generic class, which
+     * nothing allocates any more once the construction was redirected.
      */
     private void collectGenericNewUse(ImMemberAccess memberAccess) {
         ImVar field = memberAccess.getVar();
@@ -859,7 +937,7 @@ public class EliminateGenerics {
             return;
         }
         if (!shouldSpecializeTupleArguments(memberAccess.getTypeArguments())
-            && !isConstructionOnlyInstantiation(owningClass)) {
+            && !(isClosureClass(owningClass) && classNeedsIdentity(owningClass))) {
             return;
         }
         genericsUses.add(new GenericMemberAccess(memberAccess));
@@ -1117,8 +1195,13 @@ public class EliminateGenerics {
         if (node instanceof ImAlloc alloc) {
             // Constructing a class whose methods dispatch has to be specialised as well:
             // otherwise the constructor keeps a generic result type, and a method call on that
-            // result never becomes concrete enough to resolve.
-            return classNeedsSpecialization(alloc.getClazz().getClassDef());
+            // result never becomes concrete enough to resolve. Constructing an instantiation whose
+            // members need the type argument likewise: only a concrete construction can be
+            // allocated from the specialised class (allocatesFromSpecialisedClass).
+            ImClassType clazz = alloc.getClazz();
+            return classNeedsSpecialization(clazz.getClassDef())
+                || (typeArgumentsContainTypeVariable(clazz.getTypeArguments())
+                    && classMembersNeedTypeArgument(clazz.getClassDef(), visitedFunctions, visitedMethods));
         }
         if (node instanceof ImFunctionCall call) {
             // Empty arguments may be supplied implicitly by the enclosing generic receiver.
@@ -1324,6 +1407,16 @@ public class EliminateGenerics {
     private void assertNoReachableGenericNewMarkers() {
         prog.accept(new Element.DefaultVisitor() {
             @Override
+            public void visit(ImClass c) {
+                if (!c.getTypeVariables().isEmpty()) {
+                    // The erased original: its functions use the class's type variables, which only a
+                    // specialised copy makes concrete. Should one stay live, the backend reports it.
+                    return;
+                }
+                super.visit(c);
+            }
+
+            @Override
             public void visit(ImFunction function) {
                 if (!function.getTypeVariables().isEmpty()
                     || unspecializedGenericClassMethods.contains(function)) {
@@ -1393,6 +1486,16 @@ public class EliminateGenerics {
     private boolean needsGlobalSpecialization(ImFunction f) {
         Set<ImClass> o = functionToGenericGlobalOwners.get(f);
         return o != null && !o.isEmpty();
+    }
+
+    /** Whether a function of the class reads or writes a generic static, its own or one of a class it captured. */
+    private boolean classUsesGenericGlobals(ImClass clazz) {
+        for (ImFunction f : clazz.getFunctions()) {
+            if (needsGlobalSpecialization(f)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean classOwnsGenericGlobals(ImClass clazz) {
@@ -1661,9 +1764,25 @@ public class EliminateGenerics {
         access.getTypeArguments().addAll(0, typeArgs);
     }
 
-    private static ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
+    /**
+     * The instantiation of {@code owningClass} that a value of type {@code ct} is, or null when it is none.
+     * <p>
+     * On Lua a class specialised from {@code owningClass} is the instantiation it was made for: once a construction or
+     * a superclass edge names the specialised class, the values typed by it still reach the members of the generic
+     * class it was copied from, which stays in the program beside it. Jass replaces every use of the generic class.
+     */
+    private ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
         if (ct.getClassDef() == owningClass) {
             return ct;
+        }
+        ImTranslator.Specialisation specialisation = genericNewOnly ? translator.specialisationOf(ct.getClassDef()) : null;
+        if (specialisation != null && specialisation.original() == owningClass
+            && specialisation.typeArguments().size() == owningClass.getTypeVariables().size()) {
+            ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+            for (ImTypeArgument typeArgument : specialisation.typeArguments()) {
+                typeArguments.add(typeArgument.copy());
+            }
+            return JassIm.ImClassType(owningClass, typeArguments);
         }
         for (ImClassType sc : superTypes(ct)) {
             ImClassType r = adaptToSuperclass(sc, owningClass);
@@ -1767,6 +1886,7 @@ public class EliminateGenerics {
 
             // This global belongs to a relevant (new-generic or inheriting) class:
             globalToClass.put(global, owner);
+            translator.recordErasedGenericStatic(global, owner);
             WLogger.trace(() -> "Identified generic static-field global: " + global.getName()
                 + " of type " + global.getType()
                 + " belonging to class " + owner.getName());
@@ -1804,6 +1924,16 @@ public class EliminateGenerics {
     private void eliminateRemainingGenericNewCalls() {
         List<ImFunctionCall> calls = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImClass c) {
+                if (!c.getTypeVariables().isEmpty()) {
+                    // The erased original: its functions use the class's type variables, which only a
+                    // specialised copy makes concrete. Should one stay live, the backend reports it.
+                    return;
+                }
+                super.visit(c);
+            }
+
             @Override
             public void visit(ImFunction function) {
                 if (!function.getTypeVariables().isEmpty()
@@ -1903,19 +2033,23 @@ public class EliminateGenerics {
         boolean isGeneric = !f.getTypeVariables().isEmpty();
         boolean needsGlobals = needsGlobalSpecialization(f);
 
-        if (!isGeneric && !needsGlobals) {
+        if (!isGeneric) {
             // A function of a generic class declares no type variables of its own: it uses the
             // class's, which this target does not lift onto it. The call already says which
             // instantiation it is for, so match against the class's variables rather than treating
             // the function as nothing to specialise, strip the arguments and leave the dispatch
             // inside it with no concrete type. A constructor is the case that needs this - the call
             // running it is the only place its instantiation is stated, there being no receiver yet.
+            // That holds for one which writes a static too: its copy needs the class's variables
+            // replaced as well as the static, or a tuple value is stored as a T.
             ImClass owner = genericNewOnly ? classOwning(f) : null;
             if (owner != null && !owner.getTypeVariables().isEmpty()
                 && owner.getTypeVariables().size() == generics.getTypeArguments().size()) {
                 return specializeClassFunction(f, owner, f, generics);
             }
-            return f;
+            if (!needsGlobals) {
+                return f;
+            }
         }
         if (generics.containsTypeVariable()) {
             throw new CompileError(f, "Generics should not contain type variables");
@@ -2013,8 +2147,10 @@ public class EliminateGenerics {
             JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
         if (adapted == null) {
             ImClassType owner = capturedOwnerInstantiation(concreteOwner, concreteGenerics);
-            return owner == null ? null
-                : adaptGenericsToOwner(owner.getClassDef(), new GenericTypes(owner.getTypeArguments()), declaringOwner);
+            if (owner != null) {
+                return adaptGenericsToOwner(owner.getClassDef(), new GenericTypes(owner.getTypeArguments()), declaringOwner);
+            }
+            return capturedOwnerGenerics(concreteOwner, concreteGenerics, declaringOwner);
         }
         if (adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
             || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
@@ -2031,6 +2167,30 @@ public class EliminateGenerics {
             return null;
         }
         return (ImClassType) transformType(ownerType, innerGenerics.take(count), innerClass.getTypeVariables());
+    }
+
+    /**
+     * The instantiation of {@code declaringOwner} that an instantiation of a class which captured its type
+     * parameters stands for: a closure written in {@code G<T>} is {@code Closure<T_captured>}, and its body reads
+     * the statics of {@code G<T>}. The captured variables are matched to the owner's by the parameter each stands
+     * for ({@link ImTranslator#canonical}), never by name.
+     */
+    private @Nullable GenericTypes capturedOwnerGenerics(ImClass concreteOwner, GenericTypes concreteGenerics,
+                                                         ImClass declaringOwner) {
+        List<ImTypeVar> captured = concreteOwner.getTypeVariables();
+        if (captured.isEmpty() || concreteGenerics.getTypeArguments().size() < captured.size()) {
+            return null;
+        }
+        List<ImTypeArgument> ownerArguments = new ArrayList<>();
+        for (ImTypeVar ownerVariable : declaringOwner.getTypeVariables()) {
+            int index = indexOfTypeVar(captured, ownerVariable);
+            if (index < 0) {
+                return null;
+            }
+            ownerArguments.add(concreteGenerics.getTypeArguments().get(index).copy());
+        }
+        GenericTypes ownerGenerics = new GenericTypes(ownerArguments);
+        return ownerGenerics.containsTypeVariable() ? null : ownerGenerics;
     }
 
     /**
@@ -2127,13 +2287,21 @@ public class EliminateGenerics {
         newM.setSubMethods(new ArrayList<>());
         ImClassType newClassT = newM.getMethodClass();
         ImClass newMClass = newClassT.getClassDef();
-        for (ImMethod subMethod : oldSubMethods) {
+        // Read from a copy: specialising a submethod can specialise its class, which binds that class's methods
+        // to the roots of the originals (attachSpecializedClassMethods), this list among them.
+        for (ImMethod subMethod : new ArrayList<>(oldSubMethods)) {
             ImClassType subClassT = subMethod.getMethodClass();
             ImClass subClass = subClassT.getClassDef();
             if (isGenericType(subClassT)) {
                 if (genericNewOnly
                     && subClass.getTypeVariables().size() == generics.getTypeArguments().size()) {
                     ImMethod specializedSubMethod = specializeMethod(subMethod, generics);
+                    if (allocatesFromSpecialisedClass(subClass, generics)) {
+                        // The objects of this instantiation come from the specialised class, which
+                        // the specialised method already belongs to.
+                        newM.getSubMethods().add(specializedSubMethod);
+                        continue;
+                    }
                     // Lua keeps ordinary generic objects erased. Bind the concrete implementation
                     // to that erased class so interface dispatch on an existing object can reach it.
                     specializedSubMethod.getMethodClass().getClassDef().getMethods()
@@ -2436,23 +2604,22 @@ public class EliminateGenerics {
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         specializeSuperClasses(newC);
-        boolean observedIdentity = needsRuntimeTypeSpecialization(c, generics, new HashSet<>());
-        if (observedIdentity) {
+        // Asked once: the answer decides both where the objects come from and what is bound on the class.
+        boolean ownIdentity = genericNewOnly && allocatesFromSpecialisedClass(c, generics);
+        if (genericNewOnly && inheritsFromSpecialisedClass(c, generics)
+            || needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
             rewriteRuntimeTypeSuperEdges(c, generics, newC);
         }
 
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
-        if (genericNewOnly && (classOwnsGenericGlobals(c)
+        if (genericNewOnly && (classOwnsGenericGlobals(c) || classUsesGenericGlobals(c)
             || !translator.capturedOwnerTypeParameters(c).isEmpty()
             || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }
 
-        // An object allocated from a class with an identity of its own is still called through the
-        // virtual methods of its supertypes, so its methods are bound like those of a construction.
-        if (genericNewOnly && (isConstructionOnlyInstantiation(c) || observedIdentity
-            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
+        if (ownIdentity) {
             attachSpecializedClassMethods(c, newC, generics);
         }
 
@@ -2462,11 +2629,12 @@ public class EliminateGenerics {
     }
 
     /**
-     * Makes the methods of a class specialised from a construction reachable.
+     * Makes the methods of a class whose objects are allocated from it ({@link #allocatesFromSpecialisedClass})
+     * reachable.
      * <p>
      * A class specialised because a call named its instantiation is reached through that call.
-     * One specialised because it was constructed is not: the receiver is held as its interface, so
-     * dispatch goes through the root method, whose submethods still list only the generic original.
+     * One whose objects come from it is not, whenever the object is held as an interface or a base class: dispatch goes
+     * through the root method, whose submethods still list only the generic original.
      * Each copy is bound to the same roots, and the original's implementation is recorded as having
      * a specialisation so the dispatch left behind in it settles instead of reaching the backend.
      */

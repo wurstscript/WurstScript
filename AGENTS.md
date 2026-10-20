@@ -438,7 +438,8 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 
 * Field iteration expands after module expansion, when inherited and injected fields are concrete.
 * Jass may use normal generic elimination. Lua specialization remains targeted to paths that reach generic
-  construction; do not turn this into general Lua generic monomorphization.
+  construction and to instantiations whose members need their type argument
+  (`EliminateGenerics.allocatesFromSpecialisedClass`); do not turn this into general Lua generic monomorphization.
 * Lua reachability must traverse both `ImFunctionCall` and `ImMethodCall`, including dispatch submethods.
 * Targeted specialized methods needed by Lua dispatch must remain attached to the IM classes consumed by
   `LuaDispatchPreparation`. Concrete implementations for erased generic objects must bind the same root slot used
@@ -451,8 +452,10 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
   (`FieldIterationTests.genericConstructionOnFreshlyConstructedReceiver`).
 * Lua generic-construction dispatch through multi-parameter generic interfaces is outside the supported loader
   shape. The supported generic loader has a single construction type parameter.
-* Do not call `wurstNewInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
-  generic loader, then initialize any nested state explicitly after construction.
+* `wurstNewInstance<T>()` in the constructor of a generic class, in an `ondestroy`, or behind a `super` call is supported
+  on both backends: on Lua each reaches a copy specialised for its instantiation
+  (`FieldIterationTests.genericConstructionInAConstructorAnOndestroyAndBehindSuper`, and the `NEW_INSTANCE` cases of
+  `GenericSpecialisationMatrixTests`).
 * `wurstNewInstance<T>()` is a runtime Jass/Lua construction surface, not a supported use inside `compiletime(...)`
   evaluation: the interpreter happens to evaluate the marker (`EvaluateExpr.evaluateGenericNew`), but no test covers it.
   Do not rely on it or extend it.

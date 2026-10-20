@@ -305,6 +305,9 @@ public class ClosureTranslator {
                 ImTypeVar newTypevar = result.get(oldTypevar);
                 if (newTypevar == null) {
                     newTypevar = JassIm.ImTypeVar(oldTypevar.getName() + "_captured");
+                    // The same parameter as the one it captures: what the closure's body reads of the enclosing
+                    // class, such as a static, belongs to the instantiation the closure was made for.
+                    tr.recordSpecialisation(newTypevar, oldTypevar);
                     result.put(oldTypevar, newTypevar);
                     c.getTypeVariables().add(newTypevar);
                     thisType.getTypeArguments().add(

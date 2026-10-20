@@ -1,47 +1,12 @@
 # Cases of GenericSpecialisationMatrixTests (the pull-request tier) which fail on master, each with the
 # defect it shows. Jass passes every one of them. Each tag names its BACKLOG.md entry, which has a minimal
-# repro: lua-static-erased, lua-instanceof-erased, lua-bound-unresolved, lua-closure-receiver,
-# lua-new-instance-unresolved, lua-new-instance-erased, lua-field-split, lua-tuple-subclass,
-# lua-tuple-elimination-crash.
+# repro: lua-instanceof-erased.
 #
 # A listed case is skipped with its tag and its failure while it fails as listed: on Lua, with Jass passing,
 # with that defect and that symptom (after the bar: the wrong value the program reports, the compiler's message,
 # or only that Lua raised, whose messages differ between Lua versions; see GenericSpecialisationMatrixTests
 # .defectOf and .symptom). Any other failure fails the test. A listed case which passes is named in the summary: remove it with the fix. The run writes the list it would leave in
 # test-output/generic-matrix/knownFailures-after-this-run.txt.
-BOUND_CLOSURE_wBASE_rDIRECT_STRINGx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:85: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wBASE_rINTERFACE_INTx1 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:66: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_CLOSURE_wCLOSURE_rBASE_INTx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:63: Could not adapt receiver G_specialized_integer to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wCLOSURE_rDIRECT_INTx2 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:91: Could not adapt receiver G_specialized_integer to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wCLOSURE_rGENERIC_INTERFACE_STRINGx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:85: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wDESTROY_rGENERIC_INTERFACE_STRINGx1_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:85: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wDIRECT_rBASE_STRINGx2_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:88: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wDIRECT_rSUPER_INTx2 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:85: Could not adapt receiver G_specialized_integer to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wERASED_FUNCTION_rDESTROY_STRINGx2 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:85: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wERASED_FUNCTION_rDIRECT_STRINGx2 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:91: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wERASED_FUNCTION_rINTERFACE_INTx2 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:88: Could not adapt receiver G_specialized_integer to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wERASED_FUNCTION_rSUPER_INTx2_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:91: Could not adapt receiver G_specialized_integer to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wGENERIC_INTERFACE_rDIRECT_STRINGx1_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:79: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CLOSURE_wSUPER_rDESTROY_STRINGx2_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:85: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_bvN
-BOUND_CONSTRUCTOR_wDESTROY_rCLOSURE_CLASSx1 lua-field-split | testFail instantiation 1: expected 310 but got 300
-BOUND_INHERITED_wBASE_rCLOSURE_INTx2 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:87: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_INHERITED_wBASE_rDESTROY_STRINGx1 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:74: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_INHERITED_wBASE_rSUPER_INTx1 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:58: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_INHERITED_wCLOSURE_rINTERFACE_STRINGx2_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:89: Type class dispatch of kkey could not be resolved for the Lua target: the concrete type is not availa
-BOUND_INHERITED_wDESTROY_rDESTROY_STRINGx2_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:80: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_INHERITED_wGENERIC_INTERFACE_rINTERFACE_INTx1_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:63: Type class dispatch of kkey could not be resolved for the Lua target: the concrete type is not availa
-BOUND_INHERITED_wINTERFACE_rGENERIC_INTERFACE_INTx1 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:61: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_INHERITED_wINTERFACE_rSUPER_TUPLEx1_opt lua-tuple-subclass | Lua raised an error
-BOUND_METHOD_wBASE_rBASE_STRINGx2_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:83: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_METHOD_wDIRECT_rDESTROY_STRINGx2_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:98: Type class dispatch of kkey could not be resolved for the Lua target: the concrete type is not availa
-BOUND_METHOD_wINTERFACE_rCLOSURE_CLASSx1 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:70: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_METHOD_wSUPER_rINTERFACE_INTx2 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:85: Type class dispatch of kkey could not be resolved for the Lua target: the concrete type is not availa
-BOUND_MODULE_wDESTROY_rSUPER_CLASSx1 lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:61: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_MODULE_wINTERFACE_rDESTROY_STRINGx2_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:81: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_ONDESTROY_wGENERIC_INTERFACE_rBASE_STRINGx1_opt lua-field-split | Lua raised an error
-BOUND_ONDESTROY_wINTERFACE_rINTERFACE_INTx1_opt lua-bound-unresolved | Lua translation rejects it: Error in File Matrix.wurst:67: Type class dispatch of kmk could not be resolved for the Lua target: the concrete type is not availab
-BOUND_ONDESTROY_wSUPER_rBASE_CLASSx1 lua-field-split | Lua raised an error
-FIELD_CONSTRUCTOR_wINTERFACE_rSUPER_TUPLEx2 lua-field-split | Lua raised an error
 INSTANCEOF_CLOSURE_wBASE_rINTERFACE_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_CLOSURE_wCLOSURE_rCLOSURE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_CLOSURE_wDESTROY_rCLOSURE_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
@@ -51,112 +16,3 @@ INSTANCEOF_CLOSURE_wDIRECT_rERASED_FUNCTION_STRINGx2 lua-instanceof-erased | tes
 INSTANCEOF_CLOSURE_wDIRECT_rGENERIC_INTERFACE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_CLOSURE_wGENERIC_INTERFACE_rSUPER_STRINGx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_CLOSURE_wINTERFACE_rDESTROY_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wBASE_rBASE_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wBASE_rDIRECT_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wDIRECT_rINTERFACE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wINTERFACE_rDIRECT_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wINTERFACE_rERASED_FUNCTION_INTx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wCLOSURE_rBASE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wDESTROY_rBASE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wERASED_FUNCTION_rBASE_INTx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wGENERIC_INTERFACE_rDESTROY_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wINTERFACE_rBASE_INTx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wSUPER_rBASE_STRINGx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wSUPER_rDESTROY_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_METHOD_wBASE_rDESTROY_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_METHOD_wBASE_rERASED_FUNCTION_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_METHOD_wDESTROY_rDESTROY_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_METHOD_wSUPER_rCLOSURE_TUPLEx2_opt lua-tuple-subclass | Lua raised an error
-INSTANCEOF_METHOD_wSUPER_rINTERFACE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_MODULE_wCLOSURE_rINTERFACE_STRINGx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_MODULE_wDESTROY_rERASED_FUNCTION_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_MODULE_wERASED_FUNCTION_rINTERFACE_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wBASE_rSUPER_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wCLOSURE_rDESTROY_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wDESTROY_rGENERIC_INTERFACE_STRINGx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wDESTROY_rINTERFACE_STRINGx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wDESTROY_rSUPER_STRINGx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wINTERFACE_rINTERFACE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wINTERFACE_rSUPER_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-NEW_INSTANCE_CLOSURE_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<T_capturedN>()
-NEW_INSTANCE_CLOSURE_wBASE_rINTERFACE_CLASSx1_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_CLOSURE_wCLOSURE_rSUPER_CLASSx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:71: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN
-NEW_INSTANCE_CLOSURE_wDESTROY_rBASE_CLASSx2 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<T_capturedN>()
-NEW_INSTANCE_CLOSURE_wDESTROY_rGENERIC_INTERFACE_CLASSx2_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_CLOSURE_wDESTROY_rINTERFACE_CLASSx1_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_CLOSURE_wDIRECT_rBASE_CLASSx2 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:91: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN
-NEW_INSTANCE_CLOSURE_wDIRECT_rCLOSURE_CLASSx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:71: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN
-NEW_INSTANCE_CLOSURE_wDIRECT_rDESTROY_CLASSx1_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:71: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN
-NEW_INSTANCE_CLOSURE_wERASED_FUNCTION_rGENERIC_INTERFACE_CLASSx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:74: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN
-NEW_INSTANCE_CLOSURE_wINTERFACE_rDIRECT_CLASSx1_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_CLOSURE_wSUPER_rINTERFACE_CLASSx2_opt lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:91: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN
-NEW_INSTANCE_CONSTRUCTOR_wBASE_rERASED_FUNCTION_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:71: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wBASE_rSUPER_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:88: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wCLOSURE_rCLOSURE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:89: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wCLOSURE_rDESTROY_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:89: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wCLOSURE_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:92: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wDESTROY_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:85: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wERASED_FUNCTION_rBASE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:71: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wERASED_FUNCTION_rDESTROY_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:85: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wGENERIC_INTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:71: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rBASE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:91: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rDESTROY_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:88: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rINTERFACE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:88: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_INHERITED_wBASE_rCLOSURE_CLASSx2 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<TN>()
-NEW_INSTANCE_INHERITED_wDESTROY_rDIRECT_CLASSx2_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_INHERITED_wINTERFACE_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<TN>()
-NEW_INSTANCE_INHERITED_wSUPER_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:69: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_INHERITED_wSUPER_rSUPER_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:66: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_METHOD_wINTERFACE_rSUPER_CLASSx1 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<TN>()
-NEW_INSTANCE_METHOD_wSUPER_rERASED_FUNCTION_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:83: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_MODULE_wDESTROY_rCLOSURE_CLASSx2_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
-NEW_INSTANCE_MODULE_wDESTROY_rDESTROY_CLASSx2 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<TN>()
-NEW_INSTANCE_MODULE_wINTERFACE_rCLOSURE_CLASSx2 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<TN>()
-NEW_INSTANCE_MODULE_wSUPER_rCLOSURE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:67: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_MODULE_wSUPER_rDIRECT_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:80: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wBASE_rBASE_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wBASE_rDESTROY_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wBASE_rDIRECT_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wCLOSURE_rDIRECT_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:96: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDESTROY_rSUPER_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:75: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDIRECT_rDIRECT_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:92: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDIRECT_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:95: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDIRECT_rINTERFACE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rBASE_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:81: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rDESTROY_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:95: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rDIRECT_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:95: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rINTERFACE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:98: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wSUPER_rBASE_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-STATIC_CLOSURE_wCLOSURE_rDESTROY_TUPLEx2_opt lua-tuple-elimination-crash | Lua translation fails: java.lang.RuntimeException: //// Before ----------- run_G_TestN // After ------------------- run_G_TestN
-STATIC_CLOSURE_wDIRECT_rDESTROY_TUPLEx1_opt lua-static-erased | Lua raised an error
-STATIC_CLOSURE_wERASED_FUNCTION_rCLOSURE_CLASSx2 lua-static-erased | Lua raised an error
-STATIC_CLOSURE_wINTERFACE_rINTERFACE_TUPLEx1 lua-static-erased | Lua raised an error
-STATIC_CLOSURE_wSUPER_rCLOSURE_STRINGx2 lua-static-erased | testFail instantiation 1: expected 1010 but got 2000
-STATIC_CLOSURE_wSUPER_rDESTROY_INTx2_opt lua-static-erased | Lua raised an error
-STATIC_CONSTRUCTOR_wCLOSURE_rINTERFACE_CLASSx2_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_CONSTRUCTOR_wERASED_FUNCTION_rDESTROY_CLASSx2_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_CONSTRUCTOR_wSUPER_rGENERIC_INTERFACE_TUPLEx1 lua-tuple-subclass | Lua translation fails: java.util.ConcurrentModificationException
-STATIC_CONSTRUCTOR_wSUPER_rSUPER_TUPLEx1_opt lua-static-erased | Lua raised an error
-STATIC_INHERITED_wBASE_rSUPER_TUPLEx1_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_INHERITED_wDESTROY_rBASE_CLASSx2 lua-static-erased | Lua raised an error
-STATIC_INHERITED_wDESTROY_rSUPER_CLASSx1 lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_INHERITED_wDIRECT_rINTERFACE_CLASSx1_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_INHERITED_wERASED_FUNCTION_rSUPER_TUPLEx1_opt lua-tuple-subclass | Lua raised an error
-STATIC_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx2 lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_INHERITED_wSUPER_rBASE_TUPLEx1_opt lua-tuple-subclass | Lua raised an error
-STATIC_METHOD_wBASE_rCLOSURE_CLASSx2_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_METHOD_wBASE_rERASED_FUNCTION_CLASSx2_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_METHOD_wDESTROY_rINTERFACE_STRINGx2_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 2000
-STATIC_METHOD_wERASED_FUNCTION_rBASE_CLASSx1 lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_METHOD_wERASED_FUNCTION_rINTERFACE_CLASSx1_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_METHOD_wGENERIC_INTERFACE_rDESTROY_INTx2 lua-static-erased | Lua raised an error
-STATIC_MODULE_wINTERFACE_rDIRECT_STRINGx2_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_MODULE_wINTERFACE_rSUPER_TUPLEx1_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_MODULE_wSUPER_rERASED_FUNCTION_TUPLEx2_opt lua-tuple-subclass | Lua raised an error
-STATIC_ONDESTROY_wDESTROY_rERASED_FUNCTION_CLASSx1 lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_ONDESTROY_wINTERFACE_rCLOSURE_INTx1_opt lua-static-erased | testFail instantiation 1: expected 1010 but got 0
-STATIC_ONDESTROY_wSUPER_rINTERFACE_CLASSx1 lua-static-erased | testFail instantiation 1: expected 1010 but got 0
