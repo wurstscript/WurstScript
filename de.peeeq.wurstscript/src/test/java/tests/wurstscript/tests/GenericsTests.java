@@ -158,7 +158,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package test",
             "	native testSuccess()",
             "	class Cell<T>",
@@ -211,7 +211,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions3() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package test",
             "	native testSuccess()",
             "	public interface FoldClosure<T, Q>",
@@ -264,7 +264,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions5() { // #490
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package test",
             "native testSuccess()",
             "@extern native R2I(real r) returns int",
@@ -903,7 +903,7 @@ public class GenericsTests extends WurstScriptTest {
     @Test
     public void genericForIn() {
         test().executeProg(true)
-            .testLua(false) // uses illegal int to T cast
+            .testLua(true).luaOnly(false)
             .lines(
                 "package test",
                 "native testSuccess()",
@@ -930,7 +930,7 @@ public class GenericsTests extends WurstScriptTest {
     @Test
     public void genericForFrom() {
         test().executeProg(true)
-            .testLua(false) // uses illegal int to T cast
+            .testLua(true).luaOnly(false)
             .lines(
                 "package test",
                 "native testSuccess()",
@@ -1090,7 +1090,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void normalFoldlInfer() { // #657
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package test",
             "native testSuccess()",
             "@extern native I2S(int i) returns string",
