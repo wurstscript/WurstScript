@@ -6,6 +6,15 @@ Notes; finished-work narrative does not.
 
 ## Open
 
+- **Broaden modeled backend source generation and add shrinking.** The erased generic-store
+  dispatch regression passed interpreter-only tests; executing generated Lua exposed the split
+  backing stores. `GenericStoreGeneratedTests` now checks fixed seeds against a Java model through
+  Jass and Lua, varying generic owners, tuple storage, inheritance, dispatch, closures and destruction.
+  Extend generation to nested containers, old/new-generic boundaries and bounded dispatch. Run larger
+  seed campaigns separately from PR checks, preserve the failing seed/source/options, and minimize
+  failures into ordinary regressions. Add metamorphic checks that replace interface calls with
+  concrete calls while keeping observable behavior unchanged.
+
 - **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
   lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still
   embeds helper bindings and references as text (for example the object/string index helpers), so

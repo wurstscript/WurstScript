@@ -30,6 +30,18 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void erasedDispatchConcreteStoresAreDeterministic() throws IOException {
+        CU program = compilationUnit("Stores.wurst", GenericStoreGeneratedTests.program(7));
+        CU extra = compilationUnit("Extra.wurst", "package Extra", "native consume(int value)",
+            "init", "    consume(7)");
+        String name = "erasedDispatchStores";
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(program, extra);
+        String forward = compiledLua(name);
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(extra, program);
+        assertEquals(compiledLua(name), forward);
+    }
+
+    @Test
     public void compressedLuaDescriptorsAreIdenticalAcrossCompilations() throws IOException {
         String name = "compressedLuaDescriptors";
         File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");

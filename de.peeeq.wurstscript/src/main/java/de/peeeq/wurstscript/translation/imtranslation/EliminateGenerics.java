@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
@@ -41,6 +42,9 @@ public class EliminateGenerics {
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<ImFunction> scannedFixedStaticCallees =
         Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImMethod> scannedFixedStaticMethods =
+        Collections.newSetFromMap(new IdentityHashMap<>());
+    private @Nullable Set<ImMethod> dispatchReachableMethods;
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     /** The class each function was moved out of, for calls which name their target without a receiver. */
     private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
@@ -252,6 +256,8 @@ public class EliminateGenerics {
 
 
     private void collectGenericNewRoots() {
+        scannedFixedStaticMethods.clear();
+        dispatchReachableMethods = null;
         classByFunction = null;
         specializationRelevantNodes = new IdentityHashMap<>();
         methodAnswers = new IdentityHashMap<>();
@@ -765,16 +771,35 @@ public class EliminateGenerics {
         forgetAnswersIfCallChanged(call, dependedOnCaller);
         boolean needsSpecialization = methodNeedsSpecializationAnswer(method);
         if (!shouldSpecializeTupleArguments(call.getTypeArguments()) && !needsSpecialization) {
-            if (!call.getTypeArguments().isEmpty()
-                && !typeArgumentsContainTypeVariable(call.getTypeArguments())
-                && method.getImplementation() != null) {
-                recordFixedErasedStaticAllocations(method.getImplementation());
-            }
+            recordFixedErasedStaticAllocations(method);
             return;
         }
         if (!call.getTypeArguments().isEmpty()
             && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
             genericsUses.add(new GenericMethodCall(call));
+        }
+    }
+
+    /**
+     * Erased dispatch still reaches concrete operations inside every possible implementation.
+     * A nongeneric interface carries no class arguments, even when its implementation belongs to
+     * a generic class. Skipping that implementation can make one method write an erased static
+     * while another method on the same object reads its specialised counterpart.
+     */
+    private void recordFixedErasedStaticAllocations(ImMethod method) {
+        if (dispatchReachableMethods == null) {
+            dispatchReachableMethods = RemoveGarbage.reachableMethods(prog, translator);
+        }
+        Deque<ImMethod> remaining = new ArrayDeque<>();
+        remaining.add(method);
+        while (!remaining.isEmpty()) {
+            ImMethod current = remaining.removeFirst();
+            if (!scannedFixedStaticMethods.add(current)) continue;
+            if (!dispatchReachableMethods.contains(current)) continue;
+            if (current.getImplementation() != null) {
+                recordFixedErasedStaticAllocations(current.getImplementation());
+            }
+            remaining.addAll(current.getSubMethods());
         }
     }
 
