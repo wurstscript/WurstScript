@@ -7,8 +7,13 @@ against the real Blizzard.j implementations instead of minimal mocks.
   <https://github.com/wurstscript/jass-history> (`lua-dump/`).
 - `wc3shim.lua`: hand-written shim providing the natives those two files need
   at load time (TypeDefine, Convert* enum-handle factories, `__jarray`,
-  FourCC, player-layout constants, text output), and the natives the
-  standard library's package inits call (timers, forces).
+  FourCC, player-layout constants, text output), the natives the
+  standard library's package inits call (timers, forces), and common.j
+  natives that executing tests call (string, math and bit natives,
+  `GetHandleId`, player state, units, destructables), kept in step with the
+  interpreter's mocks. With the standard library the generated script
+  defines no fallback for a common.j native, so one missing here fails
+  with `attempt to call a nil value`.
 
 Load order in `WurstScriptTest.translateAndTestLua`:
 `wc3shim.lua` → `common.j.lua` → `blizzard.j.lua` → generated script → `main()`.
