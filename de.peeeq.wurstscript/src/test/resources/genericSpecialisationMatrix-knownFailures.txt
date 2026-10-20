@@ -4,8 +4,9 @@
 # lua-new-instance-unresolved, lua-new-instance-erased, lua-field-split, lua-tuple-subclass,
 # lua-tuple-elimination-crash.
 #
-# A listed case is skipped with its tag and its failure; a failure not listed fails the test. A listed case
-# which passes is named in the summary: remove it with the fix. The run writes the list it would leave in
+# A listed case is skipped with its tag and its failure while it fails as listed: on Lua, with Jass passing,
+# with a symptom of that defect (GenericSpecialisationMatrixTests.defectOf). Any other failure fails the
+# test. A listed case which passes is named in the summary: remove it with the fix. The run writes the list it would leave in
 # test-output/generic-matrix/knownFailures-after-this-run.txt.
 BOUND_CLOSURE_wBASE_rDIRECT_STRINGx1 lua-closure-receiver
 BOUND_CLOSURE_wBASE_rINTERFACE_INTx1 lua-bound-unresolved

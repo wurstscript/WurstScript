@@ -44,7 +44,8 @@ import static org.testng.AssertJUnit.fail;
  *
  * <p>A combination which is not a program is skipped with the reason ({@link #notAProgram}); one the compiler
  * rejects without such a rule fails. Cases known to fail are listed with their defect in
- * {@link #KNOWN_FAILURES}: they are skipped with their failure, and any other failure fails the test.
+ * {@link #KNOWN_FAILURES}: they are skipped while they fail on Lua with the listed defect ({@link #defectOf}),
+ * and any other failure, a Jass failure among them, fails the test. Each script is checked with luac first.
  *
  * <p>A pull request runs a covering subset (384 cases, about a minute): every pair of dimension values, and
  * every combination of dependency, writer and reader. {@code WURST_GENERIC_MATRIX=full} runs the whole product
@@ -923,13 +924,19 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
         if (known == null) {
             known = knownFailures();
         }
-        String defect = known.get(c.name());
+        String listed = known.get(c.name());
+        // A listed case is known only while it fails as listed: on Lua, with Jass passing, the same defect.
+        String defect = outcome.kind == Kind.FAIL && listed != null && listed.equals(defectOf(c, outcome.detail))
+            ? listed : null;
+        if (outcome.kind == Kind.FAIL && listed != null && defect == null) {
+            outcome = new Outcome(Kind.FAIL, "listed as " + listed + " but fails otherwise: " + outcome.detail);
+        }
         synchronized (failures) {
             switch (outcome.kind) {
                 case PASS -> {
                     passed++;
-                    if (defect != null) {
-                        nowPassing.add(c.name() + " " + defect);
+                    if (listed != null) {
+                        nowPassing.add(c.name() + " " + listed);
                     }
                 }
                 case SKIP -> skipReasons.merge(outcome.detail, 1, Integer::sum);
@@ -955,6 +962,50 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             default -> {
             }
         }
+    }
+
+    /**
+     * The defect of {@link #KNOWN_FAILURES} a failure shows, or null: what a listed case must still fail with.
+     * A failure of the Jass oracle is never a known defect.
+     */
+    static String defectOf(Combo c, String detail) {
+        if (!detail.startsWith("Lua ")) {
+            return null;
+        }
+        boolean tuple = c.inst == Inst.TUPLE;
+        if (detail.matches("(?s).*Type class dispatch of \\w+ could not be resolved for the Lua target.*")) {
+            return "lua-bound-unresolved";
+        }
+        if (detail.contains("Could not adapt receiver")) {
+            return "lua-closure-receiver";
+        }
+        if (detail.contains("wurstNewInstance requires its type argument to resolve to a concrete class")) {
+            return "lua-new-instance-unresolved";
+        }
+        if (detail.contains("dangling reference to removed function 'wurstNewMarker'")) {
+            return "lua-new-instance-erased";
+        }
+        if (tuple && (detail.contains("ConcurrentModificationException")
+            || detail.matches("(?s).*dangling reference to removed function '\\w+_r'.*")
+            || detail.matches("(?s).*attempt to index a nil value \\(global '\\w+_storage'\\).*"))) {
+            return "lua-tuple-subclass";
+        }
+        if (tuple && detail.contains("//// Before")) {
+            return "lua-tuple-elimination-crash";
+        }
+        if (!detail.startsWith("Lua failed: ")) {
+            return null;
+        }
+        // Failures at run time, by what the case depends on.
+        boolean helper = c.site == Site.CONSTRUCTOR || c.site == Site.ONDESTROY;
+        return switch (c.dep) {
+            case INSTANCEOF -> detail.contains("expected 3 but got 7") || detail.contains("expected 4 but got 7")
+                ? "lua-instanceof-erased" : helper ? "lua-field-split" : null;
+            case STATIC -> "lua-static-erased";
+            case NEW_INSTANCE -> "lua-new-instance-erased";
+            case BOUND, FIELD -> helper ? "lua-field-split" : null;
+            case FIXED_STATIC -> null;
+        };
     }
 
     @AfterClass
@@ -1110,16 +1161,23 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
 
     /** Why the Lua run did not succeed, or null. */
     private String runLua(String script, List<String> initFunctions) throws IOException, InterruptedException {
-        String luaExecutable;
-        try {
-            luaExecutable = getLuaExecutable();
-        } catch (IllegalStateException e) {
-            throw new SkipException("Skipped: the matrix runs the scripts in Lua: " + e.getMessage());
-        }
+        // As in every executing Lua test: a missing luac fails, a missing interpreter skips the run only.
+        String luacExecutable = getLuacExecutable();
         File file = File.createTempFile("matrix", ".lua");
         File output = File.createTempFile("matrix", ".txt");
         try {
             Files.writeString(file.toPath(), script, StandardCharsets.UTF_8);
+            try {
+                checkLuaSyntax(luacExecutable, file);
+            } catch (IOException e) {
+                return "is not valid Lua: " + e.getMessage();
+            }
+            String luaExecutable;
+            try {
+                luaExecutable = getLuaExecutable();
+            } catch (IllegalStateException e) {
+                throw new SkipException("Skipped the Lua run (luac checked the script): " + e.getMessage());
+            }
             StringBuilder chunk = new StringBuilder("dofile(os.getenv('WURST_MATRIX_SCRIPT'));");
             // The script reports a package whose init raised and goes on without it: see the raise itself.
             chunk.append("local inits = {");
