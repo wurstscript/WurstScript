@@ -1028,7 +1028,10 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
         // Failures at run time, by what the case depends on.
         boolean helper = c.site == Site.CONSTRUCTOR || c.site == Site.ONDESTROY;
         return switch (c.dep) {
+            // 7: an erased check accepts every Box. 3 but got 2: the check tells them apart, but held was
+            // allocated by erased code, as a Box of no instantiation.
             case INSTANCEOF -> detail.contains("expected 3 but got 7") || detail.contains("expected 4 but got 7")
+                || detail.contains("expected 3 but got 2")
                 ? "lua-instanceof-erased" : helper ? "lua-field-split" : null;
             case STATIC -> "lua-static-erased";
             case NEW_INSTANCE -> "lua-new-instance-erased";
