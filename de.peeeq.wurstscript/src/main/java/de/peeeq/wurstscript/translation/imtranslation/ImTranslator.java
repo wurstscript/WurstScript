@@ -1029,6 +1029,17 @@ public class ImTranslator implements SpecialisationLookup {
         return converter == null ? null : getFuncFor(converter);
     }
 
+    /**
+     * The common.j native {@code GetHandleId}, or null when the program has no such native. The Lua lowering of a
+     * handle key calls it. Nothing else need have called it, so it may never have been translated (it is then appended
+     * to the program's functions here, as {@link #enumConverter} does) or may have been shaken out of the program (its
+     * parent is then null, and the caller adds it).
+     */
+    public @Nullable ImFunction handleIdNative() {
+        ImFunction f = getNativeFunc("GetHandleId");
+        return f != null && f.isBj() && f.isNative() ? f : null;
+    }
+
     private ImFunction getNativeFunc(String funcName) {
         ImmutableCollection<FuncLink> wurstFunc = wurstProg.lookupFuncs(funcName);
         if (wurstFunc.isEmpty()) {

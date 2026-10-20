@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -79,10 +80,10 @@ public final class LuaNativeLowering {
      * <p>Separate from {@link #transform} so it can run <b>before</b> stack-trace injection. That
      * pass appends a parameter to every affected function, and on Lua every non-native function is
      * affected, so the exact signatures these operations are recognised by stop matching. Nothing
-     * reported that: the Jass bodies simply survived onto Lua, where {@code wurstKeyOf} is never
-     * lowered and answers with its placeholder, so every element shared one key and a set claimed
-     * to hold everything. Stack traces are on by default in a release build, so that was the
-     * common case rather than an exotic one.
+     * reported that: the Jass bodies simply survived onto Lua, where {@code wurstKeyOf} then
+     * answered with its placeholder, so every element shared one key and a set claimed to hold
+     * everything. Stack traces are on by default in a release build, so that was the common case
+     * rather than an exotic one. Runs before the tree shake, which drops the bodies it replaced.
      *
      * <p>Membership becomes a table keyed directly by the element. Done before optimization rather
      * than at emission because the inliner runs in between: a call inlined before an emission-time
@@ -206,6 +207,12 @@ public final class LuaNativeLowering {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 ImFunction f = call.getFunc();
+                // Here, before the call it is an argument of is visited: a replacement below is built
+                // from a copy of the arguments, which would leave a call lowered later unlowered.
+                if (JassKeyOfLowering.isCheckedKeyOf(f)) {
+                    lowerKeyOf(call, translator, specialNativeStubs, deferredAdditions);
+                    return;
+                }
                 if (isCompatGetHandleIdFunction(f)) {
                     if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
@@ -280,6 +287,80 @@ public final class LuaNativeLowering {
         // Add all generated functions after the traversal so their bodies are not visited
         // by the replacement visitor above.
         prog.getFunctions().addAll(deferredAdditions);
+    }
+
+    /**
+     * Lowers a direct call of {@code wurstKeyOf} to the key Jass computes for it.
+     *
+     * <p>Jass gives the intrinsic a body once generic elimination has made its parameter type
+     * concrete ({@link JassKeyOfLowering}). Lua keeps generics erased, so the intrinsic kept its
+     * placeholder body there and a direct call answered 0 for every element. The call is lowered
+     * where it is made instead, from the type it is made with, and costs nothing: an int and a
+     * class instance (an integer id on both targets) are their own key, and a handle's key is its
+     * id, so the call becomes the {@code GetHandleId} call Lua makes of a handle of its type. The
+     * keyed-table operations, whose Jass bodies key through the intrinsic, are replaced as a whole
+     * before the tree shake, which takes those bodies away.
+     *
+     * <p>A type with no stable integer key is rejected, as on Jass, and so is a call from generic
+     * code: Lua erases its element type, so there is nothing to choose the key by.
+     */
+    private static void lowerKeyOf(ImFunctionCall call, ImTranslator translator,
+                                   Map<String, ImFunction> specialNativeStubs, List<ImFunction> deferredAdditions) {
+        ImExpr value = call.getArguments().get(0);
+        ImType type = call.getTypeArguments().size() == 1
+            ? call.getTypeArguments().get(0).getType()
+            : value.attrTyp();
+        if (TypesHelper.isIntType(type) || type instanceof ImClassType) {
+            value.setParent(null);
+            call.replaceBy(value);
+            return;
+        }
+        if (type instanceof ImTypeVarRef || type instanceof ImAnyType) {
+            throw new CompileError(call.attrTrace().attrErrorPos(),
+                JassKeyOfLowering.KEY_OF + " needs a concrete element type on Lua, but this call is made with "
+                    + typeName(type) + ": generic code is erased on Lua, so no key can be chosen for it. Call "
+                    + JassKeyOfLowering.KEY_OF + " where the element type is known.");
+        }
+        if (!isHandleType(type) || isSimpleType(type, "code")) {
+            throw new CompileError(call.attrTrace().attrErrorPos(),
+                JassKeyOfLowering.KEY_OF + " cannot key " + typeName(type) + " on Lua: only int, class "
+                    + "instances and handles have a stable integer key.");
+        }
+        ImFunction getHandleId = translator.handleIdNative();
+        if (getHandleId == null) {
+            throw new CompileError(call.attrTrace().attrErrorPos(),
+                JassKeyOfLowering.KEY_OF + " keys a handle by its id, but the program declares no native GetHandleId.");
+        }
+        // The same choice as for a call of GetHandleId itself, so both give a handle the same id.
+        ImFunction target;
+        if (usesLuaObjectIdentityHandleId(value.attrTyp())) {
+            target = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
+                name -> createNativeStub(name, getHandleId));
+        } else {
+            target = getHandleId;
+        }
+        // A function nothing called before may have been shaken out of the program (a native which was never
+        // translated is added by the translator, behind the traversal's end).
+        if (target.getParent() == null && !deferredAdditions.contains(target)) {
+            deferredAdditions.add(target);
+        }
+        value.setParent(null);
+        call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), target, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(value), false, CallType.NORMAL));
+    }
+
+    private static boolean isSimpleType(ImType t, String name) {
+        return t instanceof ImSimpleType st && name.equals(st.getTypename());
+    }
+
+    private static String typeName(ImType t) {
+        if (t instanceof ImSimpleType st) {
+            return st.getTypename();
+        }
+        if (t instanceof ImTypeVarRef ref) {
+            return ref.getTypeVariable().getName();
+        }
+        return t.toString();
     }
 
     /**
