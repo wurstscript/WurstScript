@@ -1781,7 +1781,8 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void arrayListInClosure() {
-        test().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, STATIC_SPLIT_BY_CONSTANT_ARGUMENT_ON_LUA).lines(
+        test().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, STATIC_SPLIT_BY_CONSTANT_ARGUMENT_ON_LUA,
+            "uses the erased generic static ArrayList_nextFreeIndex, which has specialised copies").lines(
             "package Hello",
             "import NoWurst",
             "",

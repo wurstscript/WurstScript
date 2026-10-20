@@ -147,6 +147,8 @@ public class WurstScriptTest {
         private boolean imDump = false;
         private LuaExemption luaExemption;
         private String luaExemptionDetail;
+        private String luaExpectedFailure;
+        private boolean runLuaAsAllBackends = false;
 
         TestConfig(String name) {
             this.name = name;
@@ -410,7 +412,7 @@ public class WurstScriptTest {
                 runArgs = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
                 compiler.setRunArgs(runArgs);
                 translateAndTestLua(name, executeProg, gui, model, compiler);
-            } else if (executeProg && ALL_BACKENDS_ON) {
+            } else if (executeProg && (ALL_BACKENDS_ON || runLuaAsAllBackends)) {
                 runLuaForAllBackends(gui, model, compiler, runArgs);
             }
 
@@ -421,8 +423,8 @@ public class WurstScriptTest {
 
         /**
          * The Lua runs {@code -PallBackends} adds after the Jass runs of an executing test which does not run Lua
-         * itself. They must pass; for an exempt test one of them must fail, and with
-         * {@link LuaExemption#MISSING_TEST_NATIVE} that failure must name the native.
+         * itself. They must pass; for an exempt test one of them must fail with the failure its exemption expects
+         * and of the kind its reason produces ({@link LuaExemption#mismatch}).
          */
         private void runLuaForAllBackends(WurstGui gui, WurstModel model, WurstCompilerJassImpl compiler, RunArgs runArgs) {
             RunArgs plain = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
@@ -448,20 +450,28 @@ public class WurstScriptTest {
                     throw new AssertionError(env + ": the test holds on Jass and fails on Lua. Fix the Lua"
                         + " translation, or say why with luaExempt(LuaExemption...).", failure);
                 }
-                // Lua names the nil it called in quotes ("global 'R2S'"), as the generated fallbacks name theirs.
-                if (luaExemption == LuaExemption.MISSING_TEST_NATIVE && !mentions(failure, "'" + luaExemptionDetail + "'")) {
-                    throw new AssertionError(env + ": exempt because the Lua test runtime lacks "
-                        + luaExemptionDetail + ", but the Lua run failed without naming it.", failure);
+                String actual = failureText(failure);
+                String signature = luaExemption.signature(luaExpectedFailure);
+                String mismatch = !actual.contains(signature)
+                    ? "it does not contain \"" + signature + "\""
+                    : luaExemption.mismatch(failure, actual, luaExpectedFailure);
+                if (mismatch != null) {
+                    throw new AssertionError(env + ": " + exemptionText() + " expects its own failure on Lua, but "
+                        + mismatch + ". A new Lua failure is a defect: fix it, or change the exemption."
+                        + "\nexpected: " + signature + "\nactual: " + actual, failure);
                 }
                 System.out.println(env + ": failed as its exemption (" + luaExemption + ") says: " + failure);
                 return;
             }
             if (luaExemption != null) {
-                throw new AssertionError("-PallBackends: luaExempt(" + luaExemption
-                    + (luaExemptionDetail == null ? "" : ", \"" + luaExemptionDetail + "\"")
-                    + ") is stale, the test passes on Lua. Remove the exemption and run Lua with"
-                    + " testLua(true).luaOnly(false).");
+                throw new AssertionError("-PallBackends: " + exemptionText() + " is stale, the test passes on Lua."
+                    + " Remove the exemption and run Lua with testLua(true).luaOnly(false).");
             }
+        }
+
+        private String exemptionText() {
+            return "luaExempt(" + luaExemption + (luaExemptionDetail == null ? "" : ", \"" + luaExemptionDetail + "\"")
+                + ", \"" + luaExpectedFailure + "\")";
         }
 
         public void file(File file) throws IOException {
@@ -517,28 +527,45 @@ public class WurstScriptTest {
         }
 
         /**
-         * This executing test does not hold on Lua, for {@code reason}. It runs no Lua, except under
-         * {@code -PallBackends}, where its Lua run must fail, so a stale exemption fails the run.
+         * This executing test does not hold on Lua, for {@code reason}, and fails there with {@code expectedFailure}:
+         * text of the Lua failure specific to this test, such as its testFail message, or for
+         * {@link LuaExemption#MISSING_TEST_NATIVE} the native's name. It runs no Lua, except under
+         * {@code -PallBackends}, where its Lua run must fail with that failure and of its reason's kind: a run
+         * which passes, or fails otherwise, fails the test.
          */
-        public TestConfig luaExempt(LuaExemption reason) {
-            return luaExempt(reason, null);
+        public TestConfig luaExempt(LuaExemption reason, String expectedFailure) {
+            if (reason.needsBacklogItem()) {
+                throw new IllegalArgumentException(reason + " names its item of " + reason.record()
+                    + ": use luaExempt(reason, backlogTitle, expectedFailure)");
+            }
+            return exempt(reason, null, expectedFailure);
         }
 
         /**
-         * {@link #luaExempt(LuaExemption)} for a reason which takes a detail: the name of the missing native,
-         * or the title of the BACKLOG.md item, exactly as it is written there in bold.
+         * {@link #luaExempt(LuaExemption, String)} for {@link LuaExemption#KNOWN_LUA_DEFECT}, with the title of its
+         * BACKLOG.md item, exactly as it is written there in bold.
          */
-        public TestConfig luaExempt(LuaExemption reason, String detail) {
-            if (reason.needsDetail() != (detail != null)) {
-                throw new IllegalArgumentException(reason + (reason.needsDetail()
-                    ? " needs a detail: what it is about, as recorded in " + reason.record()
-                    : " takes no detail: its record is " + reason.record()));
+        public TestConfig luaExempt(LuaExemption reason, String backlogTitle, String expectedFailure) {
+            if (!reason.needsBacklogItem()) {
+                throw new IllegalArgumentException(reason + " names no backlog item: its record is " + reason.record());
             }
-            if (reason == LuaExemption.KNOWN_LUA_DEFECT) {
-                requireBacklogItem(detail);
+            requireBacklogItem(backlogTitle);
+            return exempt(reason, backlogTitle, expectedFailure);
+        }
+
+        private TestConfig exempt(LuaExemption reason, String backlogTitle, String expectedFailure) {
+            if (expectedFailure == null || expectedFailure.isBlank()) {
+                throw new IllegalArgumentException("luaExempt(" + reason + ") needs the Lua failure it expects");
             }
             this.luaExemption = reason;
-            this.luaExemptionDetail = detail;
+            this.luaExemptionDetail = backlogTitle;
+            this.luaExpectedFailure = expectedFailure;
+            return this;
+        }
+
+        /** Runs Lua as -PallBackends does, for the tests of the harness itself. */
+        TestConfig runLuaAsAllBackends() {
+            this.runLuaAsAllBackends = true;
             return this;
         }
 
@@ -627,14 +654,13 @@ public class WurstScriptTest {
         }
     }
 
-    /** Whether the message of {@code failure} or of one of its causes contains {@code text}. */
-    private static boolean mentions(Throwable failure, String text) {
+    /** The messages of {@code failure} and its causes, one per line. */
+    private static String failureText(Throwable failure) {
+        StringBuilder sb = new StringBuilder();
         for (Throwable t = failure; t != null; t = t.getCause() == t ? null : t.getCause()) {
-            if (t.getMessage() != null && t.getMessage().contains(text)) {
-                return true;
-            }
+            sb.append(t.getClass().getSimpleName()).append(": ").append(t.getMessage()).append('\n');
         }
-        return false;
+        return sb.toString();
     }
 
     /** The Lua written for {@code testName}, a test of this class compiled with {@code testLua(true)}. */

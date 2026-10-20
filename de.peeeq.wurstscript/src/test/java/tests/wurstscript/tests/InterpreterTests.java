@@ -626,7 +626,8 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void conversionNativesAsMeasured() {
-        test().withStdLib().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, LUA_HANDLE_IDS).lines(
+        test().withStdLib().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, LUA_HANDLE_IDS,
+            "GetHandleId of a unit gave false").lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
@@ -926,7 +927,7 @@ public class InterpreterTests extends WurstScriptTest {
      *  != and the orderings compare exactly. So a != b is not not (a == b) for reals. */
     @Test
     public void jassRealEqualityAllowsAThousandth() {
-        test().executeProg(true).luaExempt(LuaExemption.REAL_EQUALITY_TOLERANCE).lines(
+        test().executeProg(true).luaExempt(LuaExemption.REAL_EQUALITY_TOLERANCE, "within 0.001 is equal").lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
