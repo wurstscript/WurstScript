@@ -26,6 +26,10 @@ public class StmtTranslation {
                 emitLuaInitXpcall(call.getFunc(), res, tr);
                 return;
             }
+            if (call.getFunc() == tr.imTr.luaResumeObjectIdsFunc) {
+                translateResumeObjectIds(call, res, tr);
+                return;
+            }
             String keyedWrite = LuaKeyedMap.writeStubName(tr.imTr, call.getFunc());
             if (keyedWrite != null) {
                 translateKeyedMapWrite(call, keyedWrite, res, tr);
@@ -38,6 +42,16 @@ public class StmtTranslation {
         }
         LuaExpr expr = e.translateToLua(tr);
         res.add(expr);
+    }
+
+    /**
+     * {@code __wurst_resumeObjectIds(n)} as {@code __wurst_objectFreeCount = 0; __wurst_objectMax = n}: the next
+     * allocation of any class is n + 1, as the compile-time state needs to give each of its objects its id.
+     */
+    private static void translateResumeObjectIds(ImFunctionCall call, List<LuaStatement> res, LuaTranslator tr) {
+        res.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tr.objectFreeCount), LuaAst.LuaExprIntVal("0")));
+        res.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tr.objectMax),
+            call.getArguments().get(0).translateToLua(tr)));
     }
 
     /**
