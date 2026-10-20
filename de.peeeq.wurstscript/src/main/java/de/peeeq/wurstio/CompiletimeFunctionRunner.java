@@ -1,8 +1,7 @@
 package de.peeeq.wurstio;
 
+import java.util.concurrent.CancellationException;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
@@ -31,7 +30,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ClassManagementVars;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,13 +45,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private final ILInterpreter interpreter;
     private final WurstGui gui;
     private final FunctionFlagToRun functionFlag;
-    private final List<ImFunction> successTests = Lists.newArrayList();
     private final Map<ImFunction, Pair<de.peeeq.wurstscript.jassIm.Element, String>> failTests = Maps.newLinkedHashMap();
     private final ProgramStateIO globalState;
     private final ImTranslator translator;
     private boolean injectObjects;
     private final Deque<Runnable> delayedActions = new ArrayDeque<>();
-    private final Map<ClassManagementVars, List<CompiletimeObjectInit>> compiletimeObjects = new LinkedHashMap<>();
+    /**
+     * The objects to allocate in the compile-time state, by allocator: the {@link ClassManagementVars} of their
+     * inheritance group on Jass, and {@link #SHARED_LUA_ALLOCATOR} for all of them on Lua.
+     */
+    private final Map<Object, List<CompiletimeObjectInit>> compiletimeObjects = new LinkedHashMap<>();
+    private static final Object SHARED_LUA_ALLOCATOR = new Object();
     private final Map<String, Long> compiletimeFunctionNanos = new LinkedHashMap<>();
     private long compiletimeExprNanos = 0L;
 
@@ -94,6 +96,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         // The interpreter is handed a program; this hands over the one thing it cannot work out from
         // the program alone, which is what a specialised node was copied from.
         globalState.setSpecialisations(tr);
+        if (tr.isLuaTarget()) {
+            globalState.useOneObjectIdSpace();
+        }
         initializeBackendConstants();
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
@@ -146,6 +151,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             long tPartitioned = System.nanoTime();
             logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned);
 
+        } catch (CancellationException e) {
+            throw e;
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
             sendErrors(origin, e.getMessage(), e);
@@ -238,7 +245,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 CompileError.ErrorType.ERROR, ex));
 
         // stackframe messages ...
-        for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {
+        for (ILStackFrame sf : interpreter.getStackFrames().getStackFrames().reversed()) {
             gui.sendError(sf.makeCompileError());
         }
     }
@@ -277,8 +284,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         } else {
             ImFunction f = e.getRight();
             for (FunctionFlag flag : f.getFlags()) {
-                if (flag instanceof FunctionFlagCompiletime) {
-                    FunctionFlagCompiletime cflag = (FunctionFlagCompiletime) flag;
+                if (flag instanceof FunctionFlagCompiletime cflag) {
                     return cflag.getOrderIndex();
 
                 }
@@ -293,6 +299,40 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 toExecute.add(Either.forRight(f));
             }
         }
+    }
+
+    /**
+     * The functions a run with {@code flag} starts from or evaluates: the ones it executes, and the ones holding an
+     * expression it evaluates, which it does whether anything calls the function or not. A pass which removes the
+     * functions nothing reaches before the run takes these as roots, or the run misses code it would have executed.
+     */
+    public static Set<ImFunction> functionsOfTheRun(ImProg prog, FunctionFlagToRun flag) {
+        Set<ImFunction> result = new LinkedHashSet<>();
+        for (ImFunction f : prog.getFunctions()) {
+            if (flag.matches(f)) {
+                result.add(f);
+            }
+        }
+        // collectCompiletimeExpressions finds the expressions of the whole program, so this does too
+        ImFunction.DefaultVisitor holders = new ImFunction.DefaultVisitor() {
+            private ImFunction holder;
+
+            @Override
+            public void visit(ImFunction f) {
+                holder = f;
+                super.visit(f);
+            }
+
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+                super.visit(e);
+                result.add(holder);
+            }
+        };
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+            f.accept(holders);
+        }
+        return result;
     }
 
     private void collectCompiletimeExpressions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
@@ -324,14 +364,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     newExpr = ImHelper.nullExpr();
                 } else {
                     @Nullable ImType exprType = null;
-                    if(expr instanceof ImFunctionCall) {
-                        exprType = ((ImFunctionCall) expr).getFunc().getReturnType();
-                    } else if(expr instanceof ImVarAccess) {
-                        exprType = ((ImVarAccess)expr).getVar().getType();
-                    } else if(expr instanceof ImVarArrayAccess) {
-                        ImType type = ((ImVarArrayAccess)expr).getVar().getType();
-                        if(type instanceof ImArrayLikeType) {
-                            exprType = ((ImArrayLikeType) type).getEntryType();
+                    if(expr instanceof ImFunctionCall imFunctionCall) {
+                        exprType = imFunctionCall.getFunc().getReturnType();
+                    } else if(expr instanceof ImVarAccess imVarAccess) {
+                        exprType = imVarAccess.getVar().getType();
+                    } else if(expr instanceof ImVarArrayAccess imVarArrayAccess) {
+                        ImType type = imVarArrayAccess.getVar().getType();
+                        if(type instanceof ImArrayLikeType imArrayLikeType) {
+                            exprType = imArrayLikeType.getEntryType();
                         }
                     }
                     if(exprType != null && !TypesHelper.isIntType(exprType) && !TypesHelper.isRealType(exprType)) {
@@ -409,9 +449,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImExpr init;
 
             Object obj = a.getObj();
-            if (obj instanceof LinkedListMultimap) {
-                @SuppressWarnings("unchecked")
-                LinkedListMultimap<HashtableProvider.KeyPair, Object> map = (LinkedListMultimap<HashtableProvider.KeyPair, Object>) obj;
+            if (obj instanceof HashtableProvider.WurstHashtable map) {
                 ImType type = TypesHelper.imHashTable();
                 ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
                 imProg.getGlobals().add(res);
@@ -450,22 +488,34 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         return value.text();
     }
 
+    /**
+     * A real as a decimal literal both backends read: the shortest decimal which reads back as the
+     * same float, without the exponent Java prints from 10^7 on and below 10^-3, which Jass does not parse.
+     */
+    private static String realLiteral(Element trace, float value) {
+        if (!Float.isFinite(value)) {
+            throw new InterpreterException(trace, "The compile-time real " + value + " has no literal.");
+        }
+        String plain = new java.math.BigDecimal(Float.toString(value)).toPlainString();
+        return plain.contains(".") ? plain : plain + ".";
+    }
+
     private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
-        if (value instanceof ILconstBool) {
-            return JassIm.ImBoolVal(((ILconstBool) value).getVal());
-        } else if (value instanceof ILconstInt) {
-            return JassIm.ImIntVal(((ILconstInt) value).getVal());
-        } else if (value instanceof ILconstReal) {
-            return JassIm.ImRealVal("" + ((ILconstReal) value).getVal());
-        } else if (value instanceof ILconstString) {
-            return JassIm.ImStringVal(literalText((ILconstString) value, trace));
+        if (value instanceof ILconstBool iLconstBool) {
+            return JassIm.ImBoolVal(iLconstBool.getVal());
+        } else if (value instanceof ILconstInt iLconstInt) {
+            return JassIm.ImIntVal(iLconstInt.getVal());
+        } else if (value instanceof ILconstReal iLconstReal) {
+            return JassIm.ImRealVal(realLiteral(trace, iLconstReal.getVal()));
+        } else if (value instanceof ILconstString iLconstString) {
+            return JassIm.ImStringVal(literalText(iLconstString, trace));
         } else if (value instanceof ILconstNull) {
             return expectedType == null ? ImHelper.nullExpr() : JassIm.ImNull(expectedType.copy());
-        } else if (value instanceof ILconstTuple) {
+        } else if (value instanceof ILconstTuple iLconstTuple) {
             List<ImExpr> list = new ArrayList<>();
-            ImTupleType tupleType = expectedType instanceof ImTupleType ? (ImTupleType) expectedType : null;
+            ImTupleType tupleType = expectedType instanceof ImTupleType imTupleType ? imTupleType : null;
             int index = 0;
-            for (ILconst e : ((ILconstTuple) value).values()) {
+            for (ILconst e : iLconstTuple.values()) {
                 ImType elementType = tupleType != null && index < tupleType.getTypes().size()
                     ? tupleType.getTypes().get(index) : null;
                 ImExpr imExpr = constantToExpr(trace, e, elementType);
@@ -477,8 +527,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                         list
                     )
             );
-        } else if (value instanceof IlConstHandle) {
-            IlConstHandle h = (IlConstHandle) value;
+        } else if (value instanceof IlConstHandle h) {
             ImVar hVar = globalForHandle.getFor(h);
             return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
@@ -491,8 +540,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void registerCompiletimeObject(ILconstObject obj, ImVar targetVar) {
-        ClassManagementVars mVars = translator.getClassManagementVarsFor(obj.getType().getClassDef());
-        compiletimeObjects.computeIfAbsent(mVars, k -> new ArrayList<>())
+        Object allocator = translator.isLuaTarget()
+            ? SHARED_LUA_ALLOCATOR
+            : translator.getClassManagementVarsFor(obj.getType().getClassDef());
+        compiletimeObjects.computeIfAbsent(allocator, k -> new ArrayList<>())
             .add(new CompiletimeObjectInit(obj, targetVar));
     }
 
@@ -503,7 +554,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
         List<ImStmt> objectInits = new ArrayList<>();
 
-        for (Map.Entry<ClassManagementVars, List<CompiletimeObjectInit>> entry : compiletimeObjects.entrySet()) {
+        for (Map.Entry<Object, List<CompiletimeObjectInit>> entry : compiletimeObjects.entrySet()) {
             List<CompiletimeObjectInit> objs = entry.getValue();
             if (objs.isEmpty()) {
                 continue;
@@ -511,10 +562,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
             objs.sort(Comparator.comparingInt(o -> o.object.getObjectId()));
 
-            ClassManagementVars mVars = entry.getKey();
-            // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
-            objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
-                JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
+            // Lua has one allocator for every class; its intrinsic empties the free list along with each
+            // new maximum, so it is called before the first object even when that one needs no gap.
+            @Nullable ClassManagementVars mVars = entry.getKey() instanceof ClassManagementVars v ? v : null;
+            if (mVars != null) {
+                // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
+                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
+                    JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
+            }
 
             int currentMax = 0;
             int finalMax = globalState.getMaxAllocatedId(objs.get(0).object.getImClass());
@@ -522,10 +577,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             for (CompiletimeObjectInit init : objs) {
                 int desiredId = init.object.getObjectId();
                 int targetMax = desiredId - 1;
-                if (targetMax > currentMax) {
-                    objectInits.add(JassIm.ImSet(init.object.getTrace(),
-                        JassIm.ImVarAccess(mVars.maxIndex),
-                        JassIm.ImIntVal(targetMax)));
+                if (targetMax > currentMax || (mVars == null && init == objs.get(0))) {
+                    objectInits.add(setMaxObjectId(init.object.getTrace(), mVars, targetMax));
                     currentMax = targetMax;
                 }
 
@@ -537,12 +590,20 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
 
             if (finalMax > currentMax) {
-                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
-                    JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(finalMax)));
+                objectInits.add(setMaxObjectId(objs.get(0).object.getTrace(), mVars, finalMax));
             }
         }
 
         getCompiletimeStateInitFunction().getBody().addAll(0, objectInits);
+    }
+
+    /** The next allocation is maxId + 1: Jass sets the group's maxIndex, Lua resumes its one allocator. */
+    private ImStmt setMaxObjectId(Element trace, @Nullable ClassManagementVars mVars, int maxId) {
+        if (mVars != null) {
+            return JassIm.ImSet(trace, JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxId));
+        }
+        return JassIm.ImFunctionCall(trace, translator.luaResumeObjectIdsFunc(), JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(maxId)), false, CallType.NORMAL);
     }
 
     private static class CompiletimeObjectInit {
@@ -601,8 +662,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImFunctionCall call = JassIm.ImFunctionCall(trace, res, JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
             while (iterator.hasNext()) {
                 ImStmt stmt = iterator.next();
-                if (stmt instanceof ImFunctionCall) {
-                    ImFunctionCall fc = (ImFunctionCall) stmt;
+                if (stmt instanceof ImFunctionCall fc) {
                     if (fc.getFunc() == globalInitFunc) {
                         // call initCompiletimeState right after globalInitFunc
                         iterator.add(call);
@@ -705,7 +765,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (stateInit != null) {
                 for (int i = 0; i < mainBody.size(); i++) {
                     ImStmt stmt = mainBody.get(i);
-                    if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == stateInit) {
+                    if (stmt instanceof ImFunctionCall imFunctionCall && imFunctionCall.getFunc() == stateInit) {
                         mainBody.add(i + 1, newCompiletimeStateInitCall(mainReplay));
                         return;
                     }
@@ -713,7 +773,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
             for (int i = 0; i < mainBody.size(); i++) {
                 ImStmt stmt = mainBody.get(i);
-                if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == globalInitFunction) {
+                if (stmt instanceof ImFunctionCall imFunctionCall && imFunctionCall.getFunc() == globalInitFunction) {
                     mainBody.add(i + 1, newCompiletimeStateInitCall(mainReplay));
                     return;
                 }
@@ -904,9 +964,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
             List<Integer> nextIndexes = new ArrayList<>(indexes);
             nextIndexes.add(entry.getIntKey());
-            if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
+            if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType imArrayLikeType) {
                 emitCompiletimeArrayEntries(target, var, (ILconstArray) entry.getValue(), nextIndexes,
-                    ((ImArrayLikeType) entryType).getEntryType(), runtimeArrayWrites, modifiedIndexes,
+                    imArrayLikeType.getEntryType(), runtimeArrayWrites, modifiedIndexes,
                     unsupportedEntries);
             } else if (!modifiedIndexes.contains(nextIndexes)) {
                 continue;
@@ -972,7 +1032,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                         ImVarArrayAccess access = (ImVarArrayAccess) set.getLeft();
                         List<Integer> indexes = new ArrayList<>();
                         for (ImExpr index : access.getIndexes()) {
-                            indexes.add(index instanceof ImIntVal ? ((ImIntVal) index).getValI() : null);
+                            indexes.add(index instanceof ImIntVal imIntVal ? imIntVal.getValI() : null);
                         }
                         runtimeArrayWrites.add(new RuntimeArrayWrite(access.getVar(), indexes));
                     }
@@ -1008,8 +1068,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
         @Override
         public boolean equals(Object other) {
-            if (!(other instanceof RuntimeArrayWrite)) return false;
-            RuntimeArrayWrite that = (RuntimeArrayWrite) other;
+            if (!(other instanceof RuntimeArrayWrite that)) return false;
             return var == that.var && indexes.equals(that.indexes);
         }
 
@@ -1022,7 +1081,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private static RuntimeArrayWrite runtimeArrayWrite(ImVar var, List<ImExpr> indexes) {
         List<Integer> constantIndexes = new ArrayList<>();
         for (ImExpr index : indexes) {
-            constantIndexes.add(index instanceof ImIntVal ? ((ImIntVal) index).getValI() : null);
+            constantIndexes.add(index instanceof ImIntVal imIntVal ? imIntVal.getValI() : null);
         }
         return new RuntimeArrayWrite(var, constantIndexes);
     }
@@ -1032,63 +1091,77 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             || value instanceof ILconstString || value instanceof ILconstNull || value instanceof ILconstObject) {
             return true;
         }
-        if (value instanceof ILconstTuple) {
-            for (ILconst element : ((ILconstTuple) value).values()) {
+        if (value instanceof ILconstTuple iLconstTuple) {
+            for (ILconst element : iLconstTuple.values()) {
                 if (!isPersistableCompiletimeValue(element)) return false;
             }
             return true;
         }
-        if (value instanceof IlConstHandle) {
-            return ((IlConstHandle) value).getObj() instanceof LinkedListMultimap;
+        if (value instanceof IlConstHandle ilConstHandle) {
+            Object obj = ilConstHandle.getObj();
+            return obj instanceof HashtableProvider.WurstHashtable;
         }
         return false;
     }
+
+    private final Map<String, ImFunction> nativeCache = new HashMap<>();
 
     /**
      * Stores a hashtable value in a compiletime expression
      * by generating the respective native calls
      */
-    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, LinkedListMultimap<HashtableProvider.KeyPair, Object> map) {
+    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, HashtableProvider.WurstHashtable map) {
         WPos errorPos = trace.attrErrorPos();
         // we have to collect all values after all compiletime functions have run, so use delayedActions
         delayedActions.add(() -> {
-            for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
-                HashtableProvider.KeyPair key = entry.getKey();
-                Object v = entry.getValue();
-                if (v instanceof ILconstInt) {
-                    ILconstInt iv = (ILconstInt) v;
-                    ImFunction SaveInteger = findNative("SaveInteger", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
+            ImFunction saveInteger = null;
+            ImFunction saveReal = null;
+            ImFunction saveStr = null;
+            ImFunction saveBoolean = null;
+            List<HashtableProvider.WurstHashtable.Entry> entries = map.entries();
+            List<ImStmt> batch = new ArrayList<>(entries.size());
+            for (HashtableProvider.WurstHashtable.Entry entry : entries) {
+                int parentKey = entry.parentKey;
+                int childKey = entry.childKey;
+                Object v = entry.value;
+                if (v instanceof ILconstInt iv) {
+                    if (saveInteger == null) {
+                        saveInteger = findNative("SaveInteger", errorPos);
+                    }
+                    batch.add(JassIm.ImFunctionCall(trace, saveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstReal) {
-                    ILconstReal iv = (ILconstReal) v;
-                    ImFunction SaveReal = findNative("SaveReal", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                } else if (v instanceof ILconstReal iv) {
+                    if (saveReal == null) {
+                        saveReal = findNative("SaveReal", errorPos);
+                    }
+                    batch.add(JassIm.ImFunctionCall(trace, saveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
-                            JassIm.ImRealVal("" + iv.getVal())
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
+                            JassIm.ImRealVal(realLiteral(trace, iv.getVal()))
                     ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstString) {
-                    ILconstString iv = (ILconstString) v;
-                    ImFunction SaveStr = findNative("SaveStr", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                } else if (v instanceof ILconstString iv) {
+                    if (saveStr == null) {
+                        saveStr = findNative("SaveStr", errorPos);
+                    }
+                    batch.add(JassIm.ImFunctionCall(trace, saveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
                             JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImIntVal(parentKey),
+                            JassIm.ImIntVal(childKey),
                             JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstBool) {
-                    ILconstBool iv = (ILconstBool) v;
-                    ImFunction SaveBoolean = findNative("SaveBoolean", errorPos);
-                    addCompiletimeStateInit(JassIm.ImFunctionCall(trace, SaveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                } else if (v instanceof ILconstBool iv) {
+                    if (saveBoolean == null) {
+                        saveBoolean = findNative("SaveBoolean", errorPos);
+                    }
+                    batch.add(JassIm.ImFunctionCall(trace, saveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
                         JassIm.ImVarAccess(htVar),
-                        JassIm.ImIntVal(key.getParentkey()),
-                        JassIm.ImIntVal(key.getChildkey()),
+                        JassIm.ImIntVal(parentKey),
+                        JassIm.ImIntVal(childKey),
                         JassIm.ImBoolVal(iv.getVal())
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstNull) {
@@ -1096,6 +1169,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 } else {
                     throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
                 }
+            }
+            if (map.isDestroyed()) {
+                // FlushParentHashtable destroyed it at compile time, so it is destroyed when the map starts too
+                batch.add(JassIm.ImFunctionCall(trace, findNative("FlushParentHashtable", errorPos), JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(JassIm.ImVarAccess(htVar)), false, CallType.NORMAL));
+            }
+            if (!batch.isEmpty()) {
+                getCompiletimeStateInitFunction().getBody().addAll(batch);
             }
         });
 
@@ -1106,18 +1187,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     @NotNull
     private ImFunction findNative(String funcName, WPos trace) {
+        ImFunction cached = nativeCache.get(funcName);
+        if (cached != null) {
+            return cached;
+        }
         for (ImFunction func : imProg.getFunctions()) {
-            if (func.isNative()) {
-                if (func.getName().equals(funcName)) {
-                    return Optional.of(func)
-                        .orElseGet(() -> {
-                            throw new CompileError(trace, "Could not find native 'InitHashtable'");
-                        });
-                }
+            if (func.isNative() && func.getName().equals(funcName)) {
+                nativeCache.put(funcName, func);
+                return func;
             }
         }
-        return Optional.<ImFunction>empty()
-                .orElseThrow(() -> new CompileError(trace, "Could not find native 'InitHashtable'"));
+        throw new CompileError(trace, "Could not find native '" + funcName + "'");
     }
 
 
@@ -1130,11 +1210,12 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 }
                 WLogger.trace(() -> "running " + functionFlag + " function " + f.getName());
                 interpreter.runVoidFunc(f, null);
-                successTests.add(f);
             } catch (TestSuccessException e) {
-                successTests.add(f);
+                // testSuccess() ended the function early
             } catch (TestFailException e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+            } catch (CancellationException e) {
+                throw e;
             } catch (Throwable e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
                 throw e;
@@ -1142,10 +1223,6 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 compiletimeFunctionNanos.merge(f.getName(), System.nanoTime() - t0, Long::sum);
             }
         }
-    }
-
-    public List<ImFunction> getSuccessTests() {
-        return successTests;
     }
 
 

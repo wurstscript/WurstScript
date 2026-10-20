@@ -1,8 +1,6 @@
 buildscript {
     repositories { mavenCentral() }
     dependencies {
-        // used at configuration-time for version info
-        classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
         classpath "javax.inject:javax.inject:1"
     }
 }
@@ -16,30 +14,30 @@ plugins {
     id 'net.ltgt.errorprone' version '5.1.1'
     id 'maven-publish'
     id 'com.gradleup.shadow' version '9.2.2'
-    id 'de.undercouch.download' version '5.6.0'
 }
 
 
-import de.undercouch.gradle.tasks.download.Download
-
 import java.util.regex.Pattern
+import java.time.Duration
 
 ext.mainClassName = "de.peeeq.wurstio.Main"
 
-version = "1.9.0.0"
+version = providers.fileContents(layout.projectDirectory.file('version.txt')).asText.get().trim()
+if (!(version ==~ /(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)/)) {
+    throw new GradleException('version.txt must contain MAJOR.MINOR.PATCH')
+}
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(27)
     }
 }
 
 def toolchainSvc = extensions.getByType(JavaToolchainService)
-def j25Launcher = toolchainSvc.launcherFor(java.toolchain)
+def j27Launcher = toolchainSvc.launcherFor(java.toolchain)
 
 tasks.withType(JavaExec).configureEach {
-    javaLauncher.set(j25Launcher)
-    jvmArgs('-XX:+UnlockExperimentalVMOptions', '-XX:+UseCompactObjectHeaders')
+    javaLauncher.set(j27Launcher)
 }
 
 /** -------- Compilation and static analysis --------
@@ -51,7 +49,7 @@ tasks.withType(JavaExec).configureEach {
 def errorProneEnabled = !project.hasProperty('skipErrorProne')
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 25
+    options.release = 27
     // 'serial'/'this-escape' are noisy against this codebase's AST and visitor style.
     // 'auxiliaryclass' fires ~86 times purely on the multi-class-per-file layout - structural, not a defect.
     options.compilerArgs += ['-Xlint:all', '-Xlint:-serial', '-Xlint:-this-escape',
@@ -81,7 +79,7 @@ tasks.withType(JavaCompile).configureEach {
 tasks.named('compileTestJava') { options.errorprone.enabled = false }
 
 jacoco {
-    toolVersion = "0.8.13"
+    toolVersion = "0.8.15"
 }
 
 tasks.named("jacocoTestReport", JacocoReport) {
@@ -137,8 +135,8 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.1"
 
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:2b3d742e8a'
-    astgen 'com.github.peterzeller:abstractsyntaxgen:2b3d742e8a'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:693dca993e'
+    astgen 'com.github.peterzeller:abstractsyntaxgen:693dca993e'
 
 
     // Tests
@@ -149,13 +147,12 @@ dependencies {
     implementation 'com.google.guava:guava:32.1.3-jre'
     implementation 'io.vavr:vavr:0.10.7'
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.24.0'
-    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.2'
     implementation 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.0'
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'commons-lang:commons-lang:2.6'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
-    implementation 'com.github.inwc3:JMPQ3:v2.0.1'
+    implementation 'com.github.inwc3:JMPQ3:v2.0.2'
     implementation 'com.github.inwc3:wc3libs:0542c41400'
     implementation 'com.github.wurstscript:wurst-project-config:1897c53'
     implementation 'org.slf4j:slf4j-api:2.0.17'
@@ -200,6 +197,7 @@ parseqFiles.files.each { File f ->
     File targetDir = new File(genDirFile, pkg.replace('.', '/'))
 
     def t = tasks.register("genAst_${f.name.replaceAll(/[^A-Za-z0-9_]/, '_')}", JavaExec) {
+        timeout = Duration.ofMinutes(5)
         // incremental + cache correctness for the generator
         inputs.file(f)
         inputs.files(astgenCp).withPropertyName("astgenClasspath")
@@ -248,22 +246,21 @@ tasks.register('versionInfoFile') {
         workingDir(repoDir)
         commandLine('git', 'rev-parse', '--short=8', 'HEAD')
     }.standardOutput.asText.map { it.trim() }
-    def description = providers.exec {
+    def releaseTag = providers.exec {
         workingDir(repoDir)
-        commandLine('git', 'describe', '--tags', '--always')
+        commandLine('git', 'tag', '--points-at', 'HEAD', '--list', "v${versionString}")
     }.standardOutput.asText.map { it.trim() }
 
     inputs.property("projectVersion", versionString)
     inputs.property("gitRevision", revision)
     inputs.property("gitShortRevision", shortRevision)
-    inputs.property("gitDescription", description)
+    inputs.property("releaseTag", releaseTag)
 
     doLast {
         def rev8 = shortRevision.get()
         def revLong = revision.get()
-        def tag = description.get()
-
-        def wurstVersion = "${versionString}-${tag}"
+        def wurstVersion = releaseTag.get() == "v${versionString}"
+            ? versionString : "${versionString}-dev+${rev8}"
 
         dir.mkdirs()
         out.text = """
@@ -296,7 +293,7 @@ tasks.named('compileJava') { it.dependsOn('gen') }
  * Cores decide how much parallelism is useful; memory decides how much is survivable. Each worker
  * is a JVM with the heap set below, and the Gradle daemon holds its own on top, so a machine with
  * many cores and little memory has to be counted the other way. Measured on eight cores: serial
- * 13m11s, four forks 8m39s, eight forks 7m03s — more forks kept winning even though each test runs
+ * 13m11s, four forks 8m39s, eight forks 7m03s; more forks kept winning even though each test runs
  * slower under the contention, so this errs towards cores where memory allows.
  */
 int testForkCount() {
@@ -327,6 +324,7 @@ int testForkCount() {
  * The pinned repository and commit stay defined in that one place rather than being repeated here.
  */
 tasks.register('ensureStdLib', JavaExec) {
+    timeout = Duration.ofMinutes(5)
     description "Fetches the pinned standard library used by the tests"
     classpath = sourceSets.test.runtimeClasspath
     mainClass.set('tests.wurstscript.tests.StdLib')
@@ -342,9 +340,19 @@ tasks.register('ensureStdLib', JavaExec) {
     outputs.upToDateWhen { false }
 }
 
+sourceSets.test.java.srcDir('../test-support')
+
 test {
     dependsOn 'ensureStdLib'
-    useTestNG()
+    timeout = Duration.ofMinutes(20)
+    failFast = true
+    useTestNG {
+        listeners.add('org.wurstscript.testing.TestTimeoutWatchdog')
+    }
+    // Override only for deliberately longer local profiling/oracle runs or timeout repros.
+    systemProperty 'wurst.test.timeoutMillis', project.findProperty('testTimeoutMillis') ?: '180000'
+    // These deliberately hanging fixtures run only in subprocesses of the watchdog regression.
+    exclude '**/TimeoutWatchdogProbe*.class'
     // Keep CI output focused on failures; compiler/runtime tests intentionally exercise native
     // print paths and can otherwise flood the log with expected diagnostic output.
     testLogging {
@@ -365,12 +373,30 @@ test {
     // workers next to the daemon's own three and be killed for it. Override with -PtestForks=N.
     maxParallelForks = testForkCount()
 
+    // Gradle deals the test classes to the forks one after another, in the order it finds them, and a
+    // fork keeps what it was dealt. In alphabetical order one fork ended up with the long classes at the
+    // back while the others sat idle, so the heaviest classes come first. -PtestAlphabetical turns this off.
+    if (!project.hasProperty('testAlphabetical')) {
+        def weights = providers.fileContents(layout.projectDirectory.file('test-class-weights.txt')).asText.get()
+        def heaviestFirst = weights.readLines().findAll { it && !it.startsWith('#') }
+                .collect { it.split(/\s+/)[1].replace('.', '/') + '.class' }
+        def classesDir = sourceSets.test.output.classesDirs.singleFile
+        testClassesDirs = files(fileTree(classesDir) { exclude heaviestFirst },
+                heaviestFirst.collect { path -> fileTree(classesDir) { include path } })
+    }
+
+    // IM dumps (.jim) are written only for the tests which read one; -PimDumps writes them for all.
+    if (project.hasProperty('imDumps')) {
+        systemProperty 'wurst.test.imDumps', 'true'
+    }
+
+    // The collector for the test JVMs; -PtestGc='-XX:+UseG1GC' (or another flag) overrides it.
+    jvmArgs((project.findProperty('testGc') ?: '-XX:+UseParallelGC').toString().split(' '))
+
     jvmArgs(
             '-Xmx2g',                         // local: give it room to finish and dump
             '-XX:MaxMetaspaceSize=256m',
             '-XX:+HeapDumpOnOutOfMemoryError',
-            '-XX:+UnlockExperimentalVMOptions', // needed for UseCompactObjectHeaders until it graduates
-            '-XX:+UseCompactObjectHeaders',    // Java 24+: 8-byte headers (vs 16) — big win for AST-heavy workloads
             // Each fork otherwise sizes its garbage collector and compiler threads for the whole
             // machine, so running several at once oversubscribes it badly: eight forks made every
             // test about three times slower and gave back only a third of the parallelism.
@@ -378,22 +404,29 @@ test {
     )
 }
 
+tasks.register('updateTestClassWeights') {
+    description "Updates test-class-weights.txt with the classes of the last test run, and keeps the others"
+    def results = fileTree(layout.buildDirectory.dir('test-results/test')) { include 'TEST-*.xml' }
+    def target = layout.projectDirectory.file('test-class-weights.txt').asFile
+    doLast {
+        def lines = target.readLines()
+        def weights = [:]
+        lines.findAll { it && !it.startsWith('#') }.each { line ->
+            def parts = line.split(/\s+/)
+            weights[parts[1]] = parts[0].toLong()
+        }
+        results.files.each { f ->
+            def suite = new groovy.xml.XmlSlurper().parse(f)
+            weights[suite.@name.toString()] = Math.round(suite.@time.toDouble())
+        }
+        def rows = weights.sort { a, b -> b.value <=> a.value ?: a.key <=> b.key }.collect { name, seconds -> "$seconds $name" }
+        target.text = (lines.takeWhile { it.startsWith('#') } + rows).join('\n') + '\n'
+    }
+}
+
 /** -------- Clean generated sources -------- */
 tasks.named('clean') {
     doFirst { delete genDir }
-}
-
-/** -------- Download helpers -------- */
-
-tasks.register('downloadZipFile', Download) {
-    src 'https://github.com/wurstscript/wurstStdlib2/archive/master.zip'
-    dest new File(buildDir, 'stdlib2.zip')
-}
-
-tasks.register('downloadAndUnzipFile', Copy) {
-    dependsOn 'downloadZipFile'
-    from zipTree(tasks.named('downloadZipFile').get().dest)
-    into new File(buildDir, '/deps/')
 }
 
 /** -------- Shadow / packaging -------- */
@@ -419,7 +452,8 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/io/**'
 
     // Within the kept objects/ints packages the compiler only uses the open-hash map/set, linked-open variants,
-    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Boolean and Int2Object.
+    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Int, Reference2Boolean and
+    // Int2Object.
     // Drop the rest (~4.6 MB): sorted (tree) maps, custom-hash maps, and the cross-primitive value families whose
     // value-type packages are already excluded above. If you start using another fastutil collection, remove the
     // matching exclude here.
@@ -440,7 +474,6 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Short*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Byte*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Char*'
-    exclude 'it/unimi/dsi/fastutil/objects/Reference2Int*'
     exclude 'it/unimi/dsi/fastutil/objects/Reference2Reference*'
     exclude 'it/unimi/dsi/fastutil/ints/Int2Double*'
     exclude 'it/unimi/dsi/fastutil/ints/Int2Float*'

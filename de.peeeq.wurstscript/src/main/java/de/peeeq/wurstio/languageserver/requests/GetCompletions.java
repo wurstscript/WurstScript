@@ -266,8 +266,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private WurstType inferExpectedTypeFromContext(Expr expr) {
         Element parent = expr.getParent();
-        if (parent instanceof ExprBinary) {
-            ExprBinary b = (ExprBinary) parent;
+        if (parent instanceof ExprBinary b) {
             Expr other = b.getLeft() == expr ? b.getRight() : b.getLeft();
             WurstType inferred = inferFromBinaryComparison(b, other);
             if (!(inferred instanceof WurstTypeUnknown)) {
@@ -289,18 +288,17 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private WurstType inferExpectedTypeFromStatementContext(Element contextElem) {
-        if (contextElem instanceof StmtIf) {
-            return inferFromConditionalExpr(((StmtIf) contextElem).getCond());
+        if (contextElem instanceof StmtIf stmtIf) {
+            return inferFromConditionalExpr(stmtIf.getCond());
         }
-        if (contextElem instanceof StmtWhile) {
-            return inferFromConditionalExpr(((StmtWhile) contextElem).getCond());
+        if (contextElem instanceof StmtWhile stmtWhile) {
+            return inferFromConditionalExpr(stmtWhile.getCond());
         }
         return WurstTypeUnknown.instance();
     }
 
     private WurstType inferFromConditionalExpr(Expr cond) {
-        if (cond instanceof ExprBinary) {
-            ExprBinary b = (ExprBinary) cond;
+        if (cond instanceof ExprBinary b) {
             if (b.getRight() instanceof ExprEmpty) {
                 WurstType inferred = inferFromBinaryComparison(b, b.getLeft());
                 if (!(inferred instanceof WurstTypeUnknown)) {
@@ -351,8 +349,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             addArrayLengthCompletion(completions, e, leftType);
 
-            if (leftType instanceof WurstTypeNamedScope) {
-                WurstTypeNamedScope ct = (WurstTypeNamedScope) leftType;
+            if (leftType instanceof WurstTypeNamedScope ct) {
                 for (DefLink nameLink : ct.nameLinks().values()) {
                     if (isSuitableCompletion(nameLink.getName())
                             && (nameLink.getReceiverType() != null || nameLink instanceof TypeDefLink)
@@ -413,14 +410,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
             if (elem instanceof ExprEmpty) {
                 if (elem.getParent() instanceof Arguments) {
                     Element grandParent = getGrandParent();
-                    if (grandParent instanceof ExprFunctionCall) {
-                        ExprFunctionCall c = (ExprFunctionCall) grandParent;
+                    if (grandParent instanceof ExprFunctionCall c) {
                         getCompletionsForExistingCall(completions, c);
-                    } else if (grandParent instanceof ExprMemberMethod) {
-                        ExprMemberMethod c = (ExprMemberMethod) grandParent;
+                    } else if (grandParent instanceof ExprMemberMethod c) {
                         getCompletionsForExistingMemberCall(completions, c);
-                    } else if (grandParent instanceof ExprNewObject) {
-                        ExprNewObject c = (ExprNewObject) grandParent;
+                    } else if (grandParent instanceof ExprNewObject c) {
                         getCompletionsForExistingConstructorCall(completions, c);
                     }
                     // Also provide value suggestions for the current argument context.
@@ -443,8 +437,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         boolean hasConstArrayInitializer = false;
         if (member.getLeft() instanceof NameRef) {
             NameDef nameDef = ((NameRef) member.getLeft()).tryGetNameDef();
-            if (nameDef instanceof GlobalOrLocalVarDef) {
-                GlobalOrLocalVarDef varDef = (GlobalOrLocalVarDef) nameDef;
+            if (nameDef instanceof GlobalOrLocalVarDef varDef) {
                 hasConstArrayInitializer = varDef.getInitialExpr() instanceof ArrayInitializer;
             }
         }
@@ -664,10 +657,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
         while (scope != null) {
             Collection<DefLink> defs = scope.attrNameLinks().get(c.getFuncName());
             for (DefLink d : defs) {
-                if (!(d instanceof FuncLink)) {
+                if (!(d instanceof FuncLink f)) {
                     continue;
                 }
-                FuncLink f = (FuncLink) d;
                 FuncLink bound = f.adaptToReceiverType(leftType);
                 if (bound == null || argIndex >= bound.getParameterTypes().size()) {
                     continue;
@@ -722,17 +714,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completionTypes.remove(discarded);
         return true;
     }
-
-	/*
-    private ICompletionProposal[] toCompletionsArray(List<CompletionItem> completions) {
-		Collections.sort(completions);
-		ICompletionProposal[] result = new ICompletionProposal[completions.size()];
-		for (int i = 0; i < result.length; i++) {
-			result[i] = completions.get(i).getProposal();
-		}
-		return result;
-	}
-	*/
 
     /**
      * checks if we are currently entering a real number
@@ -840,8 +821,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 }
             }
 
-            if (defLink instanceof FuncLink) {
-                FuncLink funcLink = (FuncLink) defLink;
+            if (defLink instanceof FuncLink funcLink) {
                 CompletionItem completion = makeFunctionCompletion(funcLink);
                 if (!addCompletionCandidate(completions, completion)) {
                     return;
@@ -864,12 +844,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private CompletionItem makeNameDefCompletion(NameLink n) {
-        if (n instanceof FuncLink) {
-            return makeFunctionCompletion((FuncLink) n);
+        if (n instanceof FuncLink funcLink) {
+            return makeFunctionCompletion(funcLink);
         }
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(n.getTyp() + " [" + nearestScopeName(n.getDef()) + "]");
+        completion.setDetail(n.getTyp() + " [" + Utils.nearestScopeName(n.getDef()) + "]");
         docTargets.put(completion, n.getDef());
         double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
@@ -1047,25 +1027,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
         return isPotentialMatch(name);
     }
 
-    private static String nearestScopeName(NameDef n) {
-        if (n.attrNearestNamedScope() != null) {
-            return Utils.printElement(n.attrNearestNamedScope());
-        } else {
-            return "Global";
-        }
-    }
-
-    private static String nearestScopeName(Element e) {
-        if (e.attrNearestNamedScope() != null) {
-            return Utils.printElement(e.attrNearestNamedScope());
-        } else {
-            return "Global";
-        }
-    }
-
     private CompletionItem makeFunctionCompletion(FuncLink f) {
         String replacementString = f.getName();
-        List<WurstType> params = f.getParameterTypes();
 
 
         CompletionItem completion = new CompletionItem(f.getName());
@@ -1080,7 +1043,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
 		completion.setSortText(ratingToString(rating));
         completionTypes.put(completion, f.getReturnType());
         // TODO use call signature instead for generics
-//        completion.set
 
         if (!isBeforeParenthesis()) {
             addParamSnippet(replacementString, f, completion);
@@ -1096,8 +1058,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         List<WurstType> parameterTypes = f.getParameterTypes();
         if (isAtEndOfLine() && !parameterTypes.isEmpty()) {
             WurstType lastParamType = Utils.getLast(parameterTypes);
-            if (lastParamType instanceof WurstTypeClassOrInterface) {
-                WurstTypeClassOrInterface it = (WurstTypeClassOrInterface) lastParamType;
+            if (lastParamType instanceof WurstTypeClassOrInterface it) {
                 FuncLink singleAbstractMethod = it.findSingleAbstractMethod(elem);
                 if (singleAbstractMethod != null) {
                     paramNames = Utils.init(paramNames);
@@ -1152,15 +1113,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (!(returnType instanceof WurstTypeVoid)) {
             displayString += " returns " + returnType;
         }
-        displayString += " [" + nearestScopeName(f) + "]";
+        displayString += " [" + Utils.nearestScopeName(f) + "]";
         return displayString;
     }
 
     private CompletionItem makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
         String replacementString = c.getName();
-//		if (!isBeforeParenthesis()) {
-//			replacementString += "()";
-//		}
 
         CompletionItem completion = new CompletionItem(c.getName());
         completion.setKind(CompletionItemKind.Constructor);

@@ -11,8 +11,8 @@ public class AttrModuleDef {
     public static @Nullable ModuleDef calculate(ModuleUse moduleUse) {
         String moduleName = moduleUse.getModuleName();
         TypeDef def = moduleUse.lookupType(moduleName);
-        if (def instanceof ModuleDef) {
-            return (ModuleDef) def;
+        if (def instanceof ModuleDef moduleDef) {
+            return moduleDef;
         } else if (def != null) {
             moduleUse.addError("Found " + Utils.printElement(def) + " but wanted a module.");
         } else {

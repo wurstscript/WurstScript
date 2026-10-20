@@ -6,6 +6,7 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
@@ -316,12 +317,60 @@ public class CompiletimeNativesTest {
         natives.ObjectDefinition_setString(footman, ILconstString.fromText("utip"), ILconstString.fromText("Tooltip"));
     }
 
+    @Test
+    public void w3oExportIsOptInAndIncludesMapObjectsOnCacheHit() throws Exception {
+        assertFalse(new RunArgs().isExportW3o());
+        assertTrue(new RunArgs("-exportw3o").isExportW3o());
+        W3U editorObjects = new W3U();
+        editorObjects.addObj(ObjId.valueOf("h001"), ObjId.valueOf("hpea"))
+            .addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("Editor peasant")));
+        File map = newArchive(tempDir(), "map.w3x", writeObjMod(editorObjects));
+        File export = new File(map.getParentFile(), "objectEditingOutput/wurstCreatedObjects.w3o");
+        Consumer<CompiletimeNatives> generate = natives -> {
+            var unit = natives.createObjectDefinition(ILconstString.fromText("w3u"),
+                new ILconstInt(ObjectHelper.objectIdStringToInt("h002")),
+                new ILconstInt(ObjectHelper.objectIdStringToInt("hfoo")));
+            natives.ObjectDefinition_setString(unit, ILconstString.fromText("unam"), ILconstString.fromText("Generated footman"));
+        };
+        runCompiletime(map, null, generate);
+        assertFalse(export.exists(), "Ordinary builds must not export a w3o");
+
+        // The second run has identical object data: export must run even when MPQ writes are skipped.
+        runCompiletime(map, null, generate, true);
+        assertTrue(export.isFile(), "Explicit export must produce the combined w3o");
+        W3U exported;
+        try (Wc3BinInputStream in = new Wc3BinInputStream(export)) {
+            assertEquals(in.readInt32(), 1, "w3o version");
+            assertEquals(in.readInt32(), 1, "units present");
+            exported = new W3U();
+            exported.read(in, ObjMod.EncodingFormat.OBJ_0x2);
+            for (int type = 1; type < 7; type++) {
+                assertEquals(in.readInt32(), 0, "No other object types in this map");
+            }
+        }
+        assertEquals(exported.getCustomObjs().size(), 2);
+        assertEquals(((War3String) exported.getObjs().get(ObjId.valueOf("h001")).get(MetaFieldId.valueOf("unam"))).getVal(), "Editor peasant");
+        assertEquals(exported.getObjs().get(ObjId.valueOf("h002")).get(MetaFieldId.valueOf("wurs")).toString(), "42");
+
+        // Model importing the exported unit data into the new source map, then removing its generator.
+        File newBase = newArchive(tempDir(), "newBase.w3x", writeObjMod(exported));
+        runCompiletime(newBase, null, natives -> {});
+        W3U rebuilt = readW3U(readFromArchive(newBase, "war3map.w3u"));
+        assertTrue(rebuilt.getObjs().containsKey(ObjId.valueOf("h001")), "Editor objects survive");
+        assertFalse(rebuilt.getObjs().containsKey(ObjId.valueOf("h002")), "Tagged generated objects are removed before regeneration");
+    }
+
     /** One compiletime run against {@code map}, the way a map request runs it against the cached map. */
     private void runCompiletime(File map, File objectDataSource, Consumer<CompiletimeNatives> compiletime) throws Exception {
+        runCompiletime(map, objectDataSource, compiletime, false);
+    }
+
+    private void runCompiletime(File map, File objectDataSource, Consumer<CompiletimeNatives> compiletime, boolean exportW3o) throws Exception {
         WurstGuiLogger gui = new WurstGuiLogger();
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(map))) {
             ProgramStateIO state = new ProgramStateIO(Optional.of(map), mpq, gui, emptyProg(), true);
             state.setObjectDataSource(objectDataSource);
+            state.setExportW3o(exportW3o);
             compiletime.accept(new CompiletimeNatives(state, null, false));
             state.writeBack(true);
         }
@@ -720,6 +769,6 @@ public class CompiletimeNativesTest {
 
     private ImProg emptyProg() {
         Element trace = Ast.NoExpr();
-        return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>());
+        return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>(), java.util.Set.of());
     }
 }

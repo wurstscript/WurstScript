@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
@@ -9,13 +8,11 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.math.BigDecimal;
-import java.util.Iterator;
 import java.util.List;
 
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
-    private final boolean showRewrites = false;
     /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}); Lua
      *  compares exactly. Neither target's reals match a folder's arithmetic, so both fold a real
      *  operation only where it is exact ({@link #foldRealExactly}). */
@@ -68,17 +65,15 @@ public class SimpleRewrites implements OptimizerPass {
                 // Check various ways code becomes unreachable
                 if (s instanceof ImReturn) {
                     reachable = false;
-                } else if (s instanceof ImExitwhen) {
-                    ImExitwhen exitwhen = (ImExitwhen) s;
+                } else if (s instanceof ImExitwhen exitwhen) {
                     if (exitwhen.getCondition() instanceof ImBoolVal) {
                         boolean exits = ((ImBoolVal) exitwhen.getCondition()).getValB();
                         if (exits) {
                             reachable = false;
                         }
                     }
-                } else if (s instanceof ImIf) {
+                } else if (s instanceof ImIf ifStmt) {
                     // Check for "if true then return" patterns
-                    ImIf ifStmt = (ImIf) s;
                     if (ifStmt.getCondition() instanceof ImBoolVal) {
                         boolean condition = ((ImBoolVal) ifStmt.getCondition()).getValB();
                         if (condition && endsWithReturn(ifStmt.getThenBlock())) {
@@ -108,23 +103,20 @@ public class SimpleRewrites implements OptimizerPass {
             optimizeElement(elem.get(i));
             if (i > 0) {
                 Element lookback = elem.get(i - 1);
-                if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen) {
-                    optimizeConsecutiveExitWhen((ImExitwhen) lookback, (ImExitwhen) elem.get(i));
+                if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen imExitwhen) {
+                    optimizeConsecutiveExitWhen(imExitwhen, (ImExitwhen) elem.get(i));
                 }
 
-                if (elem.get(i) instanceof ImSet && lookback instanceof ImSet) {
-                    optimizeConsecutiveSet((ImSet) lookback, (ImSet) elem.get(i));
+                if (elem.get(i) instanceof ImSet && lookback instanceof ImSet imSet) {
+                    optimizeConsecutiveSet(imSet, (ImSet) elem.get(i));
                 }
             }
         }
-        if (elem instanceof ImOperatorCall) {
-            ImOperatorCall opc = (ImOperatorCall) elem;
+        if (elem instanceof ImOperatorCall opc) {
             optimizeOpCall(opc);
-        } else if (elem instanceof ImIf) {
-            ImIf imIf = (ImIf) elem;
+        } else if (elem instanceof ImIf imIf) {
             optimizeIf(imIf);
-        } else if (elem instanceof ImExitwhen) {
-            ImExitwhen imExitwhen = (ImExitwhen) elem;
+        } else if (elem instanceof ImExitwhen imExitwhen) {
             optimizeExitwhen(imExitwhen);
         }
 
@@ -139,8 +131,8 @@ public class SimpleRewrites implements OptimizerPass {
 
     private void optimizeExitwhen(ImExitwhen imExitwhen) {
         ImExpr expr = imExitwhen.getCondition();
-        if (expr instanceof ImBoolVal) {
-            boolean b = ((ImBoolVal) expr).getValB();
+        if (expr instanceof ImBoolVal imBoolVal) {
+            boolean b = imBoolVal.getValB();
             if (!b) {
                 imExitwhen.replaceBy(ImHelper.nullExpr());
                 totalRewrites++;
@@ -177,9 +169,9 @@ public class SimpleRewrites implements OptimizerPass {
         if (opc.getArguments().size() > 1) {
             ImExpr left = opc.getArguments().get(0);
             ImExpr right = opc.getArguments().get(1);
-            if (left instanceof ImBoolVal && right instanceof ImBoolVal) {
-                boolean b1 = ((ImBoolVal) left).getValB();
-                boolean b2 = ((ImBoolVal) right).getValB();
+            if (left instanceof ImBoolVal leftBool && right instanceof ImBoolVal rightBool) {
+                boolean b1 = leftBool.getValB();
+                boolean b2 = rightBool.getValB();
                 boolean result;
                 switch (opc.getOp()) {
                     case OR:
@@ -199,11 +191,11 @@ public class SimpleRewrites implements OptimizerPass {
                         break;
                 }
                 opc.replaceBy(JassIm.ImBoolVal(result));
-            } else if (left instanceof ImBoolVal) {
-                boolean b1 = ((ImBoolVal) left).getValB();
+            } else if (left instanceof ImBoolVal imBoolVal) {
+                boolean b1 = imBoolVal.getValB();
                 wasViable = replaceBoolTerm(opc, right, b1, true);
-            } else if (right instanceof ImBoolVal) {
-                boolean b2 = ((ImBoolVal) right).getValB();
+            } else if (right instanceof ImBoolVal imBoolVal) {
+                boolean b2 = imBoolVal.getValB();
                 wasViable = replaceBoolTerm(opc, left, b2, false);
             } else if (isNumberLiteral(left) && isNumberLiteral(right)) {
                 // If any side is real (or the op is a real op), fold as real; otherwise fold as int.
@@ -215,25 +207,25 @@ public class SimpleRewrites implements OptimizerPass {
 
                 if (foldAsReal) {
                     wasViable = optimizeRealRealMixed(opc, wasViable, left, right);
-                } else if (left instanceof ImIntVal && right instanceof ImIntVal) {
-                    wasViable = optimizeIntInt(opc, wasViable, (ImIntVal) left, (ImIntVal) right);
+                } else if (left instanceof ImIntVal leftInt && right instanceof ImIntVal rightInt) {
+                    wasViable = optimizeIntInt(opc, wasViable, leftInt, rightInt);
                 } else {
                     wasViable = false; // unknown numeric combo
                 }
-            } else if (left instanceof ImStringVal) {
+            } else if (left instanceof ImStringVal imStringVal) {
                 // Fold "" + expr  =>  expr
                 if (opc.getOp() == WurstOperator.PLUS
-                    && ((ImStringVal) left).getValS().isEmpty()) {
+                    && imStringVal.getValS().isEmpty()) {
                     right.setParent(null);
                     opc.replaceBy(right);
                     wasViable = true;
                 } else {
                     wasViable = false;
                 }
-            } else if (right instanceof ImStringVal) {
-                if (left instanceof ImStringVal) {
-                    wasViable = optimizeStringString(opc, (ImStringVal) left, (ImStringVal) right);
-                } else if (((ImStringVal) right).getValS().equalsIgnoreCase("") && opc.getOp() == WurstOperator.PLUS) {
+            } else if (right instanceof ImStringVal rightString) {
+                if (left instanceof ImStringVal leftString) {
+                    wasViable = optimizeStringString(opc, leftString, rightString);
+                } else if (rightString.getValS().equalsIgnoreCase("") && opc.getOp() == WurstOperator.PLUS) {
                     left.setParent(null);
                     opc.replaceBy(left);
                     wasViable = true;
@@ -248,15 +240,15 @@ public class SimpleRewrites implements OptimizerPass {
         // Unary
         else {
             ImExpr expr = opc.getArguments().get(0);
-            if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal) {
-                int v = ((ImIntVal) expr).getValI();
+            if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal imIntVal) {
+                int v = imIntVal.getValI();
                 if (v != Integer.MIN_VALUE && v <= 0) {
                     opc.replaceBy(JassIm.ImIntVal(-v));
                 } else {
                     wasViable = false;
                 }
-            } else if (expr instanceof ImBoolVal) {
-                boolean b1 = ((ImBoolVal) expr).getValB();
+            } else if (expr instanceof ImBoolVal imBoolVal) {
+                boolean b1 = imBoolVal.getValB();
                 boolean result;
                 switch (opc.getOp()) {
                     case NOT:
@@ -267,9 +259,8 @@ public class SimpleRewrites implements OptimizerPass {
                         break;
                 }
                 opc.replaceBy(JassIm.ImBoolVal(result));
-            } else if (opc.getOp() == WurstOperator.NOT && expr instanceof ImOperatorCall) {
+            } else if (opc.getOp() == WurstOperator.NOT && expr instanceof ImOperatorCall inner) {
                 // optimize negation of some operators
-                ImOperatorCall inner = (ImOperatorCall) expr;
                 switch (inner.getOp()) {
                     case NOT:
                         opc.replaceBy(inner.getArguments().remove(0));
@@ -308,9 +299,6 @@ public class SimpleRewrites implements OptimizerPass {
         }
         if (wasViable) {
             totalRewrites++;
-            if (showRewrites) {
-                WLogger.info("opcall rewrite: " + opc);
-            }
         }
 
     }
@@ -621,6 +609,16 @@ public class SimpleRewrites implements OptimizerPass {
     }
 
     /**
+     * The most operators {@link #optimizeConsecutiveSet} nests in the left operand of one assignment. Each merge
+     * makes the expression one level deeper, and one walk merges a whole run of statements, so a generated run of
+     * {@code sum += gN} became one expression as deep as the run is long. The recursive walkers after it overflowed
+     * the Java stack from about a thousand statements, the flatten first; and where the operators alternate, each
+     * level is a parenthesis in the Lua output, and luac rejects more than 200 levels. A merge saves one assignment,
+     * so a long run still loses all but one assignment in this many.
+     */
+    public static final int MAX_MERGED_OPERATORS = 64;
+
+    /**
      * Optimizes
      * <p>
      * set x = expr1
@@ -630,7 +628,8 @@ public class SimpleRewrites implements OptimizerPass {
      * <p>
      * set x  = expr1 ⊕ expr2
      * <p>
-     * like code that is created by the branch merger
+     * like code that is created by the branch merger, while expr1 is nested fewer than {@link #MAX_MERGED_OPERATORS}
+     * levels deep.
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
         ImVar leftVar1;
@@ -650,13 +649,15 @@ public class SimpleRewrites implements OptimizerPass {
         ImExpr rightExpr2 = imSet2.getRight();
 
         if (leftVar1 == leftVar2) {
-            if (rightExpr2 instanceof ImOperatorCall) {
-                ImOperatorCall rightOpCall2 = (ImOperatorCall) rightExpr2;
+            if (rightExpr2 instanceof ImOperatorCall rightOpCall2) {
                 if (rightOpCall2.getArguments().size() == 2) {
                     if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
-                        if (imVarAccess2.getVar() == leftVar2) {
-                            if (sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
+                        if (imVarAccess2.getVar() == leftVar2 && !hasMergeLimitOfOperators(rightExpr1)) {
+                            // Jass converts an integer stored into a real: the integer in place of the
+                            // variable would make `r / m` an integer division.
+                            if (!(TypesHelper.isRealType(leftVar1.getType()) && TypesHelper.isIntType(rightExpr1.attrTyp()))
+                                && sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
                                 rightExpr1.setParent(null);
                                 imVarAccess2.replaceBy(rightExpr1);
                                 imSet1.replaceBy(ImHelper.nullExpr());
@@ -667,6 +668,30 @@ public class SimpleRewrites implements OptimizerPass {
                 }
             }
         }
+    }
+
+    /**
+     * Whether {@code e} is nested {@link #MAX_MERGED_OPERATORS} levels deep or more, on any of its operands: each merge
+     * puts it one level deeper. The walk stops at the limit, so it costs at most the part of {@code e} above it.
+     */
+    private static boolean hasMergeLimitOfOperators(ImExpr e) {
+        return reachesDepth(e, MAX_MERGED_OPERATORS);
+    }
+
+    /** Whether {@code e} holds expressions nested {@code levels} deep; a list of arguments is no level of its own. */
+    private static boolean reachesDepth(Element e, int levels) {
+        if (e instanceof ImExpr) {
+            if (levels <= 1) {
+                return true;
+            }
+            levels--;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (reachesDepth(e.get(i), levels)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

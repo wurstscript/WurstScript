@@ -23,8 +23,8 @@ public class TypeLink extends NameLink {
 
     public static TypeLink create(TypeDef def, WScope definedIn) {
         List<TypeParamDef> typeParams = Collections.emptyList();
-        if (def instanceof AstElementWithTypeParameters) {
-            typeParams = ImmutableList.copyOf(((AstElementWithTypeParameters) def).getTypeParameters());
+        if (def instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            typeParams = ImmutableList.copyOf(astElementWithTypeParameters.getTypeParameters());
         }
         // create deferred type to avoid cyclic dependencies
         Deferred<WurstType> type = new Deferred<>(def::attrTyp);

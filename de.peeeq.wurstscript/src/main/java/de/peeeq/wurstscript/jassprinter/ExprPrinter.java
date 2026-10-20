@@ -21,9 +21,6 @@ public class ExprPrinter {
         String val = String.valueOf(e.getValI());
 
         // Disabled due digitbug
-//		if(!withSpace) {
-//			val = intShort(val);
-//		}
 
         sb.append(val);
     }
@@ -72,13 +69,11 @@ public class ExprPrinter {
                 // if the precedence level on the right is smaller we have to use parentheses
                 useParanthesesRight = true;
             } else if (precedence(right.getOp()) == precedence(e.getOp())) {
-                // if the precedence level is equal we have to parentheses as operators are
-                // left associative but for commutative operators (+, *, and, or) we do not
-                // need parentheses
+                // if the precedence level is equal we have to use parentheses as operators are
+                // left associative. Only and and or are associative: + and * are not on reals,
+                // which are 32 bit floats, so a + (b + c) is not a + b + c
 
-                if (!((right.getOp() instanceof JassOpPlus && e.getOp() instanceof JassOpPlus)
-                        || (right.getOp() instanceof JassOpMult && e.getOp() instanceof JassOpMult)
-                        || (right.getOp() instanceof JassOpOr && e.getOp() instanceof JassOpOr)
+                if (!((right.getOp() instanceof JassOpOr && e.getOp() instanceof JassOpOr)
                         || (right.getOp() instanceof JassOpAnd && e.getOp() instanceof JassOpAnd))) {
                     // in other cases use parentheses
                     // for example
@@ -122,14 +117,6 @@ public class ExprPrinter {
     }
 
 
-//	private static String intShort(String val){
-//		int d = Integer.valueOf(val);
-//		if ( d > 792646 && containsOnlyNumbers(val) ) {
-//			String s = Integer.toHexString(d).toUpperCase();
-//			return "$" + s;
-//		}
-//		return String.valueOf(d);
-//	}
 
 
 }

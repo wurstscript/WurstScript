@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
@@ -73,8 +74,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (obj instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope other = (WurstTypeNamedScope) obj;
+        if (obj instanceof WurstTypeNamedScope other) {
             if (other.getDef() == this.getDef()) {
                 return matchTypeParams(getTypeParameters(), other.getTypeParameters(), location, mapping, variablePosition);
             }
@@ -167,9 +167,6 @@ public abstract class WurstTypeNamedScope extends WurstType {
             typeParams.add(new WurstTypeBoundTypeParam(tpDef, baseType, typeArg));
         }
 
-//		List<WurstType> newTypes = node.getTypeArgs().stream()
-//				.map((TypeExpr te) -> te.attrTyp().dynamic())
-//				.collect(Collectors.toList());
 
         return replaceTypeVars(typeParams);
     }
@@ -215,16 +212,28 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return res;
     }
 
+    /**
+     * The links of one name, what {@code nameLinks().get(name)} holds: only they are bound to the type arguments,
+     * not every name of the class, which a member lookup on a generic type did for each lookup.
+     */
     public ImmutableCollection<DefLink> nameLinks(String name) {
-        return nameLinks().get(name);
+        ImmutableCollection<DefLink> links = getDef().attrNameLinks().get(name);
+        VariableBinding binding = getTypeArgBinding();
+        if (binding.isEmpty() || links.isEmpty()) {
+            return links;
+        }
+        ImmutableList.Builder<DefLink> bound = ImmutableList.builderWithExpectedSize(links.size());
+        for (DefLink link : links) {
+            bound.add(link.withTypeArgBinding(getDef(), binding));
+        }
+        return bound.build();
     }
 
     @Override
     public void addMemberMethods(Element node, String name,
                                  List<FuncLink> result) {
         for (DefLink defLink : nameLinks(name)) {
-            if (defLink instanceof FuncLink) {
-                FuncLink f = (FuncLink) defLink;
+            if (defLink instanceof FuncLink f) {
                 if (f.getVisibility().isPublic()) {
                     result.add(f);
                 } else if (f.getVisibility().isInherited()) {
@@ -257,8 +266,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     public boolean isNestedInside(WurstType other) {
-        if (other instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;
+        if (other instanceof WurstTypeNamedScope wtns) {
             NamedScope scope = wtns.getDef();
             Element node = this.getDef();
             while (node != null) {

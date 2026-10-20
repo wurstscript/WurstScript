@@ -7,6 +7,9 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclarations.intrinsicName;
+import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclarations.packageOf;
+
 /**
  * Gives {@code wurstKeyOf} a body on Jass, so a keyed set works on both backends.
  *
@@ -22,12 +25,13 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * emitted by the normal path - so this pass only has to pick one.
  *
  * <p>On Lua this never runs: {@link LuaKeyedTable} replaces the keyed-table operations wholesale
- * before the inliner, and the element is its own key there, so no projection exists to make.
+ * before the inliner, and the element is its own key there, so no projection exists to make. A
+ * direct call is lowered at its call site there instead ({@link LuaNativeLowering}).
  */
 public final class JassKeyOfLowering {
 
     /** The intrinsic being given a body. */
-    private static final String KEY_OF = "wurstKeyOf";
+    static final String KEY_OF = "wurstKeyOf";
 
     /** Projections it can be rewritten to, each an ordinary function in the same package. */
     private static final String KEY_OF_INT = "keyOfInt";
@@ -38,14 +42,8 @@ public final class JassKeyOfLowering {
 
     public static void transform(ImProg prog) {
         for (ImFunction f : prog.getFunctions()) {
-            if (!isNamedKeyOf(f)) {
+            if (!isCheckedKeyOf(f)) {
                 continue;
-            }
-            if (!isKeyOf(f)) {
-                // The rewrite below returns an integer projection, so a declaration of another
-                // shape would leave the return type disagreeing with the body it now has.
-                throw new CompileError(f.attrTrace().attrErrorPos(),
-                    KEY_OF + " must take exactly one parameter and return int.");
             }
             ImVar value = f.getParameters().get(0);
             ImFunction projection =
@@ -76,6 +74,22 @@ public final class JassKeyOfLowering {
         return !f.getTypeVariables().isEmpty() && isKeyOf(f);
     }
 
+    /**
+     * Whether {@code f} is the key projection intrinsic, which both backends rewrite to an integer
+     * projection. A declaration of that name with another shape is rejected: the rewrite would
+     * leave its return type disagreeing with the projection it now answers.
+     */
+    static boolean isCheckedKeyOf(ImFunction f) {
+        if (!isNamedKeyOf(f)) {
+            return false;
+        }
+        if (!isKeyOf(f)) {
+            throw new CompileError(f.attrTrace().attrErrorPos(),
+                KEY_OF + " must take exactly one parameter and return int.");
+        }
+        return true;
+    }
+
     private static boolean isKeyOf(ImFunction f) {
         return isNamedKeyOf(f)
             && f.getParameters().size() == 1
@@ -101,7 +115,7 @@ public final class JassKeyOfLowering {
     private static ImFunction findProjection(ImProg prog, WPackage owner, String name, ImFunction f) {
         if (owner != null) {
             for (ImFunction candidate : prog.getFunctions()) {
-                if (!name.equals(annotatedName(candidate)) || packageOf(candidate) != owner) {
+                if (!name.equals(intrinsicName(candidate)) || packageOf(candidate) != owner) {
                     continue;
                 }
                 if (candidate.getParameters().size() != 1
@@ -118,13 +132,6 @@ public final class JassKeyOfLowering {
             "The package declaring " + KEY_OF + " must also declare " + name + ".");
     }
 
-    /** The package a compiler-intrinsic declaration belongs to, or null if it has no trace. */
-    private static WPackage packageOf(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p
-            ? p
-            : null;
-    }
-
     /** Which projection a concrete element type needs. */
     private static String projectionFor(ImType t, ImFunction f) {
         if (TypesHelper.isRealType(t) || TypesHelper.isBoolType(t)) {
@@ -139,7 +146,7 @@ public final class JassKeyOfLowering {
                     + "stable identity to key on.");
         }
         if (TypesHelper.isStringType(t)) {
-            // StringHash is not identity. This repository's own MultibyteDiagnostics records that
+            // StringHash is not identity. The standard library's MultibyteDiagnostics records that
             // it collapses whole classes of strings to one marker hash and that its behaviour has
             // changed between game versions - so membership would be wrong for ordinary inputs,
             // and wrong differently per patch, while Lua keyed on the string itself would be
@@ -178,13 +185,5 @@ public final class JassKeyOfLowering {
 
     private static String typeNameOf(ImType t) {
         return t instanceof ImSimpleType st ? st.getTypename() : t.toString();
-    }
-
-    /** The source name of {@code f} if it is a compiler intrinsic declaration, else null. */
-    private static String annotatedName(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd
-            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
-            ? fd.getName()
-            : null;
     }
 }

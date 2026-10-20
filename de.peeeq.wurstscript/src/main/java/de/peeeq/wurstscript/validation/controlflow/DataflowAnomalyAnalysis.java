@@ -1,72 +1,193 @@
 package de.peeeq.wurstscript.validation.controlflow;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Sets;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.utils.Utils;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
-import java.util.Map.Entry;
 
-//w(11)->{r(17), r(19)} & w(19)->{r(17), r(19)} & w(22)
+/**
+ * Numbers the locals, and the statements and expressions, which the states of one analysed body mention, in the
+ * order in which the analysis meets them, so that a state can keep them in arrays.
+ */
+final class DataflowIds {
+    private final Reference2IntOpenHashMap<LocalVarDef> varIds = new Reference2IntOpenHashMap<>();
+    private final List<LocalVarDef> vars = new ArrayList<>();
+    private final Reference2IntOpenHashMap<Element> elementIds = new Reference2IntOpenHashMap<>();
+    private final List<Element> elements = new ArrayList<>();
+
+    DataflowIds() {
+        varIds.defaultReturnValue(-1);
+        elementIds.defaultReturnValue(-1);
+    }
+
+    int varId(LocalVarDef v) {
+        int id = varIds.getInt(v);
+        if (id < 0) {
+            id = vars.size();
+            varIds.put(v, id);
+            vars.add(v);
+        }
+        return id;
+    }
+
+    /** The id of {@code v}, or -1 when no state mentions it. */
+    int existingVarId(NameDef v) {
+        return varIds.getInt(v);
+    }
+
+    LocalVarDef var(int id) {
+        return vars.get(id);
+    }
+
+    int elementId(Element e) {
+        int id = elementIds.getInt(e);
+        if (id < 0) {
+            id = elements.size();
+            elementIds.put(e, id);
+            elements.add(e);
+        }
+        return id;
+    }
+
+    Element element(int id) {
+        return elements.get(id);
+    }
+}
+
+/**
+ * The facts about the locals at one point of a body. A state is never changed: an operation returns a new state, or
+ * this one when it changes nothing. Each local has the index of its {@link DataflowIds} id; a local with a null entry,
+ * or past the end of the array, has no state.
+ */
 class VarStates {
-    final ImmutableMap<LocalVarDef, VState> states;
+    private final DataflowIds ids;
+    private final @Nullable VState[] states;
     final ImmutableSet<NameDef> destroyedParameters;
     final boolean thisDestroyed;
 
-    public VarStates(ImmutableMap<LocalVarDef, VState> states, boolean thisDestroyed) {
-        this(states, ImmutableSet.of(), thisDestroyed);
-    }
-
-    public VarStates(ImmutableMap<LocalVarDef, VState> states, ImmutableSet<NameDef> destroyedParameters, boolean thisDestroyed) {
+    private VarStates(DataflowIds ids, @Nullable VState[] states, ImmutableSet<NameDef> destroyedParameters, boolean thisDestroyed) {
+        this.ids = ids;
         this.states = states;
         this.destroyedParameters = destroyedParameters;
         this.thisDestroyed = thisDestroyed;
     }
 
+    static VarStates empty(DataflowIds ids) {
+        return new VarStates(ids, new VState[0], ImmutableSet.of(), false);
+    }
+
+    static VarStates initial(DataflowIds ids, List<LocalVarDef> vars) {
+        int[] varIds = new int[vars.size()];
+        int length = 0;
+        for (int i = 0; i < varIds.length; i++) {
+            varIds[i] = ids.varId(vars.get(i));
+            length = Math.max(length, varIds[i] + 1);
+        }
+        @Nullable VState[] states = new VState[length];
+        for (int id : varIds) {
+            states[id] = VState.initial;
+        }
+        return new VarStates(ids, states, ImmutableSet.of(), false);
+    }
+
+    private @Nullable VState get(int id) {
+        return id < states.length ? states[id] : null;
+    }
+
+    private @Nullable VState stateOf(NameDef v) {
+        int id = ids.existingVarId(v);
+        return id < 0 ? null : get(id);
+    }
+
+    private VarStates with(int id, VState s) {
+        if (get(id) == s) {
+            return this;
+        }
+        @Nullable VState[] changed = Arrays.copyOf(states, Math.max(states.length, id + 1));
+        changed[id] = s;
+        return new VarStates(ids, changed, destroyedParameters, thisDestroyed);
+    }
+
     VarStates merge(VarStates other) {
-        ImmutableMap<LocalVarDef, VState> merged = Utils.mergeMaps(states, other.states, VState::merge);
-        return new VarStates(merged, ImmutableSet.<NameDef>builder().addAll(destroyedParameters).addAll(other.destroyedParameters).build(), thisDestroyed || other.thisDestroyed);
+        if (this == other) {
+            return this;
+        }
+        int n = Math.max(states.length, other.states.length);
+        @Nullable VState[] merged = new VState[n];
+        boolean sameAsThis = true;
+        boolean sameAsOther = true;
+        for (int i = 0; i < n; i++) {
+            VState a = get(i);
+            VState b = other.get(i);
+            VState m = a == null ? b : b == null ? a : a.merge(b);
+            merged[i] = m;
+            sameAsThis &= m == a;
+            sameAsOther &= m == b;
+        }
+        ImmutableSet<NameDef> destroyed = union(destroyedParameters, other.destroyedParameters);
+        boolean mergedThisDestroyed = thisDestroyed || other.thisDestroyed;
+        if (sameAsThis && destroyed == destroyedParameters && mergedThisDestroyed == thisDestroyed) {
+            return this;
+        }
+        if (sameAsOther && destroyed == other.destroyedParameters && mergedThisDestroyed == other.thisDestroyed) {
+            return other;
+        }
+        return new VarStates(ids, merged, destroyed, mergedThisDestroyed);
+    }
+
+    private static ImmutableSet<NameDef> union(ImmutableSet<NameDef> a, ImmutableSet<NameDef> b) {
+        if (a.containsAll(b)) {
+            return a;
+        }
+        if (b.containsAll(a)) {
+            return b;
+        }
+        return ImmutableSet.<NameDef>builder().addAll(a).addAll(b).build();
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        VarStates varStates = (VarStates) o;
-        return thisDestroyed == varStates.thisDestroyed &&
-                Objects.equals(states, varStates.states) &&
-                Objects.equals(destroyedParameters, varStates.destroyedParameters);
+        VarStates other = (VarStates) o;
+        if (thisDestroyed != other.thisDestroyed || !destroyedParameters.equals(other.destroyedParameters)) {
+            return false;
+        }
+        int n = Math.max(states.length, other.states.length);
+        for (int i = 0; i < n; i++) {
+            if (!Objects.equals(get(i), other.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(states, destroyedParameters, thisDestroyed);
-    }
-
-    public static VarStates initial(Set<LocalVarDef> r) {
-        ImmutableMap.Builder<LocalVarDef, VState> s = ImmutableMap.builder();
-        for (LocalVarDef v : r) {
-            s.put(v, VState.initial);
+        int h = Objects.hash(destroyedParameters, thisDestroyed);
+        for (int i = 0; i < states.length; i++) {
+            VState s = states[i];
+            if (s != null) {
+                h += 31 * i ^ s.hashCode();
+            }
         }
-        return new VarStates(s.build(), false);
+        return h;
     }
 
     public boolean destroyed(NameDef v) {
-        VState s = states.get(v);
+        VState s = stateOf(v);
         return (s != null && s.mightBeDestroyed) || destroyedParameters.contains(v);
     }
 
     public boolean uninitialized(NameDef v) {
-        VState s = states.get(v);
+        VState s = stateOf(v);
         return s != null && s.mightBeUninitialized;
     }
 
@@ -86,67 +207,60 @@ class VarStates {
     }
 
     private VarStates withRead(LocalVarDef v, Element r, @Nullable Element excluded) {
-        VState s = getVarState(v);
+        int id = ids.varId(v);
+        VState s = get(id);
         if (s == null) {
             s = VState.initialDefined;
         }
-        s = s.addRead(r, excluded);
-        Builder<LocalVarDef, VState> builder = ImmutableMap.builder();
-        for (Entry<LocalVarDef, VState> e : states.entrySet()) {
-            if (e.getKey() != v) {
-                builder.put(e);
-            }
-        }
-        ImmutableMap<LocalVarDef, VState> rs = builder
-                .put(v, s)
-                .build();
-        return new VarStates(rs, destroyedParameters, thisDestroyed);
+        return with(id, s.addRead(ids, ids.elementId(r), excluded));
     }
 
-    public ImmutableSet<WStatement> getUnreadWrites(NameDef var) {
-        ImmutableSet.Builder<WStatement> res = ImmutableSet.builder();
-        VState vState = states.get(var);
-        if (vState == null) return ImmutableSet.of();
-        for (WStatement wr : vState.allWrites) {
-            if (vState.writesAndReads.get(wr).isEmpty()) {
-                res.add(wr);
+    /** The locals which have a state, in the order of their ids. */
+    public List<LocalVarDef> locals() {
+        List<LocalVarDef> result = new ArrayList<>();
+        for (int i = 0; i < states.length; i++) {
+            if (states[i] != null) {
+                result.add(ids.var(i));
             }
         }
+        return result;
+    }
 
-        return res.build();
+    /** The writes to {@code var} which reach this point and which nothing read, in source order. */
+    public List<WStatement> getUnreadWrites(LocalVarDef var) {
+        VState vState = stateOf(var);
+        if (vState == null) {
+            return Collections.emptyList();
+        }
+        List<WStatement> res = new ArrayList<>();
+        for (int write : vState.allWrites()) {
+            if (!vState.isRead(write)) {
+                res.add((WStatement) ids.element(write));
+            }
+        }
+        res.sort(Comparator.comparingInt(w -> w.attrSource().getLeftPos()));
+        return res;
     }
 
     public VarStates addWrite(LocalVarDef var, WStatement s) {
-        ImmutableMap.Builder<LocalVarDef, VState> res = ImmutableMap.builder();
-        for (Entry<LocalVarDef, VState> e : states.entrySet()) {
-            if (e.getKey() != var) {
-                res.put(e);
-            }
-        }
-        VState vState = getVarState(var);
+        int id = ids.varId(var);
+        VState vState = get(id);
         if (vState == null) {
             vState = VState.initialDefined;
         }
-        vState = vState.addWrite(s);
-        res.put(var, vState);
-        return new VarStates(res.build(), destroyedParameters, thisDestroyed);
+        return with(id, vState.addWrite(ids.elementId(s)));
     }
 
     public VarStates addDestroy(LocalVarDef var) {
-        ImmutableMap.Builder<LocalVarDef, VState> res = ImmutableMap.builder();
-        for (Entry<LocalVarDef, VState> e : states.entrySet()) {
-            if (e.getKey() != var) {
-                res.put(e);
-            }
-        }
-        res.put(var, VState.destroyed);
-        return new VarStates(res.build(), destroyedParameters, thisDestroyed);
+        return with(ids.varId(var), VState.destroyed);
     }
 
     public VarStates addDestroyParameter(NameDef var) {
-        ImmutableSet.Builder<NameDef> destroyed = ImmutableSet.builder();
-        destroyed.addAll(destroyedParameters).add(var);
-        return new VarStates(states, destroyed.build(), thisDestroyed);
+        if (destroyedParameters.contains(var)) {
+            return this;
+        }
+        ImmutableSet<NameDef> destroyed = ImmutableSet.<NameDef>builder().addAll(destroyedParameters).add(var).build();
+        return new VarStates(ids, states, destroyed, thisDestroyed);
     }
 
     public VarStates clearDestroyParameter(NameDef var) {
@@ -159,54 +273,53 @@ class VarStates {
                 remaining.add(destroyed);
             }
         }
-        return new VarStates(states, remaining.build(), thisDestroyed);
-    }
-
-
-
-    private @Nullable VState getVarState(LocalVarDef var) {
-        return states.get(var);
+        return new VarStates(ids, states, remaining.build(), thisDestroyed);
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("VarStates [");
-        for (Entry<LocalVarDef, VState> e : this.states.entrySet()) {
-            sb.append("\n\t");
-            sb.append(e.getKey().getName()).append(" -> ").append(e.getValue());
-
+        for (int i = 0; i < states.length; i++) {
+            VState s = states[i];
+            if (s != null) {
+                sb.append("\n\t");
+                sb.append(ids.var(i).getName()).append(" -> ").append(s.toString(ids));
+            }
         }
         sb.append("]");
         return sb.toString();
     }
 
-    public boolean isThisDestroyed() {
-        return thisDestroyed;
-    }
-
     public VarStates withThisDestroyed(boolean thisDestroyed) {
-        return new VarStates(states, destroyedParameters, thisDestroyed);
+        if (thisDestroyed == this.thisDestroyed) {
+            return this;
+        }
+        return new VarStates(ids, states, destroyedParameters, thisDestroyed);
     }
 
 
 }
 
-class VState {
+/**
+ * The facts about one local. Writes and reads are {@link DataflowIds} element ids: a write is a statement, a read a
+ * statement or an expression. Each array is sorted and free of duplicates, and is never changed.
+ */
+final class VState {
+    private static final int[] NO_WRITES = new int[0];
+    private static final long[] NO_READS = new long[0];
 
-    public static final VState initialDefined = new VState(false, false, ImmutableSetMultimap.of()
-            , ImmutableSet.of(), ImmutableSet.of());
-    public static final VState initial = new VState(true, false, ImmutableSetMultimap.of()
-            , ImmutableSet.of(), ImmutableSet.of());
-    public static final VState destroyed = new VState(false, true, ImmutableSetMultimap.of()
-            , ImmutableSet.of(), ImmutableSet.of());
+    public static final VState initialDefined = new VState(false, false, NO_READS, NO_WRITES, NO_WRITES);
+    public static final VState initial = new VState(true, false, NO_READS, NO_WRITES, NO_WRITES);
+    public static final VState destroyed = new VState(false, true, NO_READS, NO_WRITES, NO_WRITES);
 
     final boolean mightBeUninitialized;
     final boolean mightBeDestroyed;
-    final ImmutableSetMultimap<WStatement, Element> writesAndReads;
-    final ImmutableSet<WStatement> activeWrites;
-    final ImmutableSet<WStatement> allWrites;
+    /** Each read of a write, as {@code write << 32 | read}. */
+    private final long[] writesAndReads;
+    private final int[] activeWrites;
+    private final int[] allWrites;
 
-    public VState(boolean mightBeUninitialized, boolean mightBeDestroyed, ImmutableSetMultimap<WStatement, Element> writesAndReads, ImmutableSet<WStatement> activeWrites, ImmutableSet<WStatement> allWrites) {
+    private VState(boolean mightBeUninitialized, boolean mightBeDestroyed, long[] writesAndReads, int[] activeWrites, int[] allWrites) {
         this.mightBeUninitialized = mightBeUninitialized;
         this.mightBeDestroyed = mightBeDestroyed;
         this.writesAndReads = writesAndReads;
@@ -214,26 +327,38 @@ class VState {
         this.allWrites = allWrites;
     }
 
-    public VState addWrite(WStatement s) {
-        ImmutableSet.Builder<WStatement> wr = ImmutableSet.builder();
-        wr.addAll(allWrites);
-        wr.add(s);
-        return new VState(false, false, writesAndReads, ImmutableSet.of(s), wr.build());
+    int[] allWrites() {
+        return allWrites;
     }
 
-    public VState addRead(Element r) {
-        return addRead(r, null);
+    boolean isRead(int write) {
+        int i = Arrays.binarySearch(writesAndReads, (long) write << 32);
+        if (i < 0) {
+            i = -i - 1;
+        }
+        return i < writesAndReads.length && (int) (writesAndReads[i] >>> 32) == write;
     }
 
-    public VState addRead(Element r, @Nullable Element excluded) {
-        ImmutableSetMultimap.Builder<WStatement, Element> builder = ImmutableSetMultimap.builder();
-        builder.putAll(writesAndReads);
-        for (WStatement s : this.activeWrites) {
-            if (excluded == null || !isInside(s, excluded)) {
-                builder.put(s, r);
+    public VState addWrite(int write) {
+        return new VState(false, false, writesAndReads, new int[]{write}, insert(allWrites, write));
+    }
+
+    public VState addRead(DataflowIds ids, int read, @Nullable Element excluded) {
+        if (activeWrites.length == 0) {
+            return this;
+        }
+        long[] reads = new long[activeWrites.length];
+        int n = 0;
+        for (int write : activeWrites) {
+            if (excluded == null || !isInside(ids.element(write), excluded)) {
+                reads[n++] = (long) write << 32 | read;
             }
         }
-        return new VState(mightBeUninitialized, mightBeDestroyed, builder.build(), activeWrites, allWrites);
+        long[] merged = union(writesAndReads, n == reads.length ? reads : Arrays.copyOf(reads, n));
+        if (merged == writesAndReads) {
+            return this;
+        }
+        return new VState(mightBeUninitialized, mightBeDestroyed, merged, activeWrites, allWrites);
     }
 
     /** Whether {@code node} lies within the subtree rooted at {@code ancestor}. */
@@ -247,22 +372,103 @@ class VState {
     }
 
     public VState merge(VState other) {
-        return new VState(mightBeUninitialized || other.mightBeUninitialized,
-                mightBeDestroyed || other.mightBeDestroyed,
-                Utils.mergeMultiMaps(writesAndReads, other.writesAndReads),
-                Utils.mergeSets(activeWrites, other.activeWrites),
-                Utils.mergeSets(allWrites, other.allWrites));
+        if (this == other) {
+            return this;
+        }
+        boolean uninitialized = mightBeUninitialized || other.mightBeUninitialized;
+        boolean destroyed = mightBeDestroyed || other.mightBeDestroyed;
+        long[] reads = union(writesAndReads, other.writesAndReads);
+        int[] active = union(activeWrites, other.activeWrites);
+        int[] all = union(allWrites, other.allWrites);
+        if (uninitialized == mightBeUninitialized && destroyed == mightBeDestroyed
+                && reads == writesAndReads && active == activeWrites && all == allWrites) {
+            return this;
+        }
+        if (uninitialized == other.mightBeUninitialized && destroyed == other.mightBeDestroyed
+                && reads == other.writesAndReads && active == other.activeWrites && all == other.allWrites) {
+            return other;
+        }
+        return new VState(uninitialized, destroyed, reads, active, all);
+    }
+
+    private static int[] insert(int[] a, int x) {
+        int i = Arrays.binarySearch(a, x);
+        if (i >= 0) {
+            return a;
+        }
+        i = -i - 1;
+        int[] result = new int[a.length + 1];
+        System.arraycopy(a, 0, result, 0, i);
+        result[i] = x;
+        System.arraycopy(a, i, result, i + 1, a.length - i);
+        return result;
+    }
+
+    /** The union of two sorted arrays; one of them when it contains the other. */
+    private static int[] union(int[] a, int[] b) {
+        if (a == b || b.length == 0) return a;
+        if (a.length == 0) return b;
+        int[] result = new int[a.length + b.length];
+        int i = 0, j = 0, n = 0;
+        while (i < a.length && j < b.length) {
+            int x = a[i];
+            int y = b[j];
+            if (x < y) {
+                result[n++] = x;
+                i++;
+            } else if (y < x) {
+                result[n++] = y;
+                j++;
+            } else {
+                result[n++] = x;
+                i++;
+                j++;
+            }
+        }
+        while (i < a.length) result[n++] = a[i++];
+        while (j < b.length) result[n++] = b[j++];
+        if (n == a.length) return a;
+        if (n == b.length) return b;
+        return Arrays.copyOf(result, n);
+    }
+
+    /** The union of two sorted arrays; one of them when it contains the other. */
+    private static long[] union(long[] a, long[] b) {
+        if (a == b || b.length == 0) return a;
+        if (a.length == 0) return b;
+        long[] result = new long[a.length + b.length];
+        int i = 0, j = 0, n = 0;
+        while (i < a.length && j < b.length) {
+            long x = a[i];
+            long y = b[j];
+            if (x < y) {
+                result[n++] = x;
+                i++;
+            } else if (y < x) {
+                result[n++] = y;
+                j++;
+            } else {
+                result[n++] = x;
+                i++;
+                j++;
+            }
+        }
+        while (i < a.length) result[n++] = a[i++];
+        while (j < b.length) result[n++] = b[j++];
+        if (n == a.length) return a;
+        if (n == b.length) return b;
+        return Arrays.copyOf(result, n);
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + activeWrites.hashCode();
-        result = prime * result + allWrites.hashCode();
+        result = prime * result + Arrays.hashCode(activeWrites);
+        result = prime * result + Arrays.hashCode(allWrites);
         result = prime * result + (mightBeUninitialized ? 1231 : 1237);
         result = prime * result + (mightBeDestroyed ? 1231 : 1237);
-        result = prime * result + writesAndReads.hashCode();
+        result = prime * result + Arrays.hashCode(writesAndReads);
         return result;
     }
 
@@ -275,23 +481,18 @@ class VState {
         if (getClass() != obj.getClass())
             return false;
         VState other = (VState) obj;
-        if (!activeWrites.equals(other.activeWrites))
-            return false;
-        if (!allWrites.equals(other.allWrites))
-            return false;
-        if (mightBeUninitialized != other.mightBeUninitialized)
-            return false;
-        if (mightBeDestroyed != other.mightBeDestroyed)
-            return false;
-        return writesAndReads.equals(other.writesAndReads);
+        return mightBeUninitialized == other.mightBeUninitialized
+                && mightBeDestroyed == other.mightBeDestroyed
+                && Arrays.equals(activeWrites, other.activeWrites)
+                && Arrays.equals(allWrites, other.allWrites)
+                && Arrays.equals(writesAndReads, other.writesAndReads);
     }
 
-    @Override
-    public String toString() {
+    String toString(DataflowIds ids) {
         StringBuilder sb = new StringBuilder("VState [ " + this.mightBeUninitialized + ", " + this.mightBeDestroyed + ", ");
-        for (Entry<WStatement, Element> e : this.writesAndReads.entries()) {
+        for (long e : writesAndReads) {
             sb.append("\n\t\t");
-            sb.append(e.getKey().attrSource().getLine()).append(" -> ").append(e.getValue().attrSource().getLine());
+            sb.append(ids.element((int) (e >>> 32)).attrSource().getLine()).append(" -> ").append(ids.element((int) e).attrSource().getLine());
         }
         sb.append("]");
         return sb.toString();
@@ -305,6 +506,8 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
 
     private final boolean jassCode;
+    private final DataflowIds ids = new DataflowIds();
+    private final VarStates startValue = VarStates.empty(ids);
 
     public DataflowAnomalyAnalysis(boolean jassCode) {
         this.jassCode = jassCode;
@@ -314,9 +517,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
     VarStates calculate(WStatement s, VarStates incoming) {
         if (s instanceof StartFunctionStatement) {
             // initially all vars are uninitialized
-            final Set<LocalVarDef> r = Sets.newHashSet();
+            List<LocalVarDef> r = new ArrayList<>();
             collectLocalVars(r, getFuncDef());
-            return VarStates.initial(r);
+            return VarStates.initial(ids, r);
         }
 
 
@@ -335,21 +538,20 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                         : handleExprInCompound(incoming, expr);
                 }
             }
-            if (s instanceof SwitchStmt) {
-                SwitchStmt swi = (SwitchStmt) s;
+            if (s instanceof SwitchStmt swi) {
                 // switch statement must be handled separately, because expressions are not direct children:
                 for (SwitchCase switchCase : swi.getCases()) {
                     for (Expr switchCaseExpr : switchCase.getExpressions()) {
                         incoming = handleExprInCompound(incoming, switchCaseExpr);
                     }
                 }
-            } else if (s instanceof LoopStatementWithVarDef) {
+            } else if (s instanceof LoopStatementWithVarDef loopStatementWithVarDef) {
                 // Same reason: for "for i = a downto 0" the start expression belongs to the loop
                 // variable's LocalVarDef, not to the loop statement, so the loop above never sees
                 // it and a local read only appearing there looked like a dead assignment.
                 // StmtForFrom binds its loop variable from the "in" expression and has no initial
                 // expression of its own, which the instanceof guard covers.
-                LocalVarDef loopVar = ((LoopStatementWithVarDef) s).getLoopVar();
+                LocalVarDef loopVar = loopStatementWithVarDef.getLoopVar();
                 if (loopVar.getInitialExpr() instanceof Expr) {
                     incoming = handleLoopHeaderExpr(incoming, (Expr) loopVar.getInitialExpr(), s);
                 }
@@ -366,8 +568,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             }
         }
 
-        if (s instanceof ExprDestroy) {
-            ExprDestroy destr = (ExprDestroy) s;
+        if (s instanceof ExprDestroy destr) {
             if (destr.getDestroyedObj() instanceof ExprVarAccess) {
                 ExprVarAccess destroyed = (ExprVarAccess) destr.getDestroyedObj();
                 NameDef destroyedVar = destroyed.attrNameDef();
@@ -384,13 +585,6 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
         NameDef n = getInitializedVar(s);
         if (n != null) {
-//			ImmutableSet<WStatement> unreadWrites = incoming.getUnreadWrites(n);
-//			for (WStatement wr : unreadWrites) {
-//				Element parent = s.getParent();
-//				if (isNested(wr, parent)) {
-////					s.addError("Assigning to " + Utils.printElement(n) + " overrides previous assignment in line " + wr.attrSource().getLine());
-//				}
-//			}
             if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);
@@ -412,13 +606,13 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         if (s instanceof ExprThis) {
             reportError(s, "Cannot access 'this' because it might already have been destroyed.");
             return true;
-        } if (s instanceof FunctionCall) {
-            if (((FunctionCall) s).attrImplicitParameter() instanceof ExprThis) {
+        } if (s instanceof FunctionCall functionCall) {
+            if (functionCall.attrImplicitParameter() instanceof ExprThis) {
                 reportError(s, "Cannot access 'this' because it might already have been destroyed.");
                 return true;
             }
-        } else if (s instanceof NameRef) {
-            if (((NameRef) s).attrImplicitParameter() instanceof ExprThis) {
+        } else if (s instanceof NameRef nameRef) {
+            if (nameRef.attrImplicitParameter() instanceof ExprThis) {
                 reportError(s, "Cannot access 'this' because it might already have been destroyed.");
                 return true;
             }
@@ -457,8 +651,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     private @Nullable NameDef getInitializedVar(WStatement s) {
         NameDef n = null;
-        if (s instanceof StmtSet) {
-            StmtSet s2 = (StmtSet) s;
+        if (s instanceof StmtSet s2) {
             NameLink link = s2.getUpdatedExpr().attrNameLink();
             if (link != null && !(link instanceof OtherLink)) {
                 n = link.getDef();
@@ -469,14 +662,13 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             if (l.getInitialExpr() instanceof Expr) {
                 n = l;
             }
-        } else if (s instanceof LoopStatementWithVarDef) {
-            LoopStatementWithVarDef s2 = (LoopStatementWithVarDef) s;
+        } else if (s instanceof LoopStatementWithVarDef s2) {
             n = s2.getLoopVar();
         }
         return n;
     }
 
-    private void collectLocalVars(Set<LocalVarDef> out, Element root) {
+    private void collectLocalVars(List<LocalVarDef> out, Element root) {
         ArrayDeque<Element> stack = new ArrayDeque<>();
         stack.push(root);
 
@@ -501,8 +693,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
      * checks if this is a local variable and not an array
      */
     private boolean isLocalVarDef(Element e) {
-        if (e instanceof LocalVarDef) {
-            LocalVarDef l = (LocalVarDef) e;
+        if (e instanceof LocalVarDef l) {
             return !l.attrTyp().isArray();
         }
         return false;
@@ -541,8 +732,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     private @Nullable HasReadVariables findRead(Element e, NameDef v) {
         HasReadVariables result = null;
-        if (e instanceof HasReadVariables) {
-            HasReadVariables r = (HasReadVariables) e;
+        if (e instanceof HasReadVariables r) {
             if (!r.attrReadVariables().contains(v)) {
                 return null;
             }
@@ -563,8 +753,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     private boolean isLeftOfStmtSet(HasReadVariables r) {
         Element parent = r.getParent();
-        if (parent instanceof StmtSet) {
-            StmtSet stmtSet = (StmtSet) parent;
+        if (parent instanceof StmtSet stmtSet) {
             return stmtSet.getUpdatedExpr() == r;
         }
         return false;
@@ -590,7 +779,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     @Override
     void checkFinal(VarStates fin) {
-        for (LocalVarDef var : fin.states.keySet()) {
+        for (LocalVarDef var : fin.locals()) {
             if (var.getName().startsWith("_")) {
                 // ignore warning, if name starts with "_"
                 continue;
@@ -602,8 +791,8 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 }
 
                 Element errorPos = ur;
-                if (ur instanceof StmtSet) {
-                    errorPos = ((StmtSet) ur).getUpdatedExpr();
+                if (ur instanceof StmtSet stmtSet) {
+                    errorPos = stmtSet.getUpdatedExpr();
                 }
                 @Nullable ExprClosure exprClosure = errorPos.attrNearestExprClosure();
                 @Nullable ExprClosure exprClosure1 = var.attrNearestExprClosure();
@@ -620,7 +809,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     @Override
     public VarStates startValue() {
-        return VarStates.initial(Collections.emptySet());
+        return startValue;
     }
 
 

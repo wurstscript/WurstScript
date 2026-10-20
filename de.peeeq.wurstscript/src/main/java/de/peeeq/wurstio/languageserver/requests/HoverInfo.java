@@ -105,37 +105,6 @@ public class HoverInfo extends UserRequest<Hover> {
         return desription;
     }
 
-    private static List<Either<String, MarkedString>> description(Element n) {
-        return n.match(new Description());
-    }
-
-    static String descriptionString(Element n) {
-        List<Either<String, MarkedString>> descr = description(n);
-        StringBuilder res = new StringBuilder();
-        for (Either<String, MarkedString> d : descr) {
-            if (d.isLeft()) {
-                res.append(d.getLeft());
-            } else {
-                res.append(d.getRight().getValue());
-            }
-            res.append("\n");
-        }
-        return res.toString().trim();
-    }
-
-    public static String getParameterString(AstElementWithParameters f) {
-        StringBuilder descrhtml = new StringBuilder();
-        boolean first = true;
-        for (WParameter p : f.getParameters()) {
-            if (!first) {
-                descrhtml.append(", ");
-            }
-            descrhtml.append(type(p.attrTyp())).append(" ").append(p.getName());
-            first = false;
-        }
-        return descrhtml.toString();
-    }
-
     private static String type(WurstType wurstType) {
         return wurstType.toString();
     }
@@ -163,13 +132,12 @@ public class HoverInfo extends UserRequest<Hover> {
                 result.add(Either.forLeft(comment));
             }
 
-            String params = getParameterString(f);
+            String params = Utils.getParameterListText(f);
             String returnTypeHtml = type(f.attrReturnTyp());
             String functionDescription = "";
 
             String funcName = f.getName();
-            if (f instanceof ExtensionFuncDef) {
-                ExtensionFuncDef exf = (ExtensionFuncDef) f;
+            if (f instanceof ExtensionFuncDef exf) {
                 funcName = type(exf.getExtendedType().attrTyp()) + "." + funcName;
             }
             functionDescription += "function " + funcName + "(" + params + ") ";
@@ -193,11 +161,11 @@ public class HoverInfo extends UserRequest<Hover> {
             if (directDoc != null && !directDoc.isEmpty()) {
                 return directDoc;
             }
-            if (!(f instanceof FunctionImplementation)) {
+            if (!(f instanceof FunctionImplementation functionImplementation)) {
                 return null;
             }
             Set<FunctionDefinition> callees = new LinkedHashSet<>();
-            ((FunctionImplementation) f).getBody().accept(new Element.DefaultVisitor() {
+            functionImplementation.getBody().accept(new Element.DefaultVisitor() {
                 @Override
                 public void visit(ExprFunctionCall exprFunctionCall) {
                     addCallee(exprFunctionCall.attrFuncDef());
@@ -228,14 +196,6 @@ public class HoverInfo extends UserRequest<Hover> {
             return inferWrappedNativeDoc(callees.iterator().next(), visited);
         }
 
-        private static String nearestScopeName(Element n) {
-            if (n.attrNearestNamedScope() != null) {
-                return Utils.printElement(n.attrNearestNamedScope());
-            } else {
-                return "Global";
-            }
-        }
-
         public List<Either<String, MarkedString>> description(NameDef n) {
             if (n == null) {
                 return Collections.emptyList();
@@ -255,8 +215,7 @@ public class HoverInfo extends UserRequest<Hover> {
             }
 
             String initializer = "";
-            if (n instanceof GlobalOrLocalVarDef) {
-                GlobalOrLocalVarDef v = (GlobalOrLocalVarDef) n;
+            if (n instanceof GlobalOrLocalVarDef v) {
                 VarInitialization initialExpr = v.getInitialExpr();
                 if (!(initialExpr instanceof NoExpr)) {
                     initializer = " = " + Utils.prettyPrint(initialExpr);
@@ -282,7 +241,7 @@ public class HoverInfo extends UserRequest<Hover> {
                 result.add(Either.forLeft(comment));
             }
 
-            String params = getParameterString(f);
+            String params = Utils.getParameterListText(f);
             String functionDescription = "";
 
             ClassOrModule classOrModule = f.attrNearestClassOrModule();
@@ -298,7 +257,7 @@ public class HoverInfo extends UserRequest<Hover> {
         private static String definedInText(Element n) {
             String file = n.attrSource().getFile();
             if (file == null || file.isEmpty()) {
-                return "defined in " + nearestScopeName(n);
+                return "defined in " + Utils.nearestScopeName(n);
             }
             File f = new File(file);
             String label = f.getName();
@@ -686,8 +645,7 @@ public class HoverInfo extends UserRequest<Hover> {
             if (wt == null) {
                 return Collections.singletonList(Either.forRight(new MarkedString("wurst", "type " + t)));
             }
-            if (wt instanceof WurstTypeNamedScope) {
-                WurstTypeNamedScope wtn = (WurstTypeNamedScope) wt;
+            if (wt instanceof WurstTypeNamedScope wtn) {
                 return description(wtn.getDef());
             }
             return Collections.singletonList(Either.forRight(new MarkedString("wurst", type(wt))));

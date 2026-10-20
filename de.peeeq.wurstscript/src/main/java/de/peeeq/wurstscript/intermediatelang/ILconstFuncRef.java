@@ -38,8 +38,7 @@ public class ILconstFuncRef extends ILconstAbstract {
 
     @Override
     public boolean isEqualTo(ILconst other) {
-        if (other instanceof ILconstFuncRef) {
-            ILconstFuncRef f = (ILconstFuncRef) other;
+        if (other instanceof ILconstFuncRef f) {
             return f.funcName.equals(funcName);
         }
         return false;

@@ -4,8 +4,10 @@ import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.NodeWorklist;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
@@ -13,13 +15,17 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 
-public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass {
+/**
+ * Replaces a read of a local by the constant or the other local it is known to hold. It needs no locality analysis:
+ * a read which is replaced reads the same value on every client, and no computation moves, so a value which depends
+ * on the local player is propagated like any other.
+ */
+public class ConstantAndCopyPropagation implements OptimizerPass {
     private int totalPropagated = 0;
-    private @Nullable LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
-    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
+    @Override
+    public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
-        localPlayerContextAnalyzer = analyzer;
 
         totalPropagated = 0;
         for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
@@ -37,26 +43,36 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
     static class Value {
         final @Nullable ImVar copyVar;
+        /** With a copyVar which holds a call's results (LuaMultipleResults): the component copied, otherwise -1. */
+        final int component;
         final @Nullable ImConst constantValue;
         final @Nullable ImTupleExpr constantTuple;
 
         public Value(ImVar copyVar) {
-            this.copyVar = copyVar;
+            this(copyVar, -1);
+        }
+
+        /** A copy of component {@code component} of the results local {@code results}. */
+        public Value(ImVar results, int component) {
+            this.copyVar = results;
+            this.component = component;
             this.constantValue = null;
             this.constantTuple = null;
-            if(copyVar.isGlobal()) {
+            if(results.isGlobal()) {
                 throw new IllegalArgumentException("copyVar must not be a Global.");
             }
         }
 
         public Value(ImConst constantValue) {
             this.copyVar = null;
+            this.component = -1;
             this.constantValue = constantValue;
             this.constantTuple = null;
         }
 
         public Value(ImTupleExpr tupleExpr) {
             this.copyVar = null;
+            this.component = -1;
             this.constantValue = null;
             this.constantTuple = tupleExpr;
 
@@ -69,14 +85,14 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
         public static Value tryValue(ImExpr e) {
             try {
-                if (e instanceof ImVarAccess) {
-                    return new Value(((ImVarAccess) e).getVar());
+                if (e instanceof ImVarAccess imVarAccess) {
+                    return new Value(imVarAccess.getVar());
                 }
-                if (e instanceof ImConst) {
-                    return new Value((ImConst) e);
+                if (e instanceof ImConst imConst) {
+                    return new Value(imConst);
                 }
-                if (e instanceof ImTupleExpr) {
-                    return new Value((ImTupleExpr) e);
+                if (e instanceof ImTupleExpr imTupleExpr) {
+                    return new Value(imTupleExpr);
                 }
             } catch (IllegalArgumentException ignored) {
             }
@@ -85,15 +101,15 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
         @Override
         public boolean equals(@Nullable Object obj) {
-            if (obj instanceof Value) {
-                return equalValue((Value) obj);
+            if (obj instanceof Value value) {
+                return equalValue(value);
             }
             return false;
         }
 
         public boolean equalValue(Value other) {
             if (copyVar != null && other.copyVar != null) {
-                return copyVar == other.copyVar;
+                return copyVar == other.copyVar && component == other.component;
             } else if (constantValue != null && other.constantValue != null) {
                 return constantValue.equalValue(other.constantValue);
             } else if (constantTuple != null && other.constantTuple != null) {
@@ -117,7 +133,7 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
         @Override
         public String toString() {
             if (copyVar != null) {
-                return "copy of " + copyVar;
+                return "copy of " + copyVar + (component < 0 ? "" : "." + component);
             } else if (constantValue != null) {
                 return "constant " + constantValue;
             } else {
@@ -142,11 +158,6 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
         rewriteCode(cfg, knowledge);
     }
 
-    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
-        localPlayerContextAnalyzer = analyzer;
-        optimizeFunc(func);
-    }
-
     private void rewriteCode(ControlFlowGraph cfg, Map<Node, Knowledge> knowledge) {
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
@@ -159,11 +170,9 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                 @Override
                 public void visit(ImSet imSet) {
                     ImLExpr e = imSet.getLeft();
-                    if (e instanceof ImMemberAccess) {
-                        ImMemberAccess ma = (ImMemberAccess) e;
+                    if (e instanceof ImMemberAccess ma) {
                         ma.accept(this);
-                    } else if (e instanceof ImVarArrayAccess) {
-                        ImVarArrayAccess vaa = (ImVarArrayAccess) e;
+                    } else if (e instanceof ImVarArrayAccess vaa) {
                         for (ImExpr ie : vaa.getIndexes()) {
                             ie.accept(this);
                         }
@@ -181,6 +190,9 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
 
                     if (val.constantValue != null) {
                         va.replaceBy(val.constantValue.copy());
+                        totalPropagated++;
+                    } else if (val.component >= 0) {
+                        va.replaceBy(JassIm.ImTupleSelection(JassIm.ImVarAccess(val.copyVar), val.component));
                         totalPropagated++;
                     } else if (val.copyVar != null) {
                         ImVar old = va.getVar();
@@ -299,31 +311,31 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
             // --- APPLY TRANSFER FUNCTION ---
             HashMap<ImVar, Value> newOut = newKnowledge;
             ImStmt stmt = n.getStmt();
-            if (stmt instanceof ImSet) {
-                ImSet imSet = (ImSet) stmt;
+            if (stmt instanceof ImSet imSet) {
                 if (imSet.getLeft() instanceof ImVarAccess) {
                     ImVar var = ((ImVarAccess) imSet.getLeft()).getVar();
                     if (var != null && !var.isGlobal()) {
                         ImExpr right = imSet.getRight();
 
                         // Check if this is a no-op like 'set x = x'
-                        if (right instanceof ImVarAccess && ((ImVarAccess) right).getVar() == var) {
+                        if (right instanceof ImVarAccess imVarAccess && imVarAccess.getVar() == var) {
                             // Self-assignment: no-op, don't change knowledge
                         } else {
                             Value newValue = null;
 
                             // Constant folding is intentionally centralized in SimpleRewrites.
                             // This pass performs propagation only to keep fold semantics in one place.
-                            if (localPlayerContextAnalyzer != null
-                                && localPlayerContextAnalyzer.isLocalPlayerDependent(right)) {
-                                // Keep GetLocalPlayer-derived values at their original
-                                // variable boundary. This is deliberately conservative:
-                                // later rewrites must still be able to see that boundary.
-                                newValue = null;
+                            if (TypesHelper.isRealType(var.getType()) && TypesHelper.isIntType(right.attrTyp())) {
+                                // Jass converts an integer stored into a real, so the variable holds a real.
+                                // Its integer source in place of a read would make `r / n` an integer division.
+                                // A literal can be converted here; a copy of an integer variable cannot.
+                                newValue = right instanceof ImIntVal intVal
+                                    ? new Value(JassIm.ImRealVal(intVal.getValI() + "."))
+                                    : null;
                             } else if (right instanceof ImConst) {
                                 newValue = Value.tryValue(right);
-                            } else if (right instanceof ImVarAccess) {
-                                ImVar varRight = ((ImVarAccess) right).getVar();
+                            } else if (right instanceof ImVarAccess imVarAccess) {
+                                ImVar varRight = imVarAccess.getVar();
                                 if(newOut.containsKey(varRight)) {
                                     newValue = newOut.get(varRight).getOrNull();
                                 } else {
@@ -331,6 +343,11 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                                 }
                             } else if(right instanceof ImTupleExpr) {
                                 newValue = Value.tryValue(right);
+                            } else if (right instanceof ImTupleSelection selection
+                                && selection.getTupleExpr() instanceof ImVarAccess results
+                                && LuaMultipleResults.isResultsLocal(results.getVar())) {
+                                // a component of a call's results, which only another call writes
+                                newValue = new Value(results.getVar(), selection.getTupleIndex());
                             }
 
                             if (newValue == null) {
@@ -406,9 +423,13 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                 }
             }
 
+            // Kept from every evaluation, not only when what goes out changes: the reads of the statement itself are
+            // rewritten with it. A statement which drops everything that reaches it (p = f(p), with p known to be a
+            // copy) sends out what it sent before, so this was never kept for it and no read in it was rewritten.
+            kn.varKnowledge = newKnowledge;
+
             // --- PROPAGATE CHANGES ---
             if (!kn.varKnowledgeOut.equals(newOut)) {
-                kn.varKnowledge = newKnowledge;
                 kn.varKnowledgeOut = newOut;
 
                 for (Node succ : n.getSuccessors()) {

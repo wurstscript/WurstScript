@@ -39,8 +39,8 @@ public class TimerProvider extends Provider {
 
     public void TimerStart(IlConstHandle whichTimer, ILconstReal timeout, ILconstBool periodic, ILconstAbstract handlerFunc) {
         TimerMock timerMock = (TimerMock) whichTimer.getObj();
-        if (handlerFunc instanceof ILconstFuncRef) {
-            timerMock.start(timeout, periodic, (ILconstFuncRef) handlerFunc);
+        if (handlerFunc instanceof ILconstFuncRef iLconstFuncRef) {
+            timerMock.start(timeout, periodic, iLconstFuncRef);
         }
     }
 

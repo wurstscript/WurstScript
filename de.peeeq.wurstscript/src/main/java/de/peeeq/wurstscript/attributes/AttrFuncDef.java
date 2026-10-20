@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.*;
 import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs;
@@ -247,8 +246,10 @@ public class AttrFuncDef {
                 methSigs = (java.util.ArrayList<FunctionSignature>) keepMostSpecificReceivers(
                     methSigs, FunctionSignature::getReceiverType, node
                 );
-                // pick the first of the survivors
-                var chosenSig = methSigs.get(0);
+                // A module's implementation and the interface function it implements both match, and
+                // neither receiver is more specific. The implementation is what runs, and it is what
+                // the type checker resolves the call to, so take it rather than whichever came first.
+                var chosenSig = AttrFunctionSignature.filterPreferNonAbstract(methSigs).get(0);
                 // find corresponding link
                 for (int i = 0; i < exactSigs.size(); i++) {
                     if (exactSigs.get(i) == chosenSig) {
@@ -326,7 +327,7 @@ public class AttrFuncDef {
         return null;
     }
 
-    private static boolean isConstructorThisCall(ExprFunctionCall node) {
+    static boolean isConstructorThisCall(ExprFunctionCall node) {
         if (!node.getFuncName().equals("this")) {
             return false;
         }
@@ -440,9 +441,8 @@ public class AttrFuncDef {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
             WurstType argType;
-            if (arg instanceof ExprClosure) {
+            if (arg instanceof ExprClosure closure) {
                 // for closures, we only calculate the type, if all argument types are specified:
-                ExprClosure closure = (ExprClosure) arg;
                 boolean b = true;
                 for (WShortParameter wShortParameter : closure.getShortParameters()) {
                     if (!(wShortParameter.getTypOpt() instanceof TypeExpr)) {
@@ -494,9 +494,8 @@ public class AttrFuncDef {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
             WurstType argType;
-            if (arg instanceof ExprClosure) {
+            if (arg instanceof ExprClosure closure) {
                 // for closures, we only calculate the type, if all argument types are specified:
-                ExprClosure closure = (ExprClosure) arg;
                 boolean b = true;
                 for (WShortParameter wShortParameter : closure.getShortParameters()) {
                     if (!(wShortParameter.getTypOpt() instanceof TypeExpr)) {
@@ -562,11 +561,11 @@ public class AttrFuncDef {
             return null;
         }
         ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
-        if (node instanceof ExprFunctionCall
-            && hasApplicableUserFunction((ExprFunctionCall) node)) {
+        if (node instanceof ExprFunctionCall exprFunctionCall
+            && hasApplicableUserFunction(exprFunctionCall)) {
             ImmutableList<FuncLink> ordinaryFunctions = funcs1.stream()
                 .filter(f -> !CompilerIntrinsics.isDeclaration(f.getDef()))
-                .collect(Utils.toImmutableList());
+                .collect(ImmutableList.toImmutableList());
             if (!ordinaryFunctions.isEmpty()) {
                 funcs1 = ordinaryFunctions;
             }
@@ -631,7 +630,7 @@ public class AttrFuncDef {
         }
         ImmutableList<FuncLink> res = funcs1.stream()
                 .filter(filter)
-                .collect(Utils.toImmutableList());
+                .collect(ImmutableList.toImmutableList());
         if (res.isEmpty()) {
             return ImmutableList.copyOf(funcs1);
         }

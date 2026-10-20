@@ -1,54 +1,130 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
-import com.google.common.collect.LinkedListMultimap;
 import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstio.jassinterpreter.mocks.DestructableMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.ItemMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 
-import java.util.Objects;
+import java.util.*;
 
+/**
+ * The hashtable natives, as measured on the 3.0.0 client (the Lua backend's emulation, {@link LuaHashtable}, answers
+ * the same): handle loads are typed, saving a null handle stores nothing, FlushParentHashtable destroys the
+ * hashtable, and a null hashtable answers every load with its default and ignores every write.
+ */
 public class HashtableProvider extends Provider {
     public HashtableProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
-    public static class KeyPair {
-        private final int parentkey;
-        private final int childkey;
+    public static class WurstHashtable {
+        private final Map<Integer, Map<Integer, Map<Class<?>, Object>>> data = new LinkedHashMap<>();
+        /** The type of the native each handle was saved with, under the same keys. */
+        private final Map<Integer, Map<Integer, String>> handleTypes = new LinkedHashMap<>();
+        /** Set by FlushParentHashtable, which destroys the hashtable: nothing saved afterwards stays. */
+        private boolean destroyed;
 
-        KeyPair(int parentkey, int childkey) {
-            this.parentkey = parentkey;
-            this.childkey = childkey;
+        public void save(int parentKey, int childKey, Object value) {
+            if (destroyed) {
+                return;
+            }
+            data.computeIfAbsent(parentKey, k -> new LinkedHashMap<>(8))
+                .computeIfAbsent(childKey, k -> new LinkedHashMap<>(2))
+                .put(value.getClass(), value);
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            KeyPair keyPair = (KeyPair) o;
-            return parentkey == keyPair.parentkey &&
-                    childkey == keyPair.childkey;
+        @SuppressWarnings("unchecked")
+        public <T> T get(int parentKey, int childKey, Class<T> clazz) {
+            Map<Integer, Map<Class<?>, Object>> parent = data.get(parentKey);
+            if (parent == null) return null;
+            Map<Class<?>, Object> child = parent.get(childKey);
+            if (child == null) return null;
+            return (T) child.get(clazz);
         }
 
-        @Override
-        public int hashCode() {
-            return Objects.hash(parentkey, childkey);
+        public boolean has(int parentKey, int childKey, Class<?> clazz) {
+            Map<Integer, Map<Class<?>, Object>> parent = data.get(parentKey);
+            if (parent == null) return false;
+            Map<Class<?>, Object> child = parent.get(childKey);
+            return child != null && child.containsKey(clazz);
         }
 
-        public int getParentkey() {
-            return parentkey;
+        public void saveHandleType(int parentKey, int childKey, String type) {
+            if (!destroyed) {
+                handleTypes.computeIfAbsent(parentKey, k -> new LinkedHashMap<>(8)).put(childKey, type);
+            }
         }
 
-        public int getChildkey() {
-            return childkey;
+        public @org.eclipse.jdt.annotation.Nullable String handleType(int parentKey, int childKey) {
+            Map<Integer, String> parent = handleTypes.get(parentKey);
+            return parent == null ? null : parent.get(childKey);
+        }
+
+        public void remove(int parentKey, int childKey, Class<?> clazz) {
+            if (clazz == IlConstHandle.class) {
+                Map<Integer, String> types = handleTypes.get(parentKey);
+                if (types != null) {
+                    types.remove(childKey);
+                }
+            }
+            Map<Integer, Map<Class<?>, Object>> parent = data.get(parentKey);
+            if (parent != null) {
+                Map<Class<?>, Object> child = parent.get(childKey);
+                if (child != null) {
+                    child.remove(clazz);
+                    if (child.isEmpty()) {
+                        parent.remove(childKey);
+                        if (parent.isEmpty()) {
+                            data.remove(parentKey);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void flushParent() {
+            data.clear();
+            handleTypes.clear();
+            destroyed = true;
+        }
+
+        /** Whether FlushParentHashtable destroyed it. */
+        public boolean isDestroyed() {
+            return destroyed;
+        }
+
+        public void flushChild(int parentKey) {
+            data.remove(parentKey);
+            handleTypes.remove(parentKey);
+        }
+
+        public static class Entry {
+            public final int parentKey;
+            public final int childKey;
+            public final Object value;
+            public Entry(int p, int c, Object v) { this.parentKey = p; this.childKey = c; this.value = v; }
+        }
+
+        public List<Entry> entries() {
+            List<Entry> result = new ArrayList<>();
+            for (Map.Entry<Integer, Map<Integer, Map<Class<?>, Object>>> pe : data.entrySet()) {
+                int p = pe.getKey();
+                for (Map.Entry<Integer, Map<Class<?>, Object>> ce : pe.getValue().entrySet()) {
+                    int c = ce.getKey();
+                    for (Object v : ce.getValue().values()) {
+                        result.add(new Entry(p, c, v));
+                    }
+                }
+            }
+            return result;
         }
     }
 
     public IlConstHandle InitHashtable() {
-        return new IlConstHandle(NameProvider.getRandomName("ht"), LinkedListMultimap.create());
+        return new IlConstHandle(NameProvider.getRandomName("ht"), new WurstHashtable());
     }
 
     @Implements(funcNames = {"SaveInteger", "SaveReal", "SaveBoolean", "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle",
@@ -58,101 +134,119 @@ public class HashtableProvider extends Provider {
             "SaveQuestItemHandle", "SaveDefeatConditionHandle", "SaveTimerDialogHandle", "SaveLeaderboardHandle", "SaveMultiboardHandle",
             "SaveMultiboardItemHandle", "SaveTrackableHandle", "SaveDialogHandle", "SaveButtonHandle", "SaveTextTagHandle", "SaveLightningHandle",
             "SaveImageHandle", "SaveUbersplatHandle", "SaveRegionHandle", "SaveFogStateHandle", "SaveFogModifierHandle", "SaveAgentHandle",
-            "SaveHashtableHandle",
+            "SaveHashtableHandle", "SaveFrameHandle",
     })
-    public void Save(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
-        if (value instanceof ILconstNull) {
+    public void Save(String nativeName, IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
+        if (ht == null || value instanceof ILconstNull) {
             // Measured on the 3.0.0 client: saving a null handle stores nothing, and a handle already
             // saved under the key stays.
             return;
         }
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        deleteIfPresent(map, keyPair, value.getClass());
-        map.put(keyPair, value);
+        WurstHashtable table = (WurstHashtable) ht.getObj();
+        table.save(key1.getVal(), key2.getVal(), value);
+        if (value instanceof IlConstHandle) {
+            table.saveHandleType(key1.getVal(), key2.getVal(), LuaHashtable.handleTypeOf(nativeName));
+        }
+    }
+
+    private static @org.eclipse.jdt.annotation.Nullable WurstHashtable tableOf(IlConstHandle ht) {
+        return ht == null ? null : (WurstHashtable) ht.getObj();
     }
 
     public ILconstInt LoadInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return haveSaved(ht, key1, key2, ILconstInt.class) ? load(ht, key1, key2, ILconstInt.class) : ILconstInt.create(0);
+        WurstHashtable table = tableOf(ht);
+        ILconstInt res = table == null ? null : table.get(key1.getVal(), key2.getVal(), ILconstInt.class);
+        return res != null ? res : ILconstInt.create(0);
     }
 
     public ILconstReal LoadReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return haveSaved(ht, key1, key2, ILconstReal.class) ? load(ht, key1, key2, ILconstReal.class) : new ILconstReal(0);
+        WurstHashtable table = tableOf(ht);
+        ILconstReal res = table == null ? null : table.get(key1.getVal(), key2.getVal(), ILconstReal.class);
+        return res != null ? res : new ILconstReal(0);
     }
 
     /** Measured on the 3.0.0 client: saving a null string does store it, replacing what was there,
      *  and it loads as null. It is kept as {@link ILconstNull} in the string slot. */
     public void SaveStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
+        if (ht == null) {
+            return;
+        }
         RemoveSavedString(ht, key1, key2);
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        map.put(new KeyPair(key1.getVal(), key2.getVal()), value);
+        WurstHashtable table = (WurstHashtable) ht.getObj();
+        table.save(key1.getVal(), key2.getVal(), value);
     }
 
     /** Measured on the 3.0.0 client: a missing string loads as null, not as "". */
     public ILconst LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        ILconstString value = load(ht, key1, key2, ILconstString.class);
-        return value == null ? ILconstNull.instance() : value;
+        WurstHashtable table = tableOf(ht);
+        if (table == null) {
+            return ILconstNull.instance();
+        }
+        ILconst res = table.get(key1.getVal(), key2.getVal(), ILconstString.class);
+        if (res == null) {
+            res = table.get(key1.getVal(), key2.getVal(), ILconstNull.class);
+        }
+        return res != null ? res : ILconstNull.instance();
     }
 
     public ILconstBool LoadBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return haveSaved(ht, key1, key2, ILconstBool.class) ? load(ht, key1, key2, ILconstBool.class) : ILconstBool.FALSE;
+        WurstHashtable table = tableOf(ht);
+        ILconstBool res = table == null ? null : table.get(key1.getVal(), key2.getVal(), ILconstBool.class);
+        return res != null ? res : ILconstBool.FALSE;
     }
 
-    @Implements(funcNames = {"LoadPlayerHandle", "LoadAbilityHandle",
+    @Implements(funcNames = {"LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle",
+            "LoadUnitHandle", "LoadAbilityHandle",
             "LoadTimerHandle", "LoadTriggerHandle", "LoadTriggerConditionHandle", "LoadTriggerActionHandle", "LoadTriggerEventHandle", "LoadForceHandle",
             "LoadGroupHandle", "LoadLocationHandle", "LoadRectHandle", "LoadBooleanExprHandle", "LoadSoundHandle", "LoadEffectHandle", "LoadUnitPoolHandle",
             "LoadItemPoolHandle", "LoadQuestHandle", "LoadQuestItemHandle", "LoadDefeatConditionHandle", "LoadTimerDialogHandle", "LoadLeaderboardHandle",
             "LoadMultiboardHandle", "LoadMultiboardItemHandle", "LoadTrackableHandle", "LoadDialogHandle", "LoadButtonHandle", "LoadTextTagHandle",
             "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle", "LoadFogStateHandle", "LoadFogModifierHandle",
-            "LoadHashtableHandle"})
-    public ILconst LoadHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        IlConstHandle handle = load(ht, key1, key2, IlConstHandle.class);
-        return handle == null ? ILconstNull.instance() : handle;
-    }
-
-    // Measured on the 3.0.0 client: handle loads are typed. A saved unit loads as null through
-    // LoadItemHandle and as itself through LoadWidgetHandle.
-
-    public ILconst LoadUnitHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return loadHandleOf(ht, key1, key2, UnitMock.class);
-    }
-
-    public ILconst LoadItemHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return loadHandleOf(ht, key1, key2, ItemMock.class);
-    }
-
-    public ILconst LoadDestructableHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return loadHandleOf(ht, key1, key2, DestructableMock.class);
-    }
-
-    public ILconst LoadWidgetHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return loadHandleOf(ht, key1, key2, UnitMock.class, ItemMock.class, DestructableMock.class);
-    }
-
-    private ILconst loadHandleOf(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<?>... types) {
-        IlConstHandle handle = load(ht, key1, key2, IlConstHandle.class);
-        if (handle != null) {
-            for (Class<?> type : types) {
-                if (type.isInstance(handle.getObj())) {
-                    return handle;
-                }
-            }
+            "LoadHashtableHandle", "LoadFrameHandle"})
+    public ILconst LoadHandle(String nativeName, IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        WurstHashtable table = tableOf(ht);
+        IlConstHandle handle = table == null ? null : table.get(key1.getVal(), key2.getVal(), IlConstHandle.class);
+        if (handle == null) {
+            return ILconstNull.instance();
         }
-        return ILconstNull.instance();
+        // Measured on the 3.0.0 client: handle loads are typed. A saved unit loads as itself through LoadUnitHandle
+        // and LoadWidgetHandle and as null through LoadItemHandle or LoadTimerHandle.
+        String type = LuaHashtable.handleTypeOf(nativeName);
+        String saved = table.handleType(key1.getVal(), key2.getVal());
+        if (saved == null || !LuaHashtable.acceptedTags(type).contains(saved)) {
+            return ILconstNull.instance();
+        }
+        if (saved.equals(type) || (type.equals("Widget") && LuaHashtable.WIDGET_TYPES.contains(saved))) {
+            return handle;
+        }
+        // Saved through a supertype (a widget, an agent): what the handle is decides, where the mock tells.
+        Class<?> required = switch (type) {
+            case "Unit" -> UnitMock.class;
+            case "Item" -> ItemMock.class;
+            case "Destructable" -> DestructableMock.class;
+            default -> null;
+        };
+        Object obj = handle.getObj();
+        if (type.equals("Widget")) {
+            return obj instanceof UnitMock || obj instanceof ItemMock || obj instanceof DestructableMock
+                || saved.equals("Widget") ? handle : ILconstNull.instance();
+        }
+        return required == null || required.isInstance(obj) ? handle : ILconstNull.instance();
     }
 
+    /** Measured on the 3.0.0 client: the hashtable is destroyed, nothing saved to it afterwards stays. */
     public void FlushParentHashtable(IlConstHandle ht) {
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        map.clear();
+        WurstHashtable table = tableOf(ht);
+        if (table != null) {
+            table.flushParent();
+        }
     }
 
     public void FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        map.entries().removeIf(entry -> entry.getKey().parentkey == parentKey.getVal());
+        WurstHashtable table = tableOf(ht);
+        if (table != null) {
+            table.flushChild(parentKey.getVal());
+        }
     }
 
     public void RemoveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
@@ -197,60 +291,15 @@ public class HashtableProvider extends Provider {
         return ILconstBool.instance(haveSaved(ht, key1, key2, IlConstHandle.class));
     }
 
-    private <T> T load(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        if (hasValueOfType(map, keyPair, clazz)) {
-            return getValueOfType(map, keyPair, clazz);
+    private <T> void removeSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
+        WurstHashtable table = tableOf(ht);
+        if (table != null) {
+            table.remove(key1.getVal(), key2.getVal(), clazz);
         }
-        return null;
-    }
-
-    private <T> void removeSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, T type) {
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        deleteIfPresent(map, keyPair, type);
     }
 
     private <T> boolean haveSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
-        @SuppressWarnings("unchecked")
-        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        return hasValueOfType(map, keyPair, clazz);
-    }
-
-    private static <T> T getValueOfType(LinkedListMultimap<KeyPair, Object> map, KeyPair key, Class<T> clazz) {
-        for (Object o : map.get(key)) {
-            if (o.getClass() == clazz) {
-                return (T) o;
-            }
-        }
-        return null;
-    }
-
-    private static <T> boolean hasValueOfType(LinkedListMultimap<KeyPair, Object> map, KeyPair key, Class<T> type) {
-        for (Object o : map.get(key)) {
-            if (o.getClass() == type) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static <T> void deleteIfPresent(LinkedListMultimap<KeyPair, Object> map, KeyPair key, T type) {
-        Object toRemove = null;
-        for (Object o : map.get(key)) {
-            if (o.getClass() == type) {
-                toRemove = o;
-                break;
-            }
-        }
-        if (toRemove != null) {
-            if(!map.remove(key, toRemove)) {
-                throw new Error("object was found but not deleted");
-            }
-        }
+        WurstHashtable table = tableOf(ht);
+        return table != null && table.has(key1.getVal(), key2.getVal(), clazz);
     }
 }

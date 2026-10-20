@@ -3,25 +3,31 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
+import de.peeeq.wurstscript.translation.imtranslation.Flatten;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.collection.Set;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
 
-public class LocalMerger implements LocalPlayerAwareOptimizerPass {
+/**
+ * Gives locals whose live ranges are disjoint one variable. It needs no locality analysis: a merged local holds on
+ * every client the values the separate locals held, so a value which depends on the local player shares a variable
+ * with a synchronised one like any other.
+ */
+public class LocalMerger implements OptimizerPass {
     private int totalLocalsMerged = 0;
-    private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
     private ImTranslator translator;
 
     @Override
-    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
+    public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
         translator = trans;
-        localPlayerContextAnalyzer = analyzer;
         totalLocalsMerged = 0;
         optimizeFunctions(prog.getFunctions());
         List<ImClass> classes = prog.getClasses();
@@ -45,14 +51,22 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     void optimizeFunc(ImFunction func) {
         LivenessAnalysis liveness = analyzeLiveness(func);
-        Map<ImStmt, Set<ImVar>> livenessInfo = liveness.liveOut;
-        eliminateDeadCode(livenessInfo);
-        mergeLocals(livenessInfo, liveness.liveAtEntry, func);
-    }
-
-    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
-        localPlayerContextAnalyzer = analyzer;
-        optimizeFunc(func);
+        // The liveness is that of the code which a path reaches: a local which only code no path reaches reads (after
+        // a loop which nothing leaves, say) is live nowhere, and eliminateDeadCode removes the assignments to it. That
+        // code goes too, so that no read is left with no assignment before it, which pjass rejects.
+        List<ImStmt> unreachable = liveness.cfg.unreachableStatements();
+        if (!unreachable.isEmpty()) {
+            for (ImStmt s : unreachable) {
+                AstEdits.deleteStmt(s);
+            }
+            liveness = analyzeLiveness(func);
+        }
+        if (eliminateDeadCode(liveness.liveOut, func)) {
+            // a flatten of an effect which replaced a dead assignment made a local, and an assignment to it which the
+            // liveness has not seen
+            liveness = analyzeLiveness(func);
+        }
+        mergeLocals(liveness.liveOut, liveness.liveAtEntry, func);
     }
 
     /**
@@ -60,9 +74,9 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
      * identifies the Lua operator intrinsics whose unused calls may be dropped. Without one, every
      * call is kept as a side effect.
      */
-    public void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer, ImTranslator trans) {
+    public void optimizeFunc(ImFunction func, ImTranslator trans) {
         translator = trans;
-        optimizeFunc(func, analyzer);
+        optimizeFunc(func);
     }
 
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
@@ -104,11 +118,6 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 if (!canMerge(color.getType(), v.getType())) {
                     continue;
                 }
-                if (localPlayerContextAnalyzer != null
-                    && localPlayerContextAnalyzer.isLocalPlayerDependent(v)
-                    != localPlayerContextAnalyzer.isLocalPlayerDependent(color)) {
-                    continue;
-                }
 
                 boolean conflict = false;
                 for (ImVar neigh : interference.get(v)) {
@@ -120,8 +129,30 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         }
 
         applyMerges(func, merges);
+        removeSelfAssignments(func, merges);
         int removed = removeUnusedLocals(func);
         totalLocalsMerged += removed;
+    }
+
+    /**
+     * A copy between two locals which were merged is an assignment of the local to itself now, which does nothing.
+     * No pass after the last merge would remove it, so the script kept it.
+     */
+    private static void removeSelfAssignments(ImFunction func, Map<ImVar, ImVar> merges) {
+        if (merges.isEmpty()) return;
+        List<ImSet> selfAssignments = new ArrayList<>();
+        func.accept(new ImFunction.DefaultVisitor() {
+            @Override public void visit(ImSet set) {
+                super.visit(set);
+                if (set.getLeft() instanceof ImVarAccess left && set.getRight() instanceof ImVarAccess right
+                    && left.getVar() == right.getVar()) {
+                    selfAssignments.add(set);
+                }
+            }
+        });
+        for (ImSet set : selfAssignments) {
+            AstEdits.deleteStmt(set);
+        }
     }
 
     private static void applyMerges(ImFunction func, Map<ImVar, ImVar> merges) {
@@ -269,30 +300,38 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         return Collections.emptyList();
     }
 
-    private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
+    /**
+     * Removes the assignments to locals which are dead after them, and puts what their value and target do besides
+     * that in their place.
+     *
+     * @return whether the statements which replaced an assignment assign a local which the flatten of an effect made
+     *         (the assignment of an allocation or a division which may stop the thread)
+     */
+    private boolean eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
+        int locals = func.getLocals().size();
         for (ImStmt s : livenessInfo.keySet()) {
-            if (!(s instanceof ImSet)) continue;
+            if (!(s instanceof ImSet set)) continue;
 
-            ImSet set = (ImSet) s;
             ImLExpr lhs = set.getLeft();
 
-            if (lhs instanceof ImVarAccess && set.getRight() instanceof ImVarAccess) {
-                if (((ImVarAccess) lhs).getVar() == ((ImVarAccess) set.getRight()).getVar()) {
+            if (lhs instanceof ImVarAccess imVarAccess && set.getRight() instanceof ImVarAccess) {
+                if (imVarAccess.getVar() == ((ImVarAccess) set.getRight()).getVar()) {
                     s.replaceBy(ImHelper.nullExpr());
                     continue;
                 }
             }
 
             ImVar v = null;
-            if (lhs instanceof ImVarAccess) {
-                v = ((ImVarAccess) lhs).getVar();
-            } else if (lhs instanceof ImTupleSelection) {
-                v = TypesHelper.getSimpleAndPureTupleVar((ImTupleSelection) lhs);
+            if (lhs instanceof ImVarAccess imVarAccess) {
+                v = imVarAccess.getVar();
+            } else if (lhs instanceof ImTupleSelection imTupleSelection) {
+                v = TypesHelper.getSimpleAndPureTupleVar(imTupleSelection);
             }
 
             if (v == null || v.isGlobal()) continue;
 
-            if (!livenessInfo.get(s).contains(v)) {
+            if (!livenessInfo.get(s).contains(v) && !Flatten.requiresDiscardAssignment(set.getRight())) {
+                // These effects need their assignment even when the assigned value is dead.
                 final List<ImExpr> raw = new ArrayList<>();
                 collectLhsSideEffects(lhs, raw);
                 if (hasSideEffects(set.getRight())) raw.add(set.getRight());
@@ -300,16 +339,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 if (raw.isEmpty()) {
                     AstEdits.deleteStmt(s);  // remove the dead assignment entirely
                 } else {
-                    ImStmts block = JassIm.ImStmts();
-                    for (int i = 0; i < raw.size(); i++) {
-                        ImExpr e = raw.get(i);
-                        // wrap expression as a statement; add a *copy* to avoid re-parenting conflicts
-                        block.add(ImHelper.statementExprVoid(e.copy()));
+                    // The effects become the statements a flatten makes of them (a call statement, an assignment of
+                    // a division which may stop the thread, an if for and/or), not statement expressions: the local
+                    // optimisations work on flat IM (AGENTS.md section 7). A copy, to avoid re-parenting conflicts.
+                    List<ImStmt> statements = new ArrayList<>();
+                    for (ImExpr e : raw) {
+                        e.copy().flatten(translator, func).intoStatements(statements, translator, func);
                     }
+                    ImStmts block = JassIm.ImStmts();
+                    block.addAll(statements);
                     AstEdits.replaceStmtWithMany(s, block); // removes 's', then inserts the new stmts
                 }
             }
         }
+        return func.getLocals().size() != locals;
     }
 
     private void collectLhsSideEffects(ImLExpr lhs, List<ImExpr> out) {
@@ -338,9 +381,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
 
     private boolean hasSideEffects(Element e) {
-        if (e instanceof ImMethodCall) return true;
+        if (e instanceof ImMethodCall || e instanceof ImDealloc) return true;
         if (e instanceof ImFunctionCall call
             && (translator == null || !translator.isTrapFreeLuaIntrinsicCall(call))) return true;
+        if (e instanceof ImExpr expr && Flatten.requiresDiscardAssignment(expr)) return true;
         for (int i = 0; i < e.size(); i++) if (hasSideEffects(e.get(i))) return true;
         return false;
     }
@@ -364,14 +408,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         idx.defaultReturnValue(-1);
         for (int i = 0; i < N; i++) idx.put(nodes.get(i), i);
 
+        // The sets below hold numbers of locals, as sorted arrays without repeats. Most statements
+        // neither read nor assign a local, so most sets are shared rather than copied.
+        final VariableNumbering variables = new VariableNumbering();
+
         // 2. Calculate USE and DEF sets for each node
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] use = new ObjectOpenHashSet[N];
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] def = new ObjectOpenHashSet[N];
+        final int[][] use = new int[N][];
+        final int[][] def = new int[N][];
 
         for (int i = 0; i < N; i++) {
             Node node = nodes.get(i);
-            use[i] = new ObjectOpenHashSet<>();
-            def[i] = new ObjectOpenHashSet<>();
+            final IntArrayList used = new IntArrayList();
+            final IntArrayList defined = new IntArrayList();
+            use[i] = NO_VARIABLES;
+            def[i] = NO_VARIABLES;
 
             ImStmt stmt = node.getStmt();
             if (stmt == null) continue;
@@ -379,20 +429,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             if (stmt instanceof ImVarargLoop loop) {
                 for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
                     if (!loopVar.getVar().isGlobal()) {
-                        def[i].add(loopVar.getVar());
+                        defined.add(variables.numberOf(loopVar.getVar()));
                     }
                 }
+                def[i] = sortedWithoutRepeats(defined);
                 // The loop body has its own CFG nodes. Visiting it here would incorrectly
                 // classify all body reads as uses at the loop header.
                 continue;
             }
 
-            final int ii = i;
             stmt.accept(new ImStmt.DefaultVisitor() {
                 @Override public void visit(ImVarAccess va) {
                     super.visit(va);
                     ImVar v = va.getVar();
-                    if (!v.isGlobal()) use[ii].add(v);
+                    if (!v.isGlobal()) used.add(variables.numberOf(v));
                 }
                 @Override public void visit(ImSet set) {
                     set.getRight().accept(this);
@@ -413,13 +463,14 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 }
             });
 
-            if (stmt instanceof ImSet) {
-                ImSet set = (ImSet) stmt;
+            if (stmt instanceof ImSet set) {
                 if (set.getLeft() instanceof ImVarAccess) {
                     ImVar v = ((ImVarAccess) set.getLeft()).getVar();
-                    if (!v.isGlobal()) def[i].add(v);
+                    if (!v.isGlobal()) defined.add(variables.numberOf(v));
                 }
             }
+            use[i] = sortedWithoutRepeats(used);
+            def[i] = sortedWithoutRepeats(defined);
         }
 
         // 3. Find SCCs on the REVERSED graph for backward analysis
@@ -439,9 +490,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         Collections.reverse(sccs);
 
         // 4. Initialize IN and OUT sets for the data-flow analysis
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] in  = new ObjectOpenHashSet[N];
-        @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] out = new ObjectOpenHashSet[N];
-        for (int i = 0; i < N; i++) { in[i] = new ObjectOpenHashSet<>(); out[i] = new ObjectOpenHashSet<>(); }
+        final int[][] in = new int[N][];
+        final int[][] out = new int[N][];
+        Arrays.fill(in, NO_VARIABLES);
+        Arrays.fill(out, NO_VARIABLES);
 
         // 5. Iterate over SCCs in reverse topological order
         for (int sccIndex = 0; sccIndex < sccs.size(); sccIndex++) {
@@ -458,24 +510,21 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
                     // Recalculate OUT[u] from the IN sets of its successors.
                     // Any successor not in the current SCC has already been processed and its IN set is stable.
-                    final ObjectOpenHashSet<ImVar> newOut = new ObjectOpenHashSet<>();
+                    int[] newOut = NO_VARIABLES;
                     for (Node succ : u_node.getSuccessors()) {
                         int v_idx = idx.getInt(succ);
                         if (v_idx != -1) {
-                            newOut.addAll(in[v_idx]);
+                            newOut = union(newOut, in[v_idx]);
                         }
                     }
                     out[u_idx] = newOut;
 
                     // Recalculate IN[u] using the data-flow equation: in[u] = use[u] U (out[u] - def[u])
-                    final ObjectOpenHashSet<ImVar> oldIn = in[u_idx];
-                    final ObjectOpenHashSet<ImVar> newIn = new ObjectOpenHashSet<>();
-                    newIn.addAll(newOut);
-                    newIn.removeAll(def[u_idx]);
-                    newIn.addAll(use[u_idx]);
+                    final int[] oldIn = in[u_idx];
+                    final int[] newIn = union(difference(newOut, def[u_idx]), use[u_idx]);
 
                     // If IN[u] changed, update it and flag that we need another iteration for this SCC.
-                    if (!newIn.equals(oldIn)) {
+                    if (newIn != oldIn && !Arrays.equals(newIn, oldIn)) {
                         in[u_idx] = newIn;
                         changedInScc = true;
                     }
@@ -483,25 +532,145 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             }
         }
 
-        // 6. Collect results into the final map format
+        // 6. Collect results into the final map format. Statements that share a set share its copy.
         final java.util.LinkedHashMap<ImStmt, Set<ImVar>> result = new java.util.LinkedHashMap<>();
+        final IdentityHashMap<int[], Set<ImVar>> converted = new IdentityHashMap<>();
         for (int i = 0; i < N; i++) {
             ImStmt stmt = nodes.get(i).getStmt();
             if (stmt != null) {
-                result.put(stmt, io.vavr.collection.HashSet.ofAll(out[i]));
+                result.put(stmt, variables.toSet(out[i], converted));
             }
         }
         Set<ImVar> liveAtEntry = N == 0
             ? io.vavr.collection.HashSet.empty()
-            : io.vavr.collection.HashSet.ofAll(in[0]);
-        return new LivenessAnalysis(result, liveAtEntry);
+            : variables.toSet(in[0], converted);
+        return new LivenessAnalysis(cfg, result, liveAtEntry);
+    }
+
+    private static final int[] NO_VARIABLES = new int[0];
+
+    /** Numbers the locals met by one liveness analysis, from 0. */
+    private static final class VariableNumbering {
+        private final Object2IntOpenHashMap<ImVar> numbers = new Object2IntOpenHashMap<>();
+        private final List<ImVar> variables = new ArrayList<>();
+
+        private VariableNumbering() {
+            numbers.defaultReturnValue(-1);
+        }
+
+        private int numberOf(ImVar variable) {
+            int number = numbers.getInt(variable);
+            if (number < 0) {
+                number = variables.size();
+                variables.add(variable);
+                numbers.put(variable, number);
+            }
+            return number;
+        }
+
+        private Set<ImVar> toSet(int[] numbersInSet, IdentityHashMap<int[], Set<ImVar>> converted) {
+            if (numbersInSet.length == 0) {
+                return io.vavr.collection.HashSet.empty();
+            }
+            Set<ImVar> existing = converted.get(numbersInSet);
+            if (existing == null) {
+                List<ImVar> members = new ArrayList<>(numbersInSet.length);
+                for (int number : numbersInSet) {
+                    members.add(variables.get(number));
+                }
+                existing = io.vavr.collection.HashSet.ofAll(members);
+                converted.put(numbersInSet, existing);
+            }
+            return existing;
+        }
+    }
+
+    private static int[] sortedWithoutRepeats(IntArrayList numbers) {
+        if (numbers.isEmpty()) {
+            return NO_VARIABLES;
+        }
+        int[] sorted = numbers.toIntArray();
+        Arrays.sort(sorted);
+        int length = 1;
+        for (int i = 1; i < sorted.length; i++) {
+            if (sorted[i] != sorted[length - 1]) {
+                sorted[length++] = sorted[i];
+            }
+        }
+        return length == sorted.length ? sorted : Arrays.copyOf(sorted, length);
+    }
+
+    /** The union of two sorted sets, which is one of them when it holds the other. */
+    private static int[] union(int[] a, int[] b) {
+        if (a == b || b.length == 0) {
+            return a;
+        }
+        if (a.length == 0) {
+            return b;
+        }
+        int[] merged = new int[a.length + b.length];
+        int i = 0;
+        int j = 0;
+        int length = 0;
+        while (i < a.length && j < b.length) {
+            if (a[i] < b[j]) {
+                merged[length++] = a[i++];
+            } else if (a[i] > b[j]) {
+                merged[length++] = b[j++];
+            } else {
+                merged[length++] = a[i++];
+                j++;
+            }
+        }
+        while (i < a.length) {
+            merged[length++] = a[i++];
+        }
+        while (j < b.length) {
+            merged[length++] = b[j++];
+        }
+        if (length == a.length) {
+            return a;
+        }
+        if (length == b.length) {
+            return b;
+        }
+        return Arrays.copyOf(merged, length);
+    }
+
+    /** The members of a sorted set which a second one does not hold; the set itself when it holds none of them. */
+    private static int[] difference(int[] a, int[] removed) {
+        if (a.length == 0 || removed.length == 0) {
+            return a;
+        }
+        int[] kept = null;
+        int length = 0;
+        int j = 0;
+        for (int i = 0; i < a.length; i++) {
+            while (j < removed.length && removed[j] < a[i]) {
+                j++;
+            }
+            boolean isRemoved = j < removed.length && removed[j] == a[i];
+            if (isRemoved && kept == null) {
+                kept = new int[a.length - 1];
+                System.arraycopy(a, 0, kept, 0, i);
+                length = i;
+            } else if (!isRemoved && kept != null) {
+                kept[length++] = a[i];
+            }
+        }
+        if (kept == null) {
+            return a;
+        }
+        return length == 0 ? NO_VARIABLES : Arrays.copyOf(kept, length);
     }
 
     private static final class LivenessAnalysis {
+        private final ControlFlowGraph cfg;
         private final Map<ImStmt, Set<ImVar>> liveOut;
         private final Set<ImVar> liveAtEntry;
 
-        private LivenessAnalysis(Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+        private LivenessAnalysis(ControlFlowGraph cfg, Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+            this.cfg = cfg;
             this.liveOut = liveOut;
             this.liveAtEntry = liveAtEntry;
         }

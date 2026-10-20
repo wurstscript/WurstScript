@@ -85,15 +85,15 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         FuncLink abstractMethod = null;
         withNextNameLink:
         for (NameLink nl : nameLinks.values()) {
-            if (nl instanceof FuncLink
+            if (nl instanceof FuncLink funcLink
                     && nl.getDef().attrIsAbstract()) {
 
                 for (DefLink other : nameLinks.get(nl.getName())) {
                     if (other != nl
                             && other.getDef().attrIsOverride()
                             && !other.getDef().attrIsAbstract()
-                            && other instanceof FuncLink
-                            && CheckHelper.isRefinement(this.getTypeArgBinding(), ((FuncLink) other).getDef(), ((FuncLink) nl).getDef())) {
+                            && other instanceof FuncLink otherLink
+                            && CheckHelper.isRefinement(this.getTypeArgBinding(), otherLink.getDef(), funcLink.getDef())) {
                         // the abstract method is overridden, so it is not really abstract
                         // TODO check: why are we including overridden methods anyway?
                         continue withNextNameLink;
@@ -104,7 +104,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
                     // --> closure cannot implement this
                     return null;
                 }
-                abstractMethod = ((FuncLink) nl);
+                abstractMethod = funcLink;
             }
         }
         if (abstractMethod != null) {

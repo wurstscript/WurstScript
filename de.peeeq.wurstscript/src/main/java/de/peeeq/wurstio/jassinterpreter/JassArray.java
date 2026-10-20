@@ -3,6 +3,8 @@ package de.peeeq.wurstio.jassinterpreter;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstAbstract;
+import de.peeeq.wurstscript.intermediatelang.ILconstInt;
+import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.types.WurstType;
 
 import java.util.ArrayList;
@@ -59,6 +61,10 @@ public class JassArray extends ILconstAbstract {
     }
 
     public void set(int key, ILconst value) {
+        if (value instanceof ILconstInt i && type.equals("real")) {
+            // the engine converts an integer stored into a real array
+            value = new ILconstReal(i.getVal());
+        }
         values.put(key, value);
     }
 

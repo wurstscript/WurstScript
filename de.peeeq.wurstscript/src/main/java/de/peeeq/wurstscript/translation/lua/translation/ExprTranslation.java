@@ -1,13 +1,18 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
 import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
+import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
@@ -37,8 +42,12 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         ImClass c = e.getClazz().getClassDef();
-        LuaMethod m = tr.luaClassInitMethod.getFor(c);
         LuaVariable classVar = tr.luaClassVar.getFor(c);
+        if (tr.allocatesOnly(c)) {
+            return LuaAst.LuaExprFunctionCall(tr.objectAlloc(),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(classVar)));
+        }
+        LuaMethod m = tr.luaClassInitMethod.getFor(c);
         return LuaAst.LuaExprMethodCall(
             LuaAst.LuaExprVarAccess(classVar),
             m,
@@ -91,15 +100,13 @@ public class ExprTranslation {
                 return classFromIndex(arg, tr);
             } else if (tcFunc.equals("objectToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
-            } else if (tcFunc.equals("objectFromIndex")) {
-                return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("stringToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("stringFromIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringFromIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (LUA_HANDLE_TO_INDEX.contains(tcFunc)) {
                 return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
-            } else if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
+            } else if (isObjectFromIndexName(tcFunc)) {
                 return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
             }
         }
@@ -122,8 +129,14 @@ public class ExprTranslation {
                 unaryIntrinsic.substring(dot + 1)), argument);
         }
         if (e.getFunc() == tr.imTr.luaRawOrEmptyFunc && e.getArguments().size() == 1) {
-            return LuaAst.LuaExprBinary(e.getArguments().get(0).translateToLua(tr), LuaAst.LuaOpOr(),
-                LuaAst.LuaExprStringVal(""));
+            ImExpr operand = e.getArguments().get(0);
+            LuaExpr translated = operand.translateToLua(tr);
+            // The guard was placed before inlining; the operand it finally holds may be one that
+            // cannot be nil (a literal, I2S, a concatenation), which then needs no guard.
+            if (LuaNativeLowering.neverNil(operand, tr.imTr)) {
+                return translated;
+            }
+            return LuaAst.LuaExprBinary(translated, LuaAst.LuaOpOr(), LuaAst.LuaExprStringVal(""));
         }
         if (e.getFunc() == tr.imTr.luaRawR2IFunc && e.getArguments().size() == 1) {
             LuaExpr x = e.getArguments().get(0).translateToLua(tr);
@@ -138,6 +151,21 @@ public class ExprTranslation {
         if (keyedRead != null && e.getArguments().size() == 2) {
             return keyedMapRead(keyedRead, e.getArguments().get(0).translateToLua(tr),
                 e.getArguments().get(1).translateToLua(tr));
+        }
+        if (LuaKeyedMap.writeStubName(tr.imTr, e.getFunc()) != null) {
+            // A store returns nothing, so it is always a statement of a flat program; see
+            // StmtTranslation#translateKeyedMapWrite. Its stub has no definition to call.
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: " + imFuncName + " used as an expression; a keyed-map store must be a statement.");
+        }
+        if (e.getFunc() == tr.imTr.luaResumeObjectIdsFunc) {
+            // Two assignments, so a statement; see StmtTranslation#translateResumeObjectIds.
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: " + imFuncName + " used as an expression; it must be a statement.");
+        }
+        LuaHashtable.Op hashtableOp = LuaHashtable.op(tr.imTr, e.getFunc());
+        if (hashtableOp != null) {
+            return LuaHashtableTranslation.expression(e, hashtableOp, tr);
         }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
@@ -172,19 +200,37 @@ public class ExprTranslation {
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
     }
 
+    private static boolean isObjectFromIndexName(String typeCastingFunction) {
+        return "objectFromIndex".equals(typeCastingFunction) || LUA_HANDLE_FROM_INDEX.contains(typeCastingFunction);
+    }
+
     /**
-     * Compiler-synthesised natives which the backend prints as an operator instead of a call.
-     * Recognised by node identity: an ordinary function of the same name keeps its definition.
+     * Whether a call of {@code fromIndex}, an old-generics conversion back to a handle, is printed as
+     * {@code __wurst_objectFromIndex}. That helper answers nil for nil, for 0 and for every number it
+     * never handed out, and indexes its table with the number it is given (Lua reads 3.0 as the key 3),
+     * so it needs no int normalisation in front of it: an old-generics slot holds nil or the index the
+     * matching toIndex gave.
+     */
+    public static boolean printsAsObjectFromIndex(FuncDef fromIndex) {
+        return fromIndex.attrNearestPackage() instanceof WPackage p && "TypeCasting".equals(p.getName())
+            && isObjectFromIndexName(fromIndex.getName());
+    }
+
+    /**
+     * Compiler-synthesised natives which the backend prints as an operator or a table store instead
+     * of a call, so they have no definition. Recognised by node identity: an ordinary function of the
+     * same name keeps its definition.
      */
     static boolean isBackendIntrinsic(ImFunction function, LuaTranslator tr) {
         return unaryIntrinsicName(function, tr) != null
             || function == tr.imTr.luaRawFloorDivIntFunc
             || function == tr.imTr.luaRawFmodIntFunc
-            || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc
             || function == tr.imTr.luaRawOrEmptyFunc
-            || LuaKeyedMap.readStubName(tr.imTr, function) != null;
+            || function == tr.imTr.luaResumeObjectIdsFunc
+            || LuaKeyedMap.readStubName(tr.imTr, function) != null
+            || LuaKeyedMap.writeStubName(tr.imTr, function) != null;
     }
 
     /**
@@ -215,7 +261,8 @@ public class ExprTranslation {
      * float, and {@code | 0} turns it into an integer, which it can because the range was checked; a
      * negative real is truncated as the negated floor of its negation. Both middle values are integers,
      * which Lua counts as true even when they are 0, so {@code and}/{@code or} pick the right branch.
-     * NaN, the infinities and everything outside the range call the native.
+     * Outside the range R2I saturates, in Jass and in the game's Lua alike (measured on the 3.0.0 client: a computed
+     * 5000000320 is 2147483647), so the bound is answered in place, and NaN is 0 as in the interpreter.
      */
     static LuaExpr realToInt(LuaExpr x) {
         LuaExpr nonNegative = LuaAst.LuaExprBinary(
@@ -229,13 +276,20 @@ public class ExprTranslation {
         LuaExpr truncated = floorToInt(x.copy());
         LuaExpr negatedTruncated = LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(),
             floorToInt(LuaAst.LuaExprUnary(LuaAst.LuaOpMinus(), x.copy())));
-        LuaExpr nativeCall = LuaAst.LuaExprFunctionCallByName("R2I", LuaAst.LuaExprlist(x.copy()));
+        LuaExpr saturated = LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpGreater(), LuaAst.LuaExprRealVal("0.0")),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("2147483647")),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpLess(), LuaAst.LuaExprRealVal("0.0")),
+                    LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("-2147483648")),
+                LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0")));
         return LuaAst.LuaExprBinary(
             LuaAst.LuaExprBinary(nonNegative, LuaAst.LuaOpAnd(), truncated),
             LuaAst.LuaOpOr(),
             LuaAst.LuaExprBinary(
                 LuaAst.LuaExprBinary(negative, LuaAst.LuaOpAnd(), negatedTruncated),
-                LuaAst.LuaOpOr(), nativeCall));
+                LuaAst.LuaOpOr(), saturated));
     }
 
     private static LuaExpr floorToInt(LuaExpr x) {
@@ -283,10 +337,9 @@ public class ExprTranslation {
             return false;
         }
         ImExpr arg = e.getArguments().get(0);
-        if (!(arg instanceof ImOperatorCall)) {
+        if (!(arg instanceof ImOperatorCall op)) {
             return false;
         }
-        ImOperatorCall op = (ImOperatorCall) arg;
         if (op.getOp() != WurstOperator.DIV_INT) {
             return false;
         }
@@ -295,8 +348,8 @@ public class ExprTranslation {
         }
         ImExpr left = op.getArguments().get(0);
         ImExpr right = op.getArguments().get(1);
-        return (left instanceof ImIntVal && ((ImIntVal) left).getValI() == 1)
-            && (right instanceof ImIntVal && ((ImIntVal) right).getValI() == 0);
+        return (left instanceof ImIntVal leftInt && leftInt.getValI() == 1)
+            && (right instanceof ImIntVal rightInt && rightInt.getValI() == 0);
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
@@ -464,50 +517,10 @@ public class ExprTranslation {
     }
 
 
-    public static LuaFunction getTupleCopyFunc(ImTupleType t, LuaTranslator tr) {
-        Optional<TupleFunc> tfo = Optional.empty();
-        for (TupleFunc f : tr.tupleCopyFuncs) {
-            if (f.tupleType.equalsType(t)) {
-                tfo = Optional.of(f);
-                break;
-            }
-        }
-        TupleFunc tf;
-        if (tfo.isPresent()) {
-            tf = tfo.get();
-        } else {
-            LuaVariable t1 = LuaAst.LuaVariable("t", LuaAst.LuaNoExpr());
-            LuaStatements body = LuaAst.LuaStatements();
-            LuaFunction func = LuaAst.LuaFunction(tr.uniqueName("tupleCopy"), LuaAst.LuaParams(t1), body);
-            LuaTableFields fields = LuaAst.LuaTableFields();
-            LuaExpr result = LuaAst.LuaTableConstructor(fields);
-
-            int i = 0;
-            for (ImType type : t.getTypes()) {
-                i++;
-                LuaExpr v = LuaAst.LuaExprArrayAccess(
-                    LuaAst.LuaExprVarAccess(t1),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))
-                );
-                if (type instanceof ImTupleType) {
-                    ImTupleType tt = (ImTupleType) type;
-                    v = LuaAst.LuaExprFunctionCall(getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(v));
-                }
-                fields.add(LuaAst.LuaTableSingleField(v));
-            }
-
-            body.add(LuaAst.LuaReturn(result));
-            tr.luaModel.add(func);
-            tf = new TupleFunc(t, func);
-            tr.tupleCopyFuncs.add(tf);
-        }
-        return tf.func;
-    }
-
     private static LuaExpr conjunction(LuaExpr left, LuaExpr right) {
-        if (left instanceof LuaExprBoolVal && ((LuaExprBoolVal) left).getValB()) {
+        if (left instanceof LuaExprBoolVal luaExprBoolVal && luaExprBoolVal.getValB()) {
             return right;
-        } else if (right instanceof LuaExprBoolVal && ((LuaExprBoolVal) right).getValB()) {
+        } else if (right instanceof LuaExprBoolVal luaExprBoolVal && luaExprBoolVal.getValB()) {
             return left;
         }
         return LuaAst.LuaExprBinary(left, LuaAst.LuaOpAnd(), right);
@@ -554,8 +567,7 @@ public class ExprTranslation {
     }
 
     private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
-        if (t instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) t;
+        if (t instanceof ImTupleType tt) {
             LuaFunction ef = getTupleEqualsFunc(tt, tr);
             return LuaAst.LuaExprFunctionCall(ef, LuaAst.LuaExprlist(leftExpr, rightExpr));
         }
@@ -569,17 +581,17 @@ public class ExprTranslation {
     public static LuaExpr translate(ImStatementExpr e, LuaTranslator tr) {
         // The statement-expr becomes an immediately-invoked closure. An exitwhen
         // that targets a loop OUTSIDE the statement-expr would emit 'break' inside
-        // the closure, which is invalid Lua — fail loudly instead of emitting it.
+        // the closure, which is invalid Lua; fail loudly instead of emitting it.
         // (flatten() normally hoists statement-exprs so this should not occur.)
         e.getStatements().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImLoop loop) {
-                // breaks inside a nested loop are fine — do not descend
+                // breaks inside a nested loop are fine; do not descend
             }
 
             @Override
             public void visit(ImVarargLoop loop) {
-                // breaks inside a nested loop are fine — do not descend
+                // breaks inside a nested loop are fine; do not descend
             }
 
             @Override
@@ -600,16 +612,19 @@ public class ExprTranslation {
         return LuaAst.LuaExprStringVal(e.getValS());
     }
 
+    /** Only the results of a return are a tuple (StmtTranslation): see {@link LuaMultipleResults}. */
     public static LuaExpr translate(ImTupleExpr e, LuaTranslator tr) {
-        LuaTableFields tableFields = LuaAst.LuaTableFields();
-        for (ImExpr te : e.getExprs()) {
-            tableFields.add(LuaAst.LuaTableSingleField(te.translateToLua(tr)));
-        }
-        return LuaAst.LuaTableConstructor(tableFields);
+        throw new CompileError(e.attrTrace().attrSource(),
+            "Lua backend: a tuple which is not the results of a return: " + e);
     }
 
+    /** A component of a call's results is the local it was received in. */
     public static LuaExpr translate(ImTupleSelection e, LuaTranslator tr) {
-        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1 + e.getTupleIndex()))));
+        if (e.getTupleExpr() instanceof ImVarAccess access && LuaMultipleResults.isResultsLocal(access.getVar())) {
+            return LuaAst.LuaExprVarAccess(tr.resultVars(access.getVar()).get(e.getTupleIndex()));
+        }
+        throw new CompileError(e.attrTrace().attrSource(),
+            "Lua backend: a tuple selection which is not of a call's results: " + e);
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
@@ -625,6 +640,10 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImVarAccess e, LuaTranslator tr) {
+        if (LuaMultipleResults.isResultsLocal(e.getVar())) {
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: the results of a call read other than by a component: " + e);
+        }
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
@@ -642,8 +661,9 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
-//        return LuaAst.LuaLiteral("debug.traceback()");
-        return LuaAst.LuaLiteral("\"$Stacktrace$\"");
+        // With instrumentation enabled StackTraceInjector2 has already replaced this expression.
+        // Otherwise match Jass: requesting a disabled stacktrace yields an empty string.
+        return LuaAst.LuaLiteral("\"\"");
     }
 
     public static LuaExpr translate(ImCompiletimeExpr imCompiletimeExpr, LuaTranslator tr) {
@@ -676,7 +696,7 @@ public class ExprTranslation {
      */
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
-        ImType fromType = imCast.getExpr().attrTyp();
+        ImType fromType = imCast.getFromType();
         if (TypesHelper.isIntType(imCast.getToType())) {
             if (TypesHelper.isStringType(fromType)) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
@@ -689,7 +709,7 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType) {
-            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+            if (fromType instanceof ImClassType) {
                 // Both sides are integer ids (or nil); nothing to normalise.
                 return translated;
             }

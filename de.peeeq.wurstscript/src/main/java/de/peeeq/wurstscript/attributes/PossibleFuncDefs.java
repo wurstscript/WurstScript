@@ -3,20 +3,17 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeReal;
-import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
 import static de.peeeq.wurstscript.attributes.AttrFuncDef.filterAnnotation;
+import static de.peeeq.wurstscript.attributes.AttrFuncDef.isConstructorThisCall;
 
 public class PossibleFuncDefs {
 
@@ -56,43 +53,6 @@ public class PossibleFuncDefs {
         return searchFunction(node.getFuncName(), node);
     }
 
-    private static boolean isConstructorThisCall(ExprFunctionCall node) {
-        if (!node.getFuncName().equals("this")) {
-            return false;
-        }
-        Element current = node;
-        while (current != null) {
-            if (current instanceof ConstructorDef) {
-                return true;
-            }
-            current = current.getParent();
-        }
-        return false;
-    }
-
-    private static ImmutableCollection<FuncLink> getExtensionFunction(Expr left, Expr right, WurstOperator op) {
-        String funcName = op.getOverloadingFuncName();
-        if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
-            return Utils.emptyList();
-        }
-        return searchMemberFunc(left, left.attrTyp(), funcName);
-    }
-
-
-    /**
-     * checks if operator is a native operator like for 1+2
-     * TODO also check which operator is used?
-     *
-     * @param term
-     */
-    private static boolean nativeOperator(WurstType leftType, WurstType rightType, Element term) {
-        return
-                // numeric
-                ((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType.isSubtypeOf(WurstTypeReal.instance(), term))
-                        && (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)))
-                        // strings
-                        || (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString);
-    }
 
 
     private static ImmutableCollection<FuncLink> searchFunction(String funcName, @Nullable FuncRef node) {

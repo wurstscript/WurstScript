@@ -31,8 +31,8 @@ public final class AttrModuleInstanciations {
 
         // Resolve through the owner's scope
         TypeDef def = owner.lookupType(name, /*showErrors*/ false);
-        if (def instanceof ModuleDef) {
-            return (ModuleDef) def;
+        if (def instanceof ModuleDef moduleDef) {
+            return moduleDef;
         }
 
         // Only emit error if we're fully attached (not in a transient state)

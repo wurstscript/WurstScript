@@ -81,8 +81,7 @@ public class FuncLink extends DefLink {
 
 
     private static @Nullable WurstType calcReceiverType(WScope definedIn, NameDef nameDef) {
-        if (nameDef instanceof ExtensionFuncDef) {
-            ExtensionFuncDef exF = (ExtensionFuncDef) nameDef;
+        if (nameDef instanceof ExtensionFuncDef exF) {
             return exF.getExtendedType().attrTyp().dynamic();
         } else if (nameDef instanceof FuncDef) {
             return getReceiverType(definedIn);
@@ -186,7 +185,7 @@ public class FuncLink extends DefLink {
         WurstType newReceiverType = adjustType(context, getReceiverType(), binding);
         changed = changed || newReceiverType != getReceiverType();
         // Also check if any type params are being bound (even if types don't
-        // change structurally — e.g., T bound to itself within a generic module)
+        // change structurally, e.g., T bound to itself within a generic module)
         if (!changed) {
             for (TypeParamDef tp : getTypeParams()) {
                 if (binding.contains(tp)) {

@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imoptimizer.TreeShaker;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
@@ -68,6 +69,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private final WurstParser parser;
     private final WurstChecker checker;
     private @Nullable ImTranslator imTranslator;
+    /** The translator of the last transformProgToLua, which knows the Lua name of each function. */
+    private @Nullable LuaTranslator luaTranslator;
     private final List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
     private final TimeTaker timeTaker;
@@ -123,17 +126,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     @Override
     public void runCompiletime(WurstProjectConfigData projectConfigData, boolean isProd, boolean cache) {
         if (runArgs.runCompiletimeFunctions()) {
+            removeUnreachableFunctionsBeforeCompiletime();
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
+            timeTaker.beginPhase("run compiletime functions");
             // Use try-with-resources to release open native resources (e.g., SQLite DB handles) after compiletime execution finishes.
             try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
                 CompiletimeFunctions, projectConfigData, isProd, cache)) {
                 ctr.setInjectObjects(runArgs.isInjectObjects());
+                ctr.getGlobalState().setExportW3o(runArgs.isExportW3o());
                 ctr.getGlobalState().setObjectDataSource(objectDataSource);
                 ctr.setOutputStream(new PrintStream(System.err));
                 ctr.run();
             }
+            timeTaker.endPhase();
         }
 
         if (gui.getErrorCount() > 0) {
@@ -402,11 +409,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public void checkProg(WurstModel model) {
-        checkProg(model, model);
+    public boolean checkProg(WurstModel model) {
+        return checkProg(model, model);
     }
 
-    public void checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
+    /** @return whether the units were validated, see {@link WurstChecker#checkProg} */
+    public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
+        return checkProg(model, toCheck, model);
+    }
+
+    public boolean checkProg(WurstModel model, Collection<CompilationUnit> toCheck,
+                             Collection<CompilationUnit> compilationUnits) {
         for (CompilationUnit cu : toCheck) {
             Preconditions.checkNotNull(cu);
             if (!model.contains(cu)) {
@@ -415,7 +428,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             }
         }
 
-        checker.checkProg(model, toCheck);
+        return checker.checkProg(model, toCheck, compilationUnits);
+    }
+
+    /** Takes over a model which was checked completely and has not changed since, instead of checking it again. */
+    public void adoptCheckedModel(WurstModel model) {
+        checker.adoptCheckedModel(model);
+    }
+
+    public void adoptCheckedModel(WurstModel model, Collection<CompilationUnit> compilationUnits) {
+        checker.adoptCheckedModel(model, compilationUnits);
     }
 
     public JassProg transformProgToJass() {
@@ -424,11 +446,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imTranslator2.assertProperties();
         checkNoCompiletimeExpr(imProg2);
         int stage = 2;
+        // Before anything walks the whole program: the generics below specialise whatever they are given.
+        beginPhase(2, "remove unreachable functions before generics");
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(imTranslator2);
+        timeTaker.endPhase();
         // eliminate
         beginPhase(2, "Eliminate generics");
         new EliminateGenerics(imTranslator2, imProg2).transform();
         imTranslator2.clearStaleClassManagementVars();
         printDebugImProg("./test-output/im " + stage++ + "_genericsEliminated.im");
+        timeTaker.endPhase();
+        // The specialisation copies functions nothing calls as well, and the passes from here on walk all of them.
+        beginPhase(2, "remove unreachable functions");
+        TreeShaker.removeUnreachableFunctions(imTranslator2);
         timeTaker.endPhase();
         // eliminate classes
         beginPhase(2, "translate classes");
@@ -455,17 +485,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
 
+        beginPhase(4, "eliminate varargs");
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
         imTranslator2.assertProperties();
 
         timeTaker.endPhase();
-
-        if (runArgs.isNoDebugMessages()) {
-            beginPhase(3, "remove debug messages");
-            DebugMessageRemover.removeDebugMessages(imProg2);
-            timeTaker.endPhase();
-        }
 
         imTranslator2.assertProperties();
 
@@ -537,14 +562,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
 
-        beginPhase(13, "flatten");
+        // The program is flat here (the flatten before the local optimizations, and every sweep of them ends with one) and
+        // the removal keeps it flat, so no flatten follows it. A second removal used to follow (#883): the flatten after
+        // the first uncovered garbage which only the second removed. There is no such flatten any more, so what one
+        // removal does not remove is not there. A unit test makes the second removal and fails when it finds garbage.
+        beginPhase(13, "remove garbage");
         boolean garbageChanged = optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-
-        // Re-run to avoid #883
         if (garbageChanged) {
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
+            optimizer.assertNoGarbage("the removal ran on a flat program and kept it flat");
         }
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
@@ -556,25 +581,30 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isOptimize()) {
             beginPhase(13, "froptimize");
             optimizer.optimize();
-
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
             printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
+            timeTaker.endPhase();
         }
 
 
         // translate flattened intermediate lang to jass:
 
         beginPhase(14, "translate to jass");
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        // the last removal was followed by nothing which makes garbage (the code for the hot reload only calls and sets)
+        optimizer.assertNoGarbage("only the code for the hot reload was added since the last removal");
+        // the package initialisers which are empty now are removed, and then the variables only they used
+        timeTaker.beginPhase("remove empty package inits");
         imTranslator.removeEmptyPackageInits();
+        timeTaker.endPhase();
+        timeTaker.beginPhase("remove garbage");
         optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-        getImTranslator().calculateCallRelationsAndReadVariables();
+        timeTaker.endPhase();
+        imTranslator.assertFlat("before it is translated to Jass, which has no statement expression");
+        // The final garbage removal leaves current call relations; nothing modifies the program before emission.
+        timeTaker.beginPhase("print IM as Jass");
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
         prog = translator.translate();
+        timeTaker.endPhase();
         if (errorHandler.getErrorCount() > 0) {
             prog = null;
         }
@@ -641,11 +671,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return findFunctionInternal(funcName, trace, true);
     }
 
-    @NotNull
-    private ImFunction findFunction(String funcName, WPos trace) {
-        return findFunctionInternal(funcName, trace, false);
-    }
-
 
     @NotNull
     private ImFunctionCall callExtern(Element trace, CallType callType, String functionName, ImExpr... arguments) {
@@ -663,6 +688,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         });
     }
 
+    public @Nullable LuaTranslator getLuaTranslator() {
+        return luaTranslator;
+    }
+
     public ImTranslator getImTranslator() {
         final ImTranslator t = imTranslator;
         if (t != null) {
@@ -673,12 +702,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public @Nullable ImProg translateProgToIm(WurstModel root) {
+        return translateProgToIm(root, root);
+    }
+
+    /** Translate a compilation view without removing units from the checked editor model. */
+    public @Nullable ImProg translateProgToIm(WurstModel root, Collection<CompilationUnit> compilationUnits) {
         beginPhase(1, "to intermediate lang");
         // Names of generated temporaries are counted from here, so that the same source compiles
         // to the same script whatever was compiled before it in this process.
         Flatten.resetTempVarCounters();
         // translate wurst to intermediate lang:
-        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
+        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs, compilationUnits);
         imProg = getImTranslator().translateProg();
         // Before any compile-time function runs: the library asks whether this compiler lowers CodeList.
         CodeListSupport.markSupported(imProg);
@@ -689,7 +723,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     private void beginPhase(int phase, String description) {
-        errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description, 0.6 + 0.01 * phase);
+        errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description);
         timeTaker.beginPhase(description);
     }
 
@@ -914,10 +948,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return mapFileMpq;
     }
 
+    /**
+     * Drops the functions nothing reaches ({@link TreeShaker}) in front of the compile-time functions. The run walks
+     * the whole program (to find the expressions it evaluates), and splitting the state it replays analyses the whole
+     * program once per function it splits, so every function nothing calls is paid for there as well.
+     */
+    private void removeUnreachableFunctionsBeforeCompiletime() {
+        beginPhase(2, "remove unreachable functions before compiletime");
+        TreeShaker.removeUnreachableFunctionsBeforeCompiletime(getImTranslator(),
+            CompiletimeFunctionRunner.functionsOfTheRun(getImProg(), CompiletimeFunctions));
+        timeTaker.endPhase();
+    }
+
     public LuaCompilationUnit transformProgToLua() {
 
         ImAttrType.setWurstClassType(null);
         int stage;
+        // Before anything walks the whole program: the generics below, and the checks which decide whether they run.
+        beginPhase(2, "remove unreachable functions before generics");
+        TreeShaker.removeUnreachableFunctionsBeforeGenerics(getImTranslator());
+        timeTaker.endPhase();
         boolean specializeTupleValueTypes = containsTupleTypeArgument();
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
         if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
@@ -931,23 +981,23 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         // Before stack traces: that pass appends a parameter to every affected function, and on
         // Lua every non-native function is affected, so the exact signatures the keyed-table
-        // operations are recognised by would stop matching - silently leaving their Jass bodies on
-        // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
-        beginPhase(4, "lower keyed tables");
+        // operations are recognised by would stop matching and leave their Jass bodies on Lua, which
+        // key through wurstKeyOf. Before the tree shake, which then drops those replaced bodies: the
+        // native lowering lowers each call of wurstKeyOf it finds, and rejects one from generic code.
+        beginPhase(2, "lower keyed tables");
         LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
         timeTaker.endPhase();
+        // What nothing calls (most of the imported libraries) would go through every pass below, and the garbage
+        // removal after the tuples is the first thing to drop it. The helpers the passes below call are pinned.
+        beginPhase(2, "remove unreachable functions");
+        TreeShaker.removeUnreachableFunctions(getImTranslator());
+        timeTaker.endPhase();
+        imTranslator.assertNoLiveErasedGenericStatic();
 
-        if (runArgs.isNoDebugMessages()) {
-            beginPhase(3, "remove debug messages");
-            DebugMessageRemover.removeDebugMessages(imProg);
+        if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
+            beginPhase(4, "add stack traces");
+            new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
             timeTaker.endPhase();
-        } else {
-            // debug: add stacktraces
-            if (runArgs.isIncludeStacktraces()) {
-                beginPhase(4, "add stack traces");
-                new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
-                timeTaker.endPhase();
-            }
         }
         // Same position as on Jass: after stack traces, before lowering and inlining. Calls with a
         // static argument count go to fixed-arity copies, so the emitted Lua packs no table and the
@@ -992,13 +1042,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         timeTaker.beginPhase("eliminate tuples");
         getImProg().flatten(imTranslator2);
+        // The tuples left are the multiple results of calls (LuaMultipleResults), whose shape the elimination checks.
         EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
-        imTranslator2.assertProperties(AssertProperty.NOTUPLES);
         timeTaker.endPhase();
 
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
         timeTaker.endPhase();
+        // After the inlining an allocation is followed by the constructor's writes, so the local optimizations can
+        // drop the defaults those overwrite. The backend no longer writes them, so this runs in every mode.
+        LuaFieldDefaults.materialize(imProg, imTranslator2);
         stage = 10;
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");
@@ -1017,30 +1070,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
 
+        // The program is flat here (the flatten above, and every sweep of the local optimizations ends with one) and the
+        // removal keeps it flat, so no flatten follows it. A second removal used to follow (#883): the flatten after
+        // the first uncovered garbage which only the second removed. There is no such flatten any more, so what one
+        // removal does not remove is not there. A unit test makes the second removal and fails when it finds garbage.
         boolean garbageChanged = optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
-
-        // Re-run to avoid #883
         if (garbageChanged) {
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
+            optimizer.assertNoGarbage("the removal ran on a flat program and kept it flat");
         }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
 
-        stage = 12;
-        if (runArgs.isOptimize()) {
-            beginPhase(12, "froptimize");
-            optimizer.optimize();
-
-            optimizer.removeGarbage();
-            imProg.flatten(imTranslator);
-            printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
-            timeTaker.endPhase();
-        }
+        // Lua assigns compressed names after lowering: class descriptors, dispatch slots and
+        // backend-generated declarations do not exist in the IM compressor's namespace.
         beginPhase(13, "lua remove garbage");
         RemoveGarbage.removeGarbage(imProg, imTranslator);
-        imProg.flatten(imTranslator);
         timeTaker.endPhase();
 
         beginPhase(13, "prepare lua dispatch");
@@ -1052,9 +1096,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         LuaOldGenericsCasts.transform(imProg, imTranslator);
         timeTaker.endPhase();
 
+        imTranslator.assertFlat("before it is translated to Lua, which would make a closure of each statement expression");
         beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
+        this.luaTranslator = luaTranslator;
         ImAttrType.setWurstClassType(TypesHelper.imInt());
         timeTaker.endPhase();
         return luaCode;

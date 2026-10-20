@@ -21,8 +21,8 @@ public class LineMapAttr {
     }
 
     public static JassProg getProg(Element e) {
-        if (e instanceof JassProg) {
-            return (JassProg) e;
+        if (e instanceof JassProg jassProg) {
+            return jassProg;
         }
         return e.getParent().getProg();
     }

@@ -31,7 +31,6 @@ public class ExtendedWurstLexer implements TokenSource {
     private final Pair<TokenSource, CharStream> sourcePair;
     private boolean isWurst = false;
     private boolean lastCharWasWrap = false;
-    private @Nullable Token lastToken = null;
     // which character is used for indentation
     private TabChoice tabChoice = TabChoice.Unknown;
     private CompileError tabWarning = null;
@@ -99,7 +98,6 @@ public class ExtendedWurstLexer implements TokenSource {
     @Override
     public Token nextToken() {
         Token t = nextTokenIntern();
-        lastToken = t;
 
         if (debug) WLogger.trace(() -> "		new token: " + t);
         return t;
@@ -216,27 +214,6 @@ public class ExtendedWurstLexer implements TokenSource {
                         state(State.INIT);
                         return firstNewline;
                     }
-//			case WRAP_CHAR:
-//				if (isWrapCharEndLine(token.getType())) {
-//					return token;
-//				} else if (token.getType() == WurstParser.NL) {
-//					firstNewline = token;
-//					numberOfTabs = 0;
-//					continue;
-//				} else if (token.getType() == WurstParser.TAB) {
-//					numberOfTabs++;
-//					continue;
-//				} else {
-//					state(State.INIT);
-//					if (numberOfTabs <= indentationLevels.peek()) {
-//						// when the number of tabs decreases we ignore wrap chars
-//						handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
-//						nextTokens.add(token);
-//						return firstNewline;
-//					} else {
-//						return token;
-//					}
-//				}
                 case BEGIN_LINE:
                     if (isTab(token)) {
                         readTabChar(token);
@@ -377,17 +354,9 @@ public class ExtendedWurstLexer implements TokenSource {
 
     }
 
-    private void reportError(int line, int charPositionInLine, String msg) {
-        for (ANTLRErrorListener el : orig.getErrorListeners()) {
-            el.syntaxError(orig, "", line, charPositionInLine, msg, null);
-        }
-    }
-
 
     private boolean isWrapChar(int type) {
         switch (type) {
-//		case WurstParser.PAREN_LEFT:
-//		case WurstParser.BRACKET_LEFT:
             case WurstParser.COMMA:
             case WurstParser.PLUS:
             case WurstParser.MULT:
@@ -398,7 +367,6 @@ public class ExtendedWurstLexer implements TokenSource {
             case WurstParser.MOD_REAL:
             case WurstParser.AND:
             case WurstParser.OR:
-//            case WurstParser.ARROW:
             case WurstParser.QUESTION:
             case WurstParser.COLON:
                 return true;

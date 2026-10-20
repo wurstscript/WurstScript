@@ -17,21 +17,16 @@ public class NameGenerator {
      */
     private final String charmapFirst = "wurstiScoOlbypeqandfRTYGghFkjxvmQWEZUIPADHJKLXCVBNM";
     private final String charmap = charmapFirst + "3142567890";
-    private final String charmapMid = charmap + "_";
 
-    private final String TEcharmap = "wurstqeiopadfghjklyxcvbnm";
     /**
      * A counter
      */
     private int currentId = 0;
-    private int TEId = 0;
     /**
      * length of charmap
      */
     private final int lengthFirst;
     private final int length;
-    private final int lengthMid;
-    private final int TElength = 25;
 
 
     /**
@@ -42,9 +37,7 @@ public class NameGenerator {
     public NameGenerator() {
         checkCharmap(charmapFirst);
         checkCharmap(charmap);
-        checkCharmap(charmapMid);
         length = charmap.length();
-        lengthMid = charmapMid.length();
         lengthFirst = charmapFirst.length();
     }
 
@@ -69,12 +62,11 @@ public class NameGenerator {
         StringBuilder b = new StringBuilder();
         b.append(charmapFirst.charAt(id % lengthFirst));
         if ((id /= lengthFirst) != 0) {
+            // One radix for every position after the first. Choosing the alphabet per digit while
+            // always dividing by the same length made distinct ids collide, and the compressor
+            // relies on this stream being unique.
             do {
-                if (id > lengthMid) {
-                    b.append(charmapMid.charAt((id - 1) % lengthMid));
-                } else {
-                    b.append(charmap.charAt((id - 1) % length));
-                }
+                b.append(charmap.charAt((id - 1) % length));
             } while ((id /= length) != 0);
         }
 
@@ -98,22 +90,6 @@ public class NameGenerator {
         return s;
     }
 
-    /**
-     * Get a token that can be used for TE and TRVE since
-     * its only lowercase.
-     * To be unique these start with "z"
-     *
-     * @return A checked, unique token, lowercase, starting with z
-     */
-    public String getTEToken() {
-        int id = TEId++;
-        StringBuilder b = new StringBuilder("z");
-        do {
-            b.append(TEcharmap.charAt(id % TElength));
-        } while ((id /= TElength) != 0);
-
-        return b.toString();
-    }
 
 
 }

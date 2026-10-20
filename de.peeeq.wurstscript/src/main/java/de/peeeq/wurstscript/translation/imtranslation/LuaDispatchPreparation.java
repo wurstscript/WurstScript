@@ -5,19 +5,25 @@ import de.peeeq.wurstscript.ast.AstElementWithFuncName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
+import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -95,7 +101,10 @@ public final class LuaDispatchPreparation {
                 if (partition.isEmpty()) {
                     continue;
                 }
-                String key = methodSortKey(partition.get(0)) + "|" + dispatchSignatureKey(partition.get(0));
+                // The sort key names the class only; two packages may each declare one of that name.
+                ImClass owner = partition.get(0).attrClass();
+                String key = methodSortKey(partition.get(0)) + "|" + dispatchSignatureKey(partition.get(0))
+                    + OWNERS + (owner == null ? "" : packageOf(owner.getTrace()));
                 for (int k = 0; k < partition.size(); k++) {
                     ImMethod method = partition.get(k);
                     method.setLuaDispatchGroupKey(key);
@@ -273,7 +282,10 @@ public final class LuaDispatchPreparation {
         List<ImMethod> candidates = sortedMethodsForClass(c, sortedMethodsByClass);
         for (int i = 0; i < candidates.size(); i++) {
             ImMethod candidate = candidates.get(i);
-            if (!dispatchKey.equals(dispatchParameterSignatureKey(candidate))) {
+            // An override's parameters may be concrete where its generic root still has type variables.
+            // The explicit override graph establishes that identity without comparing unbound signatures.
+            if (!dispatchKey.equals(dispatchParameterSignatureKey(candidate))
+                && !sameOverrideFamily(method, candidate)) {
                 continue;
             }
             if (!sharesSemanticName(method, candidate, semanticNames, tr)) {
@@ -462,6 +474,11 @@ public final class LuaDispatchPreparation {
             }
             sb.append(typeKey(params.get(i).getType()));
         }
+        sb.append(OWNERS);
+        appendOwners(implementation.getReturnType(), sb);
+        for (int i = 1; i < params.size(); i++) {
+            appendOwners(params.get(i).getType(), sb);
+        }
         return sb.toString();
     }
 
@@ -483,6 +500,10 @@ public final class LuaDispatchPreparation {
                 sb.append(",");
             }
             sb.append(typeKey(params.get(i).getType()));
+        }
+        sb.append(OWNERS);
+        for (int i = 1; i < params.size(); i++) {
+            appendOwners(params.get(i).getType(), sb);
         }
         return sb.toString();
     }
@@ -616,8 +637,91 @@ public final class LuaDispatchPreparation {
         return "" + Math.max(0, implementation.getParameters().size() - 1);
     }
 
-    private static String typeKey(ImType type) {
-        return type == null ? "<null>" : type.toString();
+    /**
+     * The type as a key which every compilation of the program agrees on. Printed, a type variable carries an identity
+     * hash (ImPrinter), so two variables named T could share a key in one run and not in the next, and the methods of
+     * a group then fell into one slot or two depending on the run. A type variable is its owner, its position there
+     * and its name instead.
+     */
+    public static String typeKey(ImType type) {
+        if (type == null) {
+            return "<null>";
+        } else if (type instanceof ImTypeVarRef ref) {
+            return typeVarKey(ref.getTypeVariable());
+        } else if (type instanceof ImClassType classType) {
+            StringBuilder sb = new StringBuilder(classType.getClassDef().getName());
+            if (!classType.getTypeArguments().isEmpty()) {
+                sb.append("<");
+                for (int i = 0; i < classType.getTypeArguments().size(); i++) {
+                    sb.append(i > 0 ? "," : "").append(typeKey(classType.getTypeArguments().get(i).getType()));
+                }
+                sb.append(">");
+            }
+            return sb.toString();
+        } else if (type instanceof ImArrayType arrayType) {
+            return typeKey(arrayType.getEntryType()) + "[]";
+        } else if (type instanceof ImArrayTypeMulti arrayType) {
+            return typeKey(arrayType.getEntryType()) + arrayType.getArraySize();
+        } else if (type instanceof ImTupleType tupleType) {
+            StringBuilder sb = new StringBuilder("(");
+            for (int i = 0; i < tupleType.getTypes().size(); i++) {
+                sb.append(i > 0 ? "," : "").append(typeKey(tupleType.getTypes().get(i)));
+            }
+            return sb.append(")").toString();
+        }
+        // a simple type, void, any: no identity in the printed form
+        return type.toString();
+    }
+
+    /**
+     * Separates a signature from the packages of what it names. It sorts below every character a type key holds, so
+     * two signatures which differed before them keep their order, and two which named equal types stay together.
+     */
+    private static final char OWNERS = '';
+
+    /**
+     * The packages of the classes and of the owners of the type variables {@code type} names, in order. Two packages may
+     * each declare a class of the same name, and {@link #typeKey} names a class by its name only: without these, the
+     * methods of two such classes shared a dispatch group and their signatures compared equal for an alias.
+     */
+    private static void appendOwners(ImType type, StringBuilder sb) {
+        if (type instanceof ImTypeVarRef ref) {
+            ImTypeVar typeVar = ref.getTypeVariable();
+            Element owner = typeVar.getParent() instanceof ImTypeVars vars ? vars.getParent() : null;
+            sb.append(owner instanceof ImClass c ? packageOf(c.getTrace())
+                : owner instanceof ImFunction f ? packageOf(f.getTrace()) : "").append(';');
+        } else if (type instanceof ImClassType classType) {
+            sb.append(packageOf(classType.getClassDef().getTrace())).append(';');
+            for (int i = 0; i < classType.getTypeArguments().size(); i++) {
+                appendOwners(classType.getTypeArguments().get(i).getType(), sb);
+            }
+        } else if (type instanceof ImArrayType arrayType) {
+            appendOwners(arrayType.getEntryType(), sb);
+        } else if (type instanceof ImArrayTypeMulti arrayType) {
+            appendOwners(arrayType.getEntryType(), sb);
+        } else if (type instanceof ImTupleType tupleType) {
+            for (int i = 0; i < tupleType.getTypes().size(); i++) {
+                appendOwners(tupleType.getTypes().get(i), sb);
+            }
+        }
+    }
+
+    private static String packageOf(de.peeeq.wurstscript.ast.Element trace) {
+        return trace != null && trace.attrNearestPackage() instanceof WPackage p ? p.getName() : "";
+    }
+
+    private static String typeVarKey(ImTypeVar typeVar) {
+        String owner = "?";
+        int position = -1;
+        if (typeVar.getParent() instanceof ImTypeVars vars) {
+            position = vars.indexOf(typeVar);
+            if (vars.getParent() instanceof ImClass c) {
+                owner = c.getName();
+            } else if (vars.getParent() instanceof ImFunction f) {
+                owner = f.getName();
+            }
+        }
+        return owner + "." + position + "." + typeVar.getName();
     }
 
     private static String methodSortKey(ImMethod method) {

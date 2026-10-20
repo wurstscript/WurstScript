@@ -12,8 +12,8 @@ public class CallSignature {
     private final List<Expr> arguments;
 
     public CallSignature(@Nullable OptExpr optExpr, List<Expr> arguments) {
-        if (optExpr instanceof Expr) {
-            this.receiver = (Expr) optExpr;
+        if (optExpr instanceof Expr expr) {
+            this.receiver = expr;
         } else {
             this.receiver = null;
         }

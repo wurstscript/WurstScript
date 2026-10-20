@@ -16,17 +16,14 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
-import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
-import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 
@@ -53,8 +50,6 @@ public class WurstValidator {
     private final ArrayList<ExprStatementsBlock> heavyBlocks = new ArrayList<>();
 
     private final WurstModel prog;
-    private int functionCount;
-    private int visitedFunctions;
     private final Multimap<WScope, WScope> calledFunctions = HashMultimap.create();
     private @Nullable Element lastElement = null;
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
@@ -71,20 +66,24 @@ public class WurstValidator {
      * input Jass are reported as warnings instead of errors.
      */
     private final boolean legacyJassTypeChecks;
+    private final Collection<CompilationUnit> compilationUnits;
 
     public WurstValidator(WurstModel root) {
         this(root, false);
     }
 
     public WurstValidator(WurstModel root, boolean legacyJassTypeChecks) {
+        this(root, legacyJassTypeChecks, root);
+    }
+
+    public WurstValidator(WurstModel root, boolean legacyJassTypeChecks, Collection<CompilationUnit> compilationUnits) {
         this.prog = root;
         this.legacyJassTypeChecks = legacyJassTypeChecks;
+        this.compilationUnits = compilationUnits;
     }
 
     public void validate(Collection<CompilationUnit> toCheck) {
         try {
-            functionCount = countFunctions(toCheck);
-            visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
             guaranteedClassFieldInitCache.clear();
@@ -92,15 +91,13 @@ public class WurstValidator {
             moduleFieldCopiesIndexed = false;
             trveWrapperFuncs.clear();
             wrapperCalls.clear();
-            NamePreservation.clearSyntheticMarkers(prog);
-            runtimeNameIndex = NamePreservation.indexGlobals(prog);
-            recomputeTrvePreservation();
+            prepareNamePreservation();
 
             lightValidation(toCheck);
 
             heavyValidation();
 
-            prog.getErrorHandler().setProgress("Post checks", 0.55);
+            prog.getErrorHandler().setProgress("Post checks");
             postChecks(toCheck);
 
         } catch (RuntimeException e) {
@@ -118,8 +115,7 @@ public class WurstValidator {
     private void heavyValidation() {
         // ===== Phase 2: HEAVY (process only collected targets) =====
         phase = Phase.HEAVY;
-        visitedFunctions = 0;
-        prog.getErrorHandler().setProgress("Validation (control-flow + dataflow)", 0.5);
+        prog.getErrorHandler().setProgress("Validation (control-flow + dataflow)");
 
         // functions: returns + DFA + reachability walk inside the function body
         for (FunctionLike f : heavyFunctions) {
@@ -127,8 +123,8 @@ public class WurstValidator {
             checkUninitializedVars(f);
 
             // reachability: walk only the function body statements
-            Element body = (f instanceof FunctionImplementation)
-                ? ((FunctionImplementation) f).getBody()
+            Element body = (f instanceof FunctionImplementation functionImplementation)
+                ? functionImplementation.getBody()
                 : f; // closures use ExprStatementsBlock path below
             walkReachability(body);
         }
@@ -143,8 +139,7 @@ public class WurstValidator {
     private void lightValidation(Collection<CompilationUnit> toCheck) {
         // ===== Phase 1: LIGHT (all regular checks, collect heavy targets) =====
         phase = Phase.LIGHT;
-        prog.getErrorHandler().setProgress("Validation (light)",
-            ProgressHelper.getValidatorPercent(0, Math.max(1, functionCount)));
+        prog.getErrorHandler().setProgress("Validation (light)");
 
         for (CompilationUnit cu : toCheck) {
             walkTree(cu);
@@ -158,8 +153,8 @@ public class WurstValidator {
         stack.push(root);
         while (!stack.isEmpty()) {
             Element e = stack.pop();
-            if (e instanceof WStatement) {
-                checkReachability((WStatement) e);
+            if (e instanceof WStatement wStatement) {
+                checkReachability(wStatement);
             }
             for (int i = e.size() - 1; i >= 0; i--) {
                 stack.push(e.get(i));
@@ -206,19 +201,12 @@ public class WurstValidator {
 
         collectUsedPackages(used, p.getElements());
 
-        // String usedToStr =
-        // used.stream().map(Utils::printElement).sorted().collect(Collectors.joining(",
-        // "));
-        // System.out.println("used = " + usedToStr);
 
         // contributed packages for each import
         Map<WImport, Set<WPackage>> contributions = new HashMap<>();
         for (WImport imp : p.getImports()) {
             Set<WPackage> contributedPackages = contributedPackages(imp.attrImportedPackage(), used, new HashSet<>());
             contributions.put(imp, contributedPackages);
-            // System.out.println( imp.getPackagename() + " contributes = " +
-            // contributedPackages.stream().map(Utils::printElement).sorted().collect(Collectors.joining(",
-            // ")));
         }
 
         // check for imports, which only contribute a subset of some other
@@ -306,8 +294,7 @@ public class WurstValidator {
             }
 
             // === post-order node work (same as your original) ===
-            if (e instanceof FuncRef) {
-                FuncRef fr = (FuncRef) e;
+            if (e instanceof FuncRef fr) {
                 FuncLink link = fr.attrFuncLink();
                 if (link != null) {
                     used.add(link.getDef().attrNearestPackage());
@@ -320,8 +307,7 @@ public class WurstValidator {
                 }
             }
 
-            if (e instanceof NameRef) {
-                NameRef nr = (NameRef) e;
+            if (e instanceof NameRef nr) {
                 NameLink def = nr.attrNameLink();
                 if (def != null && !(def instanceof OtherLink)) {
                     used.add(def.getDef().attrNearestPackage());
@@ -334,16 +320,14 @@ public class WurstValidator {
                 }
             }
 
-            if (e instanceof TypeRef) {
-                TypeRef t = (TypeRef) e;
+            if (e instanceof TypeRef t) {
                 TypeDef def = t.attrTypeDef();
                 if (def != null) {
                     used.add(def.attrNearestPackage());
                 }
             }
 
-            if (e instanceof ExprBinary) {
-                ExprBinary binop = (ExprBinary) e;
+            if (e instanceof ExprBinary binop) {
                 FuncLink def = binop.attrFuncLink();
                 if (def != null) {
                     used.add(def.getDef().attrNearestPackage());
@@ -360,22 +344,20 @@ public class WurstValidator {
                 }
             }
 
-            if (e instanceof Expr) {
-                WurstType typ = ((Expr) e).attrTyp();
-                if (typ instanceof WurstTypeNamedScope) {
-                    WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
+            if (e instanceof Expr expr) {
+                WurstType typ = expr.attrTyp();
+                if (typ instanceof WurstTypeNamedScope ns) {
                     NamedScope def = ns.getDef();
                     if (def != null) {
                         used.add(def.attrNearestPackage());
                     }
-                } else if (typ instanceof WurstTypeTuple) {
-                    TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+                } else if (typ instanceof WurstTypeTuple wurstTypeTuple) {
+                    TupleDef def = wurstTypeTuple.getTupleDef();
                     used.add(def.attrNearestPackage());
                 }
             }
 
-            if (e instanceof ModuleUse) {
-                ModuleUse mu = (ModuleUse) e;
+            if (e instanceof ModuleUse mu) {
                 @Nullable ModuleDef def = mu.attrModuleDef();
                 if (def != null) {
                     used.add(def.attrNearestPackage());
@@ -404,143 +386,143 @@ public class WurstValidator {
 
     private void check(Element e) {
         try {
-            if (e instanceof Annotation)
-                checkAnnotation((Annotation) e);
-            if (e instanceof AstElementWithTypeParameters)
-                checkTypeParameters((AstElementWithTypeParameters) e);
-            if (e instanceof AstElementWithNameId)
-                checkName((AstElementWithNameId) e);
-            if (e instanceof ClassDef) {
-                checkAbstractMethods((ClassDef) e);
-                visit((ClassDef) e);
+            if (e instanceof Annotation annotation)
+                checkAnnotation(annotation);
+            if (e instanceof AstElementWithTypeParameters astElementWithTypeParameters)
+                checkTypeParameters(astElementWithTypeParameters);
+            if (e instanceof AstElementWithNameId astElementWithNameId)
+                checkName(astElementWithNameId);
+            if (e instanceof ClassDef classDef) {
+                checkAbstractMethods(classDef);
+                visit(classDef);
             }
-            if (e instanceof ClassOrModule)
-                checkConstructorsUnique((ClassOrModule) e);
-            if (e instanceof InstanceDecl)
-                checkInstanceDecl((InstanceDecl) e);
-            if (e instanceof TypeParamDef)
-                checkTypeParamBounds((TypeParamDef) e);
-            if (e instanceof StmtCall)
-                checkCallBounds((StmtCall) e);
-            if (e instanceof CompilationUnit)
-                checkPackageName((CompilationUnit) e);
-            if (e instanceof ConstructorDef) {
-                checkConstructor((ConstructorDef) e);
-                checkThisConstructorCall((ConstructorDef) e);
-                checkConstructorSuperCall((ConstructorDef) e);
+            if (e instanceof ClassOrModule classOrModule)
+                checkConstructorsUnique(classOrModule);
+            if (e instanceof InstanceDecl instanceDecl)
+                checkInstanceDecl(instanceDecl);
+            if (e instanceof TypeParamDef typeParamDef)
+                checkTypeParamBounds(typeParamDef);
+            if (e instanceof StmtCall stmtCall)
+                checkCallBounds(stmtCall);
+            if (e instanceof CompilationUnit compilationUnit)
+                checkPackageName(compilationUnit);
+            if (e instanceof ConstructorDef constructorDef) {
+                checkConstructor(constructorDef);
+                checkThisConstructorCall(constructorDef);
+                checkConstructorSuperCall(constructorDef);
             }
-            if (e instanceof ExprBinary)
-                visit((ExprBinary) e);
-            if (e instanceof ExprClosure)
-                checkClosure((ExprClosure) e);
-            if (e instanceof ExprEmpty)
-                checkExprEmpty((ExprEmpty) e);
-            if (e instanceof ExprIntVal)
-                checkIntVal((ExprIntVal) e);
-            if (e instanceof ExprFuncRef)
-                checkFuncRef((ExprFuncRef) e);
-            if (e instanceof ExprFunctionCall) {
-                checkBannedFunctions((ExprFunctionCall) e);
-                visit((ExprFunctionCall) e);
+            if (e instanceof ExprBinary exprBinary)
+                visit(exprBinary);
+            if (e instanceof ExprClosure exprClosure)
+                checkClosure(exprClosure);
+            if (e instanceof ExprEmpty exprEmpty)
+                checkExprEmpty(exprEmpty);
+            if (e instanceof ExprIntVal exprIntVal)
+                checkIntVal(exprIntVal);
+            if (e instanceof ExprFuncRef exprFuncRef)
+                checkFuncRef(exprFuncRef);
+            if (e instanceof ExprFunctionCall exprFunctionCall) {
+                checkBannedFunctions(exprFunctionCall);
+                visit(exprFunctionCall);
             }
-            if (e instanceof ExprMemberMethod)
-                visit((ExprMemberMethod) e);
-            if (e instanceof ExprMemberMethodQuestionDot)
-                checkNullSafeAccess((ExprMemberMethodQuestionDot) e);
-            if (e instanceof ExprMemberVarQuestionDot)
-                checkNullSafeAccess((ExprMemberVarQuestionDot) e);
-            if (e instanceof ExprMemberVar)
-                checkMemberVar((ExprMemberVar) e);
-            if (e instanceof ExprMemberArrayVar)
-                checkMemberArrayVar((ExprMemberArrayVar) e);
-            if (e instanceof ExprNewObject) {
-                checkNewObj((ExprNewObject) e);
-                visit((ExprNewObject) e);
+            if (e instanceof ExprMemberMethod exprMemberMethod)
+                visit(exprMemberMethod);
+            if (e instanceof ExprMemberMethodQuestionDot exprMemberMethodQuestionDot)
+                checkNullSafeAccess(exprMemberMethodQuestionDot);
+            if (e instanceof ExprMemberVarQuestionDot exprMemberVarQuestionDot)
+                checkNullSafeAccess(exprMemberVarQuestionDot);
+            if (e instanceof ExprMemberVar exprMemberVar)
+                checkMemberVar(exprMemberVar);
+            if (e instanceof ExprMemberArrayVar exprMemberArrayVar)
+                checkMemberArrayVar(exprMemberArrayVar);
+            if (e instanceof ExprNewObject exprNewObject) {
+                checkNewObj(exprNewObject);
+                visit(exprNewObject);
             }
-            if (e instanceof ExprNull)
-                checkExprNull((ExprNull) e);
-            if (e instanceof ExprVarAccess)
-                visit((ExprVarAccess) e);
-            if (e instanceof ExprVarArrayAccess)
-                checkArrayAccess((ExprVarArrayAccess) e);
-            if (e instanceof ExtensionFuncDef)
-                visit((ExtensionFuncDef) e);
-            if (e instanceof FuncDef)
-                visit((FuncDef) e);
-            if (e instanceof FuncRef)
-                checkFuncRef((FuncRef) e);
-            if (e instanceof FunctionLike)
-                checkUninitializedVars((FunctionLike) e);
-            if (e instanceof GlobalVarDef)
-                visit((GlobalVarDef) e);
-            if (e instanceof HasModifier)
-                checkModifiers((HasModifier) e);
-            if (e instanceof HasTypeArgs)
-                checkTypeBinding((HasTypeArgs) e);
-            if (e instanceof InterfaceDef)
-                checkInterfaceDef((InterfaceDef) e);
-            if (e instanceof LocalVarDef) {
-                checkLocalShadowing((LocalVarDef) e);
-                visit((LocalVarDef) e);
+            if (e instanceof ExprNull exprNull)
+                checkExprNull(exprNull);
+            if (e instanceof ExprVarAccess exprVarAccess)
+                visit(exprVarAccess);
+            if (e instanceof ExprVarArrayAccess exprVarArrayAccess)
+                checkArrayAccess(exprVarArrayAccess);
+            if (e instanceof ExtensionFuncDef extensionFuncDef)
+                visit(extensionFuncDef);
+            if (e instanceof FuncDef funcDef)
+                visit(funcDef);
+            if (e instanceof FuncRef funcRef)
+                checkFuncRef(funcRef);
+            if (e instanceof FunctionLike functionLike)
+                checkUninitializedVars(functionLike);
+            if (e instanceof GlobalVarDef globalVarDef)
+                visit(globalVarDef);
+            if (e instanceof HasModifier hasModifier)
+                checkModifiers(hasModifier);
+            if (e instanceof HasTypeArgs hasTypeArgs)
+                checkTypeBinding(hasTypeArgs);
+            if (e instanceof InterfaceDef interfaceDef)
+                checkInterfaceDef(interfaceDef);
+            if (e instanceof LocalVarDef localVarDef) {
+                checkLocalShadowing(localVarDef);
+                visit(localVarDef);
             }
-            if (e instanceof Modifiers)
-                visit((Modifiers) e);
-            if (e instanceof ModuleDef)
-                visit((ModuleDef) e);
-            if (e instanceof NameDef) {
-                nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
-                checkConfigOverride((NameDef) e);
+            if (e instanceof Modifiers modifiers)
+                visit(modifiers);
+            if (e instanceof ModuleDef moduleDef)
+                visit(moduleDef);
+            if (e instanceof NameDef nameDef) {
+                nameDefsMustNotBeNamedAfterJassNativeTypes(nameDef);
+                checkConfigOverride(nameDef);
             }
-            if (e instanceof NameRef) {
-                checkImplicitParameter((NameRef) e);
-                checkNameRef((NameRef) e);
+            if (e instanceof NameRef nameRef) {
+                checkImplicitParameter(nameRef);
+                checkNameRef(nameRef);
             }
-            if (e instanceof StmtCall)
-                checkCall((StmtCall) e);
-            if (e instanceof ExprDestroy)
-                visit((ExprDestroy) e);
-            if (e instanceof StmtForRange)
-                checkForRange((StmtForRange) e);
-            if (e instanceof StmtIf)
-                visit((StmtIf) e);
-            if (e instanceof StmtReturn)
-                visit((StmtReturn) e);
-            if (e instanceof StmtSet)
-                checkStmtSet((StmtSet) e);
-            if (e instanceof StmtWhile)
-                visit((StmtWhile) e);
-            if (e instanceof SwitchStmt)
-                checkSwitch((SwitchStmt) e);
-            if (e instanceof TypeExpr)
-                checkTypeExpr((TypeExpr) e);
-            if (e instanceof TypeExprArray)
-                checkCodeArrays((TypeExprArray) e);
-            if (e instanceof TupleDef)
-                checkTupleDef((TupleDef) e);
-            if (e instanceof VarDef)
-                checkVarDef((VarDef) e);
-            if (e instanceof WImport)
-                visit((WImport) e);
-            if (e instanceof WPackage)
-                checkPackage((WPackage) e);
-            if (e instanceof WParameter) {
-                checkParameter((WParameter) e);
-                visit((WParameter) e);
+            if (e instanceof StmtCall stmtCall)
+                checkCall(stmtCall);
+            if (e instanceof ExprDestroy exprDestroy)
+                visit(exprDestroy);
+            if (e instanceof StmtForRange stmtForRange)
+                checkForRange(stmtForRange);
+            if (e instanceof StmtIf stmtIf)
+                visit(stmtIf);
+            if (e instanceof StmtReturn stmtReturn)
+                visit(stmtReturn);
+            if (e instanceof StmtSet stmtSet)
+                checkStmtSet(stmtSet);
+            if (e instanceof StmtWhile stmtWhile)
+                visit(stmtWhile);
+            if (e instanceof SwitchStmt switchStmt)
+                checkSwitch(switchStmt);
+            if (e instanceof TypeExpr typeExpr)
+                checkTypeExpr(typeExpr);
+            if (e instanceof TypeExprArray typeExprArray)
+                checkCodeArrays(typeExprArray);
+            if (e instanceof TupleDef tupleDef)
+                checkTupleDef(tupleDef);
+            if (e instanceof VarDef varDef)
+                checkVarDef(varDef);
+            if (e instanceof WImport wImport)
+                visit(wImport);
+            if (e instanceof WPackage wPackage)
+                checkPackage(wPackage);
+            if (e instanceof WParameter wParameter) {
+                checkParameter(wParameter);
+                visit(wParameter);
             }
-            if (e instanceof WScope)
-                checkForDuplicateNames((WScope) e);
-            if (isHeavy() && e instanceof WStatement)
-                checkReachability((WStatement) e);
-            if (e instanceof WurstModel)
-                checkForDuplicatePackages((WurstModel) e);
-            if (e instanceof WStatements) {
-                checkForInvalidStmts((WStatements) e);
-                checkForEmptyBlocks((WStatements) e);
+            if (e instanceof WScope wScope)
+                checkForDuplicateNames(wScope);
+            if (isHeavy() && e instanceof WStatement wStatement)
+                checkReachability(wStatement);
+            if (e instanceof WurstModel wurstModel)
+                checkForDuplicatePackages(wurstModel);
+            if (e instanceof WStatements wStatements) {
+                checkForInvalidStmts(wStatements);
+                checkForEmptyBlocks(wStatements);
             }
-            if (e instanceof StmtExitwhen)
-                visit((StmtExitwhen) e);
-            if (e instanceof StmtContinue)
-                visit((StmtContinue) e);
+            if (e instanceof StmtExitwhen stmtExitwhen)
+                visit(stmtExitwhen);
+            if (e instanceof StmtContinue stmtContinue)
+                visit(stmtContinue);
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
@@ -572,8 +554,7 @@ public class WurstValidator {
                             }
                         }
                         loc.addError("Non-abstract class " + c.getName() + " cannot have abstract functions like " + f.getName());
-                    } else if (link instanceof FuncLink) {
-                        FuncLink abstractLink = (FuncLink) link;
+                    } else if (link instanceof FuncLink abstractLink) {
                         if (!hasImplementationInHierarchy(c, abstractLink)) {
                             toImplement.append("\n    ");
                             toImplement.append(abstractLink.printFunctionTemplate());
@@ -591,14 +572,14 @@ public class WurstValidator {
         return findImplementationLink(c, abstractFunc) != null;
     }
 
-    private @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
+    /** The most specific non-abstract implementation of {@code abstractFunc} visible in {@code c}, if any. */
+    public static @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
         FuncLink best = null;
         int bestDistance = Integer.MAX_VALUE;
         for (NameLink nameLink : c.attrNameLinks().get(abstractFunc.getName())) {
-            if (!(nameLink instanceof FuncLink)) {
+            if (!(nameLink instanceof FuncLink candidate)) {
                 continue;
             }
-            FuncLink candidate = (FuncLink) nameLink;
             if (!WurstValidator.canOverride(candidate, abstractFunc, false)) {
                 continue;
             }
@@ -625,7 +606,7 @@ public class WurstValidator {
         return best;
     }
 
-    private int distanceToOwner(ClassDef start, ClassDef owner) {
+    private static int distanceToOwner(ClassDef start, ClassDef owner) {
         int distance = 0;
         ClassDef current = start;
         Set<ClassDef> visited = new HashSet<>();
@@ -694,8 +675,7 @@ public class WurstValidator {
         try {
             for (WParameter param : e.getParameters()) {
                 WurstType t = param.getTyp().attrTyp();
-                if (t instanceof WurstTypeTuple) {
-                    WurstTypeTuple tt = (WurstTypeTuple) t;
+                if (t instanceof WurstTypeTuple tt) {
                     TupleDef tDef = tt.getTupleDef();
                     if (checkTupleDefCycle(tDef, tuples)) {
                         param.addError("Parameter " + param.getName() + " is recursive. This is not allowed for tuples.");
@@ -711,8 +691,7 @@ public class WurstValidator {
 
     private void checkForInvalidStmts(WStatements stmts) {
         for (WStatement s : stmts) {
-            if (s instanceof ExprVarAccess) {
-                ExprVarAccess ev = (ExprVarAccess) s;
+            if (s instanceof ExprVarAccess ev) {
                 s.addError("Use of variable " + ev.getVarName() + " is an incomplete statement.");
             }
         }
@@ -744,8 +723,7 @@ public class WurstValidator {
             return;
         }
 
-        if (parent instanceof StmtIf) {
-            StmtIf stmtIf = (StmtIf) parent;
+        if (parent instanceof StmtIf stmtIf) {
             if (e == stmtIf.getElseBlock() && stmtIf.getHasElse()) {
                 parent.addWarning("This if-statement has an empty else-block.");
             } else if (e == stmtIf.getThenBlock()) {
@@ -783,11 +761,10 @@ public class WurstValidator {
             return;
         }
         PackageOrGlobal nearestPackage = e.attrNearestPackage();
-        if (!(nearestPackage instanceof WPackage)) {
+        if (!(nearestPackage instanceof WPackage configPackage)) {
             e.addError("Annotation @config can only be used in packages.");
             return;
         }
-        WPackage configPackage = (WPackage) nearestPackage;
         if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
             e.addError(
                     "Annotation @config can only be used in config packages (package name has to end with '_config').");
@@ -799,8 +776,7 @@ public class WurstValidator {
             return;
         }
 
-        if (e instanceof GlobalVarDef) {
-            GlobalVarDef v = (GlobalVarDef) e;
+        if (e instanceof GlobalVarDef v) {
             NameLink origVar = origPackage.getElements().lookupVarNoConfig(v.getName(), false);
             if (origVar == null) {
                 e.addError("Could not find var " + v.getName() + " in configured package.");
@@ -872,8 +848,7 @@ public class WurstValidator {
             checkModuleTypeUsedCorrectly(e, md);
         }
 
-        if (typeDef instanceof TypeParamDef) { // references a type parameter
-            TypeParamDef tp = (TypeParamDef) typeDef;
+        if (typeDef instanceof TypeParamDef tp) { // references a type parameter
             checkTypeparamsUsedCorrectly(e, tp);
         }
 
@@ -906,28 +881,8 @@ public class WurstValidator {
 
     /** Returns the flavor of the referenced generic definition, or null if the target is non-generic. */
     private @Nullable GenericFlavor flavorOf(TypeDef def) {
-        if (def instanceof AstElementWithTypeParameters) {
-            return flavorOf((AstElementWithTypeParameters) def);
-        }
-        return null;
-    }
-
-    /** Walk up to the nearest *structure* (ClassDef/InterfaceDef) which actually has type parameters. */
-    private @Nullable AstElementWithTypeParameters nearestGenericStructureOwner(Element e) {
-        Element p = e;
-        while (p != null) {
-            if (p instanceof ClassDef || p instanceof InterfaceDef) {
-                AstElementWithTypeParameters a = (AstElementWithTypeParameters) p;
-                if (a.getTypeParameters() != null && a.getTypeParameters().size() > 0) {
-                    return a;
-                }
-                // keep walking if the structure itself has no TPs
-            }
-            // IMPORTANT: skip function owners entirely — method generics are allowed to mix.
-            if (p instanceof FuncDef) {
-                return null;
-            }
-            p = p.getParent();
+        if (def instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            return flavorOf(astElementWithTypeParameters);
         }
         return null;
     }
@@ -1010,8 +965,7 @@ public class WurstValidator {
                 return;
             }
         }
-        if (e instanceof TypeExprSimple) {
-            TypeExprSimple tes = (TypeExprSimple) e;
+        if (e instanceof TypeExprSimple tes) {
             if (tes.getScopeType() instanceof TypeExpr) {
                 TypeExpr scopeType = (TypeExpr) tes.getScopeType();
                 if (scopeType instanceof TypeExprThis
@@ -1089,8 +1043,7 @@ public class WurstValidator {
 
 
 
-        if (expectedTyp instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) expectedTyp;
+        if (expectedTyp instanceof WurstTypeClass ct) {
 
             ClassDef cd = ct.getClassDef();
             boolean b = true;
@@ -1195,22 +1148,6 @@ public class WurstValidator {
         // check range? ...
     }
 
-    private int countFunctions(Collection<CompilationUnit> toCheck) {
-        final int[] functionCount = new int[1];
-        Element.DefaultVisitor visitor = new Element.DefaultVisitor() {
-
-            @Override
-            public void visit(FuncDef f) {
-                super.visit(f);
-                functionCount[0]++;
-            }
-        };
-        for (CompilationUnit cu : toCheck) {
-            cu.accept(visitor);
-        }
-        return functionCount[0];
-    }
-
     private void checkStmtSet(StmtSet s) {
         NameLink nameLink = s.getUpdatedExpr().attrNameLink();
         if (nameLink == null) {
@@ -1279,9 +1216,7 @@ public class WurstValidator {
         if (a instanceof ExprThis && b instanceof ExprThis) {
             return true;
         }
-        if (a instanceof NameRef && b instanceof NameRef) {
-            NameRef va = (NameRef) a;
-            NameRef vb = (NameRef) b;
+        if (a instanceof NameRef va && b instanceof NameRef vb) {
             NameLink nla = va.attrNameLink();
             NameLink nlb = vb.attrNameLink();
             if (nla != null && nlb != null
@@ -1289,9 +1224,7 @@ public class WurstValidator {
                     && !(nlb instanceof OtherLink)
                     && nla.getDef() == nlb.getDef()
                     && refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
-                if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
-                    AstElementWithIndexes vai = (AstElementWithIndexes) va;
-                    AstElementWithIndexes vbi = (AstElementWithIndexes) vb;
+                if (va instanceof AstElementWithIndexes vai && vb instanceof AstElementWithIndexes vbi) {
 
                     for (int i = 0; i < vai.getIndexes().size() && i < vbi.getIndexes().size(); i++) {
                         if (!refersToSameVar(vai.getIndexes().get(i), vbi.getIndexes().get(i))) {
@@ -1413,8 +1346,7 @@ public class WurstValidator {
             return;
         }
         if (var != null && var.attrIsConstant()) {
-            if (var instanceof GlobalVarDef) {
-                GlobalVarDef glob = (GlobalVarDef) var;
+            if (var instanceof GlobalVarDef glob) {
                 if (glob.attrIsDynamicClassMember() && isInConstructor(left)) {
                     // allow to assign constant members in constructor
                     return;
@@ -1444,14 +1376,12 @@ public class WurstValidator {
     private void checkAssignment(boolean isJassCode, Element pos, WurstType leftType, WurstType rightType) {
         if (!rightType.isSubtypeOf(leftType, pos)) {
             // NEW: Allow null assignment to generic type parameters with colon constraint
-            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeBoundTypeParam) {
-                WurstTypeBoundTypeParam boundParam = (WurstTypeBoundTypeParam) leftType;
+            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeBoundTypeParam boundParam) {
                 // Allow null for type parameters with colon constraint (class types)
                 // The translator will handle substituting default values for primitives
                 return;
             }
-            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeTypeParam) {
-                WurstTypeTypeParam typeParam = (WurstTypeTypeParam) leftType;
+            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeTypeParam typeParam) {
                 // Check if this type parameter has a colon constraint (can be class types)
                 // Allow the assignment - translator will handle it
                 return;
@@ -1467,8 +1397,7 @@ public class WurstValidator {
             }
             pos.addError("Cannot assign " + rightType + " to " + leftType);
         }
-        if (leftType instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
+        if (leftType instanceof WurstTypeNamedScope ns) {
             if (ns.isStaticRef()) {
                 pos.addError("Missing variable name in variable declaration.\n" + "Cannot assign to " + leftType);
             }
@@ -1510,8 +1439,7 @@ public class WurstValidator {
 
     private void checkArrayInit(VarDef def, ArrayInitializer arInit) {
         WurstType leftType = def.attrTyp();
-        if (leftType instanceof WurstTypeArray) {
-            WurstTypeArray arT = (WurstTypeArray) leftType;
+        if (leftType instanceof WurstTypeArray arT) {
             if (arT.getDimensions() > 1) {
                 def.addError("Array initializer can only be used with one-dimensional arrays.");
             }
@@ -1579,8 +1507,8 @@ public class WurstValidator {
         checkVarName(p, false);
         if (p.attrIsVararg()) {
             Element owner = p.getParent().getParent();
-            if (owner instanceof ConstructorDef) {
-                WParameters params = ((ConstructorDef) owner).getParameters();
+            if (owner instanceof ConstructorDef constructorDef) {
+                WParameters params = constructorDef.getParameters();
                 if (params.get(params.size() - 1) != p) {
                     p.addError("Vararg parameter in constructors must be last");
                 }
@@ -1672,8 +1600,7 @@ public class WurstValidator {
         if (!func.attrHasEmptyBody()) {
             new ReturnsAnalysis().execute(func);
         } else { // no body, check if in interface:
-            if (func instanceof FunctionImplementation) {
-                FunctionImplementation funcDef = (FunctionImplementation) func;
+            if (func instanceof FunctionImplementation funcDef) {
                 if (funcDef.getReturnTyp() instanceof TypeExpr
                         && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
                     func.addError("Function " + funcDef.getName()
@@ -1723,9 +1650,6 @@ public class WurstValidator {
     }
 
     private void visit(FuncDef func) {
-        visitedFunctions++;
-        func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-
         checkFunctionName(func);
         if (func.attrIsAbstract()) {
             if (!func.attrHasEmptyBody()) {
@@ -1745,8 +1669,7 @@ public class WurstValidator {
         }
 
         boolean isAbstract = false;
-        if (f instanceof FuncDef) {
-            FuncDef func = (FuncDef) f;
+        if (f instanceof FuncDef func) {
             if (func.attrIsAbstract()) {
                 isAbstract = true;
                 if (isHeavy() && !func.attrHasEmptyBody()) {
@@ -1777,15 +1700,15 @@ public class WurstValidator {
      * cheap local check cannot see.
      */
     private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
-        if (function instanceof OnDestroyDef || !(function instanceof ConstructorDef)) {
+        if (function instanceof OnDestroyDef || !(function instanceof ConstructorDef constructorDef)) {
             return;
         }
 
         Deque<Set<GlobalVarDef>> writtenFieldScopes = new ArrayDeque<>();
         writtenFieldScopes.push(Collections.newSetFromMap(new IdentityHashMap<>()));
         Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
-        FunctionCall delegatedConstructorCall = function instanceof ConstructorDef
-            ? getFirstThisConstructorCall((ConstructorDef) function) : null;
+        FunctionCall delegatedConstructorCall = function instanceof ConstructorDef thisConstructor
+            ? getFirstThisConstructorCall(thisConstructor) : null;
         function.accept(new Element.DefaultVisitor() {
             private void checkField(NameRef access) {
                 NameDef nameDef = access.attrNameDef();
@@ -1801,10 +1724,10 @@ public class WurstValidator {
                     || ((!isCurrentInstanceAccess(access) || !(function instanceof ConstructorDef))
                         && hasGuaranteedConstructorAssignment(field))
                     || (isCurrentInstanceAccess(access)
-                        && function instanceof ConstructorDef
+                        && function instanceof ConstructorDef constructorDef
                         && delegatedConstructorCall == null
-                        && !access.isSubtreeOf(((ConstructorDef) function).getSuperConstructorCall())
-                        && initializedBySuperConstructor((ConstructorDef) function, field))
+                        && !access.isSubtreeOf(constructorDef.getSuperConstructorCall())
+                        && initializedBySuperConstructor(constructorDef, field))
                     || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
                         && hasGuaranteedConstructorAssignment(field))
                     || !warned.add(field)) {
@@ -1984,10 +1907,6 @@ public class WurstValidator {
 
     private boolean isCurrentInstanceAccess(NameRef access) {
         return access.attrImplicitParameter() instanceof ExprThis;
-    }
-
-    private boolean isInNestedClosure(NameRef access) {
-        return access.attrNearestExprClosure() != null;
     }
 
     private boolean isWholeFieldAccess(NameRef access) {
@@ -2301,12 +2220,11 @@ public class WurstValidator {
 
 
     private void checkCall(StmtCall call) {
-        if (call instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) call)) {
+        if (call instanceof ExprFunctionCall exprFunctionCall && isConstructorThisCall(exprFunctionCall)) {
             return;
         }
         String funcName;
-        if (call instanceof FunctionCall) {
-            FunctionCall fcall = (FunctionCall) call;
+        if (call instanceof FunctionCall fcall) {
             funcName = fcall.getFuncName();
             HashSet<FunctionCall> fcalls = wrapperCalls.computeIfAbsent(funcName, (String s) -> new HashSet<>());
             fcalls.add(fcall);
@@ -2340,8 +2258,7 @@ public class WurstValidator {
 
                 // Is the other definition a superclass' field?
                 StructureDef owner = od.attrNearestStructureDef();
-                if (owner instanceof ClassDef) {
-                    ClassDef superOwner = (ClassDef) owner;
+                if (owner instanceof ClassDef superOwner) {
                     if (isStrictSuperclassOf(superOwner, c)) {
                         // produce the requested error text
                         def.addError("Variable " + name + " in class " + c.getName()
@@ -2444,8 +2361,7 @@ public class WurstValidator {
         // special check for filter & condition:
         if (Utils.oneOf(funcName, "Condition", "Filter") && !stmtCall.getArgs().isEmpty()) {
             Expr firstArg = stmtCall.getArgs().get(0);
-            if (firstArg instanceof ExprFuncRef) {
-                ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
+            if (firstArg instanceof ExprFuncRef exprFuncRef) {
                 FuncLink f = exprFuncRef.attrFuncLink();
                 if (f != null) {
                     if (!(f.getReturnType() instanceof WurstTypeBool) && !(f.getReturnType() instanceof WurstTypeVoid)) {
@@ -2511,14 +2427,6 @@ public class WurstValidator {
         return null;
     }
 
-    // private void checkParams(Element where, List<Expr> args,
-    // FunctionDefinition calledFunc) {
-    // if (calledFunc == null) {
-    // return;
-    // }
-    // List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
-    // checkParams(where, args, parameterTypes);
-    // }
 
     @Deprecated
     private void checkParams(Element where, String preMsg, List<Expr> args, FunctionSignature sig) {
@@ -2672,17 +2580,34 @@ public class WurstValidator {
 
     private boolean isClosureImplementationBlock(ExprStatementsBlock block) {
         Element parent = block.getParent();
-        return parent instanceof ExprClosure && ((ExprClosure) parent).getImplementation() == block;
+        return parent instanceof ExprClosure exprClosure && exprClosure.getImplementation() == block;
     }
 
     private boolean closureReturnsVoid(ExprStatementsBlock block) {
         Element parent = block.getParent();
-        if (!(parent instanceof ExprClosure)) {
+        if (!(parent instanceof ExprClosure closure)) {
             return false;
         }
-        ExprClosure closure = (ExprClosure) parent;
         FuncLink abstractMethod = closure.attrClosureAbstractMethod();
         return abstractMethod != null && abstractMethod.getReturnType().isVoid();
+    }
+
+    /**
+     * Jass takes an integer where a real is stored or passed, but pjass rejects one returned from a function
+     * declared to return a real. Inlining would hide that return from pjass and leave the integer in an
+     * operand, where {@code f(n) / m} is the integer division {@code n / m}. A legacy target accepts it, so the
+     * translation keeps such a function a call ({@code FunctionFlagEnum.RETURNS_INT_AS_REAL}).
+     */
+    public static boolean isIntReturnedAsJassReal(WurstType returnedType, WurstType returnType, StmtReturn s) {
+        WurstType returned = rootOfNativeType(returnedType);
+        return rootOfNativeType(returnType) instanceof WurstTypeReal
+            && (returned instanceof WurstTypeInt || returned instanceof WurstTypeIntLiteral)
+            && Utils.isJassCode(s);
+    }
+
+    /** A Jass {@code type myint extends integer} is an integer here, as it is to pjass. */
+    private static WurstType rootOfNativeType(WurstType type) {
+        return type instanceof WurstNativeType nativeType ? nativeType.rootSupertype() : type;
     }
 
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
@@ -2693,6 +2618,16 @@ public class WurstValidator {
                 s.addError("Cannot return a value from a function which returns nothing");
             } else {
                 WurstType returnedType = returned.attrTyp();
+                if (isIntReturnedAsJassReal(returnedType, returnType, s)) {
+                    String message = "Cannot convert returned value from integer to real: "
+                        + "a function which returns real must return a real, for example I2R(...).";
+                    if (legacyJassTypeChecks) {
+                        s.addWarning(message);
+                    } else {
+                        s.addError(message);
+                    }
+                    return;
+                }
                 if (!returnedType.isSubtypeOf(returnType, s)) {
                     // NEW: Allow returning null for generic type parameters
                     if (returnedType instanceof WurstTypeNull &&
@@ -2758,11 +2693,9 @@ public class WurstValidator {
         WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
         if (typ instanceof WurstTypeModule) {
 
-        } else if (typ instanceof WurstTypeClass) {
-            WurstTypeClass c = (WurstTypeClass) typ;
+        } else if (typ instanceof WurstTypeClass c) {
             checkDestroyClass(stmtDestroy, c);
-        } else if (typ instanceof WurstTypeInterface) {
-            WurstTypeInterface i = (WurstTypeInterface) typ;
+        } else if (typ instanceof WurstTypeInterface i) {
             checkDestroyInterface(stmtDestroy, i);
         } else {
             stmtDestroy.addError("Cannot destroy objects of type " + typ);
@@ -2813,8 +2746,7 @@ public class WurstValidator {
         }
         NameDef def = link.getDef();
         checkJassAccessingWurstSymbol(e, def);
-        if (def instanceof GlobalVarDef) {
-            GlobalVarDef g = (GlobalVarDef) def;
+        if (def instanceof GlobalVarDef g) {
             if (g.attrIsDynamicClassMember() && !dynamicContext) {
                 e.addError("Cannot reference dynamic variable " + e.getVarName() + " from static context.");
             }
@@ -2958,8 +2890,7 @@ public class WurstValidator {
                             e.addError("There is more than one function named " + fromIndexFuncName);
                         }
                         NameDef toIndex = Utils.getFirst(toIndexFuncs).getDef();
-                        if (toIndex instanceof FuncDef) {
-                            FuncDef toIndexF = (FuncDef) toIndex;
+                        if (toIndex instanceof FuncDef toIndexF) {
 
                             if (toIndexF.getParameters().size() != 1) {
                                 toIndexF.addError("Must have exactly one parameter");
@@ -2977,8 +2908,7 @@ public class WurstValidator {
                         }
 
                         NameDef fromIndex = Utils.getFirst(fromIndexFuncs).getDef();
-                        if (fromIndex instanceof FuncDef) {
-                            FuncDef fromIndexF = (FuncDef) fromIndex;
+                        if (fromIndex instanceof FuncDef fromIndexF) {
 
                             if (fromIndexF.getParameters().size() != 1) {
                                 fromIndexF.addError("Must have exactly one parameter");
@@ -3570,8 +3500,8 @@ public class WurstValidator {
     }
 
     private static String printMod(Modifier m) {
-        if (m instanceof Annotation) {
-            return ((Annotation) m).getAnnotationType();
+        if (m instanceof Annotation annotation) {
+            return annotation.getAnnotationType();
         }
         return printMod(m.getClass());
     }
@@ -3584,8 +3514,7 @@ public class WurstValidator {
         }
         FunctionCall thisCall = getFirstThisConstructorCall(d);
         StructureDef s = d.attrNearestStructureDef();
-        if (s instanceof ClassDef) {
-            ClassDef c = (ClassDef) s;
+        if (s instanceof ClassDef c) {
             WurstTypeClass ct = c.attrTypC();
             WurstTypeClass extendedClass = ct.extendedClass();
             if (extendedClass != null) {
@@ -3664,12 +3593,6 @@ public class WurstValidator {
         if (p == null) {
             n.addError("Not in package or global: " + n.getName());
         }
-        // checkIfTypeDefExists(n, p);
-        // if (p instanceof WPackage) {
-        // // check global scope
-        // p = p.getParent().attrNearestPackage();
-        // checkIfTypeDefExists(n, p);
-        // }
     }
 
     /**
@@ -3793,8 +3716,15 @@ public class WurstValidator {
         }
     }
 
+    public void prepareNamePreservation() {
+        NamePreservation.clearSyntheticMarkers(prog);
+        runtimeNameIndex = NamePreservation.indexGlobals(compilationUnits);
+        trveWrapperFuncs.clear();
+        recomputeTrvePreservation();
+    }
+
     private void recomputeTrvePreservation() {
-        prog.accept(new Element.DefaultVisitor() {
+        Element.DefaultVisitor directCalls = new Element.DefaultVisitor() {
             @Override
             public void visit(ExprFunctionCall call) {
                 super.visit(call);
@@ -3810,10 +3740,11 @@ public class WurstValidator {
                 }
             }
 
-        });
+        };
+        compilationUnits.forEach(cu -> cu.accept(directCalls));
 
         // Repeat the cheap call pass so calls which precede their wrapper declaration are covered.
-        prog.accept(new Element.DefaultVisitor() {
+        Element.DefaultVisitor wrapperCalls = new Element.DefaultVisitor() {
             @Override
             public void visit(ExprFunctionCall call) {
                 super.visit(call);
@@ -3823,7 +3754,8 @@ public class WurstValidator {
                     preserveVariableName(varName.getValS());
                 }
             }
-        });
+        };
+        compilationUnits.forEach(cu -> cu.accept(wrapperCalls));
     }
 
     private @Nullable String trveWrapperName(ExprFunctionCall e) {
@@ -3861,8 +3793,7 @@ public class WurstValidator {
         WurstType typ = expr.attrTyp();
         if (typ.equalsType(WurstTypeInt.instance(), null) || typ.equalsType(WurstTypeString.instance(), null)) {
             return true;
-        } else if (typ instanceof WurstTypeEnum) {
-            WurstTypeEnum wte = (WurstTypeEnum) typ;
+        } else if (typ instanceof WurstTypeEnum wte) {
             return !wte.isStaticRef();
         } else {
             return false;
@@ -3904,8 +3835,7 @@ public class WurstValidator {
     }
 
     public static void computeFlowAttributes(Element node) {
-        if (node instanceof WStatement) {
-            WStatement s = (WStatement) node;
+        if (node instanceof WStatement s) {
             s.attrNextStatements();
         }
 
@@ -4017,11 +3947,10 @@ public class WurstValidator {
             @Nullable List<NameLink> other = null;
             for (NameLink nl : nameLinks) {
                 if (nl.getDefinedIn() == scope) {
-                    if (nl instanceof FuncLink) {
+                    if (nl instanceof FuncLink funcLink) {
                         if (funcs == null) {
                             funcs = Lists.newArrayList();
                         }
-                        FuncLink funcLink = (FuncLink) nl;
                         for (FuncLink link : funcs) {
                             if (!distinctFunctions(funcLink, link)) {
                                 funcLink.getDef().addError(
@@ -4090,15 +4019,13 @@ public class WurstValidator {
                     + "Try using a trigger or conditionfunc instead.");
         }
 
-        if (v instanceof GlobalOrLocalVarDef) {
-            GlobalOrLocalVarDef g = (GlobalOrLocalVarDef) v;
+        if (v instanceof GlobalOrLocalVarDef g) {
             if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr && !g.attrIsDynamicClassMember()) {
                 g.addError("Constant variable " + g.getName() + " needs an initial value.");
             }
         }
 
-        if (vtype instanceof WurstTypeArray) {
-            WurstTypeArray wta = (WurstTypeArray) vtype;
+        if (vtype instanceof WurstTypeArray wta) {
             switch (wta.getDimensions()) {
                 case 0:
                     v.addError("0-dimensional arrays are not allowed");
@@ -4118,8 +4045,7 @@ public class WurstValidator {
             v.addError("Initial value of variable " + v.getName() + " is 'null'. Specify a concrete type.");
         }
 
-        if (v instanceof GlobalVarDef) {
-            GlobalVarDef field = (GlobalVarDef) v;
+        if (v instanceof GlobalVarDef field) {
             checkClassMemberInitializerOrder(field);
             checkClassFieldInitializerReads(field);
         }
@@ -4144,10 +4070,9 @@ public class WurstValidator {
         }
         Expr initExpr = (Expr) v.getInitialExpr();
         for (NameDef used : initExpr.attrReadVariables()) {
-            if (!(used instanceof GlobalVarDef)) {
+            if (!(used instanceof GlobalVarDef usedVar)) {
                 continue;
             }
-            GlobalVarDef usedVar = (GlobalVarDef) used;
             if (usedVar == v || !usedVar.attrIsDynamicClassMember()) {
                 continue;
             }
@@ -4202,8 +4127,7 @@ public class WurstValidator {
         int firstRelevantIndex = firstRelevantStatementIndex(c);
         for (int i = 0; i < c.getBody().size(); i++) {
             WStatement s = c.getBody().get(i);
-            if (s instanceof FunctionCall) {
-                FunctionCall call = (FunctionCall) s;
+            if (s instanceof FunctionCall call) {
                 if (isConstructorThisCall(call) && i != firstRelevantIndex) {
                     call.addError("Constructor call this(...) must be the first statement.");
                 }
@@ -4252,8 +4176,8 @@ public class WurstValidator {
     }
 
     private boolean isConstructorThisCall(FuncRef ref) {
-        if (ref instanceof FunctionCall) {
-            return isConstructorThisCall((FunctionCall) ref);
+        if (ref instanceof FunctionCall functionCall) {
+            return isConstructorThisCall(functionCall);
         }
         return false;
     }
@@ -4276,10 +4200,9 @@ public class WurstValidator {
     }
 
     private static boolean isNewGenericTypeDef(@Nullable NameDef def) {
-        if (!(def instanceof AstElementWithTypeParameters)) {
+        if (!(def instanceof AstElementWithTypeParameters g)) {
             return false;
         }
-        AstElementWithTypeParameters g = (AstElementWithTypeParameters) def;
         TypeParamDefs tps = g.getTypeParameters();
         if (tps == null || tps.size() == 0) {
             return false;

@@ -46,13 +46,7 @@ public class WurstServer {
         } catch (IOException e) {
             println("Server had a problem: " + e.getMessage());
             WLogger.severe(e);
-        } finally {
-            System.out.println("end start #################");
         }
-    }
-
-    public void startInNewThread() {
-        new Thread(this::start).start();
     }
 
     private void println(String string) {

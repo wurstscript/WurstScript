@@ -61,7 +61,7 @@ public class DeterminismDiffReportTest {
     /**
      * Two scripts whose lines all match but which are not equal differ in how the lines end. The
      * caller only asks after finding them unequal, so passing identical strings would test a state
-     * production never reaches — this passes CRLF against LF, which it can.
+     * production never reaches; this passes CRLF against LF, which it can.
      */
     @Test
     public void differingOnlyInLineEndingsSaysSoRatherThanListingEveryLine() {

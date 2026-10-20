@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -12,14 +13,16 @@ import java.util.*;
  *
  * <p>Three classes of WC3 BJ calls are transformed:
  * <ol>
- *   <li><b>GetHandleId</b> – replaced 1:1 by {@code __wurst_GetHandleId}, whose Lua
+ *   <li><b>GetHandleId</b>: replaced 1:1 by {@code __wurst_GetHandleId}, whose Lua
  *       implementation uses a stable table counter for selected opaque runtime handle
  *       families only. Enum-like handle families keep native semantics in Lua.</li>
  *   <li><b>Hashtable natives</b> ({@code SaveInteger}, {@code LoadBoolean}, …) and
- *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …) –
+ *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …):
  *       replaced 1:1 by their {@code __wurst_} prefixed equivalents, whose Lua
- *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.</li>
- *   <li><b>All other BJ calls with at least one handle-typed parameter</b> – wrapped
+ *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.
+ *       The backend prints a hashtable operation where it is called instead, as the table accesses
+ *       it stands for, and calls its helper only where it cannot ({@link LuaHashtable}).</li>
+ *   <li><b>All other BJ calls with at least one handle-typed parameter</b>: wrapped
  *       by a generated IM function that first checks each required handle param for
  *       {@code null} and returns the type-appropriate default (0 / 0.0 / false / "" / nil),
  *       then delegates to the original BJ function.  This matches Jass behavior, which
@@ -40,35 +43,6 @@ import java.util.*;
  */
 public final class LuaNativeLowering {
 
-    /** Hashtable native names that need to be remapped to {@code __wurst_} equivalents. */
-    private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(Arrays.asList(
-        "InitHashtable",
-        "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
-        "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr",
-        "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString", "HaveSavedHandle",
-        "FlushChildHashtable", "FlushParentHashtable",
-        "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString", "RemoveSavedHandle",
-        // Handle-typed save/load variants
-        "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle", "SaveItemHandle", "SaveUnitHandle",
-        "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
-        "SaveTriggerActionHandle", "SaveTriggerEventHandle", "SaveForceHandle", "SaveGroupHandle",
-        "SaveLocationHandle", "SaveRectHandle", "SaveBooleanExprHandle", "SaveSoundHandle", "SaveEffectHandle",
-        "SaveUnitPoolHandle", "SaveItemPoolHandle", "SaveQuestHandle", "SaveQuestItemHandle",
-        "SaveDefeatConditionHandle", "SaveTimerDialogHandle", "SaveLeaderboardHandle", "SaveMultiboardHandle",
-        "SaveMultiboardItemHandle", "SaveTrackableHandle", "SaveDialogHandle", "SaveButtonHandle",
-        "SaveTextTagHandle", "SaveLightningHandle", "SaveImageHandle", "SaveUbersplatHandle", "SaveRegionHandle",
-        "SaveFogStateHandle", "SaveFogModifierHandle", "SaveAgentHandle", "SaveHashtableHandle", "SaveFrameHandle",
-        "LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle", "LoadUnitHandle",
-        "LoadAbilityHandle", "LoadTimerHandle", "LoadTriggerHandle", "LoadTriggerConditionHandle",
-        "LoadTriggerActionHandle", "LoadTriggerEventHandle", "LoadForceHandle", "LoadGroupHandle",
-        "LoadLocationHandle", "LoadRectHandle", "LoadBooleanExprHandle", "LoadSoundHandle", "LoadEffectHandle",
-        "LoadUnitPoolHandle", "LoadItemPoolHandle", "LoadQuestHandle", "LoadQuestItemHandle",
-        "LoadDefeatConditionHandle", "LoadTimerDialogHandle", "LoadLeaderboardHandle", "LoadMultiboardHandle",
-        "LoadMultiboardItemHandle", "LoadTrackableHandle", "LoadDialogHandle", "LoadButtonHandle",
-        "LoadTextTagHandle", "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle",
-        "LoadFogStateHandle", "LoadFogModifierHandle", "LoadHashtableHandle", "LoadFrameHandle"
-    ));
-
     /** Context-callback natives that need to be remapped to {@code __wurst_} equivalents. */
     private static final Set<String> CONTEXT_CALLBACK_NATIVE_NAMES = new HashSet<>(Arrays.asList(
         "ForForce", "GetEnumPlayer",
@@ -85,17 +59,6 @@ public final class LuaNativeLowering {
         "leaderboard", "multiboard", "multiboarditem", "trackable", "texttag",
         "image", "ubersplat", "framehandle", "fogmodifier", "hashtable"
     ));
-
-    /**
-     * When {@code true}, only opaque runtime-handle families (unit, item, timer, …)
-     * are shimmed via {@code __wurst_GetHandleId}; enum-like handle families
-     * (eventid, playerevent, …) keep native {@code GetHandleId} semantics.
-     *
-     * When {@code false} (safe default), ALL {@code GetHandleId} calls are shimmed
-     * unconditionally — this matches the pre-selective-shim behaviour and avoids
-     * any desync risk while the selective logic is being validated.
-     */
-    public static final boolean ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING = true;
 
     private LuaNativeLowering() {}
 
@@ -117,10 +80,10 @@ public final class LuaNativeLowering {
      * <p>Separate from {@link #transform} so it can run <b>before</b> stack-trace injection. That
      * pass appends a parameter to every affected function, and on Lua every non-native function is
      * affected, so the exact signatures these operations are recognised by stop matching. Nothing
-     * reported that: the Jass bodies simply survived onto Lua, where {@code wurstKeyOf} is never
-     * lowered and answers with its placeholder, so every element shared one key and a set claimed
-     * to hold everything. Stack traces are on by default in a release build, so that was the
-     * common case rather than an exotic one.
+     * reported that: the Jass bodies simply survived onto Lua, where {@code wurstKeyOf} then
+     * answered with its placeholder, so every element shared one key and a set claimed to hold
+     * everything. Stack traces are on by default in a release build, so that was the common case
+     * rather than an exotic one. Runs before the tree shake, which drops the bodies it replaced.
      *
      * <p>Membership becomes a table keyed directly by the element. Done before optimization rather
      * than at emission because the inliner runs in between: a call inlined before an emission-time
@@ -143,7 +106,7 @@ public final class LuaNativeLowering {
         // Remove keyed-table destroy calls outright rather than leaving an empty function for the
         // inliner to clean up: inlining only runs under -inline, and even then the Lua register
         // budget can refuse a caller. Arguments move into a statement expression so anything they
-        // do still happens, as in UselessFunctionCallsRemover.
+        // do still happens, as the garbage removal keeps them.
         removeDestroyCalls(prog);
 
         // Shared with any earlier run, so a second lowering reuses a stub instead of adding another of
@@ -244,7 +207,13 @@ public final class LuaNativeLowering {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 ImFunction f = call.getFunc();
-                if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && isCompatGetHandleIdFunction(f)) {
+                // Here, before the call it is an argument of is visited: a replacement below is built
+                // from a copy of the arguments, which would leave a call lowered later unlowered.
+                if (JassKeyOfLowering.isCheckedKeyOf(f)) {
+                    lowerKeyOf(call, translator, specialNativeStubs, deferredAdditions);
+                    return;
+                }
+                if (isCompatGetHandleIdFunction(f)) {
                     if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
                             name -> createNativeStub(name, f));
@@ -261,7 +230,7 @@ public final class LuaNativeLowering {
                 }
                 if (!f.isBj()) return;
                 if ("GetHandleId".equals(f.getName())) {
-                    if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && shouldRewriteGetHandleId(call)) {
+                    if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
                             name -> createNativeStub(name, f));
                         if (!deferredAdditions.contains(replacement)) {
@@ -281,7 +250,10 @@ public final class LuaNativeLowering {
                     ImFunction r = computeReplacement(f);
                     if (r != null) {
                         replacements.put(f, r);
-                        deferredAdditions.add(r);
+                        // A hashtable stub of an earlier run is already in the program, unless it was removed.
+                        if (r.getParent() == null) {
+                            deferredAdditions.add(r);
+                        }
                     } else {
                         noReplacement.add(f);
                     }
@@ -299,12 +271,14 @@ public final class LuaNativeLowering {
 
             private ImFunction computeReplacement(ImFunction bj) {
                 String name = bj.getName();
-                if (HASHTABLE_NATIVE_NAMES.contains(name)) {
-                    return createNativeStub("__wurst_" + name, bj);
+                if (LuaHashtable.isNative(name)) {
+                    // Kept by the translator, so the optimizer and the backend match the stub by identity.
+                    return translator.luaHashtableStubs.computeIfAbsent(LuaHashtable.stubName(name),
+                        stubName -> createNativeStub(stubName, bj));
                 } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
                     return createNativeStub("__wurst_" + name, bj);
                 } else if (hasHandleParam(bj)) {
-                    return createNilSafeWrapper(bj);
+                    return createNilSafeWrapper(bj, translator, deferredAdditions);
                 }
                 return null;
             }
@@ -313,6 +287,80 @@ public final class LuaNativeLowering {
         // Add all generated functions after the traversal so their bodies are not visited
         // by the replacement visitor above.
         prog.getFunctions().addAll(deferredAdditions);
+    }
+
+    /**
+     * Lowers a direct call of {@code wurstKeyOf} to the key Jass computes for it.
+     *
+     * <p>Jass gives the intrinsic a body once generic elimination has made its parameter type
+     * concrete ({@link JassKeyOfLowering}). Lua keeps generics erased, so the intrinsic kept its
+     * placeholder body there and a direct call answered 0 for every element. The call is lowered
+     * where it is made instead, from the type it is made with, and costs nothing: an int and a
+     * class instance (an integer id on both targets) are their own key, and a handle's key is its
+     * id, so the call becomes the {@code GetHandleId} call Lua makes of a handle of its type. The
+     * keyed-table operations, whose Jass bodies key through the intrinsic, are replaced as a whole
+     * before the tree shake, which takes those bodies away.
+     *
+     * <p>A type with no stable integer key is rejected, as on Jass, and so is a call from generic
+     * code: Lua erases its element type, so there is nothing to choose the key by.
+     */
+    private static void lowerKeyOf(ImFunctionCall call, ImTranslator translator,
+                                   Map<String, ImFunction> specialNativeStubs, List<ImFunction> deferredAdditions) {
+        ImExpr value = call.getArguments().get(0);
+        ImType type = call.getTypeArguments().size() == 1
+            ? call.getTypeArguments().get(0).getType()
+            : value.attrTyp();
+        if (TypesHelper.isIntType(type) || type instanceof ImClassType) {
+            value.setParent(null);
+            call.replaceBy(value);
+            return;
+        }
+        if (type instanceof ImTypeVarRef || type instanceof ImAnyType) {
+            throw new CompileError(call.attrTrace().attrErrorPos(),
+                JassKeyOfLowering.KEY_OF + " needs a concrete element type on Lua, but this call is made with "
+                    + typeName(type) + ": generic code is erased on Lua, so no key can be chosen for it. Call "
+                    + JassKeyOfLowering.KEY_OF + " where the element type is known.");
+        }
+        if (!isHandleType(type) || isSimpleType(type, "code")) {
+            throw new CompileError(call.attrTrace().attrErrorPos(),
+                JassKeyOfLowering.KEY_OF + " cannot key " + typeName(type) + " on Lua: only int, class "
+                    + "instances and handles have a stable integer key.");
+        }
+        ImFunction getHandleId = translator.handleIdNative();
+        if (getHandleId == null) {
+            throw new CompileError(call.attrTrace().attrErrorPos(),
+                JassKeyOfLowering.KEY_OF + " keys a handle by its id, but the program declares no native GetHandleId.");
+        }
+        // The same choice as for a call of GetHandleId itself, so both give a handle the same id.
+        ImFunction target;
+        if (usesLuaObjectIdentityHandleId(value.attrTyp())) {
+            target = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
+                name -> createNativeStub(name, getHandleId));
+        } else {
+            target = getHandleId;
+        }
+        // A function nothing called before may have been shaken out of the program (a native which was never
+        // translated is added by the translator, behind the traversal's end).
+        if (target.getParent() == null && !deferredAdditions.contains(target)) {
+            deferredAdditions.add(target);
+        }
+        value.setParent(null);
+        call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), target, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(value), false, CallType.NORMAL));
+    }
+
+    private static boolean isSimpleType(ImType t, String name) {
+        return t instanceof ImSimpleType st && name.equals(st.getTypename());
+    }
+
+    private static String typeName(ImType t) {
+        if (t instanceof ImSimpleType st) {
+            return st.getTypename();
+        }
+        if (t instanceof ImTypeVarRef ref) {
+            return ref.getTypeVariable().getName();
+        }
+        return t.toString();
     }
 
     /**
@@ -405,19 +453,27 @@ public final class LuaNativeLowering {
      * Natives whose result is a string whatever the runtime does. Only {@code I2S}: the backend prints
      * it as {@code tostring}, which cannot answer nil. A native which merely returns a string in the
      * game, such as {@code R2S}, is not trusted to: a runtime of one's own may declare it to answer nil.
+     * The emulated string load is matched by identity ({@link LuaHashtable#isStringLoad}).
      */
     private static final Set<String> STRING_NATIVES_NEVER_NIL = Set.of("I2S");
 
-    private static boolean neverNil(ImExpr e, ImTranslator translator) {
+    /**
+     * Whether the string {@code e} cannot be nil on Lua. Asked here, before the optimiser, and again
+     * by the backend of the operand a {@code luaRawOrEmptyFunc} guard finally holds: inlining turns a
+     * call such as {@code int.toString()} into the {@code I2S} it returns, which needs no guard.
+     */
+    public static boolean neverNil(ImExpr e, ImTranslator translator) {
         if (e instanceof ImStringVal) {
             return true;
         }
-        if (e instanceof ImFunctionCall) {
-            ImFunction f = ((ImFunctionCall) e).getFunc();
-            // a lowered concatenation always has two strings to join
+        if (e instanceof ImFunctionCall imFunctionCall) {
+            ImFunction f = imFunctionCall.getFunc();
+            // a lowered concatenation always has two strings to join; tostring answers a string
             return f == translator.luaRawConcatFunc
                 || f == translator.luaRawOrEmptyFunc
-                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()));
+                || f == translator.luaRawToStringFunc
+                || (f.isNative() && STRING_NATIVES_NEVER_NIL.contains(f.getName()))
+                || LuaHashtable.isStringLoad(translator, f);
         }
         return false;
     }
@@ -477,7 +533,7 @@ public final class LuaNativeLowering {
                     // keeps the helper so the optimizer can still fold the whole expression.
                     ImExpr dividend = call.getArguments().get(0);
                     ImExpr divisor = call.getArguments().get(1);
-                    if (divisor instanceof ImIntVal && ((ImIntVal) divisor).getValI() > 0
+                    if (divisor instanceof ImIntVal imIntVal && imIntVal.getValI() > 0
                         && !(dividend instanceof ImIntVal)) {
                         target = funcs.rawFloorModInt();
                     } else {
@@ -514,6 +570,7 @@ public final class LuaNativeLowering {
      */
     private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
         ImFunction[] shim = {null};
+        List<ImFunction> added = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
@@ -523,27 +580,38 @@ public final class LuaNativeLowering {
                     return;
                 }
                 if (shim[0] == null) {
-                    shim[0] = buildRealToInt(translator);
+                    shim[0] = buildRealToInt(translator, added);
                 }
                 call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
                     JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL));
             }
         });
         if (shim[0] != null) {
-            prog.getFunctions().add(translator.luaRawR2IFunc);
+            prog.getFunctions().addAll(added);
             prog.getFunctions().add(shim[0]);
         }
     }
 
+    /**
+     * The R2I intrinsic, printed as Lua arithmetic by ExprTranslation#realToInt: made once per program, and added to
+     * {@code addTo} by whichever asks first. The R2I lowering and the real modulo share it.
+     */
+    private static ImFunction rawRealToInt(ImTranslator translator, List<ImFunction> addTo) {
+        if (translator.luaRawR2IFunc == null) {
+            ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, TypesHelper.imReal(), "x", false);
+            translator.luaRawR2IFunc = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
+                JassIm.ImVars(arg), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(),
+                Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+            addTo.add(translator.luaRawR2IFunc);
+        }
+        return translator.luaRawR2IFunc;
+    }
+
     /** return rawR2I(x): one intrinsic call, printed as Lua arithmetic by ExprTranslation#realToInt. */
-    private static ImFunction buildRealToInt(ImTranslator translator) {
+    private static ImFunction buildRealToInt(ImTranslator translator, List<ImFunction> addTo) {
         ImType realType = TypesHelper.imReal();
         ImType intType = TypesHelper.imInt();
-        ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
-        ImFunction rawR2I = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
-            JassIm.ImVars(arg), intType.copy(), JassIm.ImVars(), JassIm.ImStmts(),
-            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
-        translator.luaRawR2IFunc = rawR2I;
+        ImFunction rawR2I = rawRealToInt(translator, addTo);
 
         ImVar x = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
         ImStmts body = JassIm.ImStmts(JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImFunctionCall(SYNTHETIC_TRACE, rawR2I,
@@ -562,10 +630,10 @@ public final class LuaNativeLowering {
     private static boolean isIntentionalThreadAbortDivByZero(ImOperatorCall call) {
         ImExpr left = call.getArguments().get(0);
         ImExpr right = call.getArguments().get(1);
-        if (!(left instanceof ImIntVal) || ((ImIntVal) left).getValI() != 1) {
+        if (!(left instanceof ImIntVal leftInt) || leftInt.getValI() != 1) {
             return false;
         }
-        if (!(right instanceof ImIntVal) || ((ImIntVal) right).getValI() != 0) {
+        if (!(right instanceof ImIntVal rightInt) || rightInt.getValI() != 0) {
             return false;
         }
         // call's direct parent is the ImExprs argument-list container, not
@@ -574,10 +642,9 @@ public final class LuaNativeLowering {
         // list-contained IM/AST elements).
         Element argsList = call.getParent();
         Element parent = argsList == null ? null : argsList.getParent();
-        if (!(parent instanceof ImFunctionCall)) {
+        if (!(parent instanceof ImFunctionCall parentCall)) {
             return false;
         }
-        ImFunctionCall parentCall = (ImFunctionCall) parent;
         return parentCall.getArguments().size() == 1
             && parentCall.getArguments().get(0) == call
             && "I2S".equals(parentCall.getFunc().getName());
@@ -612,7 +679,6 @@ public final class LuaNativeLowering {
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
         private ImFunction rawFloorModInt;
-        private ImFunction rawFmodReal;
         private ImFunction intDiv;
         private ImFunction modInt;
         private ImFunction modReal;
@@ -634,18 +700,27 @@ public final class LuaNativeLowering {
             return intDiv;
         }
 
+        /** For an int divisor b > 0, Lua's floored % is exactly the ModuloInteger result. */
         ImFunction modInt() {
             if (modInt == null) {
-                modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0), rawFmodInt());
+                modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0),
+                    WurstOperator.GREATER, JassIm.ImIntVal(0), rawFmodInt(), rawFloorModInt());
                 translator.luaModIntFunc = modInt;
                 created.add(modInt);
             }
             return modInt;
         }
 
+        /**
+         * Blizzard.j's ModuloReal, which a real modulo calls on Jass: {@code a - R2I(a / b) * b}, plus b when that
+         * is negative, with R2I as the game's Lua computes it. Measured on the 3.0.0 client, that gives Jass's
+         * result in the game's Lua for every operand both read alike, where math.fmod and Lua's float % do not:
+         * 360 % 7 is 3 (fmod and % give 3.0000153), 7.5 % 360 is 7.5 (both give 7.4999995), -7.5 % 2.5 is 0
+         * (fmod gives 2.4999993). The test Lua computes in double, where all three agree.
+         */
         ImFunction modReal() {
             if (modReal == null) {
-                modReal = buildMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."), rawFmodReal());
+                modReal = buildBlizzardModReal(rawRealToInt(translator, created));
                 translator.luaModRealFunc = modReal;
                 created.add(modReal);
             }
@@ -682,15 +757,6 @@ public final class LuaNativeLowering {
                 created.add(rawFloorModInt);
             }
             return rawFloorModInt;
-        }
-
-        private ImFunction rawFmodReal() {
-            if (rawFmodReal == null) {
-                rawFmodReal = rawNative("__wurst_rawFmodReal", TypesHelper.imReal());
-                translator.luaRawFmodRealFunc = rawFmodReal;
-                created.add(rawFmodReal);
-            }
-            return rawFmodReal;
         }
 
         /** A native leaf with two params and a return, translated as a Lua backend intrinsic. */
@@ -734,29 +800,70 @@ public final class LuaNativeLowering {
         }
 
         /**
-         * local r = rawFmod(a, b)
-         * if r < 0 then r = r + b end
+         * local r
+         * if b > 0 then r = rawFloorMod(a, b)
+         * else r = rawFmod(a, b); if r < 0 then r = r + b end end
          * return r
-         * (Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal:
-         * truncated remainder, plus the divisor when the remainder is negative.)
+         * (Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal: truncated remainder, plus the
+         * divisor when the remainder is negative. Lua's % is floored, which gives the same for the
+         * divisors {@code positiveTest} admits, as one VM operation instead of a C call and a branch.
+         * Once inlined where the divisor is a literal, the test folds and only one branch is left.)
          */
-        private static ImFunction buildMod(String name, ImType numType, ImExpr zeroLiteral, ImFunction rawFmod) {
+        private static ImFunction buildMod(String name, ImType numType, ImExpr zeroLiteral,
+                                           WurstOperator positiveTest, ImExpr positiveBound,
+                                           ImFunction rawFmod, ImFunction rawFloorMod) {
             ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
             ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);
             ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "r", false);
 
             ImStmts body = JassIm.ImStmts(
-                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), call(rawFmod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
                 JassIm.ImIf(SYNTHETIC_TRACE,
-                    JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), zeroLiteral)),
+                    JassIm.ImOperatorCall(positiveTest, JassIm.ImExprs(JassIm.ImVarAccess(b), positiveBound)),
+                    JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
+                        call(rawFloorMod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b)))),
+                    JassIm.ImStmts(
+                        JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), call(rawFmod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
+                        JassIm.ImIf(SYNTHETIC_TRACE,
+                            JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), zeroLiteral)),
+                            JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
+                                JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImVarAccess(b))))),
+                            JassIm.ImStmts()
+                        ))
+                ),
+                JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(r))
+            );
+            return JassIm.ImFunction(SYNTHETIC_TRACE, name, JassIm.ImTypeVars(), JassIm.ImVars(a, b), numType.copy(),
+                JassIm.ImVars(r), body, Collections.emptyList());
+        }
+
+        /**
+         * local q = a / b; local r = a - rawR2I(q) * b; if r < 0 then r = r + b end; return r
+         * (Blizzard.j's ModuloReal. The quotient is a local because the intrinsic is printed in place only for a
+         * variable; the integer it gives converts to a real in the multiplication, as I2R does.)
+         */
+        private static ImFunction buildBlizzardModReal(ImFunction rawR2I) {
+            ImType realType = TypesHelper.imReal();
+            ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "a", false);
+            ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "b", false);
+            ImVar q = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "q", false);
+            ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "r", false);
+
+            ImStmts body = JassIm.ImStmts(
+                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(q),
+                    JassIm.ImOperatorCall(WurstOperator.DIV_REAL, JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImVarAccess(b)))),
+                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), JassIm.ImOperatorCall(WurstOperator.MINUS,
+                    JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImOperatorCall(WurstOperator.MULT,
+                        JassIm.ImExprs(call(rawR2I, JassIm.ImVarAccess(q)), JassIm.ImVarAccess(b)))))),
+                JassIm.ImIf(SYNTHETIC_TRACE,
+                    JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImRealVal("0."))),
                     JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
                         JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImVarAccess(b))))),
                     JassIm.ImStmts()
                 ),
                 JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(r))
             );
-            return JassIm.ImFunction(SYNTHETIC_TRACE, name, JassIm.ImTypeVars(), JassIm.ImVars(a, b), numType.copy(),
-                JassIm.ImVars(r), body, Collections.emptyList());
+            return JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_modReal", JassIm.ImTypeVars(), JassIm.ImVars(a, b),
+                realType.copy(), JassIm.ImVars(q, r), body, Collections.emptyList());
         }
 
         private static ImFunctionCall call(ImFunction f, ImExpr... args) {
@@ -804,7 +911,7 @@ public final class LuaNativeLowering {
      * {@code null} and returns the type-appropriate default value if any is
      * null.  Otherwise it delegates to the original BJ function.
      */
-    private static ImFunction createNilSafeWrapper(ImFunction bjNative) {
+    private static ImFunction createNilSafeWrapper(ImFunction bjNative, ImTranslator translator, List<ImFunction> deferredAdditions) {
         ImVars params = JassIm.ImVars();
         List<ImVar> paramVars = new ArrayList<>();
         for (ImVar p : bjNative.getParameters()) {
@@ -816,8 +923,12 @@ public final class LuaNativeLowering {
         ImStmts body = JassIm.ImStmts();
 
         // Null-check each required handle param: if param == null then return <default> end
-        // boolexpr and code params are intentionally skipped — they are optional/nullable
+        // boolexpr and code params are intentionally skipped because they are optional/nullable
         // in Jass (e.g. the filter arg of TriggerRegisterPlayerUnitEvent).
+        // A null enum handle is no missing handle: the engine reads it as the handle of id 0, so the
+        // wrapper passes that one on (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
+        // IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result, and
+        // UnitDamageTarget with a null attack, damage and weapon type deals the damage).
         ImExpr returnDefault = defaultValueExpr(bjNative.getReturnType());
         for (ImVar param : paramVars) {
             if (isHandleType(param.getType()) && !isNullableHandleType(param.getType())) {
@@ -825,9 +936,24 @@ public final class LuaNativeLowering {
                     JassIm.ImVarAccess(param),
                     JassIm.ImNull(param.getType().copy())
                 ));
-                ImStmts thenBlock = JassIm.ImStmts(
-                    JassIm.ImReturn(bjNative.attrTrace(), returnDefault.copy())
-                );
+                // Only a native reads it so: a blizzard.j helper sees the null, which Jass keeps, and may compare it.
+                ImFunction converter = bjNative.isNative()
+                    ? translator.enumConverter(((ImSimpleType) param.getType()).getTypename())
+                    : null;
+                ImStmts thenBlock;
+                if (converter != null) {
+                    // A converter nothing else called may have been shaken out of the program.
+                    if (converter.getParent() == null && !deferredAdditions.contains(converter)) {
+                        deferredAdditions.add(converter);
+                    }
+                    thenBlock = JassIm.ImStmts(JassIm.ImSet(bjNative.attrTrace(), JassIm.ImVarAccess(param),
+                        JassIm.ImFunctionCall(bjNative.attrTrace(), converter, JassIm.ImTypeArguments(),
+                            JassIm.ImExprs(JassIm.ImIntVal(0)), false, CallType.NORMAL)));
+                } else {
+                    thenBlock = JassIm.ImStmts(
+                        JassIm.ImReturn(bjNative.attrTrace(), returnDefault.copy())
+                    );
+                }
                 body.add(JassIm.ImIf(bjNative.attrTrace(), condition, thenBlock, JassIm.ImStmts()));
             }
         }
@@ -867,10 +993,10 @@ public final class LuaNativeLowering {
 
     /** Returns true for WC3 handle types (ImSimpleType that is not int/real/boolean/string). */
     public static boolean isHandleType(ImType type) {
-        if (!(type instanceof ImSimpleType)) {
+        if (!(type instanceof ImSimpleType imSimpleType)) {
             return false;
         }
-        String n = ((ImSimpleType) type).getTypename();
+        String n = imSimpleType.getTypename();
         return !n.equals("integer") && !n.equals("real") && !n.equals("boolean") && !n.equals("string");
     }
 
@@ -883,10 +1009,10 @@ public final class LuaNativeLowering {
      * mean "no callback".
      */
     static boolean isNullableHandleType(ImType type) {
-        if (!(type instanceof ImSimpleType)) {
+        if (!(type instanceof ImSimpleType imSimpleType)) {
             return false;
         }
-        String n = ((ImSimpleType) type).getTypename();
+        String n = imSimpleType.getTypename();
         return n.equals("boolexpr") || n.equals("code");
     }
 
@@ -898,10 +1024,10 @@ public final class LuaNativeLowering {
     }
 
     public static boolean usesLuaObjectIdentityHandleId(ImType type) {
-        if (!(type instanceof ImSimpleType)) {
+        if (!(type instanceof ImSimpleType imSimpleType)) {
             return false;
         }
-        String typeName = ((ImSimpleType) type).getTypename();
+        String typeName = imSimpleType.getTypename();
         return OPAQUE_RUNTIME_HANDLE_TYPES.contains(typeName);
     }
 
@@ -918,8 +1044,8 @@ public final class LuaNativeLowering {
 
     /** Returns an IM expression representing the safe default for the given return type. */
     private static ImExpr defaultValueExpr(ImType returnType) {
-        if (returnType instanceof ImSimpleType) {
-            String n = ((ImSimpleType) returnType).getTypename();
+        if (returnType instanceof ImSimpleType imSimpleType) {
+            String n = imSimpleType.getTypename();
             switch (n) {
                 case "integer": return JassIm.ImIntVal(0);
                 case "real":    return JassIm.ImRealVal("0.0");

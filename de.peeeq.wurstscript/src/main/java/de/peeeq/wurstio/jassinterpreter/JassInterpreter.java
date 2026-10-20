@@ -16,8 +16,11 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class JassInterpreter implements AbstractInterpreter {
 
@@ -29,6 +32,10 @@ public class JassInterpreter implements AbstractInterpreter {
     private boolean trace = false;
     private final Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
+    /** Names of the real globals, which convert an integer stored into them. */
+    private final Set<String> realGlobals = new HashSet<>();
+    /** Names of the real locals and parameters of each function. */
+    private final Map<JassFunction, Set<String>> realLocals = new IdentityHashMap<>();
 
     public void loadProgram(JassProg prog) {
         this.prog = prog;
@@ -37,6 +44,9 @@ public class JassInterpreter implements AbstractInterpreter {
         List<JassVar> globals = prog.getGlobals();
         // globals initialisieren
         for (JassVar v : globals) {
+            if (!(v instanceof JassArrayVar) && v.getType().equals("real")) {
+                realGlobals.add(v.getName());
+            }
             ILconst value = null;
             if (v instanceof JassArrayVar) {
                 value = new JassArray(v.getType());
@@ -94,7 +104,7 @@ public class JassInterpreter implements AbstractInterpreter {
         }
         int i = 0;
         for (JassSimpleVar v : func.getParams()) {
-            localVarMap.put(v.getName(), arguments[i]);
+            localVarMap.put(v.getName(), convertTo(v.getType(), arguments[i]));
             i++;
         }
 
@@ -104,7 +114,7 @@ public class JassInterpreter implements AbstractInterpreter {
             if (trace) {
                 WLogger.trace(() -> "end function " + func.getName() + " returns " + e.getVal());
             }
-            return e.getVal();
+            return convertTo(func.getReturnType(), e.getVal());
         }
 
         if (trace) {
@@ -134,6 +144,9 @@ public class JassInterpreter implements AbstractInterpreter {
             @Override
             public void case_JassStmtSet(JassStmtSet jassStmtSet) {
                 ILconst right = executeExpr(localVarMap, jassStmtSet.getRight());
+                if (right instanceof ILconstInt && isRealVariable(localVarMap, jassStmtSet)) {
+                    right = convertTo("real", right);
+                }
                 setVarValue(localVarMap, jassStmtSet.getLeft(), right);
             }
 
@@ -190,40 +203,6 @@ public class JassInterpreter implements AbstractInterpreter {
         });
 
 
-//		if (s instanceof ILif) {
-//			translateStatementIf(localVarMap, (ILif)s);
-//		} else if (s instanceof ILsetVar) {
-//			translateIlcopy( localVarMap, (ILsetVar)s);
-//		} else if (s instanceof IlsetConst) {
-//			translateIlsetConst( localVarMap, (IlsetConst)s);
-//		} else if (s instanceof ILsetBinary) {
-//			translateIlbinary( localVarMap, (ILsetBinary)s);
-//		} else if (s instanceof IlsetUnary) {
-//			translateIlunary(localVarMap, (IlsetUnary) s);
-//		} else if (s instanceof ILreturn) {
-//			translateReturn(localVarMap, (ILreturn) s);
-//		} else if (s instanceof ILloop) {
-//			translateLoop(localVarMap, (ILloop) s);
-//		} else if (s instanceof ILexitwhen) {
-//			translateExitwhen(localVarMap, (ILexitwhen) s);
-//		} else if (s instanceof ILfunctionCall) {
-//			translateFunctionCall(localVarMap, (ILfunctionCall) s);
-//		} else if (s instanceof IlbuildinFunctionCall) {
-//			translateBuildinFunction(localVarMap, (IlbuildinFunctionCall) s);
-//		} else if (s instanceof ILsetBinaryCR) {
-//			translateILsetBinaryCR(localVarMap, (ILsetBinaryCR) s);
-//		} else if (s instanceof ILsetBinaryCL) {
-//			translateILsetBinaryCL(localVarMap, (ILsetBinaryCL) s);
-//		} else if (s instanceof ILarraySetVar) {
-//			translateILarraySetVar(localVarMap, (ILarraySetVar) s);
-//		} else if (s instanceof ILsetVarArray) {
-//			translateILsetVarArray(localVarMap, (ILsetVarArray) s);
-//		} else if (s instanceof ILerror) {
-//			throw new InterpreterException("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
-//		} else {
-//
-//			throw new InterpreterException("not implemented " + s);
-//		}
     }
 
 
@@ -421,6 +400,42 @@ public class JassInterpreter implements AbstractInterpreter {
     }
 
 
+    /**
+     * The engine converts an integer to real where a real is declared: a variable it is stored into,
+     * a parameter it is passed to and a value a function returns.
+     */
+    private static @Nullable ILconst convertTo(String type, @Nullable ILconst value) {
+        if (value instanceof ILconstInt i && type.equals("real")) {
+            return new ILconstReal(i.getVal());
+        }
+        return value;
+    }
+
+    private boolean isRealVariable(Map<String, ILconst> localVarMap, JassStmtSet set) {
+        String name = set.getLeft();
+        if (!isLocal(localVarMap, name)) {
+            return realGlobals.contains(name);
+        }
+        de.peeeq.wurstscript.jassAst.Element e = set.getParent();
+        while (!(e instanceof JassFunction)) {
+            e = e.getParent();
+        }
+        return realLocals.computeIfAbsent((JassFunction) e, f -> {
+            Set<String> names = new HashSet<>();
+            for (JassVar v : f.getLocals()) {
+                if (!(v instanceof JassArrayVar) && v.getType().equals("real")) {
+                    names.add(v.getName());
+                }
+            }
+            for (JassSimpleVar v : f.getParams()) {
+                if (v.getType().equals("real")) {
+                    names.add(v.getName());
+                }
+            }
+            return names;
+        }).contains(name);
+    }
+
     private void setVarValue(Map<String, ILconst> localVarMap, String varName, ILconst s) {
         if (isLocal(localVarMap, varName)) {
             localVarMap.put(varName, s);
@@ -451,7 +466,7 @@ public class JassInterpreter implements AbstractInterpreter {
                 if (bjGlobal == null) {
                     throw new InterpreterException("Variable " + name + " not found.");
                 }
-                value = executeExpr(Collections.emptyMap(), bjGlobal.getVal());
+                value = convertTo(bjGlobal.getType(), executeExpr(Collections.emptyMap(), bjGlobal.getVal()));
                 globalVarMap.put(name, value);
             }
         }
@@ -508,14 +523,13 @@ public class JassInterpreter implements AbstractInterpreter {
 
     public void runProgram() {
         for (JassVar var : prog.getGlobals()) {
-            if (var instanceof JassInitializedVar) {
-                JassInitializedVar iVar = (JassInitializedVar) var;
+            if (var instanceof JassInitializedVar iVar) {
                 if (iVar.getIsBj()) {
                     // Evaluated on first read, as the IM interpreter does, so that an initialiser without
                     // a native mock only matters to a program that reads the global.
                     uninitializedBjGlobals.put(iVar.getName(), iVar);
                 } else {
-                    globalVarMap.put(iVar.getName(), executeExpr(Collections.emptyMap(), iVar.getVal()));
+                    globalVarMap.put(iVar.getName(), convertTo(iVar.getType(), executeExpr(Collections.emptyMap(), iVar.getVal())));
                 }
             }
         }

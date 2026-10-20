@@ -17,8 +17,7 @@ public interface AssertProperty {
         ) {
             throw new Error("contains tuple exprs " + e);
         }
-        if (e instanceof ImVar) {
-            ImVar v = (ImVar) e;
+        if (e instanceof ImVar v) {
             if (TypesHelper.typeContainsTuples(v.getType())) {
                 throw new Error("contains tuple var: " + v + " in\n" + v.getParent().getParent());
             }
@@ -31,55 +30,54 @@ public interface AssertProperty {
 
             @Override
             public void check(Element e) {
-                if (e instanceof ImVar) {
-                    checkType(e, ((ImVar) e).getType());
-                } else if (e instanceof ImFunction) {
-                    ImFunction f = (ImFunction) e;
+                if (e instanceof ImVar imVar) {
+                    checkType(e, imVar.getType());
+                } else if (e instanceof ImFunction f) {
                     currentFunction = f;
                     checkType(e, (f).getReturnType());
-                } else if (e instanceof ImTypeClassFunc) {
-                    checkType(e, ((ImTypeClassFunc) e).getReturnType());
-                } else if (e instanceof ImMethod) {
-                    checkType(e, ((ImMethod) e).getMethodClass());
-                    checkRooted(e, ((ImMethod) e).getImplementation());
-                } else if (e instanceof ImVarargLoop) {
-                    for (ImVarargLoopVar loopVar : ((ImVarargLoop) e).getLoopVars()) {
+                } else if (e instanceof ImTypeClassFunc imTypeClassFunc) {
+                    checkType(e, imTypeClassFunc.getReturnType());
+                } else if (e instanceof ImMethod imMethod) {
+                    checkType(e, imMethod.getMethodClass());
+                    checkRooted(e, imMethod.getImplementation());
+                } else if (e instanceof ImVarargLoop imVarargLoop) {
+                    for (ImVarargLoopVar loopVar : imVarargLoop.getLoopVars()) {
                         checkRooted(e, loopVar.getVar());
                     }
-                } else if (e instanceof ImTypeVarDispatch) {
-                    checkRooted(e, ((ImTypeVarDispatch) e).getTypeClassFunc());
-                    checkRooted(e, ((ImTypeVarDispatch) e).getTypeVariable());
-                } else if (e instanceof ImVarAccess) {
-                    checkRooted(e, ((ImVarAccess) e).getVar());
-                } else if (e instanceof ImVarArrayAccess) {
-                    checkRooted(e, ((ImVarArrayAccess) e).getVar());
-                } else if (e instanceof ImMethodCall) {
-                    checkRooted(e, ((ImMethodCall) e).getMethod());
-                } else if (e instanceof ImMemberAccess) {
-                    checkRooted(e, ((ImMemberAccess) e).getVar());
-                } else if (e instanceof ImClassRelatedExprWithClass) {
-                    checkType(e, ((ImClassRelatedExprWithClass) e).getClazz());
-                } else if (e instanceof ImFunctionCall) {
-                    checkRooted(e, ((ImFunctionCall) e).getFunc());
-                } else if (e instanceof ImFuncRef) {
-                    checkRooted(e, ((ImFuncRef) e).getFunc());
-                } else if (e instanceof ImTypeArgument) {
-                    checkType(e, ((ImTypeArgument) e).getType());
+                } else if (e instanceof ImTypeVarDispatch imTypeVarDispatch) {
+                    checkRooted(e, imTypeVarDispatch.getTypeClassFunc());
+                    checkRooted(e, imTypeVarDispatch.getTypeVariable());
+                } else if (e instanceof ImVarAccess imVarAccess) {
+                    checkRooted(e, imVarAccess.getVar());
+                } else if (e instanceof ImVarArrayAccess imVarArrayAccess) {
+                    checkRooted(e, imVarArrayAccess.getVar());
+                } else if (e instanceof ImMethodCall imMethodCall) {
+                    checkRooted(e, imMethodCall.getMethod());
+                } else if (e instanceof ImMemberAccess imMemberAccess) {
+                    checkRooted(e, imMemberAccess.getVar());
+                } else if (e instanceof ImClassRelatedExprWithClass imClassRelatedExprWithClass) {
+                    checkType(e, imClassRelatedExprWithClass.getClazz());
+                } else if (e instanceof ImFunctionCall imFunctionCall) {
+                    checkRooted(e, imFunctionCall.getFunc());
+                } else if (e instanceof ImFuncRef imFuncRef) {
+                    checkRooted(e, imFuncRef.getFunc());
+                } else if (e instanceof ImTypeArgument imTypeArgument) {
+                    checkType(e, imTypeArgument.getType());
                 }
             }
 
             private void checkType(Element e, ImType type) {
-                if (type instanceof ImArrayType) {
-                    checkType(e, ((ImArrayType) type).getEntryType());
-                } else if (type instanceof ImArrayTypeMulti) {
-                    checkType(e, ((ImArrayTypeMulti) type).getEntryType());
-                } else if (type instanceof ImClassType) {
-                    checkRooted(e, ((ImClassType) type).getClassDef());
-                    for (ImTypeArgument ta : ((ImClassType) type).getTypeArguments()) {
+                if (type instanceof ImArrayType imArrayType) {
+                    checkType(e, imArrayType.getEntryType());
+                } else if (type instanceof ImArrayTypeMulti imArrayTypeMulti) {
+                    checkType(e, imArrayTypeMulti.getEntryType());
+                } else if (type instanceof ImClassType imClassType) {
+                    checkRooted(e, imClassType.getClassDef());
+                    for (ImTypeArgument ta : imClassType.getTypeArguments()) {
                         checkType(e, ta.getType());
                     }
-                } else if (type instanceof ImTypeVarRef) {
-                    checkRooted(e, ((ImTypeVarRef) type).getTypeVariable());
+                } else if (type instanceof ImTypeVarRef imTypeVarRef) {
+                    checkRooted(e, imTypeVarRef.getTypeVariable());
                 }
             }
 

@@ -27,6 +27,105 @@ public class InterpreterTests extends WurstScriptTest {
     }
 
     /** What the game prints for a precision this large was not measured; the interpreter says so. */
+    /**
+     * One call site dispatches on receivers of several classes in turn. The interpreter remembers the
+     * implementation it chose per method and receiver class; a deeper class which inherits an override,
+     * a sibling and the base must each get their own.
+     */
+    @Test
+    public void methodDispatchPerReceiverClassAtOneCallSite() {
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@extern native I2S(int i) returns string",
+            "abstract class A",
+            "    abstract function f() returns int",
+            "class B extends A",
+            "    override function f() returns int",
+            "        return 1",
+            "class C extends B",
+            "    override function f() returns int",
+            "        return 2",
+            "class D extends C",
+            "class E extends A",
+            "    override function f() returns int",
+            "        return 4",
+            "function call(A a) returns int",
+            "    return a.f()",
+            "init",
+            "    A array objs",
+            "    objs[0] = new D",
+            "    objs[1] = new B",
+            "    objs[2] = new E",
+            "    objs[3] = new C",
+            "    objs[4] = new D",
+            "    objs[5] = new B",
+            "    int result = 0",
+            "    for i = 0 to 5",
+            "        result = result * 10 + call(objs[i])",
+            "    if result == 214221",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"dispatch gave \" + I2S(result))"
+        );
+    }
+
+    /**
+     * A return leaves the loops and ifs around it and the call, an exitwhen only its own loop, also from inside
+     * a vararg loop. The interpreter stops the statements around them by a flag, not by unwinding an exception.
+     */
+    @Test
+    public void returnAndExitwhenLeaveTheRightStatements() {
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@extern native I2S(int i) returns string",
+            "int calls = 0",
+            "function findInNested(int target) returns int",
+            "    for i = 0 to 9",
+            "        for j = 0 to 9",
+            "            if i * 10 + j == target",
+            "                return i * 100 + j",
+            "    return -1",
+            "function innerExit() returns int",
+            "    var count = 0",
+            "    for i = 0 to 4",
+            "        var j = 0",
+            "        while true",
+            "            if j == i",
+            "                break",
+            "            j++",
+            "            count++",
+            "    return count",
+            "int limit = 0",
+            "function firstAbove(vararg int xs) returns int",
+            "    for x in xs",
+            "        if x > limit",
+            "            return x",
+            "    return -1",
+            "function firstAboveFive() returns int",
+            "    limit = 5",
+            "    return firstAbove(1, 7, 9)",
+            "function firstAboveTen() returns int",
+            "    limit = 10",
+            "    return firstAbove(1, 2)",
+            "function earlyOut(int x)",
+            "    if x > 0",
+            "        return",
+            "    calls++",
+            "init",
+            "    earlyOut(1)",
+            "    earlyOut(0)",
+            "    let r = findInNested(37) + innerExit() * 1000 + firstAboveFive() * 100000 + calls * 10000000",
+            "    if r == 307 + 10000 + 700000 + 10000000 and firstAboveTen() == -1",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"got \" + I2S(r))"
+        );
+    }
+
     @Test(expectedExceptions = {InterpreterException.class})
     public void r2swBeyondTheModelledRange() {
         test().executeProg(true).testLua(false).lines(
@@ -54,7 +153,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void arrayDefault() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -67,7 +166,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void displayNativesAcceptNullForceAndLocalPlayer() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    DisplayTextToForce(null, \"force\")",
@@ -395,7 +494,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** A blizzard.j constant defined from another one, and constants whose ConvertX had no mock. */
     @Test
     public void derivedAndLessCommonConstants() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    if bj_DEGTORAD < 0.0174 or bj_DEGTORAD > 0.0175",
@@ -406,11 +505,17 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
-    /** Every expected value here was measured on the 3.0.0 client. */
+    /**
+     * Every expected value here was measured on the 3.0.0 client. A real past 2^31 is computed (w keeps it from
+     * folding), as it was in the measurement: Jass reads such a literal wrapped as written (the literal
+     * 3000000000. is negative), which is why the Jass backend prints it otherwise.
+     */
     @Test
     public void stringNativesAsMeasured() {
         test().withStdLib().executeProg(true).testLua(false).lines(
             "package Test",
+            "@noinline function w(real x) returns real",
+            "    return x",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",
             "        testFail(name + \" gave \" + actual)",
@@ -433,11 +538,8 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2S carry\", R2S(0.9996), \"1.000\")",
             "    measured(\"R2S negative\", R2S(-1.5), \"-1.500\")",
             "    measured(\"R2S negative to zero\", R2S(-0.0004), \"-0.000\")",
-            "    measured(\"R2S wraps\", R2S(3000000000.), \"-1294967296.000\")",
-            "    measured(\"R2S negative wraps\", R2S(-3000000000.), \"1294967296.000\")",
-            "    measured(\"R2S 1e10\", R2S(10000000000.), \"1410065408.000\")",
-            // Past 2^56 a real is a multiple of 2^32, so its integer part wraps to 0.
-            "    measured(\"R2S and R2SW beyond the long range\", R2S(100000000000000000000.) + \",\" + R2SW(100000000000000000000., 1, 2), \"0.000,0.00\")",
+            "    measured(\"R2S of a computed 3e9\", R2S(w(30000.) * w(100000.)), \"3000000000.000\")",
+            "    measured(\"R2S of a computed -3e9\", R2S(-(w(30000.) * w(100000.))), \"-3000000000.000\")",
             "    measured(\"R2SW padded\", R2SW(1.5, 8, 2), \"     1.50\")",
             "    measured(\"R2SW negative padded\", R2SW(-1.5, 8, 3), \"-    1.500\")",
             "    measured(\"R2SW precision 0\", R2SW(1.5, 2, 0), \" 2.0\")",
@@ -446,12 +548,13 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2SW negative to zero\", R2SW(-0.4, 1, 0), \"-0.0\")",
             "    measured(\"R2SW integer\", R2SW(7., 4, 0), \"   7.0\")",
             "    measured(\"R2SW carry\", R2SW(0.9996, 1, 3), \"1.000\")",
-            // Wraps like R2S: 3e9 is measured, and -3e9 wraps to the positive value R2S prints for it.
-            "    measured(\"R2SW wraps\", R2SW(3000000000., 1, 1) + \",\" + R2SW(-3000000000., 1, 3), \"-1294967296.0,1294967296.000\")",
+            "    measured(\"R2SW of a computed 3e9\", R2SW(w(30000.) * w(100000.), 1, 1) + \",\""
+                + " + R2SW(-(w(30000.) * w(100000.)), 1, 3), \"3000000000.0,-3000000000.000\")",
             "    measured(\"R2SW smallest width\", R2SW(1., -2147483647 - 1, 1), \"1.0\")",
             "    measured(\"R2I truncates\", I2S(R2I(1.9)) + \",\" + I2S(R2I(-1.9)), \"1,-1\")",
-            "    measured(\"R2I wraps\", I2S(R2I(10000000000.)) + \",\" + I2S(R2I(-10000000000.)), \"1410065408,-1410065408\")",
-            "    measured(\"R2I beyond the long range\", I2S(R2I(100000000000000000000.)) + \",\" + I2S(R2I(-100000000000000000000.)), \"0,0\")",
+            "    measured(\"R2I saturates\", I2S(R2I(w(50000.) * w(100000.))) + \",\" + I2S(R2I(-(w(50000.) * w(100000.)))),"
+                + " \"2147483647,-2147483648\")",
+            "    measured(\"R2I saturates far out\", I2S(R2I(w(50000.) * w(100000.) * w(50000.) * w(100000.) * w(4.))), \"2147483647\")",
             "    measured(\"SubString end before start\", SubString(\"abcdef\", 3, 1), \"def\")",
             "    measured(\"SubString empty range\", SubString(\"abcdef\", 3, 3), \"\")",
             "    measured(\"SubString at the end\", SubString(\"abcdef\", 6, 8), \"\")",
@@ -530,6 +633,9 @@ public class InterpreterTests extends WurstScriptTest {
             "    return b ? \"true\" : \"false\"",
             "init",
             "    measured(\"same value, same handle\", bs(ConvertUnitType(1) == UNIT_TYPE_DEAD) + \",\" + bs(ConvertUnitEvent(5) == ConvertUnitEvent(5)) + \",\" + bs(ConvertUnitType(999) != null), \"true,true,true\")",
+            // every conversion keeps its handle, the frame types too, which a second provider once made afresh
+            "    measured(\"same origin frame type, same handle\", bs(ConvertOriginFrameType(3) == ConvertOriginFrameType(3)) + \",\""
+                + " + bs(GetHandleId(ConvertOriginFrameType(3)) == GetHandleId(ConvertOriginFrameType(3))), \"true,true\")",
             "    let ids = I2S(GetHandleId(UNIT_TYPE_DEAD)) + \",\" + I2S(GetHandleId(UNIT_STATE_MANA)) + \",\" + I2S(GetHandleId(FRAMEPOINT_CENTER)) + \",\" + I2S(GetHandleId(PLAYER_STATE_RESOURCE_GOLD)) + \",\" + I2S(GetHandleId(UNIT_RF_HP)) + \",\" + I2S(GetHandleId(ConvertUnitType(999)))",
             "    measured(\"GetHandleId of conversions\", ids, \"1,2,4,1,1969778787,999\")",
             "    measured(\"GetHandleId of a unit\", bs(GetHandleId(CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)) >= 0x100000), \"true\")",
@@ -625,6 +731,21 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"negative max mana\", R2S(GetUnitState(mm, UNIT_STATE_MANA)), \"0.000\")",
             "    let h = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
             "    measured(\"hero type and null type\", bs(IsUnitType(h, UNIT_TYPE_HERO)) + \",\" + bs(IsUnitType(h, null)) + \",\" + bs(IsUnitType(u, UNIT_TYPE_HERO)), \"true,true,false\")",
+            // a null enum handle is the handle of id 0: the game result, which is neutral (3) while the game runs
+            "    playerstate noState = null",
+            "    measured(\"null player state, game result, gold\", I2S(GetPlayerState(Player(0), noState)) + \",\""
+                + " + I2S(GetPlayerState(Player(0), PLAYER_STATE_GAME_RESULT)) + \",\" + I2S(GetPlayerState(Player(0), PLAYER_STATE_RESOURCE_GOLD)), \"3,3,0\")",
+            // a write through the null state is one to the game result, as a read is (measured: Player(1), 2 reads back 2)
+            "    SetPlayerState(Player(1), noState, 1)",
+            "    measured(\"null player state written, read back\", I2S(GetPlayerState(Player(1), PLAYER_STATE_GAME_RESULT)) + \",\""
+                + " + I2S(GetPlayerState(Player(1), noState)), \"1,1\")",
+            "    let target = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    let lifeBefore = GetWidgetLife(target)",
+            "    attacktype noAttack = null",
+            "    damagetype noDamage = null",
+            "    weapontype noWeapon = null",
+            "    let damaged = UnitDamageTarget(h, target, 10.0, false, false, noAttack, noDamage, noWeapon)",
+            "    measured(\"damage with null types\", bs(damaged) + \",\" + R2S(lifeBefore - GetWidgetLife(target)), \"true,10.000\")",
             "    testSuccess()"
         );
     }
@@ -722,7 +843,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** `grill test` and compiletime evaluation run the IM interpreter, which reads the constants too. */
     @Test
     public void commonJConstantsInTestsAndCompiletime() {
-        test().withStdLib().executeTests(true).executeProg(true).runCompiletimeFunctions(true).testLua(false).lines(
+        test().withStdLib().executeTests(true).executeProg(true).runCompiletimeFunctions(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "@compiletime function checkConstants()",
             "    if UNIT_TYPE_DEAD == null or UNIT_STATE_MANA == null",
@@ -742,7 +863,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void getOwningPlayerNullUnitReturnsWurstNull() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    if GetOwningPlayer(null) != null",
@@ -838,7 +959,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** 0 castTo a class is the null reference, as the stdlib's unit.toUnitIndex() relies on. */
     @Test
     public void castZeroToClassIsNull() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",

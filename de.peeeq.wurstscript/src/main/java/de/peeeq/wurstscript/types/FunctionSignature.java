@@ -63,8 +63,8 @@ public class FunctionSignature {
     }
 
     public @Nullable FunctionDefinition getDef() {
-        if (trace instanceof FunctionDefinition) {
-            return (FunctionDefinition) trace;
+        if (trace instanceof FunctionDefinition functionDefinition) {
+            return functionDefinition;
         }
         return null;
     }
@@ -83,29 +83,6 @@ public class FunctionSignature {
         return new FunctionSignature(trace, newMapping, receiverType, name, pt2, paramNames, r2);
     }
 
-
-    public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
-//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.attrReturnTyp());
-        if (f == null) {
-            return FunctionSignature.empty;
-        }
-        WurstType returnType = f.attrReturnTyp();
-        if (f instanceof TupleDef) {
-            TupleDef tupleDef = (TupleDef) f;
-            returnType = tupleDef.attrTyp().dynamic();
-        }
-
-
-        List<WurstType> paramTypes = f.attrParameterTypes();
-        List<String> paramNames = getParamNames(f.getParameters());
-        List<TypeParamDef> typeParams = Collections.emptyList();
-        if (f instanceof AstElementWithTypeParameters) {
-            typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
-        }
-        return new FunctionSignature(f, VariableBinding.emptyMapping().withTypeVariables(typeParams), f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
-    }
-
-
     public static List<String> getParamNames(WParameters parameters) {
         List<String> list = new ArrayList<>();
         for (WParameter parameter : parameters) {
@@ -120,12 +97,12 @@ public class FunctionSignature {
         VariableBinding mapping = f.getVariableBinding();
         FunctionDefinition def = f.getDef();
         // Only add the function's own type params that are still unbound (i.e., still in
-        // f.getTypeParams() — withTypeArgBinding removes them as they get resolved).
+        // f.getTypeParams(), withTypeArgBinding removes them as they get resolved).
         // We must NOT add enclosing structure (module/class) type params, which would
         // appear as spurious unbound inference variables.
-        if (def instanceof AstElementWithTypeParameters) {
+        if (def instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
             java.util.Set<TypeParamDef> ownParams = new java.util.HashSet<>(
-                ((AstElementWithTypeParameters) def).getTypeParameters());
+                astElementWithTypeParameters.getTypeParameters());
             List<TypeParamDef> unboundOwn = f.getTypeParams().stream()
                 .filter(ownParams::contains)
                 .collect(Collectors.toList());

@@ -3,7 +3,12 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstio.UtilsIO;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ExpressionTests extends WurstScriptTest {
 
@@ -237,11 +242,6 @@ public class ExpressionTests extends WurstScriptTest {
         assertOk("- 3*4 == -12");
     }
 
-//	@Test
-//	public void div2() {
-//		assertError("Cannot compare types", "14 / 4 == 7");
-//	}
-
     @Test
     public void div3() {
         assertOk("14 / 3 > 4.0");
@@ -267,29 +267,24 @@ public class ExpressionTests extends WurstScriptTest {
         assertOk("0xaffe == 45054");
     }
 
-//	@Test // not supported (strange notation - do not want ;)
-//	public void ints3() {
-//		assertOk("$affe == 45054");
-//	}
+    @Test
+    public void ints3() {
+        assertOk("$affe == 45054");
+    }
 
     @Test
     public void ints4() {
         assertOk("'a' == 97");
     }
 
-//	@Test // not yet supported 
-//	public void ints5() {
-//		assertOk("'\n' == 11");
-//	}
-
     @Test
     public void ints6() {
-        assertOk("'hfoo' == 1751543663"); // or 1781543663 ?
+        assertOk("'hfoo' == 1751543663");
     }
 
     @Test
     public void ints7() {
-        assertOk("'wc 3' == 2002985011"); // or 2002985611 ?
+        assertOk("'wc 3' == 2002985011");
     }
 
     @Test
@@ -490,7 +485,7 @@ public class ExpressionTests extends WurstScriptTest {
      * An integer literal is a proper subtype of both int and real. Addition collapses two of them
      * to int, so {@code real r = 1} is allowed while {@code real r = 1 + 1} is not; {@code div} and
      * {@code mod} return the left operand's type instead, so a literal stays assignable to a real
-     * through them. This pins the asymmetry rather than endorsing it — see backlog item 8.
+     * through them. This pins the asymmetry rather than endorsing it.
      */
     @Test
     public void integerDivisionOfLiteralsIsStillAssignableToReal() {
@@ -523,6 +518,32 @@ public class ExpressionTests extends WurstScriptTest {
                 "    if d == 3 and m == 1",
                 "        testSuccess()"
         );
+    }
+
+    /**
+     * A real is a 32 bit float in the game, where addition and multiplication are not associative, so the Jass keeps
+     * the grouping of a right operand: `a + b + c` is `(a + b) + c`. Only `and` and `or` may lose it.
+     */
+    @Test
+    public void jassKeepsTheGroupingOfARealSumAndProduct() throws IOException {
+        test().lines(
+            "package test",
+            "native printReal(real r)",
+            "native printBool(boolean b)",
+            "real array reals",
+            "boolean array bools",
+            "init",
+            "    let a = reals[0]",
+            "    let b = reals[1]",
+            "    let c = reals[2]",
+            "    printReal(a + (b + c))",
+            "    printReal(a * (b * c))",
+            "    printBool(bools[0] or (bools[1] or bools[2]))",
+            "endpackage");
+        String jass = Files.readString(Path.of(TEST_OUTPUT_PATH, "ExpressionTests_jassKeepsTheGroupingOfARealSumAndProduct_no_opts.j"));
+        assertTrue(jass.contains("a + (b + c)"), jass);
+        assertTrue(jass.contains("a * (b * c)"), jass);
+        assertTrue(jass.contains("test_bools[0] or test_bools[1] or test_bools[2]"), jass);
     }
 
     public void assertOk(String booleanExpr) {

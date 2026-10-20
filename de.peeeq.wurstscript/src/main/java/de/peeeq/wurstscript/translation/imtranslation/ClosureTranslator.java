@@ -75,8 +75,7 @@ public class ClosureTranslator {
 
     private void callSuperConstructor(ImVar clVar, ImStmts stmts, ImClass c) {
         WurstType t = e.attrExpectedTypAfterOverloading();
-        if (t instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) t;
+        if (t instanceof WurstTypeClass ct) {
             ClassDef cd = ct.getClassDef();
 
             for (ConstructorDef constr : cd.getConstructors()) {
@@ -208,8 +207,16 @@ public class ClosureTranslator {
                 e.getImplementation(), tr, impl, superMethod.attrReturnType());
         } else {
             translated = e.getImplementation().imTranslateExpr(tr, impl);
+            WurstType translatedType = e.getImplementation().attrTypRaw();
+            // A fromIndex conversion already decoded the expression. Keep other
+            // generic bindings: Lua still needs them to restore primitive defaults
+            // when adapting an erased result to a concrete closure return type.
+            if (translatedType instanceof WurstTypeBoundTypeParam boundType
+                && boundType.getFromIndex() != null) {
+                translatedType = translatedType.normalize();
+            }
             translated = ExprTranslation.wrapTranslation(e.getImplementation(), tr, translated,
-                e.getImplementation().attrTypRaw(), superMethod.attrReturnType());
+                translatedType, superMethod.attrReturnType());
         }
 
 
@@ -408,20 +415,6 @@ public class ClosureTranslator {
         return capturedClass == owner || capturedClass.isSubclassOf(owner);
     }
 
-    private ImVar findOuterThisVar(ImClass owner) {
-        // in instance methods, the first parameter is typically "this"
-        for (ImVar p : f.getParameters()) {
-            ImType t = p.getType();
-            if (t instanceof ImClassType) {
-                ImClassType ct = (ImClassType) t;
-                if (ct.getClassDef() == owner) {
-                    return p;
-                }
-            }
-        }
-        return null;
-    }
-
     private ImVarAccess closureThis() {
         return JassIm.ImVarAccess(tr.getThisVar(e));
     }
@@ -451,10 +444,9 @@ public class ClosureTranslator {
     }
 
     private boolean isLocalToOtherFunc(ImLExpr e) {
-        if (e instanceof ImVarAccess) {
-            return isLocalToOtherFunc(((ImVarAccess) e).getVar());
-        } else if (e instanceof ImTupleSelection) {
-            ImTupleSelection ts = (ImTupleSelection) e;
+        if (e instanceof ImVarAccess imVarAccess) {
+            return isLocalToOtherFunc(imVarAccess.getVar());
+        } else if (e instanceof ImTupleSelection ts) {
             return isLocalToOtherFunc((ImLExpr) ts.getTupleExpr());
         }
         return false;

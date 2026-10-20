@@ -10,16 +10,15 @@ public class AttrNearest {
         if (node == null) {
             return null;
         }
-        if (node instanceof ModuleInstanciation) {
-            ModuleInstanciation mi = (ModuleInstanciation) node;
+        if (node instanceof ModuleInstanciation mi) {
             ModuleDef m = mi.attrModuleOrigin();
             if (m == null) {
                 return null;
             }
             return m.attrNearestPackage();
         }
-        if (node instanceof PackageOrGlobal) {
-            return (PackageOrGlobal) node;
+        if (node instanceof PackageOrGlobal packageOrGlobal) {
+            return packageOrGlobal;
         }
         if (node.getParent() == null) {
             return null;
@@ -31,8 +30,8 @@ public class AttrNearest {
         if (node == null) {
             return null;
         }
-        if (node instanceof ClassDef) {
-            return (ClassDef) node;
+        if (node instanceof ClassDef classDef) {
+            return classDef;
         }
         if (node.getParent() == null) {
             return null;
@@ -45,8 +44,8 @@ public class AttrNearest {
         if (node == null) {
             return null;
         }
-        if (node instanceof FunctionImplementation) {
-            return (FunctionImplementation) node;
+        if (node instanceof FunctionImplementation functionImplementation) {
+            return functionImplementation;
         }
         if (node.getParent() == null) {
             return null;
@@ -58,8 +57,8 @@ public class AttrNearest {
         if (node == null) {
             return null;
         }
-        if (node instanceof ClassOrModule) {
-            return (ClassOrModule) node;
+        if (node instanceof ClassOrModule classOrModule) {
+            return classOrModule;
         }
         if (node.getParent() == null) {
             return null;
@@ -82,8 +81,8 @@ public class AttrNearest {
         if (node == null) {
             return null;
         }
-        if (node instanceof NamedScope) {
-            return (NamedScope) node;
+        if (node instanceof NamedScope namedScope) {
+            return namedScope;
         }
         if (node.getParent() == null) {
             return null;
@@ -92,8 +91,8 @@ public class AttrNearest {
     }
 
     public static @Nullable WScope nearestScope(Element e) {
-        if (e instanceof WScope) {
-            return (WScope) e;
+        if (e instanceof WScope wScope) {
+            return wScope;
         }
         if (e.getParent() == null) {
             return null;
@@ -102,8 +101,7 @@ public class AttrNearest {
     }
 
     public static @Nullable WScope nextScope(WScope scope) {
-        if (scope instanceof ModuleInstanciation) {
-            ModuleInstanciation mi = (ModuleInstanciation) scope;
+        if (scope instanceof ModuleInstanciation mi) {
             ModuleDef m = mi.attrModuleOrigin();
             if (m == null) {
                 return null;
@@ -119,8 +117,8 @@ public class AttrNearest {
     }
 
     public static @Nullable StructureDef nearestStructureDef(Element e) {
-        if (e instanceof StructureDef) {
-            return (StructureDef) e;
+        if (e instanceof StructureDef structureDef) {
+            return structureDef;
         } else if (e.getParent() != null) {
             return e.getParent().attrNearestStructureDef();
         } else {
@@ -129,8 +127,8 @@ public class AttrNearest {
     }
 
     public static @Nullable CompilationUnit nearestCompilationUnit(Element e) {
-        if (e instanceof CompilationUnit) {
-            return (CompilationUnit) e;
+        if (e instanceof CompilationUnit compilationUnit) {
+            return compilationUnit;
         } else if (e.getParent() != null) {
             return e.getParent().attrCompilationUnit();
         } else {

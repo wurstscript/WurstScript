@@ -90,8 +90,7 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
     }
 
     private void collectHints(List<InlayHint> hints, Element e) {
-        if (e instanceof ExprFunctionCall) {
-            ExprFunctionCall call = (ExprFunctionCall) e;
+        if (e instanceof ExprFunctionCall call) {
             FuncLink f = call.attrFuncLink();
             if (f != null) {
                 List<String> paramTypes = f.getParameterTypes().stream()
@@ -101,8 +100,7 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
             }
             return;
         }
-        if (e instanceof ExprMemberMethod) {
-            ExprMemberMethod call = (ExprMemberMethod) e;
+        if (e instanceof ExprMemberMethod call) {
             FuncLink f = call.attrFuncLink();
             if (f != null) {
                 List<String> paramTypes = f.getParameterTypes().stream()
@@ -112,8 +110,7 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
             }
             return;
         }
-        if (e instanceof ExprNewObject) {
-            ExprNewObject exprNew = (ExprNewObject) e;
+        if (e instanceof ExprNewObject exprNew) {
             ConstructorDef constructorDef = exprNew.attrConstructorDef();
             if (constructorDef == null) {
                 return;
@@ -207,11 +204,11 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
     }
 
     private String argumentName(Expr arg) {
-        if (arg instanceof NameRef) {
-            return ((NameRef) arg).getVarName();
+        if (arg instanceof NameRef nameRef) {
+            return nameRef.getVarName();
         }
-        if (arg instanceof FuncRef) {
-            return ((FuncRef) arg).getFuncName();
+        if (arg instanceof FuncRef funcRef) {
+            return funcRef.getFuncName();
         }
         return "";
     }

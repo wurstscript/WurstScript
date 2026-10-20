@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.*;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -69,9 +70,11 @@ public class LanguageWorkerTest {
         try {
             System.setProperty("WURST_JASSDOC_DB_PATH", database.toString());
             worker.setRootPath(WFile.create(root));
+            // only guards against a hang: the completion waits for the initial build, which takes 8 s when the JVM
+            // is cold and the machine busy
             CompletionList completions = service.completion(new CompletionParams(
                     new TextDocumentIdentifier(source.toUri().toString()), new Position(2, 4 + prefix.length())))
-                    .get(10, TimeUnit.SECONDS).getRight();
+                    .get(60, TimeUnit.SECONDS).getRight();
             CompletionItem item = completions.getItems().stream().filter(candidate -> symbol.equals(candidate.getLabel()))
                     .findFirst().orElseThrow();
             java.util.concurrent.CompletableFuture<CompletionItem> pending;
@@ -506,6 +509,10 @@ public class LanguageWorkerTest {
     }
 
     private static class CountingModelManager implements ModelManager {
+        @Override
+        public void reportBuildDiagnostics(List<CompileError> diagnostics) {
+            throw new UnsupportedOperationException("This worker test does not run map builds.");
+        }
         final AtomicInteger cleanCalls = new AtomicInteger();
         final AtomicInteger buildCalls = new AtomicInteger();
         final AtomicInteger syncFileCalls = new AtomicInteger();
@@ -539,12 +546,27 @@ public class LanguageWorkerTest {
         }
 
         @Override
+        public List<CompileError> getParseWarnings() {
+            return Collections.emptyList();
+        }
+
+        @Override
         public void onCompilationResult(Consumer<PublishDiagnosticsParams> f) {
         }
 
         @Override
         public void buildProject() {
             buildCalls.incrementAndGet();
+        }
+
+        @Override
+        public void loadProject() {
+            throw new UnsupportedOperationException("The worker builds the project in one go.");
+        }
+
+        @Override
+        public void checkProject(WurstGui gui) {
+            throw new UnsupportedOperationException("The worker builds the project in one go.");
         }
 
         @Override

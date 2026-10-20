@@ -44,8 +44,7 @@ public class CodeLensRequest {
             List<CodeLens> result = new ArrayList<>();
             for (WPackage p : cu.getPackages()) {
                 for (WEntity element : p.getElements()) {
-                    if (element instanceof FuncDef) {
-                        FuncDef f = (FuncDef) element;
+                    if (element instanceof FuncDef f) {
                         if (f.hasAnnotation("@test")) {
                             Range range = Convert.range(f);
                             JsonObject options = new JsonObject();

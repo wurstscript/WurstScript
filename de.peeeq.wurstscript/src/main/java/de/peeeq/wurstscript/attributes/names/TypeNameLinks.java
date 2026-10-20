@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import de.peeeq.wurstscript.ast.*;
 
@@ -26,7 +28,6 @@ public class TypeNameLinks {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
         addJassTypes(result, cu);
         // TODO are packages types?
-//        addPackages(result, cu);
         return result.build();
     }
 
@@ -73,11 +74,29 @@ public class TypeNameLinks {
         return result.build();
     }
 
+    /** What {@code p.attrTypeNameLinks().get(name)} holds, without building that table; see NameLinks.importedNameLinks. */
+    public static ImmutableSet<TypeLink> importedTypeLinks(WPackage p, String name) {
+        ImmutableSet.Builder<TypeLink> result = null;
+        for (WImport imp : p.getImports()) {
+            WPackage importedPackage = imp.attrImportedPackage();
+            if (importedPackage == null) {
+                continue;
+            }
+            ImmutableCollection<TypeLink> links = importedPackage.attrExportedTypeNameLinks().get(name);
+            if (!links.isEmpty()) {
+                if (result == null) {
+                    result = ImmutableSet.builder();
+                }
+                result.addAll(links);
+            }
+        }
+        return result == null ? ImmutableSet.of() : result.build();
+    }
+
     public static ImmutableMultimap<String, TypeLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
-            if (e instanceof TypeDef) {
-                TypeDef n = (TypeDef) e;
+            if (e instanceof TypeDef n) {
                 result.put(n.getName(), TypeLink.create(n, wEntities));
             }
         }
@@ -122,18 +141,12 @@ public class TypeNameLinks {
 
     private static void addJassTypes(ImmutableMultimap.Builder<String, TypeLink> result, CompilationUnit cu) {
         for (JassToplevelDeclaration jd : cu.getJassDecls()) {
-            if (jd instanceof TypeDef) {
-                TypeDef def = (TypeDef) jd;
+            if (jd instanceof TypeDef def) {
                 result.put(def.getName(), TypeLink.create(def, cu));
             }
         }
     }
 
-//    private static void addPackages(ImmutableMultimap.Builder<String, TypeLink> result, CompilationUnit cu) {
-//        for (WPackage p : cu.getPackages()) {
-//            result.put(p.getName(), TypeLink.create(p, cu));
-//        }
-//    }
 
     public static ImmutableMultimap<String, TypeLink> calculate(ExprClosure exprClosure) {
         return ImmutableMultimap.of();

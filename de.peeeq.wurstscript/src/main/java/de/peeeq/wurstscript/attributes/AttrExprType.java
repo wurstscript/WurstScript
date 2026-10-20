@@ -74,12 +74,8 @@ public class AttrExprType {
             return WurstTypeUnknown.instance();
         }
         if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof VarDef) {
-            // Compare the enclosing VarDef to the one this access resolves to. Both sides used
-            // to be wrapped in fresh Optionals and compared with ==, which is never true, so
-            // this check silently did nothing. getParentVarDef returns null (not empty) when
-            // there is no enclosing VarDef, hence the explicit null guard.
-            Optional<VarDef> enclosingVarDef = Utils.getParentVarDef(Optional.of(term));
-            if (enclosingVarDef != null && enclosingVarDef.orElse(null) == varDef.getDef()) {
+            // The access must not resolve to the variable definition it is part of.
+            if (Utils.getNearestByType(Optional.of(term), VarDef.class).orElse(null) == varDef.getDef()) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
@@ -108,8 +104,8 @@ public class AttrExprType {
         }
 
         WurstType varDefType = varDef.getTyp();
-        if (varDefType instanceof WurstTypeArray) {
-            return ((WurstTypeArray) varDefType).getBaseType();
+        if (varDefType instanceof WurstTypeArray wurstTypeArray) {
+            return wurstTypeArray.getBaseType();
         }
         if (term.getIndexes().size() == 1) {
             WurstType indexType = term.getIndexes().get(0).attrTyp();
@@ -150,8 +146,7 @@ public class AttrExprType {
 
         // check if we are in an extension function
         FunctionImplementation func = term.attrNearestFuncDef();
-        if (func instanceof ExtensionFuncDef) {
-            ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
+        if (func instanceof ExtensionFuncDef extensionFuncDef) {
             return extensionFuncDef.getExtendedType().attrTyp().dynamic();
         }
         if (dynamic && !term.attrIsDynamicContext()) {
@@ -464,8 +459,7 @@ public class AttrExprType {
             term.addError("Cannot access static array variable " + term.getVarName() + " via a dynamic reference.");
         }
         WurstType typ = varDef.getTyp();
-        if (typ instanceof WurstTypeArray) {
-            WurstTypeArray ar = (WurstTypeArray) typ;
+        if (typ instanceof WurstTypeArray ar) {
             return ar.getBaseType();
         }
         if (term.getIndexes().size() == 1) {
@@ -561,8 +555,7 @@ public class AttrExprType {
 
     public static WurstType calculate(ExprTypeId e) {
         WurstType exprTyp = e.getLeft().attrTyp();
-        if (exprTyp instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) exprTyp;
+        if (exprTyp instanceof WurstTypeClassOrInterface t) {
             if (t.isStaticRef()) {
                 // static reference to a type --> only concrete classes allowed
                 if (t instanceof WurstTypeClass) {
@@ -663,7 +656,7 @@ public class AttrExprType {
         return de.peeeq.wurstscript.types.WurstTypeUnknown.instance();
     }
 
-    private static boolean isWriteAccess(NameRef node) {
+    static boolean isWriteAccess(NameRef node) {
         if (node.getParent() instanceof StmtSet) {
             StmtSet stmtSet = (StmtSet) node.getParent();
             return stmtSet.getUpdatedExpr() == node;

@@ -4,7 +4,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
-import de.peeeq.wurstscript.utils.Pair;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -17,30 +16,37 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
 
     protected PrintStream outStream = System.err;
 
-    private final HashMap<Pair<String, Integer>, Method> methodMap = new HashMap<>();
+    /** The methods by name, then by their number of parameters, so that a call allocates no key. */
+    private final HashMap<String, Method[]> methodMap = new HashMap<>();
 
     public ReflectionBasedNativeProvider() {
         for (Method method : this.getClass().getMethods()) {
-            Pair<String, Integer> keyPair = Pair.create(method.getName(), method.getParameterTypes().length);
-            if (methodMap.containsKey(keyPair)) {
+            int arity = method.getParameterCount();
+            Method[] byArity = methodMap.get(method.getName());
+            if (byArity == null || byArity.length <= arity) {
+                Method[] grown = new Method[arity + 1];
+                if (byArity != null) {
+                    System.arraycopy(byArity, 0, grown, 0, byArity.length);
+                }
+                byArity = grown;
+                methodMap.put(method.getName(), byArity);
+            }
+            if (byArity[arity] != null) {
                 throw new RuntimeException("native entry already exists");
             }
-            methodMap.put(keyPair, method);
+            byArity[arity] = method;
         }
     }
 
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
-        Method method = methodMap.get(Pair.create(funcname, args.length));
+        Method[] byArity = methodMap.get(funcname);
+        Method method = byArity != null && args.length < byArity.length ? byArity[args.length] : null;
         if (method == null) {
             String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
             msg += "\nwith types " + funcname + "(" +
                 Arrays.stream(args).map(o -> o.getClass().getSimpleName()).collect(Collectors.joining(", ")) + ")";
-//        if (candidate != null) {
-//            msg += "\nDid you mean " + funcname + "(" +
-//                Arrays.stream(candidate.getParameterTypes()).map(Class::getSimpleName).collect(Collectors.joining(", ")) + ")?";
-//        }
             throw new NoSuchNativeException(msg);
         }
         try {

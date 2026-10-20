@@ -16,8 +16,8 @@ public class WurstTypeStaticTypeRef extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstTypeStaticTypeRef) {
-            return base.matchAgainstSupertype(((WurstTypeStaticTypeRef) other).base, location, mapping, variablePosition);
+        if (other instanceof WurstTypeStaticTypeRef wurstTypeStaticTypeRef) {
+            return base.matchAgainstSupertype(wurstTypeStaticTypeRef.base, location, mapping, variablePosition);
         }
         return null;
     }

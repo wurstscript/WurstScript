@@ -155,13 +155,9 @@ public class FastHashMapTests extends WurstScriptTest {
 
     private static final String[] METHOD_NAMES = {"slotFor", "put", "get", "has", "size", "remove"};
 
-    private String compiledLua(String testName) throws IOException {
-        return Files.toString(new File("test-output/lua/FastHashMapTests_" + testName + ".lua"), Charsets.UTF_8);
-    }
-
     /**
      * A dispatch slot is named after the method it belongs to, and nothing else in the emitted Lua
-     * records which implementation belongs there — so this is the only place the two can be checked
+     * records which implementation belongs there, so this is the only place the two can be checked
      * against each other. Specialisation names every method of one instantiation after the same type
      * argument, which is exactly when they are easiest to confuse.
      */
@@ -209,7 +205,7 @@ public class FastHashMapTests extends WurstScriptTest {
     /**
      * Capacity is fixed, so the ninth distinct key has nowhere to go: keys 1 to 8 hash to the eight
      * slots exactly. `slotFor` says so by returning a slot below this instance's section, and every
-     * entry point has to check that before indexing — otherwise the write goes through the sentinel,
+     * entry point has to check that before indexing; otherwise the write goes through the sentinel,
      * the entry is unreachable, and the count says nine.
      */
     @Test
@@ -341,7 +337,7 @@ public class FastHashMapTests extends WurstScriptTest {
     /**
      * The point of bounds over {@code HashMap extends Table}: the requirements are resolved when the
      * map is specialised, not carried to runtime. This asserts on the least optimised configuration
-     * on purpose — the cost has to be absent by construction, not removed afterwards by the inliner.
+     * on purpose; the cost has to be absent by construction, not removed afterwards by the inliner.
      */
     @Test
     public void emittedCodeCostsNothingExtra() throws IOException {

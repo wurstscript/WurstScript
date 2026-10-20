@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import com.google.common.base.Objects;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
@@ -24,7 +23,7 @@ public abstract class State {
     // in State:
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconst> values;
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues;
-    private final Map<ImVar, Set<List<Integer>>> modifiedArrayIndexes = new IdentityHashMap<>();
+    private @Nullable Map<ImVar, Set<List<Integer>>> modifiedArrayIndexes;
 
 
     private Object2ObjectOpenHashMap<ImVar, ILconst> ensureValues() {
@@ -65,15 +64,15 @@ public abstract class State {
     }
 
     static ILconstArray createArrayConstantFromType(ImType vType) {
-        if (!(vType instanceof ImArrayLikeType)) {
+        if (!(vType instanceof ImArrayLikeType imArrayLikeType)) {
             throw new InterpreterException("Cannot get array for variable of type " + vType);
         }
-        ImType componentType = ((ImArrayLikeType) vType).getEntryType();
+        ImType componentType = imArrayLikeType.getEntryType();
 
         // Use declared first dimension if present; otherwise use "unbounded" sentinel.
         int size = Integer.MAX_VALUE;
-        if (vType instanceof ImArrayTypeMulti) {
-            List<Integer> arraySize = ((ImArrayTypeMulti) vType).getArraySize();
+        if (vType instanceof ImArrayTypeMulti imArrayTypeMulti) {
+            List<Integer> arraySize = imArrayTypeMulti.getArraySize();
             if (!arraySize.isEmpty()) {
                 size = arraySize.get(0);
             }
@@ -83,6 +82,9 @@ public abstract class State {
     }
 
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        if (modifiedArrayIndexes == null) {
+            modifiedArrayIndexes = new IdentityHashMap<>();
+        }
         modifiedArrayIndexes.computeIfAbsent(v, ignored -> new HashSet<>())
             .add(Collections.unmodifiableList(new ArrayList<>(indexes)));
         setArrayValUntracked(v, indexes, val);
@@ -97,11 +99,11 @@ public abstract class State {
     }
 
     public Set<ImVar> getModifiedArrays() {
-        return modifiedArrayIndexes.keySet();
+        return modifiedArrayIndexes == null ? Collections.emptySet() : modifiedArrayIndexes.keySet();
     }
 
     public Set<List<Integer>> getModifiedArrayIndexes(ImVar v) {
-        return modifiedArrayIndexes.getOrDefault(v, Collections.emptySet());
+        return modifiedArrayIndexes == null ? Collections.emptySet() : modifiedArrayIndexes.getOrDefault(v, Collections.emptySet());
     }
 
     public @Nullable ILconst getArrayVal(ImVar v, List<Integer> indexes) {

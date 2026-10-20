@@ -7,8 +7,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
@@ -44,6 +42,9 @@ public class EliminateGenerics {
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<ImFunction> scannedFixedStaticCallees =
         Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImMethod> scannedFixedStaticMethods =
+        Collections.newSetFromMap(new IdentityHashMap<>());
+    private @Nullable Set<ImMethod> dispatchReachableMethods;
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     /** The class each function was moved out of, for calls which name their target without a receiver. */
     private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
@@ -117,7 +118,6 @@ public class EliminateGenerics {
         dbg(checkDanglingMethodRefs("end"));
 
         // TODO fix or remove this check
-//        assertNoUnspecializedGenericGlobals();
     }
 
     /**
@@ -168,8 +168,8 @@ public class EliminateGenerics {
      * <p>
      * Specialising a method leaves the copy on the specialised class. That is where the object comes
      * from when a construction on this path was redirected there, and a virtual call finds the slot
-     * through the object as usual. Otherwise the object stays erased — which is this target's normal
-     * representation — and is allocated from the class the method was declared on, so the slot the
+     * through the object as usual. Otherwise the object stays erased (which is this target's normal
+     * representation) and is allocated from the class the method was declared on, so the slot the
      * call names resolves to nothing and the call fails at runtime rather than at compile time.
      * <p>
      * Decided from what the program allocates rather than from the shape of the class, because one
@@ -256,7 +256,20 @@ public class EliminateGenerics {
 
 
     private void collectGenericNewRoots() {
+        scannedFixedStaticMethods.clear();
+        dispatchReachableMethods = null;
         classByFunction = null;
+        specializationRelevantNodes = new IdentityHashMap<>();
+        methodAnswers = new IdentityHashMap<>();
+        try {
+            collectGenericNewRootsInProgram();
+        } finally {
+            specializationRelevantNodes = null;
+            methodAnswers = null;
+        }
+    }
+
+    private void collectGenericNewRootsInProgram() {
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
@@ -545,7 +558,7 @@ public class EliminateGenerics {
      * {@code super.m()} is the case that shows why: the call names its target, so there is no receiver
      * to read type arguments from, and this target never lifts the class's type variables onto the
      * function, so nothing on the call says which instantiation to specialise for and the erased
-     * original is reached instead — where the dispatch it contains is dead. The receiver is still the
+     * original is reached instead, where the dispatch it contains is dead. The receiver is still the
      * first argument, and the class it is used as gives the same answer the lift gives elsewhere. A
      * constructor's own body is reached the same way, its {@code this} being that first argument.
      * <p>
@@ -651,7 +664,7 @@ public class EliminateGenerics {
      * specialise what they need onto the erased class. A closure has no such call: it is reached
      * through the interface it implements, which is not generic, so the allocation is the only thing
      * that knows what the body dispatches on. Widening this beyond that case makes the two
-     * mechanisms disagree — the object comes from the specialised class while its methods were bound
+     * mechanisms disagree: the object comes from the specialised class while its methods were bound
      * to the erased one.
      */
     private boolean isConstructionOnlyInstantiation(ImClass classDef) {
@@ -735,6 +748,7 @@ public class EliminateGenerics {
         if (specializedCallSites.contains(call)) {
             return;
         }
+        boolean dependedOnCaller = dependsOnCaller(call.getTypeArguments());
         ImMethod method = call.getMethod();
         ImTranslator.Specialisation existing = translator.specialisationOf(method);
         if (existing != null && existing.original() instanceof ImMethod) {
@@ -743,6 +757,7 @@ public class EliminateGenerics {
             // boundary with no type variables and loses the phase invariant.
             call.getTypeArguments().removeAll();
             specializedCallSites.add(call);
+            forgetAnswersIfCallChanged(call, dependedOnCaller);
             return;
         }
         if (isMissingClassTypeArguments(call, method)) {
@@ -753,20 +768,38 @@ public class EliminateGenerics {
             // from that construction before deciding between specialization and fixed-body scan.
             useConstructionTypeArguments(call);
         }
-        boolean needsSpecialization = methodNeedsSpecialization(method,
-            Collections.newSetFromMap(new IdentityHashMap<>()),
-            Collections.newSetFromMap(new IdentityHashMap<>()));
+        forgetAnswersIfCallChanged(call, dependedOnCaller);
+        boolean needsSpecialization = methodNeedsSpecializationAnswer(method);
         if (!shouldSpecializeTupleArguments(call.getTypeArguments()) && !needsSpecialization) {
-            if (!call.getTypeArguments().isEmpty()
-                && !typeArgumentsContainTypeVariable(call.getTypeArguments())
-                && method.getImplementation() != null) {
-                recordFixedErasedStaticAllocations(method.getImplementation());
-            }
+            recordFixedErasedStaticAllocations(method);
             return;
         }
         if (!call.getTypeArguments().isEmpty()
             && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
             genericsUses.add(new GenericMethodCall(call));
+        }
+    }
+
+    /**
+     * Erased dispatch still reaches concrete operations inside every possible implementation.
+     * A nongeneric interface carries no class arguments, even when its implementation belongs to
+     * a generic class. Skipping that implementation can make one method write an erased static
+     * while another method on the same object reads its specialised counterpart.
+     */
+    private void recordFixedErasedStaticAllocations(ImMethod method) {
+        if (dispatchReachableMethods == null) {
+            dispatchReachableMethods = RemoveGarbage.reachableMethods(prog, translator);
+        }
+        Deque<ImMethod> remaining = new ArrayDeque<>();
+        remaining.add(method);
+        while (!remaining.isEmpty()) {
+            ImMethod current = remaining.removeFirst();
+            if (!scannedFixedStaticMethods.add(current)) continue;
+            if (!dispatchReachableMethods.contains(current)) continue;
+            if (current.getImplementation() != null) {
+                recordFixedErasedStaticAllocations(current.getImplementation());
+            }
+            remaining.addAll(current.getSubMethods());
         }
     }
 
@@ -851,16 +884,29 @@ public class EliminateGenerics {
         if (!visitedFunctions.add(function)) {
             return false;
         }
+        Map<ImFunction, List<Element>> relevantNodes = specializationRelevantNodes;
+        if (relevantNodes != null) {
+            for (Element node : relevantNodes.computeIfAbsent(function, EliminateGenerics::specializationRelevantNodesOf)) {
+                if (nodeNeedsSpecialization(function, node, visitedFunctions, visitedMethods)) {
+                    return true;
+                }
+            }
+            return false;
+        }
         boolean[] found = {false};
         function.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
-                found[0] = true;
+                if (nodeNeedsSpecialization(function, dispatch, visitedFunctions, visitedMethods)) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(dispatch);
             }
 
             @Override
             public void visit(ImInstanceof instanceOf) {
-                if (typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments())) {
+                if (nodeNeedsSpecialization(function, instanceOf, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -869,10 +915,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImAlloc alloc) {
-                // Constructing a class whose methods dispatch has to be specialised as well:
-                // otherwise the constructor keeps a generic result type, and a method call on that
-                // result never becomes concrete enough to resolve.
-                if (classNeedsSpecialization(alloc.getClazz().getClassDef())) {
+                if (nodeNeedsSpecialization(function, alloc, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -881,14 +924,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImFunctionCall call) {
-                // Empty arguments may be supplied implicitly by the enclosing generic receiver.
-                // Only an explicit, already-concrete call is independent of the caller context.
-                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
-                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
-                if (constructsClassOwningGenericGlobals(function, call)
-                    || translator.isGenericNewMarker(call.getFunc())
-                    || (dependsOnCaller
-                    && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods))) {
+                if (nodeNeedsSpecialization(function, call, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -897,10 +933,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImMethodCall call) {
-                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
-                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
-                if (dependsOnCaller
-                    && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
+                if (nodeNeedsSpecialization(function, call, visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -909,6 +942,132 @@ public class EliminateGenerics {
         });
         return found[0];
     }
+
+    /**
+     * The elements of a function, in the order of a walk over it, which {@link #nodeNeedsSpecialization}
+     * has anything to say about. A query asks this of every function it reaches from every call site,
+     * and a body is mostly variable accesses and constants.
+     */
+    private static List<Element> specializationRelevantNodesOf(ImFunction function) {
+        List<Element> nodes = new ArrayList<>();
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                nodes.add(dispatch);
+                super.visit(dispatch);
+            }
+
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                nodes.add(instanceOf);
+                super.visit(instanceOf);
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                nodes.add(alloc);
+                super.visit(alloc);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                nodes.add(call);
+                super.visit(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                nodes.add(call);
+                super.visit(call);
+            }
+        });
+        return nodes;
+    }
+
+    /** Whether this element of the function is enough to require the function to be specialised. */
+    private boolean nodeNeedsSpecialization(ImFunction function, Element node, Set<ImFunction> visitedFunctions,
+                                            Set<ImMethod> visitedMethods) {
+        if (node instanceof ImTypeVarDispatch) {
+            return true;
+        }
+        if (node instanceof ImInstanceof instanceOf) {
+            return typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
+        }
+        if (node instanceof ImAlloc alloc) {
+            // Constructing a class whose methods dispatch has to be specialised as well:
+            // otherwise the constructor keeps a generic result type, and a method call on that
+            // result never becomes concrete enough to resolve.
+            return classNeedsSpecialization(alloc.getClazz().getClassDef());
+        }
+        if (node instanceof ImFunctionCall call) {
+            // Empty arguments may be supplied implicitly by the enclosing generic receiver.
+            // Only an explicit, already-concrete call is independent of the caller context.
+            return constructsClassOwningGenericGlobals(function, call)
+                || translator.isGenericNewMarker(call.getFunc())
+                || (dependsOnCaller(call.getTypeArguments())
+                && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods));
+        }
+        if (node instanceof ImMethodCall call) {
+            return dependsOnCaller(call.getTypeArguments())
+                && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods);
+        }
+        return false;
+    }
+
+    /**
+     * Whether a call takes its type arguments from the function it is in: it has none, or they mention
+     * its type variables. Only a call which does can need specialising because of what it calls.
+     */
+    private boolean dependsOnCaller(ImTypeArguments typeArguments) {
+        return typeArguments.isEmpty() || typeArgumentsContainTypeVariable(typeArguments);
+    }
+
+    /**
+     * Set while a collection pass runs: what {@link #methodNeedsSpecialization} answered for a method.
+     * <p>
+     * A query shares its visited sets, so it explores everything the method reaches, or stops at the first
+     * element which needs specialising: its answer is whether something it reaches does. That is a fact for the
+     * method asked about, and when it is "no" a fact for every method the query visited too, because what they
+     * reach was explored. Nothing else is kept: a method the search merely stopped at, because it was being
+     * visited, would be given a "no" which holds for that search only (see {@link #classNeedsSpecialization}).
+     * <p>
+     * The answers hold while no call changes whether it {@link #dependsOnCaller}, which is all a query reads
+     * of the type arguments; the pass completes the type arguments of calls as it goes, and clears the answers
+     * when one of them does.
+     */
+    private @Nullable Map<ImMethod, Boolean> methodAnswers;
+
+    /** The answer for a query of its own, which a collection pass remembers. */
+    private boolean methodNeedsSpecializationAnswer(ImMethod method) {
+        Map<ImMethod, Boolean> answers = methodAnswers;
+        if (answers == null) {
+            return methodNeedsSpecialization(method, Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+        }
+        Boolean known = answers.get(method);
+        if (known != null) {
+            return known;
+        }
+        Set<ImMethod> visitedMethods = Collections.newSetFromMap(new IdentityHashMap<>());
+        boolean needsSpecialization = methodNeedsSpecialization(method,
+            Collections.newSetFromMap(new IdentityHashMap<>()), visitedMethods);
+        answers.put(method, needsSpecialization);
+        if (!needsSpecialization) {
+            for (ImMethod visited : visitedMethods) {
+                answers.put(visited, false);
+            }
+        }
+        return needsSpecialization;
+    }
+
+    private void forgetAnswersIfCallChanged(ImMethodCall call, boolean dependedOnCaller) {
+        if (methodAnswers != null && dependsOnCaller(call.getTypeArguments()) != dependedOnCaller) {
+            methodAnswers.clear();
+        }
+    }
+
+    /** Set while a collection pass runs, which changes no body: the relevant elements of each function reached. */
+    private @Nullable Map<ImFunction, List<Element>> specializationRelevantNodes;
 
     /**
      * A generic caller containing {@code new Box<T>()} must be revisited after {@code T} becomes
@@ -1028,23 +1187,6 @@ public class EliminateGenerics {
         });
     }
 
-    private void assertNoUnspecializedGenericGlobals() {
-        prog.accept(new Element.DefaultVisitor() {
-            @Override public void visit(ImVarAccess va) {
-                super.visit(va);
-                if (globalToClass.containsKey(va.getVar())) {
-                    throw new CompileError(va, "Unspecialized generic global still used: " + va.getVar().getName());
-                }
-            }
-            @Override public void visit(ImVarArrayAccess vaa) {
-                super.visit(vaa);
-                if (globalToClass.containsKey(vaa.getVar())) {
-                    throw new CompileError(vaa, "Unspecialized generic global array still used: " + vaa.getVar().getName());
-                }
-            }
-        });
-    }
-
     private void assertNoGenericNewMarkers() {
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -1067,7 +1209,7 @@ public class EliminateGenerics {
                 super.visit(s);
 
                 ImExpr rhs = s.getRight();
-                if (!(rhs instanceof ImNull)) return;
+                if (!(rhs instanceof ImNull imNull)) return;
 
                 // determine expected type from the LHS (already typechecked in IM)
                 ImType lhsType = s.getLeft().attrTyp();
@@ -1081,7 +1223,7 @@ public class EliminateGenerics {
                     s.setRight(safe);
                 } else {
                     // keep IM consistent: null<T> should have the correct concrete type
-                    ((ImNull) rhs).setType(expected);
+                    imNull.setType(expected);
                 }
             }
         });
@@ -1178,8 +1320,8 @@ public class EliminateGenerics {
                 if (methodIsGeneric && mc.getTypeArguments().isEmpty()) {
                     ImClass owning = m.attrClass();
                     ImType rt = mc.getReceiver().attrTyp();
-                    if (owning != null && rt instanceof ImClassType) {
-                        ImClassType adapted = adaptToSuperclass((ImClassType) rt, owning);
+                    if (owning != null && rt instanceof ImClassType imClassType) {
+                        ImClassType adapted = adaptToSuperclass(imClassType, owning);
                         if (adapted != null && !adapted.getTypeArguments().isEmpty()) {
                             List<ImTypeArgument> copied = new ArrayList<>(adapted.getTypeArguments().size());
                             for (ImTypeArgument ta : adapted.getTypeArguments()) copied.add(ta.copy());
@@ -1833,13 +1975,30 @@ public class EliminateGenerics {
                     }
                 });
             }else {
-                subClass.getSuperClasses().replaceAll(this::specializeType);
+                specializeSuperClasses(subClass);
                 ImClassType newClassTspecialized = specializeType(newClassT);
                 if (subClass.isSubclassOf(newClassTspecialized.getClassDef())) {
                     newM.getSubMethods().add(subMethod);
                 }
             }
         }
+    }
+
+    /**
+     * Replaces the superclasses of a class with their specialisations.
+     * <p>
+     * Specialising a superclass can specialise its class. That runs the triggers registered on that
+     * class, which specialise its methods and adapt their submethods, and so come back here, for this
+     * class too; and {@link #rewriteRuntimeTypeSuperEdges} rewrites the superclasses of every class.
+     * The list can therefore change while this runs: it is read from a copy and replaced, never
+     * rewritten in place.
+     */
+    private void specializeSuperClasses(ImClass c) {
+        List<ImClassType> specialized = new ArrayList<>();
+        for (ImClassType superClass : new ArrayList<>(c.getSuperClasses())) {
+            specialized.add(specializeType(superClass));
+        }
+        c.setSuperClasses(specialized);
     }
 
     /**
@@ -2100,7 +2259,7 @@ public class EliminateGenerics {
             : c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
-        newC.getSuperClasses().replaceAll(this::specializeType);
+        specializeSuperClasses(newC);
         if (needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
             rewriteRuntimeTypeSuperEdges(c, generics, newC);
         }
@@ -2338,13 +2497,13 @@ public class EliminateGenerics {
     }
 
     private ImExpr specializeNullInitializer(ImExpr rhs, ImType specializedType) {
-        if (!(rhs instanceof ImNull)) {
+        if (!(rhs instanceof ImNull imNull)) {
             return rhs;
         }
 
         // IMPORTANT: for concrete primitives, pjass forbids setting to null.
-        if (specializedType instanceof ImSimpleType) {
-            String n = ((ImSimpleType) specializedType).getTypename();
+        if (specializedType instanceof ImSimpleType imSimpleType) {
+            String n = imSimpleType.getTypename();
             switch (n) {
                 case "integer":
                     return JassIm.ImIntVal(0);
@@ -2355,13 +2514,13 @@ public class EliminateGenerics {
                     return JassIm.ImBoolVal(false);
                 default:
                     // string/handle-like types can stay null
-                    ((ImNull) rhs).setType(specializedType);
+                    imNull.setType(specializedType);
                     return rhs;
             }
         }
 
         // For everything else, keep null but correct the type (so later passes are consistent).
-        ((ImNull) rhs).setType(specializedType);
+        imNull.setType(specializedType);
         return rhs;
     }
 
@@ -2494,14 +2653,7 @@ public class EliminateGenerics {
                     // handle generic classes after they are specialized
                     return;
                 }
-                genericsUses.add(() -> {
-                    List<ImClassType> newSuperClasses = new ArrayList<>();
-                    for (ImClassType imClassType : c.getSuperClasses()) {
-                        ImClassType specializeType = EliminateGenerics.this.specializeType(imClassType);
-                        newSuperClasses.add(specializeType);
-                    }
-                    c.setSuperClasses(newSuperClasses);
-                });
+                genericsUses.add(() -> specializeSuperClasses(c));
 
                 super.visit(c);
             }
@@ -2851,8 +3003,8 @@ public class EliminateGenerics {
             // target field using that type information.
             if (generics.containsTypeVariable()) {
                 ImType receiverType = specializeType(ma.getReceiver().attrTyp());
-                if (receiverType instanceof ImClassType) {
-                    ImClass specializedClass = ((ImClassType) receiverType).getClassDef();
+                if (receiverType instanceof ImClassType imClassType) {
+                    ImClass specializedClass = imClassType.getClassDef();
                     int fieldIndex = owningClass.getFields().indexOf(f);
                     ImVar newVar = specializedClass.getFields().get(fieldIndex);
                     ma.setVar(newVar);
@@ -2974,8 +3126,7 @@ public class EliminateGenerics {
 
                 if (!func.getParameters().isEmpty()) {
                     ImType rt = func.getParameters().get(0).getType();
-                    if (rt instanceof ImClassType) {
-                        ImClassType ct = (ImClassType) rt;
+                    if (rt instanceof ImClassType ct) {
                         ImClass raw = ct.getClassDef();
 
                         ImClass canonicalRaw = translator.canonical(raw);
@@ -3080,12 +3231,10 @@ public class EliminateGenerics {
         public void eliminate() {
             ImType returnType = mc.getReturnType();
 
-            if (containsTypeVariable(returnType) && returnType instanceof ImClassType && !mc.getParameters().isEmpty()) {
-                ImClassType retClassType = (ImClassType) returnType;
+            if (containsTypeVariable(returnType) && returnType instanceof ImClassType retClassType && !mc.getParameters().isEmpty()) {
                 ImType receiverType = mc.getParameters().get(0).getType();
 
-                if (receiverType instanceof ImClassType) {
-                    ImClassType receiverClassType = (ImClassType) receiverType;
+                if (receiverType instanceof ImClassType receiverClassType) {
                     ImClassType adapted = adaptToSuperclass(receiverClassType, retClassType.getClassDef());
 
                     if (adapted != null) {

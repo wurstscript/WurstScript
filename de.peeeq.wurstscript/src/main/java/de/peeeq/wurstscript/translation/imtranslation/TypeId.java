@@ -26,11 +26,6 @@ public class TypeId {
                     .thenComparing(ImClass::getName)
                     .thenComparing(TypeId::sourceKey);
 
-    // sort class types by name to get deterministic order
-    private static final Comparator<ImClassType> classtype_comparator =
-            Comparator.comparing((ImClassType ct) -> ct.getClassDef().getName())
-                    .thenComparing(ct -> TypeId.packageName(ct.getClassDef()));
-
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         AtomicInteger count = new AtomicInteger();
         Map<ImClass, Integer> result = Maps.newLinkedHashMap();
@@ -48,8 +43,8 @@ public class TypeId {
             return "global";
         }
         @Nullable PackageOrGlobal nearestPackage = c.attrNearestPackage();
-        if (nearestPackage instanceof WPackage) {
-            return ((WPackage) nearestPackage).getName();
+        if (nearestPackage instanceof WPackage wPackage) {
+            return wPackage.getName();
         }
         return "global";
     }

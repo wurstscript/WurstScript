@@ -57,17 +57,6 @@ public class ImplicitFuncs {
         return e.lookupFuncs(funcName, false);
     }
 
-//	private static Collection<NameLink> findFunc(Element e, String funcName) {
-//		// we only look at functions defined on the global level
-//		while (e != null && !(e instanceof WPackage)) {
-//			e = e.getParent();
-//		}
-//		if (e == null) {
-//			return Collections.emptyList();
-//		}
-//		WEntities entities = ((WPackage) e).getElements();
-//		return entities.lookupFuncs(funcName, false);
-//	}
 
 
 }

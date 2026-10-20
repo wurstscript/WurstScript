@@ -28,7 +28,6 @@ import java.util.stream.Stream;
  */
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
-    private static final int FILE_VERSION = 1;
     private static final String MANIFEST_MPQ_PATH = "wurst_cache_manifest.txt";
 
     /**

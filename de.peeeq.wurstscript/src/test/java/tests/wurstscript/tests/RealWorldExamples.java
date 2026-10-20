@@ -1,6 +1,5 @@
 package tests.wurstscript.tests;
 
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -12,11 +11,6 @@ public class RealWorldExamples extends WurstScriptTest {
 
     private static final String TEST_DIR = "./testscripts/concept/";
     private static final String BUG_DIR = "./testscripts/realbugs/";
-
-    @Override
-    protected boolean testOptimizer() {
-        return true;
-    }
 
 
     @Test
@@ -107,18 +101,6 @@ public class RealWorldExamples extends WurstScriptTest {
     @Test
     public void nonStaticCallback() throws IOException {
         super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "nonStaticCallback.wurst"), "without parameters", false);
-    }
-
-    @Test
-    @Ignore // TODO fix test
-    public void criggesInitOrder1() throws IOException {
-        super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "CriggesInitOrder1.wurst"), "not yet initialized", false);
-    }
-
-    @Test
-    @Ignore // TODO fix test
-    public void criggesInitOrder2() throws IOException {
-        super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "CriggesInitOrder2.wurst"), "used before it is initialized", false);
     }
 
     @Test

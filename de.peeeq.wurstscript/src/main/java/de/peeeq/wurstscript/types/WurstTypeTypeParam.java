@@ -44,8 +44,7 @@ public class WurstTypeTypeParam extends WurstType {
                 return mapping.set(def, new WurstTypeBoundTypeParam(def, other, location));
             }
         }
-        if (other instanceof WurstTypeTypeParam) {
-            WurstTypeTypeParam other2 = (WurstTypeTypeParam) other;
+        if (other instanceof WurstTypeTypeParam other2) {
             if (other2.def == this.def) {
                 // same type parameter, no change and match
                 return mapping;

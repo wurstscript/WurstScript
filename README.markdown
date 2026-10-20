@@ -43,7 +43,7 @@ The source for the wurstscript website can be found here: https://github.com/wur
 
 ## Compiler Build Process
 
-For **contributing/developing the compiler**, Java 25 is required.  
+For **contributing/developing the compiler**, Java 27 is required.  
 End users normally do not need to install/configure Java manually for the standard Wurst setup flow.
 
 Clone the repository and open the `de.peeeq.wurstscript` folder which contains the compiler project.
@@ -75,7 +75,7 @@ For building the release packages (compiler jar, bundled runtime and the `wursts
 
 You can import the compiler project into any IDE that provides a gradle plugin.
 For IntelliJ IDEA, you can simply execute `./gradlew openIdea`.
-To run the Test Suite, execute `AllTests.xml` with TestNG.
+To run the test suite, execute `./gradlew test` in `de.peeeq.wurstscript`.
 
 ### Publishing a new release
 
@@ -83,4 +83,4 @@ Releases are published via GitHub workflows and GitHub Releases:
 - Workflow: https://github.com/wurstscript/WurstScript/actions/workflows/release.yml
 - Releases: https://github.com/wurstscript/WurstScript/releases
 
-The version string can be updated in [build.gradle](https://github.com/wurstscript/WurstScript/blob/master/de.peeeq.wurstscript/build.gradle#L28).
+The version string is in [version.txt](de.peeeq.wurstscript/version.txt); see [docs/RELEASING.md](docs/RELEASING.md).

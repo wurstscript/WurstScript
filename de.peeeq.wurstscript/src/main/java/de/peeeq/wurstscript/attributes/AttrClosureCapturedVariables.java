@@ -21,8 +21,7 @@ public class AttrClosureCapturedVariables {
     }
 
     private static void collect(Builder<Element, VarDef> result, ExprClosure closure, Element e) {
-        if (e instanceof ExprClosure) {
-            ExprClosure innerClosure = (ExprClosure) e;
+        if (e instanceof ExprClosure innerClosure) {
             for (Entry<Element, VarDef> entry : innerClosure.attrCapturedVariables().entries()) {
                 VarDef v = entry.getValue();
                 if (v.attrNearestExprClosure() != closure) {
@@ -31,8 +30,7 @@ public class AttrClosureCapturedVariables {
             }
             return;
         }
-        if (e instanceof NameRef) {
-            NameRef nr = (NameRef) e;
+        if (e instanceof NameRef nr) {
             NameLink def = nr.attrNameLink();
             if (def instanceof OtherLink) {
                 // Synthetic links (e.g. implicit closure-self) are not captured locals.
@@ -51,8 +49,7 @@ public class AttrClosureCapturedVariables {
             if (nr.attrImplicitParameter() instanceof ExprThis) {
                 result.put(nr, dummyThisVar(closure));
             }
-        } else if (e instanceof FunctionCall) {
-            FunctionCall fc = (FunctionCall) e;
+        } else if (e instanceof FunctionCall fc) {
             if (fc.attrImplicitParameter() instanceof ExprThis) {
                 result.put(e, dummyThisVar(closure));
             }

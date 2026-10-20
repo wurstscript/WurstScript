@@ -45,8 +45,7 @@ public class HasAnnotation {
 
         // OPTIMIZATION 5: Direct iteration without size check
         for (Modifier m : e.getModifiers()) {
-            if (m instanceof Annotation) {
-                Annotation a = (Annotation) m;
+            if (m instanceof Annotation a) {
                 // OPTIMIZATION 6: Cache annotation type normalization
                 if (getNormalizedType(a).equals(norm)) {
                     return true;
@@ -65,8 +64,7 @@ public class HasAnnotation {
         String norm = normalizeAnnotation(annotation);
 
         for (Modifier m : e.getModifiers()) {
-            if (m instanceof Annotation) {
-                Annotation a = (Annotation) m;
+            if (m instanceof Annotation a) {
                 if (getNormalizedType(a).equals(norm)) {
                     return a;
                 }

@@ -85,8 +85,8 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
 
     @Override
     public boolean isEqualTo(ILconst other) {
-        if (other instanceof ILconstString) {
-            return ((ILconstString) other).val.equals(val);
+        if (other instanceof ILconstString iLconstString) {
+            return iLconstString.val.equals(val);
         }
         return false;
     }

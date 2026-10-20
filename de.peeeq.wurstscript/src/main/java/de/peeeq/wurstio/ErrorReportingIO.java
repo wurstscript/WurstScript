@@ -137,7 +137,6 @@ public class ErrorReportingIO extends ErrorReporting {
             wr.writeBytes(data);
             wr.flush();
             wr.close();
-//			String output = CharStreams.toString(new InputStreamReader(connection.getInputStream()));
 
             // Get response data.
             InputStream input = connection.getInputStream();

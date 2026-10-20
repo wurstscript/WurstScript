@@ -9,7 +9,6 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
@@ -26,14 +25,13 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.function.*;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 public class Utils {
 
     @SuppressWarnings("rawtypes")
     public static int size(Iterable<?> i) {
-        if (i instanceof Collection) {
-            return ((Collection) i).size();
+        if (i instanceof Collection<?> collection) {
+            return collection.size();
         }
         int size = 0;
         for (@SuppressWarnings("unused")
@@ -251,30 +249,24 @@ public class Utils {
         return el.map(e -> {
             String type = makeReadableTypeName(e);
             String name = "";
-            if (e instanceof ExprFunctionCall) {
-                ExprFunctionCall fc = (ExprFunctionCall) e;
+            if (e instanceof ExprFunctionCall fc) {
                 return "function call " + fc.getFuncName() + "()";
-            } else if (e instanceof FuncDef) {
-                FuncDef fd = (FuncDef) e;
+            } else if (e instanceof FuncDef fd) {
                 return "function " + fd.getName();
             } else if (e instanceof OnDestroyDef) {
                 return "destroy function for "
                         + e.attrNearestStructureDef().getName();
             } else if (e instanceof ConstructorDef) {
                 return "constructor for " + e.attrNearestStructureDef().getName();
-            } else if (e instanceof LocalVarDef) {
-                LocalVarDef l = (LocalVarDef) e;
+            } else if (e instanceof LocalVarDef l) {
                 return "local variable " + l.getName();
-            } else if (e instanceof VarDef) {
-                VarDef l = (VarDef) e;
+            } else if (e instanceof VarDef l) {
                 return "variable " + l.getName();
-            } else if (e instanceof AstElementWithNameId) {
-                name = ((AstElementWithNameId) e).getNameId().getName();
-            } else if (e instanceof WImport) {
-                WImport wImport = (WImport) e;
+            } else if (e instanceof AstElementWithNameId astElementWithNameId) {
+                name = astElementWithNameId.getNameId().getName();
+            } else if (e instanceof WImport wImport) {
                 return "import " + wImport.getPackagename();
-            } else if (e instanceof TypeExprSimple) {
-                TypeExprSimple t = (TypeExprSimple) e;
+            } else if (e instanceof TypeExprSimple t) {
                 name = t.getTypeName();
                 if (t.getTypeArgs().size() > 0) {
                     name += "{";
@@ -297,6 +289,12 @@ public class Utils {
         }).orElse("null");
     }
 
+    /** The printed name of the scope {@code e} is defined in, or "Global". */
+    public static String nearestScopeName(Element e) {
+        NamedScope scope = e.attrNearestNamedScope();
+        return scope != null ? printElement(scope) : "Global";
+    }
+
     public static String printElement(@Nullable Element e) {
         return printElement(Optional.ofNullable(e));
     }
@@ -313,15 +311,6 @@ public class Utils {
 
     public static int inBorders(int min, int x, int max) {
         return Math.max(min, Math.min(max, x));
-    }
-
-    public static String printStackTrace(StackTraceElement[] stackTrace) {
-        StringBuilder builder = new StringBuilder();
-        for (StackTraceElement s : stackTrace) {
-            builder.append(s.toString());
-            builder.append("\n");
-        }
-        return builder.toString();
     }
 
     public static String printExceptionWithStackTrace(Throwable t) {
@@ -342,22 +331,6 @@ public class Utils {
         return builder.toString();
     }
 
-
-    public static Optional<Element> getAstElementAtPos(Element elem,
-                                             int caretPosition, boolean usesMouse) {
-        List<Element> betterResults = Lists.newArrayList();
-        for (int i = 0; i < elem.size(); i++) {
-            getAstElementAtPos(elem.get(i), caretPosition, usesMouse).map(betterResults::add);
-        }
-        if (betterResults.size() == 0) {
-            if (elem instanceof Identifier) {
-                return Optional.ofNullable(elem.getParent());
-            }
-            return Optional.ofNullable(elem);
-        } else {
-            return bestResult(betterResults);
-        }
-    }
 
     public static Optional<Element> getAstElementAtPos(Element elem, int line, int column, boolean usesMouse) {
         if (elem instanceof ModuleInstanciation) {
@@ -383,15 +356,6 @@ public class Utils {
     }
 
 
-    public static Optional<Element> getAstElementAtPosIgnoringLists(Element elem,
-                                                          int caretPosition, boolean usesMouse) {
-        Optional<Element> r = getAstElementAtPos(elem, caretPosition, usesMouse);
-        while (r.isPresent() && r.get() instanceof List<?>) {
-            r = r.flatMap(el -> Optional.ofNullable(el.getParent()));
-        }
-        return r;
-    }
-
     /**
      * return the element with the smallest size
      */
@@ -409,11 +373,6 @@ public class Utils {
             }
         }
         return min;
-    }
-
-    public static boolean elementContainsPos(Element e, int pos, boolean usesMouse) {
-        return e.attrSource().getLeftPos() <= pos
-                && e.attrSource().getRightPos() >= pos + (usesMouse ? 1 : 0);
     }
 
     private static boolean elementContainsPos(Element e, int line, int column, boolean usesMouse) {
@@ -440,20 +399,9 @@ public class Utils {
         return source.getFile() + ", line " + source.getLine();
     }
 
-    public static boolean isEmptyCU(Optional<CompilationUnit> cu) {
-        return !cu.isPresent()
-                || (cu.get().getJassDecls().size() + cu.get().getPackages().size() == 0);
-    }
-
     public static String printElementWithSource(Optional<Element> e) {
         Optional<WPos> src = e.map(Element::attrSource);
         return printElement(e) + " (" + src.map(WPos::printShort).orElse("unknown position") + ")";
-    }
-
-    public static int[] copyArray(int[] ar) {
-        int[] r = new int[ar.length];
-        System.arraycopy(ar, 0, r, 0, ar.length);
-        return r;
     }
 
     public static String toFirstUpper(String s) {
@@ -461,16 +409,6 @@ public class Utils {
             return s;
         }
         return s.substring(0, 1).toUpperCase() + s.substring(1);
-    }
-
-    public static Optional<VarDef> getParentVarDef(Optional<Element> node) {
-        while (node.isPresent()) {
-            if (node.get() instanceof VarDef) {
-                return node.map(n -> (VarDef) n);
-            }
-            node = node.map(Element::getParent);
-        }
-        return null;
     }
 
 
@@ -493,14 +431,6 @@ public class Utils {
         return result;
     }
 
-    public static <T extends Comparable<? extends T>, S> TreeMap<T, Set<S>> inverseMapToSet(Map<S, T> orig) {
-        TreeMap<T, Set<S>> result = new TreeMap<>();
-        for (Entry<S, T> e : orig.entrySet()) {
-            result.computeIfAbsent(e.getValue(), x -> new LinkedHashSet<>()).add(e.getKey());
-        }
-        return result;
-    }
-
 
     public static boolean isSubsequenceIgnoreCase(String a, String b) {
         int bPos = -1;
@@ -512,20 +442,6 @@ public class Utils {
                     return false;
                 }
             } while (Character.toLowerCase(b.charAt(bPos)) != c);
-        }
-        return true;
-    }
-
-    public static boolean isSubsequence(String a, String b) {
-        int bPos = -1;
-        for (int i = 0; i < a.length(); i++) {
-            char c = a.charAt(i);
-            do {
-                bPos++;
-                if (bPos >= b.length()) {
-                    return false;
-                }
-            } while (b.charAt(bPos) != c);
         }
         return true;
     }
@@ -622,7 +538,7 @@ public class Utils {
     }
 
     public static String printException(Throwable e) {
-        return e + "\n" + Utils.printExceptionWithStackTrace(e);
+        return printExceptionWithStackTrace(e);
     }
 
 
@@ -631,41 +547,6 @@ public class Utils {
     }
 
 
-    public static <T> Iterable<T> iterateReverse(final List<T> elements) {
-        return () -> new Iterator<T>() {
-
-            final ListIterator<T> it = elements.listIterator(elements.size());
-
-            @Override
-            public boolean hasNext() {
-                return it.hasPrevious();
-            }
-
-            @Override
-            public T next() {
-                return it.previous();
-            }
-
-            @Override
-            public void remove() {
-                it.remove();
-            }
-        };
-    }
-
-
-    public static String readWholeStream(BufferedReader r) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        Optional<String> line;
-        while ((line = Optional.ofNullable(r.readLine())).isPresent()) {
-            line.map(sb::append);
-        }
-        return sb.toString();
-    }
-
-    public static String readWholeStream(InputStream inputStream) throws IOException {
-        return readWholeStream(new BufferedReader(new InputStreamReader(inputStream)));
-    }
 
 
     @SuppressWarnings("unchecked")
@@ -679,10 +560,6 @@ public class Utils {
         return Optional.empty();
     }
 
-
-    public static <T extends JassImElementWithName> Comparator<T> compareByNameIm() {
-        return Comparator.comparing(JassImElementWithName::getName);
-    }
 
     public static String getParameterListText(AstElementWithParameters f) {
         StringBuilder descr = new StringBuilder();
@@ -707,94 +584,14 @@ public class Utils {
         return result;
     }
 
-    public static <K, V> ImmutableMap<K, V> mergeMaps(
-            ImmutableMap<K, V> a,
-            ImmutableMap<K, V> b,
-            Function2<V, V, V> mergeFunc) {
-        if (a.isEmpty()) return b;
-        if (b.isEmpty()) return a;
-
-        ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
-
-        for (Entry<K, V> e : a.entrySet()) {
-            K key = e.getKey();
-            if (b.containsKey(key)) {
-                builder.put(key, mergeFunc.apply(e.getValue(), b.get(key)));
-            } else {
-                builder.put(e);
-            }
-        }
-
-        for (Entry<K, V> e : b.entrySet()) {
-            K key = e.getKey();
-            if (!a.containsKey(key)) {
-                builder.put(e);
-            }
-        }
-
-        return builder.build();
-    }
-
-    public static <K, V> ImmutableSetMultimap<K, V> mergeMultiMaps(
-            ImmutableSetMultimap<K, V> a, ImmutableSetMultimap<K, V> b) {
-        if (a.isEmpty()) return b;
-        if (b.isEmpty()) return a;
-
-        ImmutableSetMultimap.Builder<K, V> builder = ImmutableSetMultimap.builder();
-        builder.putAll(a);
-        builder.putAll(b);
-        return builder.build();
-    }
-
-    public static <T> ImmutableSet<T> mergeSets(ImmutableSet<T> a, ImmutableSet<T> b) {
-        ImmutableSet.Builder<T> builder = ImmutableSet.builder();
-        builder.addAll(a).addAll(b);
-        return builder.build();
-    }
-
     public static <T> T[] joinArrays(T[] a, T[] b) {
         T[] res = Arrays.copyOf(a, a.length + b.length);
         System.arraycopy(b, 0, res, a.length, b.length);
         return res;
     }
 
-    public static <K, V> void removeValuesFromMap(Map<K, V> map, Collection<V> removed) {
-        map.entrySet().removeIf(e -> removed.contains(e.getValue()));
-    }
-
     public static <T> ImmutableList<T> emptyList() {
         return ImmutableList.of();
-    }
-
-    public static <T>
-    Collector<T, ?, ImmutableList<T>> toImmutableList() {
-        return new Collector<T, Builder<T>, ImmutableList<T>>() {
-
-            @Override
-            public Supplier<Builder<T>> supplier() {
-                return ImmutableList::builder;
-            }
-
-            @Override
-            public BiConsumer<Builder<T>, T> accumulator() {
-                return Builder::add;
-            }
-
-            @Override
-            public BinaryOperator<Builder<T>> combiner() {
-                return (a, b) -> a.addAll(b.build());
-            }
-
-            @Override
-            public java.util.function.Function<Builder<T>, ImmutableList<T>> finisher() {
-                return Builder::build;
-            }
-
-            @Override
-            public Set<Characteristics> characteristics() {
-                return Collections.emptySet();
-            }
-        };
     }
 
     public static MouseListener onClickDo(Consumer<MouseEvent> onclick) {
@@ -839,54 +636,6 @@ public class Utils {
     }
 
     /**
-     * Executes a shell command in a given folder and returns the output of the executed command
-     */
-    public static String exec(File folder, String... cmds) {
-        try {
-            Process p = new ProcessBuilder(cmds)
-                    .directory(folder)
-                    .start();
-            int res = p.waitFor();
-            if (res != 0) {
-                throw new RuntimeException("Could not execute " + Utils.join(Arrays.asList(cmds), " ")
-                        + "\nErrors:\n"
-                        + convertStreamToString(p.getErrorStream())
-                        + "\nOutput:\n"
-                        + convertStreamToString(p.getInputStream()));
-            }
-            return convertStreamToString(p.getInputStream());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Converts an input stream to a string
-     * <p>
-     * see http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
-     */
-    public static String convertStreamToString(InputStream is) {
-        try(Scanner s = new Scanner(is).useDelimiter("\\A")) {
-            return s.hasNext() ? s.next() : "";
-        }
-    }
-
-    public static byte[] convertStreamToBytes(InputStream is) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-        int nRead;
-        byte[] data = new byte[16384];
-
-        while ((nRead = is.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-
-        buffer.flush();
-
-        return buffer.toByteArray();
-    }
-
-    /**
      * join lines
      */
     public static String string(String... lines) {
@@ -917,7 +666,7 @@ public class Utils {
                 if (is == null) {
                     throw new RuntimeException("Could not find resource file " + name);
                 }
-                byte[] bytes = Utils.convertStreamToBytes(is);
+                byte[] bytes = is.readAllBytes();
                 Files.write(bytes, fi);
                 resourceMap.put(name, fi);
                 return fi;
@@ -975,18 +724,11 @@ public class Utils {
         return sb.toString();
     }
 
-    public static String prettyPrintWithLine(Element e) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(e.attrSource().getFile()).append(":").append(e.attrSource().getLine()).append(": ");
-        e.prettyPrint(new DefaultSpacer(), sb, 4);
-        return sb.toString();
-    }
-
     public static String printTypeExpr(TypeExpr t) {
         WurstType wt = t.attrTyp();
         if (wt instanceof WurstTypeUnknown) {
-            if (t instanceof TypeExprSimple) {
-                return ((TypeExprSimple) t).getTypeName();
+            if (t instanceof TypeExprSimple typeExprSimple) {
+                return typeExprSimple.getTypeName();
             }
             return "???";
         }
@@ -1017,28 +759,9 @@ public class Utils {
         return Optional.of(res);
     }
 
-    public static class ExecResult {
-        private final String stdOut;
-        private final String stdErr;
-
-        public ExecResult(String stdOut, String stdErr) {
-            this.stdOut = stdOut;
-            this.stdErr = stdErr;
-        }
-
-        public String getStdOut() {
-            return stdOut;
-        }
-
-        public String getStdErr() {
-            return stdErr;
-        }
-    }
-
-    public static ExecResult exec(ProcessBuilder pb, Duration duration, Consumer<String> onInput) throws IOException, InterruptedException {
+    public static void exec(ProcessBuilder pb, Duration duration, Consumer<String> onInput) throws IOException, InterruptedException {
         Process process = pb.start();
         class Collector extends Thread {
-            private final StringBuilder sb = new StringBuilder();
             private final InputStream in;
 
             Collector(InputStream in) {
@@ -1051,15 +774,10 @@ public class Utils {
                     Optional<String> line;
                     while ((line = Optional.ofNullable(input.readLine())).isPresent()) {
                         onInput.accept(line.get());
-                        sb.append(line.get()).append("\n");
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }
-
-            String getContents() {
-                return sb.toString();
             }
         }
 
@@ -1078,7 +796,6 @@ public class Utils {
         if (process.exitValue() != 0) {
             throw new IOException("Failure when running external tool");
         }
-        return new ExecResult(cIn.getContents(), cErr.getContents());
     }
 
     public static String makeUniqueName(String baseName, Predicate<String> isValid) {

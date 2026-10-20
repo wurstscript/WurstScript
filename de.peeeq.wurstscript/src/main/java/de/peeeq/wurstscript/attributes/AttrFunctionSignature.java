@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class AttrFunctionSignature {
 
@@ -35,7 +34,6 @@ public class AttrFunctionSignature {
         // ---- DEBUG: what did we pick, and what did we bind? ----
         if (fc instanceof FunctionCall) {
             WLogger.trace(() -> "[IMPLCONV] call=" + name(fc) + " args=" + at);
-//            WLogger.trace("[IMPLCONV] pickedSig=" + sig);
             WLogger.trace(() -> "[IMPLCONV] mapping=" + sig.getMapping()
                 + " unbound=" + sig.getMapping().printUnboundTypeVars());
             if (fc instanceof ExprMemberMethodDot emmd) {
@@ -54,8 +52,8 @@ public class AttrFunctionSignature {
         // If any argument is a closure, let it be typed using the selected signature’s
         // expected parameter types before complaining about unbound type variables.
         boolean hasClosureArg = false;
-        if (fc instanceof AstElementWithArgs) {
-            for (Expr a : ((AstElementWithArgs) fc).getArgs()) {
+        if (fc instanceof AstElementWithArgs astElementWithArgs) {
+            for (Expr a : astElementWithArgs.getArgs()) {
                 if (a instanceof ExprClosure) {
                     hasClosureArg = true;
                     break;
@@ -78,13 +76,12 @@ public class AttrFunctionSignature {
         }
         for (int i = 0; i < fc.getArgs().size(); i++) {
             Expr arg = fc.getArgs().get(i);
-            if (!(arg instanceof ExprClosure)) {
+            if (!(arg instanceof ExprClosure closure)) {
                 continue;
             }
             if (!(sig.getParamType(i) instanceof WurstTypeCode)) {
                 continue;
             }
-            ExprClosure closure = (ExprClosure) arg;
             if (!closure.attrCapturedVariables().isEmpty()) {
                 String codeLambdaContext = codeLambdaContext(fc);
                 closure.attrCapturedVariables().entries().forEach(entry ->
@@ -106,12 +103,11 @@ public class AttrFunctionSignature {
             Collection<FunctionSignature> sigs,
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
-            if (location instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) location)) {
+            if (location instanceof ExprFunctionCall exprFunctionCall && AttrFuncDef.isConstructorThisCall(exprFunctionCall)) {
                 return FunctionSignature.empty;
             }
             if (!isInitTrigFunc(location)) {
-                if (location instanceof ExprMemberMethodDot) {
-                    ExprMemberMethodDot emmd = (ExprMemberMethodDot) location;
+                if (location instanceof ExprMemberMethodDot emmd) {
                     WLogger.trace(() -> "[IMPLCONV] receiver typRaw=" + emmd.getLeft().attrTypRaw()
                         + " typ=" + emmd.getLeft().attrTyp()
                         + " for call ." + emmd.getFuncName());
@@ -152,28 +148,15 @@ public class AttrFunctionSignature {
         }
         if (b) {
             // only show overloading error, if type for all arguments could be determined
+            // sorted, because the candidates come in the order of the compilation units in the model
             StringBuilder alternatives = new StringBuilder();
-            for (FunctionSignature s : candidates) {
+            candidates.stream().map(FunctionSignature::toString).sorted().forEach(s -> {
                 alternatives.append("\n");
-                alternatives.append(s.toString());
-            }
+                alternatives.append(s);
+            });
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
-    }
-
-    private static boolean isConstructorThisCall(ExprFunctionCall call) {
-        if (!call.getFuncName().equals("this")) {
-            return false;
-        }
-        Element current = call;
-        while (current != null) {
-            if (current instanceof ConstructorDef) {
-                return true;
-            }
-            current = current.getParent();
-        }
-        return false;
     }
 
     private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {
@@ -186,7 +169,7 @@ public class AttrFunctionSignature {
         return list;
     }
 
-    private static List<FunctionSignature> filterPreferNonAbstract(List<FunctionSignature> candidates) {
+    static List<FunctionSignature> filterPreferNonAbstract(List<FunctionSignature> candidates) {
         List<FunctionSignature> nonAbstract = new ArrayList<>();
         for (FunctionSignature sig : candidates) {
             FunctionDefinition def = sig.getDef();
@@ -222,38 +205,19 @@ public class AttrFunctionSignature {
     }
 
     private static boolean isInitTrigFunc(StmtCall e) {
-        if (e instanceof ExprFunctionCall) {
-            ExprFunctionCall e2 = (ExprFunctionCall) e;
+        if (e instanceof ExprFunctionCall e2) {
             return e2.getFuncName().startsWith("InitTrig_");
         }
         return false;
     }
 
     private static String name(StmtCall s) {
-        if (s instanceof ExprNewObject) {
-            ExprNewObject e = (ExprNewObject) s;
+        if (s instanceof ExprNewObject e) {
             return "constructor for " + e.getTypeName();
-        } else if (s instanceof FunctionCall) {
-            FunctionCall e = (FunctionCall) s;
+        } else if (s instanceof FunctionCall e) {
             return "function " + e.getFuncName();
         }
         return Utils.printElement(s);
-    }
-
-    private static boolean paramTypesMatch(FunctionSignature sig, List<WurstType> argTypes, Element location) {
-        return paramTypesMatch(sig.getParamTypes(), argTypes, location);
-    }
-
-    private static boolean paramTypesMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
-        if (paramTypes.size() != argTypes.size()) {
-            return false;
-        }
-        for (int i = 0; i < paramTypes.size(); i++) {
-            if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static List<WurstType> argTypes(AstElementWithArgs fc) {

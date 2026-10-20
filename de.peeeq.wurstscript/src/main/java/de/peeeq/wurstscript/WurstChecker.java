@@ -29,23 +29,35 @@ public class WurstChecker {
         this.legacyJassTypeChecks = legacyJassTypeChecks;
     }
 
-    public void checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
+    /**
+     * Checks the given compilation units of the model.
+     *
+     * @return whether the units were validated. Errors found before validation stop the check, and
+     * then nothing is known about the units.
+     */
+    public boolean checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
+        return checkProg(root, toCheck, root);
+    }
+
+    public boolean checkProg(WurstModel root, Collection<CompilationUnit> toCheck,
+                             Collection<CompilationUnit> compilationUnits) {
         Preconditions.checkNotNull(root);
         Preconditions.checkNotNull(toCheck);
         if (root.isEmpty()) {
-            return;
+            return true;
         }
-        new DesugarArrayLength().run(root);
+        DesugarArrayLength desugar = new DesugarArrayLength();
+        compilationUnits.forEach(cu -> cu.accept(desugar));
         gui.sendProgress("Checking Files");
 
-        if (errorHandler.getErrorCount() > 0) return;
+        if (errorHandler.getErrorCount() > 0) return false;
 
         attachErrorHandler(root);
         clearGlobalCaches(root, toCheck);
 
-        expandModules(root);
+        compilationUnits.forEach(ModuleExpander::expandModules);
 
-        if (errorHandler.getErrorCount() > 0) return;
+        if (errorHandler.getErrorCount() > 0) return false;
 
         SyntacticSugar syntacticSugar = new SyntacticSugar();
         List<SyntacticSugar.DeferredModuleCall> detachedTemplates = new ArrayList<>();
@@ -60,11 +72,25 @@ public class WurstChecker {
             }
 
             // validate the resource:
-            WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
+            WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks, compilationUnits);
             validator.validate(toCheck);
         } finally {
             syntacticSugar.restoreModuleTemplateFieldIterations(detachedTemplates);
         }
+        return true;
+    }
+
+    /**
+     * Lets a model which was checked completely by another checker report to this one, so that errors
+     * found while translating it reach this checker's gui.
+     */
+    public void adoptCheckedModel(WurstModel root) {
+        attachErrorHandler(root);
+    }
+
+    public void adoptCheckedModel(WurstModel root, Collection<CompilationUnit> compilationUnits) {
+        attachErrorHandler(root);
+        new WurstValidator(root, legacyJassTypeChecks, compilationUnits).prepareNamePreservation();
     }
 
     private void clearGlobalCaches(WurstModel root, Collection<CompilationUnit> toCheck) {
@@ -78,12 +104,6 @@ public class WurstChecker {
     private void attachErrorHandler(WurstModel root) {
         for (CompilationUnit cu : root) {
             cu.getCuInfo().setCuErrorHandler(errorHandler);
-        }
-    }
-
-    private void expandModules(WurstModel root) {
-        for (CompilationUnit cu : root) {
-            ModuleExpander.expandModules(cu);
         }
     }
 

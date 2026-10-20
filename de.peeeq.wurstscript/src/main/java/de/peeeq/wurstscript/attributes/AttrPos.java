@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrPos {
 
@@ -14,8 +13,7 @@ public class AttrPos {
      * @return
      */
     public static WPos getPos(Element e) {
-        if (e instanceof AstElementWithSource) {
-            AstElementWithSource ws = (AstElementWithSource) e;
+        if (e instanceof AstElementWithSource ws) {
             return ws.getSource();
         }
         if (e.size() > 0) { // try to find the position by examining the childs
@@ -35,6 +33,14 @@ public class AttrPos {
         }
         // if no childs exist, search a parent element with a explicit position
         return getParentSource(e);
+    }
+
+    /**
+     * The program spans its files, so it has no position of its own. Asking every compilation unit for
+     * one walked the whole program, and code the compiler generates is traced to the program.
+     */
+    public static WPos getPos(WurstModel e) {
+        return standIn(e);
     }
 
     public static WPos getPos(WImports e) {
@@ -66,19 +72,21 @@ public class AttrPos {
             }
             parent = parent.getParent();
         }
-        return new WPos("<source of " + e + " not found>", new LineOffsets(), 0, -1);
+        return standIn(e);
     }
 
-
-    private static @Nullable LineOffsets getLineOffsets(WPos p) {
-        LineOffsets lineOffsets;
-        if (p.getLineOffsets() instanceof LineOffsets) {
-            lineOffsets = p.getLineOffsets();
-        } else {
-            lineOffsets = new LineOffsets();
+    /**
+     * An artificial position which names the kind of element. Not the element itself: printing it renders
+     * its whole subtree, and this is asked for often.
+     */
+    private static WPos standIn(Element e) {
+        String kind = e.getClass().getSimpleName();
+        if (kind.endsWith("Impl")) {
+            kind = kind.substring(0, kind.length() - "Impl".length());
         }
-        return lineOffsets;
+        return new WPos("<source of " + kind + " not found>", new LineOffsets(), 0, -1);
     }
+
 
 
     public static WPos getErrorPos(Element e) {

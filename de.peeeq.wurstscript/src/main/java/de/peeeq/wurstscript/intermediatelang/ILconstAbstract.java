@@ -16,8 +16,8 @@ public abstract class ILconstAbstract implements ILconst {
 
     @Override
     public boolean equals(@Nullable Object other) {
-        if (other instanceof ILconst) {
-            return isEqualTo((ILconst) other);
+        if (other instanceof ILconst iLconst) {
+            return isEqualTo(iLconst);
         }
         return false;
     }

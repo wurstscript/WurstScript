@@ -68,7 +68,6 @@ public class WurstTypeBoundTypeParam extends WurstType {
     @Override
     public String getName() {
         return baseType.getName();
-//		return "[" + typeParamDef.getName() + ": " + baseType + "]";
     }
 
     @Override
@@ -136,7 +135,6 @@ public class WurstTypeBoundTypeParam extends WurstType {
     @Override
     public boolean isCastableToInt() {
         return true; // because baseType must always be castable to int
-        //return baseType.isCastableToInt();
     }
 
     @Override
@@ -163,11 +161,10 @@ public class WurstTypeBoundTypeParam extends WurstType {
         }
         if (typeConstraintFunctions == null) {
             if (!baseType.supportsGenerics()) {
-                // if type does support generics natively, try to find implicit conversion functions
+                // If the type does not support generics natively, find implicit conversion functions.
                 fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
                 toIndex = ImplicitFuncs.findToIndexFunc(baseType, context);
-            } else if (baseType instanceof WurstTypeBoundTypeParam) {
-                WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
+            } else if (baseType instanceof WurstTypeBoundTypeParam bt) {
                 fromIndex = bt.getFromIndex();
                 toIndex = bt.getToIndex();
             }
@@ -191,19 +188,6 @@ public class WurstTypeBoundTypeParam extends WurstType {
         return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
     }
 
-//	public WurstTypeBoundTypeParam applyBinding(Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
-//		if (baseType instanceof WurstTypeTypeParam) {
-//			WurstTypeTypeParam tp = (WurstTypeTypeParam) baseType;
-//			if (binding.containsKey(tp.getDef())) {
-//				return this.withBaseType(binding.get(tp.getDef()));
-//			}
-//		} else if (baseType instanceof WurstTypeBoundTypeParam) {
-//			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
-//			return this.withBaseType(bt.applyBinding(binding));
-//		}
-//		return this.baseType.
-//		return this;
-//	}
 
     private WurstTypeBoundTypeParam withBaseType(WurstType t) {
         if (t == baseType) {

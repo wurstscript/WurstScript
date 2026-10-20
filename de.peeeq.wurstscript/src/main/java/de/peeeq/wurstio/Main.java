@@ -76,11 +76,6 @@ public class Main {
                 return;
             }
 
-            if (runArgs.isLanguageServerAppCdsTrain()) {
-                LanguageServerStarter.trainForAppCds();
-                return;
-            }
-
             if (runArgs.isLanguageServer()) {
                 LanguageServerStarter.start();
                 return;
@@ -165,7 +160,8 @@ public class Main {
                         );
                         de.peeeq.wurstio.languageserver.ModelManager modelManager =
                             new de.peeeq.wurstio.languageserver.ModelManagerImpl(root.toFile(), new de.peeeq.wurstio.languageserver.BufferManager());
-                        modelManager.buildProject();
+                        // checked once by the build, after the map script with the project config is in the model
+                        cliBuildMap.getTimeTaker().measure("Load project", modelManager::loadProject);
                         Object result = cliBuildMap.execute(modelManager);
                         WLogger.info("map build success");
                         System.out.println("Build succeeded. Output file: <" + result + ">");

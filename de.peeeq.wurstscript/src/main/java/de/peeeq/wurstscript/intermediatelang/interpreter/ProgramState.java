@@ -13,8 +13,8 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -32,6 +32,17 @@ public class ProgramState extends State implements AutoCloseable {
     private final Set<String> missingNativeFuncs = new HashSet<>();
     private ImProg prog;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
+    /** The key of the one id space all classes share; see {@link #useOneObjectIdSpace}. */
+    private static final Object SHARED_ID_SPACE = new Object();
+    private boolean oneObjectIdSpace;
+    /** See {@link #isGenericHierarchy}; only looked up, never iterated. */
+    private final Map<ImClass, Boolean> genericHierarchy = new IdentityHashMap<>();
+    /** See {@link #dispatch}; only looked up, never iterated. */
+    private final Map<ImMethod, Map<ImClass, ImMethod>> dispatchCache = new IdentityHashMap<>();
+    /** See {@link #mostSpecificOverride}; only looked up, never iterated. */
+    private final Map<ImMethod, Map<ImClass, IntArrayList>> overridePositions = new IdentityHashMap<>();
+    /** See {@link #ancestors}; iterated only to collect positions which are then sorted. */
+    private final Map<ImClass, Set<ImClass>> ancestorsCache = new IdentityHashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
     private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
     private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
@@ -47,7 +58,6 @@ public class ProgramState extends State implements AutoCloseable {
     private final Set<String> modifiedGenericArrays = new HashSet<>();
     private final Map<String, Set<List<Integer>>> modifiedGenericArrayIndexes = new HashMap<>();
     private final Map<String, List<ImTypeArgument>> genericArrayTypeArguments = new HashMap<>();
-    private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
 
@@ -63,47 +73,6 @@ public class ProgramState extends State implements AutoCloseable {
         // is better than the one read out of a name - so ask again now that it can be asked.
         genericStaticOwner.clear();
         identifyGenericStaticGlobals();
-    }
-
-    private static boolean containsTypeVariable(ImType type) {
-        return type.match(new ImType.Matcher<Boolean>() {
-            @Override public Boolean case_ImTypeVarRef(ImTypeVarRef t) { return true; }
-            @Override public Boolean case_ImArrayType(ImArrayType t) { return containsTypeVariable(t.getEntryType()); }
-            @Override public Boolean case_ImArrayTypeMulti(ImArrayTypeMulti t) { return containsTypeVariable(t.getEntryType()); }
-            @Override public Boolean case_ImClassType(ImClassType t) {
-                for (ImTypeArgument a : t.getTypeArguments()) {
-                    if (containsTypeVariable(a.getType())) return true;
-                }
-                return false;
-            }
-            @Override public Boolean case_ImTupleType(ImTupleType t) {
-                for (ImType x : t.getTypes()) if (containsTypeVariable(x)) return true;
-                return false;
-            }
-            @Override public Boolean case_ImSimpleType(ImSimpleType t) { return false; }
-            @Override public Boolean case_ImVoid(ImVoid t) { return false; }
-            @Override public Boolean case_ImAnyType(ImAnyType t) { return false; }
-        });
-    }
-
-    private String instantiationKey(ImType t) {
-        if (t instanceof ImClassType) {
-            ImClassType ct = (ImClassType) t;
-            StringBuilder sb = new StringBuilder();
-            sb.append(ct.getClassDef().getName());
-            if (!ct.getTypeArguments().isEmpty()) {
-                sb.append('<');
-                boolean first = true;
-                for (ImTypeArgument ta : ct.getTypeArguments()) {
-                    if (!first) sb.append(',');
-                    first = false;
-                    sb.append(ta.getType().toString());
-                }
-                sb.append('>');
-            }
-            return sb.toString();
-        }
-        return t.toString();
     }
 
 
@@ -193,10 +162,6 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
 
-    public PrintStream getOutStream() {
-        return outStream;
-    }
-
     public void setOutStream(PrintStream os) {
         outStream = os;
         for (NativesProvider natives : nativeProviders) {
@@ -245,14 +210,6 @@ public class ProgramState extends State implements AutoCloseable {
         missingNativeFuncs.add(funcName);
     }
 
-    public ProgramState setProg(ImProg p) {
-        prog = p;
-        classKeyLookup.clear();
-        objectIdSpaces.clear();
-        buildClassKeyLookup();
-        return this;
-    }
-
     public ImProg getProg() {
         return prog;
     }
@@ -263,12 +220,28 @@ public class ProgramState extends State implements AutoCloseable {
         int objId = !idSpace.freeObjectIds.isEmpty() ? idSpace.freeObjectIds.pop() : ++idSpace.objectIdCounter;
         ILconstObject res = new ILconstObject(clazz, objId, trace);
         idSpace.indexToObject.put(objId, res);
-        WLogger.trace("alloc objId=" + objId + " type=" + clazz + " trace=" + trace);
+        WLogger.trace(() -> "alloc objId=" + objId + " type=" + clazz + " trace=" + trace);
         return res;
     }
 
     protected Object classKey(ImClass clazz) {
+        if (oneObjectIdSpace) {
+            return SHARED_ID_SPACE;
+        }
         return classKeyLookup.getOrDefault(clazz, clazz);
+    }
+
+    /**
+     * Hands out the ids of all classes from one counter and one free list, as the Lua target does
+     * (docs/WC3_RUNTIME.md), instead of one per inheritance group as Jass does. A compile-time object
+     * keeps its id in the generated script, so the ids must come from the allocator of the target.
+     * Called before anything is allocated.
+     */
+    public void useOneObjectIdSpace() {
+        if (!objectIdSpaces.isEmpty()) {
+            throw new IllegalStateException("The id spaces are chosen before the first allocation.");
+        }
+        oneObjectIdSpace = true;
     }
 
     public void deallocate(ILconstObject obj, ImClass clazz, Element trace) {
@@ -292,7 +265,97 @@ public class ProgramState extends State implements AutoCloseable {
             return false;
         }
         assertAllocated(obj, trace);
-        return obj.getImClass().isSubclassOf(clazz); // TODO more efficient check
+        return ancestors(obj.getImClass()).contains(clazz);
+    }
+
+    /**
+     * The implementation a call of {@code method} runs for a receiver of class {@code receiverClass}: the
+     * most specific of its overrides which that class inherits. A call site sees the same few classes
+     * again and again, so the answer is kept per method and class.
+     */
+    public ImMethod dispatch(ImMethod method, ImClass receiverClass) {
+        Map<ImClass, ImMethod> byClass = dispatchCache.computeIfAbsent(method, m -> new IdentityHashMap<>());
+        ImMethod result = byClass.get(receiverClass);
+        if (result == null) {
+            result = mostSpecificOverride(method, receiverClass);
+            byClass.put(receiverClass, result);
+        }
+        return result;
+    }
+
+    /**
+     * Goes through the overrides of {@code method} in order and takes each one which belongs to a class the
+     * receiver inherits from and to a subclass of the one taken so far. Only overrides in the receiver's
+     * classes can be taken, so only they are looked at: a method of a big hierarchy has thousands of
+     * overrides, and a receiver class few ancestors.
+     */
+    private ImMethod mostSpecificOverride(ImMethod method, ImClass receiverClass) {
+        List<ImMethod> overrides = method.getSubMethods();
+        Map<ImClass, IntArrayList> positions = overridePositions.get(method);
+        if (positions == null) {
+            positions = new IdentityHashMap<>();
+            for (int i = 0; i < overrides.size(); i++) {
+                positions.computeIfAbsent(overrides.get(i).attrClass(), c -> new IntArrayList()).add(i);
+            }
+            overridePositions.put(method, positions);
+        }
+        IntArrayList candidates = new IntArrayList();
+        for (ImClass ancestor : ancestors(receiverClass)) {
+            IntArrayList at = positions.get(ancestor);
+            if (at != null) {
+                candidates.addAll(at);
+            }
+        }
+        // the ancestors come in no particular order; the overrides are taken in theirs
+        candidates.sort(null);
+        ImMethod result = method;
+        for (int i = 0; i < candidates.size(); i++) {
+            ImMethod m = overrides.get(candidates.getInt(i));
+            if (ancestors(m.attrClass()).contains(result.attrClass())) {
+                result = m;
+            }
+        }
+        return result;
+    }
+
+    /** The classes {@code c} is a subclass of, itself included, as {@link ImClass#isSubclassOf} answers. */
+    private Set<ImClass> ancestors(ImClass c) {
+        Set<ImClass> result = ancestorsCache.get(c);
+        if (result == null) {
+            result = Collections.newSetFromMap(new IdentityHashMap<>());
+            Deque<ImClass> todo = new ArrayDeque<>();
+            todo.push(c);
+            while (!todo.isEmpty()) {
+                ImClass next = todo.pop();
+                if (result.add(next)) {
+                    for (ImClassType superClass : next.getSuperClasses()) {
+                        todo.push(superClass.getClassDef());
+                    }
+                }
+            }
+            ancestorsCache.put(c, result);
+        }
+        return result;
+    }
+
+    /**
+     * Whether a type variable of this class, or a type argument written in the supertypes of it or of a
+     * class it inherits from, can bind anything for a receiver of this class. Most classes have neither,
+     * and their calls bind no type arguments.
+     */
+    public boolean isGenericHierarchy(ImClass c) {
+        Boolean known = genericHierarchy.get(c);
+        if (known != null) {
+            return known;
+        }
+        // provisional answer, in case of a cyclic hierarchy in an erroneous program
+        genericHierarchy.put(c, Boolean.TRUE);
+        boolean result = !c.getTypeVariables().isEmpty();
+        for (ImClassType superClass : c.getSuperClasses()) {
+            result |= !superClass.getTypeArguments().isEmpty() || isGenericHierarchy(superClass.getClassDef());
+        }
+        genericHierarchy.put(c, result);
+        return result;
     }
 
     public int getTypeId(ILconstObject obj, Element trace) {
@@ -300,28 +363,32 @@ public class ProgramState extends State implements AutoCloseable {
         return obj.getImClass().attrTypeId();
     }
 
+    /** {@code entry} is where the frame is entered: the call, or the function when nothing called it. */
     public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver,
-                                        ILconst[] args, WPos trace,
+                                        ILconst[] args, de.peeeq.wurstscript.jassIm.Element entry,
                                         Map<ImTypeVar, ImType> typeSubstitutions) {
 
         // normalize the incoming map: RHS = fully resolved type
-        Map<ImTypeVar, ImType> normalized = new HashMap<>();
-        for (Map.Entry<ImTypeVar, ImType> e : typeSubstitutions.entrySet()) {
-            ImType rhs = resolveType(e.getValue()); // resolve through existing frames
-            // skip self-maps (T -> T)
-            if (rhs instanceof ImTypeVarRef &&
-                ((ImTypeVarRef) rhs).getTypeVariable() == e.getKey()) {
-                continue;
+        Map<ImTypeVar, ImType> normalized = Collections.emptyMap();
+        if (!typeSubstitutions.isEmpty()) {
+            normalized = new HashMap<>();
+            for (Map.Entry<ImTypeVar, ImType> e : typeSubstitutions.entrySet()) {
+                ImType rhs = resolveType(e.getValue()); // resolve through existing frames
+                // skip self-maps (T -> T)
+                if (rhs instanceof ImTypeVarRef imTypeVarRef &&
+                    imTypeVarRef.getTypeVariable() == e.getKey()) {
+                    continue;
+                }
+                normalized.put(e.getKey(), rhs);
             }
-            normalized.put(e.getKey(), rhs);
         }
+        Map<ImTypeVar, ImType> frameTypes = normalized;
 
         WLogger.trace(() -> "pushStackframe " + f + " with receiver " + receiver
-            + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
+            + " and args " + Arrays.toString(args) + " and typesubst " + frameTypes);
 
-//        new Exception().printStackTrace(System.out);
 
-        stackFrames.push(new ILStackFrame(f, receiver, args, trace, normalized));
+        stackFrames.push(new ILStackFrame(f, receiver, args, entry, frameTypes));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) stmt = f;
         lastStatements.push(stmt);
@@ -388,8 +455,8 @@ public class ProgramState extends State implements AutoCloseable {
         ImClassType rt = top.receiver.getType();
         // resolve possible type vars inside type args
         ImType resolved = resolveType(rt);
-        if (resolved instanceof ImClassType) {
-            rt = (ImClassType) resolved;
+        if (resolved instanceof ImClassType imClassType) {
+            rt = imClassType;
         }
 
         ImClassType adapted = adaptToSuperclass(rt, owner);
@@ -437,6 +504,10 @@ public class ProgramState extends State implements AutoCloseable {
 
     private ImType resolveTypeDeep(ImType t, int budget) {
         if (budget <= 0 || t == null) return t;
+        // the common cases, which hold no type variable, without allocating a matcher
+        if (t instanceof ImSimpleType || t instanceof ImClassType ct && ct.getTypeArguments().isEmpty()) {
+            return t;
+        }
 
         return t.match(new ImType.Matcher<ImType>() {
             @Override
@@ -561,7 +632,6 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
     public void popStackframe() {
-//        new Exception().printStackTrace(System.out);
         WLogger.trace(() -> "popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
@@ -588,7 +658,7 @@ public class ProgramState extends State implements AutoCloseable {
         } else {
             getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), errorMessage));
         }
-        for (ILStackFrame sf : Utils.iterateReverse(getStackFrames().getStackFrames())) {
+        for (ILStackFrame sf : getStackFrames().getStackFrames().reversed()) {
             getGui().sendError(sf.makeCompileError());
         }
     }
@@ -644,12 +714,12 @@ public class ProgramState extends State implements AutoCloseable {
 
     public ILconstObject toObject(ILconst val, @Nullable ImType expectedType) {
         ImType resolved = expectedType == null ? null : resolveType(expectedType);
-        ImClassType expectedClass = resolved instanceof ImClassType ? (ImClassType) resolved : null;
+        ImClassType expectedClass = resolved instanceof ImClassType imClassType ? imClassType : null;
 
-        if (val instanceof ILconstObject) {
-            return (ILconstObject) val;
-        } else if (val instanceof ILconstInt) {
-            int objectId = ((ILconstInt) val).getVal();
+        if (val instanceof ILconstObject iLconstObject) {
+            return iLconstObject;
+        } else if (val instanceof ILconstInt iLconstInt) {
+            int objectId = iLconstInt.getVal();
             return expectedClass != null
                 ? getObjectByIndex(objectId, expectedClass)
                 : getObjectByIndex(objectId);
@@ -681,22 +751,6 @@ public class ProgramState extends State implements AutoCloseable {
         public List<ILStackFrame> getStackFrames() {
             return stackFrames;
         }
-
-        public Iterable<ILStackFrame> getStackFramesReversed() {
-            return () -> new Iterator<ILStackFrame>() {
-                int i = stackFrames.size() - 1;
-
-                @Override
-                public boolean hasNext() {
-                    return i >= 0;
-                }
-
-                @Override
-                public ILStackFrame next() {
-                    return stackFrames.get(i--);
-                }
-            };
-        }
     }
 
     public String instantiationKey(ImClassType ct) {
@@ -713,10 +767,6 @@ public class ProgramState extends State implements AutoCloseable {
             sb.append('>');
         }
         return sb.toString();
-    }
-
-    private static String vid(ImVar v) {
-        return v.getName() + "@" + System.identityHashCode(v);
     }
 
     @Override
@@ -882,11 +932,6 @@ public class ProgramState extends State implements AutoCloseable {
             result.add(typeArgument.copy());
         }
         return result;
-    }
-
-    /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
-    public ILconstArray getArrayValue(ImVar v) {
-        return getArray(v);
     }
 
     public static final class ArrayState {

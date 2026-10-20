@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * wraps an imType and adds a hashmap and equals method
@@ -24,8 +23,7 @@ public class GenericTypes {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof GenericTypes) {
-            GenericTypes ot = (GenericTypes) o;
+        if (o instanceof GenericTypes ot) {
             if (typeArguments.size() != ot.typeArguments.size()) {
                 return false;
             }
@@ -52,22 +50,20 @@ public class GenericTypes {
      * on every nested class-type argument, not just on the arguments wrapped by this key.
      */
     private static boolean equalTypeIgnoringBindings(ImType left, ImType right) {
-        if (left instanceof ImArrayType) {
-            return right instanceof ImArrayType
-                && equalTypeIgnoringBindings(((ImArrayType) left).getEntryType(),
-                ((ImArrayType) right).getEntryType());
+        if (left instanceof ImArrayType leftArray) {
+            return right instanceof ImArrayType rightArray
+                && equalTypeIgnoringBindings(leftArray.getEntryType(),
+                rightArray.getEntryType());
         }
-        if (left instanceof ImArrayTypeMulti) {
-            return right instanceof ImArrayTypeMulti
-                && equalTypeIgnoringBindings(((ImArrayTypeMulti) left).getEntryType(),
-                ((ImArrayTypeMulti) right).getEntryType());
+        if (left instanceof ImArrayTypeMulti leftArray) {
+            return right instanceof ImArrayTypeMulti rightArray
+                && equalTypeIgnoringBindings(leftArray.getEntryType(),
+                rightArray.getEntryType());
         }
-        if (left instanceof ImTupleType) {
-            if (!(right instanceof ImTupleType)) {
+        if (left instanceof ImTupleType leftTuple) {
+            if (!(right instanceof ImTupleType rightTuple)) {
                 return false;
             }
-            ImTupleType leftTuple = (ImTupleType) left;
-            ImTupleType rightTuple = (ImTupleType) right;
             if (leftTuple.getTypes().size() != rightTuple.getTypes().size()) {
                 return false;
             }
@@ -79,12 +75,10 @@ public class GenericTypes {
             }
             return true;
         }
-        if (left instanceof ImClassType) {
-            if (!(right instanceof ImClassType)) {
+        if (left instanceof ImClassType leftClass) {
+            if (!(right instanceof ImClassType rightClass)) {
                 return false;
             }
-            ImClassType leftClass = (ImClassType) left;
-            ImClassType rightClass = (ImClassType) right;
             if (leftClass.getClassDef() != rightClass.getClassDef()
                 || leftClass.getTypeArguments().size() != rightClass.getTypeArguments().size()) {
                 return false;

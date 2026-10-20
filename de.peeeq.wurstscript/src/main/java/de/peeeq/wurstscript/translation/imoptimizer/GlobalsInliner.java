@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.NamePreservation;
 import org.jetbrains.annotations.Nullable;
@@ -72,7 +73,7 @@ public class GlobalsInliner implements OptimizerPass {
                 } else {
                     for (ImVarWrite write : v.attrWrites()) {
                         ImFunction func = write.getNearestFunc();
-                        if (isInInitGlobals(func)) {
+                        if (isInInitGlobals(trans, func)) {
                             right = write.getRight();
                             obs = write;
                             break;
@@ -83,7 +84,7 @@ public class GlobalsInliner implements OptimizerPass {
                     continue;
                 }
 
-                ImExpr replacement = findReplacement(right, obs);
+                ImExpr replacement = findReplacement(right, obs, v.getType());
                 if (replacement != null) {
                     for (ImVarRead v3 : v.attrReads()) {
                         v3.replaceBy(replacement.copy());
@@ -96,7 +97,7 @@ public class GlobalsInliner implements OptimizerPass {
                 List<ImVarWrite> initWrites = new ArrayList<>();
                 for (ImVarWrite imVarWrite : v.attrWrites()) {
                     ImFunction nearestFunc = imVarWrite.getNearestFunc();
-                    if (isInInitGlobals(nearestFunc)) {
+                    if (isInInitGlobals(trans, nearestFunc)) {
                         initWrites.add(imVarWrite);
                     }
                 }
@@ -137,25 +138,25 @@ public class GlobalsInliner implements OptimizerPass {
     }
 
     @Nullable
-    private ImExpr findReplacement(ImExpr right, ImVarWrite obs) {
+    private ImExpr findReplacement(ImExpr right, ImVarWrite obs, ImType varType) {
         ImExpr replacement;
-        if (right instanceof ImIntVal) {
-            ImIntVal val = (ImIntVal) right;
-            replacement = (JassIm.ImIntVal(val.getValI()));
+        if (right instanceof ImIntVal val) {
+            // Jass converts an integer stored into a real, so the global holds a real.
+            // The integer in place of a read would make `g / m` an integer division.
+            replacement = TypesHelper.isRealType(varType)
+                ? JassIm.ImRealVal(val.getValI() + ".")
+                : JassIm.ImIntVal(val.getValI());
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
-        } else if (right instanceof ImRealVal) {
-            ImRealVal val = (ImRealVal) right;
+        } else if (right instanceof ImRealVal val) {
             replacement = (JassIm.ImRealVal(val.getValR()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
-        } else if (right instanceof ImStringVal) {
-            ImStringVal val = (ImStringVal) right;
+        } else if (right instanceof ImStringVal val) {
             replacement = (JassIm.ImStringVal(val.getValS()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
-        } else if (right instanceof ImBoolVal) {
-            ImBoolVal val = (ImBoolVal) right;
+        } else if (right instanceof ImBoolVal val) {
             replacement = (JassIm.ImBoolVal(val.getValB()));
             if (obs.getParent() != null)
                 obs.replaceBy(ImHelper.nullExpr());
@@ -175,8 +176,9 @@ public class GlobalsInliner implements OptimizerPass {
     }
 
 
-    private static boolean isInInitGlobals(ImFunction func) {
-        return func != null && func.getName().equals("initGlobals");
+    /** The globals initialiser of the compiler, not a function which happens to have its name. */
+    private static boolean isInInitGlobals(ImTranslator trans, ImFunction func) {
+        return func != null && func == trans.getGlobalInitFunc();
     }
 
     /**

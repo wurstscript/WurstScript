@@ -54,6 +54,14 @@ public class UtilsTest {
     }
 
     @Test
+    public void printExceptionPrintsTheExceptionOnce() {
+        String printed = Utils.printException(new IllegalStateException("boom", new RuntimeException("cause")));
+        Assert.assertTrue(printed.startsWith("java.lang.IllegalStateException: boom\n"), printed);
+        Assert.assertEquals(printed.split("IllegalStateException: boom", -1).length - 1, 1, printed);
+        Assert.assertTrue(printed.contains("Caused by: java.lang.RuntimeException: cause\n"), printed);
+    }
+
+    @Test
     public void array() {
         int[] ar1 = {1, 2, 3};
         int[] ar2 = {1, 2, 3};
@@ -144,81 +152,4 @@ public class UtilsTest {
         Assert.assertEquals(Utils.makeUniqueName("x", n -> !n.equals("x") && !n.equals("x_1")), "x_2");
     }
 
-/* TODO utils unit tests
-  @Test
-  public void isJassCode() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void join() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void list() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void map() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void parseAsciiInt1() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void parseAsciiInt4() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void parseHexInt() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void parseInt() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void printIndent() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void printSepStringBuilderStringTFunctionTString() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void printSepStringBuilderStringT() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void printSepStringBuilderStringIterableTFunctionTString() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void printSepStringString() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void removeDuplicates() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void sleep() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  */
 }

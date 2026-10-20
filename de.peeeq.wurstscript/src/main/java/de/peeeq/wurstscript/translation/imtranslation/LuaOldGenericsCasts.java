@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -32,7 +31,7 @@ public final class LuaOldGenericsCasts {
 
     /** Whether the Lua backend translates {@code cast} with the old-generics int encoding. */
     public static boolean isOldGenericsIntCast(ImCast cast) {
-        ImType from = cast.getExpr().attrTyp();
+        ImType from = cast.getFromType();
         ImType to = cast.getToType();
         if (TypesHelper.isIntType(to)) {
             return from instanceof ImAnyType;
@@ -65,16 +64,15 @@ public final class LuaOldGenericsCasts {
             ImVar temp = JassIm.ImVar(trace, EliminateLocalTypes.localTypeFor(operand.attrTyp()),
                 "oldGenericsValue", false);
             function.getLocals().add(temp);
-            ImCast replacement = JassIm.ImCast(JassIm.ImVarAccess(temp), cast.getToType());
+            ImCast replacement = JassIm.ImCast(JassIm.ImVarAccess(temp), cast.getFromType(), cast.getToType());
             operand.setParent(null);
             cast.replaceBy(JassIm.ImStatementExpr(
                 JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(temp), operand)),
                 replacement));
         }
         prog.flatten(translator);
-        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
         for (ImFunction function : touched) {
-            new LocalMerger().optimizeFunc(function, analyzer, translator);
+            new LocalMerger().optimizeFunc(function, translator);
         }
     }
 }

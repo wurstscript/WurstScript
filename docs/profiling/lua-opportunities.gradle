@@ -1,0 +1,6 @@
+// Opt-in research fixtures; never part of the ordinary test source set.
+allprojects {
+    afterEvaluate {
+        sourceSets.test.java.srcDir('../docs/profiling/lua-opportunities')
+    }
+}

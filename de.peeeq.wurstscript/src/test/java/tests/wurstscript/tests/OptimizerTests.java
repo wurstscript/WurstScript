@@ -4,6 +4,8 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.Element;
@@ -15,7 +17,9 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
-import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
+import de.peeeq.wurstscript.translation.imoptimizer.NameGenerator;
+import de.peeeq.wurstscript.translation.imoptimizer.SideEffectFreeNatives;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -27,12 +31,146 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
+
+    /** The backend must consume the final removal's current graph, including callbacks and preserved entry points. */
+    @Test
+    public void jassTranslationReusesTheFinalGarbageRemovalsCallRelations() {
+        class CapturingTimeTaker extends TimeTaker.Default {
+            final java.util.Deque<String> phases = new java.util.ArrayDeque<>();
+            WurstCompilerJassImpl compiler;
+            com.google.common.collect.Multimap<ImFunction, ImFunction> finalRelations;
+
+            @Override public void beginPhase(String name) {
+                phases.push(name);
+            }
+
+            @Override public void endPhase() {
+                String finished = phases.pop();
+                if (finished.equals("remove garbage") && "translate to jass".equals(phases.peek())) {
+                    finalRelations = compiler.getImTranslator().getCalledFunctions();
+                }
+            }
+        }
+        for (boolean optimize : new boolean[]{false, true}) {
+            CapturingTimeTaker timeTaker = new CapturingTimeTaker();
+            WurstGuiCliImpl gui = new WurstGuiCliImpl();
+            RunArgs args = optimize ? new RunArgs().with("-inline", "-localOptimizations", "-opt") : new RunArgs();
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, null, gui, null, args);
+            timeTaker.compiler = compiler;
+            String source = String.join("\n",
+                "package Test",
+                "native register(code callback)",
+                "native effect()",
+                "@noinline function callback()",
+                "    effect()",
+                "@preserveName function externalEntry()",
+                "    effect()",
+                "function unused()",
+                "    effect()",
+                "init",
+                "    register(function callback)");
+            WurstModel model = parseFiles(Collections.emptyList(), List.of(new CU("ReuseRelations.wurst", source)),
+                false, compiler);
+            compiler.checkProg(model);
+            assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+            compiler.translateProgToIm(model);
+            compiler.runCompiletime(org.wurstscript.projectconfig.WurstProjectConfigData.empty(), false, false);
+            compiler.transformProgToJass();
+            assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+            assertNotNull(timeTaker.finalRelations, "the final removal must leave a call graph");
+            assertSame(compiler.getImTranslator().getCalledFunctions(), timeTaker.finalRelations,
+                "Jass emission must reuse the graph already calculated by the final garbage removal");
+            java.util.Set<String> callees = timeTaker.finalRelations.values().stream()
+                .map(f -> f.getTrace() instanceof de.peeeq.wurstscript.ast.FunctionDefinition definition
+                    ? definition.getName() : f.getName())
+                .collect(java.util.stream.Collectors.toSet());
+            assertTrue(callees.contains("callback"), callees.toString());
+            assertTrue(callees.contains("effect"), callees.toString());
+            assertFalse(callees.contains("unused"), callees.toString());
+            assertTrue(timeTaker.finalRelations.keySet().stream().anyMatch(f -> f.getName().equals("externalEntry")),
+                "the graph must retain the externally preserved entry point");
+        }
+    }
+
+    /**
+     * A common.j converter changes and reads nothing, so a call whose result nothing uses goes. The list is by name,
+     * and 40 converters of the Reforged natives were once missing from it: an unused native call stayed in the script.
+     */
+    @Test
+    public void everyCommonJConverterIsSideEffectFree() throws IOException {
+        String commonJ = Files.toString(new File("src/main/resources/common.j"), Charsets.UTF_8);
+        java.util.regex.Matcher converter = java.util.regex.Pattern
+            .compile("native\\s+(Convert\\w+)\\s+takes\\s+integer\\s+\\w+\\s+returns").matcher(commonJ);
+        int count = 0;
+        while (converter.find()) {
+            String name = converter.group(1);
+            assertTrue(SideEffectFreeNatives.isFunctionWithoutSideEffect(name), name + " changes nothing");
+            assertTrue(SideEffectFreeNatives.isFunctionPure(name), name + " reads nothing");
+            count++;
+        }
+        assertTrue(count > 80, "the converters were found: " + count);
+    }
+
+    /** Return lowering owns a callee copy; it must move its children rather than clone them again. */
+    @Test
+    public void returnLoweringConsumesTheOwnedCopy() throws Exception {
+        for (String shape : new String[] {"structured", "loop", "vararg"}) {
+            boolean structured = shape.equals("structured");
+            WurstModel trace = Ast.WurstModel();
+            ImVar value = JassIm.ImVar(trace, TypesHelper.imInt(), "value", false);
+            ImVar done = JassIm.ImVar(trace, TypesHelper.imBool(), "done", false);
+            ImExpr condition = JassIm.ImBoolVal(true);
+            ImExpr returnedValue = JassIm.ImIntVal(7);
+            ImIf guard = JassIm.ImIf(trace, condition,
+                JassIm.ImStmts(JassIm.ImReturn(trace, returnedValue)), JassIm.ImStmts());
+            ImStmt unchanged = JassIm.ImIf(trace, JassIm.ImBoolVal(false),
+                JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(value), JassIm.ImIntVal(9))),
+                JassIm.ImStmts());
+            ImStmts body = JassIm.ImStmts(guard, unchanged,
+                JassIm.ImReturn(trace, JassIm.ImIntVal(11)));
+            ImVarargLoopVar loopVar = JassIm.ImVarargLoopVar(value);
+            if (shape.equals("loop")) {
+                body = JassIm.ImStmts(JassIm.ImLoop(trace, body));
+            } else if (shape.equals("vararg")) {
+                body = JassIm.ImStmts(JassIm.ImVarargLoop(trace, body, JassIm.ImVarargLoopVars(loopVar)));
+            }
+            ImInliner inliner = new ImInliner(new ImTranslator(trace, false, new RunArgs()));
+            String methodName = structured ? "structureReturns" : "rewriteForEarlyReturns";
+            java.lang.reflect.Method rewrite = structured
+                ? ImInliner.class.getDeclaredMethod(methodName, ImStmts.class, ImVar.class)
+                : ImInliner.class.getDeclaredMethod(methodName, ImStmts.class, ImVar.class, ImVar.class);
+            rewrite.setAccessible(true);
+            ImStmts output = (ImStmts) (structured ? rewrite.invoke(inliner, body, value)
+                : rewrite.invoke(inliner, body, done, value));
+            assertTrue(body.isEmpty(), "lowering must consume its input list");
+            java.util.Set<de.peeeq.wurstscript.jassIm.Element> nodes =
+                Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            collectOwnedReturnNodes(output, nodes);
+            assertTrue(nodes.contains(unchanged), "return-free subtrees must be moved intact");
+            assertTrue(nodes.contains(condition), "conditions must be reused");
+            assertTrue(nodes.contains(returnedValue), "returned expressions must be reused");
+            if (shape.equals("vararg")) {
+                assertTrue(nodes.contains(loopVar), "vararg loop bindings must be moved intact");
+            }
+        }
+    }
+
+    private static void collectOwnedReturnNodes(de.peeeq.wurstscript.jassIm.Element e,
+        java.util.Set<de.peeeq.wurstscript.jassIm.Element> nodes) {
+        assertTrue(nodes.add(e), "a child must occur only once");
+        for (int i = 0; i < e.size(); i++) {
+            assertSame(e.get(i).getParent(), e, "moved children must retain valid parents");
+            collectOwnedReturnNodes(e.get(i), nodes);
+        }
+    }
 
     @Test
     public void packageConstantsInlineAndRemoveDeadGuardsInJass() throws IOException {
@@ -256,6 +394,48 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
     }
 
+    /**
+     * A function of the user's which happens to be called initGlobals is not the globals initialiser: its write of
+     * the default value is a reset, which must stay.
+     */
+    @Test
+    public void globalsInlinerDoesNotTakeAJassInitGlobalsForTheInitialiser() {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "	integer mode",
+                "endglobals",
+                "function initGlobals takes nothing returns nothing",
+                "	set mode = 0",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    mode = 5",
+                "    initGlobals()",
+                "    if mode == 0",
+                "        testSuccess()",
+                "endpackage"));
+    }
+
+    /** The same for a Wurst function of that name. */
+    @Test
+    public void globalsInlinerDoesNotTakeAWurstInitGlobalsForTheInitialiser() {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int mode",
+            "function initGlobals()",
+            "    mode = 0",
+            "init",
+            "    mode = 5",
+            "    initGlobals()",
+            "    if mode == 0",
+            "        testSuccess()",
+            "endpackage");
+    }
+
     @Test
     public void globalsInlinerDoesNotRemoveNonInitDefaultWrite() {
         test().executeProg().lines(
@@ -370,6 +550,114 @@ public class OptimizerTests extends WurstScriptTest {
             "package test",
             "	constant i = 5",
             "endpackage");
+    }
+
+    @Test
+    public void longRunOfAccumulatingStatementsCompiles() {
+        // A long generated init function, `sum += g0` ... `sum += g3299`. Merging the run into one assignment made an
+        // expression 3300 levels deep, and the flatten after the merge overflowed the stack.
+        int count = 3300;
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        for (int i = 0; i < count; i++) {
+            lines.add("int g" + i + " = " + i);
+        }
+        lines.add("init");
+        lines.add("	var sum = 0");
+        for (int i = 0; i < count; i++) {
+            lines.add("	sum += g" + i);
+        }
+        lines.add("	if sum > 0");
+        lines.add("		testSuccess()");
+        test().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
+    public void runMergedOntoADeepRightOperandLoadsInLua() {
+        // The first value is 90 levels deep on its right operands, which the bound did not count: merging 64 pairs
+        // of `h *= a` and `h += b` onto it made more nested levels than luac takes (200).
+        String deep = "b";
+        for (int i = 0; i < 90; i++) {
+            deep = "(a + " + deep + ")";
+        }
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        lines.add("function mix(int a, int b) returns int");
+        lines.add("	var h = " + deep);
+        for (int i = 0; i < 64; i++) {
+            lines.add("	h *= a");
+            lines.add("	h += b");
+        }
+        lines.add("	return h");
+        lines.add("init");
+        lines.add("	if mix(1, 1) == 155");
+        lines.add("		testSuccess()");
+        test().testLua(true).localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
+    public void longRunOfAlternatingOperatorsLoadsInLua() {
+        // Merged into one assignment, 150 pairs of `h *= a` and `h += b` were 300 nested parentheses in Lua, and
+        // luac stops at 200 levels.
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("native testSuccess()");
+        lines.add("function mix(int a, int b) returns int");
+        lines.add("	var h = a");
+        for (int i = 0; i < 150; i++) {
+            lines.add("	h *= a");
+            lines.add("	h += b");
+        }
+        lines.add("	return h");
+        lines.add("init");
+        lines.add("	if mix(1, 1) == 151");
+        lines.add("		testSuccess()");
+        test().testLua(true).localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+    }
+
+    @Test
+    public void mergingConsecutiveAssignmentsNestsBoundedly() {
+        // `x = 0` and then `x = x + gI` a thousand times: the assignments still merge, but no merged expression has
+        // more than MAX_MERGED_OPERATORS operators down its left operands.
+        int count = 1000;
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImStmts body = JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(x), JassIm.ImIntVal(0)));
+        for (int i = 0; i < count; i++) {
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            prog.getGlobals().add(g);
+            body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), JassIm.ImOperatorCall(
+                de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImVarAccess(g)))));
+        }
+        ImVar p = JassIm.ImVar(model, TypesHelper.imInt(), "p", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), JassIm.ImVars(p), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), List.of(FunctionFlagEnum.IS_NATIVE));
+        prog.getFunctions().add(sink);
+        body.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(x)),
+            false, CallType.NORMAL));
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(x), body, Collections.emptyList());
+        prog.getFunctions().add(main);
+
+        new de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites().optimize(translator);
+
+        int max = de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites.MAX_MERGED_OPERATORS;
+        int sets = 0;
+        for (ImStmt s : main.getBody()) {
+            if (s instanceof ImSet set) {
+                sets++;
+                int operators = 0;
+                for (ImExpr e = set.getRight(); e instanceof ImOperatorCall op; e = op.getArguments().get(0)) {
+                    operators++;
+                }
+                assertTrue(operators <= max, "a merged assignment has " + operators + " operators");
+            }
+        }
+        assertTrue(sets <= count / max + 2, "the assignments did not merge: " + sets + " are left");
     }
 
 
@@ -704,6 +992,89 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void compressedNamesAreUnique() {
+        // globals, functions and locals all draw from this one stream
+        NameGenerator generator = new NameGenerator();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 200000; i++) {
+            String token = generator.getUniqueToken();
+            assertTrue(seen.add(token), "Token " + token + " was handed out twice, the second time as token " + i);
+        }
+    }
+
+    @Test
+    public void compressionGivesThousandsOfGlobalsDistinctNames() throws IOException {
+        // more compressed names than the 3213 at which the generator used to repeat a token
+        int count = 3300;
+        List<String> lines = new ArrayList<>();
+        lines.add("package test");
+        lines.add("    native consume(int i)");
+        for (int i = 0; i < count; i++) {
+            lines.add("    int g" + i + " = " + i);
+        }
+        lines.add("    init");
+        for (int i = 0; i < count; i++) {
+            lines.add("        consume(g" + i + ")");
+        }
+        lines.add("endpackage");
+        test().optimize().lines(lines.toArray(new String[0]));
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_compressionGivesThousandsOfGlobalsDistinctNames_no_opts.j"),
+            Charsets.UTF_8);
+        // the backend appends a suffix such as _1 to a name it has already declared
+        java.util.regex.Matcher global = java.util.regex.Pattern.compile("(?m)^integer (\\w+)=").matcher(output);
+        int globals = 0;
+        while (global.find()) {
+            globals++;
+            assertFalse(global.group(1).contains("_"),
+                "Compression handed out the name of global " + global.group(1) + " twice.");
+        }
+        assertEquals(globals, count);
+    }
+
+    @Test
+    public void reforged301NativesAreClassified() {
+        for (String name : java.util.Set.of(
+            "BlzGetCameraAllowsHotkeyTargetLock",
+            "BlzGetHUDScale",
+            "BlzGetItemEquipmentType",
+            "BlzGetItemTag",
+            "BlzIsItemEquipped",
+            "BlzIsItemInBag",
+            "BlzUnitCanEquipItemOfEquipmentType",
+            "BlzUnitExtendedInventorySize",
+            "BlzUnitHasAnyItemEquipped",
+            "BlzUnitHasItemBagged",
+            "BlzUnitHasItemEquipmentOfType",
+            "BlzUnitHasItemEquipped",
+            "BlzUnitHasLoadoutSlotEmpty",
+            "BlzUnitIsAlive",
+            "BlzUnitItemInBagSlot",
+            "BlzUnitItemInEquipmentSlot")) {
+            assertTrue(SideEffectFreeNatives.isFunctionWithoutSideEffect(name), name + " only reads state");
+            assertFalse(SideEffectFreeNatives.isFunctionPure(name), name + " depends on mutable state");
+            assertEquals(LocalPlayerContextAnalyzer.isLocalPlayerSource(nativeIntFunction(Ast.NoExpr(), name)),
+                name.equals("BlzGetHUDScale") || name.equals("BlzGetCameraAllowsHotkeyTargetLock"),
+                name + " locality classification");
+        }
+        for (String name : java.util.Set.of(
+            "BlzRemoveEffect",
+            "BlzResetUnitTalents",
+            "BlzSetCameraAllowsHotkeyTargetLock",
+            "BlzSetItemColor",
+            "BlzSetThematicMusicAbsoluteVolume",
+            "BlzUnitEquipItem",
+            "BlzUnitHeal",
+            "BlzUnitUnequipItem",
+            "BlzUnitUnequipItemFromSlot",
+            "ChooseRandomItemExWithFilterAndIncludes")) {
+            assertFalse(SideEffectFreeNatives.isFunctionWithoutSideEffect(name), name + " must retain effects");
+            assertFalse(SideEffectFreeNatives.isFunctionPure(name), name + " must not be treated as pure");
+        }
+    }
+
+    @Test
     public void reforged3ReadOnlyNativesAreClassified() {
         java.util.Set<String> readOnlyNatives = java.util.Set.of(
             "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot",
@@ -719,19 +1090,19 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY"
         );
         for (String name : readOnlyNatives) {
-            assertTrue(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+            assertTrue(SideEffectFreeNatives.isFunctionWithoutSideEffect(name),
                 name + " must be recognized as a side-effect-free Reforged 3 native");
         }
 
         for (String name : java.util.Set.of(
             "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot")) {
-            assertTrue(UselessFunctionCallsRemover.isFunctionPure(name),
+            assertTrue(SideEffectFreeNatives.isFunctionPure(name),
                 name + " must be recognized as a pure conversion native");
         }
 
         for (String name : java.util.Set.of(
             "ChooseRandomItemExWithFilter", "BlzPreloadModelCinematicGame", "BlzCreateDestructablePitchRoll")) {
-            assertFalse(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+            assertFalse(SideEffectFreeNatives.isFunctionWithoutSideEffect(name),
                 name + " changes state or consumes randomness and must remain effectful");
         }
     }
@@ -797,25 +1168,6 @@ public class OptimizerTests extends WurstScriptTest {
 
         assertTrue(!output.contains("blub_a") ? (output.contains("blub_b") || output.contains("blub_c")) : (!output.contains("blub_b") && !output.contains
             ("blub_c")));
-    }
-
-    @Test
-    @Ignore // This test was for a rewrite that caused an infinite loop in the optimizer.
-    public void test_mult2rewrite() throws IOException {
-        test().lines(
-            "package test",
-            "	@extern native I2S(int i) returns string",
-            "	native println(string s)",
-            "	@extern native GetRandomInt(int a, int b) returns int",
-            "	init",
-            "		let blub_a = GetRandomInt(0,100)",
-            "		let blub_b = blub_a",
-            "		let blub_c = blub_b + blub_b",
-            "		println(I2S(blub_c))",
-            "endpackage");
-        String output = Files.toString(new File("./test-output/OptimizerTests_test_mult2rewrite_inlopt.j"), Charsets.UTF_8);
-
-        assertTrue(!output.contains("blub_a") && !(output.contains("blub_b") && !output.contains("blub_c")));
     }
 
     @Test
@@ -918,49 +1270,6 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    @Ignore // test for #747
-    public void test_localVarMerger3() throws IOException {
-        test().lines(
-            "package test",
-            "native testSuccess()",
-            "native testFail(string s)",
-            "native sideEffects()",
-            "@extern native Sin(real r) returns real",
-            "int g = 0",
-            "int h = 0",
-            "function f(int x)",
-            "	sideEffects()",
-            "function foo(int x)",
-            "	int a = g",
-            "	if h == 10",
-            "		f(a)",
-            "function initVars()",
-            "	g = 7",
-            "	h = 10",
-            "init",
-            "	initVars()",
-            "	foo(3)",
-            "	testSuccess()"
-        );
-        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_localVarMerger3_opt.j"), Charsets.UTF_8);
-        assertTrue(compiledAndOptimized.contains("call f(test_g)"));
-    }
-
-    @Test
-    public void test_unused_func_remover() throws IOException {
-        test().executeProg().lines(
-            "package test",
-            "	@extern native I2S(int i) returns string",
-            "	native testSuccess()",
-            "	init",
-            "		I2S(5)",
-            "		testSuccess()",
-            "endpackage");
-        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover_opt.j"), Charsets.UTF_8);
-        assertFalse(compiledAndOptimized.contains("I2S"), "I2S should be removed");
-    }
-
-    @Test
     public void test_unused_func_remover2() throws IOException {
         test().lines(
             "package test",
@@ -1047,32 +1356,6 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unreachableCodeRemover_opt.j"), Charsets.UTF_8);
         assertFalse(compiledAndOptimized.contains("testSuccess"), "testSuccess should be removed");
-    }
-
-    @Test
-    public void controlFlowMergeNoSideEffect() throws IOException {
-        test().lines(
-            "package Test",
-            "native testSuccess()",
-            "native testFail(string msg)",
-            "var ghs = 12",
-            "function nonInlinable(int x) returns bool",
-            "	if x > 6",
-            "		return true",
-            "	else",
-            "		return false",
-            "init",
-            "	var x = 6",
-            "	if nonInlinable(x)",
-            "		ghs = 0",
-            "		testFail(\"bad\")",
-            "	else",
-            "		ghs = 0",
-            "		if ghs == 0",
-            "			testSuccess()"
-        );
-        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeNoSideEffect_opt.j"), Charsets.UTF_8);
-        assertEquals(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
     }
 
     @Test
@@ -1216,7 +1499,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void optimizeDuplicateNullSets() throws IOException {
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package Test",
             "var x = 100",
             "init",
@@ -1433,7 +1716,7 @@ public class OptimizerTests extends WurstScriptTest {
      */
     @Test
     public void inlinerGuardClauseAssignsTheResultOnEveryPath() throws IOException {
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "@inline function chooseLoc(boolean c, location a, location b) returns location",
             "    if c",
@@ -1465,7 +1748,7 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
         // The return sits in a loop, which keeps the done flag and with it the default write.
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "@inline function chooseLoc(boolean c, location a, location b) returns location",
             "    for i = 0 to 1",
@@ -1514,7 +1797,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput() throws IOException {
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "@inline function maybeAbs(int x) returns int",
             "    for i = 0 to 0",
@@ -1542,6 +1825,121 @@ public class OptimizerTests extends WurstScriptTest {
             assertTrue(generated.matches("(?s).*if\\s+not\\s+inlineDone.*"),
                 "Expected explicit post-return gating in generated code.");
         }
+    }
+
+    /** Check the inliner output before local optimizations, as well as execution on both targets. */
+    @Test
+    public void inlinerFallbackGroupsGuardsAndPreservesReturnFreeSubtrees() throws IOException {
+        test().testLua(true).luaOnly(false).inline().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int result = 0",
+            "int failures = 0",
+            "@inline function pick(int x) returns int",
+            "    trace += 1",
+            "    for i = 0 to 1",
+            "        if i == x",
+            "            return i",
+            "        trace += 2",
+            "        trace += 3",
+            "    trace += 10",
+            "    trace += 100",
+            "    if x > 10",
+            "        trace += 1000",
+            "        trace += 2000",
+            "    else",
+            "        trace += 4000",
+            "        trace += 8000",
+            "    for i = 0 to 1",
+            "        trace += 10000",
+            "        trace += 20000",
+            "    return -1",
+            "@noinline function caller(int x)",
+            "    result = pick(x)",
+            "init",
+            "    caller(0)",
+            "    if result != 0 or trace != 1",
+            "        failures++",
+            "    trace = 0",
+            "    caller(1)",
+            "    if result != 1 or trace != 6",
+            "        failures++",
+            "    trace = 0",
+            "    caller(2)",
+            "    if result != -1 or trace != 72121",
+            "        failures++",
+            "    trace = 0",
+            "    caller(11)",
+            "    if failures == 0 and result == -1 and trace == 63121",
+            "        testSuccess()");
+
+        String jass = Files.toString(new File("test-output/OptimizerTests_inlinerFallbackGroupsGuardsAndPreservesReturnFreeSubtrees_inl.j"), Charsets.UTF_8);
+        int start = jass.indexOf("function caller takes");
+        assertTrue(start >= 0);
+        String caller = jass.substring(start, jass.indexOf("endfunction", start));
+        assertEquals(countOccurrences(caller, "if  not inlineDone"), 3,
+            "only the loop suffix, post-loop suffix and fallback value need guards");
+        assertEquals(countOccurrences(caller, "exitwhen inlineDone"), 1,
+            "only the loop containing a return needs exit propagation");
+
+        String lua = Files.toString(new File("test-output/lua/OptimizerTests_inlinerFallbackGroupsGuardsAndPreservesReturnFreeSubtrees.lua"), Charsets.UTF_8);
+        assertEquals(java.util.regex.Pattern.compile("if\\s+\\(?not\\s*\\(?inlineDone").matcher(lua).results().count(), 3L,
+            "Lua must retain the same grouped guards");
+    }
+
+    @Test
+    public void inlinerGroupedGuardsPropagateNestedAndVoidReturns() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int failures = 0",
+            "@noinline function check(bool ok)",
+            "    if not ok",
+            "        failures++",
+            "@inline function nested(int x) returns int",
+            "    for i = 0 to 1",
+            "        trace += 1",
+            "        for j = 0 to 1",
+            "            trace += 10",
+            "            if i * 2 + j == x",
+            "                return i * 2 + j",
+            "            trace += 100",
+            "        trace += 1000",
+            "    trace += 10000",
+            "    return -1",
+            "@inline function voidReturn(int x)",
+            "    for i = 0 to 1",
+            "        if i == x",
+            "            return",
+            "        trace += 1",
+            "        trace += 10",
+            "    trace += 100",
+            "@noinline function run(int x) returns int",
+            "    return nested(x)",
+            "@noinline function runVoid(int x)",
+            "    voidReturn(x)",
+            "init",
+            "    check(run(0) == 0 and trace == 11)",
+            "    trace = 0",
+            "    check(run(1) == 1 and trace == 121)",
+            "    trace = 0",
+            "    check(run(2) == 2 and trace == 1232)",
+            "    trace = 0",
+            "    check(run(3) == 3 and trace == 1342)",
+            "    trace = 0",
+            "    check(run(4) == -1 and trace == 12442)",
+            "    trace = 0",
+            "    runVoid(0)",
+            "    check(trace == 0)",
+            "    runVoid(1)",
+            "    check(trace == 11)",
+            "    trace = 0",
+            "    runVoid(2)",
+            "    check(trace == 122)",
+            "    if failures == 0",
+            "        testSuccess()");
     }
 
 
@@ -1631,6 +2029,69 @@ public class OptimizerTests extends WurstScriptTest {
             "    if getDamage(2) > 239 and getDamage(2) < 241",
             "        testSuccess()"
         );
+    }
+
+    /**
+     * A legacy target accepts an integer returned from a real Jass function (with a warning). The call is where
+     * the integer becomes the declared real, so it stays a call: inlined, `f(n) / m` would divide integers.
+     */
+    @Test
+    public void inlinerKeepsALegacyIntReturnedAsRealACall() throws IOException {
+        test().setStopOnFirstError(false).executeProg(false).legacyJassTypeChecks()
+            .expectWarning("Cannot convert returned value from integer to real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "function jassToReal takes integer n returns real",
+                    "\treturn n",
+                    "endfunction",
+                    "function jassDivReturn takes integer n, integer m returns real",
+                    "\treturn jassToReal(n) / m",
+                    "endfunction"),
+                compilationUnit("test.wurst",
+                    "package test",
+                    "native testSuccess()",
+                    "int array arr",
+                    "init",
+                    "    arr[0] = 7",
+                    "    arr[1] = 2",
+                    "    if jassDivReturn(arr[0], arr[1]) > 3.4",
+                    "        testSuccess()",
+                    "endpackage"));
+        for (String variant : new String[]{"_inl.j", "_inlopt.j"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_inlinerKeepsALegacyIntReturnedAsRealACall"
+                + variant), Charsets.UTF_8);
+            assertTrue(out.contains("jassToReal("), variant + ":\n" + out);
+        }
+    }
+
+    /** The same with a type derived from integer, which the IM names only by its own name. */
+    @Test
+    public void inlinerKeepsALegacyDerivedIntReturnedAsRealACall() throws IOException {
+        test().setStopOnFirstError(false).executeProg(false).legacyJassTypeChecks()
+            .expectWarning("Cannot convert returned value from integer to real")
+            .compilationUnits(
+                compilationUnit("input.j",
+                    "type myint extends integer",
+                    "function jassMyToReal takes myint n returns real",
+                    "\treturn n",
+                    "endfunction",
+                    "function jassDivMy takes myint n, integer m returns real",
+                    "\treturn jassMyToReal(n) / m",
+                    "endfunction"),
+                compilationUnit("test.wurst",
+                    "package test",
+                    "native testSuccess()",
+                    "int array arr",
+                    "init",
+                    "    arr[1] = 2",
+                    "    if jassDivMy(null, arr[1]) > -1.",
+                    "        testSuccess()",
+                    "endpackage"));
+        for (String variant : new String[]{"_inl.j", "_inlopt.j"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_inlinerKeepsALegacyDerivedIntReturnedAsRealACall"
+                + variant), Charsets.UTF_8);
+            assertTrue(out.contains("jassMyToReal("), variant + ":\n" + out);
+        }
     }
 
     @Test
@@ -1769,6 +2230,30 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
 
+    /**
+     * A statement which reads a copy and overwrites it drops everything known when it comes in, so nothing goes out
+     * of it: its own read of the copy is still propagated. On Lua the inliner leaves this shape around a native with
+     * a nil guard, once the local merger has given the argument and the result one variable.
+     */
+    @Test
+    public void copyPropagationIntoAStatementWhichOverwritesTheCopy() throws IOException {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native S2I(string s) returns int",
+            "@noinline function next(int i) returns int",
+            "    return i + 1",
+            "init",
+            "    let a = S2I(\"7\")",
+            "    var b = a",
+            "    b = next(b)",
+            "    if b == 8 and a == 7",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagationIntoAStatementWhichOverwritesTheCopy_opt.j"), Charsets.UTF_8);
+        assertTrue(compiled.contains("next(a)"), compiled);
+    }
+
     @Test
     public void localMergerLiveness() throws IOException {
         LocalMerger localMerger = new LocalMerger();
@@ -1796,6 +2281,64 @@ public class OptimizerTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * The liveness where the two branches of an if join: one branch's set holds the other's (first if: then {x,y},
+     * else {x}), and two sets of which neither holds the other make a new one (second if: then {c,x,y,z}, else
+     * {c,w,x,y}). The key of an if in the result is its condition, which the control flow graph puts in its node.
+     */
+    @Test
+    public void localMergerLivenessJoinsTheBranchesOfAnIf() {
+        Element trace = Ast.NoExpr();
+        LocalMerger localMerger = new LocalMerger();
+        ImVar y = JassIm.ImVar(trace, TypesHelper.imInt(), "y", false);
+        ImVar x = JassIm.ImVar(trace, TypesHelper.imInt(), "x", false);
+        ImVar z = JassIm.ImVar(trace, TypesHelper.imInt(), "z", false);
+        ImVar w = JassIm.ImVar(trace, TypesHelper.imInt(), "w", false);
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
+        ImVar sinkA = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkA", false);
+        ImVar sinkB = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkB", false);
+        ImFunction sink = JassIm.ImFunction(trace, "sink", JassIm.ImTypeVars(), JassIm.ImVars(sinkA, sinkB),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        CallType normal = CallType.NORMAL;
+
+        ImSet setY = JassIm.ImSet(trace, JassIm.ImVarAccess(y), JassIm.ImIntVal(2));
+        ImSet setX = JassIm.ImSet(trace, JassIm.ImVarAccess(x), JassIm.ImIntVal(1));
+        ImSet setZ = JassIm.ImSet(trace, JassIm.ImVarAccess(z), JassIm.ImIntVal(3));
+        ImSet setW = JassIm.ImSet(trace, JassIm.ImVarAccess(w), JassIm.ImIntVal(4));
+        ImSet setC = JassIm.ImSet(trace, JassIm.ImVarAccess(c), JassIm.ImIntVal(0));
+        ImExpr cond2 = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(c), JassIm.ImIntVal(1)));
+        ImFunctionCall readZ = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(z), JassIm.ImVarAccess(z)), false, normal);
+        ImFunctionCall readW = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(w), JassIm.ImVarAccess(w)), false, normal);
+        ImIf second = JassIm.ImIf(trace, cond2, JassIm.ImStmts(readZ), JassIm.ImStmts(readW));
+        ImExpr cond1 = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(c), JassIm.ImIntVal(0)));
+        ImFunctionCall readXY = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImVarAccess(y)), false, normal);
+        ImFunctionCall readX = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImVarAccess(x)), false, normal);
+        ImIf first = JassIm.ImIf(trace, cond1, JassIm.ImStmts(readXY), JassIm.ImStmts(readX));
+        ImFunction branching = JassIm.ImFunction(trace, "branching", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(y, x, z, w, c),
+            JassIm.ImStmts(setY, setX, setZ, setW, setC, second, first), Collections.emptyList());
+
+        Map<ImStmt, Set<ImVar>> live = localMerger.calculateLiveness(branching);
+
+        assertEquals(live.get(readXY), HashSet.empty());
+        assertEquals(live.get(readX), HashSet.empty());
+        assertEquals(live.get(cond1), HashSet.of(x, y));          // then {x,y} holds else {x}
+        assertEquals(live.get(readZ), HashSet.of(c, x, y));
+        assertEquals(live.get(readW), HashSet.of(c, x, y));
+        assertEquals(live.get(cond2), HashSet.of(c, w, x, y, z)); // {c,x,y,z} and {c,w,x,y} make a new set
+        assertEquals(live.get(setC), HashSet.of(c, w, x, y, z));
+        assertEquals(live.get(setW), HashSet.of(w, x, y, z));
+        assertEquals(live.get(setZ), HashSet.of(x, y, z));
+        assertEquals(live.get(setX), HashSet.of(x, y));
+        assertEquals(live.get(setY), HashSet.of(y));
+    }
+
     @Test
     public void localMergerKeepsImplicitEntryLocalSeparateFromParameter() {
         WurstModel model = Ast.WurstModel();
@@ -1818,7 +2361,7 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(sink);
         prog.getFunctions().add(caller);
 
-        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+        new LocalMerger().optimize(translator);
 
         ImFunctionCall optimizedCall = (ImFunctionCall) caller.getBody().get(0);
         ImVar first = ((ImVarAccess) optimizedCall.getArguments().get(0)).getVar();
@@ -1884,8 +2427,560 @@ public class OptimizerTests extends WurstScriptTest {
 
         new ImOptimizer(timeTaker, translator).localOptimizations();
 
-        assertEquals(timeTaker.measurements, 16,
+        assertEquals(timeTaker.measurements, 14,
             "the optimizer should run two fixed sweeps rather than iterating to convergence");
+    }
+
+    @Test
+    public void garbageRemovalRemovesAChainOfAssignmentsInsideOneFunction() {
+        // `v1 = v0; v2 = v1; ...` where nothing reads the last: each round makes the variable before it unread, so a
+        // chain takes a round for each link. The removal goes on until the first link is gone, however long it is: it
+        // does not stop after some rounds and leave the rest, and it does not take a converging program for one which
+        // never settles. (In unit-test mode, so the rounds are checked against an analysis of the whole program.)
+        int links = 300;
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVars locals = JassIm.ImVars();
+        ImStmts body = JassIm.ImStmts();
+        ImVar previous = null;
+        for (int i = 0; i < links; i++) {
+            ImVar v = JassIm.ImVar(model, TypesHelper.imInt(), "v" + i, false);
+            locals.add(v);
+            body.add(JassIm.ImSet(model, JassIm.ImVarAccess(v),
+                previous == null ? JassIm.ImIntVal(0) : JassIm.ImVarAccess(previous)));
+            previous = v;
+        }
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            locals, body, Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        assertEquals(main.getLocals().size(), 0, "the variables of the chain which are left: " + main.getLocals().size());
+        assertEquals(main.getBody().size(), 0, "the assignments of the chain which are left: " + main.getBody().size());
+    }
+
+    @Test
+    public void garbageRemovalRemovesAChainOfAssignmentsInFunctionsOfTheirOwn() {
+        // The same chain with each link in a function and the variables global: a link is only found unread once the
+        // function of the link after it has lost its read.
+        int links = 300;
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        List<ImVar> globals = new ArrayList<>();
+        for (int i = 0; i <= links; i++) {
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            globals.add(g);
+            prog.getGlobals().add(g);
+        }
+        ImStmts mainBody = JassIm.ImStmts();
+        mainBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(globals.get(0)), JassIm.ImIntVal(0)));
+        List<ImFunction> linkFunctions = new ArrayList<>();
+        for (int i = 1; i <= links; i++) {
+            ImFunction link = JassIm.ImFunction(model, "link" + i, JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+                JassIm.ImVars(), JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(globals.get(i)),
+                    JassIm.ImVarAccess(globals.get(i - 1)))), Collections.emptyList());
+            linkFunctions.add(link);
+            prog.getFunctions().add(link);
+            mainBody.add(JassIm.ImFunctionCall(model, link, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL));
+        }
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), mainBody, Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        assertEquals(prog.getGlobals().size(), 0, "the variables of the chain which are left: " + prog.getGlobals().size());
+        for (ImFunction link : linkFunctions) {
+            assertEquals(link.getBody().size(), 0, "the assignment which is left in " + link.getName());
+        }
+    }
+
+    /**
+     * An assignment to a field nothing reads goes, but evaluating its target calls getC and nextIndex, and those
+     * calls stay. On Jass the classes are eliminated first and the target is an array access; on Lua it is still a
+     * member access.
+     */
+    @Test
+    public void garbageRemovalKeepsTheReceiverAndTheIndexOfAnUnreadField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "class C",
+            "    int x",
+            "    int array[3] arr",
+            "C c",
+            "int calls = 0",
+            "function getC() returns C",
+            "    calls++",
+            "    return c",
+            "function nextIndex() returns int",
+            "    calls++",
+            "    return 1",
+            "init",
+            "    c = new C",
+            "    getC().x = 5",
+            "    c.arr[nextIndex()] = 7",
+            "    if calls == 2",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"the effects of the assignment target were dropped\")");
+    }
+
+    /**
+     * The same for a component of a tuple array element: with -inline the removal runs before the tuples go, on Jass
+     * and on Lua.
+     */
+    @Test
+    public void garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement() throws Exception {
+        test().testLua(true).luaOnly(false).inline().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "tuple vec2(real x, real y)",
+            "vec2 array points",
+            "int calls = 0",
+            "function nextIndex() returns int",
+            "    calls++",
+            "    if calls > 100",
+            "        return 0",
+            "    return 1",
+            "init",
+            "    points[nextIndex()].y = 1.",
+            "    if calls == 1",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"the index call of the assignment target was dropped\")");
+
+        // The runs show that the index call stays; the assignment itself goes on both targets.
+        String jass = Files.toString(new File("test-output/OptimizerTests_garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement_inl.j"), Charsets.UTF_8);
+        assertFalse(jass.contains("points"), jass);
+        String lua = Files.toString(new File("test-output/lua/OptimizerTests_garbageRemovalKeepsTheIndexOfAnUnreadTupleArrayElement.lua"), Charsets.UTF_8);
+        assertFalse(lua.contains("points"), lua);
+    }
+
+    @Test
+    public void garbageRemovalKeepsTheVariableWhichFlatteningAnEffectMakes() {
+        // An assignment to an unread variable of `sink(tick(), (tock(); 2))` leaves the call, and the statements of its
+        // second argument come before the call: the first one, which has an effect, is saved in a variable of the
+        // function first. That variable is declared, and the removal does not take it for one nothing reads.
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), JassIm.ImVars(a, b), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        CallType normal = CallType.NORMAL;
+        ImExpr first = JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal);
+        ImExpr second = JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2));
+        ImVar unread = JassIm.ImVar(model, TypesHelper.imInt(), "unread", false);
+        ImSet assignment = JassIm.ImSet(model, JassIm.ImVarAccess(unread),
+            JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), JassIm.ImExprs(first, second), false, normal));
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(unread), JassIm.ImStmts(assignment), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(tock);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(main);
+        prog.getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+
+        new ImOptimizer(new TimeTaker.Default(), translator).removeGarbage();
+
+        // the unread variable is gone, the saved argument is declared, and every variable which is used is attached
+        assertEquals(main.getLocals().size(), 1, "the variable which saves the first argument: " + main.getLocals());
+        ImVar saved = main.getLocals().get(0);
+        assertNotSame(saved, unread);
+        List<ImVar> used = new ArrayList<>();
+        main.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess e) {
+                used.add(e.getVar());
+            }
+        });
+        assertTrue(used.size() >= 2, "the variable is set and read: " + used);
+        for (ImVar v : used) {
+            assertSame(v, saved, "a variable of main which is not a local of main");
+            assertNotNull(v.getParent(), "a variable which is used is not attached");
+        }
+        assertEquals(main.getBody().size(), 3, "the saved argument, the statement of the second, the call: " + main.getBody());
+        assertTrue(translator.isFlat(), "what is left is flat: " + main.getBody());
+    }
+
+    /**
+     * An integer division by a divisor which may be zero stops the thread, so the removal of an assignment to a
+     * variable nothing reads keeps the division, without and with the optimisations, on Jass and on Lua.
+     */
+    @Test
+    public void garbageRemovalKeepsAnUnreadDivisionWhichMayStopTheThread() throws IOException {
+        String[] program = {"package Test", "native testSuccess()", "int zero = 0",
+            "function f(int d)", "    int unused = 10 div d", "init", "    f(zero)", "    testSuccess()"};
+        test().executeProg(false).lines(program);
+        for (String variant : new String[]{"no_opts", "opt", "inl", "inlopt"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_garbageRemovalKeepsAnUnreadDivisionWhichMayStopTheThread_"
+                + variant + ".j"), Charsets.UTF_8);
+            assertTrue(out.contains("10 / "), variant + ": the division which may stop the thread was dropped:\n" + out);
+        }
+        for (boolean optimised : new boolean[]{false, true}) {
+            TestConfig lua = test().testLua(true).executeProg(false);
+            if (optimised) {
+                lua = lua.inline().localOptimizations();
+            }
+            lua.lines(program);
+            String out = Files.toString(new File("test-output/lua/OptimizerTests_garbageRemovalKeepsAnUnreadDivisionWhichMayStopTheThread.lua"),
+                Charsets.UTF_8);
+            assertTrue(out.contains("10 //") || out.contains("__wurst_intDiv(10,"),
+                "Lua" + (optimised ? " with the optimisations" : "") + ": the division which may stop the thread was dropped:\n" + out);
+        }
+    }
+
+    /** The same for a division inside an operator, and for one assigned to a global, a field and an array element. */
+    @Test
+    public void garbageRemovalKeepsUnreadDivisionsInsideExpressionsAndOfOtherVariables() throws IOException {
+        String[] program = {"package Test", "native testSuccess()", "int zero = 0", "int unreadGlobal",
+            "int array unreadArray", "class C", "    int unreadField",
+            "function g() returns int", "    return 3",
+            "function f(int d)", "    int unused = 11 div d + g()", "    unreadGlobal = 12 mod d", "    unreadArray[2] = 13 div d",
+            "    C c = new C", "    c.unreadField = 14 div d", "    if 15 div d == 0", "        skip",
+            "init", "    f(zero)", "    testSuccess()"};
+        test().executeProg(false).lines(program);
+        for (String variant : new String[]{"no_opts", "opt", "inl", "inlopt"}) {
+            String out = Files.toString(new File("test-output/OptimizerTests_garbageRemovalKeepsUnreadDivisionsInsideExpressionsAndOfOtherVariables_"
+                + variant + ".j"), Charsets.UTF_8);
+            for (String division : new String[]{"11 / ", "ModuloInteger(12, ", "13 / ", "14 / ", "15 / "}) {
+                assertTrue(out.contains(division), variant + ": the division " + division + "was dropped:\n" + out);
+            }
+        }
+    }
+
+    /**
+     * A global whose name a variable event refers to stays, and so does the assignment to it, when its last read in a
+     * function goes in a later round of the removal (`copy = myVar` goes in the first).
+     */
+    @Test
+    public void garbageRemovalKeepsAPreservedGlobalWhoseLastReadGoesInALaterRound() throws IOException {
+        test().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    int myVar = 0",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    function copyIt()",
+            "        int copy = myVar",
+            "    init",
+            "        TriggerRegisterVariableEvent(null, \"test_myVar\", null, 0.0)",
+            "        copyIt()",
+            "        myVar = 5",
+            "endpackage");
+        String out = Files.toString(new File(
+            "test-output/OptimizerTests_garbageRemovalKeepsAPreservedGlobalWhoseLastReadGoesInALaterRound_no_opts.j"),
+            Charsets.UTF_8);
+        assertTrue(out.contains("integer test_myVar") && out.contains("set test_myVar = 5"), out);
+    }
+
+    /**
+     * A global of blizzard.j whose last read goes in a later round of the removal makes it analyse the program again,
+     * so what its initial value reads (bj_PI) is not kept for it. The unit-test cross-check at the end of the removal
+     * compares the rounds with an analysis of the whole program.
+     */
+    @Test
+    public void garbageRemovalAnalysesAgainWhenABlizzardGlobalLosesItsLastRead() {
+        test().executeProg(true).compilationUnits(
+            compilationUnit("blizzard.j",
+                "globals",
+                "    constant real bj_PI = 3.14159",
+                "    constant real bj_DEGTORAD = bj_PI/180.0",
+                "endglobals"),
+            compilationUnit("test.wurst",
+                "package Test",
+                "native testSuccess()",
+                "function copyIt()",
+                "    real copy = bj_DEGTORAD",
+                "init",
+                "    copyIt()",
+                "    testSuccess()"));
+    }
+
+    /**
+     * The only read of `a` is after a loop which always returns, so it is never reached. The optimisations do not
+     * leave that read with no assignment before it, which pjass rejects.
+     */
+    @Test
+    public void localOptimizationsLeaveNoUninitialisedReadAfterAReturningLoop() {
+        test().executeProg().lines("package test", "native testSuccess()", "int trace = 0",
+            "@noinline function side(int k) returns int", "    trace = trace * 5 + k", "    return trace mod 7",
+            "@noinline function f(int x) returns int", "    int a = x", "    for i1 = 0 to 0", "        a = x + 1",
+            "    for i2 = 0 to 3", "        return side(i2)", "    return a",
+            "init", "    if f(1) != 12345", "        testSuccess()");
+    }
+
+    /**
+     * The same after an if both branches of which return: the local merger removes the assignment to `a`, whose only
+     * read no path reaches, and that read with it. (`x` is read after the assignment, so `a` cannot share its slot,
+     * which would have hidden the read with no assignment before it.)
+     */
+    @Test
+    public void localMergerRemovesTheCodeAfterAnIfBothBranchesOfWhichReturn() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImIf bothReturn = JassIm.ImIf(model, JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.GREATER,
+                JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImIntVal(0))),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImIntVal(1))),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImIntVal(2))));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(x), TypesHelper.imInt(),
+            JassIm.ImVars(a),
+            JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(a), JassIm.ImVarAccess(x)), bothReturn,
+                JassIm.ImReturn(model, JassIm.ImVarAccess(a))),
+            Collections.emptyList());
+        prog.getFunctions().add(f);
+
+        new LocalMerger().optimize(translator);
+
+        List<ImVar> assigned = new ArrayList<>();
+        List<ImVar> read = new ArrayList<>();
+        f.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImSet set) {
+                set.getRight().accept(this);
+                assigned.add(((ImVarAccess) set.getLeft()).getVar());
+            }
+
+            @Override
+            public void visit(ImVarAccess access) {
+                read.add(access.getVar());
+            }
+        });
+        for (ImVar v : read) {
+            assertTrue(v == x || assigned.contains(v), "a read of " + v.getName() + " with no assignment: " + f.getBody());
+        }
+        assertEquals(f.getBody().size(), 1, "only the if is left: " + f.getBody());
+        assertSame(f.getBody().get(0), bothReturn);
+        assertTrue(f.getLocals().isEmpty(), "the local nothing reads any more: " + f.getLocals());
+    }
+
+    /**
+     * Merging two locals makes the copy between them an assignment of the local to itself, which does nothing and
+     * goes: `a = tick(); b = a; return b` keeps no `a = a`.
+     */
+    @Test
+    public void localMergerLeavesNoAssignmentOfALocalToItself() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar a = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(a, b),
+            JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(a),
+                    JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL)),
+                JassIm.ImSet(model, JassIm.ImVarAccess(b), JassIm.ImVarAccess(a)),
+                JassIm.ImReturn(model, JassIm.ImVarAccess(b))),
+            Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(f);
+
+        new LocalMerger().optimize(translator);
+
+        assertEquals(f.getLocals().size(), 1, "a and b are merged: " + f.getLocals());
+        for (ImStmt s : f.getBody()) {
+            assertFalse(s instanceof ImSet set && set.getLeft() instanceof ImVarAccess left
+                    && set.getRight() instanceof ImVarAccess right && left.getVar() == right.getVar(),
+                "an assignment of a local to itself is left: " + f.getBody());
+        }
+        assertEquals(f.getBody().size(), 2, "the call and the return: " + f.getBody());
+    }
+
+    /**
+     * The local merger replaces a dead assignment by what its value does besides producing it, and the IM stays flat
+     * while the local optimisations run: a call becomes a call statement and a division which may stop the thread
+     * inside an expression an assignment of it, not a statement expression.
+     */
+    @Test
+    public void localMergerKeepsTheEffectsOfADeadAssignmentAsFlatStatements() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction tick = JassIm.ImFunction(model, "tick", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar d = JassIm.ImVar(model, TypesHelper.imInt(), "d", false);
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImVar y = JassIm.ImVar(model, TypesHelper.imInt(), "y", false);
+        ImExpr division = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.DIV_INT,
+            JassIm.ImExprs(JassIm.ImIntVal(10), JassIm.ImVarAccess(d)));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(d), TypesHelper.imInt(),
+            JassIm.ImVars(x, y),
+            JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(x), JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS,
+                    JassIm.ImExprs(JassIm.ImIntVal(1), division))),
+                JassIm.ImSet(model, JassIm.ImVarAccess(y),
+                    JassIm.ImFunctionCall(model, tick, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL)),
+                JassIm.ImReturn(model, JassIm.ImIntVal(0))),
+            Collections.emptyList());
+        prog.getFunctions().add(tick);
+        prog.getFunctions().add(f);
+
+        new LocalMerger().optimize(translator);
+
+        List<ImStatementExpr> statementExprs = new ArrayList<>();
+        boolean[] divides = {false};
+        boolean[] calls = {false};
+        f.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImStatementExpr e) {
+                super.visit(e);
+                statementExprs.add(e);
+            }
+
+            @Override
+            public void visit(ImOperatorCall e) {
+                super.visit(e);
+                divides[0] |= e.getOp() == de.peeeq.wurstscript.WurstOperator.DIV_INT;
+            }
+
+            @Override
+            public void visit(ImFunctionCall e) {
+                super.visit(e);
+                calls[0] |= e.getFunc() == tick;
+            }
+        });
+        assertTrue(statementExprs.isEmpty(), "the IM stays flat: " + f.getBody());
+        assertTrue(divides[0], "the division which may stop the thread stays: " + f.getBody());
+        assertTrue(calls[0], "the call stays: " + f.getBody());
+    }
+
+    @Test
+    public void aFlattenLeavesTheFunctionsWhichWereNotModifiedSinceTheLastOne() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        CallType normal = CallType.NORMAL;
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar local = JassIm.ImVar(model, TypesHelper.imInt(), "local", false);
+        ImStmt withStatementExpr = JassIm.ImSet(model, JassIm.ImVarAccess(local), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2)));
+        ImFunction changed = JassIm.ImFunction(model, "changed", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(local), JassIm.ImStmts(withStatementExpr), Collections.emptyList());
+        ImVar other = JassIm.ImVar(model, TypesHelper.imInt(), "other", false);
+        ImFunction untouched = JassIm.ImFunction(model, "untouched", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(other), JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(other), JassIm.ImIntVal(1))),
+            Collections.emptyList());
+        prog.getFunctions().add(tock);
+        prog.getFunctions().add(changed);
+        prog.getFunctions().add(untouched);
+
+        prog.flatten(translator);
+        ImStmts flatChanged = changed.getBody();
+        ImStmts flatUntouched = untouched.getBody();
+        assertTrue(translator.isFlat(), "the first flatten flattens everything: " + changed.getBody());
+
+        prog.flatten(translator);
+        assertSame(changed.getBody(), flatChanged, "a flatten rebuilt a function which was not modified since the last");
+        assertSame(untouched.getBody(), flatUntouched, "a flatten rebuilt a function which was not modified since the last");
+
+        // a modification of one function (below its body, so not a replacement of the body) is flattened, and only it
+        ImVar another = JassIm.ImVar(model, TypesHelper.imInt(), "another", false);
+        changed.getLocals().add(another);
+        changed.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(another), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(3))));
+        assertFalse(translator.isFlat(), "the statement expression which was added");
+
+        prog.flatten(translator);
+        assertNotSame(changed.getBody(), flatChanged, "a modified function is flattened again");
+        assertSame(untouched.getBody(), flatUntouched, "the function which was not modified is still left alone");
+        assertTrue(translator.isFlat(), "what was added is flat now: " + changed.getBody());
+    }
+
+    /**
+     * The same in unit-test mode (the functions a flatten leaves are checked) for a function of a class, changed
+     * through a setter below an if and two lists, a replacement whose parent is not a list, and a transfer into an
+     * empty block (the inliner's), each followed by a flatten.
+     */
+    @Test
+    public void aFlattenFlattensAgainAClassFunctionChangedDeepInsideItsBody() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, true, new RunArgs());
+        ImProg prog = translator.getImProg();
+        CallType normal = CallType.NORMAL;
+        ImFunction tock = JassIm.ImFunction(model, "tock", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImVar local = JassIm.ImVar(model, TypesHelper.imInt(), "local", false);
+        ImFunction method = JassIm.ImFunction(model, "method", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(),
+            JassIm.ImVars(local),
+            JassIm.ImStmts(JassIm.ImIf(model, JassIm.ImBoolVal(true),
+                JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(local), JassIm.ImIntVal(1))), JassIm.ImStmts())),
+            Collections.emptyList());
+        ImClass c = JassIm.ImClass(model, "C", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(),
+            JassIm.ImFunctions(method), new ArrayList<>());
+        prog.getFunctions().add(tock);
+        prog.getClasses().add(c);
+
+        prog.flatten(translator);
+        ImStmts tockBody = tock.getBody();
+
+        // 1. a setter below an if and two lists
+        ImIf theIf = (ImIf) method.getBody().get(0);
+        int seen = method.modificationCount();
+        ((ImSet) theIf.getThenBlock().get(0)).setRight(JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(2)));
+        assertNotEquals(method.modificationCount(), seen, "a setter deep in the body counts for the function");
+        prog.flatten(translator);
+        assertTrue(translator.isFlat(), "after the setter: " + method.getBody());
+        assertSame(tock.getBody(), tockBody, "the function which was not modified is left alone");
+
+        // 2. a replacement whose parent is not a list (replaceBy falls back to set(i, ...))
+        theIf = (ImIf) method.getBody().get(0);
+        ImSet last = (ImSet) theIf.getThenBlock().get(theIf.getThenBlock().size() - 1);
+        last.getRight().replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(
+            JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(3)));
+        prog.flatten(translator);
+        assertTrue(translator.isFlat(), "after replaceBy: " + method.getBody());
+
+        // 3. a transfer into an empty block (addAllMoved takes the source's array)
+        theIf = (ImIf) method.getBody().get(0);
+        ImStmts moved = JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(local), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImFunctionCall(model, tock, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, normal)),
+            JassIm.ImIntVal(4))));
+        seen = method.modificationCount();
+        theIf.getElseBlock().addAllMoved(moved);
+        assertNotEquals(method.modificationCount(), seen, "a transfer into the function counts for it");
+        prog.flatten(translator);
+        assertTrue(translator.isFlat(), "after addAllMoved: " + method.getBody());
+        assertSame(tock.getBody(), tockBody, "still left alone");
     }
 
     @Test
@@ -2243,6 +3338,119 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Jass converts an integer stored into a real variable, so propagating the integer into the variable's reads
+     * would turn `r / m` into the integer division `n / m`.
+     */
+    @Test
+    public void intCopiedIntoRealIsNotPropagatedIntoRealDivision() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassDiv takes integer n, integer m returns real",
+                "\tlocal real r = n",
+                "\treturn r / m",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array arr",
+                "init",
+                "    arr[0] = 7",
+                "    arr[1] = 2",
+                "    if jassDiv(arr[0], arr[1]) > 3.4",
+                "        testSuccess()",
+                "endpackage"));
+        String out = Files.toString(new File("test-output/OptimizerTests_intCopiedIntoRealIsNotPropagatedIntoRealDivision_opt.j"), Charsets.UTF_8);
+        assertFalse(java.util.regex.Pattern.compile("\\bn / m\\b").matcher(out).find(), out);
+    }
+
+    /** An integer constant stored into a real is propagated as the real it becomes, here from Wurst. */
+    @Test
+    public void intConstantStoredIntoRealIsPropagatedAsReal() throws IOException {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int array arr",
+            "function divide(int m) returns real",
+            "    real r = 14 div 2",
+            "    return r / m",
+            "init",
+            "    arr[0] = 2",
+            "    if divide(arr[0]) > 3.4",
+            "        testSuccess()",
+            "endpackage");
+        String out = Files.toString(new File("test-output/OptimizerTests_intConstantStoredIntoRealIsPropagatedAsReal_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("return 7. / m"), out);
+    }
+
+    /** The globals inliner puts an integer constant stored into a real global in place of its reads as a real. */
+    @Test
+    public void intConstantStoredIntoRealGlobalIsInlinedAsReal() throws IOException {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int array arr",
+            "constant real g = 14 div 2",
+            "function divide(int m) returns real",
+            "    return g / m",
+            "init",
+            "    arr[0] = 2",
+            "    if divide(arr[0]) > 3.4",
+            "        testSuccess()",
+            "endpackage");
+        String out = Files.toString(new File("test-output/OptimizerTests_intConstantStoredIntoRealGlobalIsInlinedAsReal_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("return 7. / m"), out);
+    }
+
+    /** The same for a Jass real global initialised with an integer expression, which folds to an integer. */
+    @Test
+    public void jassIntExpressionInRealGlobalIsInlinedAsReal() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\treal g = 14 / 2",
+                "endglobals",
+                "function jassDiv takes integer m returns real",
+                "\treturn g / m",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array arr",
+                "init",
+                "    arr[0] = 2",
+                "    if jassDiv(arr[0]) > 3.4",
+                "        testSuccess()",
+                "endpackage"));
+        String out = Files.toString(new File("test-output/OptimizerTests_jassIntExpressionInRealGlobalIsInlinedAsReal_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("return 7. / m"), out);
+    }
+
+    /** `set r = n` followed by `set r = r / m` must not become the integer division `set r = n / m`. */
+    @Test
+    public void intStoredIntoRealIsNotSplicedIntoTheNextSet() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassSplice takes integer n, integer m returns real",
+                "\tlocal real r",
+                "\tset r = n",
+                "\tset r = r / m",
+                "\treturn r",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "int array arr",
+                "init",
+                "    arr[0] = 7",
+                "    arr[1] = 2",
+                "    if jassSplice(arr[0], arr[1]) > 3.4",
+                "        testSuccess()",
+                "endpackage"));
+        String out = Files.toString(new File("test-output/OptimizerTests_intStoredIntoRealIsNotSplicedIntoTheNextSet_opt.j"), Charsets.UTF_8);
+        assertFalse(java.util.regex.Pattern.compile("\\bn / m\\b").matcher(out).find(), out);
+    }
+
     @Test
     public void realFormatting_consistent_fromIntOps() throws Exception {
         test().lines(
@@ -2258,7 +3466,7 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
         String out = Files.toString(new File("test-output/OptimizerTests_realFormatting_consistent_fromIntOps_opt.j"), Charsets.UTF_8);
         assertTrue(out.contains("(0.5)"));
-        assertTrue(out.contains("(1)"));
+        assertTrue(out.contains("(1.)"), out);
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*")); // no scientific notation
     }
 
@@ -2647,6 +3855,41 @@ public class OptimizerTests extends WurstScriptTest {
             "local-player-dependent expressions must not be discarded");
     }
 
+    /**
+     * A copy of a value which depends on the local player is propagated like any other: the read which replaces it
+     * reads the same value on every client, and nothing moves. The source stays live after the copy, so the local
+     * merger cannot remove the copy; only the propagation can.
+     */
+    @Test
+    public void copyOfLocalPlayerValueIsPropagated() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native GetPlayerId(player p) returns integer",
+            "native print(integer i)",
+            "class Box",
+            "    player owner",
+            "@noinline function show(Box b)",
+            "    player voter = b.owner",
+            "    player q = voter",
+            "    print(GetPlayerId(q))",
+            "    print(GetPlayerId(voter) + 1)",
+            "    print(GetPlayerId(q) + 2)",
+            "init",
+            "    let b = new Box",
+            "    b.owner = GetLocalPlayer()",
+            "    show(b)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_copyOfLocalPlayerValueIsPropagated_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(optimized.contains("GetLocalPlayer()"), optimized);
+        assertFalse(optimized.contains("q = voter"), optimized);
+        assertTrue(optimized.contains("GetPlayerId(voter)"), optimized);
+    }
+
     @Test
     public void synchronizedValueMustNotMoveIntoLocalPlayerBranch() throws Exception {
         test().lines(
@@ -2702,6 +3945,52 @@ public class OptimizerTests extends WurstScriptTest {
             "identical branches controlled by local-player data must remain separate");
     }
 
+    /**
+     * In front of the if, a statement runs before the condition: a return there means the condition is never
+     * evaluated, so its call must stay.
+     */
+    @Test
+    public void branchMergerKeepsTheConditionBeforeEqualReturns() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "@noinline function eff(int k) returns int",
+            "    trace += k",
+            "    return k",
+            "@noinline function f(int b)",
+            "    if eff(b) > 0",
+            "        return",
+            "    else",
+            "        return",
+            "init",
+            "    f(5)",
+            "    if trace == 5",
+            "        testSuccess()");
+    }
+
+    /** The same for an exit of the loop around the if. */
+    @Test
+    public void branchMergerKeepsTheConditionBeforeEqualExits() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "@noinline function eff(int k) returns int",
+            "    trace += k",
+            "    return k",
+            "@noinline function f(int b)",
+            "    while true",
+            "        if eff(b) > 0",
+            "            break",
+            "        else",
+            "            break",
+            "init",
+            "    f(5)",
+            "    if trace == 5",
+            "        testSuccess()");
+    }
+
     @Test
     public void branchMergerMustTrackLocalPlayerThroughFunctionParameters() throws Exception {
         test().lines(
@@ -2746,7 +4035,8 @@ public class OptimizerTests extends WurstScriptTest {
             "        selected = Player(0)",
             "    else",
             "        selected = Player(1)",
-            "    if selected == Player(0)",
+            "    player playerZero = Player(0)",
+            "    if selected == playerZero",
             "        result = 11",
             "    else",
             "        result = 11",
@@ -2839,7 +4129,8 @@ public class OptimizerTests extends WurstScriptTest {
             "        select(Player(0))",
             "    else",
             "        select(Player(1))",
-            "    if selected == Player(0)",
+            "    player playerZero = Player(0)",
+            "    if selected == playerZero",
             "        result = 13",
             "    else",
             "        result = 13",
@@ -2869,7 +4160,8 @@ public class OptimizerTests extends WurstScriptTest {
             "        return Player(1)",
             "init",
             "    player selected = selectedPlayer()",
-            "    if selected == Player(0)",
+            "    player playerZero = Player(0)",
+            "    if selected == playerZero",
             "        result = 17",
             "    else",
             "        result = 17",
@@ -2899,7 +4191,8 @@ public class OptimizerTests extends WurstScriptTest {
             "    selected = Player(1)",
             "init",
             "    updateUnlessLocalPlayerZero()",
-            "    if selected == Player(1)",
+            "    player playerOne = Player(1)",
+            "    if selected == playerOne",
             "        result = 29",
             "    else",
             "        result = 29",
@@ -2929,7 +4222,8 @@ public class OptimizerTests extends WurstScriptTest {
             "init",
             "    if (GetLocalPlayer() == Player(0)) and updateSelectedState()",
             "        print(0)",
-            "    if selected == Player(0)",
+            "    player playerZero = Player(0)",
+            "    if selected == playerZero",
             "        result = 19",
             "    else",
             "        result = 19",
@@ -2959,7 +4253,8 @@ public class OptimizerTests extends WurstScriptTest {
             "init",
             "    if (GetLocalPlayer() == Player(0)) or updateSelectedState()",
             "        print(0)",
-            "    if selected == Player(0)",
+            "    player playerZero = Player(0)",
+            "    if selected == playerZero",
             "        result = 23",
             "    else",
             "        result = 23",
@@ -3116,6 +4411,8 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzGetMinShadowCastingPointLightCount",
             "GetCameraFieldControlledByInput",
             "BlzCameraGetCameraType",
+            "BlzGetCameraAllowsHotkeyTargetLock",
+            "BlzGetHUDScale",
             "BlzIsMetaKeyPressed",
             "BlzIsKeyPressed",
             "BlzIsMouseButtonPressed",
@@ -3141,35 +4438,12 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzIsSelectionEnabled"
         ));
         Element trace = Ast.NoExpr();
-        ImFunctions functions = JassIm.ImFunctions();
-        java.util.Map<String, ImFunction> functionsByName = new java.util.LinkedHashMap<>();
         for (String name : localValueSources) {
-            ImFunction nativeFunction = nativeIntFunction(trace, name);
-            functions.add(nativeFunction);
-            functionsByName.put(name, nativeFunction);
-        }
-        for (String name : intentionallyExcludedSources) {
-            ImFunction nativeFunction = nativeIntFunction(trace, name);
-            functions.add(nativeFunction);
-            functionsByName.put(name, nativeFunction);
-        }
-        ImProg prog = JassIm.ImProg(
-            trace,
-            JassIm.ImVars(),
-            functions,
-            JassIm.ImMethods(),
-            JassIm.ImClasses(),
-            JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>()
-        );
-        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
-
-        for (String name : localValueSources) {
-            assertTrue(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+            assertTrue(LocalPlayerContextAnalyzer.isLocalPlayerSource(nativeIntFunction(trace, name)),
                 name + " must be treated as a client-local value source");
         }
         for (String name : intentionallyExcludedSources) {
-            assertFalse(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+            assertFalse(LocalPlayerContextAnalyzer.isLocalPlayerSource(nativeIntFunction(trace, name)),
                 name + " is synchronized event data or user-managed local state");
         }
     }
@@ -3258,7 +4532,7 @@ public class OptimizerTests extends WurstScriptTest {
             JassIm.ImMethods(),
             JassIm.ImClasses(),
             JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>()
+            new java.util.HashMap<>(), java.util.Set.of()
         );
         LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
 
@@ -3293,20 +4567,10 @@ public class OptimizerTests extends WurstScriptTest {
             JassIm.ImMethods(),
             JassIm.ImClasses(),
             JassIm.ImTypeClassFuncs(),
-            new java.util.HashMap<>()
+            new java.util.HashMap<>(), java.util.Set.of()
         );
 
         new LocalPlayerContextAnalyzer(prog);
-    }
-
-    private static int countOccurrences(String text, String needle) {
-        int count = 0;
-        int from = 0;
-        while ((from = text.indexOf(needle, from)) >= 0) {
-            count++;
-            from += needle.length();
-        }
-        return count;
     }
 
     /**
@@ -3346,5 +4610,398 @@ public class OptimizerTests extends WurstScriptTest {
             });
         }
         assertTrue(callSurvives[0], "the call's side effect must survive the dead assignment");
+    }
+
+    /**
+     * A local is live after a statement when something reads it before it is assigned again, along
+     * some path. The loop shows the fixed point: the counter is live around it, the temporary only
+     * between its assignment and its read.
+     */
+    @Test
+    public void localMergerLivenessFollowsAssignmentsAndLoops() {
+        Element trace = Ast.NoExpr();
+        LocalMerger localMerger = new LocalMerger();
+        ImVar a = JassIm.ImVar(trace, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(trace, TypesHelper.imInt(), "b", false);
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
+        ImVar sinkA = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkA", false);
+        ImVar sinkB = JassIm.ImVar(trace, TypesHelper.imInt(), "sinkB", false);
+        ImFunction sink = JassIm.ImFunction(trace, "sink", JassIm.ImTypeVars(), JassIm.ImVars(sinkA, sinkB),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+
+        ImSet setA = JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImIntVal(1));
+        ImSet setB = JassIm.ImSet(trace, JassIm.ImVarAccess(b), JassIm.ImIntVal(2));
+        ImSet setC = JassIm.ImSet(trace, JassIm.ImVarAccess(c), JassIm.ImOperatorCall(
+            de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))));
+        ImSet copyC = JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImVarAccess(c));
+        ImFunctionCall call = JassIm.ImFunctionCall(trace, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(a), JassIm.ImVarAccess(b)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction straight = JassIm.ImFunction(trace, "straight", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(a, b, c), JassIm.ImStmts(setA, setB, setC, copyC, call),
+            Collections.emptyList());
+
+        Map<ImStmt, Set<ImVar>> straightLiveness = localMerger.calculateLiveness(straight);
+
+        assertEquals(straightLiveness.get(setA), HashSet.of(a));
+        assertEquals(straightLiveness.get(setB), HashSet.of(a, b));
+        assertEquals(straightLiveness.get(setC), HashSet.of(b, c));
+        assertEquals(straightLiveness.get(copyC), HashSet.of(a, b));
+        assertEquals(straightLiveness.get(call), HashSet.empty());
+
+        ImVar i = JassIm.ImVar(trace, TypesHelper.imInt(), "i", false);
+        ImVar t = JassIm.ImVar(trace, TypesHelper.imInt(), "t", false);
+        ImSet init = JassIm.ImSet(trace, JassIm.ImVarAccess(i), JassIm.ImIntVal(0));
+        ImExitwhen exit = JassIm.ImExitwhen(trace, JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(i), JassIm.ImIntVal(3))));
+        ImSet copy = JassIm.ImSet(trace, JassIm.ImVarAccess(t), JassIm.ImVarAccess(i));
+        ImSet step = JassIm.ImSet(trace, JassIm.ImVarAccess(i), JassIm.ImOperatorCall(
+            de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(t), JassIm.ImIntVal(1))));
+        ImFunction looping = JassIm.ImFunction(trace, "looping", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(i, t),
+            JassIm.ImStmts(init, JassIm.ImLoop(trace, JassIm.ImStmts(exit, copy, step))), Collections.emptyList());
+
+        Map<ImStmt, Set<ImVar>> loopLiveness = localMerger.calculateLiveness(looping);
+
+        assertEquals(loopLiveness.get(init), HashSet.of(i));
+        assertEquals(loopLiveness.get(exit), HashSet.of(i));
+        assertEquals(loopLiveness.get(copy), HashSet.of(t));
+        assertEquals(loopLiveness.get(step), HashSet.of(i));
+    }
+
+    /**
+     * An element is dependent when anything in it is: the value and every element around it, up to the
+     * body of its function, which then uses the local player. Siblings which do not take part stay clean.
+     */
+    @Test
+    public void localPlayerDependenceReachesTheEnclosingElementsAndNothingElse() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction localPlayer = nativeIntFunction(model, "GetLocalPlayer");
+        ImVar tainted = JassIm.ImVar(model, TypesHelper.imInt(), "tainted", false);
+        ImVar clean = JassIm.ImVar(model, TypesHelper.imInt(), "clean", false);
+        ImFunctionCall source = JassIm.ImFunctionCall(model, localPlayer, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(), false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImExprs operands = JassIm.ImExprs(source, JassIm.ImIntVal(1));
+        ImOperatorCall sum = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS, operands);
+        ImSet taintedAssignment = JassIm.ImSet(model, JassIm.ImVarAccess(tainted), sum);
+        ImIntVal constant = JassIm.ImIntVal(2);
+        ImSet cleanAssignment = JassIm.ImSet(model, JassIm.ImVarAccess(clean), constant);
+        ImFunction function = JassIm.ImFunction(model, "function", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(tainted, clean),
+            JassIm.ImStmts(taintedAssignment, cleanAssignment), Collections.emptyList());
+        prog.getFunctions().add(localPlayer);
+        prog.getFunctions().add(function);
+
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+
+        assertTrue(analyzer.isLocalPlayerDependent(source));
+        assertTrue(analyzer.isLocalPlayerDependent(operands));
+        assertTrue(analyzer.isLocalPlayerDependent(sum));
+        assertTrue(analyzer.isLocalPlayerDependent(taintedAssignment));
+        assertTrue(analyzer.isLocalPlayerDependent(function.getBody()));
+        assertTrue(analyzer.isLocalPlayerDependent(tainted));
+        assertTrue(analyzer.functionUsesLocalPlayer(function));
+        assertFalse(analyzer.isLocalPlayerDependent(constant));
+        assertFalse(analyzer.isLocalPlayerDependent(cleanAssignment));
+        assertFalse(analyzer.isLocalPlayerDependent(clean));
+    }
+
+    /**
+     * Every callee has an @noinline twin with the same body, and the program fails unless both give the same results
+     * and the same trace of effects: early returns next to break and continue, a return-free loop after a returning
+     * one, switch in a loop, for-in closing before the return, tuple returns, and inlined callees with returns of
+     * their own in conditions and return values.
+     */
+    @Test
+    public void inlinedReturnLoweringMatchesTheCalledFunction() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int closed = 0",
+            "int failures = 0",
+            "tuple pair(int a, int b)",
+            "@noinline function side(int k) returns int",
+            "    trace = trace * 5 + k",
+            "    return trace mod 7",
+            "class It",
+            "    int i = 0",
+            "    int n",
+            "    construct(int n)",
+            "        this.n = n",
+            "    function hasNext() returns bool",
+            "        return i < n",
+            "    function next() returns int",
+            "        i++",
+            "        return i",
+            "    function close()",
+            "        closed++",
+            "        destroy this",
+            "class Range",
+            "    int n",
+            "    construct(int n)",
+            "        this.n = n",
+            "    function iterator() returns It",
+            "        return new It(n)",
+            "@noinline function scanRef(int x) returns int",
+            "    for i = 0 to 5",
+            "        if i == 1",
+            "            continue",
+            "        trace = trace * 3 + i",
+            "        if i == x",
+            "            return i * 10 + side(i)",
+            "        if trace > 400",
+            "            break",
+            "    for j = 0 to 2",
+            "        if j == x",
+            "            break",
+            "        trace = trace * 3 + 7",
+            "    return -side(x)",
+            "@inline function scanInl(int x) returns int",
+            "    for i = 0 to 5",
+            "        if i == 1",
+            "            continue",
+            "        trace = trace * 3 + i",
+            "        if i == x",
+            "            return i * 10 + side(i)",
+            "        if trace > 400",
+            "            break",
+            "    for j = 0 to 2",
+            "        if j == x",
+            "            break",
+            "        trace = trace * 3 + 7",
+            "    return -side(x)",
+            "@noinline function tupRef(int x) returns pair",
+            "    for i = 0 to 3",
+            "        if i == x",
+            "            return pair(i, side(i))",
+            "        trace = trace * 3 + i",
+            "    return pair(-1, side(9))",
+            "@inline function tupInl(int x) returns pair",
+            "    for i = 0 to 3",
+            "        if i == x",
+            "            return pair(i, side(i))",
+            "        trace = trace * 3 + i",
+            "    return pair(-1, side(9))",
+            "@noinline function swRef(int x) returns int",
+            "    for i = 0 to 4",
+            "        switch (i + x) mod 4",
+            "            case 0",
+            "                trace = trace * 3 + 1",
+            "            case 1",
+            "                if i > 1",
+            "                    return i * 100 + side(x)",
+            "                trace = trace * 3 + 2",
+            "            case 2",
+            "                continue",
+            "            default",
+            "                if x > 3",
+            "                    break",
+            "                trace = trace * 3 + 3",
+            "        trace += 1",
+            "    return -side(x)",
+            "@inline function swInl(int x) returns int",
+            "    for i = 0 to 4",
+            "        switch (i + x) mod 4",
+            "            case 0",
+            "                trace = trace * 3 + 1",
+            "            case 1",
+            "                if i > 1",
+            "                    return i * 100 + side(x)",
+            "                trace = trace * 3 + 2",
+            "            case 2",
+            "                continue",
+            "            default",
+            "                if x > 3",
+            "                    break",
+            "                trace = trace * 3 + 3",
+            "        trace += 1",
+            "    return -side(x)",
+            "@noinline function findRef(Range r, int x) returns int",
+            "    for v in r",
+            "        if v == x",
+            "            return v * 10 + side(v)",
+            "        trace = trace * 3 + v",
+            "    return -1",
+            "@inline function findInl(Range r, int x) returns int",
+            "    for v in r",
+            "        if v == x",
+            "            return v * 10 + side(v)",
+            "        trace = trace * 3 + v",
+            "    return -1",
+            "@noinline function innerRef(int x) returns int",
+            "    for i = 0 to 2",
+            "        if i == x",
+            "            return side(i) + 1",
+            "    if x > 5",
+            "        return 7",
+            "    return side(x)",
+            "@inline function innerInl(int x) returns int",
+            "    for i = 0 to 2",
+            "        if i == x",
+            "            return side(i) + 1",
+            "    if x > 5",
+            "        return 7",
+            "    return side(x)",
+            "@noinline function outerRef(int x) returns int",
+            "    if x < 0",
+            "        return innerRef(-x) * 2",
+            "    for j = 0 to 1",
+            "        if innerRef(x + j) == 3",
+            "            return innerRef(j) + innerRef(x)",
+            "    return innerRef(x + 1) - innerRef(x)",
+            "@inline function outerInl(int x) returns int",
+            "    if x < 0",
+            "        return innerInl(-x) * 2",
+            "    for j = 0 to 1",
+            "        if innerInl(x + j) == 3",
+            "            return innerInl(j) + innerInl(x)",
+            "    return innerInl(x + 1) - innerInl(x)",
+            "@noinline function voidRef(int x)",
+            "    for i = 0 to 3",
+            "        if i == x",
+            "            return",
+            "        if i == 2",
+            "            continue",
+            "        trace = trace * 3 + i",
+            "    trace = trace * 3 + 9",
+            "@inline function voidInl(int x)",
+            "    for i = 0 to 3",
+            "        if i == x",
+            "            return",
+            "        if i == 2",
+            "            continue",
+            "        trace = trace * 3 + i",
+            "    trace = trace * 3 + 9",
+            "@noinline function run(int which, int x, bool inl) returns int",
+            "    if which == 0",
+            "        return inl ? scanInl(x) : scanRef(x)",
+            "    if which == 1",
+            "        pair p = inl ? tupInl(x) : tupRef(x)",
+            "        return p.a * 100 + p.b",
+            "    if which == 2",
+            "        return inl ? swInl(x) : swRef(x)",
+            "    if which == 3",
+            "        let r = new Range(4)",
+            "        int res = inl ? findInl(r, x) : findRef(r, x)",
+            "        destroy r",
+            "        return res",
+            "    if which == 4",
+            "        return inl ? outerInl(x) : outerRef(x)",
+            "    for k = 0 to 2",
+            "        if inl",
+            "            voidInl(x + k)",
+            "        else",
+            "            voidRef(x + k)",
+            "        if k == x",
+            "            break",
+            "    return 0",
+            "init",
+            "    for which = 0 to 5",
+            "        for x = -2 to 6",
+            "            trace = 0",
+            "            closed = 0",
+            "            int r1 = run(which, x, false)",
+            "            int t1 = trace",
+            "            int c1 = closed",
+            "            trace = 0",
+            "            closed = 0",
+            "            int r2 = run(which, x, true)",
+            "            if r1 != r2 or t1 != trace or c1 != closed",
+            "                failures++",
+            "    if failures == 0",
+            "        testSuccess()");
+    }
+
+    /**
+     * The pass behind the Lua field defaults, on hand-made IM: of {@code o = alloc C; o.f = 0; ...; o.f = 2} the
+     * first write goes only when nothing between the writes can raise. A deallocation can (a double free), and so can
+     * reading an array field or the type id through an object which may be null ({@code storage[p][0]} and the class
+     * descriptor of p index nil), arithmetic on anything but literals (a nil read can reach any variable), and a write
+     * through such an object (a nil table key). An object
+     * which was not allocated in the list may be null itself, so its first write could raise.
+     */
+    @Test
+    public void aFieldWriteGoesOnlyForANewObjectWithNothingBetweenWhichCanRaise() {
+        assertEquals(redundantFieldStoresLeave(true, "nothing"), 2, "o = alloc; o.f = 2");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on literals"), 3, "1 + 2 does not raise");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on a local"), 4, "x + 1 can add nil: x may hold one");
+        assertEquals(redundantFieldStoresLeave(true, "dealloc"), 4, "a deallocation between keeps the first write");
+        assertEquals(redundantFieldStoresLeave(true, "array field read"), 4, "p.arr[0] can index nil");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on a field read"), 4, "p.g + 1 can add nil");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on a local read from a field"), 5,
+            "x = p.g; x + 1 can add nil");
+        assertEquals(redundantFieldStoresLeave(true, "arithmetic on a global read from a field"), 5,
+            "G = p.g; G + 1 can add nil");
+        assertEquals(redundantFieldStoresLeave(true, "write through another object"), 4, "p.g = 1 can use a nil key");
+        assertEquals(redundantFieldStoresLeave(true, "type id read through another object"), 4,
+            "p.typeId reads a nil class descriptor");
+        assertEquals(redundantFieldStoresLeave(false, "nothing"), 2, "an object not allocated here keeps it");
+    }
+
+    /** The statements left of {@code [o = alloc C;] o.f = 0; <middle>; o.f = 2} after the pass. */
+    private int redundantFieldStoresLeave(boolean allocate, String middle) {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImVar field = JassIm.ImVar(model, TypesHelper.imInt(), "f", false);
+        ImVar other = JassIm.ImVar(model, TypesHelper.imInt(), "g", false);
+        ImVar array = JassIm.ImVar(model, JassIm.ImArrayType(TypesHelper.imInt()), "arr", false);
+        ImClass c = JassIm.ImClass(model, "C", JassIm.ImTypeVars(), JassIm.ImVars(field, other, array),
+            JassIm.ImMethods(), JassIm.ImFunctions(), new ArrayList<>());
+        translator.getImProg().getClasses().add(c);
+        ImVar o = JassIm.ImVar(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), "o", false);
+        ImVar p = JassIm.ImVar(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()), "p", false);
+        ImVar x = JassIm.ImVar(model, TypesHelper.imInt(), "x", false);
+        ImStmts body = JassIm.ImStmts();
+        if (allocate) {
+            body.add(JassIm.ImSet(model, JassIm.ImVarAccess(o),
+                JassIm.ImAlloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()))));
+        }
+        body.add(JassIm.ImSet(model, member(model, o, field), JassIm.ImIntVal(0)));
+        switch (middle) {
+            case "nothing" -> {
+            }
+            case "arithmetic on literals" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), plusOne(JassIm.ImIntVal(1))));
+            case "arithmetic on a local" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), plusOne(JassIm.ImVarAccess(x))));
+            case "arithmetic on a global read from a field" -> {
+                ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "G", false);
+                translator.getImProg().getGlobals().add(g);
+                body.add(JassIm.ImSet(model, JassIm.ImVarAccess(g), member(model, p, other)));
+                body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), plusOne(JassIm.ImVarAccess(g))));
+            }
+            case "dealloc" -> body.add(JassIm.ImDealloc(model, JassIm.ImClassType(c, JassIm.ImTypeArguments()),
+                JassIm.ImVarAccess(o)));
+            case "array field read" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x),
+                JassIm.ImMemberAccess(model, JassIm.ImVarAccess(p), JassIm.ImTypeArguments(), array,
+                    JassIm.ImExprs(JassIm.ImIntVal(0)))));
+            case "arithmetic on a field read" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x),
+                plusOne(member(model, p, other))));
+            case "arithmetic on a local read from a field" -> {
+                body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), member(model, p, other)));
+                body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x), plusOne(JassIm.ImVarAccess(x))));
+            }
+            case "write through another object" -> body.add(JassIm.ImSet(model, member(model, p, other),
+                JassIm.ImIntVal(1)));
+            case "type id read through another object" -> body.add(JassIm.ImSet(model, JassIm.ImVarAccess(x),
+                JassIm.ImTypeIdOfObj(JassIm.ImVarAccess(p), JassIm.ImClassType(c, JassIm.ImTypeArguments()))));
+            default -> throw new IllegalArgumentException(middle);
+        }
+        body.add(JassIm.ImSet(model, member(model, o, field), JassIm.ImIntVal(2)));
+        ImFunction f = JassIm.ImFunction(model, "f", JassIm.ImTypeVars(), JassIm.ImVars(p), JassIm.ImVoid(),
+            JassIm.ImVars(o, x), body, Collections.emptyList());
+        translator.getImProg().getFunctions().add(f);
+        new de.peeeq.wurstscript.intermediatelang.optimizer.RedundantFieldStores().optimize(translator);
+        return f.getBody().size();
+    }
+
+    private static ImMemberAccess member(WurstModel model, ImVar receiver, ImVar field) {
+        return JassIm.ImMemberAccess(model, JassIm.ImVarAccess(receiver), JassIm.ImTypeArguments(), field,
+            JassIm.ImExprs());
+    }
+
+    private static ImExpr plusOne(ImExpr e) {
+        return JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS, JassIm.ImExprs(e, JassIm.ImIntVal(1)));
     }
 }

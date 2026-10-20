@@ -112,8 +112,7 @@ public class AttrImplicitParameter {
     }
 
     static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {
-        if (e instanceof HasReceiver) {
-            HasReceiver hasReceiver = (HasReceiver) e;
+        if (e instanceof HasReceiver hasReceiver) {
             boolean requiresReceiver = calledFunc != null
                 && (calledFunc.getDef().attrIsDynamicClassMember()
                     || calledFunc.getDef() instanceof ExtensionFuncDef);

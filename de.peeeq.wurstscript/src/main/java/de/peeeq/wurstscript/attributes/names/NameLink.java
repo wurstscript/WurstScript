@@ -20,16 +20,15 @@ public abstract class NameLink {
     }
 
     protected static Stream<TypeParamDef> typeParams(Element scope) {
-        if (scope instanceof AstElementWithTypeParameters) {
-            return ((AstElementWithTypeParameters) scope).getTypeParameters().stream();
+        if (scope instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            return astElementWithTypeParameters.getTypeParameters().stream();
         }
         return Stream.of();
     }
 
 
     private static int calcLevel(WScope definedIn) {
-        if (definedIn instanceof StructureDef) {
-            StructureDef struct = (StructureDef) definedIn;
+        if (definedIn instanceof StructureDef struct) {
             return struct.attrLevel();
         } else {
             return 0;

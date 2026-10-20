@@ -10,27 +10,31 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.validation.WurstValidator;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -184,6 +188,8 @@ public class ImTranslator implements SpecialisationLookup {
     private final Map<VarDef, ImVar> varMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final WurstModel wurstProg;
+    private final List<CompilationUnit> compilationUnits;
+    private final Set<CompilationUnit> selectedCompilationUnits;
 
     private @Nullable ImFunction mainFunc = null;
 
@@ -197,7 +203,6 @@ public class ImTranslator implements SpecialisationLookup {
     // Exact synthetic nodes owned by LuaNativeLowering; backend intrinsic recognition must use identity.
     @Nullable public ImFunction luaRawFloorDivIntFunc = null;
     @Nullable public ImFunction luaRawFmodIntFunc = null;
-    @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
     /** {@code x or ""}: a string operand which may be nil, made safe for {@link #luaRawConcatFunc}. */
@@ -215,6 +220,12 @@ public class ImTranslator implements SpecialisationLookup {
      * call was lowered to instead of a name.
      */
     public final Map<String, ImFunction> luaKeyedStubs = new LinkedHashMap<>();
+    /**
+     * The Lua hashtable native stubs, by stub name ({@link LuaHashtable#stubName}). {@link LuaNativeLowering#transform}
+     * creates each one once, at the calls of its native, so later passes can match a stub by identity. Not pinned:
+     * the stubs are created after the last tree shake, and one which nothing calls any more needs no definition.
+     */
+    public final Map<String, ImFunction> luaHashtableStubs = new LinkedHashMap<>();
 
     /**
      * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a
@@ -237,24 +248,91 @@ public class ImTranslator implements SpecialisationLookup {
             || (divisor instanceof ImRealVal realVal && Double.parseDouble(realVal.getValR()) != 0.0);
         return nonZeroDivisor
             && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
-                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
+                || target == luaRawFloorModIntFunc);
     }
     /**
-     * Whether {@code f} is one of the Lua keyed-map read stubs, which the backend prints as a table
-     * index. A call whose result nothing uses may be dropped, as for the Jass natives which only read.
+     * Whether {@code f} is one of the Lua stubs which only read a table: a keyed-map read, or a hashtable
+     * load or HaveSaved test. The backend prints them as table indexes. A call whose result nothing uses
+     * may be dropped, as for the Jass natives which only read.
      */
-    public boolean isLuaKeyedMapRead(ImFunction f) {
-        return LuaKeyedMap.readStubName(this, f) != null;
+    public boolean isLuaTableRead(ImFunction f) {
+        return LuaKeyedMap.readStubName(this, f) != null || LuaHashtable.isRead(this, f);
     }
+
+    /**
+     * {@code __wurst_resumeObjectIds(n)}: the Lua allocator hands out n + 1 next and recycles nothing, as the
+     * compile-time state sets a class's maxIndex and freeCount on Jass. The Lua backend prints a call to this exact
+     * node as the two assignments (StmtTranslation).
+     */
+    @Nullable public ImFunction luaResumeObjectIdsFunc = null;
+
+    /**
+     * {@link #luaResumeObjectIdsFunc}, created on first use: the compile-time state calls it so that each object
+     * made at compile time keeps its id.
+     */
+    public ImFunction luaResumeObjectIdsFunc() {
+        ImFunction f = luaResumeObjectIdsFunc;
+        if (f == null) {
+            ImVar maxId = JassIm.ImVar(imProg.getTrace(), TypesHelper.imInt(), "maxId", false);
+            f = JassIm.ImFunction(imProg.getTrace(), "__wurst_resumeObjectIds", JassIm.ImTypeVars(), JassIm.ImVars(maxId),
+                JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+            imProg.getFunctions().add(f);
+            luaResumeObjectIdsFunc = f;
+        }
+        return f;
+    }
+
     @Nullable public ImFunction luaIntDivFunc = null;
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;
 
+    /**
+     * The functions this translator created for passes which run later and call them through the handle it keeps
+     * (the Lua helpers above, the error and debug-print functions), not through a call that already is in the program:
+     * no body calls them yet, and a function which nothing reaches is removed. A new field of this kind has to be
+     * listed here ({@code ImTranslatorPinnedFunctionsTests} fails until it is).
+     */
+    public List<ImFunction> pinnedFunctions() {
+        List<ImFunction> result = new ArrayList<>();
+        for (ImFunction f : new ImFunction[]{
+            ensureIntFunc, ensureBoolFunc, ensureRealFunc, ensureStrFunc, stringConcatFunc,
+            luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFloorModIntFunc,
+            luaRawConcatFunc,
+            luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
+            luaRawToStringFunc, luaResumeObjectIdsFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
+            debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
+            if (f != null) {
+                result.add(f);
+            }
+        }
+        result.addAll(luaKeyedStubs.values());
+        return result;
+    }
+
+    /**
+     * The globals this translator created for passes which run later and reach them through its handle, not through
+     * an access in a body: the variables which manage the instances of a class, which the class elimination builds
+     * the allocators and the dispatch from. A new field of this kind has to be listed here.
+     */
+    public List<ImVar> pinnedGlobals() {
+        List<ImVar> result = new ArrayList<>();
+        if (classManagementVars != null) {
+            Set<ClassManagementVars> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ClassManagementVars vars : classManagementVars.values()) {
+                if (seen.add(vars)) {
+                    result.add(vars.free);
+                    result.add(vars.freeCount);
+                    result.add(vars.maxIndex);
+                    result.add(vars.typeId);
+                }
+            }
+        }
+        return result;
+    }
+
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;
-
-    private final ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", false);
 
     private int compiletimeOrderCounter = 1;
     private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
@@ -343,10 +421,18 @@ public class ImTranslator implements SpecialisationLookup {
 
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
+        this(wurstProg, isUnitTestMode, runArgs, wurstProg);
+    }
+
+    public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs,
+                        Collection<CompilationUnit> compilationUnits) {
         this.wurstProg = wurstProg;
+        this.compilationUnits = List.copyOf(compilationUnits);
+        this.selectedCompilationUnits = Set.copyOf(compilationUnits);
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new Object2ObjectLinkedOpenHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(),
+            new Object2ObjectLinkedOpenHashMap<>(), NamePreservation.preservedVariables(compilationUnits));
         this.runArgs = runArgs;
     }
 
@@ -374,9 +460,12 @@ public class ImTranslator implements SpecialisationLookup {
 
             calculateCompiletimeOrder();
 
-            for (CompilationUnit cu : wurstProg) {
+            for (CompilationUnit cu : compilationUnits) {
                 translateCompilationUnit(cu);
             }
+            attachFunctionsAwaitingClass();
+            linkBridgedOverrides();
+            addBridgeFunctions();
 
             if (mainFunc == null) {
                 mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
@@ -388,6 +477,12 @@ public class ImTranslator implements SpecialisationLookup {
             }
 
             finishInitFunctions();
+            // Passes after the tree shake make calls of the error function (the allocators of the class
+            // elimination), so the one of the ErrorHandling package is named here, where the shake finds it
+            // pinned. The default one is made when it is first needed (imError).
+            if (errorFunc == null) {
+                errorFunc = findErrorFunc().map(this::getFuncFor).orElse(null);
+            }
             EliminateCallFunctionsWithAnnotation.process(imProg);
             removeDuplicateNatives(imProg);
             sortEverything();
@@ -401,6 +496,85 @@ public class ImTranslator implements SpecialisationLookup {
                     + ": "
                     + t.getMessage()
                     + "\nPlease open a ticket with source code and the error log.", t);
+        }
+    }
+
+    /** A method a class has of its own for a method it inherits ({@code InterfaceTranslator}), and that method. */
+    private record Bridge(ImMethod bridge, ImMethod inherited) {
+    }
+
+    private final List<Bridge> bridges = new ArrayList<>();
+
+    /** Whether {@link LuaFieldDefaults} wrote the field defaults after the allocations, which the Lua backend needs. */
+    private boolean luaFieldDefaultsMaterialized = false;
+
+    public boolean luaFieldDefaultsMaterialized() {
+        return luaFieldDefaultsMaterialized;
+    }
+
+    public void setLuaFieldDefaultsMaterialized() {
+        luaFieldDefaultsMaterialized = true;
+    }
+
+    /** Whether {@link EliminateTuples} gave the Lua program multiple results ({@link LuaMultipleResults}). */
+    private boolean luaMultipleResultsLowered = false;
+
+    public boolean luaMultipleResultsLowered() {
+        return luaMultipleResultsLowered;
+    }
+
+    public void setLuaMultipleResultsLowered() {
+        luaMultipleResultsLowered = true;
+    }
+
+    /**
+     * Gives {@code bridge} the overrides of {@code inherited} which are below its class as sub-methods, once every
+     * class is translated: the sub-methods of {@code inherited} come from the translation of its class, which may come
+     * later. Then a deeper override stays reachable from the bridge, as AGENTS.md section 8 asks of a bridge.
+     */
+    public void linkOverridesBelow(ImMethod bridge, ImMethod inherited) {
+        bridges.add(new Bridge(bridge, inherited));
+    }
+
+    private void linkBridgedOverrides() {
+        for (Bridge b : bridges) {
+            ImClass bridgeClass = b.bridge().attrClass();
+            for (ImMethod sub : b.inherited().getSubMethods()) {
+                ImClass subClass = sub.attrClass();
+                if (subClass != bridgeClass && subClass.isSubclassOf(bridgeClass)) {
+                    b.bridge().getSubMethods().add(sub);
+                }
+            }
+        }
+    }
+
+    /** The functions {@link #bridgeFunction} made, by class and by the implementation each one runs. */
+    private final Map<ImClass, Map<FuncDef, ImFunction>> bridgeFunctions = new IdentityHashMap<>();
+
+    /**
+     * The function {@code c} has of its own to run {@code implementation}, an implementation it inherits
+     * ({@code InterfaceTranslator}), made by {@code make} the first time: a class implementing several interfaces with
+     * one inherited method gets one function for it.
+     */
+    public ImFunction bridgeFunction(ImClass c, FuncDef implementation, java.util.function.Supplier<ImFunction> make) {
+        return bridgeFunctions.computeIfAbsent(c, k -> new IdentityHashMap<>())
+            .computeIfAbsent(implementation, k -> make.get());
+    }
+
+    /**
+     * Adds the functions of {@link #bridgeFunction} to their classes once every unit is translated. They are made as
+     * the interfaces are translated, in the order of the compilation units, and two of them can have one name (the
+     * overloads of a method), which the backends tell apart by their order. So they go in by their sort key, which the
+     * order of the units does not change.
+     */
+    private void addBridgeFunctions() {
+        for (ImClass c : imProg.getClasses()) {
+            Map<FuncDef, ImFunction> functions = bridgeFunctions.get(c);
+            if (functions != null) {
+                List<ImFunction> sorted = new ArrayList<>(functions.values());
+                sortList(sorted);
+                c.getFunctions().addAll(sorted);
+            }
         }
     }
 
@@ -430,14 +604,14 @@ public class ImTranslator implements SpecialisationLookup {
             return false;
         }
         ImStmt stmt = initFunc.getBody().get(0);
-        if (!(stmt instanceof ImReturn)) {
+        if (!(stmt instanceof ImReturn imReturn)) {
             return false;
         }
-        ImExprOpt returnValue = ((ImReturn) stmt).getReturnValue();
+        ImExprOpt returnValue = imReturn.getReturnValue();
         if (returnValue instanceof ImNoExpr) {
             return true;
         }
-        return returnValue instanceof ImBoolVal && ((ImBoolVal) returnValue).getValB();
+        return returnValue instanceof ImBoolVal imBoolVal && imBoolVal.getValB();
     }
 
     private void removeInitCallsFromMain(Set<ImFunction> emptyInitFunctions, Map<ImVar, ImFunction> initFuncRefs) {
@@ -453,8 +627,7 @@ public class ImTranslator implements SpecialisationLookup {
         ImStmts mainBody = main.getBody();
         for (int i = 0; i < mainBody.size(); i++) {
             ImStmt stmt = mainBody.get(i);
-            if (stmt instanceof ImFunctionCall) {
-                ImFunctionCall call = (ImFunctionCall) stmt;
+            if (stmt instanceof ImFunctionCall call) {
                 if (emptyInitFunctions.contains(call.getFunc())) {
                     mainBody.remove(i--);
                     continue;
@@ -482,11 +655,11 @@ public class ImTranslator implements SpecialisationLookup {
         ImStmts body = globalInit.getBody();
         for (int i = 0; i < body.size(); i++) {
             ImStmt stmt = body.get(i);
-            if (!(stmt instanceof ImSet)) {
+            if (!(stmt instanceof ImSet imSet)) {
                 continue;
             }
-            ImExpr right = ((ImSet) stmt).getRight();
-            if (right instanceof ImFuncRef && emptyInitFunctions.contains(((ImFuncRef) right).getFunc())) {
+            ImExpr right = imSet.getRight();
+            if (right instanceof ImFuncRef imFuncRef && emptyInitFunctions.contains(imFuncRef.getFunc())) {
                 body.remove(i--);
             }
         }
@@ -501,10 +674,9 @@ public class ImTranslator implements SpecialisationLookup {
         ImStmts body = globalInit.getBody();
         for (int i = 0; i < body.size(); i++) {
             ImStmt stmt = body.get(i);
-            if (!(stmt instanceof ImSet)) {
+            if (!(stmt instanceof ImSet set)) {
                 continue;
             }
-            ImSet set = (ImSet) stmt;
             if (!(set.getLeft() instanceof ImVarAccess)) {
                 continue;
             }
@@ -522,10 +694,9 @@ public class ImTranslator implements SpecialisationLookup {
             return false;
         }
         ImExpr conditionExpr = call.getArguments().get(1);
-        if (!(conditionExpr instanceof ImFunctionCall)) {
+        if (!(conditionExpr instanceof ImFunctionCall conditionCall)) {
             return false;
         }
-        ImFunctionCall conditionCall = (ImFunctionCall) conditionExpr;
         if (conditionCall.getFunc() != nativeCondition) {
             return false;
         }
@@ -533,12 +704,11 @@ public class ImTranslator implements SpecialisationLookup {
             return false;
         }
         ImExpr argument = conditionCall.getArguments().get(0);
-        if (argument instanceof ImFuncRef) {
-            ImFuncRef funcRef = (ImFuncRef) argument;
+        if (argument instanceof ImFuncRef funcRef) {
             return emptyInitFunctions.contains(funcRef.getFunc());
         }
-        if (argument instanceof ImVarAccess) {
-            ImVar var = ((ImVarAccess) argument).getVar();
+        if (argument instanceof ImVarAccess imVarAccess) {
+            ImVar var = imVarAccess.getVar();
             ImFunction target = initFuncRefs.get(var);
             return target != null && emptyInitFunctions.contains(target);
         }
@@ -549,7 +719,7 @@ public class ImTranslator implements SpecialisationLookup {
         if (nativeClearTrigger == null) {
             return false;
         }
-        return stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == nativeClearTrigger;
+        return stmt instanceof ImFunctionCall imFunctionCall && imFunctionCall.getFunc() == nativeClearTrigger;
     }
 
     /**
@@ -561,7 +731,8 @@ public class ImTranslator implements SpecialisationLookup {
      */
     private void calculateCompiletimeOrder() {
         Set<WPackage> visited = new HashSet<>();
-        ImmutableCollection<WPackage> packages = wurstProg.attrPackages().values();
+        List<WPackage> packages = wurstProg.attrPackages().values().stream()
+            .filter(p -> selectedCompilationUnits.contains(p.attrCompilationUnit())).toList();
 
         for (WPackage p : packages) {
             calculateCompiletimeOrder_walk(p, visited);
@@ -605,6 +776,13 @@ public class ImTranslator implements SpecialisationLookup {
         for (ImClass c : imProg.getClasses()) {
             sortList(c.getFields());
             sortList(c.getMethods());
+            // The sub-methods of a method are appended by whichever translator reaches an override: the
+            // subclasses of a class, the classes implementing an interface and each closure, the last
+            // in the order the compilation units are translated in. The backends bind dispatch slots
+            // in the order of this list, so it is fixed here rather than by the order of its producers.
+            for (ImMethod m : c.getMethods()) {
+                sortList(m.getSubMethods());
+            }
         }
     }
 
@@ -650,22 +828,18 @@ public class ImTranslator implements SpecialisationLookup {
         if (!scope.isEmpty()) {
             sb.append(scope).append("_");
         }
-        if (c instanceof ImFunction) {
-            ImFunction f = (ImFunction) c;
+        if (c instanceof ImFunction f) {
             sb.append("fn::").append(f.getName()).append("(");
             for (int i = 0; i < f.getParameters().size(); i++) {
                 if (i > 0) sb.append(",");
                 sb.append(f.getParameters().get(i).getType());
             }
             sb.append(")->").append(f.getReturnType());
-        } else if (c instanceof ImVar) {
-            ImVar v = (ImVar) c;
+        } else if (c instanceof ImVar v) {
             sb.append("var::").append(v.getName()).append(":").append(v.getType());
-        } else if (c instanceof ImClass) {
-            ImClass cls = (ImClass) c;
+        } else if (c instanceof ImClass cls) {
             sb.append("class::").append(cls.getName());
-        } else if (c instanceof ImMethod) {
-            ImMethod m = (ImMethod) c;
+        } else if (c instanceof ImMethod m) {
             sb.append("method::").append(m.getName());
         } else {
             sb.append(c.getClass().getSimpleName());
@@ -687,7 +861,7 @@ public class ImTranslator implements SpecialisationLookup {
         if (cached != null) {
             return cached;
         }
-        NamedScope ns = e instanceof NamedScope ? (NamedScope) e : e.attrNearestNamedScope();
+        NamedScope ns = e instanceof NamedScope namedScope ? namedScope : e.attrNearestNamedScope();
         if (ns == null) {
             scopePrefixCache.put(e, "");
             return "";
@@ -825,6 +999,47 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
 
+    /** The common.j natives which make an enum handle from an integer, by the enum type's name; built when first asked. */
+    private @Nullable Map<String, NativeFunc> enumConverters;
+
+    /**
+     * The common.j native which makes the enum handle of type {@code typename} from an integer
+     * ({@code ConvertUnitState} for {@code unitstate}), or null when the type is no enum. A null enum
+     * argument is the handle of id 0 to the engine.
+     */
+    public @Nullable ImFunction enumConverter(String typename) {
+        if (enumConverters == null) {
+            // looked up by type, never iterated
+            Map<String, NativeFunc> converters = new HashMap<>();
+            for (CompilationUnit cu : compilationUnits) {
+                for (JassToplevelDeclaration decl : cu.getJassDecls()) {
+                    if (decl instanceof NativeFunc nativeFunc && isBJ(nativeFunc.getSource())
+                        && nativeFunc.getNameId().getName().startsWith("Convert")
+                        && nativeFunc.getParameters().size() == 1
+                        && nativeFunc.getParameters().get(0).attrTyp() instanceof WurstTypeInt
+                        && nativeFunc.attrReturnTyp().imTranslateType(this) instanceof ImSimpleType returned
+                        && LuaNativeLowering.isHandleType(returned)) {
+                        converters.putIfAbsent(returned.getTypename(), nativeFunc);
+                    }
+                }
+            }
+            enumConverters = converters;
+        }
+        NativeFunc converter = enumConverters.get(typename);
+        return converter == null ? null : getFuncFor(converter);
+    }
+
+    /**
+     * The common.j native {@code GetHandleId}, or null when the program has no such native. The Lua lowering of a
+     * handle key calls it. Nothing else need have called it, so it may never have been translated (it is then appended
+     * to the program's functions here, as {@link #enumConverter} does) or may have been shaken out of the program (its
+     * parent is then null, and the caller adds it).
+     */
+    public @Nullable ImFunction handleIdNative() {
+        ImFunction f = getNativeFunc("GetHandleId");
+        return f != null && f.isBj() && f.isNative() ? f : null;
+    }
+
     private ImFunction getNativeFunc(String funcName) {
         ImmutableCollection<FuncLink> wurstFunc = wurstProg.lookupFuncs(funcName);
         if (wurstFunc.isEmpty()) {
@@ -923,17 +1138,225 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void addFunction(ImFunction f, StructureDef s) {
-        ImClass c = getClassFor(s.attrNearestClassOrInterface());
-        c.getFunctions().add(f);
+        addClassFunction(getClassFor(s.attrNearestClassOrInterface()), f);
     }
 
     private void addFunction(ImFunction f, TranslatedToImFunction funcDef) {
         ImClass classForFunc = getClassForFunc(funcDef);
         if (classForFunc != null) {
-            classForFunc.getFunctions().add(f);
+            addClassFunction(classForFunc, f);
         } else {
             addFunction(f);
         }
+    }
+
+    /*
+     * The order of a class's functions. A function is made when something first asks for it, and the backends emit a
+     * class's functions, and Lua numbers its overloads, in the order of its function list. Packages are translated
+     * depth first from each compilation unit in turn, imports first, so whatever asks for a function in another
+     * package comes in an order which can depend on the order of the units: the imports of a package which do not
+     * import each other (two interfaces asking for the methods which implement them), and the packages of an import
+     * cycle, are translated in the order of the units. So a class's function waits until the elements of the class's
+     * package are translated, and the class then takes its functions in the order they get when that package is
+     * translated first: first those asked for by the packages translated before it in any order of the units (those it
+     * imports, directly or not, which do not import it back), in the order of their translation from it, then those
+     * asked for by the package itself, in the order of its definitions. What other packages ask for does not count.
+     * Where the order of the units made no difference, this is the order the class had before.
+     */
+
+    /** The rank of a request from the class's own package, after those of the packages it imports. */
+    private static final int OWN_PACKAGE_RANK = Integer.MAX_VALUE - 1;
+
+    /** A function of a class whose package is not translated yet, and the request for it which counts first. */
+    private static final class AwaitingFunction {
+        final ImFunction function;
+        final ImClass imClass;
+        final WPackage pack;
+        int rank = Integer.MAX_VALUE;
+        int position;
+        long request;
+
+        AwaitingFunction(ImFunction function, ImClass imClass, WPackage pack) {
+            this.function = function;
+            this.imClass = imClass;
+            this.pack = pack;
+        }
+    }
+
+    /** The functions waiting for their class's package, in the order they were made; null after the translation. */
+    private @Nullable Map<ImFunction, AwaitingFunction> awaitingFunctions = new LinkedHashMap<>();
+    private final Map<WPackage, List<AwaitingFunction>> awaitingByPackage = new IdentityHashMap<>();
+    private final Set<WPackage> packagesTranslated = new ReferenceOpenHashSet<>();
+    /** The top level definition being translated, and its package; null between packages. */
+    private @Nullable WPackage requestingPackage;
+    private @Nullable WEntity requestingDefinition;
+    private long requestCount;
+    private final Map<WPackage, Reference2IntMap<WPackage>> dependencyRanks = new IdentityHashMap<>();
+    private final Map<WPackage, Reference2IntMap<WEntity>> definitionPositions = new IdentityHashMap<>();
+
+    /** Adds {@code f} to its class {@code c}, or makes it wait for the class's package; making it asks for it. */
+    void addClassFunction(ImClass c, ImFunction f) {
+        if (awaitingFunctions != null && c.getTrace().attrNearestPackage() instanceof WPackage pack
+            && !packagesTranslated.contains(pack)) {
+            AwaitingFunction a = new AwaitingFunction(f, c, pack);
+            awaitingFunctions.put(f, a);
+            awaitingByPackage.computeIfAbsent(pack, p -> new ArrayList<>()).add(a);
+            requested(f);
+        } else {
+            c.getFunctions().add(f);
+        }
+    }
+
+    /** {@code f} is asked for: if it waits for its class's package, the request is kept when it counts first. */
+    private ImFunction requested(ImFunction f) {
+        if (awaitingFunctions == null || requestingPackage == null || requestingDefinition == null) {
+            return f;
+        }
+        AwaitingFunction a = awaitingFunctions.get(f);
+        if (a == null) {
+            return f;
+        }
+        int rank;
+        if (requestingPackage == a.pack) {
+            rank = OWN_PACKAGE_RANK;
+        } else {
+            rank = dependencyRanks(a.pack).getInt(requestingPackage);
+            if (rank < 0 || dependencyRanks(requestingPackage).containsKey(a.pack)) {
+                return f;
+            }
+        }
+        int position = definitionPositions(requestingPackage).getInt(requestingDefinition);
+        if (rank < a.rank || rank == a.rank && position < a.position) {
+            a.rank = rank;
+            a.position = position;
+            a.request = requestCount++;
+        }
+        return f;
+    }
+
+    /** Runs {@code translation}, the translation of the top level definition {@code e} of {@code pack}. */
+    void translateDefinition(WPackage pack, WEntity e, Runnable translation) {
+        WPackage packageBefore = requestingPackage;
+        WEntity definitionBefore = requestingDefinition;
+        requestingPackage = pack;
+        requestingDefinition = e;
+        try {
+            translation.run();
+        } finally {
+            requestingPackage = packageBefore;
+            requestingDefinition = definitionBefore;
+        }
+    }
+
+    /** The elements of {@code pack} are translated: its classes take the functions which wait for it. */
+    void endPackageElements(WPackage pack) {
+        packagesTranslated.add(pack);
+        List<AwaitingFunction> functions = awaitingByPackage.remove(pack);
+        if (functions != null) {
+            attachInRequestOrder(functions);
+        }
+    }
+
+    /** Every unit is translated: a function still waiting belongs to a class outside the translated packages. */
+    private void attachFunctionsAwaitingClass() {
+        attachInRequestOrder(new ArrayList<>(awaitingFunctions.values()));
+        awaitingFunctions = null;
+        awaitingByPackage.clear();
+    }
+
+    /**
+     * Gives the classes their functions in the order of the requests which count. The translation of a class asks for
+     * each of its functions, so none should be left without one; any such follows, in the order of {@link #sortList}.
+     */
+    private void attachInRequestOrder(List<AwaitingFunction> functions) {
+        List<AwaitingFunction> requested = new ArrayList<>();
+        Map<ImFunction, ImClass> unrequested = new LinkedHashMap<>();
+        for (AwaitingFunction a : functions) {
+            awaitingFunctions.remove(a.function);
+            if (a.rank == Integer.MAX_VALUE) {
+                unrequested.put(a.function, a.imClass);
+            } else {
+                requested.add(a);
+            }
+        }
+        requested.sort(Comparator.<AwaitingFunction>comparingInt(a -> a.rank)
+            .thenComparingInt(a -> a.position).thenComparingLong(a -> a.request));
+        for (AwaitingFunction a : requested) {
+            a.imClass.getFunctions().add(a.function);
+        }
+        List<ImFunction> rest = new ArrayList<>(unrequested.keySet());
+        sortList(rest);
+        for (ImFunction f : rest) {
+            unrequested.get(f).getFunctions().add(f);
+        }
+    }
+
+    /**
+     * The packages whose elements are translated before those of {@code pack} when it is translated first, numbered
+     * in that order: its imports, depth first, as {@link TLDTranslation} translates them.
+     */
+    private Reference2IntMap<WPackage> dependencyRanks(WPackage pack) {
+        Reference2IntMap<WPackage> ranks = dependencyRanks.get(pack);
+        if (ranks == null) {
+            ranks = new Reference2IntOpenHashMap<>();
+            ranks.defaultReturnValue(-1);
+            rankImports(pack, pack, new ReferenceOpenHashSet<>(), ranks);
+            dependencyRanks.put(pack, ranks);
+        }
+        return ranks;
+    }
+
+    private static void rankImports(WPackage first, WPackage p, Set<WPackage> visited, Reference2IntMap<WPackage> ranks) {
+        if (!visited.add(p)) {
+            return;
+        }
+        for (WImport imp : p.getImports()) {
+            WPackage imported = imp.attrImportedPackage();
+            if (imported != null) {
+                rankImports(first, imported, visited, ranks);
+            }
+        }
+        if (p != first) {
+            ranks.put(p, ranks.size());
+        }
+    }
+
+    /**
+     * The top level definitions of {@code pack} numbered in the order {@link TLDTranslation} translates them: that of
+     * the source, but a class after the superclass of the same package which it translates first.
+     */
+    private Reference2IntMap<WEntity> definitionPositions(WPackage pack) {
+        Reference2IntMap<WEntity> positions = definitionPositions.get(pack);
+        if (positions == null) {
+            positions = new Reference2IntOpenHashMap<>();
+            for (WEntity e : pack.getElements()) {
+                placeDefinition(pack, e, positions);
+            }
+            definitionPositions.put(pack, positions);
+        }
+        return positions;
+    }
+
+    private static void placeDefinition(WPackage pack, WEntity e, Reference2IntMap<WEntity> positions) {
+        if (positions.containsKey(e)) {
+            return;
+        }
+        if (e instanceof ClassDef c && c.attrTypC().extendedClass() != null) {
+            WEntity superclass = topLevelDefinition(c.attrTypC().extendedClass().getClassDef());
+            if (superclass.attrNearestPackage() == pack) {
+                placeDefinition(pack, superclass, positions);
+            }
+        }
+        positions.put(e, positions.size());
+    }
+
+    /** The top level definition of its package which {@code e} is or is part of. */
+    static WEntity topLevelDefinition(de.peeeq.wurstscript.ast.Element e) {
+        de.peeeq.wurstscript.ast.Element d = e;
+        while (!(d.getParent() instanceof WEntities)) {
+            d = d.getParent();
+        }
+        return (WEntity) d;
     }
 
     private void addFunction(ImFunction f) {
@@ -953,15 +1376,13 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
         ImFunction f;
-        if (packageOrGlobal instanceof WPackage) {
-            WPackage p = (WPackage) packageOrGlobal;
+        if (packageOrGlobal instanceof WPackage p) {
             f = getInitFuncFor(p);
         } else {
             f = globalInitFunc;
         }
         de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
-        if (initialExpr instanceof Expr) {
-            Expr expr = (Expr) initialExpr;
+        if (initialExpr instanceof Expr expr) {
             ImExpr translated = expr.imTranslateExpr(this, f);
             ImSet imSet = ImSet(trace, ImVarAccess(v), translated);
             if (!v.getIsBJ()) {
@@ -970,8 +1391,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 f.getBody().add(imSet);
             }
             imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
-        } else if (initialExpr instanceof ArrayInitializer) {
-            ArrayInitializer arInit = (ArrayInitializer) initialExpr;
+        } else if (initialExpr instanceof ArrayInitializer arInit) {
             List<ImExpr> translatedExprs = new ArrayList<>();
             for (Expr expr : arInit.getValues()) {
                 ImExpr imExpr = expr.imTranslateExpr(this, f);
@@ -998,13 +1418,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
     public ImExpr getDefaultValueForJassType(ImType type) {
-        if (type instanceof ImSimpleType) {
-            ImSimpleType imSimpleType = (ImSimpleType) type;
+        if (type instanceof ImSimpleType imSimpleType) {
             return ImHelper.defaultValueForType(imSimpleType);
         } else if (type instanceof ImAnyType) {
             return JassIm.ImIntVal(0);
-        } else if (type instanceof ImTupleType) {
-            ImTupleType imTupleType = (ImTupleType) type;
+        } else if (type instanceof ImTupleType imTupleType) {
             return getDefaultValueForJassType(imTupleType.getTypes().get(0));
         } else {
             throw new IllegalArgumentException("could not get default value for type " + type);
@@ -1012,6 +1430,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     public GetAForB<StructureDef, ImFunction> destroyFunc = new GetAForB<StructureDef, ImFunction>() {
+
+        @Override
+        public ImFunction getFor(StructureDef classDef) {
+            return requested(super.getFor(classDef));
+        }
 
         @Override
         public ImFunction initFor(StructureDef classDef) {
@@ -1024,6 +1447,13 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     };
 
     public GetAForB<StructureDef, ImMethod> destroyMethod = new GetAForB<StructureDef, ImMethod>() {
+
+        @Override
+        public ImMethod getFor(StructureDef classDef) {
+            // asks for the destroy function each time, which may be waiting for its class's package
+            destroyFunc.getFor(classDef);
+            return super.getFor(classDef);
+        }
 
         @Override
         public ImMethod initFor(StructureDef classDef) {
@@ -1136,8 +1566,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
         if (functionMap.containsKey(funcDef)) {
-            return functionMap.get(funcDef);
+            return requested(functionMap.get(funcDef));
         }
+        requireCompilationUnit(funcDef);
         String name = getNameFor(funcDef);
         List<FunctionFlag> flags = flags();
         if (funcDef instanceof NativeFunc) {
@@ -1149,8 +1580,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (isExtern(funcDef)) {
             flags.add(FunctionFlagEnum.IS_EXTERN);
         }
-        if (funcDef instanceof FuncDef) {
-            FuncDef funcDef2 = (FuncDef) funcDef;
+        // extension functions too: the object editing natives are extension functions of ObjectDefinition
+        if (funcDef instanceof FunctionImplementation impl && impl.attrHasAnnotation("compiletimenative")) {
+            flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
+        }
+        if (funcDef instanceof FuncDef funcDef2) {
             if (funcDef2.attrIsCompiletime()) {
                 FunctionFlagCompiletime flag = compiletimeFlags.get(funcDef);
                 if (flag == null) {
@@ -1158,28 +1592,26 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 }
                 flags.add(flag);
             }
-            if (funcDef2.attrHasAnnotation("compiletimenative")) {
-                flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
-            }
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
+            }
+            if (returnsIntAsJassReal(funcDef2)) {
+                flags.add(RETURNS_INT_AS_REAL);
             }
         }
 
         // Check if last parameter is vararg
-        if (funcDef instanceof AstElementWithParameters) {
-            WParameters params = ((AstElementWithParameters) funcDef).getParameters();
+        if (funcDef instanceof AstElementWithParameters astElementWithParameters) {
+            WParameters params = astElementWithParameters.getParameters();
             if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
                 flags.add(IS_VARARG);
             }
         }
 
 
-        if (funcDef instanceof HasModifier) {
-            HasModifier awm = (HasModifier) funcDef;
+        if (funcDef instanceof HasModifier awm) {
             for (Modifier m : awm.getModifiers()) {
-                if (m instanceof Annotation) {
-                    Annotation annotation = (Annotation) m;
+                if (m instanceof Annotation annotation) {
                     flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
                     if (NamePreservation.isPreserveAnnotation(annotation.getAnnotationType())) {
                         flags.add(PRESERVE_NAME);
@@ -1200,7 +1632,27 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
         addFunction(f, funcDef);
         functionMap.put(funcDef, f);
-        return f;
+        return requested(f);
+    }
+
+    /** Whether a Jass function returns an integer as its real, which only a legacy target accepts. */
+    private static boolean returnsIntAsJassReal(FuncDef funcDef) {
+        if (!Utils.isJassCode(funcDef)) {
+            return false;
+        }
+        WurstType returnType = funcDef.attrReturnTyp();
+        boolean[] found = {false};
+        funcDef.getBody().accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
+            @Override
+            public void visit(StmtReturn ret) {
+                super.visit(ret);
+                if (ret.getReturnedObj() instanceof Expr returned
+                    && WurstValidator.isIntReturnedAsJassReal(returned.attrTyp(), returnType, ret)) {
+                    found[0] = true;
+                }
+            }
+        });
+        return found[0];
     }
 
     private ImClass getClassForFunc(TranslatedToImFunction funcDef) {
@@ -1318,11 +1770,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
 
     private boolean isExtern(TranslatedToImFunction funcDef) {
-        if (funcDef instanceof HasModifier) {
-            HasModifier f = (HasModifier) funcDef;
+        if (funcDef instanceof HasModifier f) {
             for (Modifier m : f.getModifiers()) {
-                if (m instanceof Annotation) {
-                    Annotation a = (Annotation) m;
+                if (m instanceof Annotation a) {
                     if (a.getAnnotationType().equals("@extern")) {
                         return true;
                     }
@@ -1354,30 +1804,24 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      * the returned name is a valid jass identifier
      */
     public String getNameFor(de.peeeq.wurstscript.ast.Element e) {
-        if (e instanceof FuncDef) {
-            FuncDef f = (FuncDef) e;
+        if (e instanceof FuncDef f) {
             if (f.attrNearestStructureDef() != null) {
                 return getNameFor(f.attrNearestStructureDef()) + "_" + f.getName();
             }
-        } else if (e instanceof ExtensionFuncDef) {
-            ExtensionFuncDef f = (ExtensionFuncDef) e;
+        } else if (e instanceof ExtensionFuncDef f) {
             return getNameFor(f.getExtendedType()) + "_" + f.getName();
-        } else if (e instanceof TypeExprSimple) {
-            TypeExprSimple t = (TypeExprSimple) e;
+        } else if (e instanceof TypeExprSimple t) {
             return t.getTypeName();
         } else if (e instanceof TypeExprThis) {
             return "thistype";
-        } else if (e instanceof TypeExprArray) {
-            TypeExprArray t = (TypeExprArray) e;
+        } else if (e instanceof TypeExprArray t) {
             return getNameFor(t.getBase()) + "Array";
-        } else if (e instanceof ModuleInstanciation) {
-            ModuleInstanciation mi = (ModuleInstanciation) e;
+        } else if (e instanceof ModuleInstanciation mi) {
             return getNameFor(mi.getParent().attrNearestNamedScope()) + "_" + mi.getName();
         }
 
 
-        if (e instanceof AstElementWithNameId) {
-            AstElementWithNameId wn = (AstElementWithNameId) e;
+        if (e instanceof AstElementWithNameId wn) {
             return wn.getNameId().getName();
         } else if (e instanceof ConstructorDef) {
             return "new_" + e.attrNearestClassDef().getName();
@@ -1446,6 +1890,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImVar getVarFor(VarDef varDef) {
         ImVar v = varMap.get(varDef);
         if (v == null) {
+            requireCompilationUnit(varDef);
             Map<TypeParamDef, ImTypeVar> ov = getOwnerTypeVarOverridesForStaticClassVar(varDef);
             pushTypeVarOverrides(ov);
             ImType type;
@@ -1465,6 +1910,15 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return v;
     }
 
+    /** A checked editor model can resolve names outside the map's selected compilation units. */
+    public void requireCompilationUnit(de.peeeq.wurstscript.ast.Element definition) {
+        CompilationUnit cu = definition.attrCompilationUnit();
+        if (cu != null && !selectedCompilationUnits.contains(cu)) {
+            throw new CompileError(definition.attrSource(), "Referenced declaration from "
+                + cu.getCuInfo().getFile() + " is not included in this map compilation.");
+        }
+    }
+
     private Map<TypeParamDef, ImTypeVar> getOwnerTypeVarOverridesForStaticClassVar(VarDef varDef) {
         if (!(varDef instanceof GlobalVarDef) || !varDef.attrIsStatic()) {
             return Collections.emptyMap();
@@ -1474,8 +1928,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             return Collections.emptyMap();
         }
         Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
-        if (owner instanceof AstElementWithTypeParameters) {
-            for (TypeParamDef tp : ((AstElementWithTypeParameters) owner).getTypeParameters()) {
+        if (owner instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+            for (TypeParamDef tp : astElementWithTypeParameters.getTypeParameters()) {
                 if (tp.getTypeParamConstraints() instanceof TypeExprList) {
                     result.put(tp, typeVariable.getFor(tp));
                 }
@@ -1489,10 +1943,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             return false;
         }
         return varDef.getParent().getParent() instanceof NamedScope;
-    }
-
-    public WurstModel getWurstProg() {
-        return wurstProg;
     }
 
     public ImProg imProg() {
@@ -1552,12 +2002,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return callRelations;
     }
 
-
-
-    public void calculateCallRelationsAndUsedVariables() {
-        calculateCallRelationsAndVariables(true);
-    }
-
     public void calculateCallRelationsAndReadVariables() {
         calculateCallRelationsAndVariables(false);
     }
@@ -1572,6 +2016,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         usedFunctions = new ReferenceOpenHashSet<>(funcEstimate);
         usedVariables = includeUsedVariables ? new ObjectOpenHashSet<>(varEstimate) : null;
         readVariables = new ObjectOpenHashSet<>(varEstimate);
+        readCounts = null;
+        readByBjInitialisers = new ObjectOpenHashSet<>();
+        retiredFacts = null;
 
         final ImFunction main = getMainFunc();
         if (main != null) calculateCallRelations(main, includeUsedVariables);
@@ -1606,12 +2053,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                     if (includeUsedVariables) {
                         usedVariables.add(read);
                     }
+                    readByBjInitialisers.add(read);
                     if (readVariables.add(read)) {
                         bjGlobals.add(read);
                     }
                 }
             }
         }
+        retiredFacts = functionFacts == null ? null : new IdentityHashMap<>();
     }
 
     private void calculateCallRelations(ImFunction rootFunction, boolean includeUsedVariables) {
@@ -1634,11 +2083,12 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
             // Only computed once per function thanks to usedFunctions.add() gate
             if (includeUsedVariables) {
-                usedVariables.addAll(f.calcUsedVariables());
+                usedVariables.addAll(usedVariablesOf(f));
             }
-            readVariables.addAll(f.calcReadVariables());
+            final FunctionFacts facts = relationFactsOf(f);
+            readVariables.addAll(facts.readVariables);
 
-            final Set<ImFunction> called = f.calcUsedFunctions();
+            final Set<ImFunction> called = facts.usedFunctions;
             // Avoid streams/alloc; avoid pushing functions we've already seen
             for (ImFunction g : called) {
                 if (g == null) continue;
@@ -1652,8 +2102,263 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         }
     }
 
-    private Multimap<ImFunction, ImFunction> getCallRelations() {
-        return callRelations;
+    /**
+     * Body facts survive separate garbage removals while the function's modification count and the implementations
+     * of its virtual call targets are unchanged. The active map is null outside a removal; the saved map belongs to
+     * this translator only, and drops unreachable functions when a removal finishes.
+     */
+    private final Map<ImFunction, FunctionFacts> savedFunctionFacts = new IdentityHashMap<>();
+    private @Nullable Map<ImFunction, FunctionFacts> functionFacts;
+
+    private static final class FunctionFacts {
+        final int modificationCount;
+        @Nullable Set<ImVar> usedVariables;
+        @Nullable Set<ImVar> readVariables;
+        @Nullable Set<ImFunction> usedFunctions;
+        @Nullable List<ImSet> sets;
+        Map<ImMethod, List<ImFunction>> methodTargets = Collections.emptyMap();
+
+        FunctionFacts(ImFunction function) {
+            modificationCount = function.modificationCount();
+        }
+
+        boolean isCurrent(ImFunction function) {
+            if (modificationCount != function.modificationCount()) {
+                return false;
+            }
+            // Methods and their submethod lists are references, outside the caller's counted tree.
+            for (var entry : methodTargets.entrySet()) {
+                ImMethod method = entry.getKey();
+                List<ImFunction> targets = entry.getValue();
+                if (method.getImplementation() != targets.get(0) || method.getSubMethods().size() + 1 != targets.size()) {
+                    return false;
+                }
+                for (int i = 0; i < method.getSubMethods().size(); i++) {
+                    if (method.getSubMethods().get(i).getImplementation() != targets.get(i + 1)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
+    /** Use the saved facts, checking their dependencies before each reuse. */
+    public void rememberFunctionFacts() {
+        functionFacts = savedFunctionFacts;
+    }
+
+    public void forgetFunctionFacts() {
+        if (usedFunctions != null) {
+            savedFunctionFacts.keySet().retainAll(usedFunctions);
+        }
+        functionFacts = null;
+        retiredFacts = null;
+        readCounts = null;
+    }
+
+    /**
+     * The facts of the functions which changed since the last call relation analysis, as that analysis saw them.
+     * {@link #refreshReadVariables} compares them with what the functions read now.
+     */
+    private @Nullable Map<ImFunction, FunctionFacts> retiredFacts;
+    /** For each variable, the number of reachable functions which read it, once {@link #refreshReadVariables} needs it. */
+    private @Nullable Object2IntOpenHashMap<ImVar> readCounts;
+    /** The variables which the initialisers of the common.j and blizzard.j globals which are read, read. */
+    private @Nullable Set<ImVar> readByBjInitialisers;
+
+    /**
+     * Brings the read variables of the last call relation analysis in line with functions which changed, without
+     * analysing the program again. A function which still calls the same functions leaves the reachable functions as
+     * they are, and what the program reads is what the functions read: a variable is
+     * read while one reachable function reads it, the preserved globals are read, and so are those which the
+     * initialisers of the common.j and blizzard.j globals read.
+     *
+     * @return the variables which nothing reads now, or null when the program has to be analysed again: a function
+     * lost a call (functions it called may be unreachable now), a variable of common.j or blizzard.j is not read any
+     * more (so what its initialiser read may not be read any more), or the analysis does not know what a function
+     * read before. The call relation is not kept up to date.
+     */
+    public @Nullable List<ImVar> refreshReadVariables(Collection<ImFunction> changed) {
+        if (functionFacts == null || retiredFacts == null || usedFunctions == null || readVariables == null
+            || readByBjInitialisers == null) {
+            return null;
+        }
+        if (readCounts == null) {
+            Object2IntOpenHashMap<ImVar> counts = new Object2IntOpenHashMap<>(readVariables.size());
+            for (ImFunction function : usedFunctions) {
+                FunctionFacts facts = retiredFacts.get(function);
+                if (facts == null) {
+                    facts = functionFacts.get(function);
+                }
+                if (facts == null || facts.readVariables == null) {
+                    return null;
+                }
+                for (ImVar v : facts.readVariables) {
+                    counts.addTo(v, 1);
+                }
+            }
+            readCounts = counts;
+        }
+        // A function reads fewer variables than before, and may read some it did not: the effects an assignment leaves
+        // are flattened, which saves arguments in variables of its own.
+        List<ImVar> lostReads = new ArrayList<>();
+        for (ImFunction function : changed) {
+            FunctionFacts before = retiredFacts.remove(function);
+            if (before == null) {
+                before = functionFacts.get(function);
+            }
+            if (before == null || before.usedFunctions == null || before.readVariables == null) {
+                return null;
+            }
+            FunctionFacts now = relationFactsOf(function);
+            retiredFacts.remove(function);
+            if (!now.usedFunctions.equals(before.usedFunctions)) {
+                return null;
+            }
+            for (ImVar v : before.readVariables) {
+                if (!now.readVariables.contains(v)) {
+                    readCounts.addTo(v, -1);
+                    lostReads.add(v);
+                }
+            }
+            for (ImVar v : now.readVariables) {
+                if (!before.readVariables.contains(v)) {
+                    readCounts.addTo(v, 1);
+                    readVariables.add(v);
+                }
+            }
+        }
+        // what no function reads now, once every function is accounted for
+        List<ImVar> candidates = new ArrayList<>();
+        for (ImVar v : lostReads) {
+            if (readCounts.getInt(v) == 0) {
+                candidates.add(v);
+            }
+        }
+        List<ImVar> unread = new ArrayList<>();
+        for (ImVar v : candidates) {
+            if (isGlobalOf(v) && NamePreservation.isPreserved(v)) {
+                continue;
+            }
+            if (v.getIsBJ()) {
+                return null;
+            }
+            if (readByBjInitialisers.contains(v)) {
+                continue;
+            }
+            if (readVariables.remove(v)) {
+                unread.add(v);
+            }
+        }
+        return unread;
+    }
+
+    private boolean isGlobalOf(ImVar v) {
+        Element parent = v.getParent();
+        return parent != null && parent.getParent() instanceof ImProg;
+    }
+
+    private @Nullable FunctionFacts factsOf(ImFunction function) {
+        if (functionFacts == null) {
+            return null;
+        }
+        FunctionFacts facts = functionFacts.get(function);
+        if (facts == null || !facts.isCurrent(function)) {
+            if (facts != null && retiredFacts != null) {
+                retiredFacts.putIfAbsent(function, facts);
+            }
+            facts = new FunctionFacts(function);
+            functionFacts.put(function, facts);
+        }
+        return facts;
+    }
+
+    private Set<ImVar> usedVariablesOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts == null) {
+            return function.calcUsedVariables();
+        }
+        if (facts.usedVariables == null) {
+            facts.usedVariables = function.calcUsedVariables();
+        }
+        return facts.usedVariables;
+    }
+
+    /**
+     * The functions a function uses and the variables it reads, from one walk over its body. While facts are kept
+     * the assignments of the function come out of the same walk, which the removal asks for next.
+     */
+    private FunctionFacts relationFactsOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        boolean kept = facts != null;
+        if (facts == null) {
+            facts = new FunctionFacts(function);
+        }
+        if (facts.usedFunctions == null || facts.readVariables == null) {
+            FunctionFactsCollector collector = FunctionFactsCollector.collect(function, kept && facts.sets == null);
+            facts.usedFunctions = collector.usedFunctions;
+            facts.readVariables = collector.readVariables;
+            facts.methodTargets = collector.methodTargets;
+            if (collector.sets != null) {
+                facts.sets = collector.sets;
+            }
+        }
+        if (isUnitTestMode) {
+            assertSameAsSeparateWalks(function, facts);
+        }
+        return facts;
+    }
+
+    /** The assignments in a function, the ones inside another assignment before it. */
+    public List<ImSet> setStatementsOf(ImFunction function) {
+        FunctionFacts facts = factsOf(function);
+        if (facts != null && facts.sets != null) {
+            return facts.sets;
+        }
+        List<ImSet> sets = referenceSetStatementsOf(function);
+        if (facts != null) {
+            facts.sets = sets;
+        }
+        return sets;
+    }
+
+    private static List<ImSet> referenceSetStatementsOf(ImFunction function) {
+        List<ImSet> sets = new ArrayList<>();
+        function.accept(new ImFunction.DefaultVisitor() {
+            @Override
+            public void visit(ImSet e) {
+                super.visit(e);
+                sets.add(e);
+            }
+        });
+        return sets;
+    }
+
+    /**
+     * What the single walk answers has to be what the separate walks answer, in the same order: unit tests compare
+     * every function the analysis meets, with the walks which {@link FunctionFactsCollector} replaces.
+     */
+    private static void assertSameAsSeparateWalks(ImFunction function, FunctionFacts facts) {
+        List<ImFunction> expectedUsed = new ArrayList<>(function.calcUsedFunctions());
+        List<ImFunction> actualUsed = new ArrayList<>(facts.usedFunctions);
+        assertSameElements("functions used by " + function.getName(), expectedUsed, actualUsed);
+        assertSameElements("variables read by " + function.getName(),
+            new ArrayList<>(function.calcReadVariables()), new ArrayList<>(facts.readVariables));
+        if (facts.sets != null) {
+            assertSameElements("assignments in " + function.getName(), referenceSetStatementsOf(function), facts.sets);
+        }
+    }
+
+    private static void assertSameElements(String what, List<?> expected, List<?> actual) {
+        boolean same = expected.size() == actual.size();
+        for (int i = 0; same && i < expected.size(); i++) {
+            same = expected.get(i) == actual.get(i);
+        }
+        if (!same) {
+            throw new AssertionError("The walk over the body found other " + what + " than the separate walks: expected "
+                + expected + ", found " + actual);
+        }
     }
 
     public ImFunction getMainFunc() { return mainFunc; }
@@ -1667,26 +2372,24 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      * returns a list of classes and functions implementing funcDef
      */
     public Map<ClassDef, FuncDef> getClassesWithImplementation(Collection<ClassDef> instances, FuncDef func) {
-        if (func.attrIsPrivate()) {
+        if (instances.isEmpty() || func.attrIsPrivate()) {
             // private functions cannot be overridden
             return Collections.emptyMap();
         }
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
+        // The declaration is already known. General member lookup also searches every enclosing scope and
+        // adapts all same-named overloads for each subclass; only this declaration's receiver needs binding.
+        FuncLink declaration = FuncLink.create(func, func.getParent().attrNearestScope()).withConfigDef();
         for (ClassDef c : instances) {
-            FuncLink funcNameLink = null;
             WurstTypeClass cType = c.attrTypC();
-            for (FuncLink nameLink : func.lookupMemberFuncs(cType, func.getName())) {
-                if (nameLink.getDef() == func) {
-                    funcNameLink = nameLink;
-                }
-            }
-            if (funcNameLink == null) {
+            DefLink bound = NameResolution.matchDefLinkReceiver(declaration, cType, func, false);
+            if (!(bound instanceof FuncLink funcNameLink)) {
                 throw new Error("Could not find "
                     + Utils.printElementWithSource(Optional.of(func))
                     + " in "
                     + Utils.printElementWithSource(Optional.of(c)));
             }
-            FuncLink implementationLink = findImplementationLink(c, funcNameLink);
+            FuncLink implementationLink = WurstValidator.findImplementationLink(c, funcNameLink);
             if (implementationLink != null && implementationLink.getDef() instanceof FuncDef) {
                 result.put(c, (FuncDef) implementationLink.getDef());
             }
@@ -1694,65 +2397,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return result;
     }
 
-    private @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink target) {
-        FuncLink best = null;
-        int bestDistance = Integer.MAX_VALUE;
-        for (NameLink candidateLink : c.attrNameLinks().get(target.getName())) {
-            if (!(candidateLink instanceof FuncLink)) {
-                continue;
-            }
-            FuncLink candidate = (FuncLink) candidateLink;
-            if (!WurstValidator.canOverride(candidate, target, false)) {
-                continue;
-            }
-            FunctionDefinition candidateDef = candidate.getDef();
-            if (!(candidateDef instanceof FuncDef)) {
-                continue;
-            }
-            if (candidateDef.attrIsAbstract()) {
-                continue;
-            }
-            ClassDef owner = candidateDef.attrNearestClassDef();
-            if (owner == null) {
-                continue;
-            }
-            int distance = distanceToOwner(c, owner);
-            if (distance == Integer.MAX_VALUE) {
-                continue;
-            }
-            if (best == null || distance < bestDistance) {
-                best = candidate;
-                bestDistance = distance;
-            }
-        }
-        return best;
-    }
-
-    private int distanceToOwner(ClassDef start, ClassDef owner) {
-        int distance = 0;
-        ClassDef current = start;
-        Set<ClassDef> visited = new HashSet<>();
-        while (current != null && visited.add(current)) {
-            if (current == owner) {
-                return distance;
-            }
-            WurstTypeClass type = current.attrTypC();
-            if (type == null) {
-                break;
-            }
-            WurstTypeClass superType = type.extendedClass();
-            if (superType == null) {
-                break;
-            }
-            current = superType.getClassDef();
-            distance++;
-        }
-        return Integer.MAX_VALUE;
-    }
-
 
     private final Map<ClassDef, List<Pair<ImVar, VarInitialization>>> classDynamicInitMap = Maps.newLinkedHashMap();
-    private final Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
     public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
         return classDynamicInitMap.computeIfAbsent(c, k -> Lists.newArrayList());
@@ -1778,7 +2424,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             addFunction(f, constr);
             constructorFuncs.put(constr, f);
         }
-        return f;
+        return requested(f);
     }
 
 
@@ -1817,6 +2463,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return function == genericNewMarker;
     }
 
+    /** The function which constructs with this constructor, if the program has one already: nothing is created. */
+    public @Nullable ImFunction constructNewFuncIfTranslated(ConstructorDef constr) {
+        return constrNewFuncs.get(constr);
+    }
+
     public ImFunction getConstructNewFunc(ConstructorDef constr) {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {
@@ -1830,7 +2481,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }
-        return f;
+        return requested(f);
     }
 
     public ImProg getImProg() {
@@ -1848,8 +2499,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void calculateInterfaceInstances() {
-        interfaceInstances = HashMultimap.create();
-        for (CompilationUnit cu : wurstProg) {
+        // Insertion order, not hash order. The order of the compilation units still shows in it;
+        // sortEverything fixes the order of the sub-methods which are made from it.
+        interfaceInstances = LinkedHashMultimap.create();
+        for (CompilationUnit cu : compilationUnits) {
             for (ClassDef c : cu.attrGetByType().classes) {
                 for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
                     interfaceInstances.put(i.getDef(), c);
@@ -1882,7 +2535,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (directSubclasses != null) {
             return;
         }
-        directSubclasses = HashMultimap.create();
+        // Insertion order, not hash order. The order of the compilation units still shows in it;
+        // sortEverything fixes the order of the sub-methods which are made from it.
+        directSubclasses = LinkedHashMultimap.create();
         for (ClassDef c : classes()) {
             WurstTypeClass extendedClass = c.attrTypC().extendedClass();
             if (extendedClass != null) {
@@ -1897,11 +2552,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
      */
     private List<ClassDef> classes() {
         List<ClassDef> result = new ArrayList<>();
-        for (CompilationUnit cu : wurstProg) {
+        for (CompilationUnit cu : compilationUnits) {
             for (WPackage p : cu.getPackages()) {
                 for (WEntity e : p.getElements()) {
-                    if (e instanceof ClassDef) {
-                        ClassDef c = (ClassDef) e;
+                    if (e instanceof ClassDef c) {
                         classesAdd(result, c);
                     }
                 }
@@ -1912,8 +2566,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     private void classesAdd(List<ClassDef> result, ClassOrModuleInstanciation c) {
-        if (c instanceof ClassDef) {
-            result.add(((ClassDef) c));
+        if (c instanceof ClassDef classDef) {
+            result.add(classDef);
         }
         for (ClassDef ic : c.getInnerClasses()) {
             classesAdd(result, ic);
@@ -2211,25 +2865,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
 
-    private void addVarsForType(List<ImVar> result, String name, ImType type, de.peeeq.wurstscript.ast.Element tr) {
-        Preconditions.checkNotNull(type);
-        Preconditions.checkNotNull(result);
-        // TODO handle names
-        if (type instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) type;
-            int i = 0;
-            for (ImType t : tt.getTypes()) {
-                addVarsForType(result, name + "_" + tt.getNames().get(i), t, tr);
-                i++;
-            }
-        } else if (type instanceof ImVoid) {
-            // nothing to add
-        } else {
-            result.add(JassIm.ImVar(tr, type, name, false));
-        }
-
-    }
-
     private final Map<ImFunction, VarsForTupleResult> tempReturnVars = Maps.newLinkedHashMap();
 
     public VarsForTupleResult getTupleTempReturnVarsFor(ImFunction f) {
@@ -2272,8 +2907,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     public void assertProperties(Set<AssertProperty> properties, Element e) {
-        if (e instanceof ElementWithVar) {
-            checkVar(((ElementWithVar) e).getVar(), properties);
+        if (e instanceof ElementWithVar elementWithVar) {
+            checkVar(elementWithVar.getVar(), properties);
         }
         for (AssertProperty p : properties) {
             p.check(e);
@@ -2306,13 +2941,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         }
     }
 
-    public Set<ImVar> getUsedVariables() {
-        if (usedVariables == null) {
-            calculateCallRelationsAndUsedVariables();
-        }
-        return usedVariables;
-    }
-
     public Set<ImVar> getReadVariables() {
         if (readVariables == null) {
             calculateCallRelationsAndReadVariables();
@@ -2331,6 +2959,87 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return isUnitTestMode;
     }
 
+    /** What the modification count of each function was when a flatten left it, which is flat. */
+    private final Reference2IntOpenHashMap<ImFunction> flattenedAt = new Reference2IntOpenHashMap<>();
+
+    /** Whether the function is as a flatten left it: nothing in it was modified since. */
+    public synchronized boolean isUnmodifiedSinceFlatten(ImFunction function) {
+        return flattenedAt.containsKey(function) && flattenedAt.getInt(function) == function.modificationCount();
+    }
+
+    /** A flatten has left the function flat as it is now. */
+    public synchronized void flattened(ImFunction function) {
+        flattenedAt.put(function, function.modificationCount());
+    }
+
+    /**
+     * Whether the program holds no statement expression, which is what a flatten leaves and what the backends need: Jass
+     * has no such expression, and Lua would make a closure of each. A compile-time expression is not looked into, the
+     * interpreter evaluates it as it is.
+     */
+    public boolean isFlat() {
+        return isFlat(imProg);
+    }
+
+    /** Whether the element holds no statement expression (see {@link #isFlat()}). */
+    public static boolean isFlat(Element element) {
+        boolean[] flat = {true};
+        element.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImStatementExpr e) {
+                flat[0] = false;
+            }
+
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+            }
+        });
+        return flat[0];
+    }
+
+    /** In a unit test: fails when the program is not flat, which names where. */
+    public void assertFlat(String where) {
+        if (isUnitTestMode && !isFlat()) {
+            throw new AssertionError("The program is not flat " + where);
+        }
+    }
+
+    /**
+     * In a unit test: fails when live code reads or writes a generic static through its erased original although the
+     * static has specialised copies. One instantiation then has two stores, and one is written where the other is read
+     * (wurstscript/WurstScript#1498). Live is {@link RemoveGarbage#reachableFunctions}, because the tree shaker keeps
+     * dispatch to classes nothing allocates. Asked before the garbage removal, which deletes a store nothing reads and
+     * so turns the split into a dropped write nothing can see any more.
+     */
+    public void assertNoLiveErasedGenericStatic() {
+        if (!isUnitTestMode || genericStaticOwners.isEmpty()) {
+            return;
+        }
+        for (ImFunction function : RemoveGarbage.reachableFunctions(imProg, this)) {
+            function.accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ImVarAccess access) {
+                    super.visit(access);
+                    check(access, access.getVar());
+                }
+
+                @Override
+                public void visit(ImVarArrayAccess access) {
+                    super.visit(access);
+                    check(access, access.getVar());
+                }
+
+                private void check(Element access, ImVar global) {
+                    if (genericStaticOwnerOf(global) != null && specialisationOf(global) == null) {
+                        throw new CompileError(access, "Internal error: " + function.getName()
+                            + " uses the erased generic static " + global.getName()
+                            + ", which has specialised copies.");
+                    }
+                }
+            });
+        }
+    }
+
     private final Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
 
     public ImClass getClassForClosure(ExprClosure s) {
@@ -2341,7 +3050,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     // inside ImTranslator
 
     private static boolean isIteratorLike(ClassOrInterface s) {
-        return (s instanceof NamedScope) && ((NamedScope) s).getName().contains("Iterator");
+        return (s instanceof NamedScope namedScope) && namedScope.getName().contains("Iterator");
     }
 
     private void addCapturedTypeVarsFromOwningGeneric(ImTypeVars typeVariables, ClassOrInterface s) {
@@ -2351,11 +3060,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 + " parent=" + (s.getParent() == null ? "null" : s.getParent().getClass().getSimpleName()));
         }
 
-        if (!(s instanceof ClassDef)) {
+        if (!(s instanceof ClassDef cd)) {
             if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] not a ClassDef -> skip");
             return;
         }
-        ClassDef cd = (ClassDef) s;
 
         boolean isStatic = cd.attrIsStatic();
         if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] isStatic=" + isStatic);
@@ -2367,17 +3075,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         AstElementWithTypeParameters owner = null;
         String ownerInfo = null;
 
-        if (parent2 instanceof ModuleInstanciation) {
-            ModuleInstanciation mi = (ModuleInstanciation) parent2;
+        if (parent2 instanceof ModuleInstanciation mi) {
             ClassDef o = mi.attrNearestClassDef();
             owner = o;
             ownerInfo = "moduleInst=" + mi.getName() + " owner=" + (o == null ? "null" : o.getName());
-        } else if (parent2 instanceof ClassDef) {
-            ClassDef o = (ClassDef) parent2;
+        } else if (parent2 instanceof ClassDef o) {
             owner = o;
             ownerInfo = "outerClass=" + o.getName();
-        } else if (parent2 instanceof InterfaceDef) {
-            InterfaceDef o = (InterfaceDef) parent2;
+        } else if (parent2 instanceof InterfaceDef o) {
             owner = o;
             ownerInfo = "outerInterface=" + o.getName();
         } else {
@@ -2437,11 +3142,12 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImClass getClassFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
+            requireCompilationUnit(s1);
             ImTypeVars typeVariables = JassIm.ImTypeVars();
 
             // 1) class' own type parameters (unchanged idea, but use name-based uniqueness)
-            if (s1 instanceof AstElementWithTypeParameters) {
-                for (TypeParamDef tp : ((AstElementWithTypeParameters) s1).getTypeParameters()) {
+            if (s1 instanceof AstElementWithTypeParameters astElementWithTypeParameters) {
+                for (TypeParamDef tp : astElementWithTypeParameters.getTypeParameters()) {
                     if (tp.getTypeParamConstraints() instanceof TypeExprList) {
                         ImTypeVar tv = getTypeVar(tp); // now context-aware (override stack)
                         if (!hasTypeVarNamed(typeVariables, tv.getName())) {
@@ -2471,10 +3177,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     Map<FuncDef, ImMethod> methodForFuncDef = Maps.newLinkedHashMap();
 
     public ImMethod getMethodFor(FuncDef f) {
-
+        // asks for the implementation each time, which may be waiting for its class's package
+        ImFunction imFunc = getFuncFor(f);
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
-            ImFunction imFunc = getFuncFor(f);
 
             // IMPORTANT: method name must match implementation function name,
             // otherwise EliminateClasses dispatch lookup can fail.
@@ -2587,6 +3293,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
 
+    /** The error function, or null while nothing has needed one: asking does not make it. */
+    public @Nullable ImFunction getErrorFuncIfPresent() {
+        return errorFunc;
+    }
+
     public ImFunctionCall imError(de.peeeq.wurstscript.ast.Element trace, ImExpr message) {
         ImFunction ef = errorFunc;
         if (ef == null) {
@@ -2616,14 +3327,6 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         // TODO divide by zero to crash thread:
 
 
-//		stmts.add(JassAst.JassStmtCall("BJDebugMsg",
-//				JassAst.JassExprlist(JassAst.JassExprBinary(
-//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl),
-//						JassAst.JassOpPlus(),
-//						s.getMessage().translate(translator)))));
-//		// crash thread (divide by zero)
-//		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), Jas
-//
 
         List<FunctionFlag> flags = Lists.newArrayList();
 
@@ -2633,9 +3336,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
 
-    private Optional<FuncDef> findErrorFunc() throws CompileError {
+    /** The function {@code error} of the ErrorHandling package, a native or one with a body. */
+    private Optional<FunctionDefinition> findErrorFunc() throws CompileError {
         PackageLink p = wurstProg.lookupPackage("ErrorHandling");
-        if (p == null) {
+        if (p == null || !selectedCompilationUnits.contains(p.getDef().attrCompilationUnit())) {
             return Optional.empty();
         }
         ImmutableCollection<FuncLink> funcs = p.getDef().getElements().lookupFuncs("error");
@@ -2644,8 +3348,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         } else if (funcs.size() > 1) {
             return Optional.empty();
         }
-        FuncDef f = (FuncDef) funcs.stream().findAny().get().getDef();
-        return Optional.of(f);
+        return Optional.of(funcs.stream().findAny().get().getDef());
     }
 
     int getCompiletimeExpressionsOrder(FunctionCall fc) {

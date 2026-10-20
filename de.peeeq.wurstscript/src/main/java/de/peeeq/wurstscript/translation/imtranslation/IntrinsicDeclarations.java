@@ -46,6 +46,21 @@ final class IntrinsicDeclarations {
         return null;
     }
 
+    /** The source name of {@code f} if it is a compiler intrinsic declaration, else null. */
+    static String intrinsicName(ImFunction f) {
+        return f.attrTrace() instanceof FuncDef fd
+            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
+            ? fd.getName()
+            : null;
+    }
+
+    /** The package a compiler-intrinsic declaration belongs to, or null if it has no trace. */
+    static WPackage packageOf(ImFunction f) {
+        return f.attrTrace() instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p
+            ? p
+            : null;
+    }
+
     /**
      * Read off the source declaration, not the IM function: the fixed-arity copies the vararg
      * eliminator makes keep their trace but drop IS_VARARG, so a vararg function called with one

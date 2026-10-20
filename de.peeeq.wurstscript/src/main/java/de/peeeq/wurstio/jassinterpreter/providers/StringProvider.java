@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
@@ -67,14 +68,14 @@ public class StringProvider extends Provider {
         return new ILconstReal(Float.isInfinite(value) ? 0 : value);
     }
 
-    /** Measured on the 3.0.0 client: three decimals, rounded half up. The integer part wraps to 32 bits
-     *  (3e9 prints -1294967296.000), and a negative value which rounds to zero keeps its sign. */
+    /** Measured on the 3.0.0 client: three decimals, rounded half up, the whole integer part (a computed 3e9 prints
+     *  3000000000.000, 5000000320 prints 5000000320.000), and a negative value which rounds to zero keeps its sign.
+     *  A real literal past 2^31 is read wrapped by Jass (the literal 3000000000. is negative), which R2S shows. */
     public ILconstString R2S(ILconstReal r) {
         float x = r.getVal();
-        long[] parts = roundedParts(Math.abs(x), 3);
-        int whole = (int) (x < 0 ? -parts[0] : parts[0]);
-        String sign = x < 0 && whole == 0 ? "-" : "";
-        return ILconstString.fromText(sign + whole + "." + StringUtils.leftPad(Long.toString(parts[1]), 3, '0'));
+        Rounded parts = roundedParts(Math.abs(x), 3);
+        String sign = x < 0 ? "-" : "";
+        return ILconstString.fromText(sign + parts.whole() + "." + StringUtils.leftPad(Long.toString(parts.digits()), 3, '0'));
     }
 
     /** Measured on the 3.0.0 client: the sign comes first, then the integer part left-padded to
@@ -90,46 +91,47 @@ public class StringProvider extends Provider {
                     + ", beyond what the interpreter models (precision up to " + R2SW_MAX_PRECISION
                     + ", width up to " + R2SW_MAX_WIDTH + ").");
         }
-        long[] parts = roundedParts(Math.abs(x), digits);
-        // The signed value wraps to 32 bits, as in R2S; the sign is printed ahead of the padding.
-        int wrapped = (int) (x < 0 ? -parts[0] : parts[0]);
-        String sign = wrapped < 0 || (wrapped == 0 && x < 0) ? "-" : "";
-        String whole = StringUtils.leftPad(Long.toString(Math.abs((long) wrapped)), (int) Math.max(0, padding));
-        String fraction = digits == 0 ? "0" : StringUtils.leftPad(Long.toString(parts[1]), digits, '0');
+        Rounded parts = roundedParts(Math.abs(x), digits);
+        // The whole integer part, as in R2S; the sign is printed ahead of the padding.
+        String sign = x < 0 ? "-" : "";
+        String whole = StringUtils.leftPad(parts.whole().toString(), (int) Math.max(0, padding));
+        String fraction = digits == 0 ? "0" : StringUtils.leftPad(Long.toString(parts.digits()), digits, '0');
         return ILconstString.fromText(sign + whole + "." + fraction);
     }
 
     private static final int R2SW_MAX_PRECISION = 18;
     private static final int R2SW_MAX_WIDTH = 1000;
 
+    /** The whole part of a non-negative value, exact even past the long range, and its fraction digits. */
+    private record Rounded(java.math.BigInteger whole, long digits) {
+    }
+
     /**
      * The whole part and the fraction digits of a non-negative value, rounded half up at the given
      * precision and carried into the whole part. The fraction is scaled in float arithmetic, as the
      * engine does, which is what shows at nine digits: its R2SW(r, 1, 9) is not the exact decimal.
      */
-    private static long[] roundedParts(float value, int precision) {
-        // Math.floor is exact for any float, and the integer part is wrapped to 32 bits by remainder
-        // rather than by a cast to long, which would saturate above Long.MAX_VALUE. Past 2^56 every
-        // float is a multiple of 2^32, so its wrapped part is 0.
+    private static Rounded roundedParts(float value, int precision) {
+        if (!Float.isFinite(value)) {
+            // not measured; the game's reals do not reach it through arithmetic (a division by zero stops the thread)
+            return new Rounded(java.math.BigInteger.ZERO, 0);
+        }
+        // Math.floor is exact for any float, and so is its decimal expansion.
         double floor = Math.floor(value);
-        long whole = (long) (floor % 4294967296.0);
+        java.math.BigInteger whole = new java.math.BigDecimal(floor).toBigInteger();
         float fraction = (float) (value - floor);
         long limit = (long) Math.pow(10, precision);
         long digits = (long) (fraction * (float) limit + 0.5f);
         if (digits >= limit) {
-            whole++;
+            whole = whole.add(java.math.BigInteger.ONE);
             digits -= limit;
         }
-        return new long[] {whole, digits};
+        return new Rounded(whole, digits);
     }
 
-    /** Measured on the 3.0.0 client: truncates, and wraps to 32 bits rather than saturating
-     *  (1e10 is 1410065408). */
+    /** See {@link WurstOperator#realToInt}, measured on the 3.0.0 client. */
     public ILconstInt R2I(ILconstReal i) {
-        double value = i.getVal();
-        // Truncated in double and wrapped by remainder: a cast to long would saturate above its range.
-        double truncated = value < 0 ? Math.ceil(value) : Math.floor(value);
-        return new ILconstInt((int) (long) (truncated % 4294967296.0));
+        return new ILconstInt(WurstOperator.realToInt(i.getVal()));
     }
 
     public ILconstReal I2R(ILconstInt i) {

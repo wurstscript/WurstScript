@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -59,8 +58,8 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
     @NotNull
     private DocumentSymbol makeDocumentSymbol(Element p, SymbolKind kind, String name, List<DocumentSymbol> children) {
         String detail = null;
-        if (p instanceof AstElementWithParameters) {
-            detail = "(" + HoverInfo.getParameterString((AstElementWithParameters) p) + ")";
+        if (p instanceof AstElementWithParameters astElementWithParameters) {
+            detail = "(" + Utils.getParameterListText(astElementWithParameters) + ")";
         }
         Range fullRange = Convert.range(p);
         Range selectionRange = sanitizeSelectionRange(fullRange, Convert.errorRange(p));

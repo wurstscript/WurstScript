@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.validation;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
@@ -10,6 +12,7 @@ import de.peeeq.wurstscript.types.WurstTypeTuple;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,8 +33,66 @@ public final class NamePreservation {
     }
 
     public static boolean isPreserved(ImVar variable) {
-        return variable.getTrace() instanceof NameDef
-            && ((NameDef) variable.getTrace()).hasAnnotation(ANNOTATION);
+        for (de.peeeq.wurstscript.jassIm.Element owner = variable; owner != null; owner = owner.getParent()) {
+            if (owner instanceof ImProg prog) {
+                return prog.getPreservedVariables().contains(variable.getTrace());
+            }
+        }
+        return false;
+    }
+
+    /** Immutable source identities copied into private IM before scoped AST metadata is restored. */
+    public static Set<NameDef> preservedVariables(Collection<CompilationUnit> units) {
+        Set<NameDef> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        java.util.ArrayDeque<Element> todo = new java.util.ArrayDeque<>(units);
+        while (!todo.isEmpty()) {
+            Element element = todo.removeLast();
+            if (element instanceof NameDef definition && definition.hasAnnotation(ANNOTATION)) {
+                result.add(definition);
+            }
+            for (int i = 0; i < element.size(); i++) todo.add(element.get(i));
+        }
+        return Collections.unmodifiableSet(result);
+    }
+
+    public static SavedMarkers saveSyntheticMarkers(WurstModel model) {
+        return new SavedMarkers(model);
+    }
+
+    public static final class SavedMarkers implements AutoCloseable {
+        private record Marker(GlobalVarDef variable, int position, Annotation annotation) {}
+        private final WurstModel model;
+        private final List<Marker> markers = new ArrayList<>();
+
+        private SavedMarkers(WurstModel model) {
+            this.model = model;
+            model.accept(new Element.DefaultVisitor() {
+                @Override public void visit(GlobalVarDef variable) {
+                    super.visit(variable);
+                    for (int i = 0; i < variable.getModifiers().size(); i++) {
+                        Modifier modifier = variable.getModifiers().get(i);
+                        if (isSyntheticMarker(modifier)) markers.add(new Marker(variable, i, (Annotation) modifier));
+                    }
+                }
+            });
+        }
+
+        @Override public void close() {
+            CompilationCancellation.run(() -> false, () -> {
+                clearSyntheticMarkers(model);
+                for (Marker marker : markers) {
+                    marker.variable().getModifiers().add(marker.position(), marker.annotation());
+                }
+            });
+        }
+    }
+
+    private static boolean isSyntheticMarker(Modifier modifier) {
+        return modifier instanceof Annotation annotation
+            && annotation.getAnnotationType().equalsIgnoreCase(ANNOTATION)
+            && annotation.getArgs().size() == 1
+            && annotation.getArgs().get(0) instanceof ExprStringVal value
+            && value.getValS().equals(SYNTHETIC_MARKER);
     }
 
     public static void preserve(ImFunction function) {
@@ -60,9 +121,9 @@ public final class NamePreservation {
      * The index is scoped to one validation run; the preservation marker itself remains attached to
      * the AST definition and is copied to the corresponding IM variables through their trace.
      */
-    public static RuntimeNameIndex indexGlobals(WurstModel model) {
+    public static RuntimeNameIndex indexGlobals(Collection<CompilationUnit> units) {
         RuntimeNameIndex result = new RuntimeNameIndex();
-        model.accept(new Element.DefaultVisitor() {
+        Element.DefaultVisitor visitor = new Element.DefaultVisitor() {
             @Override
             public void visit(GlobalVarDef variable) {
                 super.visit(variable);
@@ -71,7 +132,8 @@ public final class NamePreservation {
                 addTupleComponentNames(result, name, variable.attrTyp(), variable,
                     Collections.newSetFromMap(new IdentityHashMap<>()));
             }
-        });
+        };
+        units.forEach(cu -> cu.accept(visitor));
         return result;
     }
 
@@ -81,11 +143,7 @@ public final class NamePreservation {
             @Override
             public void visit(GlobalVarDef variable) {
                 super.visit(variable);
-                variable.getModifiers().removeIf(modifier -> modifier instanceof Annotation annotation
-                    && annotation.getAnnotationType().equalsIgnoreCase(ANNOTATION)
-                    && annotation.getArgs().size() == 1
-                    && annotation.getArgs().get(0) instanceof ExprStringVal value
-                    && value.getValS().equals(SYNTHETIC_MARKER));
+                variable.getModifiers().removeIf(NamePreservation::isSyntheticMarker);
             }
         });
     }

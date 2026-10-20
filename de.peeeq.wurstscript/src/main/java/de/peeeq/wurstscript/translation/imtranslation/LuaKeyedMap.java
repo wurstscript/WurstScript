@@ -60,6 +60,9 @@ public final class LuaKeyedMap {
     private static final java.util.List<String> READ_STUBS = java.util.List.of(
         NATIVE_GET, NATIVE_GET_INT, NATIVE_GET_REAL, NATIVE_GET_BOOL, NATIVE_GET_STR, NATIVE_HAS);
 
+    /** The stubs which store into a map, printed as the table store they stand for where they are called. */
+    private static final java.util.List<String> WRITE_STUBS = java.util.List.of(NATIVE_PUT, NATIVE_REMOVE);
+
     private LuaKeyedMap() {
     }
 
@@ -68,10 +71,19 @@ public final class LuaKeyedMap {
      * each stub once and a user function that happens to share the name stays an ordinary function.
      */
     public static String readStubName(ImTranslator translator, ImFunction f) {
+        return stubName(translator, f, READ_STUBS);
+    }
+
+    /** The name of the put or remove stub {@code f} is, or null; matched like {@link #readStubName}. */
+    public static String writeStubName(ImTranslator translator, ImFunction f) {
+        return stubName(translator, f, WRITE_STUBS);
+    }
+
+    private static String stubName(ImTranslator translator, ImFunction f, java.util.List<String> names) {
         if (!f.isNative()) {
             return null;
         }
-        for (String name : READ_STUBS) {
+        for (String name : names) {
             if (translator.luaKeyedStubs.get(name) == f) {
                 return name;
             }
@@ -92,17 +104,17 @@ public final class LuaKeyedMap {
         return switch (fd.getName()) {
             case CREATE -> f.getParameters().isEmpty() && TypesHelper.isIntType(result)
                 ? NATIVE_CREATE : null;
-            case PUT, PUT_NATIVE -> isKeyedPair(f, 3) && isValueType(f.getParameters().get(2).getType())
+            case PUT, PUT_NATIVE, "keyedMapPutString" -> isKeyedPair(f, 3) && isValueType(f.getParameters().get(2).getType())
                 && result instanceof ImVoid
                 ? NATIVE_PUT : null;
             case GET -> isKeyedPair(f, 2) && isNilDefaultedType(result) ? NATIVE_GET : null;
             case GET_NATIVE -> isKeyedPair(f, 2) ? nativeGetStub(result) : null;
-            case GET_INT -> isKeyedPair(f, 2) && TypesHelper.isIntType(result) ? NATIVE_GET_INT : null;
+            case GET_INT, "keyedMapGetStringInt" -> isKeyedPair(f, 2) && TypesHelper.isIntType(result) ? NATIVE_GET_INT : null;
             case GET_REAL -> isKeyedPair(f, 2) && TypesHelper.isRealType(result) ? NATIVE_GET_REAL : null;
             case GET_BOOL -> isKeyedPair(f, 2) && TypesHelper.isBoolType(result) ? NATIVE_GET_BOOL : null;
             case GET_STR -> isKeyedPair(f, 2) && TypesHelper.isStringType(result) ? NATIVE_GET_STR : null;
-            case HAS -> isKeyedPair(f, 2) && TypesHelper.isBoolType(result) ? NATIVE_HAS : null;
-            case REMOVE -> isKeyedPair(f, 2) && result instanceof ImVoid ? NATIVE_REMOVE : null;
+            case HAS, "keyedMapHasNative", "keyedMapHasString" -> isKeyedPair(f, 2) && TypesHelper.isBoolType(result) ? NATIVE_HAS : null;
+            case REMOVE, "keyedMapRemoveNative", "keyedMapRemoveString" -> isKeyedPair(f, 2) && result instanceof ImVoid ? NATIVE_REMOVE : null;
             case DESTROY -> isDestroy(f) ? NATIVE_DESTROY : null;
             default -> null;
         };
@@ -126,14 +138,14 @@ public final class LuaKeyedMap {
     }
 
     /**
-     * Key types: an int, an erased type parameter which is the element itself, or a concrete
+     * Key types: an int, a string, an erased type parameter which is the element itself, or a concrete
      * handle type. The last lets a library declare the operations with a {@code unit} key and a
      * Jass body of {@code Table} plus {@code GetHandleId}, which is correct in source on every
      * compiler, so a build which does not lower the operations degrades to the hashtable path
      * instead of keying every element the same.
      */
     private static boolean isKeyType(ImType t) {
-        return TypesHelper.isIntType(t) || t instanceof ImTypeVarRef || t instanceof ImAnyType
+        return TypesHelper.isIntType(t) || TypesHelper.isStringType(t) || t instanceof ImTypeVarRef || t instanceof ImAnyType
             || LuaNativeLowering.isHandleType(t);
     }
 

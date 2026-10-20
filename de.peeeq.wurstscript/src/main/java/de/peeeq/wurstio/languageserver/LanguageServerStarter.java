@@ -22,15 +22,5 @@ public class LanguageServerStarter {
         launcher.startListening();
     }
 
-    public static void trainForAppCds() {
-        WurstLanguageServer server = new WurstLanguageServer();
-        try {
-            server.getTextDocumentService();
-            server.getWorkspaceService();
-        } finally {
-            server.shutdown().join();
-        }
-    }
-
 
 }

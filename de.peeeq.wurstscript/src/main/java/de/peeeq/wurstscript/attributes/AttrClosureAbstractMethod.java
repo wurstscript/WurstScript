@@ -11,8 +11,7 @@ public class AttrClosureAbstractMethod {
 
     public static FuncLink calculate(ExprClosure e) {
         WurstType expected = e.attrExpectedTypAfterOverloading();
-        if (expected instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) expected;
+        if (expected instanceof WurstTypeClassOrInterface ct) {
             return ct.findSingleAbstractMethod(e);
         }
         return null;
@@ -20,8 +19,7 @@ public class AttrClosureAbstractMethod {
 
 
     public static @Nullable FunctionSignature getAbstractMethodSignature(WurstType type) {
-        if (type instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
+        if (type instanceof WurstTypeClassOrInterface ct) {
             FuncLink abstractMethod = ct.findSingleAbstractMethod(ct.getDef());
             if (abstractMethod == null) {
                 return null;

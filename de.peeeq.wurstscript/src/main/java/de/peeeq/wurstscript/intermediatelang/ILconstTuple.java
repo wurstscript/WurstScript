@@ -38,8 +38,7 @@ public class ILconstTuple extends ILconstAbstract {
 
     @Override
     public boolean isEqualTo(ILconst other) {
-        if (other instanceof ILconstTuple) {
-            ILconstTuple o = (ILconstTuple) other;
+        if (other instanceof ILconstTuple o) {
             if (o.values.length != values.length) {
                 return false;
             }

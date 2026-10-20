@@ -1,22 +1,25 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 public class InterfaceTranslator {
 
@@ -89,32 +92,202 @@ public class InterfaceTranslator {
 
 
         List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
-        // TODO also add extended interfaces
 
         // set sub methods
         Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
         for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
             ClassDef subC = subE.getKey();
             WurstTypeClass subCT = subC.attrTypC();
-            ImmutableCollection<WurstTypeInterface> interfaces = subCT.implementedInterfaces();
 
-            VariableBinding typeBinding =
-                VariableBinding.emptyMapping();
-            for (WurstTypeInterface t : interfaces) {
-                if (t.getDef() == interfaceDef) {
-                    VariableBinding typeArgBinding = t.getTypeArgBinding();
-                    typeBinding = typeArgBinding;
-                    break;
-                }
-            }
+            VariableBinding typeBinding = typeBindingOf(subCT);
 
             FuncDef subM = subE.getValue();
             ImMethod m = translator.getMethodFor(subM);
 
             ImClass mClass = translator.getClassFor(subC);
+            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
+                FuncDef interfaceDefault = defaultOf(subCT, f);
+                m = methodOfItsOwn(mClass, subCT, m, interfaceDefault == null ? subM : interfaceDefault);
+            }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
 
+    }
+
+    /**
+     * A method of {@code imClass} itself for the abstract method of this interface, which the class implements with a
+     * method it inherits from a class outside the interface ({@code C extends Base implements Omega}). The dispatch
+     * over the implementations of the interface method follows the classes below the interface and takes at each the
+     * method declared in that class, and so does the interpreter: Base is not on that path, so C gets a method of its
+     * own with Base's implementation, which its subclasses inherit. The overrides below C are its sub-methods, as they
+     * are Base's ({@link ImTranslator#linkOverridesBelow}). Where another interface of C gives m a default, the
+     * default is the implementation: a default beats an inherited method (a call through that interface runs it on
+     * every backend), and Lua binds one implementation for C to both.
+     * <p>
+     * Where neither C nor the class of the implementation is generic, the method runs that implementation's function.
+     * Otherwise it gets a function of C which calls it ({@link #implementationOfItsOwn}).
+     */
+    private ImMethod methodOfItsOwn(ImClass imClass, WurstTypeClass classType, ImMethod inherited,
+                                    FuncDef implementation) {
+        ImFunction function = translator.getFuncFor(implementation);
+        ClassOrInterface owner = implementation.attrNearestClassOrInterface();
+        String name = inherited.getName();
+        if (!imClass.getTypeVariables().isEmpty()
+            || (owner != null && !translator.getClassFor(owner).getTypeVariables().isEmpty())) {
+            ImFunction inheritedFunction = function;
+            function = translator.bridgeFunction(imClass, implementation,
+                () -> implementationOfItsOwn(imClass, classType, implementation, inheritedFunction, owner));
+            name = function.getName();
+        }
+        ImMethod own = JassIm.ImMethod(inherited.getTrace(), translator.selfType(imClass), name,
+            function, Lists.newArrayList(), new java.util.ArrayList<>(), "", false);
+        imClass.getMethods().add(own);
+        translator.linkOverridesBelow(own, inherited);
+        return own;
+    }
+
+    /**
+     * A function of {@code imClass} which runs the inherited implementation, for a class where one of the two is
+     * generic. A method is specialised with the functions of its class, but the inherited function belongs to another
+     * class and must be specialised for that class's type arguments as {@code imClass} sees them, which need not be
+     * its own ({@code C<T:> extends Base<string>}). So the function calls the inherited one with this, as
+     * {@code super.m()} does, and the specialisation finds Base's type arguments from the type of this. It takes the
+     * inherited function's parameters with Base's type variables replaced by those arguments, and is vararg where that
+     * function is. The translator adds it to the class ({@link ImTranslator#bridgeFunction}).
+     */
+    private ImFunction implementationOfItsOwn(ImClass imClass, WurstTypeClass classType, FuncDef implementation,
+                                              ImFunction inherited, @org.eclipse.jdt.annotation.Nullable ClassOrInterface owner) {
+        List<ImTypeVar> ownerVariables = owner == null
+            ? Collections.emptyList() : translator.getClassFor(owner).getTypeVariables();
+        List<ImTypeArgument> ownerArguments = owner == null
+            ? Collections.emptyList() : typeArgumentsAsSeenFrom(classType, owner, ownerVariables);
+        ImVar thisVar = JassIm.ImVar(implementation, translator.selfType(imClass), "this", false);
+        ImVars parameters = JassIm.ImVars(thisVar);
+        ImExprs arguments = JassIm.ImExprs(JassIm.ImVarAccess(thisVar));
+        for (ImVar p : inherited.getParameters().subList(1, inherited.getParameters().size())) {
+            ImVar parameter = JassIm.ImVar(p.getTrace(),
+                ImAttrType.substituteType(p.getType(), ownerArguments, ownerVariables), p.getName(), false);
+            parameters.add(parameter);
+            arguments.add(JassIm.ImVarAccess(parameter));
+        }
+        ImType returnType = ImAttrType.substituteType(inherited.getReturnType(), ownerArguments, ownerVariables);
+        ImExpr call = JassIm.ImFunctionCall(implementation, inherited, JassIm.ImTypeArguments(), arguments, false,
+            CallType.NORMAL);
+        ImStmts body = returnType instanceof ImVoid
+            ? JassIm.ImStmts(call)
+            : JassIm.ImStmts(JassIm.ImReturn(implementation, call));
+        List<FunctionFlag> flags = new java.util.ArrayList<>();
+        if (inherited.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+            flags.add(FunctionFlagEnum.IS_VARARG);
+        }
+        return JassIm.ImFunction(implementation, imClass.getName() + "_" + implementation.getName(),
+            JassIm.ImTypeVars(), parameters, returnType, JassIm.ImVars(), body, flags);
+    }
+
+    /**
+     * The type arguments for {@code variables}, the type variables of {@code owner}, a class or interface above
+     * {@code classType}, as that class sees them.
+     */
+    private List<ImTypeArgument> typeArgumentsAsSeenFrom(WurstTypeClass classType, ClassOrInterface owner,
+                                                         List<ImTypeVar> variables) {
+        VariableBinding binding = VariableBinding.emptyMapping();
+        ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
+        queue.add(classType);
+        while (!queue.isEmpty()) {
+            WurstTypeClassOrInterface type = queue.removeFirst();
+            if (type.getDef() == owner) {
+                binding = type.getTypeArgBinding();
+                break;
+            }
+            queue.addAll(type.directSupertypes());
+        }
+        List<ImTypeArgument> arguments = new java.util.ArrayList<>();
+        for (ImTypeVar variable : variables) {
+            TypeParamDef parameter = translator.getTypeParamDef(variable);
+            if (parameter == null) {
+                throw new CompileError(classType.getDef(), "Could not find the type argument of " + owner.getName()
+                    + " for " + variable.getName() + " as " + classType.getDef().getName() + " sees it.");
+            }
+            // A parameter no supertype binds is one of an enclosing generic class, which a static class inside it
+            // captures: the class sees it as it is, as its own functions do.
+            ImType type = binding.get(parameter).map(bound -> bound.imTranslateType(translator))
+                .getOrElse(() -> JassIm.ImTypeVarRef(translator.getTypeVar(parameter)));
+            arguments.add(JassIm.ImTypeArgument(type, Collections.emptyMap()));
+        }
+        return arguments;
+    }
+
+
+    /**
+     * The default which another interface of the class gives {@code abstractMethod}: a method of an interface which
+     * is not generic, with the same name and parameter types and a body, the nearest first (the class's own
+     * interfaces before its superclass's, as in {@link #typeBindingOf}); null if there is none.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable FuncDef defaultOf(WurstTypeClass classType, FuncDef abstractMethod) {
+        ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
+        queue.add(classType);
+        while (!queue.isEmpty()) {
+            WurstTypeClassOrInterface type = queue.removeFirst();
+            if (type instanceof WurstTypeInterface i && i.getDef().getTypeParameters().isEmpty()) {
+                for (FuncDef candidate : i.getDef().getMethods()) {
+                    if (candidate != abstractMethod && !candidate.attrHasEmptyBody()
+                        && candidate.getName().equals(abstractMethod.getName())
+                        && sameParameterTypes(candidate, abstractMethod)) {
+                        return candidate;
+                    }
+                }
+            }
+            if (type instanceof WurstTypeClass c) {
+                queue.addAll(c.implementedInterfaces());
+                WurstTypeClass extended = c.extendedClass();
+                if (extended != null) {
+                    queue.add(extended);
+                }
+            } else {
+                queue.addAll(type.directSupertypes());
+            }
+        }
+        return null;
+    }
+
+    private static boolean sameParameterTypes(FuncDef a, FuncDef b) {
+        if (a.getParameters().size() != b.getParameters().size()) {
+            return false;
+        }
+        for (int i = 0; i < a.getParameters().size(); i++) {
+            if (!a.getParameters().get(i).attrTyp().equalsType(b.getParameters().get(i).attrTyp(), a)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The type arguments a class gives this interface where it implements it: itself, through an interface which
+     * extends this one, or through a superclass (the instances are the subclasses of an implementing class too). The
+     * nearest declaration binds, and at the same distance the class's own interfaces before its superclass, so a
+     * class which implements {@code I<real>} itself is not bound by the {@code I<int>} of its superclass. The override
+     * converts its arguments from their index with them.
+     */
+    private VariableBinding typeBindingOf(WurstTypeClass classType) {
+        ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
+        queue.add(classType);
+        while (!queue.isEmpty()) {
+            WurstTypeClassOrInterface type = queue.removeFirst();
+            if (type instanceof WurstTypeInterface i && i.getDef() == interfaceDef) {
+                return i.getTypeArgBinding();
+            }
+            if (type instanceof WurstTypeClass c) {
+                queue.addAll(c.implementedInterfaces());
+                WurstTypeClass extended = c.extendedClass();
+                if (extended != null) {
+                    queue.add(extended);
+                }
+            } else {
+                queue.addAll(type.directSupertypes());
+            }
+        }
+        return VariableBinding.emptyMapping();
     }
 
 }

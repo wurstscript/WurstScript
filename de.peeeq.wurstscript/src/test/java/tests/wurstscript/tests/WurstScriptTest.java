@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -52,6 +53,14 @@ public class WurstScriptTest {
 
     public static final String TEST_OUTPUT_PATH = "./test-output/";
 
+    /**
+     * Every translated program writes its IM as a {@code .jim} file, twice per optimisation setting, and only a
+     * handful of tests read one: the rest paid for printing it. A test which reads one asks for it with
+     * {@link TestConfig#imDump()}; {@code ./gradlew test -PimDumps} writes them all, to read a failing test's IM.
+     */
+    private static final boolean IM_DUMPS_FOR_ALL_TESTS = Boolean.getBoolean("wurst.test.imDumps");
+    private boolean writeImDumps;
+
     /** Generous enough for the slowest test program, short enough that a loop fails the run. */
     private static final int LUA_EXECUTION_TIMEOUT_SECONDS = 60;
 
@@ -72,14 +81,6 @@ public class WurstScriptTest {
     private static volatile String extractedLuaUnix;
     private static volatile String extractedLuacWin;
     private static volatile String extractedLuacUnix;
-
-    protected boolean testOptimizer() {
-        return true;
-    }
-
-    protected boolean printDebugScripts() {
-        return false;
-    }
 
     /**
      * How many Wurst tests the last run executed. Tests are stripped by the time the second pass
@@ -124,6 +125,7 @@ public class WurstScriptTest {
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
         private boolean legacyJassTypeChecks = false;
+        private boolean imDump = false;
 
         TestConfig(String name) {
             this.name = name;
@@ -222,6 +224,12 @@ public class WurstScriptTest {
             return this;
         }
 
+        /** Writes the translated IM to {@code test-output/<name>.jim}, for a test which reads it. */
+        public TestConfig imDump() {
+            this.imDump = true;
+            return this;
+        }
+
         public TestConfig legacyJassTypeChecks() {
             return legacyJassTypeChecks(true);
         }
@@ -294,6 +302,8 @@ public class WurstScriptTest {
         }
 
         private CompilationResult testScript() {
+            writeImDumps = imDump || IM_DUMPS_FOR_ALL_TESTS;
+            pjassPending.clear();
             RunArgs runArgs = new RunArgs();
             RecycleCodeGeneratorQueue.setTestMode = true;
             if (withStdLib) {
@@ -361,6 +371,13 @@ public class WurstScriptTest {
                 testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
                 testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+                if (legacyJassTypeChecks) {
+                    // a legacy target is not checked with pjass, as in a build
+                    pjassPending.clear();
+                } else {
+                    runPendingPjass();
+                }
             }
 
             if (testLua) {
@@ -486,6 +503,12 @@ public class WurstScriptTest {
         return new TestConfig(this.getClass().getSimpleName() + "_" + name);
     }
 
+    /** The Lua written for {@code testName}, a test of this class compiled with {@code testLua(true)}. */
+    protected String compiledLua(String testName) throws IOException {
+        File luaFile = new File(TEST_OUTPUT_PATH, "lua/" + getClass().getSimpleName() + "_" + testName + ".lua");
+        return java.nio.file.Files.readString(luaFile.toPath());
+    }
+
     void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
         test().executeProg(excuteProg).withStdLib(withStdLib).compilationUnits(units);
     }
@@ -601,6 +624,8 @@ public class WurstScriptTest {
             compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            LuaTranslator luaTranslator = compiler.getLuaTranslator();
+            List<String> initFunctionNames = luaTranslator == null ? List.of() : luaTranslator.initFunctionNames();
             LuaAssertions.assertNamesAreValidIdentifiers(luaCode);
             checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
@@ -641,11 +666,27 @@ public class WurstScriptTest {
                     }
                 }
                 chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");
+                // The generated script reports a package whose init raised, through the program's error
+                // function, and goes on without it. The harness wraps each init function to see the raise
+                // itself, whatever the error function prints, and re-raises it unchanged.
+                chunk.append("local __wurst_testInits = {");
+                for (String initFunctionName : initFunctionNames) {
+                    chunk.append("'").append(initFunctionName).append("',");
+                }
+                chunk.append("};");
+                chunk.append("for _, n in ipairs(__wurst_testInits) do local f = rawget(_G, n); if f then"
+                    + " _G[n] = function(...) local r = table.pack(pcall(f, ...));"
+                    + " if not r[1] then __wurst_testInitFailed = true; error(r[2], 0) end"
+                    + " return table.unpack(r, 2, r.n) end end end;");
                 // Success is read off stdout, so testSuccess has to print. A program with no
                 // standard library gets a generated fallback which does; one with the library gets
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
-                chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
+                chunk.append("testSuccess = function() if __wurst_testInitFailed then print('__wurst_initFailed') end"
+                    + " print('testSuccess') os.exit() end;");
+                // Callback adapters can consume the error. Record an independent failure signal
+                // before raising it so a later testSuccess cannot make the Java harness pass.
+                chunk.append("testFail = function(message) print('__wurst_testFail'); error(message, 0) end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -659,7 +700,13 @@ public class WurstScriptTest {
                 // and one that fills the stdout pipe would deadlock against a stderr-first read.
                 java.util.concurrent.atomic.AtomicBoolean sawTestSuccess =
                     new java.util.concurrent.atomic.AtomicBoolean(false);
-                Thread outCollector = collectStreamAsync(p.getInputStream(), output, "testSuccess", sawTestSuccess);
+                java.util.concurrent.atomic.AtomicBoolean sawTestFail =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                java.util.concurrent.atomic.AtomicBoolean sawInitFailure =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                Thread outCollector = collectStreamAsync(p.getInputStream(), output,
+                    java.util.Map.of("testSuccess", sawTestSuccess, "__wurst_testFail", sawTestFail,
+                        "__wurst_initFailed", sawInitFailure));
                 Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
                 if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
                     p.destroyForcibly();
@@ -674,8 +721,14 @@ public class WurstScriptTest {
                     throw new TestFailException(errors.toString());
                 }
 
+                if (sawTestFail.get()) {
+                    throw new Error(currentTestEnv + ": Lua testFail was called\nLua output:\n" + output);
+                }
+                if (sawInitFailure.get()) {
+                    throw new Error(currentTestEnv + ": a package failed to initialize\nLua output:\n" + output);
+                }
                 if (!sawTestSuccess.get()) {
-                    throw new Error(currentTestEnv + ": Succeed function not called");
+                    throw new Error(currentTestEnv + ": Succeed function not called\nLua output:\n" + output);
                 }
             }
 
@@ -687,7 +740,7 @@ public class WurstScriptTest {
 
     }
 
-    private void checkLuaSyntax(String luacExecutable, File luaFile) throws IOException {
+    protected void checkLuaSyntax(String luacExecutable, File luaFile) throws IOException {
         Path outFile = java.nio.file.Files.createTempFile("wurst-luac-", ".out");
         outFile.toFile().deleteOnExit();
         ProcessBuilder pb = new ProcessBuilder(
@@ -723,20 +776,26 @@ public class WurstScriptTest {
     }
 
     private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
-        return collectStreamAsync(stream, out, null, null);
+        return collectStreamAsync(stream, out, java.util.Collections.emptyMap());
     }
 
     /**
      * Drains {@code stream} into {@code out}, keeping only the first {@link #RETAINED_OUTPUT_LIMIT}
-     * characters. Reading never stops — that is what blocks the process and deadlocks the run — but
+     * characters. Reading never stops (that would block the process and deadlock the run), but
      * a program that loops while printing would fill the heap before the timeout could fire.
      * <p>
      * Whatever the caller is looking for is recognised here rather than read back out of
      * {@code out} afterwards, because it may arrive after the limit: a program that prints a
-     * million lines and then succeeds has still succeeded.
+     * million lines and then succeeds has still succeeded, and one that prints them and then fails
+     * has still failed. Each line in {@code watchedLines} sets its flag when the program prints it.
      */
     private Thread collectStreamAsync(InputStream stream, StringBuilder out,
-                                      String watchedLine, java.util.concurrent.atomic.AtomicBoolean sawWatchedLine) {
+                                      java.util.Map<String, java.util.concurrent.atomic.AtomicBoolean> watchedLines) {
+        int longestWatchedLine = 0;
+        for (String watched : watchedLines.keySet()) {
+            longestWatchedLine = Math.max(longestWatchedLine, watched.length());
+        }
+        final int maxWatchedLength = longestWatchedLine;
         Thread t = new Thread(() -> {
             // Fixed-size chunks rather than lines: a line is only bounded by what the program
             // chose to print, and reading one materialises all of it before any limit here could
@@ -748,20 +807,22 @@ public class WurstScriptTest {
             try (Reader input = new InputStreamReader(stream)) {
                 int read;
                 while ((read = input.read(chunk)) >= 0) {
-                    if (watchedLine != null) {
+                    if (!watchedLines.isEmpty()) {
                         for (int i = 0; i < read; i++) {
                             char c = chunk[i];
                             if (c == '\n') {
-                                if (!lineIsLongerThanWatched && pendingLine.length() == watchedLine.length()
-                                    && watchedLine.contentEquals(pendingLine)) {
-                                    sawWatchedLine.set(true);
+                                if (!lineIsLongerThanWatched) {
+                                    java.util.concurrent.atomic.AtomicBoolean saw = watchedLines.get(pendingLine.toString());
+                                    if (saw != null) {
+                                        saw.set(true);
+                                    }
                                 }
                                 pendingLine.setLength(0);
                                 lineIsLongerThanWatched = false;
                             } else if (c != '\r' && !lineIsLongerThanWatched) {
-                                // Only ever as long as what is being looked for; past that the
-                                // line cannot be it, so there is no reason to keep any of it.
-                                if (pendingLine.length() == watchedLine.length()) {
+                                // Only ever as long as the longest line being looked for; past that
+                                // the line cannot be any of them, so there is no reason to keep it.
+                                if (pendingLine.length() == maxWatchedLength) {
                                     lineIsLongerThanWatched = true;
                                     pendingLine.setLength(0);
                                 } else {
@@ -852,7 +913,7 @@ public class WurstScriptTest {
         );
     }
 
-    private String getLuacExecutable() {
+    protected String getLuacExecutable() {
         if (resolvedLuacExecutable != null) {
             return resolvedLuacExecutable;
         }
@@ -1005,6 +1066,10 @@ public class WurstScriptTest {
         );
 
         for (LuaStatement stmt : luaCode) {
+            if (stmt instanceof LuaChunkLocal local) {
+                // A main-chunk local is initialised at the root like a global.
+                stmt = local.getDefinition();
+            }
             if (stmt instanceof LuaVariable) {
                 LuaExprOpt initialValue = ((LuaVariable) stmt).getInitialValue();
                 if (initialValue instanceof LuaExpr) {
@@ -1129,8 +1194,7 @@ public class WurstScriptTest {
 
         File outputFile = writeJassProg(name, gui, prog);
 
-        // run pjass:
-        runPjass(outputFile);
+        pjassPending.add(outputFile);
 
         if (executeProg) {
             String currentEnv = currentTestEnv;
@@ -1138,6 +1202,15 @@ public class WurstScriptTest {
             executeJassProg(prog);
             currentTestEnv = currentEnv;
         }
+    }
+
+    /** The number of non-overlapping occurrences of {@code needle} in {@code text}. */
+    protected static int countOccurrences(String text, String needle) {
+        int count = 0;
+        for (int at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + needle.length())) {
+            count++;
+        }
+        return count;
     }
 
     private static File getFile(String name) {
@@ -1179,34 +1252,53 @@ public class WurstScriptTest {
     /**
      * Scripts already checked by pjass in this JVM, by content hash.
      *
-     * <p>pjass parses every file it is given as one program, so independent test scripts cannot be
-     * batched into a single invocation - each one costs a process spawn plus a re-parse of
-     * common.j and blizzard.j (~15k lines). About a third of the scripts this suite emits are
-     * byte-identical to one already checked (the same source compiled under several optimisation
-     * levels, and near-identical fixtures within a test class), and pjass is a pure function of its
-     * input, so checking those again cannot tell us anything new. Spawning is the dominant cost on
-     * Windows, where CreateProcess is an order of magnitude dearer than fork/exec.
+     * <p>About a third of the scripts this suite emits are byte-identical to one already checked
+     * (the same source compiled under several optimisation levels, and near-identical fixtures
+     * within a test class), and pjass is a pure function of its input, so checking those again
+     * cannot tell us anything new.
      *
      * <p>Only successes are recorded: a failure re-runs so the reported message names the file the
      * caller actually passed.
      */
     private static final Set<String> pjassCheckedScripts = ConcurrentHashMap.newKeySet();
 
-    private void runPjass(File outputFile) throws Error {
-        String digest = scriptDigest(outputFile);
-        if (digest != null && pjassCheckedScripts.contains(digest)) {
+    /** The scripts a test has emitted and pjass has not checked yet. */
+    private final List<File> pjassPending = new ArrayList<>();
+
+    /**
+     * Checks the scripts the test has emitted so far with one pjass process. Starting pjass and
+     * parsing common.j and blizzard.j (~15k lines) once per script was most of what the tests that
+     * emit little spend, and most of that on Windows, where CreateProcess is an order of magnitude
+     * dearer than fork/exec.
+     */
+    private void runPendingPjass() throws Error {
+        List<File> files = new ArrayList<>();
+        List<String> digests = new ArrayList<>();
+        for (File file : pjassPending) {
+            String digest = scriptDigest(file);
+            if (digest != null && (pjassCheckedScripts.contains(digest) || digests.contains(digest))) {
+                continue;
+            }
+            files.add(file);
+            digests.add(digest);
+        }
+        pjassPending.clear();
+        if (files.isEmpty()) {
             return;
         }
-        Result pJassResult = Pjass.runPjass(outputFile);
-        WLogger.info(pJassResult.getMessage());
-        if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
-            throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
-        }
-        // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
-        // it means pjass never validated this script - caching it would make every later identical
-        // script skip validation too, after a failure that may well have been transient.
-        if (digest != null && pJassResult.isOk()) {
-            pjassCheckedScripts.add(digest);
+        List<Result> results = Pjass.runPjassEach(files);
+        for (int i = 0; i < files.size(); i++) {
+            Result pJassResult = results.get(i);
+            WLogger.info(pJassResult.getMessage());
+            if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
+                throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
+            }
+            // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
+            // it means pjass never validated this script - caching it would make every later identical
+            // script skip validation too, after a failure that may well have been transient.
+            if (digests.get(i) != null && pJassResult.isOk()) {
+                pjassCheckedScripts.add(digests.get(i));
+            }
         }
     }
 
@@ -1221,10 +1313,6 @@ public class WurstScriptTest {
     }
 
     private static String currentTestEnv = "";
-
-    public static String getCurrentTestEnv() {
-        return currentTestEnv;
-    }
 
     public static void setCurrentTestEnv(String env) {
         currentTestEnv = env;
@@ -1315,9 +1403,12 @@ public class WurstScriptTest {
     }
 
     /**
-     * writes a jass prog to a file
+     * writes the IM of a program to a file, if the test or the run asked for IM dumps
      */
-    private File writeJassImProg(String name, WurstGui gui, ImProg prog) throws Error {
+    private void writeJassImProg(String name, WurstGui gui, ImProg prog) throws Error {
+        if (!writeImDumps) {
+            return;
+        }
         File outputFile = new File(TEST_OUTPUT_PATH + name + ".jim");
         new File(TEST_OUTPUT_PATH).mkdirs();
         try {
@@ -1327,7 +1418,6 @@ public class WurstScriptTest {
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }
-        return outputFile;
     }
 
 

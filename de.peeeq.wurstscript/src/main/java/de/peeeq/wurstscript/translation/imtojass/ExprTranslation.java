@@ -8,6 +8,8 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import java.math.BigDecimal;
+
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 public class ExprTranslation {
@@ -111,7 +113,54 @@ public class ExprTranslation {
 
 
     public static JassExpr translate(ImRealVal e, ImToJassTranslator translator) {
-        return JassExprRealVal(e.getValR());
+        return realLiteral(e);
+    }
+
+    private static final BigDecimal TWO_TO_24 = BigDecimal.valueOf(1 << 24);
+    /** The largest power of two whose literal Jass reads exactly. */
+    private static final int MAX_FACTOR_EXPONENT = 30;
+
+    /**
+     * The Jass for the float a real literal means. Jass reads a literal's integer part as a 32-bit
+     * integer and truncates it past 2^24 (measured on the 3.0.0 client: the literal 3000000000. is
+     * negative, 10000000000. reads as 1410065408, 16777219. as 16777218), while it reads an exact
+     * float below 2^31 exactly. So past 2^24, where every float is an integer, the backend prints
+     * the float's own digits, and from 2^31 on a product of exact factors, its odd part and powers
+     * of two, which Jass multiplies exactly. A literal past the largest float, which the interpreter
+     * reads as infinity, is the largest float: Jass has no product which gives infinity (measured
+     * too: 2^150 compares below 3e38 and prints as 0.000, while the largest float compares above it).
+     */
+    private static JassExpr realLiteral(ImRealVal e) {
+        String literal = e.getValR();
+        if (new BigDecimal(literal).abs().compareTo(TWO_TO_24) <= 0) {
+            return JassExprRealVal(literal);
+        }
+        float value = Float.parseFloat(literal);
+        float magnitude = Math.min(Math.abs(value), Float.MAX_VALUE);
+        JassExpr result;
+        if (magnitude < 2147483648f) {
+            result = JassExprRealVal(new BigDecimal(magnitude).toBigInteger() + ".");
+        } else {
+            // magnitude = odd * 2^exponent, with odd below 2^24
+            int exponent = Math.getExponent(magnitude) - 23;
+            long odd = (long) Math.scalb(magnitude, -exponent);
+            int zeros = Long.numberOfTrailingZeros(odd);
+            odd >>= zeros;
+            exponent += zeros;
+            if (odd == 1) {
+                int factor = Math.min(exponent, MAX_FACTOR_EXPONENT);
+                result = JassExprRealVal((1L << factor) + ".");
+                exponent -= factor;
+            } else {
+                result = JassExprRealVal(odd + ".");
+            }
+            while (exponent > 0) {
+                int factor = Math.min(exponent, MAX_FACTOR_EXPONENT);
+                result = JassExprBinary(result, JassOpMult(), JassExprRealVal((1L << factor) + "."));
+                exponent -= factor;
+            }
+        }
+        return value < 0 ? JassExprUnary(JassOpMinus(), result) : result;
     }
 
     public static JassExpr translate(ImStatementExpr e, ImToJassTranslator translator) {

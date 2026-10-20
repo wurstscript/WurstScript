@@ -31,6 +31,7 @@ public class WurstCommands {
     public static final String WURST_HOTSTARTMAP = "wurst.hotstartmap";
     public static final String WURST_HOTRELOAD = "wurst.hotreload";
     public static final String WURST_BUILDMAP = "wurst.buildmap";
+    public static final String WURST_EXPORT_W3O = "wurst.exportw3o";
     public static final String WURST_STARTLAST = "wurst.startlast";
     public static final String WURST_TESTS = "wurst.tests";
     public static final String WURST_TESTS_FILE = "wurst.tests_file";
@@ -60,7 +61,9 @@ public class WurstCommands {
             case WURST_PERFORM_CODE_ACTION:
                 return server.worker().handle(new PerformCodeActionRequest(server, params));
             case WURST_BUILDMAP:
-                return buildMap(server, params);
+                return buildMap(server, params, false);
+            case WURST_EXPORT_W3O:
+                return buildMap(server, params, true);
         }
         WLogger.info("unhandled command: " + params.getCommand());
         throw new RuntimeException("unhandled command: " + params.getCommand());
@@ -78,7 +81,7 @@ public class WurstCommands {
         return server.worker().handle(new RunTests(filename, line, column, testName, testTimeout));
     }
 
-    private static CompletableFuture<Object> buildMap(WurstLanguageServer server, ExecuteCommandParams params) {
+    private static CompletableFuture<Object> buildMap(WurstLanguageServer server, ExecuteCommandParams params, boolean exportObjects) {
         WFile workspaceRoot = server.getRootUri();
         if (params.getArguments().isEmpty()) {
             throw new RuntimeException("Missing arguments");
@@ -92,7 +95,9 @@ public class WurstCommands {
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, true);
-        return server.worker().handle(new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        BuildMap request = new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs, exportObjects);
+        request.setWorkDoneToken(params.getWorkDoneToken());
+        return server.worker().handle(request);
     }
 
     private static CompletableFuture<Object> startMap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {
@@ -107,7 +112,9 @@ public class WurstCommands {
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
-        return server.worker().handle(new RunMap(server, workspaceRoot, wc3Path, map, compileArgs, gameExePath)).thenApply(x -> x);
+        RunMap request = new RunMap(server, workspaceRoot, wc3Path, map, compileArgs, gameExePath);
+        request.setWorkDoneToken(params.getWorkDoneToken());
+        return server.worker().handle(request);
     }
 
     private static Optional<String> getString(JsonObject options, String key) {

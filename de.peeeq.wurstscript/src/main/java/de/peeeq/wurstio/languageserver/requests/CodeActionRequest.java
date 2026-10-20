@@ -93,39 +93,34 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             return actions;
         }
 
-        if (e.get() instanceof ExprNewObject) {
-            ExprNewObject enew = (ExprNewObject) e.get();
+        if (e.get() instanceof ExprNewObject enew) {
             ConstructorDef constructorDef = enew.attrConstructorDef();
             if (constructorDef == null) {
                 actions.addAll(handleMissingClass(modelManager, enew.getTypeName()));
                 return actions;
             }
-        } else if (e.get() instanceof FuncRef) {
-            FuncRef fr = (FuncRef) e.get();
+        } else if (e.get() instanceof FuncRef fr) {
             FuncLink fd = fr.attrFuncLink();
             if (fd == null) {
                 actions.addAll(handleMissingFunction(modelManager, fr));
                 return actions;
             }
 
-        } else if (e.get() instanceof NameRef) {
-            NameRef nr = (NameRef) e.get();
+        } else if (e.get() instanceof NameRef nr) {
             NameLink nd = nr.attrNameLink();
             if (nd == null) {
                 actions.addAll(handleMissingName(modelManager, nr));
                 return actions;
             }
 
-        } else if (e.get() instanceof TypeExprSimple) {
-            TypeExprSimple nr = (TypeExprSimple) e.get();
+        } else if (e.get() instanceof TypeExprSimple nr) {
             TypeDef nd = nr.attrTypeDef();
             if (nd == null) {
                 actions.addAll(handleMissingType(modelManager, nr.getTypeName()));
                 return actions;
             }
 
-        } else if (e.get() instanceof ModuleUse) {
-            ModuleUse mu = (ModuleUse) e.get();
+        } else if (e.get() instanceof ModuleUse mu) {
             ModuleDef def = mu.attrModuleDef();
             if (def == null) {
                 actions.addAll(handleMissingModule(modelManager, mu.getModuleNameId().getName()));
@@ -350,8 +345,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         WurstModel model = modelManager.getModel();
         Set<String> possibleImports = new LinkedHashSet<>();
         WurstType receiverType = null;
-        if (nr instanceof ExprMember) {
-            ExprMember m = (ExprMember) nr;
+        if (nr instanceof ExprMember m) {
             receiverType = m.getLeft().attrTyp();
         }
         for (CompilationUnit cu : model) {
@@ -388,8 +382,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
     private List<Either<Command, CodeAction>> handleMissingFunction(ModelManager modelManager, FuncRef fr) {
         String funcName = fr.getFuncName();
         WurstType receiverType = null;
-        if (fr instanceof ExprMember) {
-            ExprMember m = (ExprMember) fr;
+        if (fr instanceof ExprMember m) {
             receiverType = m.getLeft().attrTyp();
         }
         WurstModel model = modelManager.getModel();
@@ -472,8 +465,8 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
             private void case_Member(ExprMemberMethod e) {
                 WurstType leftType = e.getLeft().attrTyp();
-                if (leftType instanceof WurstTypeClassOrInterface) {
-                    setClassInsertPos(((WurstTypeClassOrInterface) leftType).getDef());
+                if (leftType instanceof WurstTypeClassOrInterface wurstTypeClassOrInterface) {
+                    setClassInsertPos(wurstTypeClassOrInterface.getDef());
                 } else {
                     setPackageInsertPos(e);
                     receiverType = leftType.toPrettyString() + ".";
@@ -504,10 +497,10 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             }
 
             private String deriveParameterName(Expr expr) {
-                if (expr instanceof NameRef) {
-                    return ((NameRef) expr).getVarName();
-                } else if (expr instanceof FuncRef) {
-                    return ((FuncRef) expr).getFuncName();
+                if (expr instanceof NameRef nameRef) {
+                    return nameRef.getVarName();
+                } else if (expr instanceof FuncRef funcRef) {
+                    return funcRef.getFuncName();
                 }
                 String res = Utils.prettyPrint(expr).replaceAll("[^a-zA-Z]+", "");
                 if (res.length() > 10) {

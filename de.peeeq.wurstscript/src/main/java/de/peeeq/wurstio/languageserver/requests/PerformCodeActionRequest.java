@@ -22,12 +22,10 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
     private static final String IMPORT_PACKAGE = "IMPORT_PACKAGE";
     private static final String INSERT_CODE = "INSERT_CODE";
     private final WurstLanguageServer server;
-    private final ExecuteCommandParams params;
     private final List<Object> args;
 
     public PerformCodeActionRequest(WurstLanguageServer server, ExecuteCommandParams params) {
         this.server = server;
-        this.params = params;
         this.args = params.getArguments();
     }
 
@@ -85,14 +83,6 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
         List<Either<TextDocumentEdit, ResourceOperation>> documentChanges = Collections.singletonList(Either.forLeft(change));
         languageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(documentChanges)));
         return "ok";
-    }
-
-    public static JsonObject importPackageAction(String uriString, String imp) {
-        JsonObject jsonObject = new JsonObject();
-        jsonObject.addProperty("type", IMPORT_PACKAGE);
-        jsonObject.addProperty("uriString", uriString);
-        jsonObject.addProperty("import", imp);
-        return jsonObject;
     }
 
     public static JsonObject insertCodeAction(String uriString, int line, String insertedFunction) {

@@ -67,8 +67,4 @@ public class InterpreterException extends RuntimeException {
     public Element getTrace() {
         return trace;
     }
-
-    public String getWurstStackTrace() {
-        return stackTrace;
-    }
 }

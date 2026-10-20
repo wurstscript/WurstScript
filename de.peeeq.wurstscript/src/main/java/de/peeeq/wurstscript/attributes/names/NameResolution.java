@@ -21,10 +21,16 @@ public class NameResolution {
     }
 
     private static ImmutableCollection<DefLink> scopeNameLinks(WScope scope, String name) {
+        if (scope instanceof WPackage p) {
+            return NameLinks.importedNameLinks(p, name);
+        }
         return scope.attrNameLinks().get(name);
     }
 
     private static ImmutableCollection<TypeLink> scopeTypeLinks(WScope scope, String name) {
+        if (scope instanceof WPackage p) {
+            return TypeNameLinks.importedTypeLinks(p, name);
+        }
         return scope.attrTypeNameLinks().get(name);
     }
 
@@ -63,9 +69,9 @@ public class NameResolution {
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
-                if (n instanceof FuncLink && n.getReceiverType() == null) {
+                if (n instanceof FuncLink funcLink && n.getReceiverType() == null) {
                     if (seen.add(n.getDef())) {
-                        result.add((FuncLink) n);
+                        result.add(funcLink);
                     }
                 }
             }
@@ -124,8 +130,7 @@ public class NameResolution {
             return null;
         }
         WScope currentScope = scope;
-        if (currentScope instanceof ModuleInstanciation) {
-            ModuleInstanciation moduleInstanciation = (ModuleInstanciation) currentScope;
+        if (currentScope instanceof ModuleInstanciation moduleInstanciation) {
             return nextScope(moduleInstanciation.attrModuleOrigin());
         }
         return parent.attrNearestScope();
@@ -156,8 +161,8 @@ public class NameResolution {
         addMemberMethods(node, receiverType, name, fromType);
         for (FuncLink cand : fromType) {
             DefLink m = matchDefLinkReceiver(cand.withConfigDef(), receiverType, node, showErrors);
-            if (m instanceof FuncLink) {
-                result.add((FuncLink) m);
+            if (m instanceof FuncLink funcLink) {
+                result.add(funcLink);
             }
         }
 
@@ -182,10 +187,10 @@ public class NameResolution {
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
-                if (!(n instanceof FuncLink)) {
+                if (!(n instanceof FuncLink funcLink)) {
                     continue;
                 }
-                DefLink n2 = matchDefLinkReceiver(((FuncLink) n).withConfigDef(), receiverType, node, false);
+                DefLink n2 = matchDefLinkReceiver(funcLink.withConfigDef(), receiverType, node, false);
                 if (n2 != null) {
                     FuncLink f = (FuncLink) n2;
                     result.add(f);
@@ -232,15 +237,13 @@ public class NameResolution {
         }
 
         for (WScope s : scopes) {
-            if (s instanceof LoopStatementWithVarDef) {
-                LoopStatementWithVarDef loop = (LoopStatementWithVarDef) s;
+            if (s instanceof LoopStatementWithVarDef loop) {
                 if (!Utils.elementContained(Optional.of(node), loop.getBody())) {
                     continue;
                 }
             }
 
-            if (s instanceof StructureDef) {
-                StructureDef nearestStructureDef = (StructureDef) s;
+            if (s instanceof StructureDef nearestStructureDef) {
                 WurstTypeNamedScope receiverType = (WurstTypeNamedScope) nearestStructureDef.attrTyp();
                 for (DefLink link : receiverType.nameLinks(name)) {
                     if (!(link instanceof FuncLink)) {
@@ -342,9 +345,8 @@ public class NameResolution {
             return bestMatch.link;
         }
 
-        if (receiverType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
-            Collection<DefLink> typeNameLinks = ct.nameLinks().get(name);
+        if (receiverType instanceof WurstTypeClassOrInterface ct) {
+            Collection<DefLink> typeNameLinks = ct.nameLinks(name);
             DefLinkMatch candidate = findBestMemberVarMatch(typeNameLinks, receiverType, node, showErrors);
             if (candidate != null && candidate.link.getVisibility().isPublic()) {
                 return candidate.link;
@@ -416,36 +418,55 @@ public class NameResolution {
                 return distance;
             }
             OptTypeExpr extended = current.getExtendedClass();
-            if (!(extended instanceof TypeExpr)) {
+            if (!(extended instanceof TypeExpr typeExpr)) {
                 break;
             }
-            WurstType extendedType = ((TypeExpr) extended).attrTyp();
-            if (!(extendedType instanceof WurstTypeClass)) {
+            WurstType extendedType = typeExpr.attrTyp();
+            if (!(extendedType instanceof WurstTypeClass wurstTypeClass)) {
                 break;
             }
-            current = ((WurstTypeClass) extendedType).getClassDef();
+            current = wurstTypeClass.getClassDef();
             distance++;
         }
         return -1;
     }
 
-    private static @Nullable ClassDef owningClass(WurstType type) {
-        if (type instanceof WurstTypeClass) {
-            return ((WurstTypeClass) type).getClassDef();
+    /**
+     * Whether {@code type} is the module instantiation of a class which strictly extends the class
+     * owning the module instantiation {@code other}.
+     *
+     * <p>A function a class gets through {@code use Module} has that class's module instantiation as
+     * its receiver, and the instantiations in a class and in its superclass are unrelated types.
+     * Subtyping alone therefore cannot say which of two equal static functions hides the other.
+     * Both receivers have to be module instantiations: that is the only pair subtyping leaves
+     * unordered, and it keeps this from ever ranking an extension function against a member.
+     */
+    public static boolean isOwnedBySubclassOf(WurstType type, WurstType other) {
+        if (!(type instanceof WurstTypeModuleInstanciation) || !(other instanceof WurstTypeModuleInstanciation)) {
+            return false;
         }
-        if (type instanceof WurstTypeClassOrInterface) {
-            ClassOrInterface def = ((WurstTypeClassOrInterface) type).getDef();
-            if (def instanceof ClassDef) {
-                return (ClassDef) def;
+        ClassDef sub = owningClass(type);
+        ClassDef sup = owningClass(other);
+        return sub != null && sup != null && sub != sup && inheritanceDistance(sub, sup) > 0;
+    }
+
+    private static @Nullable ClassDef owningClass(WurstType type) {
+        if (type instanceof WurstTypeClass wurstTypeClass) {
+            return wurstTypeClass.getClassDef();
+        }
+        if (type instanceof WurstTypeClassOrInterface wurstTypeClassOrInterface) {
+            ClassOrInterface def = wurstTypeClassOrInterface.getDef();
+            if (def instanceof ClassDef classDef) {
+                return classDef;
             }
             return null;
         }
-        if (type instanceof WurstTypeModuleInstanciation) {
-            NamedScope inst = ((WurstTypeModuleInstanciation) type).getDef();
+        if (type instanceof WurstTypeModuleInstanciation wurstTypeModuleInstanciation) {
+            NamedScope inst = wurstTypeModuleInstanciation.getDef();
             return inst.attrNearestClassDef();
         }
-        if (type instanceof WurstTypeModule) {
-            ModuleDef moduleDef = ((WurstTypeModule) type).getDef();
+        if (type instanceof WurstTypeModule wurstTypeModule) {
+            ModuleDef moduleDef = wurstTypeModule.getDef();
             return moduleDef.attrNearestClassDef();
         }
         return null;
@@ -469,11 +490,11 @@ public class NameResolution {
         VariableBinding mapping = receiverType.matchAgainstSupertype(candRecv, node, seed, VariablePosition.RIGHT);
         if (mapping == null) return null;
 
-        WLogger.trace(() -> "[MATCHRECV] def=" + ((n instanceof FuncLink) ? ((FuncLink) n).getDef().getName() : n.getDef().getName())
+        WLogger.trace(() -> "[MATCHRECV] def=" + ((n instanceof FuncLink funcLink) ? funcLink.getDef().getName() : n.getDef().getName())
             + " left=" + receiverType
             + " candRecv=" + candRecv
             + " linkTypeParams=" + n.getTypeParams()
-            + (n instanceof FuncLink ? (" linkVB=" + ((FuncLink) n).getVariableBinding()) : ""));
+            + (n instanceof FuncLink funcLink ? (" linkVB=" + funcLink.getVariableBinding()) : ""));
 
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
@@ -484,19 +505,6 @@ public class NameResolution {
         }
 
         return n.withTypeArgBinding(node, mapping);
-    }
-
-    private static Iterable<TypeParamDef> typeParamsOfReceiverType(WurstType t) {
-        if (t instanceof WurstTypeClassOrInterface) {
-            return ((WurstTypeClassOrInterface) t).getDef().getTypeParameters();
-        }
-        if (t instanceof WurstTypeClass) {
-            return ((WurstTypeClass) t).getClassDef().getTypeParameters();
-        }
-        if (t instanceof WurstTypeInterface) {
-            return ((WurstTypeInterface) t).getInterfaceDef().getTypeParameters();
-        }
-        return java.util.Collections.emptyList();
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
@@ -565,8 +573,8 @@ public class NameResolution {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (NameLink n : scopeNameLinks(scope, name)) {
-                if (n instanceof PackageLink) {
-                    return (PackageLink) n;
+                if (n instanceof PackageLink packageLink) {
+                    return packageLink;
                 }
             }
             scope = nextScope(scope);

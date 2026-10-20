@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.translation.imtojass;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.*;
 
+import de.peeeq.wurstscript.parser.WPos;
+
 import java.util.List;
 
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
@@ -41,13 +43,11 @@ public class StatementTranslation {
 
     public static void translate(ImSet imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
         ImLExpr updatedExpr = imSet.getLeft();
-        if (updatedExpr instanceof ImVarAccess) {
-            ImVarAccess va = (ImVarAccess) updatedExpr;
+        if (updatedExpr instanceof ImVarAccess va) {
             JassVar var = translator.getJassVarFor(va.getVar());
             JassExpr exprs = imSet.getRight().translate(translator);
             stmts.add(JassStmtSet(var.getName(), exprs));
-        } else if (updatedExpr instanceof ImVarArrayAccess) {
-            ImVarArrayAccess vaa = (ImVarArrayAccess) updatedExpr;
+        } else if (updatedExpr instanceof ImVarArrayAccess vaa) {
             JassVar var = translator.getJassVarFor(vaa.getVar());
             JassExpr indexes = vaa.getIndexes().get(0).translate(translator);
             JassExpr exprs = imSet.getRight().translate(translator);
@@ -63,8 +63,7 @@ public class StatementTranslation {
 
 
     private static void addAllCalls(List<JassStatement> stmts, de.peeeq.wurstscript.jassAst.Element expr) {
-        if (expr instanceof JassExprFunctionCall) {
-            JassExprFunctionCall fc = (JassExprFunctionCall) expr;
+        if (expr instanceof JassExprFunctionCall fc) {
             stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
         } else {
             // visit children
@@ -77,7 +76,14 @@ public class StatementTranslation {
 
     public static void translate(ImStmts imStmts, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
         for (ImStmt s : imStmts) {
+            int first = stmts.size();
             s.translate(stmts, f, translator);
+            if (stmts.size() > first) {
+                WPos source = s.attrTrace().attrSource();
+                for (int i = first; i < stmts.size(); i++) {
+                    translator.recordSource(stmts.get(i), source);
+                }
+            }
         }
     }
 

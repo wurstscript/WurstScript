@@ -13,8 +13,7 @@ public class AttrTypeExprType {
     public static WurstType calculate(TypeExprSimple node) {
         WurstType baseType = getBaseType(node);
         if (node.getTypeArgs().size() > 0) {
-            if (baseType instanceof WurstTypeNamedScope) {
-                WurstTypeNamedScope ns = (WurstTypeNamedScope) baseType;
+            if (baseType instanceof WurstTypeNamedScope ns) {
                 return ns.replaceTypeVarsUsingTypeArgs(node.getTypeArgs());
             } else {
                 node.addError("Type " + baseType + " cannot have type args");
@@ -27,32 +26,12 @@ public class AttrTypeExprType {
     public static WurstType calculate(TypeExprThis node) {
         WurstType scopeType = node.getScopeType().attrTyp();
         Element scope;
-        if (scopeType instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope wtns = (WurstTypeNamedScope) scopeType;
+        if (scopeType instanceof WurstTypeNamedScope wtns) {
             scope = wtns.getDef();
         } else {
             scope = node;
         }
         return AttrExprType.caclulateThistype(scope, false, "thistype");
-//		ClassOrModule n = node.attrNearestClassOrModule();
-//		if (n == null) {
-//			node.addError("'thistype' can only be used in classes and modules.");
-//			return WurstTypeUnknown.instance();
-//		}
-//		return n.match(new ClassOrModule.Matcher<WurstType>() {
-//
-//			@Override
-//			public WurstType case_ClassDef(ClassDef classDef) {
-//				WurstTypeClass t = (WurstTypeClass) classDef.attrTyp();
-//				t.gett
-//			}
-//
-//			@Override
-//			public WurstType case_ModuleDef(ModuleDef moduleDef) {
-//				return new WurstTypeModule(moduleDef, true);
-//			}
-//
-//		});
     }
 
     public static WurstType calculate(NoTypeExpr optType) {

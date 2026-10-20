@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.PRESERVE_NAME;

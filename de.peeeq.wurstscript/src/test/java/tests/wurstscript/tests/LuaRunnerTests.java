@@ -63,7 +63,7 @@ public class LuaRunnerTests extends WurstScriptTest {
 
     /**
      * The same drain with the output arriving as one line rather than many. This checks that it
-     * finishes, which is what the two cases above check too — it does not observe how much of the
+     * finishes, which is what the two cases above check too; it does not observe how much of the
      * line was retained, and would pass against a collector that kept all of it. Keeping a bounded
      * amount is worth doing regardless, but a program printing a megabyte without a newline is not
      * something this suite expects, so it is not worth test-only machinery to assert.

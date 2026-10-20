@@ -2,7 +2,10 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
+import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.util.List;
 
 public class FlowAnalysisTests extends WurstScriptTest {
 
@@ -162,6 +165,41 @@ public class FlowAnalysisTests extends WurstScriptTest {
                 "        destroy this",
                 "        foo()"
         );
+    }
+
+    /**
+     * The never-read warnings of a body come in the order of the locals' declarations and, for each local, in source
+     * order: not in the order in which the branches reached the end of the body.
+     */
+    @Test
+    public void neverReadAssignmentWarningsComeInSourceOrder() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "native cond() returns boolean",
+                "native use(int x)",
+                "init",
+                "    var a = 0",
+                "    var b = 0",
+                "    use(a)",
+                "    use(b)",
+                "    if cond()",
+                "        b = 3",
+                "        a = 4",
+                "    else",
+                "        a = 5",
+                "        b = 6",
+                "endpackage"
+            );
+
+        List<String> neverRead = result.getGui().getWarningList().stream()
+            .filter(w -> w.getMessage().contains("is never read"))
+            .map(w -> w.getMessage().replaceAll(".*local variable (\\w+) .*", "$1") + "@" + w.getSource().getLine())
+            .toList();
+        Assert.assertEquals(neverRead, List.of("a@11", "a@13", "b@10", "b@14"),
+            "got: " + result.getGui().getWarningList());
     }
 
     @Test

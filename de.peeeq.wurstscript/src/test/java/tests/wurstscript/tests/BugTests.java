@@ -11,6 +11,12 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static de.peeeq.wurstscript.utils.Utils.string;
 
@@ -164,6 +170,45 @@ public class BugTests extends WurstScriptTest {
                 "function jassModulo takes real a, real b returns real",
                 "\treturn a % b",
                 "endfunction"));
+    }
+
+    /** Jass converts an integer stored into a real variable, so the division that follows is real. */
+    @Test
+    public void jassIntStoredIntoRealLocalDividesAsReal() {
+        test().testLua(true).luaOnly(false).executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassDiv takes integer n, integer m returns real",
+                "\tlocal real r = n",
+                "\treturn r / m",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassDiv(7, 2) > 3.4",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+    }
+
+    /** The same conversion keeps a product of the stored value from wrapping at 32 bits. */
+    @Test
+    public void jassIntStoredIntoRealGlobalMultipliesAsReal() {
+        test().testLua(true).luaOnly(false).executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\treal g",
+                "endglobals",
+                "function jassSquare takes integer n returns real",
+                "\tset g = n",
+                "\treturn g * g",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassSquare(65536) > 4000000000.",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
     }
 
     @Test
@@ -1725,6 +1770,101 @@ public class BugTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * ExecuteFunc runs its target on a new thread with an op limit of its own, so a loop through it is no recursion
+     * and its functions must not be merged into one, which turns each ExecuteFunc into a direct call.
+     */
+    @Test
+    public void executeFuncLoopIsNotMergedIntoOneFunction() throws IOException {
+        test().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native ExecuteFunc(string f)",
+            "int count = 0",
+            "function pingA()",
+            "    count++",
+            "    if count < 4",
+            "        ExecuteFunc(\"pingB\")",
+            "function pingB()",
+            "    count++",
+            "    ExecuteFunc(\"pingA\")",
+            "init",
+            "    pingA()",
+            "    if count == 5",
+            "        testSuccess()");
+        for (String variant : new String[]{"_no_opts", "_inlopt", "_stacktraceinlopt"}) {
+            String jass = Files.toString(new File(TEST_OUTPUT_PATH
+                + "BugTests_executeFuncLoopIsNotMergedIntoOneFunction" + variant + ".j"), Charsets.UTF_8);
+            Assert.assertFalse(jass.contains("funcChoice"), variant + ":\n" + jass);
+            Assert.assertTrue(jass.contains("ExecuteFunc(\"pingA\")") && jass.contains("ExecuteFunc(\"pingB\")"),
+                variant + ":\n" + jass);
+        }
+    }
+
+    /**
+     * An ExecuteFunc target which calls back into its caller is valid Jass: only the direct call orders the
+     * functions, and the input declares the caller first. pjass checks the order of the emitted script.
+     */
+    @Test
+    public void executeFuncTargetCallingBackIntoItsCallerCompiles() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "globals",
+                "\tinteger depth = 0",
+                "endglobals",
+                "native ExecuteFunc takes string funcName returns nothing",
+                "function dispatcher takes nothing returns nothing",
+                "\tcall ExecuteFunc(\"worker\")",
+                "endfunction",
+                "function worker takes nothing returns nothing",
+                "\tset depth = depth + 1",
+                "\tif depth < 3 then",
+                "\t\tcall dispatcher()",
+                "\tendif",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    dispatcher()",
+                "    if depth == 3",
+                "        testSuccess()",
+                "endpackage"));
+        String jass = Files.toString(new File(TEST_OUTPUT_PATH
+            + "BugTests_executeFuncTargetCallingBackIntoItsCallerCompiles_no_opts.j"), Charsets.UTF_8);
+        Assert.assertTrue(jass.contains("ExecuteFunc(\"worker\")"), jass);
+        Assert.assertTrue(jass.indexOf("function dispatcher takes") < jass.indexOf("function worker takes"), jass);
+    }
+
+    /**
+     * The same with the call back landing above the caller of ExecuteFunc: the target has to wait until everything
+     * it calls is emitted, not only its caller.
+     */
+    @Test
+    public void executeFuncTargetCallingBackAboveItsCallerCompiles() throws IOException {
+        test().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native ExecuteFunc(string f)",
+            "int depth = 0",
+            "function inner()",
+            "    ExecuteFunc(\"worker\")",
+            "function outer()",
+            "    inner()",
+            "function worker()",
+            "    depth++",
+            "    if depth < 3",
+            "        outer()",
+            "init",
+            "    outer()",
+            "    if depth == 3",
+            "        testSuccess()");
+        String jass = Files.toString(new File(TEST_OUTPUT_PATH
+            + "BugTests_executeFuncTargetCallingBackAboveItsCallerCompiles_no_opts.j"), Charsets.UTF_8);
+        Assert.assertTrue(jass.contains("ExecuteFunc(\"worker\")"), jass);
+        Assert.assertTrue(jass.indexOf("function Test_outer takes") < jass.indexOf("function worker takes"), jass);
+    }
+
     @Test
     public void agentTypeComparisonsWurst() {
         testAssertErrorsLinesWithStdLib(true, "Cannot compare types sound with rect",
@@ -1816,7 +1956,7 @@ public class BugTests extends WurstScriptTest {
 
 
     @Test
-    public void overloadsHiddenBySubclassName_onlyZeroArgSeen_errorsOnArgs() {
+    public void subclassOverloadsDoNotHideInheritedOverloads() {
         testAssertOkLines(true,
             "package Test",
             "native testSuccess()",
@@ -1941,7 +2081,7 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
-    public void linkedListModule_perClassStatics_andTyping_ok() {
+    public void linkedListModule_perClassStatics_andTyping_ok() throws IOException {
         testAssertOkLinesWithStdLib(true,
             "package Test",
             "import LinkedListModule",
@@ -1976,11 +2116,171 @@ public class BugTests extends WurstScriptTest {
             "        d = d.next        // type D",
             "",
             "init",
-            "    // We don’t rely on runtime behavior here—this test targets typing/name resolution.",
+            "    // We don’t rely on runtime behavior here; this test targets typing/name resolution.",
             "    // If all lines above typecheck and run, we count it as success:",
             "    doSmth()",
             "    testSuccess()"
         );
+        // Compiling is not enough: the loop over B has to call B's iterator, not the one B inherits.
+        Assert.assertEquals(
+            iteratorCallsInDoSmth(readJass("linkedListModule_perClassStatics_andTyping_ok", "no_opts"), "LinkedListModule"),
+            List.of("A", "B"));
+    }
+
+    /**
+     * B extends A and both use the module, so looking up the module's static {@code iterator} on B
+     * finds B's own and the one B inherits from A. A loop over B or a call on B has to take B's. The
+     * lookup used to leave that to the order of a hash set, so it depended on the identity hash codes
+     * of the AST nodes, which differ with every compilation. One compilation therefore passes most of
+     * the time even with the defect; compile the same program many times and check every result.
+     */
+    @Test
+    public void moduleStaticsOfSubclass_resolveToOwnClass_everyCompilation() throws IOException {
+        String[] variants = {"no_opts", "opt", "inl", "inlopt", "stacktraceinlopt"};
+        Map<String, String> first = new HashMap<>();
+        for (int run = 0; run < 40; run++) {
+            testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "",
+                "module Registry",
+                "    static thistype first = null",
+                "    thistype next = null",
+                "",
+                "    construct()",
+                "        next = first",
+                "        first = this",
+                "",
+                "    static function iterator() returns Iter",
+                "        return new Iter(first)",
+                "",
+                "    static class Iter",
+                "        Registry.thistype current",
+                "",
+                "        construct(Registry.thistype start)",
+                "            current = start",
+                "",
+                "        function hasNext() returns boolean",
+                "            return current != null",
+                "",
+                "        function next() returns Registry.thistype",
+                "            let res = current",
+                "            current = current.next",
+                "            return res",
+                "",
+                "        function close()",
+                "            destroy this",
+                "",
+                "class A",
+                "    use Registry",
+                "",
+                "class B extends A",
+                "    use Registry",
+                "",
+                "class C extends A",
+                "",
+                "class D extends C",
+                "    use Registry",
+                "",
+                "function doSmth()",
+                "    for a in A",
+                "        skip",
+                "    for b in B",
+                "        skip",
+                "    let itrB = B.iterator()",
+                "    itrB.close()",
+                "    let itrD = D.iterator()",
+                "    itrD.close()",
+                "",
+                "init",
+                "    doSmth()",
+                "    testSuccess()"
+            );
+
+            Map<String, String> jass = new HashMap<>();
+            for (String variant : variants) {
+                jass.put(variant, readJass("moduleStaticsOfSubclass_resolveToOwnClass_everyCompilation", variant));
+            }
+            // for A, for B, B.iterator(), D.iterator()
+            Assert.assertEquals(iteratorCallsInDoSmth(jass.get("no_opts"), "Registry"), List.of("A", "B", "B", "D"),
+                "compilation " + run + " resolved the module's iterator to the wrong class:\n" + jass.get("no_opts"));
+
+            if (run == 0) {
+                first.putAll(jass);
+            } else {
+                for (String variant : variants) {
+                    Assert.assertEquals(jass.get(variant), first.get(variant),
+                        "compilation " + run + " emitted other " + variant + " Jass than the first");
+                }
+            }
+        }
+    }
+
+    /**
+     * A loop takes the {@code iterator()} member a class inherits, not an extension function
+     * declared on the subclass: picking among the iterators by receiver must not cross from
+     * member methods to extensions.
+     */
+    @Test
+    public void forInIterator_prefersInheritedMemberOverExtension() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "int memberCalls = 0",
+            "",
+            "class MemberItr",
+            "    function hasNext() returns boolean",
+            "        memberCalls++",
+            "        return false",
+            "    function next() returns int",
+            "        return 0",
+            "    function close()",
+            "        destroy this",
+            "",
+            "class ExtensionItr",
+            "    function hasNext() returns boolean",
+            "        return false",
+            "    function next() returns int",
+            "        return 0",
+            "    function close()",
+            "        destroy this",
+            "",
+            "class A",
+            "    function iterator() returns MemberItr",
+            "        return new MemberItr()",
+            "",
+            "class B extends A",
+            "",
+            "function B.iterator() returns ExtensionItr",
+            "    return new ExtensionItr()",
+            "",
+            "init",
+            "    B b = new B()",
+            "    for x in b",
+            "        skip",
+            "    if memberCalls == 1",
+            "        testSuccess()"
+        );
+    }
+
+    private String readJass(String testName, String variant) throws IOException {
+        return Files.toString(new File(TEST_OUTPUT_PATH + "BugTests_" + testName + "_" + variant + ".j"), Charsets.UTF_8);
+    }
+
+    /**
+     * The classes {@code doSmth} takes a per-class {@code iterator} of, in call order. Only the
+     * script emitted without optimisations still has these calls to read.
+     */
+    private static List<String> iteratorCallsInDoSmth(String jass, String module) {
+        Matcher doSmth = Pattern.compile("function doSmth takes nothing returns nothing(.*?)endfunction",
+            Pattern.DOTALL).matcher(jass);
+        Assert.assertTrue(doSmth.find(), jass);
+        Matcher calls = Pattern.compile("\\b(\\w)_" + module + "_iterator\\w*\\(\\)").matcher(doSmth.group(1));
+        List<String> classes = new ArrayList<>();
+        while (calls.find()) {
+            classes.add(calls.group(1));
+        }
+        return classes;
     }
 
     @Test

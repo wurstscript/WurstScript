@@ -15,7 +15,18 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
-        maven { url 'https://jitpack.io' }
+        def jitpack = maven { url 'https://jitpack.io' }
+        exclusiveContent {
+            forRepositories(jitpack)
+            // Commit-pinned GitHub artifacts are published by JitPack.
+            filter {
+                includeModule('com.github.inwc3', 'JMPQ3')
+                includeModule('com.github.inwc3', 'wc3libs')
+                includeModule('com.github.wurstscript', 'wurst-project-config')
+                includeModule('com.github.peterzeller', 'abstractsyntaxgen')
+                includeModule('com.github.peterzeller', 'java-smallcheck')
+            }
+        }
     }
 }
 

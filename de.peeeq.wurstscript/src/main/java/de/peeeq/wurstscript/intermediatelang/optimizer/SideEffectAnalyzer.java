@@ -262,6 +262,7 @@ public class SideEffectAnalyzer {
      */
     public Set<ImFunction> directlyCalledFunctions(Element e) {
         Set<ImFunction> calledFunctions = new LinkedHashSet<>();
+        Set<ImMethod> visitedMethods = new LinkedHashSet<>();
         e.accept(new ImFunction.DefaultVisitor() {
 
             @Override
@@ -273,11 +274,33 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImMethodCall c) {
                 super.visit(c);
-                calledFunctions.add(c.getMethod().getImplementation());
+                collectImplementations(c.getMethod(), visitedMethods, calledFunctions);
             }
         });
         return calledFunctions;
 
+    }
+
+    private void collectImplementations(ImMethod method, Set<ImMethod> visited, Set<ImFunction> functions) {
+        if (!visited.add(method)) {
+            return;
+        }
+        functions.add(method.getImplementation());
+        for (ImMethod subMethod : method.getSubMethods()) {
+            collectImplementations(subMethod, visited, functions);
+        }
+    }
+
+    private static boolean hasObjectLifetimeEffects(Element elem) {
+        if (elem instanceof ImAlloc || elem instanceof ImDealloc) {
+            return true;
+        }
+        for (int i = 0; i < elem.size(); i++) {
+            if (hasObjectLifetimeEffects(elem.get(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -363,35 +386,6 @@ public class SideEffectAnalyzer {
     /**
      * Variables directly used in e
      */
-    public Set<ImVar> directlyAccessedVariables(Element e) {
-        Set<ImVar> imVars = new LinkedHashSet<>();
-        e.accept(new ImStmt.DefaultVisitor() {
-
-            @Override
-            public void visit(ImVarAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
-            public void visit(ImVarArrayAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
-            public void visit(ImMemberAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-        });
-        return imVars;
-    }
-
-    /**
-     * Variables directly used in e
-     */
     public Set<ImVar> directlySetVariables(Element e) {
         Set<ImVar> imVars = new LinkedHashSet<>();
         e.accept(new ImStmt.DefaultVisitor() {
@@ -412,27 +406,6 @@ public class SideEffectAnalyzer {
         return imVars;
     }
 
-
-    /**
-     * Checks if two statements might affect each other.
-     * When this returns true, it is certain that it does not matter whether stmt1 or stmt2 are called first
-     * <p>
-     * The only difference between executing stmt1; stmt2 vs stmt2; stmt1 would be if one of the statement
-     * crashes and thus the second statement would not be executed.
-     * But for optimizations, we assume the program already is correct and thus we can ignore crashes.
-     */
-    public boolean mightAffect(ImStmt stmt1, ImStmt stmt2) {
-        if (!calledNatives(stmt1).isEmpty() || !calledNatives(stmt2).isEmpty()) {
-            // there are natives that can affect other natives
-            // be safe
-            return true;
-        }
-        Set<ImVar> used1 = usedVariables(stmt1);
-        Set<ImVar> used2 = usedVariables(stmt2);
-
-        // check that there are no variables, that both use
-        return used1.stream().anyMatch(used2::contains);
-    }
 
     /**
      * Checks if the given statement cannot use the variable v
@@ -456,7 +429,7 @@ public class SideEffectAnalyzer {
         Set<ImFunction> natives = calledNatives(elem);
         Set<ImFunction> directFuncs = calledFunctions(elem);
         Set<ImVar> imVars = directlySetVariables(elem);
-        return natives.size() + directFuncs.size() + imVars.size() > 0;
+        return natives.size() + directFuncs.size() + imVars.size() > 0 || hasObjectLifetimeEffects(elem);
     }
 
     /**
@@ -477,7 +450,7 @@ public class SideEffectAnalyzer {
         }
 
         private boolean hasSideEffects(Element elem) {
-            if (!directlySetVariables(elem).isEmpty()) {
+            if (!directlySetVariables(elem).isEmpty() || hasObjectLifetimeEffects(elem)) {
                 return true;
             }
             for (ImFunction nativeFunc : calledNatives(elem)) {
@@ -518,7 +491,7 @@ public class SideEffectAnalyzer {
         }
 
         private boolean hasGlobalSideEffects(Element elem) {
-            if (hasMemberWrites(elem)) {
+            if (hasMemberWrites(elem) || hasObjectLifetimeEffects(elem)) {
                 return true;
             }
             for (ImVar var : directlySetVariables(elem)) {
@@ -555,13 +528,13 @@ public class SideEffectAnalyzer {
                     if (left instanceof ImMemberAccess) {
                         return true;
                     }
-                    if (left instanceof ImTupleSelection) {
-                        ImExpr tupleExpr = ((ImTupleSelection) left).getTupleExpr();
-                        return tupleExpr instanceof ImLExpr && isMemberWrite((ImLExpr) tupleExpr);
+                    if (left instanceof ImTupleSelection imTupleSelection) {
+                        ImExpr tupleExpr = imTupleSelection.getTupleExpr();
+                        return tupleExpr instanceof ImLExpr imLExpr && isMemberWrite(imLExpr);
                     }
-                    if (left instanceof ImTupleExpr) {
-                        for (ImExpr expr : ((ImTupleExpr) left).getExprs()) {
-                            if (expr instanceof ImLExpr && isMemberWrite((ImLExpr) expr)) {
+                    if (left instanceof ImTupleExpr imTupleExpr) {
+                        for (ImExpr expr : imTupleExpr.getExprs()) {
+                            if (expr instanceof ImLExpr imLExpr && isMemberWrite(imLExpr)) {
                                 return true;
                             }
                         }

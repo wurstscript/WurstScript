@@ -24,10 +24,12 @@ public class PlayerProvider extends Provider {
     }
 
     public void SetPlayerState(IlConstHandle player, IlConstHandle playerstate, ILconstInt value) {
-        if (player == null || playerstate == null) {
+        if (player == null) {
             return;
         }
-        String key = playerstate.print();
+        // Measured on the 3.0.0 client: a null state is id 0, the game result (SetPlayerState(Player(1), null, 2)
+        // then reads 2 through PLAYER_STATE_GAME_RESULT), as GetPlayerState reads it and the Lua backend passes it on.
+        String key = playerStateKey(playerstate);
         if (key.equals("playerstate1") || key.equals("playerstate2")) {
             // Measured on the 3.0.0 client: gold and lumber are clamped to 0.
             value = ILconstInt.create(Math.max(0, value.getVal()));
@@ -35,11 +37,19 @@ public class PlayerProvider extends Provider {
         ((PlayerMock) player.getObj()).playerStates.put(key, value);
     }
 
+    /** Measured on the 3.0.0 client: a null player state is id 0, PLAYER_STATE_GAME_RESULT, which is 3
+     *  (PLAYER_GAME_RESULT_NEUTRAL) while the game runs. */
     public ILconstInt GetPlayerState(IlConstHandle player, IlConstHandle playerstate) {
-        if (player == null || playerstate == null) {
+        if (player == null) {
             return ILconstInt.create(0);
         }
-        return ((PlayerMock) player.getObj()).playerStates.getOrDefault(playerstate.print(), ILconstInt.create(0));
+        String key = playerStateKey(playerstate);
+        ILconstInt unset = ILconstInt.create(key.equals("playerstate0") ? 3 : 0);
+        return ((PlayerMock) player.getObj()).playerStates.getOrDefault(key, unset);
+    }
+
+    private static String playerStateKey(IlConstHandle playerstate) {
+        return playerstate == null ? "playerstate0" : playerstate.print();
     }
 
     public IlConstHandle GetPlayerSlotState(IlConstHandle player) {

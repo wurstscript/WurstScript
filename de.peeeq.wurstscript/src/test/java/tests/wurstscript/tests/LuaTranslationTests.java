@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -62,13 +63,18 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function call to function " + functionName + " with arguments (" + arguments + ") was not found.", findAtLeastOne);
     }
 
+    /** Matches each definition of {@code functionName}; group 2 is its body, up to the {@code end} indented like it. */
+    private static Matcher functionBodies(String output, String functionName) {
+        return Pattern.compile("(?m)^([ \\t]*)(?:local\\s+)?function\\s*" + functionName + "\\s*\\(.*\\).*\\n"
+            + "((?:\\n|.)*?)^\\1end\\b").matcher(output);
+    }
+
     private void assertFunctionBodyContains(String output, String functionName, String search, boolean mustContain) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
-        Matcher matcher = pattern.matcher(output);
+        Matcher matcher = functionBodies(output, functionName);
         boolean found = false;
         while (matcher.find()) {
             found = true;
-            String body = matcher.group(1);
+            String body = matcher.group(2);
             if(!body.contains(search) && mustContain) {
                 fail("Function " + functionName + " must contain " + search + ".");
             }
@@ -79,18 +85,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
-    /** Skip the calling test when selective GetHandleId shimming is disabled. */
-    private static void requireSelectiveGetHandleIdShimming() {
-        if (!de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING) {
-            throw new org.testng.SkipException("Skipped: selective GetHandleId shimming is disabled (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING=false)");
-        }
-    }
-
-    /**
-     * Returns the text of the __wurst_init_bootstrap function (it is the last
-     * function in the generated output; getFunctionBody cannot be used because
-     * the guard line "if ... then return end" contains an early 'end').
-     */
+    /** Returns the output from the __wurst_init_bootstrap function on (it is the last function in the output). */
     private String bootstrapSection(String compiled) {
         int pos = compiled.indexOf("function __wurst_init_bootstrap(");
         assertTrue("expected a __wurst_init_bootstrap function", pos >= 0);
@@ -98,12 +93,11 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private String getFunctionBody(String output, String functionName) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
-        Matcher matcher = pattern.matcher(output);
+        Matcher matcher = functionBodies(output, functionName);
         if (!matcher.find()) {
             fail("Function " + functionName + " was not found.");
         }
-        return matcher.group(1);
+        return matcher.group(2);
     }
 
     private void assertDoesNotContainRegex(String output, String regex) {
@@ -176,10 +170,13 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private List<String> subclassCreateClasses(String output, String baseName) {
-        Matcher matcher = Pattern.compile("function\\s+(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+):create\\d*\\s*\\(").matcher(output);
+        // a class with its own allocator, or one which allocates with the shared one
+        String ownerPattern = "(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+)";
+        Matcher matcher = Pattern.compile("function\\s+" + ownerPattern + ":create\\d*\\s*\\(|__wurst_allocObject\\(" + ownerPattern + "\\)")
+            .matcher(output);
         List<String> result = new ArrayList<>();
         while (matcher.find()) {
-            String owner = matcher.group(1);
+            String owner = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
             if (!result.contains(owner)) {
                 result.add(owner);
             }
@@ -388,15 +385,11 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * {@code ..} is right associative, so {@code (a .. b) .. c} is not {@code a .. b .. c}; a chain
-     * of comparisons reads as a range check but compares a boolean; unary operators print their
-     * operand in parentheses. None of them joins a chain.
+     * A chain of comparisons reads as a range check but compares a boolean; unary operators print
+     * their operand in parentheses. Neither joins a chain.
      */
     @Test
-    public void concatenationComparisonsAndUnaryOperatorsKeepTheirParentheses() {
-        assertEquals("((a .. b) .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
-        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
-        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+    public void comparisonsAndUnaryOperatorsKeepTheirParentheses() {
         assertEquals("((a < b) == c)", renderLuaExpr(equal(less(v("a"), v("b")), v("c"))));
         assertEquals("((a == b) == c)", renderLuaExpr(equal(equal(v("a"), v("b")), v("c"))));
         assertEquals("(-(a) - b)", renderLuaExpr(
@@ -420,6 +413,70 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(rendered.endsWith(" + t" + (terms - 1) + ")"));
     }
 
+    /**
+     * A left-nested concatenation prints flat, one CONCAT instead of one per operator. The text
+     * parses as {@code a .. (b .. c)} because {@code ..} is right associative, which gives the same
+     * string: the backend only joins strings. A right operand, which already is one CONCAT with its
+     * left neighbours, and another operator as an operand keep their parentheses.
+     */
+    @Test
+    public void leftNestedConcatenationPrintsFlat() {
+        assertEquals("(a .. b .. c)", renderLuaExpr(concat(concat(v("a"), v("b")), v("c"))));
+        assertEquals("(a .. b .. c .. d)",
+            renderLuaExpr(concat(concat(concat(v("a"), v("b")), v("c")), v("d"))));
+        assertEquals("(a .. (b .. c))", renderLuaExpr(concat(v("a"), concat(v("b"), v("c")))));
+        assertEquals("(a .. b .. (c .. d))",
+            renderLuaExpr(concat(concat(v("a"), v("b")), concat(v("c"), v("d")))));
+        assertEquals("((a + b) .. c)", renderLuaExpr(concat(plus(v("a"), v("b")), v("c"))));
+        assertEquals("((a or b) .. c .. (d or e))",
+            renderLuaExpr(concat(concat(or(v("a"), v("b")), v("c")), or(v("d"), v("e")))));
+    }
+
+    /**
+     * A flat concatenation is one parser level per operator and one register per operand, so a long
+     * chain is split into groups of sixteen, and those into groups again: luac stops at 200 levels
+     * and a function has 255 registers.
+     */
+    @Test
+    public void aLongConcatenationIsGroupedWithinLuaLimits() {
+        LuaExpr chain = v("t0");
+        for (int i = 1; i < 20; i++) {
+            chain = concat(chain, v("t" + i));
+        }
+        StringBuilder expected = new StringBuilder("((t0");
+        for (int i = 1; i < 16; i++) {
+            expected.append(" .. t").append(i);
+        }
+        expected.append(") .. (t16 .. t17 .. t18 .. t19))");
+        assertEquals(expected.toString(), renderLuaExpr(chain));
+
+        int terms = 5000;
+        chain = v("t0");
+        for (int i = 1; i < terms; i++) {
+            chain = concat(chain, v("t" + i));
+        }
+        String rendered = renderLuaExpr(chain);
+        assertEquals(terms - 1, countOccurrences(rendered, " .. "));
+        int depth = 0;
+        int maxDepth = 0;
+        int longestRun = 0;
+        int run = 0;
+        for (int i = 0; i < rendered.length(); i++) {
+            char ch = rendered.charAt(i);
+            if (ch == '(') {
+                maxDepth = Math.max(maxDepth, ++depth);
+                run = 0;
+            } else if (ch == ')') {
+                depth--;
+                run = 0;
+            } else if (rendered.startsWith(" .. ", i)) {
+                longestRun = Math.max(longestRun, ++run);
+            }
+        }
+        assertEquals("5000 parts are four levels of groups", 4, maxDepth);
+        assertTrue("no group joins more than sixteen operands: " + longestRun, longestRun < 16);
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -430,8 +487,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_testStdLib.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
-        assertTrue(compiled.contains("function __wurst_InitHashtable("));
-        assertTrue(compiled.contains("function __wurst_SaveInteger("));
+        // The library's hashtables are created and filled where it uses them (LuaHashtableTranslation).
+        assertTrue(compiled.contains(" = ({__wurst_ht_int=({}), __wurst_ht_bool=({}), __wurst_ht_real=({}), "
+            + "__wurst_ht_str=({}), __wurst_ht_handle=({}), __wurst_ht_htype=({}), })"));
+        assertTrue(compiled.contains("local function __wurst_htNewChild("));
+        assertFalse(compiled.contains("function __wurst_InitHashtable("));
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -484,6 +545,53 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaStacktraceEmissionHonorsBuildOptions() {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "native BJDebugMsg(string msg)",
+            "function getStackTraceString() returns string",
+            "    return \"unlowered intrinsic\"",
+            "public function error(string msg)",
+            "    BJDebugMsg(msg + getStackTraceString())"));
+        String[][] options = {
+            {"-lua"},
+            {"-lua", "-inline", "-localOptimizations"},
+            {"-lua", "-stacktraces", "-nodebug"},
+            {"-lua", "-stacktraces"},
+            {"-lua", "-stacktraces", "-inline", "-localOptimizations"}
+        };
+        for (int i = 0; i < options.length; i++) {
+            String compiled = compileLuaWithCUs(
+                "LuaTranslationTests_luaStacktraceEmissionHonorsBuildOptions_" + i,
+                false, Collections.singletonList(errorHandling), new RunArgs(options[i]),
+                "package Test",
+                "import ErrorHandling",
+                "native apply(code c)",
+                "init",
+                "    error(\"direct\")",
+                "    apply(() -> error(\"callback\"))");
+            assertFalse("stacktrace marker leaked for options " + i, compiled.contains("$Stacktrace$"));
+            assertFalse(compiled.contains("unlowered intrinsic"));
+            boolean instrumented = i >= 3;
+            assertEquals("stack storage for options " + i, instrumented, compiled.contains("wurst_stack"));
+            assertEquals("trace formatting for options " + i, instrumented, compiled.contains(" Stacktrace:"));
+            assertTrue("callback error boundary must be retained", compiled.contains("lua callback error: "));
+        }
+    }
+
+    @Test
+    public void luaDisabledStacktraceReturnsEmptyString() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function getStackTraceString() returns string",
+            "    return \"unlowered intrinsic\"",
+            "init",
+            "    if getStackTraceString() == \"\"",
+            "        testSuccess()");
+    }
+
+    @Test
     public void luaErrorWrappersAvoidUnavailableNativeTraceback() throws IOException {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler",
@@ -497,6 +605,119 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    fail()"
         );
         assertFalse(compiled.contains("debug.traceback"));
+    }
+
+    /**
+     * The game's Lua is not the test runtime's Lua. The tests run a stock Lua with every library, while
+     * the game is reported to withhold debug and collectgarbage, and nothing in emitted code needs io, os,
+     * package or require, which are not known to exist there. A test which executes the emitted script
+     * cannot notice a helper that reaches for one, so assert it on the text instead, over a program that
+     * makes the backend emit its helpers: object management, dispatch, callback boundaries, the error
+     * handler and stack positions. Helpers emitted only on demand are out of this program's reach:
+     * {@link #noLuaBackendLiteralNamesALibraryTheGameWithholds} scans for those. See docs/WC3_RUNTIME.md.
+     */
+    @Test
+    public void emittedLuaUsesOnlyLibrariesTheGameProvides() {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "public function error(string msg)",
+            "    skip"));
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_emittedLuaUsesOnlyLibrariesTheGameProvides",
+            false,
+            Collections.singletonList(errorHandling),
+            "package Test",
+            "import ErrorHandling",
+            "native apply(code c)",
+            "native I2S(int i) returns string",
+            "interface Shape",
+            "    function area() returns int",
+            "class Square implements Shape",
+            "    int side",
+            "    construct(int side)",
+            "        this.side = side",
+            "    override function area() returns int",
+            "        return side * side",
+            "    ondestroy",
+            "        skip",
+            "function describe(Shape s, string label) returns string",
+            "    return label + \": \" + I2S(s.area())",
+            "init",
+            "    let s = new Square(3)",
+            "    apply(() -> error(\"callback\"))",
+            "    error(describe(s, \"init\"))",
+            "    destroy s"
+        );
+        String withheld = firstWithheldLibraryUse(compiled);
+        if (withheld != null) {
+            fail("emitted Lua uses `" + withheld + "`, which the game does not provide:\n" + compiled);
+        }
+    }
+
+    /**
+     * Everything the backend emits starts as a string literal under translation/, whether or not a program
+     * makes it emit: a native only when it is referenced, an old-generics cast helper only when a cast cannot
+     * be written inline. The output of any one program, or of the whole suite, cannot show that no helper
+     * reaches for a library the game withholds, so scan the literals themselves.
+     */
+    @Test
+    public void noLuaBackendLiteralNamesALibraryTheGameWithholds() throws IOException {
+        Pattern literal = Pattern.compile("\"((?:[^\"\\\\]|\\\\.)*)\"");
+        Pattern bareName = Pattern.compile("os|io|debug|package|require|collectgarbage|dofile|loadfile");
+        // lists of names to protect or avoid, not emitted code
+        Set<String> nameLists = Set.of("LuaReservedNames.java", "RestrictedCompressedNames.java");
+        // The shim which ends a test run. A map never declares testSuccess, so it is not emitted into one.
+        // Exempt only the os.exit() inside the testSuccess registration, not any other literal in the file.
+        String testOnlyFile = "LuaNatives.java";
+        String testOnlyRegistration = "addNative(\"testSuccess\"";
+        String testOnlyText = "os.exit()";
+        List<String> found = new ArrayList<>();
+        try (java.util.stream.Stream<java.nio.file.Path> walk =
+                 java.nio.file.Files.walk(java.nio.file.Paths.get("src/main/java/de/peeeq/wurstscript/translation"))) {
+            List<java.nio.file.Path> sources = walk.filter(p -> p.toString().endsWith(".java"))
+                .sorted().collect(Collectors.toList());
+            for (java.nio.file.Path source : sources) {
+                String fileName = source.getFileName().toString();
+                if (nameLists.contains(fileName)) {
+                    continue;
+                }
+                List<String> lines = java.nio.file.Files.readAllLines(source);
+                String registration = ""; // the addNative(...) line whose body is being read
+                for (int i = 0; i < lines.size(); i++) {
+                    if (lines.get(i).contains("addNative(")) {
+                        registration = lines.get(i);
+                    }
+                    String trimmed = lines.get(i).trim();
+                    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
+                        continue;
+                    }
+                    Matcher quoted = literal.matcher(lines.get(i));
+                    while (quoted.find()) {
+                        String text = quoted.group(1);
+                        boolean withheld = bareName.matcher(text).matches() || firstWithheldLibraryUse(text) != null;
+                        boolean testOnly = fileName.equals(testOnlyFile) && text.equals(testOnlyText)
+                            && registration.contains(testOnlyRegistration);
+                        if (withheld && !testOnly) {
+                            found.add(source.getFileName() + ":" + (i + 1) + ": \"" + text + "\"");
+                        }
+                    }
+                }
+            }
+        }
+        assertTrue("the Lua backend names a library or function the game does not provide. If it only exists "
+            + "for tests, exempt it in this test:\n" + String.join("\n", found), found.isEmpty());
+    }
+
+    /**
+     * The first use of a library or function the game withholds in {@code lua}, or null. Any occurrence
+     * counts, inside a Lua string or comment too: a string can be run with {@code load}, so skipping strings
+     * would let a use through unseen, while a false alarm is loud and cheap to exempt in the caller.
+     */
+    private static String firstWithheldLibraryUse(String lua) {
+        Matcher withheld = Pattern.compile(
+            "(?<![\\w.])(?:debug|io|package|os)\\s*\\.\\s*\\w+"
+                + "|(?<![\\w.])(?:collectgarbage|dofile|loadfile|require)\\s*\\(").matcher(lua);
+        return withheld.find() ? withheld.group() : null;
     }
 
     @Test
@@ -1625,7 +1846,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaClassDispatchTablesAreInitializedInsideMain() throws IOException {
-        // The call goes through the interface, so it reads a slot and A's table binds one.
+        // The call goes through the interface, so it reads a slot and A's table binds one; the instanceof and
+        // the type id read the metadata.
         test().testLua(true).lines(
             "package Test",
             "interface I",
@@ -1635,7 +1857,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "init",
             "    I a = new A()",
-            "    if a.f() > 0",
+            "    if a.f() > 0 and a instanceof A and a.typeId != 0",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassDispatchTablesAreInitializedInsideMain.lua"), Charsets.UTF_8);
@@ -1655,7 +1877,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void luaDeferredBootstrapRunsBeforeInitGlobalsInMain() throws IOException {
-        // The call goes through the interface, so it reads a slot and C's table binds one.
+        // The call goes through the interface, so it reads a slot and C's table binds one; the instanceof and
+        // the type id read the metadata.
         test().testLua(true).lines(
             "package Test",
             "interface I",
@@ -1665,7 +1888,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        return 1",
             "init",
             "    I c = new C()",
-            "    if c.f() > 0",
+            "    if c.f() > 0 and c instanceof C and c.typeId != 0",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaDeferredBootstrapRunsBeforeInitGlobalsInMain.lua"), Charsets.UTF_8);
@@ -1689,9 +1912,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).lines(
             "package Test",
             "class A",
+            // an array field's table is made on allocation, so A has an allocator of its own
+            "    int array[2] cells",
             "init",
             "    let a = new A()",
-            "    if a == null",
+            "    a.cells[1] = 3",
+            "    if a.cells[1] == 2",
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassTablesExistBeforeCreateMethodDefinitions.lua"), Charsets.UTF_8);
@@ -2233,7 +2459,13 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideGlobalStateReproUnits());
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
 
-        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "FSM_FSM_update"));
+        // update dispatches the global state and then the current state, both through the root slot.
+        String update = getFunctionBody(compiled, "FSM_FSM_update");
+        assertEquals("FSM update must dispatch the global and the current state: " + update,
+            2, countMatches(update, DISPATCH_CALL_SITE));
+        List<String> slots = uniqueMatches(update, DISPATCH_CALL_SITE, 1);
+        assertEquals("FSM update must dispatch both states through one slot: " + slots, 1, slots.size());
+        String dispatchedSlot = slots.get(0);
         assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
 
         assertContainsRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*GlobalCheckState_GlobalCheckState_update");
@@ -2393,8 +2625,8 @@ public class LuaTranslationTests extends WurstScriptTest {
      * <p>Stack-trace injection appends a parameter to every affected function, and on Lua that is
      * every non-native function, so the exact signatures the keyed-table operations are recognised
      * by stop matching once it has run. Nothing reported that when it happened: the Jass bodies
-     * simply survived onto Lua, where `wurstKeyOf` is never lowered and answers with its
-     * placeholder, so every element shared one key and a set claimed to contain everything.
+     * simply survived onto Lua, where `wurstKeyOf` then answered with its placeholder, so every
+     * element shared one key and a set claimed to contain everything.
      *
      * <p>A release build emits stack traces by default, so this was the common case.
      */
@@ -2470,6 +2702,29 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
     }
 
+    /**
+     * A concatenation lowered to the nil-safe helper is a call the IM operator it replaces did not
+     * have, so its stack-trace position comes from the enclosing statement. It used to be empty.
+     */
+    @Test
+    public void aLoweredConcatenationKeepsItsPositionInAStackTrace() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "function describe(int a) returns string",
+            "    return getStackTraceString() + a.toString()",
+            "init",
+            "    print(describe(1))",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_aLoweredConcatenationKeepsItsPositionInAStackTrace.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("the concatenation should go through the helper",
+            compiled.contains("\"when calling __wurst_stringConcat in aLoweredConcatenationKeepsItsPositionInAStackTrace, line 3\""));
+        assertFalse("no helper call may lose its position", compiled.contains("\"when calling __wurst_stringConcat\""));
+    }
+
     @Test
     public void keyedTableStaysNativeWithStackTraces() throws IOException {
         test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
@@ -2491,12 +2746,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("contains must still be a single index",
             getFunctionBody(compiled, "__wurst_keyedTableContains").contains("] ~= nil"));
 
-        // The Jass body is the failure mode. On a keyed set it keys through wurstKeyOf, which is
-        // never lowered on Lua, so every element would collapse onto the same key. Scoped to the
-        // caller: Table itself is compiled in and legitimately uses the hashtable natives.
+        // The Jass body is the failure mode: a hashtable call per operation where Lua needs one
+        // index. Scoped to the caller: Table itself is compiled in and legitimately uses the
+        // hashtable natives.
         String init = getFunctionBody(compiled, "init_Test");
         assertFalse("the caller must not reach the hashtable natives: " + init,
-            init.contains("SaveBoolean") || init.contains("LoadBoolean"));
+            init.contains("SaveBoolean") || init.contains("LoadBoolean") || init.contains("__wurst_ht_"));
         assertTrue("the caller must call the stubs directly: " + init,
             init.contains("__wurst_keyedTableContains"));
     }
@@ -2540,7 +2795,7 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         // The Jass body must not survive: it would destroy a Table that does not exist here.
         assertFalse("the Table machinery must not reach Lua: " + init,
-            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
+            init.contains("FlushChildHashtable") || init.contains("__wurst_ht_") || init.contains("Table_destroy"));
     }
 
     /**
@@ -3166,6 +3421,34 @@ public class LuaTranslationTests extends WurstScriptTest {
             1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
     }
 
+    /**
+     * A client-local value and a synchronised one with disjoint live ranges share one local as well: on every
+     * client the local holds what each of them held.
+     */
+    @Test
+    public void luaLocalMergerReusesSlotsAcrossLocality() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerReusesSlotsAcrossLocality",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "@extern native takesPlayer(player p)",
+            "@noinline function caller()",
+            "    let first = GetLocalPlayer()",
+            "    takesPlayer(first)",
+            "    let second = Player(0)",
+            "    takesPlayer(second)",
+            "init",
+            "    caller()"
+        );
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertEquals("a client-local and a synchronised value with disjoint live ranges share one Lua register:\n"
+            + callerBody, 1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
+    }
+
     @Test
     public void luaLocalMergerKeepsTupleVarargLoopBindingsDistinct() {
         List<String> lines = new ArrayList<>();
@@ -3303,8 +3586,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bchoose\\s*\\(\\s*randomBool\\s*\\(\\s*\\)\\s*,\\s*40\\s*\\)");
         // The return ends its path, so the call is an if with an else and leaves no done flag.
         assertDoesNotContainRegex(compiled, "inlineDone");
-        // Both returns are inlined; the optimiser merges the result variable away.
-        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+\\w+ = \\(\\w+ \\+ 2\\)");
+        // Both returns are inlined, the argument is propagated into each and folded, and the optimiser merges the
+        // result variable away: both branches assign the same local.
+        assertContainsRegex(compiled, "(\\w+) = 41\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\1 = 42");
     }
 
     @Test
@@ -3329,8 +3613,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bchoose\\s*\\(\\s*randomBool\\s*\\(\\s*\\)\\s*,\\s*40\\s*\\)");
         // The return ends its path, so the call is an if with an else and leaves no done flag.
         assertDoesNotContainRegex(compiled, "inlineDone");
-        // Both returns are inlined; the optimiser merges the result variable away.
-        assertContainsRegex(compiled, "\\+ 1\\)\\s+else\\s+\\w+ = \\(\\w+ \\+ 2\\)");
+        // Both returns are inlined, the argument is propagated into each and folded, and the optimiser merges the
+        // result variable away: both branches assign the same local.
+        assertContainsRegex(compiled, "(\\w+) = 41\\s+else\\s+(?:wurst_stack_depth = [^\\n]+\\s+)?\\1 = 42");
     }
 
     @Test
@@ -3413,11 +3698,36 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesXpcallInsteadOfTriggerEvaluateInMain.lua"), Charsets.UTF_8);
-        // Package inits use direct xpcall — no WC3 trigger handle overhead
+        // Package inits use direct xpcall, no WC3 trigger handle overhead
         assertTrue(compiled.contains("if not xpcall(init_"));
         // TriggerEvaluate pattern must NOT appear for init functions
         assertFalse(compiled.contains("if not(TriggerEvaluate("));
         assertFalse(compiled.contains("TriggerClearConditions"));
+    }
+
+    /** Every package init reports a raise through one handler, defined once, not a copy of it for each package. */
+    @Test
+    public void packageInitsShareOneErrorHandler() throws IOException {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import Wurstunit",
+            "init",
+            "    testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_packageInitsShareOneErrorHandler.lua"), Charsets.UTF_8);
+        int initCount = compiled.split("if not xpcall\\(init_", -1).length - 1;
+        assertTrue("the standard library has package inits", initCount > 10);
+        Matcher inits = Pattern.compile("if not xpcall\\(init_\\w+, (\\w+)\\) then").matcher(compiled);
+        Set<String> handlers = new HashSet<>();
+        int byName = 0;
+        while (inits.find()) {
+            byName++;
+            handlers.add(inits.group(1));
+        }
+        assertEquals("package inits which pass their handler by name", initCount, byName);
+        assertEquals("handlers: " + handlers, 1, handlers.size());
+        assertTrue(handlers.iterator().next().startsWith("__wurst_init_error"));
+        assertEquals(1, compiled.split("lua init error: ", -1).length - 1);
     }
 
     @Test
@@ -3456,9 +3766,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        // With IM-level remapping, helpers are only emitted when called.
-        // SaveInteger is used by stdlib init code, so its helper must be present.
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
+        // The stdlib init code saves into hashtables. A save is printed in place, through the child
+        // constructor, and the helper of one which cannot be is defined where it is called.
+        assertContainsRegex(compiled, "\\blocal function __wurst_htNewChild\\s*\\(");
+        assertContainsRegex(compiled, "\n\\s*;\\(\\w+\\.__wurst_ht_int\\[");
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -3473,7 +3785,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
+        // Printed as the read it stands for, so no helper is called.
+        assertContainsRegex(compiled, "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[\\w+\\]\\) or __wurst_htEmpty\\)\\[\\w+\\] ~= nil\\)");
+        assertDoesNotContainRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
     }
 
     @Test
@@ -3488,9 +3802,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         // Runtime guard overrides are removed; compile-time checks are authoritative.
         assertFalse(compiled.contains("Wurst experimental Lua assertion guards"));
         assertFalse(compiled.contains("__wurst_guard_ok"));
-        // __wurst_ helper definitions must still be present.
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
+        // Printed where they are called; a helper which a call still needs must be defined.
+        assertContainsRegex(compiled, "= \\(\\{__wurst_ht_int=\\(\\{\\}\\), ");
+        assertContainsRegex(compiled,
+            ";\\((\\w+)\\.__wurst_ht_int\\[(\\w+)\\] or __wurst_htNewChild\\(\\1\\.__wurst_ht_int, \\2\\)\\)\\[\\w+\\] = \\w+");
+        assertDoesNotContainRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);
     }
 
     @Test
@@ -3501,13 +3818,17 @@ public class LuaTranslationTests extends WurstScriptTest {
             "init",
             "    let h = InitHashtable()",
             "    h.saveAbilityHandle(1, 2, null)",
-            "    let a = h.loadAbilityHandle(1, 2)"
+            // used, so the load is not dropped as a read whose result nothing uses
+            "    if h.loadAbilityHandle(1, 2) == null",
+            "        print(\"absent\")"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleLoadSaveUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_SaveAbilityHandle\\(");
-        assertContainsRegex(compiled, "\\b__wurst_LoadAbilityHandle\\(");
+        // Printed in place on the handle subtable, so no helper is called.
+        assertContainsRegex(compiled, "__wurst_htNewChild\\(\\w+\\.__wurst_ht_handle, \\w+\\)");
+        assertContainsRegex(compiled, "\\(\\(\\w+ and \\w+\\.__wurst_ht_handle\\[\\w+\\]\\) or __wurst_htEmpty\\)\\[\\w+\\]");
+        assertDoesNotContainRegex(compiled, "\\b__wurst_(Save|Load)AbilityHandle\\(");
     }
 
     @Test
@@ -3521,40 +3842,42 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    h.saveReal(1, 2, 3.5)",
             "    h.saveString(1, 2, \"x\")",
             "    h.saveAbilityHandle(1, 2, null)",
-            "    let i = h.loadInt(1, 2)",
-            "    let r = h.loadReal(1, 2)",
-            "    let s = h.loadString(1, 2)",
-            "    let a = h.loadAbilityHandle(1, 2)"
+            // used, so the loads are not dropped as reads whose result nothing uses
+            "    if h.loadInt(1, 2) == 7 and h.loadReal(1, 2) == 3.5 and h.loadString(1, 2) == \"x\""
+                + " and h.loadAbilityHandle(1, 2) == null",
+            "        print(\"loaded\")"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHelpersEmitPerTypeBucketsInLua.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_handle", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveInteger", "h.__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveReal", "h.__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveStr", "h.__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_SaveAbilityHandle", "h.__wurst_ht_handle", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "h.__wurst_ht_int", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadReal", "h.__wurst_ht_real", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadStr", "h.__wurst_ht_str", true);
-        assertFunctionBodyContains(compiled, "__wurst_LoadAbilityHandle", "h.__wurst_ht_handle", true);
+        // The operations are printed where they are called, the stdlib wrappers here.
+        String init = getFunctionBody(compiled, "init_Test");
+        for (String subtable : new String[]{"int", "bool", "real", "str", "handle"}) {
+            assertTrue("InitHashtable creates every subtable: " + init, init.contains("__wurst_ht_" + subtable + "=({})"));
+        }
+        assertFunctionBodyContains(compiled, "hashtable_saveInt", ".__wurst_ht_int[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveReal", ".__wurst_ht_real[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveString", ".__wurst_ht_str[", true);
+        assertFunctionBodyContains(compiled, "hashtable_saveAbilityHandle", ".__wurst_ht_handle[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadInt", ".__wurst_ht_int[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadReal", ".__wurst_ht_real[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadString", ".__wurst_ht_str[", true);
+        assertFunctionBodyContains(compiled, "hashtable_loadAbilityHandle", ".__wurst_ht_handle[", true);
     }
 
+    /** A code value takes no parameters, so its adapter forwards none: no varargs at all. */
     @Test
-    public void luaFunctionRefWrapperForwardsVarargs() throws IOException {
+    public void luaFunctionRefWrapperOfNullaryTargetTakesNoVarargs() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
             "    let f = CreateForce()",
             "    ForForce(f, () -> skip)"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperOfNullaryTargetTakesNoVarargs.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\)");
+        assertDoesNotContainRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
         assertFalse(compiled.contains("xpcall(function (...)"));
         assertContainsRegex(compiled,
-            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*, \\.\\.\\.\\)");
-        assertTrue(compiled.contains(", ...)"));
+            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*\\)");
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
     }
@@ -3591,7 +3914,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         List<String> adapters = uniqueMatches(compiled,
-            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\.\\.\\.\\)", 1);
+            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\)", 1);
         assertEquals("one adapter must serve every reference to the same function:\n" + compiled,
             1, adapters.size());
         String adapter = adapters.get(0);
@@ -3791,7 +4114,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         // Regression: ExprTranslation used f.setName("tostring") to rename the shared
         // LuaFunction for I2S. After the first ordinary I2S(x) call was translated, f.getName()
         // returned "tostring", so the sentinel check "I2S".equals(f.getName()) silently failed
-        // for any later I2S(1/0) abort call — leaving actual //0 division in the Lua output.
+        // for any later I2S(1/0) abort call, leaving actual //0 division in the Lua output.
         // This test forces a normal I2S call before the abort to expose the mutation bug.
         test().testLua(true).withStdLib().lines(
             "package Test",
@@ -3799,7 +4122,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "import ErrorHandling",
             "init",
             "    let x = 42",
-            "    print(I2S(x))",   // normal I2S call first — used to corrupt the cached LuaFunction
+            "    print(I2S(x))",   // normal I2S call first, used to corrupt the cached LuaFunction
             "    error(\"test\")"  // triggers I2S(1 div 0) inside ErrorHandling.error()
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_i2sAbortSentinelNotBrokenByEarlierI2SCallInLua.lua"), Charsets.UTF_8);
@@ -3866,17 +4189,17 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_subclassAllocationIncludesInheritedFieldsInLua.lua"), Charsets.UTF_8);
 
+        // Within Child's own allocation function (Window is never allocated, so its allocation writes nothing).
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorTop_storage\\[new_inst\\] = 0");
+            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorTop_storage\\[new_inst\\] = 0");
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorBottom_storage\\[new_inst\\] = 0");
+            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorBottom_storage\\[new_inst\\] = 0");
     }
 
     // ----- GetHandleId remapping -----
 
     @Test
     public void getHandleIdIsRemappedToWurstPolyfillInLua() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         // Direct GetHandleId calls on opaque runtime handles should still use the Lua-side
         // identity shim.
         test().testLua(true).withStdLib().lines(
@@ -3918,7 +4241,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void closureEventsEventIdCompatDoesNotUseOpaqueHandleShimInLua() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import ClosureEvents",
@@ -3942,7 +4264,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void registerEventsSpellCastKeepsNativeEventHandleIdsWhileUnitHandlesStayShimmedInLua() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import RegisterEvents",
@@ -3968,7 +4289,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void eventGetHandleIdMethodKeepsNativeSemanticsWhileOpaqueHandleMethodUsesLuaShim() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
@@ -4051,7 +4371,6 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void conservativeLuaHandleIdLoweringDoesNotEmitCanonicalEnumHelpers() throws IOException {
-        requireSelectiveGetHandleIdShimming();
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import MagicFunctions",
@@ -4110,7 +4429,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
         // A function declaration named GetHandleId (e.g. from a class method) must not
-        // trigger the assertion — only actual calls should.
+        // trigger the assertion; only actual calls should.
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("function Foo:GetHandleId(x) return 0 end");
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
@@ -4121,6 +4440,43 @@ public class LuaTranslationTests extends WurstScriptTest {
             .assertNoLeakedGetHandleIdCalls("local s = \"GetHandleId(x)\"");
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("function __wurst_GetHandleId(h) return 0 end\n__wurst_GetHandleId(x)");
+    }
+
+    /** A build runs both checks on one scan of its script: it rejects what either check rejects, with its message. */
+    @Test
+    public void combinedNativeCallCheckRejectsWhatEitherCheckRejects() {
+        String[] scripts = {
+            "GetHandleId(x)",
+            "__wurst_GetHandleId(x)",
+            "function __wurst_GetHandleId(h) return 0 end\n__wurst_GetHandleId(x)",
+            "SaveInteger(h, 1, 2, 3)",
+            "local s = \"SaveInteger(h, 1, 2, 3)\"",
+            "-- LoadInteger(h, 1, 2)",
+            "function Foo.SaveInteger(h) end",
+            "__wurst_SaveInteger(h, 1, 2, 3)",
+            "function __wurst_SaveInteger(h, p, c, v) end\n__wurst_SaveInteger(h, 1, 2, 3)",
+            "SaveInteger(h, 1, 2, 3)\n__wurst_GetHandleId(x)",
+        };
+        boolean[] rejected = {false, true, false, true, false, false, false, true, false, true};
+        for (int i = 0; i < scripts.length; i++) {
+            String script = scripts[i];
+            String separately = rejection(() -> {
+                LuaAssertions.assertNoLeakedHashtableNativeCalls(script);
+                LuaAssertions.assertNoLeakedGetHandleIdCalls(script);
+            });
+            String combined = rejection(() -> LuaAssertions.assertNoLeakedNativeCalls(script));
+            assertEquals(script, rejected[i], separately != null);
+            assertEquals(script, separately, combined);
+        }
+    }
+
+    private static String rejection(Runnable check) {
+        try {
+            check.run();
+            return null;
+        } catch (RuntimeException e) {
+            return e.getMessage();
+        }
     }
 
     // ----- Null-safe extern native wrappers -----

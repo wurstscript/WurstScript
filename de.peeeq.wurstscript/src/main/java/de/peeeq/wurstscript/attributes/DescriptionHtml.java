@@ -34,15 +34,14 @@ public class DescriptionHtml {
         }
 
         String funcName = f.getName();
-        if (f instanceof ExtensionFuncDef) {
-            ExtensionFuncDef exf = (ExtensionFuncDef) f;
+        if (f instanceof ExtensionFuncDef exf) {
             funcName = htmlType(exf.getExtendedType().attrTyp()) + "." + funcName;
         }
         functionDescription += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + funcName + "(" + params + ") ";
         if (!f.attrTyp().isVoid()) {
             functionDescription += "<br /><b><font color=\"rgb(127,0,85)\">returns</font></b> " + returnTypeHtml;
         }
-        functionDescription += "<br /></pre>" + "defined in " + nearestScopeName(f);
+        functionDescription += "<br /></pre>" + "defined in " + Utils.nearestScopeName(f);
         return functionDescription;
     }
 
@@ -86,14 +85,6 @@ public class DescriptionHtml {
         return typ;
     }
 
-    private static String nearestScopeName(NameDef n) {
-        if (n.attrNearestNamedScope() != null) {
-            return Utils.printElement(n.attrNearestNamedScope());
-        } else {
-            return "Global";
-        }
-    }
-
     public static String description(NameDef n) {
         String comment = n.attrComment();
         comment = comment.replaceAll("\n", "<br />");
@@ -105,7 +96,7 @@ public class DescriptionHtml {
             additionalProposalInfo = "";
         }
         additionalProposalInfo += "<pre><hr />" + htmlType(n.attrTyp()) + " " + n.getName()
-                + "<br /></pre>" + "defined in " + nearestScopeName(n);
+                + "<br /></pre>" + "defined in " + Utils.nearestScopeName(n);
         return additionalProposalInfo;
     }
 

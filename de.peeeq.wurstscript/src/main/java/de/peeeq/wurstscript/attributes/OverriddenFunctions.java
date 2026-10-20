@@ -47,8 +47,7 @@ public class OverriddenFunctions {
     }
 
     private static FunctionDefinition getRealFuncDef(FuncDef f, WScope scope) {
-        if (scope instanceof StructureDef) {
-            StructureDef c = (StructureDef) scope;
+        if (scope instanceof StructureDef c) {
 
             FuncLink fNameLink = FuncLink.create(f, f.attrNearestScope());
 
@@ -56,10 +55,10 @@ public class OverriddenFunctions {
                 for (DefLink nl : c.attrNameLinks().get(f.getName())) {
                     if (nl.getLevel() == c.attrLevel()
                             && nl.getDef() instanceof FunctionDefinition
-                            && nl instanceof FuncLink
-                            && WurstValidator.canOverride((FuncLink) nl, fNameLink, true)
+                            && nl instanceof FuncLink funcLink
+                            && WurstValidator.canOverride(funcLink, fNameLink, true)
                             ) {
-                        return ((FuncLink) nl).getDef().attrRealFuncDef();
+                        return funcLink.getDef().attrRealFuncDef();
                     }
                 }
             }

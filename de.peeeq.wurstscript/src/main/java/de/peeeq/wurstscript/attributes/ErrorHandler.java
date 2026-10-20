@@ -19,7 +19,7 @@ public class ErrorHandler {
 
     private final WurstGui gui;
     private boolean unitTestMode = false;
-    /** Write intermediate IM debug files during tests. Off by default — only tests that
+    /** Write intermediate IM debug files during tests. Off by default; only tests that
      *  explicitly assert on IM output (e.g. DeterministicChecks) should set this to true. */
     public static boolean outputTestSource = false;
 
@@ -39,7 +39,7 @@ public class ErrorHandler {
         return errors;
     }
 
-    public void setProgress(String message, double percent) {
+    public void setProgress(String message) {
         gui.sendProgress(message);
     }
 

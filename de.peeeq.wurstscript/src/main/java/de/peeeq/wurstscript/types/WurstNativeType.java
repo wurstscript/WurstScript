@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -11,14 +12,14 @@ public class WurstNativeType extends WurstType {
 
     private String name;
     private WurstType superType;
+    private @Nullable NativeType definition;
 
     private WurstNativeType() {
     }
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstNativeType) {
-            WurstNativeType nt = (WurstNativeType) other;
+        if (other instanceof WurstNativeType nt) {
             if (nt.name.equals(name)) {
                 return mapping;
             }
@@ -43,18 +44,36 @@ public class WurstNativeType extends WurstType {
         return t;
     }
 
-    @Override
-    public ImType imTranslateType(ImTranslator tr) {
-        return JassIm.ImSimpleType(name);
+    public static WurstNativeType instance(NativeType definition, WurstType superType) {
+        WurstNativeType t = instance(definition.getName(), superType);
+        t.definition = definition;
+        return t;
     }
 
-    public ImType imTranslateType() {
+    /** The type at the end of the supertype chain: integer for {@code type myint extends integer}. */
+    public WurstType rootSupertype() {
+        WurstType type = this;
+        while (type instanceof WurstNativeType nativeType) {
+            type = nativeType.superType;
+        }
+        return type;
+    }
+
+    @Override
+    public ImType imTranslateType(ImTranslator tr) {
+        // Native types keep their source identity, including their supertypes: a selected subtype
+        // cannot emit a reference to a native declaration outside the compilation view.
+        for (WurstType type = this; type instanceof WurstNativeType nativeType; type = nativeType.superType) {
+            if (nativeType.definition != null) {
+                tr.requireCompilationUnit(nativeType.definition);
+            }
+        }
         return JassIm.ImSimpleType(name);
     }
 
     @Override
     public ImExprOpt getDefaultValue(ImTranslator tr) {
-        return JassIm.ImNull(imTranslateType());
+        return JassIm.ImNull(imTranslateType(tr));
     }
 
     @Override

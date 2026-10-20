@@ -19,9 +19,8 @@ public class AttrConstructorDef {
         TypeDef typeDef = node.attrTypeDef();
 
 
-        if (typeDef instanceof ClassDef) {
+        if (typeDef instanceof ClassDef classDef) {
 
-            ClassDef classDef = (ClassDef) typeDef;
 
             List<ConstructorDef> constructors = classDef.getConstructors();
 

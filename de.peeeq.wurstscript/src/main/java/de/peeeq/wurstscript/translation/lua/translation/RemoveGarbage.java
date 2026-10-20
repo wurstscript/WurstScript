@@ -6,9 +6,9 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.validation.NamePreservation;
 
+
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -150,6 +150,23 @@ public class RemoveGarbage {
 
     }
 
+    /**
+     * Read-only dispatch reachability for targeted Lua specialization. Query again after the
+     * specialization graph changes: scanning an uninstantiated override can activate a static
+     * initializer which would otherwise never run.
+     */
+    public static Set<ImMethod> reachableMethods(ImProg prog, ImTranslator translator) {
+        return collectUsed(prog, translator).getMethods();
+    }
+
+    /**
+     * Read-only function reachability. A method counts only once its class is allocated, so
+     * unlike for the tree shaker, dispatch to a class nothing allocates is not live.
+     */
+    public static Set<ImFunction> reachableFunctions(ImProg prog, ImTranslator translator) {
+        return collectUsed(prog, translator).getFunctions();
+    }
+
     private static Used collectUsed(ImProg prog, ImTranslator translator) {
         return collectUsed(prog, translator, Collections.emptySet());
     }
@@ -274,6 +291,7 @@ public class RemoveGarbage {
             @Override
             public void visit(ImCast e) {
                 super.visit(e);
+                visitType(e.getFromType(), used);
                 visitType(e.getToType(), used);
             }
 

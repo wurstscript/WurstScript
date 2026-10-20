@@ -65,6 +65,7 @@ public class LuaNativesTests {
         assertTrue(rendered.contains("__wurst_ht_handle"));
     }
 
+    /** The helpers a call with an effect in an operand still calls; InitHashtable creates every subtable. */
     @Test
     public void hashtableSavesUseTypeSpecificBuckets() {
         String saveInt = renderNative("__wurst_SaveInteger");
@@ -73,6 +74,8 @@ public class LuaNativesTests {
         assertTrue(saveInt.contains("h.__wurst_ht_int"));
         assertTrue(saveReal.contains("h.__wurst_ht_real"));
         assertTrue(saveHandle.contains("h.__wurst_ht_handle"));
+        assertTrue(saveInt, saveInt.contains("if x == nil then x = {} t[p] = x end"));
+        assertFalse("no subtable is ever missing: " + saveInt, saveInt.contains("t == nil"));
     }
 
     @Test
@@ -80,8 +83,24 @@ public class LuaNativesTests {
         String loadInt = renderNative("__wurst_LoadInteger");
         String loadStr = renderNative("__wurst_LoadStr");
         String loadHandle = renderNative("__wurst_LoadAbilityHandle");
+        String loadBool = renderNative("__wurst_LoadBoolean");
         assertTrue(loadInt.contains("h.__wurst_ht_int"));
         assertTrue(loadStr.contains("h.__wurst_ht_str"));
         assertTrue(loadHandle.contains("h.__wurst_ht_handle"));
+        assertTrue(loadInt, loadInt.contains("return x[c] or 0"));
+        assertTrue("a missing string is the null string, \"\": " + loadStr,
+            loadStr.contains("if h == nil then return \"\" end") && loadStr.contains("return x[c] or \"\"")
+                && !loadStr.contains("return nil"));
+        assertTrue(loadBool, loadBool.contains("return x[c] == true"));
+        assertFalse("no subtable is ever missing: " + loadInt, loadInt.contains("t == nil"));
+    }
+
+    @Test
+    public void hashtableFlushesTestNoSubtable() {
+        String flushChild = renderNative("__wurst_FlushChildHashtable");
+        assertTrue(flushChild, flushChild.contains("h.__wurst_ht_handle[p] = nil")
+            && flushChild.contains("h.__wurst_ht_htype[p] = nil"));
+        assertTrue("a nil hashtable is ignored, as Jass does: " + flushChild, flushChild.contains("if h == nil then return end"));
+        assertFalse(flushChild, flushChild.contains("if h."));
     }
 }

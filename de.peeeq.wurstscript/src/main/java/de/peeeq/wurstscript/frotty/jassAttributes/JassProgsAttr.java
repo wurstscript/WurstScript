@@ -39,17 +39,14 @@ public class JassProgsAttr {
     }
 
     public static JassVar getGlobal(JassProgs jassProgsImpl, String name) {
-        // TODO Auto-generated method stub
         return globalsMap.get(name);
     }
 
     public static JassNative getNative(JassProgs jassProgsImpl, String name) {
-        // TODO Auto-generated method stub
         return nativesMap.get(name);
     }
 
     public static JassTypeDef getTypeDef(JassProgs jassProgsImpl, String name) {
-        // TODO Auto-generated method stub
         return typeDefsMap.get(name);
     }
 
