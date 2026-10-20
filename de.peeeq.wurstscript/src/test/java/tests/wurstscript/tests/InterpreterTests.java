@@ -34,7 +34,7 @@ public class InterpreterTests extends WurstScriptTest {
      */
     @Test
     public void methodDispatchPerReceiverClassAtOneCallSite() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -77,7 +77,7 @@ public class InterpreterTests extends WurstScriptTest {
      */
     @Test
     public void returnAndExitwhenLeaveTheRightStatements() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -153,7 +153,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void arrayDefault() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -166,7 +166,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void displayNativesAcceptNullForceAndLocalPlayer() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    DisplayTextToForce(null, \"force\")",
@@ -494,7 +494,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** A blizzard.j constant defined from another one, and constants whose ConvertX had no mock. */
     @Test
     public void derivedAndLessCommonConstants() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    if bj_DEGTORAD < 0.0174 or bj_DEGTORAD > 0.0175",
@@ -843,7 +843,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** `grill test` and compiletime evaluation run the IM interpreter, which reads the constants too. */
     @Test
     public void commonJConstantsInTestsAndCompiletime() {
-        test().withStdLib().executeTests(true).executeProg(true).runCompiletimeFunctions(true).testLua(false).lines(
+        test().withStdLib().executeTests(true).executeProg(true).runCompiletimeFunctions(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "@compiletime function checkConstants()",
             "    if UNIT_TYPE_DEAD == null or UNIT_STATE_MANA == null",
@@ -863,7 +863,7 @@ public class InterpreterTests extends WurstScriptTest {
 
     @Test
     public void getOwningPlayerNullUnitReturnsWurstNull() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "init",
             "    if GetOwningPlayer(null) != null",
@@ -959,7 +959,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** 0 castTo a class is the null reference, as the stdlib's unit.toUnitIndex() relies on. */
     @Test
     public void castZeroToClassIsNull() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "native testSuccess()",
             "native testFail(string msg)",
