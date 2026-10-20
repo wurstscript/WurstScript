@@ -2942,6 +2942,61 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void staticInnerClassReadsTheStaticOfItsOwnersInstantiation() throws IOException {
+        // A static inner class of a generic class captures the owner's type parameter. The owner's
+        // method hands out the inner object typed with that instantiation, which is what takes the
+        // inner class's reader of the owner's static to the store the constructor writes.
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T value)",
+            "        last = value",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let ints = new Outer<int>(7)",
+            "    let strings = new Outer<string>(\"ok\")",
+            "    if ints.reader().read() == 7 and strings.reader().read() == \"ok\"",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("staticInnerClassReadsTheStaticOfItsOwnersInstantiation");
+        List<String> storages = bootstrapDefaults(compiled, "Outer_last_");
+        assertEquals("each concrete Outer instantiation needs its own static: " + storages,
+            2, storages.size());
+    }
+
+    @Test
+    public void moduleStaticInnerClassReadsTheStaticOfItsOwnersInstantiationInlined() {
+        // The module form, inlined and optimised, where the constructor's write was dropped.
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "module Registry",
+            "    static thistype last = null",
+            "    construct()",
+            "        last = this",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    static class Reader",
+            "        function read() returns Registry.thistype",
+            "            return last",
+            "class A<T:>",
+            "    use Registry",
+            "init",
+            "    let ints = new A<int>",
+            "    let strings = new A<string>",
+            "    if ints.reader().read() == ints and strings.reader().read() == strings",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void constructedErasedInstantiationDoesNotDuplicateSpecializedStaticInitializer() {
         test().testLua(true).executeProg().lines(
             "package Test",

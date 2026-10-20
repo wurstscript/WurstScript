@@ -30,17 +30,19 @@ Notes; finished-work narrative does not.
   exemption fails the run (21 of 48 `testLua(false)` were stale and now run Lua). Land the shim natives
   first. `executeTests()` (Wurst `@Test` functions) has no Lua path in the harness at all.
 
-- **A generic class's static is dropped on Lua when only a static inner class reads it.**
-  `GenericsWithTypeclassesTests.genericClassWithStaticInnerClass` and `genericModuleThistypeSmall` pass
-  on the interpreter and Jass and fail on Lua, also after #1498; neither opts into Lua. In
-  `class Outer<T:>` with `static T t`, the specialised constructor's `t = iVal` is not emitted and
-  `Inner.next()` reads the erased `Outer_t`, which stays nil. A static function of `Outer` reading `t`
-  instead passes on both Lua variants, so the reader in the unspecialised inner class splits the store.
-  The module form (`static thistype t` in a module used by `class A<T:>`) loses `t = this` the same way
-  with `-inline -localOptimizations`, and without it the Lua translation crashes in
-  `TypeSubst.resolve` ("Could not find replacement for T... when replacing [T...] with []"), from
-  `ExprTranslation.translateEquals` typing `a.iterator().next()`. Fix in `EliminateGenerics`, where the
-  store is split, and turn on `testLua(true).luaOnly(false)` for both tests.
+- **A generic class constructed with a tuple loses the static its constructor writes, on Lua.** In
+  `class Outer<T:>` with `static T last` and `construct(T value)` / `last = value`,
+  `new Outer<pair>(pair(2, 3))` leaves `Outer<pair>.get().y` unset on Lua; Jass passes. The constructor's
+  copy keeps the class's `T` as its parameter type, so the emitted function takes one parameter more than
+  the call passes tuple components: `EliminateGenerics.specializeFunction` rewrites the type variables only
+  of a function which declares some, and a function which writes a generic static takes that branch, while
+  this target does not lift the class's variables onto its functions (`specializeClassFunction` does it).
+
+- **`EliminateGenerics.fillMissingTypeArgsFromScope` matches type variables by name.** On the Jass path it
+  completed the owner type arguments of a static inner class's type, which the IM translation now gives
+  itself (`WurstTypeClassOrInterface.imTranslateType`). Made to throw whenever it fills one, it is reached by
+  none of the generics, closure, module, class and Lua audit test classes (October 2026). Check the whole
+  suite and remove it.
 
 - **A direct `wurstKeyOf` call answers its placeholder on Lua.** `KeyedTableTests.intKeyIsIdentity`
   (`wurstKeyOf(7)` is 0) and `classInstanceKeyIsStable` (two instances share key 0) pass on the

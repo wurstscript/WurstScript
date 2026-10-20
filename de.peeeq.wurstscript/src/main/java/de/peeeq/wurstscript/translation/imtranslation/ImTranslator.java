@@ -388,6 +388,29 @@ public class ImTranslator implements SpecialisationLookup {
         return (m == null) ? Collections.emptyMap() : m;
     }
 
+    /**
+     * The owner's type parameters a static inner class captured ({@link #addCapturedTypeVarsFromOwningGeneric}), in
+     * the order of the class's type variables, which follow its own. A type naming the class supplies them after its
+     * own type arguments.
+     */
+    public List<TypeParamDef> capturedOwnerTypeParameters(ImClass imClass) {
+        if (!(imClass.getTrace() instanceof ClassDef classDef)) {
+            return Collections.emptyList();
+        }
+        Map<TypeParamDef, ImTypeVar> captured = capturedOwnerTypeVarsByStaticClass.get(classDef);
+        if (captured == null || captured.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<TypeParamDef> result = new ArrayList<>();
+        for (ImTypeVar typeVariable : imClass.getTypeVariables()) {
+            TypeParamDef ownerParameter = typeVariableReverse.get(typeVariable);
+            if (ownerParameter != null && captured.get(ownerParameter) == typeVariable) {
+                result.add(ownerParameter);
+            }
+        }
+        return result;
+    }
+
     public void pushTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
         if (m != null && !m.isEmpty()) typeVarOverrideStack.push(m);
     }

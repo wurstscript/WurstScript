@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
@@ -1850,11 +1851,43 @@ public class EliminateGenerics {
         }
         ImClassType adapted = adaptToSuperclass(
             JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
-        if (adapted == null || adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
+        if (adapted == null) {
+            return capturedOwnerGenerics(concreteOwner, concreteGenerics, declaringOwner);
+        }
+        if (adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
             || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
             return null;
         }
         return new GenericTypes(adapted.getTypeArguments());
+    }
+
+    /**
+     * Maps the instantiation of a static inner class onto its generic owner, whose type parameters the inner class
+     * captured: {@code Outer<T>.Inner} is {@code Inner<T>}, so a static of {@code Outer} read in {@code Inner<int>} is
+     * the one of {@code Outer<int>}. The captured variables are matched to the owner's by the source parameter they
+     * stand for.
+     */
+    private @Nullable GenericTypes capturedOwnerGenerics(ImClass innerClass, GenericTypes innerGenerics,
+                                                         ImClass declaringOwner) {
+        List<TypeParamDef> captured = translator.capturedOwnerTypeParameters(innerClass);
+        List<ImTypeVar> innerVariables = innerClass.getTypeVariables();
+        if (captured.isEmpty() || innerGenerics.getTypeArguments().size() < innerVariables.size()) {
+            return null;
+        }
+        List<ImTypeArgument> ownerArguments = new ArrayList<>();
+        for (ImTypeVar ownerVariable : declaringOwner.getTypeVariables()) {
+            TypeParamDef ownerParameter = translator.getTypeParamDef(ownerVariable);
+            if (ownerParameter == null || !captured.contains(ownerParameter)) {
+                return null;
+            }
+            int index = 0;
+            while (translator.getTypeParamDef(innerVariables.get(index)) != ownerParameter) {
+                index++;
+            }
+            ownerArguments.add(innerGenerics.getTypeArguments().get(index).copy());
+        }
+        GenericTypes ownerGenerics = new GenericTypes(ownerArguments);
+        return ownerGenerics.containsTypeVariable() ? null : ownerGenerics;
     }
 
     /**
@@ -2267,6 +2300,7 @@ public class EliminateGenerics {
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
         if (genericNewOnly && (classOwnsGenericGlobals(c)
+            || !translator.capturedOwnerTypeParameters(c).isEmpty()
             || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }

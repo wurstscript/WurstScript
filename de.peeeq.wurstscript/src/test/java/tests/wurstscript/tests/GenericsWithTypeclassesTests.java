@@ -2088,7 +2088,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericClassWithStaticInnerClass() {
-        testAssertOkLines(true,
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "   native testSuccess()",
             "   class Outer<T:>",
@@ -2110,8 +2110,35 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericClassWithStaticInnerClassHeldInLocals() {
+        // A local typed by the owner's method keeps the owner's instantiation, which is all that tells
+        // the two readers apart.
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "   native testSuccess()",
+            "   class Outer<T:>",
+            "      static T t = null",
+            "      construct(T iVal)",
+            "         t = iVal",
+            "      function iterator() returns Inner",
+            "         return new Inner()",
+            "      static class Inner",
+            "         function next() returns T",
+            "            return t",
+            "   init",
+            "      let ints = new Outer<int>(3)",
+            "      let strings = new Outer<string>(\"ok\")",
+            "      let intIterator = ints.iterator()",
+            "      let stringIterator = strings.iterator()",
+            "      if intIterator.next() == 3 and stringIterator.next() == \"ok\"",
+            "         testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
     public void genericModuleThistypeSmall() {
-        testAssertOkLines(true,
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "   native testSuccess()",
             "   module LLM",
