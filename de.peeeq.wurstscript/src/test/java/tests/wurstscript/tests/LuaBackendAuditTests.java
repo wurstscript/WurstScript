@@ -8,7 +8,9 @@ import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
+import static org.testng.Assert.expectThrows;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
@@ -2887,6 +2890,55 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         List<String> storages = bootstrapDefaults(output.toString(), "Slot_value_");
         assertEquals("both concrete static specializations must survive detached initialization: " + storages,
             2, storages.size());
+    }
+
+    @Test
+    public void liveErasedGenericStaticFailsTheUnitTestCheck() {
+        RunArgs runArgs = new RunArgs().with("-lua");
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+        compiler.getErrorHandler().enableUnitTestMode();
+        WurstModel model = parseFiles(Collections.emptyList(), Collections.singletonList(new CU(
+            "liveErasedGenericStaticFailsTheUnitTestCheck.wurst", String.join("\n",
+                "package Test",
+                "native testSuccess()",
+                "class Slot<T:>",
+                "    static T value",
+                "    function set(T newValue)",
+                "        value = newValue",
+                "    function get() returns T",
+                "        return value",
+                "init",
+                "    let ints = new Slot<int>()",
+                "    let strings = new Slot<string>()",
+                "    ints.set(7)",
+                "    strings.set(\"ok\")",
+                "    if ints.get() == 7 and strings.get() == \"ok\"",
+                "        testSuccess()"
+            ))), false, compiler);
+        assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.checkProg(model);
+        assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+        ImProg prog = compiler.getImProg();
+
+        // The split store of wurstscript/WurstScript#1498: live code which still uses the erased
+        // static after both instantiations have their own copy. A read, because the tree shaker
+        // drops an effect-free write to a static nothing reads any more.
+        ImVar value = prog.getGlobals().stream()
+            .filter(global -> global.getName().contains("value"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected the translated Slot.value global"));
+        ImFunction main = prog.getFunctions().stream()
+            .filter(function -> function.getName().equals("main"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected main"));
+        main.getBody().add(JassIm.ImVarAccess(value));
+
+        CompileError error = expectThrows(CompileError.class, compiler::transformProgToLua);
+        assertTrue(error.getMessage(), error.getMessage().contains(value.getName())
+            && error.getMessage().contains("main"));
     }
 
     @Test
