@@ -2627,8 +2627,8 @@ public class LuaTranslationTests extends WurstScriptTest {
      * <p>Stack-trace injection appends a parameter to every affected function, and on Lua that is
      * every non-native function, so the exact signatures the keyed-table operations are recognised
      * by stop matching once it has run. Nothing reported that when it happened: the Jass bodies
-     * simply survived onto Lua, where `wurstKeyOf` is never lowered and answers with its
-     * placeholder, so every element shared one key and a set claimed to contain everything.
+     * simply survived onto Lua, where `wurstKeyOf` then answered with its placeholder, so every
+     * element shared one key and a set claimed to contain everything.
      *
      * <p>A release build emits stack traces by default, so this was the common case.
      */
@@ -2748,9 +2748,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("contains must still be a single index",
             getFunctionBody(compiled, "__wurst_keyedTableContains").contains("] ~= nil"));
 
-        // The Jass body is the failure mode. On a keyed set it keys through wurstKeyOf, which is
-        // never lowered on Lua, so every element would collapse onto the same key. Scoped to the
-        // caller: Table itself is compiled in and legitimately uses the hashtable natives.
+        // The Jass body is the failure mode: a hashtable call per operation where Lua needs one
+        // index. Scoped to the caller: Table itself is compiled in and legitimately uses the
+        // hashtable natives.
         String init = getFunctionBody(compiled, "init_Test");
         assertFalse("the caller must not reach the hashtable natives: " + init,
             init.contains("SaveBoolean") || init.contains("LoadBoolean") || init.contains("__wurst_ht_"));

@@ -25,12 +25,13 @@ import static de.peeeq.wurstscript.translation.imtranslation.IntrinsicDeclaratio
  * emitted by the normal path - so this pass only has to pick one.
  *
  * <p>On Lua this never runs: {@link LuaKeyedTable} replaces the keyed-table operations wholesale
- * before the inliner, and the element is its own key there, so no projection exists to make.
+ * before the inliner, and the element is its own key there, so no projection exists to make. A
+ * direct call is lowered at its call site there instead ({@link LuaNativeLowering}).
  */
 public final class JassKeyOfLowering {
 
     /** The intrinsic being given a body. */
-    private static final String KEY_OF = "wurstKeyOf";
+    static final String KEY_OF = "wurstKeyOf";
 
     /** Projections it can be rewritten to, each an ordinary function in the same package. */
     private static final String KEY_OF_INT = "keyOfInt";
@@ -41,14 +42,8 @@ public final class JassKeyOfLowering {
 
     public static void transform(ImProg prog) {
         for (ImFunction f : prog.getFunctions()) {
-            if (!isNamedKeyOf(f)) {
+            if (!isCheckedKeyOf(f)) {
                 continue;
-            }
-            if (!isKeyOf(f)) {
-                // The rewrite below returns an integer projection, so a declaration of another
-                // shape would leave the return type disagreeing with the body it now has.
-                throw new CompileError(f.attrTrace().attrErrorPos(),
-                    KEY_OF + " must take exactly one parameter and return int.");
             }
             ImVar value = f.getParameters().get(0);
             ImFunction projection =
@@ -77,6 +72,22 @@ public final class JassKeyOfLowering {
         // The interpreter asks this on every call it makes, so the list checks come before the
         // trace and annotation lookups. Having type variables rules out almost everything.
         return !f.getTypeVariables().isEmpty() && isKeyOf(f);
+    }
+
+    /**
+     * Whether {@code f} is the key projection intrinsic, which both backends rewrite to an integer
+     * projection. A declaration of that name with another shape is rejected: the rewrite would
+     * leave its return type disagreeing with the projection it now answers.
+     */
+    static boolean isCheckedKeyOf(ImFunction f) {
+        if (!isNamedKeyOf(f)) {
+            return false;
+        }
+        if (!isKeyOf(f)) {
+            throw new CompileError(f.attrTrace().attrErrorPos(),
+                KEY_OF + " must take exactly one parameter and return int.");
+        }
+        return true;
     }
 
     private static boolean isKeyOf(ImFunction f) {
