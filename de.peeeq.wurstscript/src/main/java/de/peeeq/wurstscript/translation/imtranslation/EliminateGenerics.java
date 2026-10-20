@@ -1336,6 +1336,16 @@ public class EliminateGenerics {
         return o != null && !o.isEmpty();
     }
 
+    /** Whether a function of the class reads or writes a generic static, its own or one of a class it captured. */
+    private boolean classUsesGenericGlobals(ImClass clazz) {
+        for (ImFunction f : clazz.getFunctions()) {
+            if (needsGlobalSpecialization(f)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean classOwnsGenericGlobals(ImClass clazz) {
         return classOwnsGenericGlobals(clazz,
             Collections.newSetFromMap(new IdentityHashMap<>()));
@@ -1977,11 +1987,38 @@ public class EliminateGenerics {
         }
         ImClassType adapted = adaptToSuperclass(
             JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
-        if (adapted == null || adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
+        if (adapted == null) {
+            return capturedOwnerGenerics(concreteOwner, concreteGenerics, declaringOwner);
+        }
+        if (adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
             || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
             return null;
         }
         return new GenericTypes(adapted.getTypeArguments());
+    }
+
+    /**
+     * The instantiation of {@code declaringOwner} that an instantiation of a class which captured its type
+     * parameters stands for: a closure written in {@code G<T>} is {@code Closure<T_captured>}, and its body reads
+     * the statics of {@code G<T>}. The captured variables are matched to the owner's by the parameter each stands
+     * for ({@link ImTranslator#canonical}), never by name.
+     */
+    private @Nullable GenericTypes capturedOwnerGenerics(ImClass concreteOwner, GenericTypes concreteGenerics,
+                                                         ImClass declaringOwner) {
+        List<ImTypeVar> captured = concreteOwner.getTypeVariables();
+        if (captured.isEmpty() || concreteGenerics.getTypeArguments().size() < captured.size()) {
+            return null;
+        }
+        List<ImTypeArgument> ownerArguments = new ArrayList<>();
+        for (ImTypeVar ownerVariable : declaringOwner.getTypeVariables()) {
+            int index = indexOfTypeVar(captured, ownerVariable);
+            if (index < 0) {
+                return null;
+            }
+            ownerArguments.add(concreteGenerics.getTypeArguments().get(index).copy());
+        }
+        GenericTypes ownerGenerics = new GenericTypes(ownerArguments);
+        return ownerGenerics.containsTypeVariable() ? null : ownerGenerics;
     }
 
     /**
@@ -2404,7 +2441,7 @@ public class EliminateGenerics {
 
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
-        if (genericNewOnly && (classOwnsGenericGlobals(c)
+        if (genericNewOnly && (classOwnsGenericGlobals(c) || classUsesGenericGlobals(c)
             || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }

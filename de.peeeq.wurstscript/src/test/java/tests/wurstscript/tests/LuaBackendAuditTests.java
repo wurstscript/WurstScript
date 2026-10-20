@@ -8275,6 +8275,38 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /** A closure written in the generic class writes its static; the closure's type parameter is the class's. */
+    @Test
+    public void genericStaticWrittenInAClosure() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Act",
+            "    function run()",
+            "interface Iface",
+            "    function w()",
+            "    function r() returns int",
+            "class G<T:> implements Iface",
+            "    static int cnt = 0",
+            "    function w()",
+            "        Act a = () -> begin",
+            "            cnt += 1",
+            "        end",
+            "        a.run()",
+            "        destroy a",
+            "    function r() returns int",
+            "        return cnt",
+            "init",
+            "    Iface a = new G<int>()",
+            "    Iface b = new G<string>()",
+            "    a.w()",
+            "    b.w()",
+            "    b.w()",
+            "    if a.r() == 1 and b.r() == 2",
+            "        testSuccess()"
+        );
+    }
+
     /**
      * A subclass of a tuple instantiation whose second constructor, reached through super calls, writes the tuple
      * static: the constructor's copy needs the class's type variable replaced as well as the static.

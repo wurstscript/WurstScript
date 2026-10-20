@@ -1,6 +1,6 @@
 # Cases of GenericSpecialisationMatrixTests (the pull-request tier) which fail on master, each with the
 # defect it shows. Jass passes every one of them. Each tag names its BACKLOG.md entry, which has a minimal
-# repro: lua-static-erased, lua-instanceof-erased, lua-tuple-elimination-crash.
+# repro: lua-instanceof-erased.
 #
 # A listed case is skipped with its tag and its failure while it fails as listed: on Lua, with Jass passing,
 # with that defect and that symptom (after the bar: the wrong value the program reports, the compiler's message,
@@ -58,9 +58,3 @@ INSTANCEOF_ONDESTROY_wINTERFACE_rINTERFACE_CLASSx1 lua-instanceof-erased | testF
 INSTANCEOF_ONDESTROY_wINTERFACE_rSUPER_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wSUPER_rERASED_FUNCTION_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wSUPER_rSUPER_STRINGx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-STATIC_CLOSURE_wCLOSURE_rDESTROY_TUPLEx2_opt lua-tuple-elimination-crash | Lua translation fails: java.lang.RuntimeException: //// Before ----------- run_G_TestN // After ------------------- run_G_TestN
-STATIC_CLOSURE_wDIRECT_rDESTROY_TUPLEx1_opt lua-static-erased | Lua raised an error
-STATIC_CLOSURE_wERASED_FUNCTION_rCLOSURE_CLASSx2 lua-static-erased | Lua raised an error
-STATIC_CLOSURE_wINTERFACE_rINTERFACE_TUPLEx1 lua-static-erased | Lua raised an error
-STATIC_CLOSURE_wSUPER_rCLOSURE_STRINGx2 lua-static-erased | testFail instantiation 1: expected 1010 but got 2000
-STATIC_CLOSURE_wSUPER_rDESTROY_INTx2_opt lua-static-erased | Lua raised an error
