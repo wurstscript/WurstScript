@@ -1,6 +1,6 @@
 # Cases of GenericSpecialisationMatrixTests (the pull-request tier) which fail on master, each with the
 # defect it shows. Jass passes every one of them. Each tag names its BACKLOG.md entry, which has a minimal
-# repro: lua-static-erased, lua-instanceof-erased, lua-new-instance-unresolved, lua-tuple-elimination-crash.
+# repro: lua-static-erased, lua-instanceof-erased, lua-tuple-elimination-crash.
 #
 # A listed case is skipped with its tag and its failure while it fails as listed: on Lua, with Jass passing,
 # with that defect and that symptom (after the bar: the wrong value the program reports, the compiler's message,
@@ -58,37 +58,6 @@ INSTANCEOF_ONDESTROY_wINTERFACE_rINTERFACE_CLASSx1 lua-instanceof-erased | testF
 INSTANCEOF_ONDESTROY_wINTERFACE_rSUPER_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wSUPER_rERASED_FUNCTION_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wSUPER_rSUPER_STRINGx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-NEW_INSTANCE_CONSTRUCTOR_wBASE_rERASED_FUNCTION_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:71: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wBASE_rSUPER_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:88: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wCLOSURE_rCLOSURE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:89: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wCLOSURE_rDESTROY_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:89: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wCLOSURE_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:92: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wDESTROY_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:85: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wERASED_FUNCTION_rBASE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:71: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wERASED_FUNCTION_rDESTROY_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:85: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wGENERIC_INTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:71: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rBASE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:91: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rDESTROY_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:88: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rINTERFACE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:88: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_INHERITED_wSUPER_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:69: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_INHERITED_wSUPER_rSUPER_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:66: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_METHOD_wSUPER_rERASED_FUNCTION_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:83: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_MODULE_wSUPER_rCLOSURE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:67: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_MODULE_wSUPER_rDIRECT_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:80: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wBASE_rBASE_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wBASE_rDESTROY_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wBASE_rDIRECT_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wCLOSURE_rDIRECT_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:96: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDESTROY_rSUPER_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:75: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDIRECT_rDIRECT_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:92: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDIRECT_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:95: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wDIRECT_rINTERFACE_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rBASE_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:81: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rDESTROY_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:95: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rDIRECT_CLASSx1 lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:95: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wGENERIC_INTERFACE_rINTERFACE_CLASSx2_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:98: wurstNewInstance requires its type argument to resolve to a concrete class.
-NEW_INSTANCE_ONDESTROY_wSUPER_rBASE_CLASSx1_opt lua-new-instance-unresolved | Lua translation rejects it: Error in File Matrix.wurst:78: wurstNewInstance requires its type argument to resolve to a concrete class.
 STATIC_CLOSURE_wCLOSURE_rDESTROY_TUPLEx2_opt lua-tuple-elimination-crash | Lua translation fails: java.lang.RuntimeException: //// Before ----------- run_G_TestN // After ------------------- run_G_TestN
 STATIC_CLOSURE_wDIRECT_rDESTROY_TUPLEx1_opt lua-static-erased | Lua raised an error
 STATIC_CLOSURE_wERASED_FUNCTION_rCLOSURE_CLASSx2 lua-static-erased | Lua raised an error

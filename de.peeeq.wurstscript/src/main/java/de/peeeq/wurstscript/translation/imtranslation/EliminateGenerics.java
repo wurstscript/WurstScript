@@ -1255,6 +1255,16 @@ public class EliminateGenerics {
     private void assertNoReachableGenericNewMarkers() {
         prog.accept(new Element.DefaultVisitor() {
             @Override
+            public void visit(ImClass c) {
+                if (!c.getTypeVariables().isEmpty()) {
+                    // The erased original: its functions use the class's type variables, which only a
+                    // specialised copy makes concrete. Should one stay live, the backend reports it.
+                    return;
+                }
+                super.visit(c);
+            }
+
+            @Override
             public void visit(ImFunction function) {
                 if (!function.getTypeVariables().isEmpty()
                     || unspecializedGenericClassMethods.contains(function)) {
@@ -1751,6 +1761,16 @@ public class EliminateGenerics {
     private void eliminateRemainingGenericNewCalls() {
         List<ImFunctionCall> calls = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImClass c) {
+                if (!c.getTypeVariables().isEmpty()) {
+                    // The erased original: its functions use the class's type variables, which only a
+                    // specialised copy makes concrete. Should one stay live, the backend reports it.
+                    return;
+                }
+                super.visit(c);
+            }
+
             @Override
             public void visit(ImFunction function) {
                 if (!function.getTypeVariables().isEmpty()

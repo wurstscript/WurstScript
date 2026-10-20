@@ -8418,6 +8418,52 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /** wurstNewInstance behind a super call (lua-new-instance-unresolved). */
+    @Test
+    public void newInstanceBehindASuperCall() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class CA",
+            "    int tag = 73",
+            "class G<T:>",
+            "    T made",
+            "    function w()",
+            "        made = wurstNewInstance<T>()",
+            "class Sub extends G<CA>",
+            "    override function w()",
+            "        super.w()",
+            "init",
+            "    let g = new Sub()",
+            "    g.w()",
+            "    if g.made.tag == 73",
+            "        testSuccess()"
+        );
+    }
+
+    /** wurstNewInstance in a constructor, which a method calls for its own instantiation (lua-new-instance-unresolved). */
+    @Test
+    public void newInstanceInAConstructorCalledFromAMethod() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class CA",
+            "    int tag = 73",
+            "class G<T:>",
+            "    T made",
+            "    construct()",
+            "    construct(G<T> t)",
+            "        t.made = wurstNewInstance<T>()",
+            "    function w()",
+            "        new G<T>(this)",
+            "init",
+            "    let g = new G<CA>()",
+            "    g.w()",
+            "    if g.made.tag == 73",
+            "        testSuccess()"
+        );
+    }
+
     /** wurstNewInstance reached through a non-generic interface (lua-new-instance-erased). */
     @Test
     public void newInstanceThroughErasedInterfaceDispatch() {
