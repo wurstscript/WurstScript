@@ -50,7 +50,12 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private final ImTranslator translator;
     private boolean injectObjects;
     private final Deque<Runnable> delayedActions = new ArrayDeque<>();
-    private final Map<ClassManagementVars, List<CompiletimeObjectInit>> compiletimeObjects = new LinkedHashMap<>();
+    /**
+     * The objects to allocate in the compile-time state, by allocator: the {@link ClassManagementVars} of their
+     * inheritance group on Jass, and {@link #SHARED_LUA_ALLOCATOR} for all of them on Lua.
+     */
+    private final Map<Object, List<CompiletimeObjectInit>> compiletimeObjects = new LinkedHashMap<>();
+    private static final Object SHARED_LUA_ALLOCATOR = new Object();
     private final Map<String, Long> compiletimeFunctionNanos = new LinkedHashMap<>();
     private long compiletimeExprNanos = 0L;
 
@@ -91,6 +96,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         // The interpreter is handed a program; this hands over the one thing it cannot work out from
         // the program alone, which is what a specialised node was copied from.
         globalState.setSpecialisations(tr);
+        if (tr.isLuaTarget()) {
+            globalState.useOneObjectIdSpace();
+        }
         initializeBackendConstants();
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
@@ -532,8 +540,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void registerCompiletimeObject(ILconstObject obj, ImVar targetVar) {
-        ClassManagementVars mVars = translator.getClassManagementVarsFor(obj.getType().getClassDef());
-        compiletimeObjects.computeIfAbsent(mVars, k -> new ArrayList<>())
+        Object allocator = translator.isLuaTarget()
+            ? SHARED_LUA_ALLOCATOR
+            : translator.getClassManagementVarsFor(obj.getType().getClassDef());
+        compiletimeObjects.computeIfAbsent(allocator, k -> new ArrayList<>())
             .add(new CompiletimeObjectInit(obj, targetVar));
     }
 
@@ -544,7 +554,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
         List<ImStmt> objectInits = new ArrayList<>();
 
-        for (Map.Entry<ClassManagementVars, List<CompiletimeObjectInit>> entry : compiletimeObjects.entrySet()) {
+        for (Map.Entry<Object, List<CompiletimeObjectInit>> entry : compiletimeObjects.entrySet()) {
             List<CompiletimeObjectInit> objs = entry.getValue();
             if (objs.isEmpty()) {
                 continue;
@@ -552,10 +562,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
             objs.sort(Comparator.comparingInt(o -> o.object.getObjectId()));
 
-            ClassManagementVars mVars = entry.getKey();
-            // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
-            objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
-                JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
+            // Lua has one allocator for every class; its intrinsic empties the free list along with each
+            // new maximum, so it is called before the first object even when that one needs no gap.
+            @Nullable ClassManagementVars mVars = entry.getKey() instanceof ClassManagementVars v ? v : null;
+            if (mVars != null) {
+                // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
+                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
+                    JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
+            }
 
             int currentMax = 0;
             int finalMax = globalState.getMaxAllocatedId(objs.get(0).object.getImClass());
@@ -563,10 +577,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             for (CompiletimeObjectInit init : objs) {
                 int desiredId = init.object.getObjectId();
                 int targetMax = desiredId - 1;
-                if (targetMax > currentMax) {
-                    objectInits.add(JassIm.ImSet(init.object.getTrace(),
-                        JassIm.ImVarAccess(mVars.maxIndex),
-                        JassIm.ImIntVal(targetMax)));
+                if (targetMax > currentMax || (mVars == null && init == objs.get(0))) {
+                    objectInits.add(setMaxObjectId(init.object.getTrace(), mVars, targetMax));
                     currentMax = targetMax;
                 }
 
@@ -578,12 +590,20 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
 
             if (finalMax > currentMax) {
-                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
-                    JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(finalMax)));
+                objectInits.add(setMaxObjectId(objs.get(0).object.getTrace(), mVars, finalMax));
             }
         }
 
         getCompiletimeStateInitFunction().getBody().addAll(0, objectInits);
+    }
+
+    /** The next allocation is maxId + 1: Jass sets the group's maxIndex, Lua resumes its one allocator. */
+    private ImStmt setMaxObjectId(Element trace, @Nullable ClassManagementVars mVars, int maxId) {
+        if (mVars != null) {
+            return JassIm.ImSet(trace, JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxId));
+        }
+        return JassIm.ImFunctionCall(trace, translator.luaResumeObjectIdsFunc(), JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(maxId)), false, CallType.NORMAL);
     }
 
     private static class CompiletimeObjectInit {

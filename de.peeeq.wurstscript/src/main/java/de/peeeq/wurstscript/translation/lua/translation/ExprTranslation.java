@@ -158,6 +158,11 @@ public class ExprTranslation {
             throw new CompileError(e.attrTrace().attrSource(),
                 "Lua backend: " + imFuncName + " used as an expression; a keyed-map store must be a statement.");
         }
+        if (e.getFunc() == tr.imTr.luaResumeObjectIdsFunc) {
+            // Two assignments, so a statement; see StmtTranslation#translateResumeObjectIds.
+            throw new CompileError(e.attrTrace().attrSource(),
+                "Lua backend: " + imFuncName + " used as an expression; it must be a statement.");
+        }
         LuaHashtable.Op hashtableOp = LuaHashtable.op(tr.imTr, e.getFunc());
         if (hashtableOp != null) {
             return LuaHashtableTranslation.expression(e, hashtableOp, tr);
@@ -223,6 +228,7 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc
             || function == tr.imTr.luaRawOrEmptyFunc
+            || function == tr.imTr.luaResumeObjectIdsFunc
             || LuaKeyedMap.readStubName(tr.imTr, function) != null
             || LuaKeyedMap.writeStubName(tr.imTr, function) != null;
     }

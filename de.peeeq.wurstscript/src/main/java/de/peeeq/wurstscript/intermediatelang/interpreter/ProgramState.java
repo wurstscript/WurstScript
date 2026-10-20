@@ -32,6 +32,9 @@ public class ProgramState extends State implements AutoCloseable {
     private final Set<String> missingNativeFuncs = new HashSet<>();
     private ImProg prog;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
+    /** The key of the one id space all classes share; see {@link #useOneObjectIdSpace}. */
+    private static final Object SHARED_ID_SPACE = new Object();
+    private boolean oneObjectIdSpace;
     /** See {@link #isGenericHierarchy}; only looked up, never iterated. */
     private final Map<ImClass, Boolean> genericHierarchy = new IdentityHashMap<>();
     /** See {@link #dispatch}; only looked up, never iterated. */
@@ -222,7 +225,23 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
     protected Object classKey(ImClass clazz) {
+        if (oneObjectIdSpace) {
+            return SHARED_ID_SPACE;
+        }
         return classKeyLookup.getOrDefault(clazz, clazz);
+    }
+
+    /**
+     * Hands out the ids of all classes from one counter and one free list, as the Lua target does
+     * (docs/WC3_RUNTIME.md), instead of one per inheritance group as Jass does. A compile-time object
+     * keeps its id in the generated script, so the ids must come from the allocator of the target.
+     * Called before anything is allocated.
+     */
+    public void useOneObjectIdSpace() {
+        if (!objectIdSpaces.isEmpty()) {
+            throw new IllegalStateException("The id spaces are chosen before the first allocation.");
+        }
+        oneObjectIdSpace = true;
     }
 
     public void deallocate(ILconstObject obj, ImClass clazz, Element trace) {

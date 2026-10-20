@@ -658,8 +658,39 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeObjectKeepsIdAfterDroppedObject() throws IOException {
+        // The object which is not kept still took an id, so the kept one has id 2 on both targets.
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    int storedId",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns A",
+                        "    new A",
+                        "    let keep = new A",
+                        "    keep.storedId = keep castTo int",
+                        "    return keep",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    if kept castTo int == kept.storedId",
+                        "        testSuccess()");
+        // Lua's one allocator continues after the dropped object's id before the kept one is made, and the
+        // id the kept object stored at compile time is the one it gets.
+        String lua = compiledLua("testCompiletimeObjectKeepsIdAfterDroppedObject");
+        java.util.regex.Matcher replay = java.util.regex.Pattern.compile(
+            "__wurst_objectFreeCount = 0\\s+__wurst_objectMax = (\\d+)\\s+(\\w+) = A:create\\(\\)\\s+"
+                + "A_storedId_storage\\[\\2\\] = (\\d+)").matcher(lua);
+        assertTrue(replay.find(), lua);
+        assertEquals(Integer.parseInt(replay.group(3)), Integer.parseInt(replay.group(1)) + 1, lua);
+    }
+
+    @Test
     public void testCompiletimeObjectIdMigration() {
-        test().executeProg(true)
+        test().testLua(true).luaOnly(false).executeProg(true)
                 .runCompiletimeFunctions(true)
                 .executeProgOnlyAfterTransforms()
                 .lines("package Test",
@@ -729,6 +760,66 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        and result.keepB.idSnapshot == result.keepB castTo int",
                         "        and newA castTo int == result.maxA + 1",
                         "        and newB castTo int == result.maxB + 1",
+                        "        testSuccess()");
+    }
+
+    /**
+     * Lua has one id space for all classes where Jass has one per inheritance group, so the compile-time
+     * objects of unrelated classes have distinct ids there and an object made at run time follows the
+     * highest id of any class.
+     */
+    @Test
+    public void testCompiletimeObjectIdMigrationSharesOneIdSpaceOnLua() {
+        test().testLua(true).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    int idSnapshot",
+                        "class B",
+                        "    int idSnapshot",
+                        "tuple BuildResult(A keepA, B keepB, A lastA, int maxId)",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns BuildResult",
+                        "    A keepA = null",
+                        "    B keepB = null",
+                        "    A lastA = null",
+                        "    int maxId = 0",
+                        "    for i = 1 to 200",
+                        "        let a = new A",
+                        "        a.idSnapshot = a castTo int",
+                        "        maxId = max(maxId, a castTo int)",
+                        "        if i % 25 == 0",
+                        "            keepA = a",
+                        "        else",
+                        "            destroy a",
+                        "        let b = new B",
+                        "        b.idSnapshot = b castTo int",
+                        "        maxId = max(maxId, b castTo int)",
+                        "        if i % 30 == 0",
+                        "            keepB = b",
+                        "        else",
+                        "            destroy b",
+                        "    lastA = new A",
+                        "    lastA.idSnapshot = lastA castTo int",
+                        "    maxId = max(maxId, lastA castTo int)",
+                        "    return BuildResult(keepA, keepB, lastA, maxId)",
+                        "function max(int a, int b) returns int",
+                        "    if a > b",
+                        "        return a",
+                        "    return b",
+                        "let result = compiletime(build())",
+                        "init",
+                        "    let newA = new A",
+                        "    let newB = new B",
+                        "    if result.keepA.idSnapshot == result.keepA castTo int",
+                        "        and result.keepB.idSnapshot == result.keepB castTo int",
+                        "        and result.lastA.idSnapshot == result.lastA castTo int",
+                        "        and result.keepA castTo int != result.keepB castTo int",
+                        "        and newA castTo int == result.maxId + 1",
+                        "        and newB castTo int == result.maxId + 2",
                         "        testSuccess()");
     }
 
