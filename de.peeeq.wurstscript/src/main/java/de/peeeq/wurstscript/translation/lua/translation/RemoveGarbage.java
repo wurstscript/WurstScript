@@ -36,6 +36,8 @@ public class RemoveGarbage {
         private final Set<ImClass> instantiatedClasses = new LinkedHashSet<>();
         private final Set<ImVar> vars = new LinkedHashSet<>();
         private final Set<ImSet> ignoredInitializers;
+        /** Whether reachable code can tell how the classes are numbered ({@link LuaReflection}). */
+        private boolean observesTypeIdNumbering;
 
         private Used(ImTranslator translator, Set<ImSet> ignoredInitializers) {
             this.translator = translator;
@@ -179,6 +181,13 @@ public class RemoveGarbage {
         for (int i = 0; i < classes.size(); i++) {
             visitRootFunctions(classes.get(i).getFunctions(), used);
         }
+        if (used.observesTypeIdNumbering) {
+            // Type ids number the classes the program keeps. Jass numbers every class, used or not, so that is
+            // what a program which can see the numbering keeps: each class for its type id alone.
+            for (int i = 0; i < classes.size(); i++) {
+                visitClass(classes.get(i), used, false);
+            }
+        }
         return used;
     }
 
@@ -274,6 +283,9 @@ public class RemoveGarbage {
             public void visit(ImFunctionCall e) {
                 super.visit(e);
                 visitFunction(e.getFunc(), used);
+                if (LuaReflection.observesTypeIdNumbering(e)) {
+                    used.observesTypeIdNumbering = true;
+                }
             }
 
             @Override

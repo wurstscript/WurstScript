@@ -248,8 +248,8 @@ Notes; finished-work narrative does not.
 - **Run every executing test on Lua on master CI (`-PallBackends`).** Forcing `translateAndTestLua`
   after the Jass runs of every `executeProg` test that does not opt into Lua (686 tests, October 2026)
   passed 645 on plain Lua and 644 with `-inline -localOptimizations`; the failures found the
-  generic-static and type-id items below, three defects with their own fixes (compile-time object ids,
-  old-generic tuple arguments, a direct `wurstKeyOf` call) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
+  generic-static item below, four defects with their own fixes (compile-time object ids, old-generic
+  tuple arguments, a direct `wurstKeyOf` call, the `Reflection` natives) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
   cost about 300 s of test time each over the suite. Proposal: `-PallBackends` (master CI only, PR CI
   unchanged) runs Lua after Jass for every executing test, `-PallBackends=full` adds the inlined
   variant. A test that cannot hold on Lua says why with `.luaExempt(LuaExemption.X)` instead of
@@ -274,12 +274,16 @@ Notes; finished-work narrative does not.
   none of the generics, closure, module, class and Lua audit test classes (October 2026). Check the whole
   suite and remove it.
 
-- **`typeIdToTypeName`, `maxTypeId`, `instanceCount` and `maxInstanceCount` answer defaults on Lua.**
-  Only `EliminateClasses` implements them, on the Jass path. On Lua they compile to the generic native
-  fallback, which returns `""` or 0 without a diagnostic, so `NewFeatureTests.typeName`, `typeName2`,
-  `maxTypeId`, `instanceCount` and `instanceMaxCount` hold only with `testLua(false)`. Nothing documents
-  this as a backend difference. Implement them on Lua (one id space for every class, docs/WC3_RUNTIME.md
-  "Objects and memory", so `instanceCount` counts one class's live descriptors) or reject them there.
+- **The `Reflection` natives answer otherwise on Jass for a number which is no type id, and in the
+  interpreter.** `EliminateClasses` searches the type ids without bounds, so on Jass
+  `typeIdToTypeName(0)` is the first class's name and a number above `maxTypeId()` answers for the last
+  class, where the search's own default (`"unknown"`, 0) and Lua answer the default. The interpreter
+  (`WurstflectionProvider`, `ILInterpreter.getInstanceCount`) counts the objects of the class alone, not
+  of its allocator group, gives as `maxInstanceCount` the number of objects ever made, and raises in
+  `typeIdToTypeName` for an unknown number. Compile-time code sees that, and the parity tests run the
+  interpreter only on the translated program (`LuaTranslationTests.reflectionNativesAnswerAsOnJass`).
+  Bound the Jass search and make the interpreter answer as the backends do (docs/WC3_RUNTIME.md
+  "Objects and memory").
 
 - **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
   lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still
