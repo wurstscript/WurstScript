@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
@@ -1838,7 +1837,12 @@ public class EliminateGenerics {
         });
     }
 
-    /** Maps a concrete subclass instantiation onto the type arguments of a static's declaring class. */
+    /**
+     * Maps a concrete instantiation onto the type arguments of a static's declaring class, through the superclass
+     * edges. A static inner class is first taken to the owner whose type parameters it captured
+     * ({@code Outer<T>.Inner} is {@code Inner<T>}): in {@code Inner<int>}, a static of {@code Outer} or of a
+     * superclass of it is the one of {@code Outer<int>}.
+     */
     private @Nullable GenericTypes adaptGenericsToOwner(ImClass concreteOwner,
                                                         GenericTypes concreteGenerics,
                                                         ImClass declaringOwner) {
@@ -1852,7 +1856,9 @@ public class EliminateGenerics {
         ImClassType adapted = adaptToSuperclass(
             JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
         if (adapted == null) {
-            return capturedOwnerGenerics(concreteOwner, concreteGenerics, declaringOwner);
+            ImClassType owner = capturedOwnerInstantiation(concreteOwner, concreteGenerics);
+            return owner == null ? null
+                : adaptGenericsToOwner(owner.getClassDef(), new GenericTypes(owner.getTypeArguments()), declaringOwner);
         }
         if (adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
             || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
@@ -1861,33 +1867,14 @@ public class EliminateGenerics {
         return new GenericTypes(adapted.getTypeArguments());
     }
 
-    /**
-     * Maps the instantiation of a static inner class onto its generic owner, whose type parameters the inner class
-     * captured: {@code Outer<T>.Inner} is {@code Inner<T>}, so a static of {@code Outer} read in {@code Inner<int>} is
-     * the one of {@code Outer<int>}. The captured variables are matched to the owner's by the source parameter they
-     * stand for.
-     */
-    private @Nullable GenericTypes capturedOwnerGenerics(ImClass innerClass, GenericTypes innerGenerics,
-                                                         ImClass declaringOwner) {
-        List<TypeParamDef> captured = translator.capturedOwnerTypeParameters(innerClass);
-        List<ImTypeVar> innerVariables = innerClass.getTypeVariables();
-        if (captured.isEmpty() || innerGenerics.getTypeArguments().size() < innerVariables.size()) {
+    /** The instantiation of the owner a static inner class captured type parameters from, for one of the inner class. */
+    private @Nullable ImClassType capturedOwnerInstantiation(ImClass innerClass, GenericTypes innerGenerics) {
+        ImClassType ownerType = translator.capturedOwnerType(innerClass);
+        int count = innerClass.getTypeVariables().size();
+        if (ownerType == null || innerGenerics.getTypeArguments().size() < count) {
             return null;
         }
-        List<ImTypeArgument> ownerArguments = new ArrayList<>();
-        for (ImTypeVar ownerVariable : declaringOwner.getTypeVariables()) {
-            TypeParamDef ownerParameter = translator.getTypeParamDef(ownerVariable);
-            if (ownerParameter == null || !captured.contains(ownerParameter)) {
-                return null;
-            }
-            int index = 0;
-            while (translator.getTypeParamDef(innerVariables.get(index)) != ownerParameter) {
-                index++;
-            }
-            ownerArguments.add(innerGenerics.getTypeArguments().get(index).copy());
-        }
-        GenericTypes ownerGenerics = new GenericTypes(ownerArguments);
-        return ownerGenerics.containsTypeVariable() ? null : ownerGenerics;
+        return (ImClassType) transformType(ownerType, innerGenerics.take(count), innerClass.getTypeVariables());
     }
 
     /**

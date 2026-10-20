@@ -343,6 +343,8 @@ public class ImTranslator implements SpecialisationLookup {
     private final RunArgs runArgs;
 
     private final Map<ClassDef, Map<TypeParamDef, ImTypeVar>> capturedOwnerTypeVarsByStaticClass = new IdentityHashMap<>();
+    /** The class or interface whose type parameters a static inner class captured. */
+    private final Map<ClassDef, ClassOrInterface> capturingOwnerByStaticClass = new IdentityHashMap<>();
     private final Deque<Map<TypeParamDef, ImTypeVar>> typeVarOverrideStack = new ArrayDeque<>();
     private final Deque<ImVar> continueFlagStack = new ArrayDeque<>();
 
@@ -409,6 +411,28 @@ public class ImTranslator implements SpecialisationLookup {
             }
         }
         return result;
+    }
+
+    @Override
+    public @Nullable ImClassType capturedOwnerType(ImClass imClass) {
+        if (!(imClass.getTrace() instanceof ClassDef classDef)) {
+            return null;
+        }
+        Map<TypeParamDef, ImTypeVar> captured = capturedOwnerTypeVarsByStaticClass.get(classDef);
+        ClassOrInterface owner = capturingOwnerByStaticClass.get(classDef);
+        ImClass ownerClass = owner == null ? null : classForStructureDef.get(owner);
+        if (captured == null || captured.isEmpty() || ownerClass == null) {
+            return null;
+        }
+        ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+        for (ImTypeVar ownerVariable : ownerClass.getTypeVariables()) {
+            ImTypeVar capturedVariable = captured.get(typeVariableReverse.get(ownerVariable));
+            if (capturedVariable == null || !imClass.getTypeVariables().contains(capturedVariable)) {
+                return null;
+            }
+            typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(capturedVariable), Collections.emptyMap()));
+        }
+        return JassIm.ImClassType(ownerClass, typeArguments);
     }
 
     public void pushTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
@@ -3106,6 +3130,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
         if (owner == null) return;
         if (owner == cd) return;
+        if (owner instanceof ClassOrInterface ownerScope) {
+            capturingOwnerByStaticClass.put(cd, ownerScope);
+        }
 
         // override map for this static inner class: owner TypeParamDef -> captured ImTypeVar (fresh node)
         Map<TypeParamDef, ImTypeVar> override =

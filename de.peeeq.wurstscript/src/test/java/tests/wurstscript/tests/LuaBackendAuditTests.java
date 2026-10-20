@@ -2972,6 +2972,31 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void staticInnerClassReadsTheStaticOfItsOwnersGenericSuperclass() {
+        // The static belongs to the owner's superclass: the inner class's instantiation is the owner's,
+        // and the owner's reaches the superclass's through the superclass edge.
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Base<T:>",
+            "    static T last",
+            "class Outer<T:> extends Base<T>",
+            "    construct(T value)",
+            "        last = value",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let ints = new Outer<int>(7)",
+            "    let strings = new Outer<string>(\"ok\")",
+            "    if ints.reader().read() == 7 and strings.reader().read() == \"ok\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void moduleStaticInnerClassReadsTheStaticOfItsOwnersInstantiationInlined() {
         // The module form, inlined and optimised, where the constructor's write was dropped.
         test().testLua(true).inline().localOptimizations().executeProg().lines(

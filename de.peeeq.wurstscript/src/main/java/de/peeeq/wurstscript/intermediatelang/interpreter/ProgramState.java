@@ -459,8 +459,27 @@ public class ProgramState extends State implements AutoCloseable {
             rt = imClassType;
         }
 
-        ImClassType adapted = adaptToSuperclass(rt, owner);
+        ImClassType adapted = adaptToOwner(rt, owner);
         return adapted != null ? adapted : rt;
+    }
+
+    /**
+     * {@code ct} as an instantiation of {@code owner}, through the superclass edges. A static inner class is first
+     * taken to the owner whose type parameters it captured, so that it reads the statics of its owner's instantiation
+     * and of the superclasses of that, as {@code EliminateGenerics.adaptGenericsToOwner} does.
+     */
+    private @Nullable ImClassType adaptToOwner(ImClassType ct, ImClass owner) {
+        ImClassType adapted = adaptToSuperclass(ct, owner);
+        if (adapted != null) {
+            return adapted;
+        }
+        ImClassType capturedOwner = specialisations.capturedOwnerType(ct.getClassDef());
+        if (capturedOwner == null) {
+            return null;
+        }
+        ImType ownerInstantiation = resolveType(ImAttrType.substituteType(capturedOwner, ct.getTypeArguments(),
+            ct.getClassDef().getTypeVariables()));
+        return ownerInstantiation instanceof ImClassType ownerType ? adaptToOwner(ownerType, owner) : null;
     }
 
     private @Nullable ImClassType adaptToSuperclass(ImClassType ct, ImClass owner) {
