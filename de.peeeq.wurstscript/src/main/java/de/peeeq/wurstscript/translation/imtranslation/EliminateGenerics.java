@@ -127,10 +127,14 @@ public class EliminateGenerics {
      * keep the Lua backend's erased representation.
      */
     public void transformGenericNewOnly() {
-        transformGenericNewOnly(false);
+        transformGenericNewOnly(false, false);
     }
 
-    public void transformGenericNewOnly(boolean specializeTupleValueTypes) {
+    /**
+     * @param observesGenericIdentity whether an instanceof names an instantiation of a generic class: only then
+     *                                does an instantiation need an identity of its own
+     */
+    public void transformGenericNewOnly(boolean specializeTupleValueTypes, boolean observesGenericIdentity) {
         genericNewOnly = true;
         this.specializeTupleValueTypes = specializeTupleValueTypes;
         identifyGenericGlobals();
@@ -143,7 +147,7 @@ public class EliminateGenerics {
         // call on that result resolve. Repeat until a pass finds nothing new; collection is
         // idempotent, so this terminates once every reachable site has been rewritten.
         while (true) {
-            if (specializeTupleValueTypes) {
+            if (observesGenericIdentity) {
                 collectRuntimeTypeSpecializations();
             }
             collectGenericNewRoots();
@@ -333,8 +337,8 @@ public class EliminateGenerics {
     /**
      * Records parameterized classes whose runtime identity is observed. Lua normally erases
      * generics, but an instanceof target must denote the same concrete class as allocations of that
-     * instantiation; otherwise a tuple-specialized object is also an instance of every erased
-     * non-tuple instantiation.
+     * instantiation; otherwise every object of the erased class, whatever its instantiation, is an
+     * instance of it. Instantiations no instanceof names stay erased.
      */
     private void collectRuntimeTypeSpecializations() {
         prog.accept(new Element.DefaultVisitor() {
@@ -1003,6 +1007,7 @@ public class EliminateGenerics {
             // Empty arguments may be supplied implicitly by the enclosing generic receiver.
             // Only an explicit, already-concrete call is independent of the caller context.
             return constructsClassOwningGenericGlobals(function, call)
+                || constructsClassWithObservedIdentity(function, call)
                 || translator.isGenericNewMarker(call.getFunc())
                 || (dependsOnCaller(call.getTypeArguments())
                 && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods));
@@ -1089,6 +1094,40 @@ public class EliminateGenerics {
         }
         ImClass owner = classOwning(call.getFunc());
         return owner != null && classOwnsGenericGlobals(owner);
+    }
+
+    /**
+     * A generic caller containing {@code new Box<T>()} must be specialised when an instanceof names an
+     * instantiation of {@code Box} or of a superclass: the object it allocates for that instantiation has to
+     * carry the identity the check compares, and only a concrete construction can be redirected to it. Detected
+     * at the caller boundary like the static storage above; a construction which already names its
+     * instantiation is redirected only when that instantiation is observed.
+     */
+    private boolean constructsClassWithObservedIdentity(ImFunction enclosingFunction, ImFunctionCall call) {
+        if (runtimeTypeSpecializations.isEmpty()
+            || !(call.getFunc().getTrace() instanceof ConstructorDef)
+            || !typeArgumentsContainTypeVariable(call.getTypeArguments())
+            || enclosingFunction.getTrace() == call.getFunc().getTrace()) {
+            return false;
+        }
+        ImClass owner = classOwning(call.getFunc());
+        return owner != null && hasObservedIdentity(owner, Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    /** Whether an instanceof names an instantiation of this class or of one of its superclasses. */
+    private boolean hasObservedIdentity(ImClass clazz, Set<ImClass> visited) {
+        if (!visited.add(clazz)) {
+            return false;
+        }
+        if (runtimeTypeSpecializations.containsRow(clazz)) {
+            return true;
+        }
+        for (ImClassType superType : clazz.getSuperClasses()) {
+            if (hasObservedIdentity(superType.getClassDef(), visited)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean methodNeedsSpecialization(ImMethod method, Set<ImFunction> visitedFunctions,

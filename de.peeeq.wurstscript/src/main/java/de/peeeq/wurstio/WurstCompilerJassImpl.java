@@ -969,11 +969,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         TreeShaker.removeUnreachableFunctionsBeforeGenerics(getImTranslator());
         timeTaker.endPhase();
         boolean specializeTupleValueTypes = containsTupleTypeArgument();
+        boolean observesGenericIdentity = containsParameterizedInstanceof();
         EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
         if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
-            || luaGenerics.hasGenericStatics()) {
+            || observesGenericIdentity || luaGenerics.hasGenericStatics()) {
             beginPhase(2, "Specialize generics for Lua-only concrete operations");
-            luaGenerics.transformGenericNewOnly(specializeTupleValueTypes);
+            luaGenerics.transformGenericNewOnly(specializeTupleValueTypes, observesGenericIdentity);
             // Remove phantom erased initialization before optimization can preserve only its side
             // effect. A specialized static owns its copied initializer unless the erased static is live.
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
@@ -1128,6 +1129,24 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
                 found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    /**
+     * Whether an instanceof names an instantiation of a generic class, such as {@code x instanceof Box<int>}. Such a
+     * check tells the instantiations of the class apart, so they cannot all share the erased class.
+     */
+    private boolean containsParameterizedInstanceof() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                if (!instanceOf.getClazz().getTypeArguments().isEmpty()) {
+                    found[0] = true;
+                }
+                super.visit(instanceOf);
             }
         });
         return found[0];

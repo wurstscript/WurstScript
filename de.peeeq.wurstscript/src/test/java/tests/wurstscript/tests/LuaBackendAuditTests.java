@@ -2310,6 +2310,158 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An instanceof naming one instantiation of a new generic class rejects every other one, as on
+     * Jass, where each instantiation is a class of its own. Lua keeps objects erased and gives a
+     * distinct identity only to an instantiation such a check names.
+     * <p>
+     * These tests run the interpreter on the translated program only: on the generic program it
+     * compares the class without its type arguments, so it takes every Box for a Box&lt;int&gt;.
+     */
+    @Test
+    public void genericInstanceofRejectsAnotherPrimitiveInstantiation() throws IOException {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "init",
+            "    Marker s = new Box<string>()",
+            "    if not (s instanceof Box<int>)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericInstanceofRejectsAnotherPrimitiveInstantiation");
+        assertTrue(compiled.contains("Box_specialized_integer"));
+        assertFalse(compiled.contains("Box_specialized_string"));
+    }
+
+    @Test
+    public void genericInstanceofRejectsAnotherClassInstantiation() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class CA",
+            "class CB extends CA",
+            "init",
+            "    Marker b = new Box<CB>()",
+            "    if not (b instanceof Box<CA>)",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericInstanceofAcceptsItsOwnInstantiation() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "    function get() returns T",
+            "        return item",
+            "init",
+            "    Box<int> box = new Box<int>()",
+            "    box.item = 5",
+            "    Marker i = box",
+            "    Marker s = new Box<string>()",
+            "    if i instanceof Box<int> and not (s instanceof Box<int>) and box.get() == 5",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericInstanceofSeesTheInstantiationOfASuperclass() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Sub<T:> extends Box<T>",
+            "init",
+            "    Marker i = new Sub<int>()",
+            "    Marker s = new Sub<string>()",
+            "    if i instanceof Box<int> and not (i instanceof Box<string>)",
+            "        and s instanceof Box<string> and not (s instanceof Box<int>)",
+            "        and i instanceof Sub<int> and not (s instanceof Sub<int>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The check and the allocation sit in generic code, which only the instantiation makes concrete. */
+    @Test
+    public void genericInstanceofThroughGenericCode() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "function isBoxOf<T:>(Marker m) returns bool",
+            "    return m instanceof Box<T>",
+            "function make<T:>() returns Marker",
+            "    return new Box<T>()",
+            "init",
+            "    Marker i = make<int>()",
+            "    Marker s = make<string>()",
+            "    if isBoxOf<int>(i) and not isBoxOf<int>(s)",
+            "        and isBoxOf<string>(s) and not isBoxOf<string>(i)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same in the methods of a generic class, whose type argument the receiver gives. */
+    @Test
+    public void genericInstanceofThroughAGenericClass() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Holder<T:>",
+            "    Marker held = null",
+            "    function fill()",
+            "        held = new Box<T>()",
+            "    function holds(Marker m) returns bool",
+            "        return m instanceof Box<T>",
+            "init",
+            "    let i = new Holder<int>()",
+            "    let s = new Holder<string>()",
+            "    i.fill()",
+            "    s.fill()",
+            "    if i.holds(i.held) and not i.holds(s.held)",
+            "        and s.holds(s.held) and not s.holds(i.held)",
+            "        testSuccess()"
+        );
+    }
+
+    /** A program which names no instantiation in an instanceof keeps every object erased. */
+    @Test
+    public void genericObjectsStayErasedWithoutParameterizedInstanceof() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Other implements Marker",
+            "init",
+            "    Marker s = new Box<string>()",
+            "    Marker i = new Box<int>()",
+            "    if not (s instanceof Other) and not (i instanceof Other)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericObjectsStayErasedWithoutParameterizedInstanceof");
+        assertFalse(compiled.contains("_specialized_"));
+    }
+
     @Test
     public void tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm() throws IOException {
         test().testLua(true).executeProg().lines(
