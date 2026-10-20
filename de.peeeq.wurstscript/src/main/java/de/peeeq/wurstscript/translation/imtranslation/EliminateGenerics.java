@@ -800,6 +800,23 @@ public class EliminateGenerics {
      * paths that have nothing to do with closures.
      */
     private boolean classReachesDispatch(ImClass classDef) {
+        boolean outer = identityIgnored;
+        // Only what a closure dispatches on or constructs by its type argument is a reason to specialise it on
+        // construction. An instanceof is not: specialising the closure leaves its captured receiver typed by the
+        // erased class (lua-closure-receiver), and its check stays erased anyway while the closure's own
+        // constructions do. Programs with tuple type arguments keep what they always counted.
+        identityIgnored = !specializeTupleValueTypes;
+        try {
+            return closureReachesDispatch(classDef);
+        } finally {
+            identityIgnored = outer;
+        }
+    }
+
+    /** Set while {@link #classReachesDispatch} asks: instanceof identity does not count. */
+    private boolean identityIgnored;
+
+    private boolean closureReachesDispatch(ImClass classDef) {
         for (ImFunction f : classDef.getFunctions()) {
             if (functionNeedsSpecialization(f, Collections.newSetFromMap(new IdentityHashMap<>()),
                 Collections.newSetFromMap(new IdentityHashMap<>()))) {
@@ -1095,7 +1112,7 @@ public class EliminateGenerics {
             return true;
         }
         if (node instanceof ImInstanceof instanceOf) {
-            return typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
+            return !identityIgnored && typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
         }
         if (node instanceof ImAlloc alloc) {
             // Constructing a class whose methods dispatch has to be specialised as well:
@@ -1204,7 +1221,7 @@ public class EliminateGenerics {
      * instantiation is redirected only when that instantiation is observed.
      */
     private boolean constructsClassWithObservedIdentity(ImFunction enclosingFunction, ImFunctionCall call) {
-        if (runtimeTypeSpecializations.isEmpty()
+        if (identityIgnored || runtimeTypeSpecializations.isEmpty()
             || !(call.getFunc().getTrace() instanceof ConstructorDef)
             || !typeArgumentsContainTypeVariable(call.getTypeArguments())
             || enclosingFunction.getTrace() == call.getFunc().getTrace()) {

@@ -2522,6 +2522,70 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A closure in a generic class which reads a field of its receiver and checks it with an
+     * instanceof of the class's type argument.
+     */
+    @Test
+    public void genericInstanceofInAClosureReadingItsReceiver() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Fn",
+            "    function get() returns int",
+            "function b2i(bool b) returns int",
+            "    if b",
+            "        return 1",
+            "    return 0",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function r() returns int",
+            "        Fn f = () -> begin",
+            "            let h = held",
+            "            return b2i(h instanceof Box<T>)",
+            "        end",
+            "        let v = f.get()",
+            "        destroy f",
+            "        return v",
+            "init",
+            "    let g = new G<int>()",
+            "    g.held = new Box<int>()",
+            "    if g.r() == 1",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure in a generic class which constructs into a field of its receiver. */
+    @Test
+    public void genericInstanceofOfAnObjectAClosureConstructs() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Act",
+            "    function run()",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function w()",
+            "        Act a = () -> begin",
+            "            held = new Box<T>()",
+            "        end",
+            "        a.run()",
+            "        destroy a",
+            "init",
+            "    let g = new G<int>()",
+            "    g.w()",
+            "    let h = g.held",
+            "    if h instanceof Box<int>",
+            "        testSuccess()"
+        );
+    }
+
     /** A program which names no instantiation in an instanceof keeps every object erased. */
     @Test
     public void genericObjectsStayErasedWithoutParameterizedInstanceof() throws IOException {
