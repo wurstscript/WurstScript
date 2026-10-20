@@ -139,12 +139,13 @@ function SquareRoot(r)
 end
 
 -- Any value between the bounds; the interpreter's generator also counts up from the first
--- bound when the second is below it. The game's sequence is not modelled.
+-- bound when the second is below it. Not measured in game, and the game's sequence is not modelled.
 function GetRandomInt(low, high)
     return low + math.random(0, math.abs(high - low))
 end
 
--- Jass integers arrive sign-extended, so the 64 bit operators give the 32 bit result.
+-- As the interpreter (not measured in game). Jass integers arrive sign-extended, so the 64 bit
+-- operators give the 32 bit result.
 function BlzBitOr(x, y) return x | y end
 function BlzBitAnd(x, y) return x & y end
 function BlzBitXor(x, y) return x ~ y end
@@ -306,6 +307,7 @@ function GetPlayerState(p, state)
     return value
 end
 
+-- As the interpreter's mock, unset reads 0; not measured in game.
 function SetPlayerTechMaxAllowed(p, techId, maximum)
     p.techMaxAllowed = p.techMaxAllowed or {}
     p.techMaxAllowed[techId] = maximum
@@ -340,7 +342,8 @@ function ForForce(f, callback)
     end
 end
 
--- Units and destructables keep what they were created with; nothing in a test moves them.
+-- Units and destructables keep what they were created with; nothing in a test moves them. Plain
+-- records, not a model of the game's units.
 function CreateUnit(owner, unitId, x, y, face)
     return { owner = owner, typeId = unitId, x = x, y = y, face = face }
 end
