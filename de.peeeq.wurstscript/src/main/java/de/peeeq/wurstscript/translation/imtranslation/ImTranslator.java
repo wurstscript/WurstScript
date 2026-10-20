@@ -257,6 +257,30 @@ public class ImTranslator implements SpecialisationLookup {
     public boolean isLuaTableRead(ImFunction f) {
         return LuaKeyedMap.readStubName(this, f) != null || LuaHashtable.isRead(this, f);
     }
+
+    /**
+     * {@code __wurst_resumeObjectIds(n)}: the Lua allocator hands out n + 1 next and recycles nothing, as the
+     * compile-time state sets a class's maxIndex and freeCount on Jass. The Lua backend prints a call to this exact
+     * node as the two assignments (StmtTranslation).
+     */
+    @Nullable public ImFunction luaResumeObjectIdsFunc = null;
+
+    /**
+     * {@link #luaResumeObjectIdsFunc}, created on first use: the compile-time state calls it so that each object
+     * made at compile time keeps its id.
+     */
+    public ImFunction luaResumeObjectIdsFunc() {
+        ImFunction f = luaResumeObjectIdsFunc;
+        if (f == null) {
+            ImVar maxId = JassIm.ImVar(imProg.getTrace(), TypesHelper.imInt(), "maxId", false);
+            f = JassIm.ImFunction(imProg.getTrace(), "__wurst_resumeObjectIds", JassIm.ImTypeVars(), JassIm.ImVars(maxId),
+                JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+            imProg.getFunctions().add(f);
+            luaResumeObjectIdsFunc = f;
+        }
+        return f;
+    }
+
     @Nullable public ImFunction luaIntDivFunc = null;
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;
@@ -274,7 +298,7 @@ public class ImTranslator implements SpecialisationLookup {
             luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFloorModIntFunc,
             luaRawConcatFunc,
             luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
-            luaRawToStringFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
+            luaRawToStringFunc, luaResumeObjectIdsFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
             debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
             if (f != null) {
                 result.add(f);
