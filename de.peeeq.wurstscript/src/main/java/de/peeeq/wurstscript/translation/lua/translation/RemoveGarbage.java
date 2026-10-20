@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.validation.NamePreservation;
 
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -147,6 +148,15 @@ public class RemoveGarbage {
             }
         }
 
+    }
+
+    /**
+     * Read-only dispatch reachability for targeted Lua specialization. Query again after the
+     * specialization graph changes: scanning an uninstantiated override can activate a static
+     * initializer which would otherwise never run.
+     */
+    public static Set<ImMethod> reachableMethods(ImProg prog, ImTranslator translator) {
+        return collectUsed(prog, translator).getMethods();
     }
 
     private static Used collectUsed(ImProg prog, ImTranslator translator) {
