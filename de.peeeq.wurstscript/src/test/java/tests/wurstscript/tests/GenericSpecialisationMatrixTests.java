@@ -849,6 +849,8 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
     private static final Map<String, Integer> skipReasons = new TreeMap<>();
     private static final List<String> failures = new ArrayList<>();
     private static final Map<String, String> knownFailing = new TreeMap<>();
+    /** What the list would say of each failure it does not hold. */
+    private static final Map<String, String> unlisted = new TreeMap<>();
     private static final List<String> nowPassing = new ArrayList<>();
     private static int passed = 0;
 
@@ -925,9 +927,10 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             known = knownFailures();
         }
         String listed = known.get(c.name());
-        // A listed case is known only while it fails as listed: on Lua, with Jass passing, the same defect.
-        String defect = outcome.kind == Kind.FAIL && listed != null && listed.equals(defectOf(c, outcome.detail))
-            ? listed : null;
+        String entry = outcome.kind == Kind.FAIL ? listEntry(c, outcome.detail) : null;
+        // A listed case is known only while it fails as listed: on Lua, with Jass passing, the same defect and
+        // the same symptom.
+        String defect = listed != null && listed.equals(entry) ? listed : null;
         if (outcome.kind == Kind.FAIL && listed != null && defect == null) {
             outcome = new Outcome(Kind.FAIL, "listed as " + listed + " but fails otherwise: " + outcome.detail);
         }
@@ -945,6 +948,7 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
                         knownFailing.put(c.name(), defect);
                     } else {
                         failures.add(c.name() + ": " + outcome.detail);
+                        unlisted.put(c.name(), entry != null ? entry : "new | " + symptom(outcome.detail));
                     }
                 }
             }
@@ -962,6 +966,28 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             default -> {
             }
         }
+    }
+
+    /** The entry of {@link #KNOWN_FAILURES} a failure matches, "defect | symptom", or null if it is not a known defect. */
+    static String listEntry(Combo c, String detail) {
+        String defect = defectOf(c, detail);
+        return defect == null ? null : defect + " | " + symptom(detail);
+    }
+
+    /**
+     * What a failure shows, without what changes between runs and hosts: the wrong value a program reports, the
+     * compiler's message with the numbers of generated names left out, or only that Lua raised (the messages of
+     * Lua's own errors differ between its versions, and the test hosts do not pin one).
+     */
+    static String symptom(String detail) {
+        if (detail.startsWith("Lua failed: testFail ")) {
+            return detail.substring("Lua failed: ".length());
+        }
+        if (detail.startsWith("Lua failed: ")) {
+            return "Lua raised an error";
+        }
+        String s = detail.replaceAll("\\s+", " ").replaceAll("([A-Za-z_])\\d+", "$1N").strip();
+        return s.length() > 160 ? s.substring(0, 160) : s;
     }
 
     /**
@@ -1026,7 +1052,7 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             Files.writeString(new File(dir, "summary.txt").toPath(), sb.toString(), StandardCharsets.UTF_8);
             // What the list would be after this run, for a change which fixes or finds defects.
             Map<String, String> after = new TreeMap<>(knownFailing);
-            failures.forEach(f -> after.put(f.substring(0, f.indexOf(": ")), "new"));
+            after.putAll(unlisted);
             StringBuilder list = new StringBuilder();
             after.forEach((name, defect) -> list.append(name).append(' ').append(defect).append('\n'));
             Files.writeString(new File(dir, "knownFailures-after-this-run.txt").toPath(), list.toString(),
