@@ -6,7 +6,7 @@ public class BitSet_Pows_Standalone_ReproTest extends WurstScriptTest {
 
     @Test
     public void highestBit_reset_should_clear_with_buggy_reversePows() {
-        test().withStdLib().executeProg().lines(
+        test().withStdLib().testLua(true).luaOnly(false).executeProg().lines(
             "package BitSetStandalone",
             "",
             "constant int BITSET_SIZE = 32",

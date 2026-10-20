@@ -1499,7 +1499,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void optimizeDuplicateNullSets() throws IOException {
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package Test",
             "var x = 100",
             "init",
@@ -1716,7 +1716,7 @@ public class OptimizerTests extends WurstScriptTest {
      */
     @Test
     public void inlinerGuardClauseAssignsTheResultOnEveryPath() throws IOException {
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "@inline function chooseLoc(boolean c, location a, location b) returns location",
             "    if c",
@@ -1748,7 +1748,7 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
         // The return sits in a loop, which keeps the done flag and with it the default write.
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "@inline function chooseLoc(boolean c, location a, location b) returns location",
             "    for i = 0 to 1",
@@ -1797,7 +1797,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput() throws IOException {
-        testAssertOkLinesWithStdLib(true,
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "@inline function maybeAbs(int x) returns int",
             "    for i = 0 to 0",
