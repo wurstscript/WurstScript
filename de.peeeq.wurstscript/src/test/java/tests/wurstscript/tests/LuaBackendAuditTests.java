@@ -2496,6 +2496,32 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * A Box&lt;int&gt; allocated by a method reached through a non-generic interface stays erased, so
+     * the check keeps accepting every Box rather than reject the object it asks about.
+     */
+    @Test
+    public void genericInstanceofAcceptsAnObjectAllocatedByErasedCode() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Maker",
+            "    function make() returns Marker",
+            "class G<T:> implements Maker",
+            "    function make() returns Marker",
+            "        return new Box<T>()",
+            "init",
+            "    Maker mk = new G<int>()",
+            "    Marker m = mk.make()",
+            "    Marker direct = new Box<int>()",
+            "    if m instanceof Box<int> and direct instanceof Box<int>",
+            "        testSuccess()"
+        );
+    }
+
     /** A program which names no instantiation in an instanceof keeps every object erased. */
     @Test
     public void genericObjectsStayErasedWithoutParameterizedInstanceof() throws IOException {

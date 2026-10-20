@@ -160,6 +160,96 @@ public class EliminateGenerics {
         assertNoReachableGenericNewMarkers();
         bindSpecialisedMethodsToTheAllocatedClass();
         settleRemainingDispatches();
+        if (!specializeTupleValueTypes && !runtimeTypeSpecializations.isEmpty()) {
+            keepErasedChecksWhereAnAllocationStaysErased();
+        }
+    }
+
+    /**
+     * Gives an instanceof back the erased class when an object of that class can still come from an
+     * erased allocation.
+     * <p>
+     * A check of a specialised class is true only for objects allocated from it. A construction in a
+     * generic body which stays erased, such as a method reached through a non-generic interface,
+     * allocates the erased class whatever its instantiation, and the specialised check would reject
+     * that object even when it is of the checked instantiation. So the identity is split only for a
+     * class no reachable erased construction makes an object of, itself or as a superclass of the
+     * class it constructs; for the others every check accepts every instantiation, as erased checks
+     * always did. Programs with tuple type arguments keep the split they always had.
+     */
+    private void keepErasedChecksWhereAnAllocationStaysErased() {
+        classByFunction = null;
+        Set<ImClass> erasedIdentity = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImFunction function : RemoveGarbage.reachableFunctions(prog, translator)) {
+            function.accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ImFunctionCall call) {
+                    super.visit(call);
+                    if (call.getFunc().getTrace() instanceof ConstructorDef
+                        && typeArgumentsContainTypeVariable(call.getTypeArguments())
+                        && !isConstructorChain(function, call)) {
+                        ImClass owner = classOwning(call.getFunc());
+                        if (owner != null) {
+                            addWithSuperclasses(owner, erasedIdentity);
+                        }
+                    }
+                }
+
+                @Override
+                public void visit(ImAlloc alloc) {
+                    super.visit(alloc);
+                    if (!(function.getTrace() instanceof ConstructorDef)
+                        && typeArgumentsContainTypeVariable(alloc.getClazz().getTypeArguments())) {
+                        addWithSuperclasses(alloc.getClazz().getClassDef(), erasedIdentity);
+                    }
+                }
+            });
+        }
+        if (erasedIdentity.isEmpty()) {
+            return;
+        }
+        Map<ImClass, Table.Cell<ImClass, GenericTypes, ImClass>> cellOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            cellOf.put(cell.getValue(), cell);
+        }
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                Table.Cell<ImClass, GenericTypes, ImClass> cell = cellOf.get(instanceOf.getClazz().getClassDef());
+                if (cell != null && erasedIdentity.contains(cell.getRowKey())) {
+                    ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+                    for (ImTypeArgument typeArgument : cell.getColumnKey().getTypeArguments()) {
+                        typeArguments.add(typeArgument.copy());
+                    }
+                    instanceOf.setClazz(JassIm.ImClassType(cell.getRowKey(), typeArguments));
+                }
+            }
+        });
+    }
+
+    /** A constructor calling its own initializer or a superclass's: part of an allocation counted at its start. */
+    private boolean isConstructorChain(ImFunction enclosing, ImFunctionCall call) {
+        if (!(enclosing.getTrace() instanceof ConstructorDef)) {
+            return false;
+        }
+        ImClass enclosingClass = classOwning(enclosing);
+        ImClass calledClass = classOwning(call.getFunc());
+        if (enclosingClass == null || calledClass == null) {
+            return false;
+        }
+        Set<ImClass> supers = Collections.newSetFromMap(new IdentityHashMap<>());
+        addWithSuperclasses(enclosingClass, supers);
+        return supers.contains(calledClass);
+    }
+
+    private static void addWithSuperclasses(ImClass clazz, Set<ImClass> result) {
+        if (!result.add(clazz)) {
+            return;
+        }
+        for (ImClassType superType : clazz.getSuperClasses()) {
+            addWithSuperclasses(superType.getClassDef(), result);
+        }
     }
 
     public boolean hasGenericStatics() {

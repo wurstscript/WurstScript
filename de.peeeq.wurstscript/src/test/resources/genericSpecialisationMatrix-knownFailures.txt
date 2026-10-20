@@ -52,34 +52,34 @@ INSTANCEOF_CLOSURE_wDIRECT_rGENERIC_INTERFACE_CLASSx1 lua-closure-receiver | Lua
 INSTANCEOF_CLOSURE_wGENERIC_INTERFACE_rSUPER_STRINGx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:91: Could not adapt receiver G_specialized_string to superclass GN in member access this_N.thisN.G_heldN
 INSTANCEOF_CLOSURE_wINTERFACE_rDESTROY_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_CONSTRUCTOR_wBASE_rBASE_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wBASE_rDIRECT_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_CONSTRUCTOR_wBASE_rDIRECT_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_CONSTRUCTOR_wDIRECT_rINTERFACE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_CONSTRUCTOR_wINTERFACE_rDIRECT_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
-INSTANCEOF_CONSTRUCTOR_wINTERFACE_rERASED_FUNCTION_INTx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_CONSTRUCTOR_wINTERFACE_rDIRECT_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
+INSTANCEOF_CONSTRUCTOR_wINTERFACE_rERASED_FUNCTION_INTx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wCLOSURE_rBASE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wDESTROY_rBASE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wERASED_FUNCTION_rBASE_INTx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wGENERIC_INTERFACE_rDESTROY_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wINTERFACE_rBASE_INTx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wSUPER_rBASE_STRINGx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_INHERITED_wSUPER_rDESTROY_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_METHOD_wBASE_rDESTROY_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_METHOD_wBASE_rERASED_FUNCTION_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_METHOD_wBASE_rERASED_FUNCTION_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_METHOD_wDESTROY_rDESTROY_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_METHOD_wSUPER_rCLOSURE_TUPLEx2_opt lua-tuple-subclass | Lua raised an error
 INSTANCEOF_METHOD_wSUPER_rINTERFACE_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_MODULE_wCLOSURE_rINTERFACE_STRINGx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_MODULE_wDESTROY_rERASED_FUNCTION_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_MODULE_wDESTROY_rERASED_FUNCTION_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_MODULE_wERASED_FUNCTION_rINTERFACE_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
-INSTANCEOF_ONDESTROY_wBASE_rSUPER_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_ONDESTROY_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
+INSTANCEOF_ONDESTROY_wBASE_rSUPER_INTx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wCLOSURE_rDESTROY_CLASSx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wDESTROY_rGENERIC_INTERFACE_STRINGx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_ONDESTROY_wDESTROY_rGENERIC_INTERFACE_STRINGx1_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wDESTROY_rINTERFACE_STRINGx2 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wDESTROY_rSUPER_STRINGx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_ONDESTROY_wDESTROY_rSUPER_STRINGx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 INSTANCEOF_ONDESTROY_wINTERFACE_rINTERFACE_CLASSx1 lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
-INSTANCEOF_ONDESTROY_wINTERFACE_rSUPER_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 2
+INSTANCEOF_ONDESTROY_wINTERFACE_rSUPER_INTx2_opt lua-instanceof-erased | testFail instantiation 1: expected 3 but got 7
 NEW_INSTANCE_CLOSURE_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-erased | Lua translation fails: java.lang.Error: Lua IM contains a dangling reference to removed function 'wurstNewMarker' in wurstNewMarkerN<T_capturedN>()
 NEW_INSTANCE_CLOSURE_wBASE_rINTERFACE_CLASSx1_opt lua-new-instance-erased | testFail instantiation 1: expected 73 but got 0
 NEW_INSTANCE_CLOSURE_wCLOSURE_rSUPER_CLASSx1 lua-closure-receiver | Lua translation rejects it: Error in File Matrix.wurst:71: Could not adapt receiver G_specialized_CA to superclass GN in member access this_N.thisN.G_madeN

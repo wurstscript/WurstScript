@@ -51,10 +51,11 @@ Notes; finished-work narrative does not.
   through a non-generic base class.
 
 - **`lua-instanceof-erased`: `instanceof Box<T>` in a generic class reached through a non-generic
-  interface, base class or destroy accepts every `Box` on Lua**, because the method stays erased; a
-  `new Box<T>()` there allocates a `Box` of no instantiation, which a concrete check rejects ("expected 3
-  but got 2"). An `instanceof` which names its instantiation, or is reached through calls which give
-  it, tells the instantiations apart:
+  interface, base class or destroy accepts every `Box` on Lua**, because the method stays erased. A
+  `new Box<T>()` there allocates a `Box` of no instantiation, so while one is reachable every check of
+  `Box`, even `instanceof Box<int>`, stays erased too (`keepErasedChecksWhereAnAllocationStaysErased`).
+  Otherwise an `instanceof` which names its instantiation, or is reached through calls which give it,
+  tells the instantiations apart:
 
   ```wurst
   interface Marker
