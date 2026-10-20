@@ -140,9 +140,38 @@ public class ImAttrType {
         returnType = substituteType(returnType, mc.getTypeArguments(), mc.getMethod().getImplementation().getTypeVariables());
         ImType rt = mc.getReceiver().attrTyp();
         if (rt instanceof ImClassType ct) {
+            // A method the receiver's class inherits returns its own class's type variables, whose arguments the
+            // receiver's type gives through the superclasses (Sub extends G<pa>).
+            ImClassType methodClassType = asSuperclass(ct, mc.getMethod().attrClass());
+            if (methodClassType != null) {
+                ct = methodClassType;
+            }
             returnType = substituteType(returnType, ct.getTypeArguments(), ct.getClassDef().getTypeVariables());
         }
         return returnType;
+    }
+
+    /**
+     * The type {@code ct} has as an instance of {@code superclass}, or null if its class is not that or below it, or if
+     * {@code ct} leaves out type arguments of its class, which the superclasses' arguments may name.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable ImClassType asSuperclass(ImClassType ct, ImClass superclass) {
+        if (ct.getClassDef() == superclass) {
+            return ct;
+        }
+        if (ct.getTypeArguments().size() != ct.getClassDef().getTypeVariables().size()) {
+            return null;
+        }
+        for (ImClassType direct : ct.getClassDef().getSuperClasses()) {
+            ImType st = substituteType(direct, ct.getTypeArguments(), ct.getClassDef().getTypeVariables());
+            if (st instanceof ImClassType superType) {
+                ImClassType result = asSuperclass(superType, superclass);
+                if (result != null) {
+                    return result;
+                }
+            }
+        }
+        return null;
     }
 
     public static ImType getType(ImMemberAccess e) {
