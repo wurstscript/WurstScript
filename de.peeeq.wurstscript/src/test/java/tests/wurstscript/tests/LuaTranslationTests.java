@@ -3749,6 +3749,73 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        testSuccess()"));
     }
 
+    /**
+     * A new-generic class is a class per instantiation on Jass, which specialises it, and one erased class on Lua,
+     * which specialises it only for what needs the concrete type (AGENTS.md §9). So {@code Box<int>}, {@code Sub<int>}
+     * and {@code Box<string>} are the type ids 1, 2 and 3 in two groups on Jass, and Box and Sub the type ids 1 and 2
+     * in one group on Lua; the names agree. Matching Jass would take a class per instantiation on Lua, or the type arguments
+     * at every allocation, which erased generic code does not have (docs/WC3_RUNTIME.md).
+     */
+    @Test
+    public void newGenericInstantiationsAreOneClassOnLua() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().lines(reflectionOfGenericInstantiations(
+            "max=3 bi=1:Test.Box:2/2 bs=3:Test.Box:1/1 si=2:Test.Sub:2/2"
+                + " id=1:Test.Box:2/2 id=2:Test.Sub:2/2 id=3:Test.Box:1/1"));
+        test().executeProg(true).testLua(true).lines(reflectionOfGenericInstantiations(
+            "max=2 bi=1:Test.Box:3/3 bs=1:Test.Box:3/3 si=2:Test.Sub:3/3"
+                + " id=1:Test.Box:3/3 id=2:Test.Sub:3/3"));
+    }
+
+    private static String[] reflectionOfGenericInstantiations(String expected) {
+        return withReflectionNatives(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "class Box<T:>",
+            "    T value",
+            "class Sub<T:> extends Box<T>",
+            "function digit(int d) returns string",
+            "    if d == 0",
+            "        return \"0\"",
+            "    if d == 1",
+            "        return \"1\"",
+            "    if d == 2",
+            "        return \"2\"",
+            "    if d == 3",
+            "        return \"3\"",
+            "    if d == 4",
+            "        return \"4\"",
+            "    if d == 5",
+            "        return \"5\"",
+            "    if d == 6",
+            "        return \"6\"",
+            "    if d == 7",
+            "        return \"7\"",
+            "    if d == 8",
+            "        return \"8\"",
+            "    return \"9\"",
+            "function num(int n) returns string",
+            "    if n < 0",
+            "        return \"-\" + num(-n)",
+            "    if n >= 10",
+            "        return num(n div 10) + digit(n mod 10)",
+            "    return digit(n)",
+            "function show(string label, int id) returns string",
+            "    return \" \" + label + \"=\" + num(id) + \":\" + typeIdToTypeName(id) + \":\" + num(instanceCount(id)) + \"/\" + num(maxInstanceCount(id))",
+            "init",
+            "    let bi = new Box<int>()",
+            "    let bs = new Box<string>()",
+            "    let si = new Sub<int>()",
+            "    var s = \"max=\" + num(maxTypeId())",
+            "    s = s + show(\"bi\", bi.typeId) + show(\"bs\", bs.typeId) + show(\"si\", si.typeId)",
+            "    for i = 1 to maxTypeId()",
+            "        s = s + show(\"id\", i)",
+            "    if s == \"" + expected + "\"",
+            "        testSuccess()",
+            "    else",
+            "        testFail(s)");
+    }
+
     /** Without a class, maxTypeId is -1 and every number answers "unknown" and 0, on both backends. */
     @Test
     public void reflectionWithoutClasses() {
@@ -3764,7 +3831,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * The one difference in what is counted. Lua counts the objects its allocators make, so of the compile-time
+     * Lua counts the objects its allocators make, so of the compile-time
      * objects only those the compile-time state makes again, the ones a global keeps: here the kept object and the
      * one made at run time. Jass sets the group's highest id to the highest id used at compile time and counts every
      * id up to it as live, those of the objects destroyed or dropped at compile time too (docs/WC3_RUNTIME.md).
