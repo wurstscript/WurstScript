@@ -3854,6 +3854,41 @@ public class LuaTranslationTests extends WurstScriptTest {
                 "    s = s + show(\"p\", p.typeId) + show(\"q\", q.typeId) + show(\"o\", o.typeId)")));
     }
 
+    /**
+     * {@code instanceof Box<int>} makes the Lua backend specialise {@code Box<int>} and point Sub's superclass at that
+     * copy. Sub is numbered and grouped through the class the copy was made from, so it has its own type id after
+     * Box's and counts in Box's group on both backends. The listings differ only as
+     * {@link #newGenericInstantiationsAreOneClassOnLua} pins: Jass has a Box per instantiation.
+     */
+    @Test
+    public void classExtendingASpecialisedClassHasItsOwnTypeId() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().lines(subOfSpecialisedClass(
+            "max=4 p=2:Test.Box:3/3 s=3:Test.Sub:3/3 t=4:Test.Box:3/3"
+                + " id=1:Test.Marker:3/3 id=2:Test.Box:3/3 id=3:Test.Sub:3/3 id=4:Test.Box:3/3"));
+        test().executeProg(true).testLua(true).lines(subOfSpecialisedClass(
+            "max=3 p=2:Test.Box:3/3 s=3:Test.Sub:3/3 t=2:Test.Box:3/3"
+                + " id=1:Test.Marker:3/3 id=2:Test.Box:3/3 id=3:Test.Sub:3/3"));
+    }
+
+    private static String[] subOfSpecialisedClass(String expected) {
+        return reflectionListing(expected,
+            List.of(
+                "tuple pair(int a, int b)",
+                "interface Marker",
+                "class Box<T:> implements Marker",
+                "    T value",
+                "class Sub extends Box<int>"),
+            List.of(
+                "    let p = new Box<int>()",
+                "    let sub = new Sub",
+                "    let t = new Box<pair>()",
+                "    t.value = pair(1, 2)",
+                "    Marker m = sub",
+                "    if not (m instanceof Box<int>)",
+                "        s = \"instanceof failed \"",
+                "    s = s + show(\"p\", p.typeId) + show(\"s\", sub.typeId) + show(\"t\", t.typeId)"));
+    }
+
     /** Without a class, maxTypeId is -1 and every number answers "unknown" and 0, on both backends. */
     @Test
     public void reflectionWithoutClasses() {

@@ -3002,8 +3002,23 @@ public class LuaTranslator {
                     nominal.add(c);
                 }
             }
-            result = TypeId.calculate(nominal);
+            result = TypeId.calculate(nominal, this::nominalSuperClasses);
             typeIds = result;
+        }
+        return result;
+    }
+
+    /**
+     * The superclasses of {@code c} as classes with a type id: a class can extend a specialisation, which stands for
+     * the class it was copied from.
+     */
+    List<ImClass> nominalSuperClasses(ImClass c) {
+        List<ImClass> result = new ArrayList<>();
+        for (ImClassType sc : c.getSuperClasses()) {
+            ImClass nominal = imTr.canonical(sc.getClassDef());
+            if (!result.contains(nominal)) {
+                result.add(nominal);
+            }
         }
         return result;
     }

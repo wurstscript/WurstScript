@@ -71,8 +71,8 @@ final class LuaReflection {
         }
         for (ImClass c : typeIds.keySet()) {
             groups.add(c);
-            for (ImClassType sc : c.getSuperClasses()) {
-                groups.union(c, sc.getClassDef());
+            for (ImClass sc : tr.nominalSuperClasses(c)) {
+                groups.union(c, sc);
             }
         }
     }
