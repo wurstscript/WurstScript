@@ -25,6 +25,47 @@ public class GenericStoreGeneratedTests extends WurstScriptTest {
         config.lines(program(seed).split("\n"));
     }
 
+    @Test(dataProvider = "seeds")
+    public void deadDispatchDoesNotAddStaticInitializerEffects(int seed, boolean optimized) {
+        int liveCount = 1 + new Random(seed).nextInt(3);
+        StringBuilder allocations = new StringBuilder();
+        String[] types = {"int", "string", "bool"};
+        for (int i = 0; i < liveCount; i++) {
+            allocations.append("    let store").append(i).append(" = new Store<").append(types[i]).append(">()\n");
+        }
+        // The generic erased initializer is specific to Lua; the operation model above checks Jass too.
+        String source = """
+            package Test
+            native testSuccess()
+            native testFail(string message)
+            int initialized = 0
+            function initialize<T:>() returns T
+                initialized++
+                return null
+            class Store<T:>
+                static T value = initialize<T>()
+            interface Runner
+                function run()
+            class Live implements Runner
+                override function run()
+            class Dead<T:> implements Runner
+                override function run()
+                    let store = new Store<real>()
+            class DeadChild<U:> extends Dead<U>
+            init
+            %s
+                Runner runner = new Live()
+                runner.run()
+                if initialized == %d
+                    testSuccess()
+                else
+                    testFail("dead dispatch changed static initializer effects")
+            """.formatted(allocations, liveCount);
+        var config = testNamed("staticSeed" + seed + "Optimized" + optimized).testLua(true).executeProg();
+        if (optimized) config.optimize().inline().localOptimizations();
+        config.lines(source.split("\n"));
+    }
+
     static String program(int seed) {
         StringBuilder source = new StringBuilder("""
             package Test

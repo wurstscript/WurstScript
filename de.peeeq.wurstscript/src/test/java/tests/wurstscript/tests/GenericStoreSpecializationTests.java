@@ -6,6 +6,37 @@ import org.testng.annotations.DataProvider;
 import static org.testng.AssertJUnit.*;
 
 public class GenericStoreSpecializationTests extends WurstScriptTest {
+    @Test
+    public void unallocatedOverrideDoesNotDuplicateGenericStaticInitializer() {
+        // The erased static initializer is a Lua-only representation; Jass fully specializes it.
+        test().testLua(true).executeProg().lines("""
+            package Test
+            native testSuccess()
+            native testFail(string message)
+            int initialized = 0
+            function initialize<T:>() returns T
+                initialized++
+                return null
+            class Store<T:>
+                static T value = initialize<T>()
+            interface Runner
+                function run()
+            class Live implements Runner
+                override function run()
+            class Dead<T:> implements Runner
+                override function run()
+                    let store = new Store<int>()
+            init
+                let liveStore = new Store<string>()
+                Runner runner = new Live()
+                runner.run()
+                if initialized == 1
+                    testSuccess()
+                else
+                    testFail("dead override activated a generic static initializer")
+            """.split("\n"));
+    }
+
     private static final String[] SOURCE = """
         package Test
         native testSuccess()
