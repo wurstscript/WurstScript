@@ -849,6 +849,8 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
     private static final Map<String, Integer> skipReasons = new TreeMap<>();
     private static final List<String> failures = new ArrayList<>();
     private static final Map<String, String> knownFailing = new TreeMap<>();
+    /** The cases this run decided. */
+    private static final Set<String> ran = new HashSet<>();
     /** What the list would say of each failure it does not hold. */
     private static final Map<String, String> unlisted = new TreeMap<>();
     private static final List<String> nowPassing = new ArrayList<>();
@@ -935,6 +937,7 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             outcome = new Outcome(Kind.FAIL, "listed as " + listed + " but fails otherwise: " + outcome.detail);
         }
         synchronized (failures) {
+            ran.add(c.name());
             switch (outcome.kind) {
                 case PASS -> {
                     passed++;
@@ -1051,7 +1054,10 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             dir.mkdirs();
             Files.writeString(new File(dir, "summary.txt").toPath(), sb.toString(), StandardCharsets.UTF_8);
             // What the list would be after this run, for a change which fixes or finds defects.
-            Map<String, String> after = new TreeMap<>(knownFailing);
+            // A shard or a filter runs part of the matrix: the cases it did not run keep their entries.
+            Map<String, String> after = new TreeMap<>(known != null ? known : knownFailures());
+            after.keySet().removeAll(ran);
+            after.putAll(knownFailing);
             after.putAll(unlisted);
             StringBuilder list = new StringBuilder();
             after.forEach((name, defect) -> list.append(name).append(' ').append(defect).append('\n'));
@@ -1085,7 +1091,17 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
                     "the program does not type-check, which no rule predicts: " + forJass.error));
             }
             String jass = jass(forJass);
-            String[] lua = lua(checked(source, args.with("-lua")));
+            String[] lua;
+            try {
+                lua = lua(checked(source, args.with("-lua")));
+            } catch (SkipException noLua) {
+                // A host without a Lua interpreter skips the Lua run, not a failure of the oracle.
+                if (jass != null) {
+                    return keep(name, source, null, new Outcome(Kind.FAIL,
+                        "Jass (the oracle) " + jass + "; Lua not run: " + noLua.getMessage()));
+                }
+                throw noLua;
+            }
             if (jass == null && lua[0] == null) {
                 return new Outcome(Kind.PASS, "");
             }
