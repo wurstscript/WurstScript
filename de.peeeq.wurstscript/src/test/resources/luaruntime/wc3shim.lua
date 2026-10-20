@@ -27,6 +27,27 @@ local function enumHandle(kind, value)
     return h
 end
 
+-- As the interpreter's GetHandleId: a null handle is 0; a converted enum handle is the value
+-- it was made from (measured on the 3.0.0 client: GetHandleId(UNIT_STATE_MANA) is 2); any other
+-- handle gets the next id from 0x100000, where the game's agent ids start.
+local handleIds = {}
+local nextHandleId = 0x100000
+function GetHandleId(h)
+    if h == nil then
+        return 0
+    end
+    if h.handleKind ~= nil then
+        return h.value
+    end
+    local id = handleIds[h]
+    if id == nil then
+        id = nextHandleId
+        nextHandleId = nextHandleId + 1
+        handleIds[h] = id
+    end
+    return id
+end
+
 -- common.j.lua calls ~80 distinct Convert* factories at load time; create
 -- them on demand instead of hardcoding the list, so newer dumps keep working.
 setmetatable(_G, {
@@ -62,7 +83,71 @@ function SubString(s, start, stop)
 end
 
 function I2S(i) return tostring(math.floor(i)) end
-function S2I(s) return math.floor(tonumber(s) or 0) end
+
+-- As the interpreter's S2I and the game (measured on the 3.0.0 client), C's strtol: leading
+-- whitespace is skipped, then a sign and digits are read, and the value saturates at the
+-- integer limits. S2I("  -4x") is -4, S2I("2147483648") is 2147483647.
+function S2I(s)
+    if s == nil then
+        return 0
+    end
+    local sign, digits = string.match(s, "^%s*([%+%-]?)(%d*)")
+    local value = 0
+    for i = 1, #digits do
+        -- stop growing once past the limit
+        value = math.min(value * 10 + string.byte(digits, i) - 48, 2147483648)
+    end
+    if sign == "-" then
+        return -value
+    end
+    return math.min(value, 2147483647)
+end
+
+-- As the interpreter's R2SW (measured on the 3.0.0 client): the sign first, then the integer
+-- part left-padded to width - precision, then the fraction rounded half up; precision 0 prints
+-- ".0". R2SW(1.5, 8, 2) is "     1.50", R2SW(-1.5, 8, 3) is "-    1.500". The test Lua
+-- computes in double, the game in float, so the last digits can differ from the game's.
+function R2SW(r, width, precision)
+    local digits = math.max(0, precision)
+    if digits > 18 then
+        error("R2SW called with precision " .. precision .. ", beyond what the test runtime models (up to 18).")
+    end
+    local a = math.abs(r)
+    local whole = math.floor(a)
+    local limit = 1
+    for _ = 1, digits do
+        limit = limit * 10
+    end
+    local fraction = math.floor((a - whole) * limit + 0.5)
+    if fraction >= limit then
+        whole = whole + 1
+        fraction = fraction - limit
+    end
+    local wholeText = string.format("%.0f", whole)
+    local sign = r < 0 and "-" or ""
+    local fractionText = digits == 0 and "0" or string.format("%0" .. digits .. "d", fraction)
+    return sign .. string.rep(" ", width - digits - #wholeText) .. wholeText .. "." .. fractionText
+end
+
+-- Math natives, as the interpreter's MathProvider and IntegerProvider. Measured on the 3.0.0
+-- client: SquareRoot of a negative value is 0, not NaN.
+function SquareRoot(r)
+    if r < 0 then
+        return 0.0
+    end
+    return math.sqrt(r)
+end
+
+-- Any value between the bounds; the interpreter's generator also counts up from the first
+-- bound when the second is below it. The game's sequence is not modelled.
+function GetRandomInt(low, high)
+    return low + math.random(0, math.abs(high - low))
+end
+
+-- Jass integers arrive sign-extended, so the 64 bit operators give the 32 bit result.
+function BlzBitOr(x, y) return x | y end
+function BlzBitAnd(x, y) return x & y end
+function BlzBitXor(x, y) return x ~ y end
 
 -- StringHash, over bytes, as the game and the interpreter both compute it. Bob Jenkins'
 -- lookup2, with the same normalisation: ascii letters upper-cased and a forward slash read as
@@ -195,6 +280,40 @@ function GetPlayerId(p)
     return p.id
 end
 
+-- Player states by the id of the state handle, as the interpreter's PlayerProvider. Measured on
+-- the 3.0.0 client: a null state is id 0, the game result, which reads 3 while the game runs;
+-- gold (1) and lumber (2) are clamped to 0.
+local function playerStateId(state)
+    if state == nil then
+        return 0
+    end
+    return state.value
+end
+function SetPlayerState(p, state, value)
+    local id = playerStateId(state)
+    if id == 1 or id == 2 then
+        value = math.max(0, value)
+    end
+    p.states = p.states or {}
+    p.states[id] = value
+end
+function GetPlayerState(p, state)
+    local id = playerStateId(state)
+    local value = p.states and p.states[id]
+    if value == nil then
+        return id == 0 and 3 or 0
+    end
+    return value
+end
+
+function SetPlayerTechMaxAllowed(p, techId, maximum)
+    p.techMaxAllowed = p.techMaxAllowed or {}
+    p.techMaxAllowed[techId] = maximum
+end
+function GetPlayerTechMaxAllowed(p, techId)
+    return p.techMaxAllowed and p.techMaxAllowed[techId] or 0
+end
+
 -- Forces hold their members by player id. ForForce visits them in id order (by index, never with
 -- pairs, so the order is the same on every run) and GetEnumPlayer answers the one being visited,
 -- also inside a nested ForForce. The stdlib's ErrorHandling creates a force at init and runs its
@@ -219,6 +338,15 @@ function ForForce(f, callback)
             end
         end
     end
+end
+
+-- Units and destructables keep what they were created with; nothing in a test moves them.
+function CreateUnit(owner, unitId, x, y, face)
+    return { owner = owner, typeId = unitId, x = x, y = y, face = face }
+end
+function GetUnitTypeId(u) return u.typeId end
+function CreateDestructable(objectId, x, y, face, scale, variation)
+    return { typeId = objectId, x = x, y = y, face = face, scale = scale, variation = variation }
 end
 
 -- text output: route to stdout so error handlers (BJDebugMsg) work in tests
