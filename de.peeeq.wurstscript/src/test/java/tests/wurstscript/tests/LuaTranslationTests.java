@@ -3767,13 +3767,29 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private static String[] reflectionOfGenericInstantiations(String expected) {
-        return withReflectionNatives(
+        return reflectionListing(expected,
+            List.of(
+                "class Box<T:>",
+                "    T value",
+                "class Sub<T:> extends Box<T>"),
+            List.of(
+                "    let bi = new Box<int>()",
+                "    let bs = new Box<string>()",
+                "    let si = new Sub<int>()",
+                "    s = s + show(\"bi\", bi.typeId) + show(\"bs\", bs.typeId) + show(\"si\", si.typeId)"));
+    }
+
+    /**
+     * A program which runs {@code initLines}, which append to {@code s}, then lists every type id with its name and
+     * counts, and succeeds when the listing is {@code expected}, and else fails with the listing.
+     */
+    private static String[] reflectionListing(String expected, List<String> declarations, List<String> initLines) {
+        List<String> lines = new ArrayList<>(List.of(
             "package Test",
             "native testSuccess()",
-            "native testFail(string msg)",
-            "class Box<T:>",
-            "    T value",
-            "class Sub<T:> extends Box<T>",
+            "native testFail(string msg)"));
+        lines.addAll(declarations);
+        lines.addAll(List.of(
             "function digit(int d) returns string",
             "    if d == 0",
             "        return \"0\"",
@@ -3803,17 +3819,39 @@ public class LuaTranslationTests extends WurstScriptTest {
             "function show(string label, int id) returns string",
             "    return \" \" + label + \"=\" + num(id) + \":\" + typeIdToTypeName(id) + \":\" + num(instanceCount(id)) + \"/\" + num(maxInstanceCount(id))",
             "init",
-            "    let bi = new Box<int>()",
-            "    let bs = new Box<string>()",
-            "    let si = new Sub<int>()",
-            "    var s = \"max=\" + num(maxTypeId())",
-            "    s = s + show(\"bi\", bi.typeId) + show(\"bs\", bs.typeId) + show(\"si\", si.typeId)",
+            "    var s = \"max=\" + num(maxTypeId())"));
+        lines.addAll(initLines);
+        lines.addAll(List.of(
             "    for i = 1 to maxTypeId()",
             "        s = s + show(\"id\", i)",
             "    if s == \"" + expected + "\"",
             "        testSuccess()",
             "    else",
-            "        testFail(s)");
+            "        testFail(s)"));
+        return withReflectionNatives(lines.toArray(new String[0]));
+    }
+
+    /**
+     * A tuple type argument makes the Lua backend specialise Box for its storage, which keeps the erased Box too. The
+     * copy is Box, so it has no type id of its own: its objects carry Box's and count in Box's group, and listing the
+     * type ids shows Box once, as on Jass.
+     */
+    @Test
+    public void specialisedClassesShareTheTypeIdOfTheirClass() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().testLua(true).luaOnly(false).lines(reflectionListing(
+            "max=2 p=1:Test.Box:2/2 q=1:Test.Box:2/2 o=2:Test.Other:1/1 id=1:Test.Box:2/2 id=2:Test.Other:1/1",
+            List.of(
+                "tuple pair(int a, int b)",
+                "class Box<T:>",
+                "    T value",
+                "class Other"),
+            List.of(
+                "    let p = new Box<pair>()",
+                "    p.value = pair(1, 2)",
+                "    let q = new Box<pair>()",
+                "    q.value = pair(3, 4)",
+                "    let o = new Other",
+                "    s = s + show(\"p\", p.typeId) + show(\"q\", q.typeId) + show(\"o\", o.typeId)")));
     }
 
     /** Without a class, maxTypeId is -1 and every number answers "unknown" and 0, on both backends. */

@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
+import de.peeeq.wurstscript.translation.imtranslation.TypeId;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
@@ -883,7 +884,7 @@ public class LuaTranslator {
         if (reflectionCalls.isEmpty()) {
             return;
         }
-        LuaReflection r = new LuaReflection(prog, this);
+        LuaReflection r = new LuaReflection(this);
         for (ImFunctionCall call : reflectionCalls) {
             r.noteCall(call);
         }
@@ -1658,13 +1659,12 @@ public class LuaTranslator {
 
         // set typeid metadata:
         if (readsObjectTypeId) {
-            // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
-            // retains this canonical metadata dependency before emission.
-            ImClass typeIdClass = imTr.canonical(c);
+            // Targeted Lua specialization changes storage, not nominal identity (getTypeId). Garbage
+            // reachability retains this canonical metadata dependency before emission.
             deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 ExprTranslation.TYPE_ID),
-                LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
+                LuaAst.LuaExprIntVal("" + getTypeId(c))
             ));
         }
 
@@ -2986,8 +2986,36 @@ public class LuaTranslator {
     }
 
 
+    /**
+     * The type ids of the Lua program. A targeted specialisation keeps the nominal identity of the class it was
+     * copied from, so only those classes are numbered, and a copy has the type id of its class.
+     */
+    private @Nullable Map<ImClass, Integer> typeIds;
+
+    /** The type id of each class which has one of its own; see {@link #getTypeId}. */
+    Map<ImClass, Integer> typeIds() {
+        Map<ImClass, Integer> result = typeIds;
+        if (result == null) {
+            List<ImClass> nominal = new ArrayList<>();
+            for (ImClass c : prog.getClasses()) {
+                if (imTr.canonical(c) == c) {
+                    nominal.add(c);
+                }
+            }
+            result = TypeId.calculate(nominal);
+            typeIds = result;
+        }
+        return result;
+    }
+
     public int getTypeId(ImClass classDef) {
-        return prog.attrTypeId().get(classDef);
+        ImClass nominal = imTr.canonical(classDef);
+        Integer id = typeIds().get(nominal);
+        if (id == null) {
+            throw new IllegalStateException("Lua backend: no type id for " + classDef.getName()
+                + ", whose class " + nominal.getName() + " is not in the program");
+        }
+        return id;
     }
 
 

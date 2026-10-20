@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +28,15 @@ public class TypeId {
                     .thenComparing(TypeId::sourceKey);
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
+        return calculate(prog.getClasses());
+    }
+
+    /** Type ids for {@code classes}, whose superclasses are among them. */
+    public static Map<ImClass, Integer> calculate(Collection<ImClass> classesToNumber) {
         AtomicInteger count = new AtomicInteger();
         Map<ImClass, Integer> result = Maps.newLinkedHashMap();
 
-        List<ImClass> classes = prog.getClasses().stream()
+        List<ImClass> classes = classesToNumber.stream()
                 .sorted(class_comparator)
                 .collect(Collectors.toList());
         assignIds(count, result, classes);

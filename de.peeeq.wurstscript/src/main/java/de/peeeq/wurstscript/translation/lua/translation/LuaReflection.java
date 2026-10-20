@@ -60,9 +60,10 @@ final class LuaReflection {
     private @Nullable LuaVariable typeNames;
     private final Lazy<LuaFunction> countedDealloc = Lazy.create(this::createCountedDealloc);
 
-    LuaReflection(ImProg prog, LuaTranslator tr) {
+    LuaReflection(LuaTranslator tr) {
         this.tr = tr;
-        Map<ImClass, Integer> typeIds = prog.attrTypeId();
+        // Only the classes with a type id of their own: a targeted specialisation is its class (getTypeId).
+        Map<ImClass, Integer> typeIds = tr.typeIds();
         maxTypeId = EliminateClasses.calculateMaxTypeId(typeIds);
         classOfTypeId = new ImClass[Math.max(maxTypeId, 0) + 1];
         for (Map.Entry<ImClass, Integer> e : typeIds.entrySet()) {
@@ -73,11 +74,12 @@ final class LuaReflection {
             for (ImClassType sc : c.getSuperClasses()) {
                 groups.union(c, sc.getClassDef());
             }
-            ImClass nominal = tr.imTr.canonical(c);
-            if (nominal != c) {
-                groups.union(c, nominal);
-            }
         }
+    }
+
+    /** The counted group of {@code c}, by its representative: that of its class, for a specialisation. */
+    private ImClass groupOf(ImClass c) {
+        return groups.getRep(tr.imTr.canonical(c));
     }
 
     static boolean isReflectionNative(ImFunction f) {
@@ -122,9 +124,9 @@ final class LuaReflection {
         }
         ImClass c = knownClass(typeId);
         if (c != null) {
-            askedGroups.add(groups.getRep(c));
+            askedGroups.add(groupOf(c));
             if (peakToo) {
-                askedPeakGroups.add(groups.getRep(c));
+                askedPeakGroups.add(groupOf(c));
             }
         }
     }
@@ -140,7 +142,7 @@ final class LuaReflection {
             if (c == null) {
                 continue;
             }
-            ImClass group = groups.getRep(c);
+            ImClass group = groupOf(c);
             if (askedAllGroups || askedGroups.contains(group)) {
                 countedGroups.putIfAbsent(group, countedGroups.size() + 1);
             }
@@ -164,7 +166,7 @@ final class LuaReflection {
                 ImClass c = classOfTypeId[id];
                 groupOfTypeId.add(LuaAst.LuaTableSingleField(c == null
                     ? LuaAst.LuaExprNull()
-                    : LuaAst.LuaExprIntVal("" + countedGroups.get(groups.getRep(c)))));
+                    : LuaAst.LuaExprIntVal("" + countedGroups.get(groupOf(c)))));
             }
             typeGroups = LuaAst.LuaVariable(tr.uniqueName("__wurst_typeGroups"),
                 LuaAst.LuaTableConstructor(groupOfTypeId));
@@ -198,7 +200,7 @@ final class LuaReflection {
     }
 
     private @Nullable Integer countedGroup(ImClass c) {
-        return countedGroups.isEmpty() ? null : countedGroups.get(groups.getRep(c));
+        return countedGroups.isEmpty() ? null : countedGroups.get(groupOf(c));
     }
 
     /** The call in place, which evaluates its argument once. */
@@ -275,7 +277,7 @@ final class LuaReflection {
         LuaVariable liveCounters = Objects.requireNonNull(live);
         LuaExpr incremented = LuaAst.LuaExprBinary(counter(liveCounters, group), LuaAst.LuaOpPlus(),
             LuaAst.LuaExprIntVal("1"));
-        if (!peakGroups.contains(groups.getRep(c))) {
+        if (!peakGroups.contains(groupOf(c))) {
             body.add(LuaAst.LuaAssignment(counter(liveCounters, group), incremented));
             return;
         }
