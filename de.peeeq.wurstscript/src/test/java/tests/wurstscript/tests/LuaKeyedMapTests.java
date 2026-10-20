@@ -561,7 +561,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
      */
     @Test
     public void genericValuesRunInTheInterpreter() {
-        test().withStdLib().executeProg(true).testLua(false).lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package KeyedMap",
             "import Table",
             "import ErrorHandling",

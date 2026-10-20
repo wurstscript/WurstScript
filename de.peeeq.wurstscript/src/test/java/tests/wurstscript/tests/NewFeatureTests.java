@@ -7,6 +7,8 @@ import java.io.IOException;
 
 public class NewFeatureTests extends WurstScriptTest {
     private static final String TEST_DIR = "./testscripts/concept/";
+    private static final String TYPE_ID_NATIVES_ON_LUA =
+        "`typeIdToTypeName`, `maxTypeId`, `instanceCount` and `maxInstanceCount` answer defaults on Lua.";
 
     @Test
     public void testEnums() throws IOException {
@@ -444,7 +446,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void typeName() {
         test().executeProg(true)
-            .testLua(false)
+            .luaExempt(LuaExemption.KNOWN_LUA_DEFECT, TYPE_ID_NATIVES_ON_LUA)
             .lines(
             "package Test",
             "native testSuccess()",
@@ -460,7 +462,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void typeName2() {
         test().executeProg(true)
-            .testLua(false)
+            .luaExempt(LuaExemption.KNOWN_LUA_DEFECT, TYPE_ID_NATIVES_ON_LUA)
             .lines(
             "package Test",
             "native testSuccess()",
@@ -485,7 +487,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void maxTypeId() {
         test().executeProg(true)
-            .testLua(false)
+            .luaExempt(LuaExemption.KNOWN_LUA_DEFECT, TYPE_ID_NATIVES_ON_LUA)
             .lines(
             "package Test",
             "native testSuccess()",
@@ -504,7 +506,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void instanceCount() {
         test().executeProg(true)
-            .testLua(false)
+            .luaExempt(LuaExemption.KNOWN_LUA_DEFECT, TYPE_ID_NATIVES_ON_LUA)
             .lines(
                 "package Test",
                 "native testSuccess()",
@@ -528,7 +530,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void instanceMaxCount() {
         test().executeProg(true)
-            .testLua(false)
+            .luaExempt(LuaExemption.KNOWN_LUA_DEFECT, TYPE_ID_NATIVES_ON_LUA)
             .lines(
             "package Test",
             "native testSuccess()",

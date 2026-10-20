@@ -18,6 +18,10 @@ import static tests.wurstscript.tests.BugTests.TEST_DIR;
 
 public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
+    private static final String STATIC_READ_BY_INNER_CLASS_ON_LUA =
+        "A generic class's static is dropped on Lua when only a static inner class reads it.";
+    private static final String STATIC_SPLIT_BY_CONSTANT_ARGUMENT_ON_LUA =
+        "A generic class's static is split on Lua when its constructor passes a constant static to a method.";
 
     @Test
     public void identity() {
@@ -1779,7 +1783,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void arrayListInClosure() {
-        testAssertOkLines(true,
+        test().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, STATIC_SPLIT_BY_CONSTANT_ARGUMENT_ON_LUA).lines(
             "package Hello",
             "import NoWurst",
             "",
@@ -2088,7 +2092,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericClassWithStaticInnerClass() {
-        testAssertOkLines(true,
+        test().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, STATIC_READ_BY_INNER_CLASS_ON_LUA).lines(
             "package test",
             "   native testSuccess()",
             "   class Outer<T:>",
@@ -2111,7 +2115,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericModuleThistypeSmall() {
-        testAssertOkLines(true,
+        test().executeProg(true).luaExempt(LuaExemption.KNOWN_LUA_DEFECT, STATIC_READ_BY_INNER_CLASS_ON_LUA).lines(
             "package test",
             "   native testSuccess()",
             "   module LLM",

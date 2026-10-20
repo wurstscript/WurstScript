@@ -23,6 +23,8 @@ import static org.testng.AssertJUnit.assertFalse;
  */
 public class KeyedTableTests extends WurstScriptTest {
 
+    private static final String DIRECT_KEY_OF_ON_LUA = "A direct `wurstKeyOf` call answers its placeholder on Lua.";
+
     /** The intrinsic and the projections it is rewritten to, declared as the library would. */
     private static String[] withKeyedTable(String... usage) {
         java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
@@ -41,7 +43,7 @@ public class KeyedTableTests extends WurstScriptTest {
     /** An int is its own key. */
     @Test
     public void intKeyIsIdentity() {
-        test().executeProg(true).withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().luaExempt(LuaExemption.KNOWN_LUA_DEFECT, DIRECT_KEY_OF_ON_LUA).lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "init",
@@ -54,7 +56,7 @@ public class KeyedTableTests extends WurstScriptTest {
     /** A handle is keyed by its id, which is what makes unit membership work on Jass. */
     @Test
     public void handleKeyIsItsHandleId() {
-        test().executeProg(true).withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().luaExempt(LuaExemption.KNOWN_LUA_DEFECT, DIRECT_KEY_OF_ON_LUA).lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "init",
@@ -69,7 +71,7 @@ public class KeyedTableTests extends WurstScriptTest {
     /** A class instance is already an integer by the time the projection is chosen. */
     @Test
     public void classInstanceKeyIsStable() {
-        test().executeProg(true).withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().luaExempt(LuaExemption.KNOWN_LUA_DEFECT, DIRECT_KEY_OF_ON_LUA).lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "class Marker",
@@ -88,7 +90,7 @@ public class KeyedTableTests extends WurstScriptTest {
      */
     @Test
     public void nullElementKeysToZeroAndDoesNotCollide() {
-        test().executeProg(true).withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().luaExempt(LuaExemption.KNOWN_LUA_DEFECT, DIRECT_KEY_OF_ON_LUA).lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "init",

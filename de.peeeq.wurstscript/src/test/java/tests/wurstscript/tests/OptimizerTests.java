@@ -2119,7 +2119,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void precisionSensitiveRealFoldUsesSingleFoldingPath() {
-        testAssertOkLines(true,
+        test().executeProg(true).luaExempt(LuaExemption.TEST_LUA_COMPUTES_IN_DOUBLE).lines(
             "package test",
             "native testSuccess()",
             "native testFail(string s)",
@@ -3723,7 +3723,7 @@ public class OptimizerTests extends WurstScriptTest {
      *  while loop, which exits on not (condition), must keep the comparison it was written with. */
     @Test
     public void negatedRealEqualityIsNotUnequality() throws Exception {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).luaExempt(LuaExemption.REAL_EQUALITY_TOLERANCE).lines(
             "package test",
             "native testSuccess()",
             "native testFail(string msg)",
@@ -3754,7 +3754,7 @@ public class OptimizerTests extends WurstScriptTest {
      *  literals exactly, so the Jass build leaves them for the game to compare. */
     @Test
     public void nearlyEqualRealLiteralsAreNotFoldedForJass() throws Exception {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).luaExempt(LuaExemption.REAL_EQUALITY_TOLERANCE).lines(
             "package test",
             "native testSuccess()",
             "native testFail(string msg)",

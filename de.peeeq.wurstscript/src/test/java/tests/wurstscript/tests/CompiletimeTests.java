@@ -722,6 +722,7 @@ public class CompiletimeTests extends WurstScriptTest {
         test().executeProg(true)
                 .runCompiletimeFunctions(true)
                 .executeProgOnlyAfterTransforms()
+                .luaExempt(LuaExemption.ONE_OBJECT_ID_SPACE)
                 .lines("package Test",
                         "native testSuccess()",
                         "class A",
