@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -25,6 +26,16 @@ public interface SpecialisationLookup {
      * an underscore answers wrongly and without saying so.
      */
     @Nullable ImClass genericStaticOwnerOf(ImVar global);
+
+    /**
+     * For a static inner class which captured the type parameters of its generic owner, the owner's type as the inner
+     * class sees it, {@code Outer<T>} with the inner class's own copy of {@code T}; null for any other class. An inner
+     * class's instantiation is its owner's this way, and a static of the owner or of a superclass of it belongs to
+     * that.
+     */
+    default @Nullable ImClassType capturedOwnerType(ImClass staticInnerClass) {
+        return null;
+    }
 
     /**
      * For a program which did not come from a translation that recorded anything - a hand-built

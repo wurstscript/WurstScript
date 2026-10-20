@@ -4,17 +4,21 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
@@ -141,7 +145,22 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
                 typeArgs.add(btp.imTranslateToTypeArgument(tr));
             }
         }
-        return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
+        ImClass imClass = tr.getClassFor(getDef());
+        // A static inner class of a generic class also has the owner's type parameters it captured. The captured
+        // binding says what they were instantiated with, as for `outer.inner()`; where nothing is bound, as in the
+        // owner or the inner class itself, a parameter stands for itself, which is what a constructor call passes
+        // (ExprTranslation.getFunctionCallTypeArguments).
+        List<TypeParamDef> ownerParameters = tr.capturedOwnerTypeParameters(imClass);
+        if (!ownerParameters.isEmpty()) {
+            VariableBinding binding = getTypeArgBinding();
+            for (TypeParamDef ownerParameter : ownerParameters) {
+                Option<WurstTypeBoundTypeParam> bound = binding.get(ownerParameter);
+                typeArgs.add(bound.isDefined()
+                    ? bound.get().imTranslateToTypeArgument(tr)
+                    : JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tr.getTypeVar(ownerParameter)), new HashMap<>()));
+            }
+        }
+        return JassIm.ImClassType(imClass, typeArgs);
     }
 
 }

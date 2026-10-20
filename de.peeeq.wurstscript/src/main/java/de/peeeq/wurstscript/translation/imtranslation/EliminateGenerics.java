@@ -1837,7 +1837,12 @@ public class EliminateGenerics {
         });
     }
 
-    /** Maps a concrete subclass instantiation onto the type arguments of a static's declaring class. */
+    /**
+     * Maps a concrete instantiation onto the type arguments of a static's declaring class, through the superclass
+     * edges. A static inner class is first taken to the owner whose type parameters it captured
+     * ({@code Outer<T>.Inner} is {@code Inner<T>}): in {@code Inner<int>}, a static of {@code Outer} or of a
+     * superclass of it is the one of {@code Outer<int>}.
+     */
     private @Nullable GenericTypes adaptGenericsToOwner(ImClass concreteOwner,
                                                         GenericTypes concreteGenerics,
                                                         ImClass declaringOwner) {
@@ -1850,11 +1855,26 @@ public class EliminateGenerics {
         }
         ImClassType adapted = adaptToSuperclass(
             JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
-        if (adapted == null || adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
+        if (adapted == null) {
+            ImClassType owner = capturedOwnerInstantiation(concreteOwner, concreteGenerics);
+            return owner == null ? null
+                : adaptGenericsToOwner(owner.getClassDef(), new GenericTypes(owner.getTypeArguments()), declaringOwner);
+        }
+        if (adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
             || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
             return null;
         }
         return new GenericTypes(adapted.getTypeArguments());
+    }
+
+    /** The instantiation of the owner a static inner class captured type parameters from, for one of the inner class. */
+    private @Nullable ImClassType capturedOwnerInstantiation(ImClass innerClass, GenericTypes innerGenerics) {
+        ImClassType ownerType = translator.capturedOwnerType(innerClass);
+        int count = innerClass.getTypeVariables().size();
+        if (ownerType == null || innerGenerics.getTypeArguments().size() < count) {
+            return null;
+        }
+        return (ImClassType) transformType(ownerType, innerGenerics.take(count), innerClass.getTypeVariables());
     }
 
     /**
@@ -2267,6 +2287,7 @@ public class EliminateGenerics {
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
         if (genericNewOnly && (classOwnsGenericGlobals(c)
+            || !translator.capturedOwnerTypeParameters(c).isEmpty()
             || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }
