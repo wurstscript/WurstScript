@@ -109,8 +109,11 @@ end
 -- computes in double, the game in float, so the last digits can differ from the game's.
 function R2SW(r, width, precision)
     local digits = math.max(0, precision)
-    if digits > 18 then
-        error("R2SW called with precision " .. precision .. ", beyond what the test runtime models (up to 18).")
+    if digits > 18 or width - digits > 1000 then
+        -- As the interpreter: what the game prints there was not measured, and padding that far
+        -- could exhaust memory.
+        error("R2SW called with width " .. width .. " and precision " .. precision
+            .. ", beyond what the test runtime models (precision up to 18, width up to 1000).")
     end
     local a = math.abs(r)
     local whole = math.floor(a)
