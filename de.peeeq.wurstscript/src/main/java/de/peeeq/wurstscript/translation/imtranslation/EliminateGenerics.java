@@ -358,12 +358,22 @@ public class EliminateGenerics {
         });
     }
 
+    /**
+     * A class specialised before an instanceof named its instantiation gets that identity now: its
+     * inheritance edges and, as {@link #specializeClass} does, its methods' bindings. Walked in
+     * program order, because binding appends to submethod lists, whose order decides slot names.
+     */
     private void rewriteExistingRuntimeTypeSuperEdges() {
-        for (Table.Cell<ImClass, GenericTypes, ImClass> cell
-            : new ArrayList<>(specializedClasses.cellSet())) {
-            if (needsRuntimeTypeSpecialization(cell.getRowKey(), cell.getColumnKey(),
+        Map<ImClass, Table.Cell<ImClass, GenericTypes, ImClass>> cellOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            cellOf.put(cell.getValue(), cell);
+        }
+        for (ImClass specialized : new ArrayList<>(prog.getClasses())) {
+            Table.Cell<ImClass, GenericTypes, ImClass> cell = cellOf.get(specialized);
+            if (cell != null && needsRuntimeTypeSpecialization(cell.getRowKey(), cell.getColumnKey(),
                 new HashSet<>())) {
                 rewriteRuntimeTypeSuperEdges(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
+                attachSpecializedClassMethods(cell.getRowKey(), cell.getValue(), cell.getColumnKey());
             }
         }
     }
@@ -2299,7 +2309,8 @@ public class EliminateGenerics {
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         specializeSuperClasses(newC);
-        if (needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
+        boolean observedIdentity = needsRuntimeTypeSpecialization(c, generics, new HashSet<>());
+        if (observedIdentity) {
             rewriteRuntimeTypeSuperEdges(c, generics, newC);
         }
 
@@ -2310,7 +2321,9 @@ public class EliminateGenerics {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }
 
-        if (genericNewOnly && (isConstructionOnlyInstantiation(c)
+        // An object allocated from a class with an identity of its own is still called through the
+        // virtual methods of its supertypes, so its methods are bound like those of a construction.
+        if (genericNewOnly && (isConstructionOnlyInstantiation(c) || observedIdentity
             || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             attachSpecializedClassMethods(c, newC, generics);
         }

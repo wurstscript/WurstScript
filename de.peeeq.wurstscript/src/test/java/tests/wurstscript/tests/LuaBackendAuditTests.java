@@ -2441,6 +2441,61 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An object given an identity of its own for an instanceof is still reached through the virtual
+     * methods of its interface and base class, including a method a subclass overrides.
+     */
+    @Test
+    public void genericInstanceofIdentityKeepsVirtualDispatch() throws IOException {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "    function tag() returns int",
+            "abstract class Base",
+            "    abstract function size() returns int",
+            "class Box<T:> extends Base implements Marker",
+            "    T item",
+            "    function tag() returns int",
+            "        return 3",
+            "    override function size() returns int",
+            "        return 4",
+            "class Sub<T:> extends Box<T>",
+            "    override function tag() returns int",
+            "        return 5",
+            "class Lone<T:> implements Marker",
+            "    function tag() returns int",
+            "        return 6",
+            "init",
+            "    Marker m = new Box<int>()",
+            "    Base b = new Box<int>()",
+            "    Marker sm = new Sub<int>()",
+            "    Base sb = new Sub<int>()",
+            "    Marker other = new Box<string>()",
+            "    Marker lone = new Lone<string>()",
+            "    Marker subOther = new Sub<string>()",
+            "    if m instanceof Box<int> and b instanceof Box<int>",
+            "        and sm instanceof Box<int> and sb instanceof Box<int>",
+            "        and not (other instanceof Box<int>)",
+            "        and not (lone instanceof Lone<int>)",
+            "        and m.tag() == 3 and b.size() == 4",
+            "        and sm.tag() == 5 and sb.size() == 4",
+            "        and other.tag() == 3 and lone.tag() == 6 and subOther.tag() == 5",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericInstanceofIdentityKeepsVirtualDispatch");
+        Map<String, List<String>> slots = boundSlotsByClass(compiled);
+        // Every class allocated for an observed instantiation binds the slots its erased class binds.
+        for (String specialized : List.of("Box_specialized_integer", "Sub_specialized_integer")) {
+            String erased = specialized.substring(0, specialized.indexOf("_specialized"));
+            assertTrue(specialized + " binds " + slots.get(specialized) + ", " + erased + " binds "
+                    + slots.get(erased),
+                slots.containsKey(specialized)
+                    && slots.get(specialized).containsAll(slots.getOrDefault(erased, List.of())));
+        }
+    }
+
     /** A program which names no instantiation in an instanceof keeps every object erased. */
     @Test
     public void genericObjectsStayErasedWithoutParameterizedInstanceof() throws IOException {
