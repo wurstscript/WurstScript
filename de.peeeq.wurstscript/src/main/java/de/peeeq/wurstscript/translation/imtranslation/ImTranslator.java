@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
@@ -2965,6 +2966,42 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public void assertFlat(String where) {
         if (isUnitTestMode && !isFlat()) {
             throw new AssertionError("The program is not flat " + where);
+        }
+    }
+
+    /**
+     * In a unit test: fails when live code reads or writes a generic static through its erased original although the
+     * static has specialised copies. One instantiation then has two stores, and one is written where the other is read
+     * (wurstscript/WurstScript#1498). Live is {@link RemoveGarbage#reachableFunctions}, because the tree shaker keeps
+     * dispatch to classes nothing allocates. Asked before the garbage removal, which deletes a store nothing reads and
+     * so turns the split into a dropped write nothing can see any more.
+     */
+    public void assertNoLiveErasedGenericStatic() {
+        if (!isUnitTestMode || genericStaticOwners.isEmpty()) {
+            return;
+        }
+        for (ImFunction function : RemoveGarbage.reachableFunctions(imProg, this)) {
+            function.accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ImVarAccess access) {
+                    super.visit(access);
+                    check(access, access.getVar());
+                }
+
+                @Override
+                public void visit(ImVarArrayAccess access) {
+                    super.visit(access);
+                    check(access, access.getVar());
+                }
+
+                private void check(Element access, ImVar global) {
+                    if (genericStaticOwnerOf(global) != null && specialisationOf(global) == null) {
+                        throw new CompileError(access, "Internal error: " + function.getName()
+                            + " uses the erased generic static " + global.getName()
+                            + ", which has specialised copies.");
+                    }
+                }
+            });
         }
     }
 
