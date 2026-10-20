@@ -48,8 +48,8 @@ import static org.testng.AssertJUnit.fail;
  *
  * <p>A pull request runs a covering subset (384 cases, about a minute): every pair of dimension values, and
  * every combination of dependency, writer and reader. {@code WURST_GENERIC_MATRIX=full} runs the whole product
- * (36,864 cases, about three hours), which is for master or nightly runs, split by
- * {@code WURST_GENERIC_MATRIX_SHARD=i/n} so that each run stays inside the test task's twenty minutes (n = 12
+ * (36,864 cases, about an hour), which is for master or nightly runs, split by
+ * {@code WURST_GENERIC_MATRIX_SHARD=i/n} so that each run stays inside the test task's twenty minutes (n = 6
  * or more). The list of known failures covers the subset only. {@code WURST_GENERIC_MATRIX_KEEP_GOING}
  * records unexpected failures instead of failing them and fails the summary at the end, since the suite stops
  * at its first failure. {@code WURST_GENERIC_MATRIX_FILTER} (a regular expression on the case name) picks
@@ -946,7 +946,7 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             case SKIP -> throw new SkipException(outcome.detail);
             case FAIL -> {
                 if (defect != null) {
-                    throw new SkipException("known defect " + defect + ": " + outcome.detail);
+                    throw new SkipException("known defect " + defect + " (BACKLOG.md): " + outcome.detail);
                 }
                 if (System.getenv("WURST_GENERIC_MATRIX_KEEP_GOING") == null) {
                     fail(c.name() + ": " + outcome.detail + "\n" + program(c));

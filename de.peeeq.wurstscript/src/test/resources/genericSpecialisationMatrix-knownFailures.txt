@@ -1,33 +1,12 @@
 # Cases of GenericSpecialisationMatrixTests (the pull-request tier) which fail on master, each with the
-# defect class its symptom belongs to. Jass passes every one of them: these are Lua defects.
+# defect it shows. Jass passes every one of them. Each tag names its BACKLOG.md entry, which has a minimal
+# repro: lua-static-erased, lua-instanceof-erased, lua-bound-unresolved, lua-closure-receiver,
+# lua-new-instance-unresolved, lua-new-instance-erased, lua-field-split, lua-tuple-subclass,
+# lua-tuple-elimination-crash.
 #
-# A case listed here is reported as skipped with its failure; a failure not listed fails the test, and a
-# listed case which passes is named in the summary for removal. The run writes the list it would leave in
+# A listed case is skipped with its tag and its failure; a failure not listed fails the test. A listed case
+# which passes is named in the summary: remove it with the fix. The run writes the list it would leave in
 # test-output/generic-matrix/knownFailures-after-this-run.txt.
-#
-#   lua-fixed-static-1498        a store with a fixed type argument (Cell<X>) used inside a generic class is
-#                                written and read in different copies behind erased dispatch (#1498)
-#   lua-static-erased            a per-instantiation static of a generic class, reached through erased
-#                                dispatch, reads an erased copy: shared by the instantiations, or never
-#                                initialised (nil)
-#   lua-instanceof-erased        `x instanceof Box<int>` is true for a Box<string>, Box<CB> for Box<CA>
-#   lua-bound-unresolved         Lua rejects a type-class requirement reached through a non-generic interface,
-#                                base class, super call or destroy ("could not be resolved for the Lua target")
-#   lua-closure-receiver         Lua rejects a closure in a bounded or constructing generic class which reads
-#                                a field ("Could not adapt receiver G_specialized_X to superclass G")
-#   lua-new-instance-unresolved  Lua rejects wurstNewInstance<T>() in a constructor, an ondestroy or behind a
-#                                super call ("requires its type argument to resolve to a concrete class")
-#   lua-new-instance-dangling    Lua translation crashes when wurstNewInstance<T>() is reached through a
-#                                non-generic interface or base class ("dangling reference ... wurstNewMarker")
-#   lua-new-instance-wrong       the instance wurstNewInstance<T>() made is not the one read back (reads 0)
-#   lua-field-split              a T-typed instance field written through one copy of the class is read
-#                                through another (nil or default)
-#   lua-storage-nil              a subclass of a generic class instantiated with a tuple reads a nil
-#                                *_storage global
-#   lua-tuple-subclass-crash     ConcurrentModificationException in Lua translation: a subclass of a generic
-#                                class instantiated with a tuple, called through a generic interface
-#   lua-tuple-elimination-crash  EliminateTuples throws ("//// Before") on a tuple static written in a
-#                                closure of a generic class
 BOUND_CLOSURE_wBASE_rDIRECT_STRINGx1 lua-closure-receiver
 BOUND_CLOSURE_wBASE_rINTERFACE_INTx1 lua-bound-unresolved
 BOUND_CLOSURE_wCLOSURE_rBASE_INTx1 lua-closure-receiver
@@ -50,7 +29,7 @@ BOUND_INHERITED_wCLOSURE_rINTERFACE_STRINGx2_opt lua-bound-unresolved
 BOUND_INHERITED_wDESTROY_rDESTROY_STRINGx2_opt lua-bound-unresolved
 BOUND_INHERITED_wGENERIC_INTERFACE_rINTERFACE_INTx1_opt lua-bound-unresolved
 BOUND_INHERITED_wINTERFACE_rGENERIC_INTERFACE_INTx1 lua-bound-unresolved
-BOUND_INHERITED_wINTERFACE_rSUPER_TUPLEx1_opt lua-storage-nil
+BOUND_INHERITED_wINTERFACE_rSUPER_TUPLEx1_opt lua-tuple-subclass
 BOUND_METHOD_wBASE_rBASE_STRINGx2_opt lua-bound-unresolved
 BOUND_METHOD_wDIRECT_rDESTROY_STRINGx2_opt lua-bound-unresolved
 BOUND_METHOD_wINTERFACE_rCLOSURE_CLASSx1 lua-bound-unresolved
@@ -61,20 +40,6 @@ BOUND_ONDESTROY_wGENERIC_INTERFACE_rBASE_STRINGx1_opt lua-field-split
 BOUND_ONDESTROY_wINTERFACE_rINTERFACE_INTx1_opt lua-bound-unresolved
 BOUND_ONDESTROY_wSUPER_rBASE_CLASSx1 lua-field-split
 FIELD_CONSTRUCTOR_wINTERFACE_rSUPER_TUPLEx2 lua-field-split
-FIXED_STATIC_CLOSURE_wBASE_rSUPER_TUPLEx2 lua-fixed-static-1498
-FIXED_STATIC_CLOSURE_wINTERFACE_rSUPER_TUPLEx2_opt lua-storage-nil
-FIXED_STATIC_INHERITED_wBASE_rDIRECT_INTx1_opt lua-fixed-static-1498
-FIXED_STATIC_INHERITED_wCLOSURE_rGENERIC_INTERFACE_INTx2 lua-fixed-static-1498
-FIXED_STATIC_INHERITED_wDIRECT_rDESTROY_STRINGx2 lua-fixed-static-1498
-FIXED_STATIC_INHERITED_wGENERIC_INTERFACE_rSUPER_INTx1 lua-fixed-static-1498
-FIXED_STATIC_INHERITED_wSUPER_rERASED_FUNCTION_CLASSx1 lua-fixed-static-1498
-FIXED_STATIC_METHOD_wCLOSURE_rBASE_STRINGx2 lua-fixed-static-1498
-FIXED_STATIC_METHOD_wSUPER_rINTERFACE_STRINGx2 lua-fixed-static-1498
-FIXED_STATIC_MODULE_wCLOSURE_rDESTROY_INTx2 lua-fixed-static-1498
-FIXED_STATIC_MODULE_wERASED_FUNCTION_rDIRECT_STRINGx2_opt lua-fixed-static-1498
-FIXED_STATIC_MODULE_wGENERIC_INTERFACE_rDIRECT_INTx1_opt lua-fixed-static-1498
-FIXED_STATIC_MODULE_wINTERFACE_rCLOSURE_CLASSx1_opt lua-fixed-static-1498
-FIXED_STATIC_MODULE_wSUPER_rGENERIC_INTERFACE_CLASSx2_opt lua-fixed-static-1498
 INSTANCEOF_CLOSURE_wBASE_rINTERFACE_INTx2_opt lua-instanceof-erased
 INSTANCEOF_CLOSURE_wCLOSURE_rCLOSURE_INTx1_opt lua-instanceof-erased
 INSTANCEOF_CLOSURE_wDESTROY_rCLOSURE_CLASSx2 lua-instanceof-erased
@@ -109,7 +74,7 @@ INSTANCEOF_METHOD_wDESTROY_rDESTROY_INTx2_opt lua-instanceof-erased
 INSTANCEOF_METHOD_wDIRECT_rDIRECT_CLASSx2 lua-instanceof-erased
 INSTANCEOF_METHOD_wERASED_FUNCTION_rGENERIC_INTERFACE_INTx1 lua-instanceof-erased
 INSTANCEOF_METHOD_wGENERIC_INTERFACE_rERASED_FUNCTION_CLASSx2_opt lua-instanceof-erased
-INSTANCEOF_METHOD_wSUPER_rCLOSURE_TUPLEx2_opt lua-storage-nil
+INSTANCEOF_METHOD_wSUPER_rCLOSURE_TUPLEx2_opt lua-tuple-subclass
 INSTANCEOF_METHOD_wSUPER_rINTERFACE_INTx1_opt lua-instanceof-erased
 INSTANCEOF_MODULE_wCLOSURE_rDIRECT_INTx2 lua-instanceof-erased
 INSTANCEOF_MODULE_wCLOSURE_rGENERIC_INTERFACE_CLASSx2_opt lua-instanceof-erased
@@ -127,17 +92,17 @@ INSTANCEOF_ONDESTROY_wINTERFACE_rINTERFACE_CLASSx1 lua-instanceof-erased
 INSTANCEOF_ONDESTROY_wINTERFACE_rSUPER_INTx2_opt lua-instanceof-erased
 INSTANCEOF_ONDESTROY_wSUPER_rERASED_FUNCTION_INTx2_opt lua-instanceof-erased
 INSTANCEOF_ONDESTROY_wSUPER_rSUPER_STRINGx2 lua-instanceof-erased
-NEW_INSTANCE_CLOSURE_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-dangling
-NEW_INSTANCE_CLOSURE_wBASE_rINTERFACE_CLASSx1_opt lua-new-instance-wrong
+NEW_INSTANCE_CLOSURE_wBASE_rGENERIC_INTERFACE_CLASSx2 lua-new-instance-erased
+NEW_INSTANCE_CLOSURE_wBASE_rINTERFACE_CLASSx1_opt lua-new-instance-erased
 NEW_INSTANCE_CLOSURE_wCLOSURE_rSUPER_CLASSx1 lua-closure-receiver
-NEW_INSTANCE_CLOSURE_wDESTROY_rBASE_CLASSx2 lua-new-instance-dangling
-NEW_INSTANCE_CLOSURE_wDESTROY_rGENERIC_INTERFACE_CLASSx2_opt lua-new-instance-wrong
-NEW_INSTANCE_CLOSURE_wDESTROY_rINTERFACE_CLASSx1_opt lua-new-instance-wrong
+NEW_INSTANCE_CLOSURE_wDESTROY_rBASE_CLASSx2 lua-new-instance-erased
+NEW_INSTANCE_CLOSURE_wDESTROY_rGENERIC_INTERFACE_CLASSx2_opt lua-new-instance-erased
+NEW_INSTANCE_CLOSURE_wDESTROY_rINTERFACE_CLASSx1_opt lua-new-instance-erased
 NEW_INSTANCE_CLOSURE_wDIRECT_rBASE_CLASSx2 lua-closure-receiver
 NEW_INSTANCE_CLOSURE_wDIRECT_rCLOSURE_CLASSx1 lua-closure-receiver
 NEW_INSTANCE_CLOSURE_wDIRECT_rDESTROY_CLASSx1_opt lua-closure-receiver
 NEW_INSTANCE_CLOSURE_wERASED_FUNCTION_rGENERIC_INTERFACE_CLASSx1 lua-closure-receiver
-NEW_INSTANCE_CLOSURE_wINTERFACE_rDIRECT_CLASSx1_opt lua-new-instance-wrong
+NEW_INSTANCE_CLOSURE_wINTERFACE_rDIRECT_CLASSx1_opt lua-new-instance-erased
 NEW_INSTANCE_CLOSURE_wSUPER_rINTERFACE_CLASSx2_opt lua-closure-receiver
 NEW_INSTANCE_CONSTRUCTOR_wBASE_rERASED_FUNCTION_CLASSx1 lua-new-instance-unresolved
 NEW_INSTANCE_CONSTRUCTOR_wBASE_rSUPER_CLASSx2_opt lua-new-instance-unresolved
@@ -151,17 +116,17 @@ NEW_INSTANCE_CONSTRUCTOR_wGENERIC_INTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-new-i
 NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rBASE_CLASSx2_opt lua-new-instance-unresolved
 NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rDESTROY_CLASSx2_opt lua-new-instance-unresolved
 NEW_INSTANCE_CONSTRUCTOR_wINTERFACE_rINTERFACE_CLASSx2_opt lua-new-instance-unresolved
-NEW_INSTANCE_INHERITED_wBASE_rCLOSURE_CLASSx2 lua-new-instance-dangling
-NEW_INSTANCE_INHERITED_wDESTROY_rDIRECT_CLASSx2_opt lua-new-instance-wrong
-NEW_INSTANCE_INHERITED_wINTERFACE_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-wrong
-NEW_INSTANCE_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-dangling
+NEW_INSTANCE_INHERITED_wBASE_rCLOSURE_CLASSx2 lua-new-instance-erased
+NEW_INSTANCE_INHERITED_wDESTROY_rDIRECT_CLASSx2_opt lua-new-instance-erased
+NEW_INSTANCE_INHERITED_wINTERFACE_rERASED_FUNCTION_CLASSx2_opt lua-new-instance-erased
+NEW_INSTANCE_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-erased
 NEW_INSTANCE_INHERITED_wSUPER_rGENERIC_INTERFACE_CLASSx1 lua-new-instance-unresolved
 NEW_INSTANCE_INHERITED_wSUPER_rSUPER_CLASSx1_opt lua-new-instance-unresolved
-NEW_INSTANCE_METHOD_wINTERFACE_rSUPER_CLASSx1 lua-new-instance-dangling
+NEW_INSTANCE_METHOD_wINTERFACE_rSUPER_CLASSx1 lua-new-instance-erased
 NEW_INSTANCE_METHOD_wSUPER_rERASED_FUNCTION_CLASSx2 lua-new-instance-unresolved
-NEW_INSTANCE_MODULE_wDESTROY_rCLOSURE_CLASSx2_opt lua-new-instance-wrong
-NEW_INSTANCE_MODULE_wDESTROY_rDESTROY_CLASSx2 lua-new-instance-dangling
-NEW_INSTANCE_MODULE_wINTERFACE_rCLOSURE_CLASSx2 lua-new-instance-dangling
+NEW_INSTANCE_MODULE_wDESTROY_rCLOSURE_CLASSx2_opt lua-new-instance-erased
+NEW_INSTANCE_MODULE_wDESTROY_rDESTROY_CLASSx2 lua-new-instance-erased
+NEW_INSTANCE_MODULE_wINTERFACE_rCLOSURE_CLASSx2 lua-new-instance-erased
 NEW_INSTANCE_MODULE_wSUPER_rCLOSURE_CLASSx1 lua-new-instance-unresolved
 NEW_INSTANCE_MODULE_wSUPER_rDIRECT_CLASSx2_opt lua-new-instance-unresolved
 NEW_INSTANCE_ONDESTROY_wBASE_rBASE_CLASSx1_opt lua-new-instance-unresolved
@@ -186,15 +151,15 @@ STATIC_CLOSURE_wSUPER_rCLOSURE_STRINGx2 lua-static-erased
 STATIC_CLOSURE_wSUPER_rDESTROY_INTx2_opt lua-static-erased
 STATIC_CONSTRUCTOR_wCLOSURE_rINTERFACE_CLASSx2_opt lua-static-erased
 STATIC_CONSTRUCTOR_wERASED_FUNCTION_rDESTROY_CLASSx2_opt lua-static-erased
-STATIC_CONSTRUCTOR_wSUPER_rGENERIC_INTERFACE_TUPLEx1 lua-tuple-subclass-crash
+STATIC_CONSTRUCTOR_wSUPER_rGENERIC_INTERFACE_TUPLEx1 lua-tuple-subclass
 STATIC_CONSTRUCTOR_wSUPER_rSUPER_TUPLEx1_opt lua-static-erased
 STATIC_INHERITED_wBASE_rSUPER_TUPLEx1_opt lua-static-erased
 STATIC_INHERITED_wDESTROY_rBASE_CLASSx2 lua-static-erased
 STATIC_INHERITED_wDESTROY_rSUPER_CLASSx1 lua-static-erased
 STATIC_INHERITED_wDIRECT_rINTERFACE_CLASSx1_opt lua-static-erased
-STATIC_INHERITED_wERASED_FUNCTION_rSUPER_TUPLEx1_opt lua-storage-nil
+STATIC_INHERITED_wERASED_FUNCTION_rSUPER_TUPLEx1_opt lua-tuple-subclass
 STATIC_INHERITED_wINTERFACE_rGENERIC_INTERFACE_CLASSx2 lua-static-erased
-STATIC_INHERITED_wSUPER_rBASE_TUPLEx1_opt lua-storage-nil
+STATIC_INHERITED_wSUPER_rBASE_TUPLEx1_opt lua-tuple-subclass
 STATIC_METHOD_wBASE_rCLOSURE_CLASSx2_opt lua-static-erased
 STATIC_METHOD_wBASE_rERASED_FUNCTION_CLASSx2_opt lua-static-erased
 STATIC_METHOD_wDESTROY_rINTERFACE_STRINGx2_opt lua-static-erased
@@ -203,7 +168,7 @@ STATIC_METHOD_wERASED_FUNCTION_rINTERFACE_CLASSx1_opt lua-static-erased
 STATIC_METHOD_wGENERIC_INTERFACE_rDESTROY_INTx2 lua-static-erased
 STATIC_MODULE_wINTERFACE_rDIRECT_STRINGx2_opt lua-static-erased
 STATIC_MODULE_wINTERFACE_rSUPER_TUPLEx1_opt lua-static-erased
-STATIC_MODULE_wSUPER_rERASED_FUNCTION_TUPLEx2_opt lua-storage-nil
+STATIC_MODULE_wSUPER_rERASED_FUNCTION_TUPLEx2_opt lua-tuple-subclass
 STATIC_ONDESTROY_wDESTROY_rERASED_FUNCTION_CLASSx1 lua-static-erased
 STATIC_ONDESTROY_wINTERFACE_rCLOSURE_INTx1_opt lua-static-erased
 STATIC_ONDESTROY_wSUPER_rINTERFACE_CLASSx1 lua-static-erased
