@@ -147,11 +147,18 @@ function GetRandomInt(low, high)
     return low + math.random(0, math.abs(high - low))
 end
 
--- As the interpreter (not measured in game). Jass integers arrive sign-extended, so the 64 bit
--- operators give the 32 bit result.
-function BlzBitOr(x, y) return x | y end
-function BlzBitAnd(x, y) return x & y end
-function BlzBitXor(x, y) return x ~ y end
+-- As the interpreter (not measured in game): the natives work on 32 bit integers. The test Lua
+-- does not wrap integer arithmetic, so the result is brought back to the signed 32 bit range.
+local function signed32(v)
+    v = v & 0xFFFFFFFF
+    if v >= 0x80000000 then
+        return v - 0x100000000
+    end
+    return v
+end
+function BlzBitOr(x, y) return signed32(x | y) end
+function BlzBitAnd(x, y) return signed32(x & y) end
+function BlzBitXor(x, y) return signed32(x ~ y) end
 
 -- StringHash, over bytes, as the game and the interpreter both compute it. Bob Jenkins'
 -- lookup2, with the same normalisation: ascii letters upper-cased and a forward slash read as
