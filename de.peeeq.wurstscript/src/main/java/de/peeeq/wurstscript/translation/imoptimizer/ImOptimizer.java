@@ -277,6 +277,11 @@ public class ImOptimizer {
             roundFunctions = allFunctions;
         }
 
+        // On Lua a field of a specialised class has the storage of the field it was copied from
+        // (LuaTranslator.fieldStorage), so a value written through the one is read through the other: the
+        // specialised methods of an object reach the copy, the erased code beside them the original.
+        final Set<ImVar> readFieldStorage = trans.isLuaTarget() ? readFieldStorage(readVars) : Set.of();
+
         if (variablesLost) {
             for (ImClass c : prog.getClasses()) {
                 // A field of a specialised class is a copy which nothing refers to, an access made
@@ -285,7 +290,8 @@ public class ImOptimizer {
                 // with no fields while the emitted code goes on reading them.
                 changes |= c.getFields().retainAll(c.getFields().stream()
                     .filter(field -> readVars.contains(field)
-                        || readVars.contains(trans.canonical(field)))
+                        || readVars.contains(trans.canonical(field))
+                        || readFieldStorage.contains(trans.canonical(field)))
                     .collect(Collectors.toCollection(LinkedHashSet::new)));
             }
         }
@@ -335,7 +341,8 @@ public class ImOptimizer {
                     }
                 } else if(e.getLeft() instanceof ImMemberAccess) {
                     ImMemberAccess va = ((ImMemberAccess) e.getLeft());
-                    if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
+                    if (!readVars.contains(va.getVar()) && !readFieldStorage.contains(trans.canonical(va.getVar()))
+                        && !NamePreservation.isPreserved(va.getVar())) {
                         replacements.add(Pair.create(e, effectsOfAssignment(e, sideEffectAnalyzer)));
                     }
                 }
@@ -362,6 +369,17 @@ public class ImOptimizer {
             removableThings = things;
         }
         return changes;
+    }
+
+    /** The storage of the fields which are read: the field each read field was copied from, or itself. */
+    private Set<ImVar> readFieldStorage(Set<ImVar> readVars) {
+        Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImVar v : readVars) {
+            if (v.getParent() != null && v.getParent().getParent() instanceof ImClass) {
+                storage.add(trans.canonical(v));
+            }
+        }
+        return storage;
     }
 
     /**

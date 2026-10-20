@@ -2915,6 +2915,123 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse("emitted Lua must never iterate a table with next()", compiled.contains(" next("));
     }
 
+    /**
+     * AGENTS.md section 8 with a base state whose update needs its type argument (a static per instantiation), so
+     * that its instantiation is allocated from the specialised class and the sibling states extend that class. The
+     * root slot the FSM dispatches through must still be bound, on each sibling, to its own update, and on the one
+     * sibling which overrides nothing to the specialised base update rather than the erased one.
+     */
+    @Test
+    public void identityBaseStateKeepsRootSlotBindingsInLua() throws IOException {
+        String outputFile = "test-output/lua/LuaTranslationTests_identityBaseStateKeepsRootSlotBindingsInLua.lua";
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg()
+            .compilationUnits(identityBaseStateUnits());
+        String compiled = Files.toString(new File(outputFile), Charsets.UTF_8);
+
+        List<String> fsmUpdates = uniqueMatches(compiled, "(?m)^function (FSM_\\w*FSM_update)\\(", 1);
+        assertEquals("one FSM update is emitted: " + fsmUpdates, 1, fsmUpdates.size());
+        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, fsmUpdates.get(0)));
+        assertTrue("Expected FSM to dispatch through a virtual *_update slot: " + dispatchedSlot,
+            dispatchedSlot.endsWith("_update"));
+
+        for (String state : new String[]{"FindBuilder", "PlanNextAction", "FindSpot", "BuildAtTarget"}) {
+            assertContainsRegex(compiled, "(?m)^\\s*" + state + "\\." + dispatchedSlot + "\\s*=\\s*"
+                + state + "_" + state + "_update$");
+            assertDoesNotContainRegex(compiled, "(?m)^\\s*" + state + "\\." + dispatchedSlot + "\\s*=\\s*NoOpState");
+        }
+        // Idle overrides nothing: it inherits the base update specialised for Owner, which counts in Owner's static.
+        String idleImpl = singleMatch(compiled, "(?m)^\\s*Idle\\." + dispatchedSlot + "\\s*=\\s*(\\w+)$", 1);
+        assertTrue("Idle must bind the specialised base update: " + idleImpl,
+            idleImpl.startsWith("NoOpState_specialized_Owner_"));
+        assertDoesNotContainRegex(compiled, "(?m)^\\s*\\w+\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update$");
+
+        GlobalCaches.clearAll();
+        test().testLua(true).compilationUnits(identityBaseStateUnits());
+        String compiledAgain = Files.toString(new File(outputFile), Charsets.UTF_8);
+        assertEquals("The root-slot fixture must emit deterministic Lua across compilations.", compiled, compiledAgain);
+    }
+
+    private CU[] identityBaseStateUnits() {
+        return new CU[]{
+            compilationUnit("fsmLib.wurst",
+                "package FSMIdentityLib",
+                "",
+                "public abstract class State<T:>",
+                "    function enter(T owner)",
+                "    function update(T owner, real dt)",
+                "",
+                "public class NoOpState<T:> extends State<T>",
+                "    static int noOpUpdates = 0",
+                "    override function enter(T owner)",
+                "    override function update(T owner, real dt)",
+                "        noOpUpdates++",
+                "    static function noOps() returns int",
+                "        return noOpUpdates",
+                "",
+                "public class FSM<T:>",
+                "    T owner",
+                "    State<T> currentState = null",
+                "",
+                "    construct(T owner)",
+                "        this.owner = owner",
+                "",
+                "    function setInitialState(State<T> st)",
+                "        currentState = st",
+                "        currentState.enter(owner)",
+                "",
+                "    function update(real dt)",
+                "        if currentState != null",
+                "            currentState.update(owner, dt)"
+            ),
+            compilationUnit("repro.wurst",
+                "package IdentityStateRepro",
+                "import FSMIdentityLib",
+                "native testSuccess()",
+                "",
+                "public class Owner",
+                "    FSM<Owner> fsm = new FSM<Owner>(this)",
+                "    int ticks = 0",
+                "",
+                "public constant idleState = new Idle()",
+                "public constant findBuilderState = new FindBuilder()",
+                "public constant planNextActionState = new PlanNextAction()",
+                "public constant findSpotState = new FindSpot()",
+                "public constant buildAtTargetState = new BuildAtTarget()",
+                "",
+                "class Idle extends NoOpState<Owner>",
+                "",
+                "class FindBuilder extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += 1",
+                "",
+                "class PlanNextAction extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += 10",
+                "",
+                "class FindSpot extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += 100",
+                "",
+                "class BuildAtTarget extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.ticks += 1000",
+                "",
+                "function runOne(State<Owner> st) returns int",
+                "    let o = new Owner()",
+                "    o.fsm.setInitialState(st)",
+                "    for i = 0 to 4",
+                "        o.fsm.update(0.1)",
+                "    return o.ticks",
+                "",
+                "init",
+                "    if runOne(findBuilderState) == 5 and runOne(planNextActionState) == 50",
+                "        and runOne(findSpotState) == 500 and runOne(buildAtTargetState) == 5000",
+                "        and runOne(idleState) == 0 and NoOpState<Owner>.noOps() == 5",
+                "        testSuccess()"
+            )
+        };
+    }
+
     private CU[] genericOverrideReproUnits() {
         return new CU[]{
             compilationUnit("fsmLib.wurst",
