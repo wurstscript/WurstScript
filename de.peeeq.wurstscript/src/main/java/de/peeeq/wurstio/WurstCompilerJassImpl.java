@@ -979,19 +979,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
             timeTaker.endPhase();
         }
+        // Before stack traces: that pass appends a parameter to every affected function, and on
+        // Lua every non-native function is affected, so the exact signatures the keyed-table
+        // operations are recognised by would stop matching and leave their Jass bodies on Lua, which
+        // key through wurstKeyOf. Before the tree shake, which then drops those replaced bodies: the
+        // native lowering lowers each call of wurstKeyOf it finds, and rejects one from generic code.
+        beginPhase(2, "lower keyed tables");
+        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
+        timeTaker.endPhase();
         // What nothing calls (most of the imported libraries) would go through every pass below, and the garbage
         // removal after the tuples is the first thing to drop it. The helpers the passes below call are pinned.
         beginPhase(2, "remove unreachable functions");
         TreeShaker.removeUnreachableFunctions(getImTranslator());
         timeTaker.endPhase();
         imTranslator.assertNoLiveErasedGenericStatic();
-        // Before stack traces: that pass appends a parameter to every affected function, and on
-        // Lua every non-native function is affected, so the exact signatures the keyed-table
-        // operations are recognised by would stop matching - silently leaving their Jass bodies on
-        // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
-        beginPhase(4, "lower keyed tables");
-        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
-        timeTaker.endPhase();
 
         if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
             beginPhase(4, "add stack traces");

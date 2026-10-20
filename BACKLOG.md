@@ -18,8 +18,8 @@ Notes; finished-work narrative does not.
 - **Run every executing test on Lua on master CI (`-PallBackends`).** Forcing `translateAndTestLua`
   after the Jass runs of every `executeProg` test that does not opt into Lua (686 tests, October 2026)
   passed 645 on plain Lua and 644 with `-inline -localOptimizations`; the failures found the
-  generic-static, `wurstKeyOf` and type-id items below, two defects with their own fixes (compile-time
-  object ids, old-generic tuple arguments) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
+  generic-static and type-id items below, three defects with their own fixes (compile-time object ids,
+  old-generic tuple arguments, a direct `wurstKeyOf` call) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
   cost about 300 s of test time each over the suite. Proposal: `-PallBackends` (master CI only, PR CI
   unchanged) runs Lua after Jass for every executing test, `-PallBackends=full` adds the inlined
   variant. A test that cannot hold on Lua says why with `.luaExempt(LuaExemption.X)` instead of
@@ -41,15 +41,6 @@ Notes; finished-work narrative does not.
   `TypeSubst.resolve` ("Could not find replacement for T... when replacing [T...] with []"), from
   `ExprTranslation.translateEquals` typing `a.iterator().next()`. Fix in `EliminateGenerics`, where the
   store is split, and turn on `testLua(true).luaOnly(false)` for both tests.
-
-- **A direct `wurstKeyOf` call answers its placeholder on Lua.** `KeyedTableTests.intKeyIsIdentity`
-  (`wurstKeyOf(7)` is 0) and `classInstanceKeyIsStable` (two instances share key 0) pass on the
-  interpreter and Jass and fail on Lua: the emitted `wurstKeyOf` is its source body, `return 0`. On Lua
-  the keyed-table operations are replaced as a whole (`LuaNativeLowering.lowerKeyedTables`), and the
-  tests' class calls itself "the Jass side", but nothing stops a program from calling the intrinsic
-  directly, and that placeholder answer is the failure `lowerKeyedTables` was moved to avoid. Either
-  lower it on Lua (the value itself for `int` and class instances, the handle id for handles) or reject
-  a direct call there with a diagnostic (AGENTS.md §3: no silent fallback).
 
 - **`typeIdToTypeName`, `maxTypeId`, `instanceCount` and `maxInstanceCount` answer defaults on Lua.**
   Only `EliminateClasses` implements them, on the Jass path. On Lua they compile to the generic native
