@@ -1249,4 +1249,65 @@ public class FieldIterationTests extends WurstScriptTest {
             "endpackage"
         );
     }
+
+    /**
+     * wurstNewInstance in the constructor of a generic class, in an ondestroy, and behind a super call, on Jass and Lua.
+     * On Lua each reaches a copy specialised for its instantiation (EliminateGenerics.allocatesFromSpecialisedClass).
+     * The interpreter runs the translated program only: it does not evaluate the intrinsic in untranslated generic IM.
+     */
+    @Test
+    public void genericConstructionInAConstructorAnOndestroyAndBehindSuper() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package MagicFunctions",
+            "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+            "        return null",
+            "endpackage",
+            "",
+            "package FieldIterationTest",
+            "    import MagicFunctions",
+            "    native testSuccess()",
+            "",
+            "    class State",
+            "        int value = 7",
+            "",
+            "    class InConstructor<T:>",
+            "        T made",
+            "        construct()",
+            "        construct(InConstructor<T> target)",
+            "            target.made = wurstNewInstance<T>()",
+            "        function fill()",
+            "            destroy new InConstructor<T>(this)",
+            "",
+            "    class InOndestroy<T:>",
+            "        T made",
+            "        InOndestroy<T> target = null",
+            "        function fill()",
+            "            let helper = new InOndestroy<T>()",
+            "            helper.target = this",
+            "            destroy helper",
+            "        ondestroy",
+            "            if target != null",
+            "                target.made = wurstNewInstance<T>()",
+            "",
+            "    class BehindSuper<T:>",
+            "        T made",
+            "        function fill()",
+            "            made = wurstNewInstance<T>()",
+            "",
+            "    class StateBehindSuper extends BehindSuper<State>",
+            "        override function fill()",
+            "            super.fill()",
+            "",
+            "    init",
+            "        let a = new InConstructor<State>()",
+            "        a.fill()",
+            "        let b = new InOndestroy<State>()",
+            "        b.fill()",
+            "        let c = new StateBehindSuper()",
+            "        c.fill()",
+            "        if a.made.value == 7 and b.made.value == 7 and c.made.value == 7",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
 }
