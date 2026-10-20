@@ -872,6 +872,48 @@ public class DeterministicChecks extends WurstScriptTest {
     }
 
     /**
+     * On Lua the natives of Reflection number the counted allocation groups and print the names and the groups of
+     * the type ids in tables, in the order of the type ids, which the order of the units must not change.
+     */
+    @Test
+    public void reflectionTablesAreTheSameInAnyUnitOrder() throws IOException {
+        List<CU> units = new ArrayList<>();
+        for (String p : List.of("P1", "P2", "P3")) {
+            units.add(compilationUnit(p + ".wurst",
+                "package " + p,
+                "public class Node",
+                "public class Leaf extends Node",
+                "public function make" + p + "() returns Node",
+                "    return new Leaf()"));
+        }
+        units.add(compilationUnit("Main.wurst",
+            "package Main",
+            "import P1",
+            "import P2",
+            "import P3",
+            "native testSuccess()",
+            "native typeIdToTypeName(int typeId) returns string",
+            "native maxTypeId() returns int",
+            "native instanceCount(int typeId) returns int",
+            "native maxInstanceCount(int typeId) returns int",
+            "init",
+            "    let nodes = makeP1().typeId + makeP2().typeId + makeP3().typeId",
+            "    var total = 0",
+            "    for i = 1 to maxTypeId()",
+            "        if typeIdToTypeName(i) != \"unknown\"",
+            "            total += instanceCount(i) + maxInstanceCount(i)",
+            // each package: Node and Leaf are one group, with one live Leaf and a peak of one
+            "    if nodes > 0 and maxTypeId() == 6 and total == 12",
+            "        testSuccess()"));
+        String first = compileToLua("reflectionTables", units);
+        assertTrue(first.contains("__wurst_typeNames") && first.contains("__wurst_typeGroups"),
+            "the type ids are known only at run time, so they are looked up in tables");
+        List<CU> shuffled = List.of(units.get(3), units.get(2), units.get(0), units.get(1));
+        assertEquals(compileToLua("reflectionTables", shuffled), first,
+            "the tables and the group numbers must not depend on the order of the compilation units");
+    }
+
+    /**
      * Two packages each declare the generic hierarchy Box, First and Second. The key of a dispatch group named its class,
      * its method and the types of its signature by name only, so both families of pick had the same key and shared
      * one group: the packages of the class and of what the signature names keep them apart, in any order of the

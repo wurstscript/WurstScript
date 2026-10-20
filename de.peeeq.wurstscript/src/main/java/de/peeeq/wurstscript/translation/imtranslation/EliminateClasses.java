@@ -126,7 +126,8 @@ public class EliminateClasses {
         return calculateMaxTypeId(TypeId.calculate(prog));
     }
 
-    private static int calculateMaxTypeId(Map<ImClass, Integer> classId) {
+    /** The largest type id, -1 when there is no class. */
+    public static int calculateMaxTypeId(Map<ImClass, Integer> classId) {
         boolean seen = false;
         int best = 0;
         for (Integer x : classId.values()) {

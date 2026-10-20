@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.NamePreservation;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -447,6 +448,9 @@ public class LuaTranslator {
 
         findClassMetadataReads();
         createObjectManagement();
+        if (reflection != null) {
+            reflection.declare();
+        }
         if (readsSupertypes) {
             createInstanceOfFunction();
         }
@@ -850,10 +854,11 @@ public class LuaTranslator {
     }
 
     /**
-     * The class tables carry metadata for two reads alone, {@code instanceof} and the type id of an object; the
-     * program as it is translated says whether it has either.
+     * The class tables carry metadata for three reads alone, {@code instanceof}, the type id of an object and the
+     * natives of {@code Reflection}; the program as it is translated says whether it has any.
      */
     private void findClassMetadataReads() {
+        List<ImFunctionCall> reflectionCalls = new ArrayList<>();
         prog.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImInstanceof e) {
@@ -866,7 +871,30 @@ public class LuaTranslator {
                 super.visit(e);
                 readsObjectTypeId = true;
             }
+
+            @Override
+            public void visit(ImFunctionCall e) {
+                super.visit(e);
+                if (LuaReflection.isReflectionNative(e.getFunc())) {
+                    reflectionCalls.add(e);
+                }
+            }
         });
+        if (reflectionCalls.isEmpty()) {
+            return;
+        }
+        LuaReflection r = new LuaReflection(prog, this);
+        for (ImFunctionCall call : reflectionCalls) {
+            r.noteCall(call);
+        }
+        prog.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImAlloc e) {
+                super.visit(e);
+                r.noteAllocation(e.getClazz().getClassDef());
+            }
+        });
+        reflection = r;
     }
 
     private void createInstanceOfFunction() {
@@ -879,6 +907,8 @@ public class LuaTranslator {
     private boolean readsSupertypes;
     /** Whether the program reads the type id of an object, the only reader of a class table's type id. */
     private boolean readsObjectTypeId;
+    /** The natives of {@code Reflection}, null when the program calls none. */
+    private @Nullable LuaReflection reflection;
     private final Map<ImClass, Boolean> allocatesOnly = new IdentityHashMap<>();
     private final Lazy<LuaFunction> objectAlloc = Lazy.create(this::createObjectAlloc);
 
@@ -909,28 +939,7 @@ public class LuaTranslator {
         declareChunkLocal(objectMax);
         declareChunkLocal(objectFreeCount);
 
-        LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
-        objectDealloc.getParams().add(object);
-        LuaVariable descriptor = LuaAst.LuaVariable("descriptor",
-            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
-                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
-        objectDealloc.getBody().add(descriptor);
-        objectDealloc.getBody().add(LuaAst.LuaIf(
-            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(descriptor), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
-            LuaAst.LuaStatements(LuaAst.LuaExprFunctionCallByName("error",
-                LuaAst.LuaExprlist(LuaAst.LuaExprStringVal("Double free or invalid Wurst object.")))),
-            LuaAst.LuaStatements()));
-        objectDealloc.getBody().add(LuaAst.LuaAssignment(
-            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
-                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
-            LuaAst.LuaExprNull()));
-        objectDealloc.getBody().add(LuaAst.LuaAssignment(
-            LuaAst.LuaExprVarAccess(objectFreeCount),
-            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
-        objectDealloc.getBody().add(LuaAst.LuaAssignment(
-            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
-                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
-            LuaAst.LuaExprVarAccess(object)));
+        addDeallocation(objectDealloc);
         // Called by every destroy, so a local function like the state it pushes onto.
         declareChunkLocal(objectDealloc);
 
@@ -951,6 +960,47 @@ public class LuaTranslator {
             LuaAst.LuaStatements()));
         classFromIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(fromIndexValue)));
         luaModel.add(classFromIndex);
+    }
+
+    /**
+     * Gives {@code dealloc} the parameter {@code object} and a body which destroys it: the object's descriptor is
+     * removed and its id pushed onto the free stack, or a double free is an error. Returns the local which holds the
+     * descriptor.
+     */
+    LuaVariable addDeallocation(LuaFunction dealloc) {
+        LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
+        dealloc.getParams().add(object);
+        LuaVariable descriptor = LuaAst.LuaVariable("descriptor",
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
+        dealloc.getBody().add(descriptor);
+        dealloc.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(descriptor), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+            LuaAst.LuaStatements(LuaAst.LuaExprFunctionCallByName("error",
+                LuaAst.LuaExprlist(LuaAst.LuaExprStringVal("Double free or invalid Wurst object.")))),
+            LuaAst.LuaStatements()));
+        dealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
+            LuaAst.LuaExprNull()));
+        dealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprVarAccess(objectFreeCount),
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
+        dealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
+            LuaAst.LuaExprVarAccess(object)));
+        return descriptor;
+    }
+
+    /** What destroys an object whose class is {@code c} or a subclass of it. */
+    LuaFunction deallocFor(ImClass c) {
+        return reflection == null ? objectDealloc : reflection.deallocFor(c);
+    }
+
+    /** The natives of {@code Reflection}, null when the program calls none. */
+    @Nullable LuaReflection reflection() {
+        return reflection;
     }
 
     private void createObjectIndexFunctions() {
@@ -996,6 +1046,10 @@ public class LuaTranslator {
             return;
         }
         if (f.isNative() && ExprTranslation.isBackendIntrinsic(f, this)) {
+            return;
+        }
+        if (LuaReflection.isReflectionNative(f)) {
+            // Printed where it is called (LuaReflection).
             return;
         }
         if (LuaHashtable.op(imTr, f) != null) {
@@ -1491,11 +1545,15 @@ public class LuaTranslator {
 
     /**
      * Whether allocating an object of {@code c} takes an id and records its class and nothing else: no array field
-     * needs its table and no default survived at an allocation ({@link LuaFieldDefaults}). Such a class has no
-     * allocator of its own; its allocations call the shared {@link #objectAlloc()}.
+     * needs its table, no default survived at an allocation ({@link LuaFieldDefaults}) and {@link LuaReflection}
+     * does not count its objects. Such a class has no allocator of its own; its allocations call the shared
+     * {@link #objectAlloc()}.
      */
     boolean allocatesOnly(ImClass c) {
         return allocatesOnly.computeIfAbsent(c, k -> {
+            if (reflection != null && reflection.countsAllocationsOf(k)) {
+                return false;
+            }
             Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(k, Collections.emptySet());
             for (ImVar field : LuaFieldDefaults.fieldsOf(k, imTr)) {
                 if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
@@ -1548,6 +1606,9 @@ public class LuaTranslator {
                         LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
                     defaultValue(field.getType())));
             }
+        }
+        if (reflection != null) {
+            reflection.addAllocationCount(body, c);
         }
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
     }
@@ -1607,6 +1668,13 @@ public class LuaTranslator {
             ));
         }
 
+        // the counted group, which the destroy of an object reads:
+        if (reflection != null) {
+            LuaStatement groupField = reflection.groupField(c, classVar);
+            if (groupField != null) {
+                deferMainInit(groupField);
+            }
+        }
 
     }
 
@@ -2095,7 +2163,7 @@ public class LuaTranslator {
                 registerDispatchSlot(receiver, "__wurst_destroy", null);
                 deferMainInit(LuaAst.LuaAssignment(
                     LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), "__wurst_destroy"),
-                    LuaAst.LuaExprFuncRef(objectDealloc)));
+                    LuaAst.LuaExprFuncRef(deallocFor(receiver))));
             }
         }
     }

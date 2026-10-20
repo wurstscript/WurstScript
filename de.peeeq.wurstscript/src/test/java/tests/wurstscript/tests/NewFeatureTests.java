@@ -444,7 +444,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void typeName() {
         test().executeProg(true)
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
             "package Test",
             "native testSuccess()",
@@ -460,7 +460,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void typeName2() {
         test().executeProg(true)
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
             "package Test",
             "native testSuccess()",
@@ -485,7 +485,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void maxTypeId() {
         test().executeProg(true)
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
             "package Test",
             "native testSuccess()",
@@ -504,7 +504,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void instanceCount() {
         test().executeProg(true)
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
                 "package Test",
                 "native testSuccess()",
@@ -528,7 +528,7 @@ public class NewFeatureTests extends WurstScriptTest {
     @Test
     public void instanceMaxCount() {
         test().executeProg(true)
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
             "package Test",
             "native testSuccess()",
