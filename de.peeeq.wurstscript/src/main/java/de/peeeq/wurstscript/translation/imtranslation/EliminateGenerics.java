@@ -1734,6 +1734,7 @@ public class EliminateGenerics {
 
             // This global belongs to a relevant (new-generic or inheriting) class:
             globalToClass.put(global, owner);
+            translator.recordErasedGenericStatic(global, owner);
             WLogger.trace(() -> "Identified generic static-field global: " + global.getName()
                 + " of type " + global.getType()
                 + " belonging to class " + owner.getName());

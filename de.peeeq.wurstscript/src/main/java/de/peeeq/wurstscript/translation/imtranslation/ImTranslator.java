@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
@@ -2994,17 +2995,34 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     /**
+     * The generic class each static of a generic class was declared in, for the erased originals (recorded where the
+     * statics are identified, whether or not any is specialised).
+     */
+    private final Map<ImVar, ImClass> erasedGenericStaticOwners = new IdentityHashMap<>();
+
+    public void recordErasedGenericStatic(ImVar global, ImClass owner) {
+        erasedGenericStaticOwners.put(global, owner);
+    }
+
+    /**
      * In a unit test: fails when live code reads or writes a generic static through its erased original although the
      * static has specialised copies. One instantiation then has two stores, and one is written where the other is read
-     * (wurstscript/WurstScript#1498). Live is {@link RemoveGarbage#reachableFunctions}, because the tree shaker keeps
-     * dispatch to classes nothing allocates. Asked before the garbage removal, which deletes a store nothing reads and
-     * so turns the split into a dropped write nothing can see any more.
+     * (wurstscript/WurstScript#1498). Also when live code allocates two or more instantiations of the class which
+     * declares the static, whether or not any has a copy: the erased original is then one store for all of them, where
+     * Jass has one per instantiation. An allocation whose type arguments are still type variables, outside the
+     * constructor it belongs to, stands for instantiations which are not known here, and counts as two.
+     * <p>
+     * Live is {@link RemoveGarbage#reachableFunctions}, because the tree shaker keeps dispatch to classes nothing
+     * allocates. Asked before the garbage removal, which deletes a store nothing reads and so turns the split into a
+     * dropped write nothing can see any more.
      */
     public void assertNoLiveErasedGenericStatic() {
-        if (!isUnitTestMode || genericStaticOwners.isEmpty()) {
+        if (!isUnitTestMode || (genericStaticOwners.isEmpty() && erasedGenericStaticOwners.isEmpty())) {
             return;
         }
-        for (ImFunction function : RemoveGarbage.reachableFunctions(imProg, this)) {
+        Set<ImFunction> live = RemoveGarbage.reachableFunctions(imProg, this);
+        Map<ImClass, Set<GenericTypes>> allocated = allocatedInstantiations(live);
+        for (ImFunction function : live) {
             function.accept(new Element.DefaultVisitor() {
                 @Override
                 public void visit(ImVarAccess access) {
@@ -3019,14 +3037,100 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 }
 
                 private void check(Element access, ImVar global) {
-                    if (genericStaticOwnerOf(global) != null && specialisationOf(global) == null) {
+                    if (specialisationOf(global) != null) {
+                        return;
+                    }
+                    if (genericStaticOwnerOf(global) != null) {
                         throw new CompileError(access, "Internal error: " + function.getName()
                             + " uses the erased generic static " + global.getName()
                             + ", which has specialised copies.");
                     }
+                    ImClass owner = erasedGenericStaticOwners.get(global);
+                    Set<GenericTypes> instantiations = owner == null ? null : allocated.get(canonical(owner));
+                    if (instantiations != null && instantiations.size() >= 2) {
+                        throw new CompileError(access, "Internal error: " + function.getName()
+                            + " uses the erased generic static " + global.getName()
+                            + ", which more than one allocated instantiation of " + owner.getName() + " shares.");
+                    }
                 }
             });
         }
+    }
+
+    /**
+     * The instantiations of each generic class which live code allocates, its superclasses' included: an allocation
+     * of {@code Sub extends G<int>} allocates a {@code G<int>}. An allocation from a specialised class is one of the
+     * instantiation it was made for. A constructor is reached with the type arguments of its call, so its own
+     * allocation, which still names the class's type variables, is not one; any other allocation or constructor call
+     * whose type arguments are still type variables stands for instantiations not known here, two distinct unknowns.
+     */
+    private Map<ImClass, Set<GenericTypes>> allocatedInstantiations(Set<ImFunction> live) {
+        Map<ImClass, Set<GenericTypes>> result = new IdentityHashMap<>();
+        for (ImFunction function : live) {
+            boolean constructor = function.getTrace() instanceof ConstructorDef;
+            function.accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ImAlloc alloc) {
+                    super.visit(alloc);
+                    if (!(constructor && containsTypeVariable(alloc.getClazz()))) {
+                        addInstantiations(alloc.getClazz(), result);
+                    }
+                }
+
+                @Override
+                public void visit(ImFunctionCall call) {
+                    super.visit(call);
+                    if (call.getFunc().getTrace() instanceof ConstructorDef
+                        && call.getFunc().getReturnType() instanceof ImClassType returned
+                        && !call.getTypeArguments().isEmpty()
+                        && returned.getClassDef().getTypeVariables().size() == call.getTypeArguments().size()) {
+                        ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+                        for (ImTypeArgument typeArgument : call.getTypeArguments()) {
+                            typeArguments.add(typeArgument.copy());
+                        }
+                        addInstantiations(JassIm.ImClassType(returned.getClassDef(), typeArguments), result);
+                    }
+                }
+            });
+        }
+        return result;
+    }
+
+    private void addInstantiations(ImClassType type, Map<ImClass, Set<GenericTypes>> result) {
+        ImClass classDef = type.getClassDef();
+        Specialisation specialisation = specialisationOf(classDef);
+        if (specialisation != null && specialisation.original() instanceof ImClass original
+            && !specialisation.typeArguments().isEmpty()) {
+            result.computeIfAbsent(canonical(original), c -> new LinkedHashSet<>())
+                .add(new GenericTypes(specialisation.typeArguments()));
+        } else if (!classDef.getTypeVariables().isEmpty()) {
+            Set<GenericTypes> instantiations = result.computeIfAbsent(canonical(classDef), c -> new LinkedHashSet<>());
+            if (containsTypeVariable(type) || type.getTypeArguments().size() != classDef.getTypeVariables().size()) {
+                instantiations.add(new GenericTypes(List.of(JassIm.ImTypeArgument(JassIm.ImVoid(), Map.of()))));
+                instantiations.add(new GenericTypes(List.of(JassIm.ImTypeArgument(JassIm.ImAnyType(), Map.of()))));
+            } else {
+                instantiations.add(new GenericTypes(type.getTypeArguments()));
+            }
+        }
+        for (ImClassType superType : classDef.getSuperClasses()) {
+            ImType concrete = type.getTypeArguments().size() == classDef.getTypeVariables().size()
+                ? ImAttrType.substituteType(superType, type.getTypeArguments(), classDef.getTypeVariables())
+                : superType;
+            if (concrete instanceof ImClassType concreteClass) {
+                addInstantiations(concreteClass, result);
+            }
+        }
+    }
+
+    private static boolean containsTypeVariable(ImType type) {
+        boolean[] found = {false};
+        type.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarRef ref) {
+                found[0] = true;
+            }
+        });
+        return found[0];
     }
 
     private final Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
