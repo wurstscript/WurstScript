@@ -10,16 +10,237 @@ Notes; finished-work narrative does not.
   dispatch regression passed interpreter-only tests; executing generated Lua exposed the split
   backing stores. `GenericStoreGeneratedTests` now checks fixed seeds against a Java model through
   Jass and Lua, varying generic owners, tuple storage, inheritance, dispatch, closures and destruction.
-  Extend generation to nested containers, old/new-generic boundaries and bounded dispatch. Run larger
+  Extend generation to nested containers and old/new-generic boundaries (bounded dispatch is in
+  `GenericSpecialisationMatrixTests`, below). Run larger
   seed campaigns separately from PR checks, preserve the failing seed/source/options, and minimize
   failures into ordinary regressions. Add metamorphic checks that replace interface calls with
   concrete calls while keeping observable behavior unchanged.
 
+- **Lua targeted specialisation: defects found by `GenericSpecialisationMatrixTests`.** The matrix runs
+  each combination of what depends on `T`, where it sits, how concrete code writes and reads it, the
+  instantiation types and the optimiser on Jass (the oracle, which passes every case) and on Lua. The
+  cases that fail on Lua are listed in `genericSpecialisationMatrix-knownFailures.txt` under the tags
+  below and skipped in the pull-request tier; remove a tag's cases (the run names them) with its fix.
+  Each repro is a whole program after `package Test` and `native testSuccess()`. The full product
+  (`WURST_GENERIC_MATRIX=full`) adds no other class of failure.
+
+- **`lua-static-erased`: a per-instantiation static read through erased code reads the wrong copy.**
+  The instantiations share it, or its initialiser never ran (nil), or a tuple static written in a
+  closure reads back wrong. Fails on Lua with the fix of #1498:
+
+  ```wurst
+  interface Iface
+      function r() returns int
+  class G<T:> implements Iface
+      static int cnt = 0
+      function w()
+          cnt += 1
+      function r() returns int
+          return cnt
+  init
+      let a = new G<int>()
+      let b = new G<string>()
+      a.w()
+      b.w()
+      Iface i = a
+      if i.r() == 1   // Lua: 2, both counts in one store
+          testSuccess()
+  ```
+
+  `static int cnt = 0` reads nil when `r` also calls a `Codec<T>` method on a `T` static and is reached
+  through a non-generic base class.
+
+- **`lua-instanceof-erased`: `instanceof Box<int>` is true for a `Box<string>` on Lua**, and for
+  `Box<CB>` against `Box<CA>`; tuple instantiations are told apart. No generic code is needed:
+
+  ```wurst
+  interface Marker
+  class Box<T:> implements Marker
+      T item
+  init
+      Marker s = new Box<string>()
+      if not (s instanceof Box<int>)   // Lua: true
+          testSuccess()
+  ```
+
+- **`lua-bound-unresolved`: Lua rejects a type-class requirement reached through a non-generic
+  interface, base class, super call or destroy** ("Type class dispatch of kmk could not be resolved for
+  the Lua target"). Jass compiles and runs it:
+
+  ```wurst
+  interface Kc<T:>
+      function kmk(int n) returns T
+  implements Kc<int>
+      function kmk(int n) returns int
+          return n
+  interface Iface
+      function w()
+  class G<T: Kc> implements Iface
+      T bv
+      function w()
+          bv = T.kmk(10)
+  init
+      let g = new G<int>()
+      Iface i = g
+      i.w()
+      if g.bv == 10
+          testSuccess()
+  ```
+
+- **`lua-closure-receiver`: Lua rejects a closure in a bounded or constructing generic class which
+  touches a field** ("Could not adapt receiver G_specialized_integer to superclass G"): in the program
+  above, make `G` non-implementing, write `Act a = () -> begin bv = T.kmk(10) end` and `a.run()` in `w`
+  (with `interface Act` / `function run()`), and call `g.w()` directly.
+
+- **`lua-new-instance-unresolved`: Lua rejects `wurstNewInstance<T>()` in a constructor, an ondestroy or
+  behind a super call** ("requires its type argument to resolve to a concrete class"):
+
+  ```wurst
+  class CA
+      int tag = 73
+  class G<T:>
+      T made
+      function w()
+          made = wurstNewInstance<T>()
+  class Sub extends G<CA>
+      override function w()
+          super.w()
+  init
+      let g = new Sub()
+      g.w()
+      if g.made.tag == 73
+          testSuccess()
+  ```
+
+  The same with `construct(G<T> t)` doing `t.made = wurstNewInstance<T>()` and `w` doing
+  `new G<T>(this)`.
+
+- **`lua-new-instance-erased`: `wurstNewInstance<T>()` reached through a non-generic interface or base
+  class** crashes Lua translation ("dangling reference to removed function 'wurstNewMarker'"), and with
+  `-inline -localOptimizations` it compiles but the field reads null (or `CA_tag_storage` is nil):
+
+  ```wurst
+  class CA
+      int tag = 73
+  interface Iface
+      function w()
+  class G<T:> implements Iface
+      T made
+      function w()
+          made = wurstNewInstance<T>()
+  init
+      let g = new G<CA>()
+      Iface i = g
+      i.w()
+      if g.made.tag == 73
+          testSuccess()
+  ```
+
+- **`lua-field-split`: a `T` field written in a second constructor through another instance is not the
+  one read back** when the read is reached through a non-generic base class (Lua reads 0 or nil):
+
+  ```wurst
+  interface Kc<T:>
+      function kmk(int n) returns T
+      function kkey(T v) returns int
+  implements Kc<int>
+      function kmk(int n) returns int
+          return n
+      function kkey(int v) returns int
+          return v
+  abstract class Base
+      abstract function r() returns int
+  class G<T: Kc> extends Base
+      T bv
+      int seen = 0
+      construct()
+      construct(G<T> t, int mode)
+          if mode == 1
+              t.bv = T.kmk(10)
+          else
+              t.seen = T.kkey(t.bv)
+      function w()
+          new G<T>(this, 1)
+      override function r() returns int
+          new G<T>(this, 2)
+          return seen
+  init
+      let g = new G<int>()
+      g.w()
+      Base b = g
+      if b.r() == 10
+          testSuccess()
+  ```
+
+  An unwritten tuple-typed `T` field read the same way has nil components on Lua.
+
+- **`lua-tuple-subclass`: a concrete subclass of a generic class instantiated with a tuple.** Its field
+  storage global is nil after a super call (`G_id_storage`, `T` otherwise unused); called through a
+  generic interface, Lua translation throws `ConcurrentModificationException`, or, when the subclass
+  overrides another method, fails on a dangling reference to the removed `G_r`:
+
+  ```wurst
+  tuple pa(int x, int y)
+  class G<T:>
+      int id = 1
+      function r() returns int
+          return id
+  class Sub extends G<pa>
+      override function r() returns int
+          return super.r()
+  init
+      if new Sub().r() == 1
+          testSuccess()
+  ```
+
+  For the crash, replace the body with `interface GIface<T:>` / `function r() returns int`,
+  `class G<T:> implements GIface<T>` returning 1, an empty `class Sub extends G<pa>`, and
+  `GIface<pa> gr = new Sub()`; `gr.r()`.
+
+- **`lua-tuple-elimination-crash`: `EliminateTuples` throws ("//// Before") on tuple-typed generic
+  code.** In the matrix: a tuple static written in a closure, with the optimiser (Lua only). On both
+  targets, a field of the tuple a subclass's inherited method returns:
+
+  ```wurst
+  tuple pa(int x, int y)
+  class G<T:>
+      static T sv
+      function w(T v)
+          sv = v
+      function r() returns T
+          return sv
+  class Sub extends G<pa>
+  init
+      let g = new Sub()
+      g.w(pa(1, 2))
+      if g.r().x == 1   // let p = g.r() first compiles
+          testSuccess()
+  ```
+
+- **Jass: `this.field instanceof Box<T>` in a generic class fails translation** ("Could not find field
+  array for this.G_held<integer>"), also for a local captured by a closure, which becomes a field. A
+  local copy (`let h = held`) compiles, so the matrix reads one:
+
+  ```wurst
+  interface Marker
+  class Box<T:> implements Marker
+      T item
+  class G<T:>
+      Marker held = null
+      function r() returns boolean
+          return held instanceof Box<T>
+  init
+      let g = new G<int>()
+      g.held = new Box<int>()
+      if g.r()
+          testSuccess()
+  ```
+
 - **Run every executing test on Lua on master CI (`-PallBackends`).** Forcing `translateAndTestLua`
   after the Jass runs of every `executeProg` test that does not opt into Lua (686 tests, October 2026)
   passed 645 on plain Lua and 644 with `-inline -localOptimizations`; the failures found the
-  generic-static, `wurstKeyOf` and type-id items below, two defects with their own fixes (compile-time
-  object ids, old-generic tuple arguments) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
+  generic-static and type-id items below, three defects with their own fixes (compile-time object ids,
+  old-generic tuple arguments, a direct `wurstKeyOf` call) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
   cost about 300 s of test time each over the suite. Proposal: `-PallBackends` (master CI only, PR CI
   unchanged) runs Lua after Jass for every executing test, `-PallBackends=full` adds the inlined
   variant. A test that cannot hold on Lua says why with `.luaExempt(LuaExemption.X)` instead of
@@ -41,15 +262,6 @@ Notes; finished-work narrative does not.
   `TypeSubst.resolve` ("Could not find replacement for T... when replacing [T...] with []"), from
   `ExprTranslation.translateEquals` typing `a.iterator().next()`. Fix in `EliminateGenerics`, where the
   store is split, and turn on `testLua(true).luaOnly(false)` for both tests.
-
-- **A direct `wurstKeyOf` call answers its placeholder on Lua.** `KeyedTableTests.intKeyIsIdentity`
-  (`wurstKeyOf(7)` is 0) and `classInstanceKeyIsStable` (two instances share key 0) pass on the
-  interpreter and Jass and fail on Lua: the emitted `wurstKeyOf` is its source body, `return 0`. On Lua
-  the keyed-table operations are replaced as a whole (`LuaNativeLowering.lowerKeyedTables`), and the
-  tests' class calls itself "the Jass side", but nothing stops a program from calling the intrinsic
-  directly, and that placeholder answer is the failure `lowerKeyedTables` was moved to avoid. Either
-  lower it on Lua (the value itself for `int` and class instances, the handle id for handles) or reject
-  a direct call there with a diagnostic (AGENTS.md §3: no silent fallback).
 
 - **`typeIdToTypeName`, `maxTypeId`, `instanceCount` and `maxInstanceCount` answer defaults on Lua.**
   Only `EliminateClasses` implements them, on the Jass path. On Lua they compile to the generic native

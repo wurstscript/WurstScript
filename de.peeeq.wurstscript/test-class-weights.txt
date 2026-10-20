@@ -5,6 +5,7 @@
 67 tests.utils.SmallCheckViaJUnitCoreTestNG
 63 tests.wurstscript.tests.OptimizerTests
 57 tests.wurstscript.tests.ExportToWurstTest
+53 tests.wurstscript.tests.GenericSpecialisationMatrixTests
 53 tests.wurstscript.tests.InterpreterTests
 50 tests.wurstscript.tests.RealWorldExamples
 47 tests.wurstscript.tests.GenericsWithTypeclassesTests
