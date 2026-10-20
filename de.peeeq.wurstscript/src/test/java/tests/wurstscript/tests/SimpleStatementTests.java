@@ -215,7 +215,7 @@ public class SimpleStatementTests extends WurstScriptTest {
 
     @Test
     public void testForIn() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
             "package test",
             "	class IntList",
             "		static int array elements",
@@ -271,7 +271,7 @@ public class SimpleStatementTests extends WurstScriptTest {
 
     @Test
     public void testForFrom() {
-        test().executeProg(true).testLua(false).lines(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
                 "package test",
                 "	class IntList",
                 "		static int array elements",

@@ -1051,7 +1051,7 @@ public class ClassesTests extends WurstScriptTest {
     public void recyling() {
         test().executeProg(true)
             .executeProgOnlyAfterTransforms()
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
                 "package test",
                 "	native testSuccess()",
@@ -1079,7 +1079,7 @@ public class ClassesTests extends WurstScriptTest {
     public void recyling2() {
         test().executeProg(true)
             .executeProgOnlyAfterTransforms()
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
                 "package test",
                 "	native testSuccess()",
@@ -1106,7 +1106,7 @@ public class ClassesTests extends WurstScriptTest {
     public void recyling_random() {
         test().executeProg(true)
             .executeProgOnlyAfterTransforms()
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
                 "package test",
                 "	native testSuccess()",
@@ -1786,7 +1786,7 @@ public class ClassesTests extends WurstScriptTest {
     @Test
     public void thisHandling() { // see bug #145
         test().executeProg(true)
-            .testLua(false)
+            .testLua(true).luaOnly(false)
             .lines(
             "package test",
             "	native testSuccess()",

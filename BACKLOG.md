@@ -15,6 +15,49 @@ Notes; finished-work narrative does not.
   failures into ordinary regressions. Add metamorphic checks that replace interface calls with
   concrete calls while keeping observable behavior unchanged.
 
+- **Run every executing test on Lua on master CI (`-PallBackends`).** Forcing `translateAndTestLua`
+  after the Jass runs of every `executeProg` test that does not opt into Lua (686 tests, October 2026)
+  passed 645 on plain Lua and 644 with `-inline -localOptimizations`; the failures found the
+  generic-static, `wurstKeyOf` and type-id items below, two defects with their own fixes (compile-time
+  object ids, old-generic tuple arguments) and 24 tests stopped by natives missing from `wc3shim.lua`. The two Lua variants
+  cost about 300 s of test time each over the suite. Proposal: `-PallBackends` (master CI only, PR CI
+  unchanged) runs Lua after Jass for every executing test, `-PallBackends=full` adds the inlined
+  variant. A test that cannot hold on Lua says why with `.luaExempt(LuaExemption.X)` instead of
+  `testLua(false)`: an enum whose every reason names its record (`REAL_EQUALITY_TOLERANCE`, AGENTS.md §7;
+  `CLASS_AND_METHOD_TYPE_PARAMS`, §9; `TEST_LUA_COMPUTES_IN_DOUBLE`, docs/WC3_RUNTIME.md "Numbers";
+  `INTERPRETER_MOCK_ONLY`; `MISSING_TEST_NATIVE` with the native's name; `KNOWN_LUA_DEFECT` with the
+  backlog item). In that mode an exempt test still runs on Lua and must fail there, so a stale
+  exemption fails the run (21 of 48 `testLua(false)` were stale and now run Lua). Land the shim natives
+  first. `executeTests()` (Wurst `@Test` functions) has no Lua path in the harness at all.
+
+- **A generic class's static is dropped on Lua when only a static inner class reads it.**
+  `GenericsWithTypeclassesTests.genericClassWithStaticInnerClass` and `genericModuleThistypeSmall` pass
+  on the interpreter and Jass and fail on Lua, also after #1498; neither opts into Lua. In
+  `class Outer<T:>` with `static T t`, the specialised constructor's `t = iVal` is not emitted and
+  `Inner.next()` reads the erased `Outer_t`, which stays nil. A static function of `Outer` reading `t`
+  instead passes on both Lua variants, so the reader in the unspecialised inner class splits the store.
+  The module form (`static thistype t` in a module used by `class A<T:>`) loses `t = this` the same way
+  with `-inline -localOptimizations`, and without it the Lua translation crashes in
+  `TypeSubst.resolve` ("Could not find replacement for T... when replacing [T...] with []"), from
+  `ExprTranslation.translateEquals` typing `a.iterator().next()`. Fix in `EliminateGenerics`, where the
+  store is split, and turn on `testLua(true).luaOnly(false)` for both tests.
+
+- **A direct `wurstKeyOf` call answers its placeholder on Lua.** `KeyedTableTests.intKeyIsIdentity`
+  (`wurstKeyOf(7)` is 0) and `classInstanceKeyIsStable` (two instances share key 0) pass on the
+  interpreter and Jass and fail on Lua: the emitted `wurstKeyOf` is its source body, `return 0`. On Lua
+  the keyed-table operations are replaced as a whole (`LuaNativeLowering.lowerKeyedTables`), and the
+  tests' class calls itself "the Jass side", but nothing stops a program from calling the intrinsic
+  directly, and that placeholder answer is the failure `lowerKeyedTables` was moved to avoid. Either
+  lower it on Lua (the value itself for `int` and class instances, the handle id for handles) or reject
+  a direct call there with a diagnostic (AGENTS.md §3: no silent fallback).
+
+- **`typeIdToTypeName`, `maxTypeId`, `instanceCount` and `maxInstanceCount` answer defaults on Lua.**
+  Only `EliminateClasses` implements them, on the Jass path. On Lua they compile to the generic native
+  fallback, which returns `""` or 0 without a diagnostic, so `NewFeatureTests.typeName`, `typeName2`,
+  `maxTypeId`, `instanceCount` and `instanceMaxCount` hold only with `testLua(false)`. Nothing documents
+  this as a backend difference. Implement them on Lua (one id space for every class, docs/WC3_RUNTIME.md
+  "Objects and memory", so `instanceCount` counts one class's live descriptors) or reject them there.
+
 - **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
   lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still
   embeds helper bindings and references as text (for example the object/string index helpers), so

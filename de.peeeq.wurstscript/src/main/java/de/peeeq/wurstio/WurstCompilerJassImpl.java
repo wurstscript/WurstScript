@@ -984,6 +984,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(2, "remove unreachable functions");
         TreeShaker.removeUnreachableFunctions(getImTranslator());
         timeTaker.endPhase();
+        imTranslator.assertNoLiveErasedGenericStatic();
         // Before stack traces: that pass appends a parameter to every affected function, and on
         // Lua every non-native function is affected, so the exact signatures the keyed-table
         // operations are recognised by would stop matching - silently leaving their Jass bodies on

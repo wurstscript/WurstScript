@@ -159,6 +159,14 @@ public class RemoveGarbage {
         return collectUsed(prog, translator).getMethods();
     }
 
+    /**
+     * Read-only function reachability. A method counts only once its class is allocated, so
+     * unlike for the tree shaker, dispatch to a class nothing allocates is not live.
+     */
+    public static Set<ImFunction> reachableFunctions(ImProg prog, ImTranslator translator) {
+        return collectUsed(prog, translator).getFunctions();
+    }
+
     private static Used collectUsed(ImProg prog, ImTranslator translator) {
         return collectUsed(prog, translator, Collections.emptySet());
     }
