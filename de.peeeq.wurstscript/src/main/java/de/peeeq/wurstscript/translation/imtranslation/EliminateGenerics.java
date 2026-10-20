@@ -127,10 +127,14 @@ public class EliminateGenerics {
      * keep the Lua backend's erased representation.
      */
     public void transformGenericNewOnly() {
-        transformGenericNewOnly(false);
+        transformGenericNewOnly(false, false);
     }
 
-    public void transformGenericNewOnly(boolean specializeTupleValueTypes) {
+    /**
+     * @param observesGenericIdentity whether an instanceof names an instantiation of a generic class: only then
+     *                                does an instantiation need an identity of its own
+     */
+    public void transformGenericNewOnly(boolean specializeTupleValueTypes, boolean observesGenericIdentity) {
         genericNewOnly = true;
         this.specializeTupleValueTypes = specializeTupleValueTypes;
         identifyGenericGlobals();
@@ -143,7 +147,7 @@ public class EliminateGenerics {
         // call on that result resolve. Repeat until a pass finds nothing new; collection is
         // idempotent, so this terminates once every reachable site has been rewritten.
         while (true) {
-            if (specializeTupleValueTypes) {
+            if (observesGenericIdentity) {
                 collectRuntimeTypeSpecializations();
             }
             collectGenericNewRoots();
@@ -156,6 +160,96 @@ public class EliminateGenerics {
         assertNoReachableGenericNewMarkers();
         bindSpecialisedMethodsToTheAllocatedClass();
         settleRemainingDispatches();
+        if (!specializeTupleValueTypes && !runtimeTypeSpecializations.isEmpty()) {
+            keepErasedChecksWhereAnAllocationStaysErased();
+        }
+    }
+
+    /**
+     * Gives an instanceof back the erased class when an object of that class can still come from an
+     * erased allocation.
+     * <p>
+     * A check of a specialised class is true only for objects allocated from it. A construction in a
+     * generic body which stays erased, such as a method reached through a non-generic interface,
+     * allocates the erased class whatever its instantiation, and the specialised check would reject
+     * that object even when it is of the checked instantiation. So the identity is split only for a
+     * class no reachable erased construction makes an object of, itself or as a superclass of the
+     * class it constructs; for the others every check accepts every instantiation, as erased checks
+     * always did. Programs with tuple type arguments keep the split they always had.
+     */
+    private void keepErasedChecksWhereAnAllocationStaysErased() {
+        classByFunction = null;
+        Set<ImClass> erasedIdentity = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImFunction function : RemoveGarbage.reachableFunctions(prog, translator)) {
+            function.accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ImFunctionCall call) {
+                    super.visit(call);
+                    if (call.getFunc().getTrace() instanceof ConstructorDef
+                        && typeArgumentsContainTypeVariable(call.getTypeArguments())
+                        && !isConstructorChain(function, call)) {
+                        ImClass owner = classOwning(call.getFunc());
+                        if (owner != null) {
+                            addWithSuperclasses(owner, erasedIdentity);
+                        }
+                    }
+                }
+
+                @Override
+                public void visit(ImAlloc alloc) {
+                    super.visit(alloc);
+                    if (!(function.getTrace() instanceof ConstructorDef)
+                        && typeArgumentsContainTypeVariable(alloc.getClazz().getTypeArguments())) {
+                        addWithSuperclasses(alloc.getClazz().getClassDef(), erasedIdentity);
+                    }
+                }
+            });
+        }
+        if (erasedIdentity.isEmpty()) {
+            return;
+        }
+        Map<ImClass, Table.Cell<ImClass, GenericTypes, ImClass>> cellOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            cellOf.put(cell.getValue(), cell);
+        }
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                Table.Cell<ImClass, GenericTypes, ImClass> cell = cellOf.get(instanceOf.getClazz().getClassDef());
+                if (cell != null && erasedIdentity.contains(cell.getRowKey())) {
+                    ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+                    for (ImTypeArgument typeArgument : cell.getColumnKey().getTypeArguments()) {
+                        typeArguments.add(typeArgument.copy());
+                    }
+                    instanceOf.setClazz(JassIm.ImClassType(cell.getRowKey(), typeArguments));
+                }
+            }
+        });
+    }
+
+    /** A constructor calling its own initializer or a superclass's: part of an allocation counted at its start. */
+    private boolean isConstructorChain(ImFunction enclosing, ImFunctionCall call) {
+        if (!(enclosing.getTrace() instanceof ConstructorDef)) {
+            return false;
+        }
+        ImClass enclosingClass = classOwning(enclosing);
+        ImClass calledClass = classOwning(call.getFunc());
+        if (enclosingClass == null || calledClass == null) {
+            return false;
+        }
+        Set<ImClass> supers = Collections.newSetFromMap(new IdentityHashMap<>());
+        addWithSuperclasses(enclosingClass, supers);
+        return supers.contains(calledClass);
+    }
+
+    private static void addWithSuperclasses(ImClass clazz, Set<ImClass> result) {
+        if (!result.add(clazz)) {
+            return;
+        }
+        for (ImClassType superType : clazz.getSuperClasses()) {
+            addWithSuperclasses(superType.getClassDef(), result);
+        }
     }
 
     public boolean hasGenericStatics() {
@@ -333,8 +427,8 @@ public class EliminateGenerics {
     /**
      * Records parameterized classes whose runtime identity is observed. Lua normally erases
      * generics, but an instanceof target must denote the same concrete class as allocations of that
-     * instantiation; otherwise a tuple-specialized object is also an instance of every erased
-     * non-tuple instantiation.
+     * instantiation; otherwise every object of the erased class, whatever its instantiation, is an
+     * instance of it. Instantiations no instanceof names stay erased.
      */
     private void collectRuntimeTypeSpecializations() {
         prog.accept(new Element.DefaultVisitor() {
@@ -354,12 +448,22 @@ public class EliminateGenerics {
         });
     }
 
+    /**
+     * A class specialised before an instanceof named its instantiation gets that identity now: its
+     * inheritance edges and, as {@link #specializeClass} does, its methods' bindings. Walked in
+     * program order, because binding appends to submethod lists, whose order decides slot names.
+     */
     private void rewriteExistingRuntimeTypeSuperEdges() {
-        for (Table.Cell<ImClass, GenericTypes, ImClass> cell
-            : new ArrayList<>(specializedClasses.cellSet())) {
-            if (needsRuntimeTypeSpecialization(cell.getRowKey(), cell.getColumnKey(),
+        Map<ImClass, Table.Cell<ImClass, GenericTypes, ImClass>> cellOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            cellOf.put(cell.getValue(), cell);
+        }
+        for (ImClass specialized : new ArrayList<>(prog.getClasses())) {
+            Table.Cell<ImClass, GenericTypes, ImClass> cell = cellOf.get(specialized);
+            if (cell != null && needsRuntimeTypeSpecialization(cell.getRowKey(), cell.getColumnKey(),
                 new HashSet<>())) {
                 rewriteRuntimeTypeSuperEdges(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
+                attachSpecializedClassMethods(cell.getRowKey(), cell.getValue(), cell.getColumnKey());
             }
         }
     }
@@ -696,6 +800,23 @@ public class EliminateGenerics {
      * paths that have nothing to do with closures.
      */
     private boolean classReachesDispatch(ImClass classDef) {
+        boolean outer = identityIgnored;
+        // Only what a closure dispatches on or constructs by its type argument is a reason to specialise it on
+        // construction. An instanceof is not: specialising the closure leaves its captured receiver typed by the
+        // erased class (lua-closure-receiver), and its check stays erased anyway while the closure's own
+        // constructions do. Programs with tuple type arguments keep what they always counted.
+        identityIgnored = !specializeTupleValueTypes;
+        try {
+            return closureReachesDispatch(classDef);
+        } finally {
+            identityIgnored = outer;
+        }
+    }
+
+    /** Set while {@link #classReachesDispatch} asks: instanceof identity does not count. */
+    private boolean identityIgnored;
+
+    private boolean closureReachesDispatch(ImClass classDef) {
         for (ImFunction f : classDef.getFunctions()) {
             if (functionNeedsSpecialization(f, Collections.newSetFromMap(new IdentityHashMap<>()),
                 Collections.newSetFromMap(new IdentityHashMap<>()))) {
@@ -991,7 +1112,7 @@ public class EliminateGenerics {
             return true;
         }
         if (node instanceof ImInstanceof instanceOf) {
-            return typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
+            return !identityIgnored && typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
         }
         if (node instanceof ImAlloc alloc) {
             // Constructing a class whose methods dispatch has to be specialised as well:
@@ -1003,6 +1124,7 @@ public class EliminateGenerics {
             // Empty arguments may be supplied implicitly by the enclosing generic receiver.
             // Only an explicit, already-concrete call is independent of the caller context.
             return constructsClassOwningGenericGlobals(function, call)
+                || constructsClassWithObservedIdentity(function, call)
                 || translator.isGenericNewMarker(call.getFunc())
                 || (dependsOnCaller(call.getTypeArguments())
                 && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods));
@@ -1089,6 +1211,40 @@ public class EliminateGenerics {
         }
         ImClass owner = classOwning(call.getFunc());
         return owner != null && classOwnsGenericGlobals(owner);
+    }
+
+    /**
+     * A generic caller containing {@code new Box<T>()} must be specialised when an instanceof names an
+     * instantiation of {@code Box} or of a superclass: the object it allocates for that instantiation has to
+     * carry the identity the check compares, and only a concrete construction can be redirected to it. Detected
+     * at the caller boundary like the static storage above; a construction which already names its
+     * instantiation is redirected only when that instantiation is observed.
+     */
+    private boolean constructsClassWithObservedIdentity(ImFunction enclosingFunction, ImFunctionCall call) {
+        if (identityIgnored || runtimeTypeSpecializations.isEmpty()
+            || !(call.getFunc().getTrace() instanceof ConstructorDef)
+            || !typeArgumentsContainTypeVariable(call.getTypeArguments())
+            || enclosingFunction.getTrace() == call.getFunc().getTrace()) {
+            return false;
+        }
+        ImClass owner = classOwning(call.getFunc());
+        return owner != null && hasObservedIdentity(owner, Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    /** Whether an instanceof names an instantiation of this class or of one of its superclasses. */
+    private boolean hasObservedIdentity(ImClass clazz, Set<ImClass> visited) {
+        if (!visited.add(clazz)) {
+            return false;
+        }
+        if (runtimeTypeSpecializations.containsRow(clazz)) {
+            return true;
+        }
+        for (ImClassType superType : clazz.getSuperClasses()) {
+            if (hasObservedIdentity(superType.getClassDef(), visited)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean methodNeedsSpecialization(ImMethod method, Set<ImFunction> visitedFunctions,
@@ -2280,7 +2436,8 @@ public class EliminateGenerics {
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         specializeSuperClasses(newC);
-        if (needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
+        boolean observedIdentity = needsRuntimeTypeSpecialization(c, generics, new HashSet<>());
+        if (observedIdentity) {
             rewriteRuntimeTypeSuperEdges(c, generics, newC);
         }
 
@@ -2292,7 +2449,9 @@ public class EliminateGenerics {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }
 
-        if (genericNewOnly && (isConstructionOnlyInstantiation(c)
+        // An object allocated from a class with an identity of its own is still called through the
+        // virtual methods of its supertypes, so its methods are bound like those of a construction.
+        if (genericNewOnly && (isConstructionOnlyInstantiation(c) || observedIdentity
             || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             attachSpecializedClassMethods(c, newC, generics);
         }

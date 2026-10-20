@@ -50,16 +50,25 @@ Notes; finished-work narrative does not.
   `static int cnt = 0` reads nil when `r` also calls a `Codec<T>` method on a `T` static and is reached
   through a non-generic base class.
 
-- **`lua-instanceof-erased`: `instanceof Box<int>` is true for a `Box<string>` on Lua**, and for
-  `Box<CB>` against `Box<CA>`; tuple instantiations are told apart. No generic code is needed:
+- **`lua-instanceof-erased`: `instanceof Box<T>` in a generic class reached through a non-generic
+  interface, base class or destroy, or in a closure, accepts every `Box` on Lua**, because the method
+  stays erased (a closure is not specialised for an instanceof: that is `lua-closure-receiver`). A
+  `new Box<T>()` there allocates a `Box` of no instantiation, so while one is reachable every check of
+  `Box`, even `instanceof Box<int>`, stays erased too (`keepErasedChecksWhereAnAllocationStaysErased`).
+  Otherwise an `instanceof` which names its instantiation, or is reached through calls which give it,
+  tells the instantiations apart:
 
   ```wurst
   interface Marker
   class Box<T:> implements Marker
-      T item
+  interface Check
+      function holds(Marker m) returns bool
+  class G<T:> implements Check
+      function holds(Marker m) returns bool
+          return m instanceof Box<T>
   init
-      Marker s = new Box<string>()
-      if not (s instanceof Box<int>)   // Lua: true
+      Check c = new G<int>()
+      if not c.holds(new Box<string>())   // Lua: true
           testSuccess()
   ```
 
