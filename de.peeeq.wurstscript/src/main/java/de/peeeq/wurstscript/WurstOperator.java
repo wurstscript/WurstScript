@@ -293,10 +293,10 @@ public enum WurstOperator {
     }
 
     /**
-     * {@code ==} on two values other than reals and tuples. An object is also equal to the integer id which stands
-     * for it. An old generic erases its value to that id when it is stored ({@code castTo int}), and the value leaves
-     * the generic without a cast back, so before class elimination the interpreter meets the id where the program
-     * compares the object. Everything else which takes a class value already reads the id as its object
+     * Equality on two values, as {@code !=} negates it: reals exactly, tuples element by element, and otherwise by
+     * value, where an object is also equal to the integer id which stands for it. An old generic erases its value to
+     * that id when it is stored ({@code castTo int}), and the value leaves the generic without a cast back, so before
+     * class elimination the interpreter meets the id where the program compares the object. Everything else which takes a class value already reads the id as its object
      * ({@code ProgramState.toObject}), and on both targets an object is its id, so the comparison is by id too.
      */
     private static boolean sameValue(ILconst left, ILconst right) {
@@ -305,6 +305,19 @@ public enum WurstOperator {
         }
         if (left instanceof ILconstInt id && right instanceof ILconstObject object) {
             return object.getObjectId() == id.getVal();
+        }
+        if (left instanceof ILconstTuple l && right instanceof ILconstTuple r) {
+            List<ILconst> leftValues = l.values();
+            List<ILconst> rightValues = r.values();
+            if (leftValues.size() != rightValues.size()) {
+                return false;
+            }
+            for (int i = 0; i < leftValues.size(); i++) {
+                if (!sameValue(leftValues.get(i), rightValues.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
         return left.equals(right);
     }

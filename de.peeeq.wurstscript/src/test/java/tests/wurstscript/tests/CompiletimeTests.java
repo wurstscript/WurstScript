@@ -710,6 +710,28 @@ public class CompiletimeTests extends WurstScriptTest {
             "return kept == m.get(7) and not (m.get(7) != kept) and m.get(7) != other and other != m.get(7)");
     }
 
+    // In a tuple too, the object read back from an old-generic HashMap equals the one put in, and != agrees.
+    @Test
+    public void testCompiletimeOldGenericMapGetComparesInsideATuple() {
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "import HashMap",
+            "class A",
+            "tuple holder(A a, real r)",
+            "function check() returns boolean",
+            "    let kept = new A",
+            "    let other = new A",
+            "    let m = new HashMap<int, A>",
+            "    m.put(7, kept)",
+            "    let p = holder(m.get(7), 0.5)",
+            "    let q = holder(kept, 0.5)",
+            "    return p == q and not (p != q) and p != holder(other, 0.5)",
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()");
+    }
+
     // An object read back from an old-generic HashList at compile time is the object that was added.
     @Test
     public void testCompiletimeOldGenericHashListGetReturnsTheSameObject() {
