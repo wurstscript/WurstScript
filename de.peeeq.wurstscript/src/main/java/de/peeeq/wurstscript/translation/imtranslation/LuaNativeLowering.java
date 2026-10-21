@@ -302,9 +302,15 @@ public final class LuaNativeLowering {
         ImType type = call.getTypeArguments().size() == 1
             ? call.getTypeArguments().get(0).getType()
             : value.attrTyp();
-        if (TypesHelper.isIntType(type) || type instanceof ImClassType) {
+        if (TypesHelper.isIntType(type)) {
             value.setParent(null);
             call.replaceBy(value);
+            return;
+        }
+        if (type instanceof ImClassType) {
+            // A null instance is nil on Lua; the cast to int keys it 0, as on Jass (an object's id otherwise).
+            value.setParent(null);
+            call.replaceBy(JassIm.ImCast(value, type, TypesHelper.imInt()));
             return;
         }
         if (type instanceof ImTypeVarRef || type instanceof ImAnyType) {
