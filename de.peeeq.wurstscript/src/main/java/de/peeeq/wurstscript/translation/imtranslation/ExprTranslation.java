@@ -106,7 +106,7 @@ public class ExprTranslation {
         WurstType expectedTypRaw = t.isLuaTarget()
             && actualType instanceof WurstTypeBoundTypeParam
             && e.getParent() instanceof Arguments
-            ? AttrExprExpectedType.afterOverloading(e)
+            ? AttrExprExpectedType.rawAfterOverloading(e)
             : e.attrExpectedTypRaw();
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
     }

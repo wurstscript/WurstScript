@@ -214,10 +214,18 @@ public class AttrExprExpectedType {
     }
 
     /**
+     * The parameter type of the overload the call selected, normalised: a closure passed to a
+     * generic parameter implements the type argument, not the bound type parameter.
+     */
+    public static WurstType afterOverloading(Expr e) {
+        return rawAfterOverloading(e).normalize();
+    }
+
+    /**
      * The raw parameter type of the overload the call selected. It is not normalised: a parameter of
      * an old generic is a bound type parameter, whose toIndex conversion the translation needs.
      */
-    public static WurstType afterOverloading(Expr e) {
+    public static WurstType rawAfterOverloading(Expr e) {
         Element parent = e.getParent();
         if (parent instanceof Arguments args) {
             Element parent2 = args.getParent();
