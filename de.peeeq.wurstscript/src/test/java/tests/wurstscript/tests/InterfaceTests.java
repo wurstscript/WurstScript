@@ -1347,4 +1347,56 @@ public class InterfaceTests extends WurstScriptTest {
             "    if i.f<int>(1.5, 3) == 3 and last == 1.5 and i.f<string>(2.5, \"s\") == \"s\" and last == 2.5",
             "        testSuccess()");
     }
+
+    /**
+     * A default of another interface is chosen over the inherited method only where it could override the abstract
+     * method: an old generic default does not stand for a new generic method, and the inherited method runs.
+     */
+    @Test
+    public void aDefaultOfAnotherKindOfGenericDoesNotBeatTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function wrap<T:>(T value) returns int",
+            "interface Default",
+            "    function wrap<U>(U value) returns int",
+            "        return 2",
+            "class Base",
+            "    function wrap<T:>(T value) returns int",
+            "        return 1",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.wrap<int>(3)",
+            "init",
+            "    if viaAbstract(new C<int>()) == 1",
+            "        testSuccess()");
+    }
+
+    /** As {@link #aDefaultOfAnotherKindOfGenericDoesNotBeatTheInheritedMethod}, with a default which asks for a bound. */
+    @Test
+    public void aDefaultWithAnotherBoundDoesNotBeatTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return 2",
+            "interface Abstract",
+            "    function wrap<T:>(T value) returns int",
+            "interface Default",
+            "    function wrap<U: Show>(U value) returns int",
+            "        return U.show(value)",
+            "class Base",
+            "    function wrap<T:>(T value) returns int",
+            "        return 1",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.wrap<int>(3)",
+            "init",
+            "    if viaAbstract(new C<int>()) == 1",
+            "        testSuccess()");
+    }
 }

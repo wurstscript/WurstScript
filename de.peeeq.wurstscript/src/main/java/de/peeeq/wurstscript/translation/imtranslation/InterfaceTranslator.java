@@ -11,10 +11,10 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.types.VariableBinding;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -268,18 +268,17 @@ public class InterfaceTranslator {
         return null;
     }
 
-    /** Whether the parameter types are equal once b's own type parameters are renamed to a's. */
+    /**
+     * Whether default {@code a} can stand for abstract {@code b}: its own type parameters are b's up to renaming, of the
+     * same kind and with the same bounds, as for an override ({@link WurstValidator#checkOwnTypeParameters}), and its
+     * parameter types are b's once b's type parameters are renamed to a's.
+     */
     private static boolean sameParameterTypes(FuncDef a, FuncDef b) {
         if (a.getParameters().size() != b.getParameters().size()
-            || a.getTypeParameters().size() != b.getTypeParameters().size()) {
+            || WurstValidator.checkOwnTypeParameters(a, b) != null) {
             return false;
         }
-        VariableBinding renaming = VariableBinding.emptyMapping();
-        for (int i = 0; i < a.getTypeParameters().size(); i++) {
-            TypeParamDef bParameter = b.getTypeParameters().get(i);
-            renaming = renaming.set(bParameter,
-                new WurstTypeBoundTypeParam(bParameter, a.getTypeParameters().get(i).attrTyp(), a));
-        }
+        VariableBinding renaming = WurstValidator.ownTypeParameterRenaming(a, b);
         for (int i = 0; i < a.getParameters().size(); i++) {
             if (!a.getParameters().get(i).attrTyp().equalsType(b.getParameters().get(i).attrTyp().setTypeArgs(renaming), a)) {
                 return false;

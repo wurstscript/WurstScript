@@ -3913,25 +3913,11 @@ public class WurstValidator {
         }
 
         // the functions' own type parameters are equal up to renaming
-        List<TypeParamDef> ownTypeParams1 = ownTypeParameters(func1);
-        List<TypeParamDef> ownTypeParams2 = ownTypeParameters(func2);
-        if (ownTypeParams1.size() != ownTypeParams2.size()) {
-            return Utils.printElement(func2.getDef()) + " takes " + ownTypeParams2.size()
-                    + " type parameters, but there are " + ownTypeParams1.size() + " type parameters here.";
+        String typeParameterError = checkOwnTypeParameters(func1.getDef(), func2.getDef());
+        if (typeParameterError != null) {
+            return typeParameterError;
         }
-        VariableBinding renaming = VariableBinding.emptyMapping();
-        for (int i = 0; i < ownTypeParams1.size(); i++) {
-            renaming = renaming.set(ownTypeParams2.get(i),
-                new WurstTypeBoundTypeParam(ownTypeParams2.get(i), ownTypeParams1.get(i).attrTyp(), func1.getDef()));
-        }
-        for (int i = 0; i < ownTypeParams1.size(); i++) {
-            TypeParamDef tp1 = ownTypeParams1.get(i);
-            TypeParamDef tp2 = ownTypeParams2.get(i);
-            if (!sameTypeParamConstraints(tp1, tp2, renaming)) {
-                return "Type parameter " + printTypeParam(tp1) + " should be " + printTypeParam(tp2)
-                    + " to override " + Utils.printElementWithSource(Optional.of(func2.getDef())) + ".";
-            }
-        }
+        VariableBinding renaming = ownTypeParameterRenaming(func1.getDef(), func2.getDef());
 
         // contravariant parametertypes
         for (int i = 0; i < paramCount1; i++) {
@@ -3955,9 +3941,50 @@ public class WurstValidator {
         return null;
     }
 
+    /**
+     * Checks that the type parameters {@code overriding} declares itself are those {@code overridden} declares, up to
+     * renaming: as many, each of the same kind of generic with the same bounds. Returns null if they are, and otherwise
+     * the error which says why {@code overriding} cannot override {@code overridden}. Overriding and an interface
+     * default standing for an abstract method ({@code InterfaceTranslator}) both need this.
+     */
+    public static @Nullable String checkOwnTypeParameters(FunctionDefinition overriding, FunctionDefinition overridden) {
+        List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
+        List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
+        if (ownTypeParams1.size() != ownTypeParams2.size()) {
+            return Utils.printElement(overridden) + " takes " + ownTypeParams2.size()
+                    + " type parameters, but there are " + ownTypeParams1.size() + " type parameters here.";
+        }
+        VariableBinding renaming = ownTypeParameterRenaming(overriding, overridden);
+        for (int i = 0; i < ownTypeParams1.size(); i++) {
+            TypeParamDef tp1 = ownTypeParams1.get(i);
+            TypeParamDef tp2 = ownTypeParams2.get(i);
+            if (!sameTypeParamConstraints(tp1, tp2, renaming)) {
+                return "Type parameter " + printTypeParam(tp1) + " should be " + printTypeParam(tp2)
+                    + " to override " + Utils.printElementWithSource(Optional.of(overridden)) + ".";
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Binds each type parameter {@code overridden} declares itself to the one in the same position of
+     * {@code overriding}, so that types of {@code overridden} can be compared with those of {@code overriding}.
+     * Positions beyond the shorter list stay unbound; {@link #checkOwnTypeParameters} rejects such a pair.
+     */
+    public static VariableBinding ownTypeParameterRenaming(FunctionDefinition overriding, FunctionDefinition overridden) {
+        List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
+        List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
+        VariableBinding renaming = VariableBinding.emptyMapping();
+        for (int i = 0; i < Math.min(ownTypeParams1.size(), ownTypeParams2.size()); i++) {
+            renaming = renaming.set(ownTypeParams2.get(i),
+                new WurstTypeBoundTypeParam(ownTypeParams2.get(i), ownTypeParams1.get(i).attrTyp(), overriding));
+        }
+        return renaming;
+    }
+
     /** The type parameters a function declares itself, not those of the structure it is in. */
-    private static List<TypeParamDef> ownTypeParameters(FuncLink func) {
-        if (func.getDef() instanceof AstElementWithTypeParameters generic) {
+    private static List<TypeParamDef> ownTypeParameters(FunctionDefinition func) {
+        if (func instanceof AstElementWithTypeParameters generic) {
             return generic.getTypeParameters();
         }
         return Collections.emptyList();
