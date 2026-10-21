@@ -1319,6 +1319,32 @@ public class InterfaceTests extends WurstScriptTest {
     }
 
     /**
+     * The method's own type argument is a tuple, which Lua specialises, while the generic class implementing the generic
+     * interface is constructed with a plain type argument and stays erased: the implementation specialised for the
+     * tuple must still be bound to the erased class, which the objects come from.
+     */
+    @Test
+    public void aTupleTypeArgumentOfTheMethodsOwnReachesTheErasedImplementingClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(int a, int b)",
+            "interface GTop<Y:>",
+            "    function second<T:>(T a, Y y) returns int",
+            "class C<Y:> implements GTop<Y>",
+            "    function second<T:>(T a, Y y) returns int",
+            "        return 1",
+            "class X<Y:> implements GTop<Y>",
+            "    function second<T:>(T a, Y y) returns int",
+            "        return 2",
+            "function via(GTop<string> g) returns int",
+            "    return g.second<pair>(pair(1, 2), \"s\")",
+            "init",
+            "    if via(new C<string>()) == 1 and via(new X<string>()) == 2",
+            "        testSuccess()");
+    }
+
+    /**
      * The interface is an old generic bound to real, so the implementation is reached through a function which converts
      * the index the interface passes; that function must take the method's own type parameter and pass it on.
      */
