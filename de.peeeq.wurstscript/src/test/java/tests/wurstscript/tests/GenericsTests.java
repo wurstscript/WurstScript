@@ -1502,4 +1502,42 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Compile-time code sees one class for every instantiation of a new generic class, which Jass makes a class of
+     * its own after compile time. So a type id of an instantiation read then can match nothing Jass makes: an error.
+     */
+    @Test
+    public void typeIdOfGenericInstantiationReadAtCompileTimeIsAnErrorOnJass() {
+        test().runCompiletimeFunctions(true).executeProg(false)
+            .expectError("compile-time code read the type id of Box").lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T item",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant boxId = compiletime(new Box<int>().typeId)",
+            "init",
+            "    if new Box<int>().typeId == boxId",
+            "        testSuccess()"
+        );
+    }
+
+    /** Lua keeps one class for the instantiations, as compile time does, so the id stays the class's. */
+    @Test
+    public void typeIdOfGenericInstantiationReadAtCompileTimeMatchesOnLua() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T item",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant boxId = compiletime(new Box<int>().typeId)",
+            "init",
+            "    if new Box<int>().typeId == boxId",
+            "        testSuccess()"
+        );
+    }
+
 }

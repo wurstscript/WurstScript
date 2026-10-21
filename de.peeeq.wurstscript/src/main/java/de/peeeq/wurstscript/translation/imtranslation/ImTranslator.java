@@ -3412,14 +3412,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     /** The type ids handed out before the generics added classes; see {@link #typeIds()}. */
     private @Nullable Map<ImClass, Integer> typeIdsBeforeGenerics;
+    /** Where compile-time code read the type id of a new-generic class; see {@link #typeIds()}. */
+    private Map<ImClass, de.peeeq.wurstscript.ast.Element> genericTypeIdReads = Collections.emptyMap();
 
     /**
      * Keeps the type ids the classes have now, before the generics are eliminated, as the ids of the program:
      * compile-time code read them and may have put them into the script. Only then, since the classes the
      * generics add are numbered after them and the ids of the classes they replace stay unused.
      */
-    public void rememberTypeIdsBeforeGenerics() {
+    public void rememberTypeIdsBeforeGenerics(Map<ImClass, de.peeeq.wurstscript.ast.Element> genericTypeIdReads) {
         typeIdsBeforeGenerics = new LinkedHashMap<>(imProg.attrTypeId());
+        this.genericTypeIdReads = new LinkedHashMap<>(genericTypeIdReads);
     }
 
     /** The type ids handed out before the generics, when compile-time code read them; else null. */
@@ -3427,10 +3430,21 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return typeIdsBeforeGenerics;
     }
 
-    /** The type ids of the program's classes, keeping those handed out before the generics were eliminated. */
+    /**
+     * The type ids of the program's classes on Jass, keeping those handed out before the generics were eliminated.
+     * Jass makes a class of each instantiation of a new-generic class, so a type id compile-time code read of the
+     * class it replaced is the id of none of them: that is an error.
+     */
     public Map<ImClass, Integer> typeIds() {
         if (typeIdsBeforeGenerics == null) {
             return TypeId.calculate(imProg);
+        }
+        for (Map.Entry<ImClass, de.peeeq.wurstscript.ast.Element> read : genericTypeIdReads.entrySet()) {
+            if (!imProg.getClasses().contains(read.getKey())) {
+                throw new CompileError(read.getValue().attrSource(), "compile-time code read the type id of "
+                    + read.getKey().getName() + ", a new-generic class which Jass makes a class of each instantiation"
+                    + " after compile time, so the id is the id of none of them. Read the type id at run time.");
+            }
         }
         return TypeId.keeping(typeIdsBeforeGenerics, imProg.getClasses());
     }
