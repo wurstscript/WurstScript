@@ -266,19 +266,24 @@ public class EvaluateExpr {
     }
 
 
-    public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
+    /**
+     * The class whose object a member access reads or writes: the receiver's type, or the class which declares the
+     * field when the receiver has none, as a value of an old generic (erased to {@code any}) has.
+     */
+    private static @Nullable ImClassType memberAccessClassType(ImMemberAccess ma, ProgramState globalState) {
         ImType receiverType = globalState.resolveType(ma.getReceiver().attrTyp());
-        ImClassType receiverClassType = receiverType instanceof ImClassType imClassType ? imClassType : null;
-        if (receiverClassType == null) {
-            de.peeeq.wurstscript.jassIm.Element parent = ma.getVar().getParent();
-            while (parent != null && !(parent instanceof ImClass)) {
-                parent = parent.getParent();
-            }
-            if (parent instanceof ImClass) {
-                receiverClassType = JassIm.ImClassType((ImClass) parent, JassIm.ImTypeArguments());
-            }
+        if (receiverType instanceof ImClassType imClassType) {
+            return imClassType;
         }
+        de.peeeq.wurstscript.jassIm.Element parent = ma.getVar().getParent();
+        while (parent != null && !(parent instanceof ImClass)) {
+            parent = parent.getParent();
+        }
+        return parent instanceof ImClass c ? JassIm.ImClassType(c, JassIm.ImTypeArguments()) : null;
+    }
 
+    public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
+        ImClassType receiverClassType = memberAccessClassType(ma, globalState);
         ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState), receiverClassType);
         if (receiver == null) {
             throw new InterpreterException(ma.getTrace(), "Null pointer dereference: " + ImPrinter.asString(ma.getReceiver()));
@@ -426,8 +431,7 @@ public class EvaluateExpr {
 
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
-        ImType receiverType = globalState.resolveType(va.getReceiver().attrTyp());
-        ImClassType receiverClassType = receiverType instanceof ImClassType imClassType ? imClassType : null;
+        ImClassType receiverClassType = memberAccessClassType(va, globalState);
         ILconst receiverVal = va.getReceiver().evaluate(globalState, localState);
         ILconstObject receiver = globalState.toObject(receiverVal, receiverClassType);
         if (receiver == null && receiverVal instanceof ILconstInt iLconstInt && receiverClassType != null) {

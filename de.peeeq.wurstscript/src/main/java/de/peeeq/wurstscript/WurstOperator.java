@@ -190,7 +190,7 @@ public enum WurstOperator {
             case NOTEQ: {
                 ILconst rightVal = right.get();
                 rejectUnresolvedDefault(left, rightVal);
-                return ILconstBool.instance(!left.equals(rightVal));
+                return ILconstBool.instance(!sameValue(left, rightVal));
             }
             case PLUS:
                 return ((ILconstAddable) left).add((ILconstAddable) right.get());
@@ -271,7 +271,7 @@ public enum WurstOperator {
         return a == b || Math.abs(a - b) <= JASS_REAL_EQUALITY_TOLERANCE;
     }
 
-    /** Jass {@code ==}: reals, also inside tuples, by {@link #jassRealEquals}, everything else by value. */
+    /** Jass {@code ==}: reals, also inside tuples, by {@link #jassRealEquals}, everything else by {@link #sameValue}. */
     public static boolean jassEquals(ILconst left, ILconst right) {
         if (left instanceof ILconstReal l && right instanceof ILconstReal r) {
             return jassRealEquals(l.getVal(), r.getVal());
@@ -288,6 +288,23 @@ public enum WurstOperator {
                 }
             }
             return true;
+        }
+        return sameValue(left, right);
+    }
+
+    /**
+     * {@code ==} on two values other than reals and tuples. An object is also equal to the integer id which stands
+     * for it. An old generic erases its value to that id when it is stored ({@code castTo int}), and the value leaves
+     * the generic without a cast back, so before class elimination the interpreter meets the id where the program
+     * compares the object. Everything else which takes a class value already reads the id as its object
+     * ({@code ProgramState.toObject}), and on both targets an object is its id, so the comparison is by id too.
+     */
+    private static boolean sameValue(ILconst left, ILconst right) {
+        if (left instanceof ILconstObject object && right instanceof ILconstInt id) {
+            return object.getObjectId() == id.getVal();
+        }
+        if (left instanceof ILconstInt id && right instanceof ILconstObject object) {
+            return object.getObjectId() == id.getVal();
         }
         return left.equals(right);
     }
