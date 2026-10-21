@@ -51,6 +51,75 @@ public class ClosureTests extends WurstScriptTest {
         Assert.assertFalse(jass.contains("stringFromIndex"), jass);
     }
 
+    /** A closure passed straight to a generic parameter implements the type argument's interface. */
+    @Test
+    public void closurePassedToNewGenericVarargParameter() {
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "native testSuccess()",
+            "interface Listener",
+            "    function fire()",
+            "class List<T:>",
+            "    T last",
+            "    function add(vararg T elems)",
+            "        for elem in elems",
+            "            last = elem",
+            "int fired = 0",
+            "function bump(int n)",
+            "    fired += n",
+            "init",
+            "    let listeners = new List<Listener>()",
+            "    listeners.add(() -> bump(1))",
+            "    listeners.add(() -> bump(10), () -> bump(100))",
+            "    listeners.last.fire()",
+            "    if fired == 100",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void closurePassedToNewGenericParameter() {
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "native testSuccess()",
+            "interface Listener",
+            "    function fire()",
+            "class Box<T:>",
+            "    T value",
+            "    function set(T value)",
+            "        this.value = value",
+            "int fired = 0",
+            "function bump(int n)",
+            "    fired += n",
+            "init",
+            "    let box = new Box<Listener>()",
+            "    box.set(() -> bump(1))",
+            "    box.value.fire()",
+            "    if fired == 1",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void closurePassedToOldGenericParameter() {
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "native testSuccess()",
+            "interface Listener",
+            "    function fire()",
+            "class Box<T>",
+            "    T value",
+            "    function set(T value)",
+            "        this.value = value",
+            "int fired = 0",
+            "function bump(int n)",
+            "    fired += n",
+            "init",
+            "    let box = new Box<Listener>()",
+            "    box.set(() -> bump(1))",
+            "    box.value.fire()",
+            "    if fired == 1",
+            "        testSuccess()");
+    }
+
     @Test
     public void oldGenericStringReadInCompiletimeClosure() {
         test().withStdLib().testLua(true).luaOnly(false).executeProg(true)
