@@ -1183,11 +1183,33 @@ public class InterfaceTests extends WurstScriptTest {
     }
 
     /**
-     * Two sub-interfaces at the same distance give show a default each. A call through either runs its own, and a
-     * call through Showable the default of the interface the class names first.
+     * Two sub-interfaces, neither extending the other, give Showable's show a default each: a class which takes both
+     * has no single show and must override it.
      */
     @Test
-    public void twoSubInterfaceDefaultsAtTheSameDistanceTakeTheFirstNamedThroughTheSuperInterface() {
+    public void twoSiblingSubInterfaceDefaultsRequireTheClassToOverride() {
+        testAssertErrorsLines(false,
+            "Class C must override function show, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "class C implements S1, S2");
+    }
+
+    /**
+     * As {@link #twoSiblingSubInterfaceDefaultsRequireTheClassToOverride}, with the class overriding show: its show is
+     * the implementation through every interface. Where one sub-interface extends the other, its default is the
+     * nearer one and wins without an error.
+     */
+    @Test
+    public void aClassOverridingTwoSiblingSubInterfaceDefaultsIsDispatchedToItsOwnMethod() {
         test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "native testSuccess()",
@@ -1199,8 +1221,13 @@ public class InterfaceTests extends WurstScriptTest {
             "interface S2 extends Showable",
             "    function show() returns int",
             "        return 2",
+            "interface S12 extends S1",
+            "    function show() returns int",
+            "        return 5",
             "class C implements S1, S2",
-            "class D implements S2, S1",
+            "    override function show() returns int",
+            "        return 3",
+            "class N implements S1, S12",
             "function via1(S1 s) returns int",
             "    return s.show()",
             "function via2(S2 s) returns int",
@@ -1208,9 +1235,31 @@ public class InterfaceTests extends WurstScriptTest {
             "function viaShowable(Showable s) returns int",
             "    return s.show()",
             "init",
-            "    if via1(new C()) == 1 and via2(new C()) == 2 and viaShowable(new C()) == 1",
-            "        and via1(new D()) == 1 and via2(new D()) == 2 and viaShowable(new D()) == 2",
+            "    if via1(new C()) == 3 and via2(new C()) == 3 and viaShowable(new C()) == 3",
+            "        and via1(new N()) == 5 and viaShowable(new N()) == 5",
             "        testSuccess()");
+    }
+
+    /**
+     * A class which inherits show from a superclass has an implementation under the existing rules, so taking two
+     * sibling sub-interface defaults as well is no error.
+     */
+    @Test
+    public void anInheritedClassMethodLeavesNoConflictBetweenSiblingSubInterfaceDefaults() {
+        testAssertOkLines(false,
+            "package test",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "class Base",
+            "    function show() returns int",
+            "        return 4",
+            "class E extends Base implements S1, S2");
     }
 
     /**

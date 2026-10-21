@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.types.*;
@@ -394,6 +395,7 @@ public class WurstValidator {
                 checkName(astElementWithNameId);
             if (e instanceof ClassDef classDef) {
                 checkAbstractMethods(classDef);
+                checkSubInterfaceDefaultConflicts(classDef);
                 visit(classDef);
             }
             if (e instanceof ClassOrModule classOrModule)
@@ -572,8 +574,25 @@ public class WurstValidator {
         return findImplementationLink(c, abstractFunc) != null;
     }
 
-    /** The most specific non-abstract implementation of {@code abstractFunc} visible in {@code c}, if any. */
+    /**
+     * The most specific non-abstract implementation of {@code abstractFunc} visible in {@code c}, if any: a method of
+     * {@code c} or of a superclass, else the default of a sub-interface ({@link #nearestSubInterfaceDefaults}). Where
+     * several sub-interfaces tie, the validator reports it ({@link #checkSubInterfaceDefaultConflicts}) and this is the
+     * first of them.
+     */
     public static @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
+        FuncLink best = findClassImplementationLink(c, abstractFunc);
+        if (best == null) {
+            List<FuncLink> defaults = nearestSubInterfaceDefaults(c, abstractFunc);
+            if (!defaults.isEmpty()) {
+                best = defaults.get(0);
+            }
+        }
+        return best;
+    }
+
+    /** The nearest non-abstract implementation of {@code abstractFunc} in {@code c} or one of its superclasses. */
+    private static @Nullable FuncLink findClassImplementationLink(ClassDef c, FuncLink abstractFunc) {
         FuncLink best = null;
         int bestDistance = Integer.MAX_VALUE;
         for (NameLink nameLink : c.attrNameLinks().get(abstractFunc.getName())) {
@@ -603,25 +622,22 @@ public class WurstValidator {
                 bestDistance = distance;
             }
         }
-        if (best == null) {
-            best = findSubInterfaceDefault(c, abstractFunc);
-        }
         return best;
     }
 
     /**
-     * The default which an interface extending the interface of {@code abstractFunc} gives it, for a class with no
-     * implementation of its own or from a superclass ({@code interface Shower extends Showable} with a body for
-     * Showable's {@code show}, which overrides Showable's default if it has one): the default of the interface nearest
-     * to {@code c}, the first one of {@code c}'s name links at the same distance. A default of an unrelated interface
+     * The defaults which interfaces extending the interface of {@code abstractFunc} give it in {@code c}
+     * ({@code interface Shower extends Showable} with a body for Showable's {@code show}, which overrides Showable's
+     * default if it has one), in the order of {@code c}'s name links. A default whose interface another of them extends
+     * is overridden by that one and left out; of the rest, only those of the interfaces nearest to {@code c} are kept.
+     * More than one is a conflict the class must resolve by overriding the method. A default of an unrelated interface
      * with the same signature is not one.
      */
-    private static @Nullable FuncLink findSubInterfaceDefault(ClassDef c, FuncLink abstractFunc) {
+    private static List<FuncLink> nearestSubInterfaceDefaults(ClassDef c, FuncLink abstractFunc) {
         if (!(abstractFunc.getDef().attrNearestStructureDef() instanceof InterfaceDef declaring)) {
-            return null;
+            return Collections.emptyList();
         }
-        FuncLink best = null;
-        int bestDistance = Integer.MAX_VALUE;
+        Map<InterfaceDef, FuncLink> candidates = new LinkedHashMap<>();
         for (NameLink nameLink : c.attrNameLinks().get(abstractFunc.getName())) {
             if (!(nameLink instanceof FuncLink candidate)
                 || !(candidate.getDef() instanceof FuncDef candidateDef)
@@ -631,16 +647,76 @@ public class WurstValidator {
                 || !WurstValidator.canOverride(candidate, abstractFunc, false)) {
                 continue;
             }
-            if (supertypeDistance(owner.attrTypI(), declaring) == Integer.MAX_VALUE) {
-                continue;
-            }
-            int distance = supertypeDistance(c.attrTypC(), owner);
-            if (distance < bestDistance) {
-                best = candidate;
-                bestDistance = distance;
+            if (supertypeDistance(owner.attrTypI(), declaring) != Integer.MAX_VALUE) {
+                candidates.putIfAbsent(owner, candidate);
             }
         }
-        return best;
+        List<FuncLink> nearest = new ArrayList<>();
+        int nearestDistance = Integer.MAX_VALUE;
+        for (Map.Entry<InterfaceDef, FuncLink> candidate : candidates.entrySet()) {
+            boolean overridden = false;
+            for (InterfaceDef other : candidates.keySet()) {
+                if (other != candidate.getKey()
+                    && supertypeDistance(other.attrTypI(), candidate.getKey()) != Integer.MAX_VALUE) {
+                    overridden = true;
+                    break;
+                }
+            }
+            if (overridden) {
+                continue;
+            }
+            int distance = supertypeDistance(c.attrTypC(), candidate.getKey());
+            if (distance < nearestDistance) {
+                nearest.clear();
+                nearestDistance = distance;
+            }
+            if (distance == nearestDistance) {
+                nearest.add(candidate.getValue());
+            }
+        }
+        return nearest;
+    }
+
+    /**
+     * A class which takes a method of an interface from the defaults of several sub-interfaces, none of which extends
+     * another, at the same distance, has no single implementation of it and must override it.
+     */
+    private void checkSubInterfaceDefaultConflicts(ClassDef c) {
+        if (c.attrIsAbstract()) {
+            return;
+        }
+        WurstTypeClass classType = c.attrTypC();
+        Set<String> reported = new HashSet<>();
+        Set<InterfaceDef> visited = new HashSet<>();
+        for (WurstTypeInterface superInterface : classType.transitiveSuperInterfaces()) {
+            InterfaceDef interfaceDef = superInterface.getInterfaceDef();
+            if (!visited.add(interfaceDef)) {
+                continue;
+            }
+            for (FuncDef f : interfaceDef.getMethods()) {
+                if (f.attrIsStatic() || f.attrIsPrivate()) {
+                    continue;
+                }
+                FuncLink declaration = FuncLink.create(f, f.getParent().attrNearestScope()).withConfigDef();
+                if (!(NameResolution.matchDefLinkReceiver(declaration, classType, f, false) instanceof FuncLink bound)
+                    || findClassImplementationLink(c, bound) != null) {
+                    continue;
+                }
+                List<FuncLink> defaults = nearestSubInterfaceDefaults(c, bound);
+                if (defaults.size() < 2) {
+                    continue;
+                }
+                List<String> interfaces = new ArrayList<>();
+                for (FuncLink d : defaults) {
+                    interfaces.add(((InterfaceDef) d.getDef().attrNearestStructureDef()).getName());
+                }
+                if (reported.add(f.getName() + interfaces)) {
+                    c.addError("Class " + c.getName() + " must override function " + f.getName()
+                        + ", because it inherits a default implementation of it from each of the interfaces "
+                        + String.join(", ", interfaces) + ".");
+                }
+            }
+        }
     }
 
     /** The fewest supertype steps from {@code start} to {@code target}, or {@link Integer#MAX_VALUE}. */
