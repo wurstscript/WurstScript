@@ -2229,7 +2229,7 @@ public class EliminateGenerics {
         newM.setImplementation(genericNewOnly
             ? specializeMethodImplementation(m, generics)
             : specializeFunction(newM.getImplementation(), generics));
-        adaptSubmethods(m.getSubMethods(), newM, generics);
+        adaptSubmethods(m, newM, generics);
         return newM;
     }
 
@@ -2280,10 +2280,27 @@ public class EliminateGenerics {
         return newImplementation;
     }
 
-    private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM, GenericTypes generics) {
+    /**
+     * The type arguments of the method {@code m} declares itself, which follow those of its class in the arguments
+     * it is specialised with ({@link #specializeMethod}). An override declares the same number, equal up to
+     * renaming, so they carry over to it unchanged whatever its class's type arguments are.
+     */
+    private static GenericTypes methodTypeArguments(ImMethod m, GenericTypes generics) {
+        return generics.drop(m.getMethodClass().getTypeArguments().size());
+    }
+
+    private static GenericTypes concat(GenericTypes classTypeArguments, GenericTypes methodTypeArguments) {
+        List<ImTypeArgument> typeArguments = new ArrayList<>(classTypeArguments.getTypeArguments());
+        typeArguments.addAll(methodTypeArguments.getTypeArguments());
+        return new GenericTypes(typeArguments);
+    }
+
+    private void adaptSubmethods(ImMethod m, ImMethod newM, GenericTypes generics) {
+        List<ImMethod> oldSubMethods = m.getSubMethods();
         newM.setSubMethods(new ArrayList<>());
         ImClassType newClassT = newM.getMethodClass();
         ImClass newMClass = newClassT.getClassDef();
+        GenericTypes methodGenerics = methodTypeArguments(m, generics);
         // Read from a copy: specialising a submethod can specialise its class, which binds that class's methods
         // to the roots of the originals (attachSpecializedClassMethods), this list among them.
         for (ImMethod subMethod : new ArrayList<>(oldSubMethods)) {
@@ -2291,7 +2308,8 @@ public class EliminateGenerics {
             ImClass subClass = subClassT.getClassDef();
             if (isGenericType(subClassT)) {
                 if (genericNewOnly
-                    && subClass.getTypeVariables().size() == generics.getTypeArguments().size()) {
+                    && subClass.getTypeVariables().size() + methodGenerics.getTypeArguments().size()
+                        == generics.getTypeArguments().size()) {
                     ImMethod specializedSubMethod = specializeMethod(subMethod, generics);
                     if (allocatesFromSpecialisedClass(subClass, generics)) {
                         // The objects of this instantiation come from the specialised class, which
@@ -2311,7 +2329,7 @@ public class EliminateGenerics {
                 }
                 onSpecializeClass(subClass, (subGenerics, specializedSubClass) -> {
                     if (specializedSubClass.isSubclassOf(newMClass)) {
-                        ImMethod specializedSubMethod = specializeMethod(subMethod, subGenerics);
+                        ImMethod specializedSubMethod = specializeMethod(subMethod, concat(subGenerics, methodGenerics));
                         newM.getSubMethods().add(specializedSubMethod);
                     }
                 });
@@ -2319,7 +2337,8 @@ public class EliminateGenerics {
                 specializeSuperClasses(subClass);
                 ImClassType newClassTspecialized = specializeType(newClassT);
                 if (subClass.isSubclassOf(newClassTspecialized.getClassDef())) {
-                    newM.getSubMethods().add(subMethod);
+                    newM.getSubMethods().add(methodGenerics.getTypeArguments().isEmpty()
+                        ? subMethod : specializeMethod(subMethod, methodGenerics));
                 }
             }
         }

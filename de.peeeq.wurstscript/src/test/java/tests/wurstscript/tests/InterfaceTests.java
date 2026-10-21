@@ -1003,4 +1003,197 @@ public class InterfaceTests extends WurstScriptTest {
             "        and viaAbstract(new C<int>()) == 2 and viaAbstract(new D<int>()) == 4",
             "        testSuccess()");
     }
+
+    /** A class implements an interface method with a type parameter of its own with a method which declares the same one: a call through the interface with either type argument reaches each class's method. */
+    @Test
+    public void aMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class C implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class X implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "function viaTopInt(Top t) returns int",
+            "    return t.pick<int>(1, 2)",
+            "function viaTopString(Top t) returns string",
+            "    return t.pick<string>(\"a\", \"b\")",
+            "init",
+            "    if viaTopInt(new C()) == 1 and viaTopString(new C()) == \"a\" and viaTopInt(new X()) == 2 and viaTopString(new X()) == \"b\"",
+            "        testSuccess()");
+    }
+
+    /** A plain class implements the interface method with a method with a type parameter of its own which it inherits, and a subclass overrides it. */
+    @Test
+    public void aPlainClassInheritingAMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class Base",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class C extends Base implements Top",
+            "class D extends C",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "function viaTopInt(Top t) returns int",
+            "    return t.pick<int>(1, 2)",
+            "function viaTopString(Top t) returns string",
+            "    return t.pick<string>(\"a\", \"b\")",
+            "init",
+            "    if viaTopInt(new C()) == 1 and viaTopString(new C()) == \"a\" and viaTopInt(new D()) == 2 and viaTopString(new D()) == \"b\"",
+            "        testSuccess()");
+    }
+
+    /** A generic class's own method with a type parameter of its own implements the method of a plain interface and of a generic one. */
+    @Test
+    public void aGenericClassMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "interface GTop<Y:>",
+            "    function second<T:>(T a, Y y) returns Y",
+            "class C<Y:> implements Top, GTop<Y>",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "    function second<T:>(T a, Y y) returns Y",
+            "        return y",
+            "init",
+            "    Top t = new C<real>()",
+            "    GTop<string> g = new C<string>()",
+            "    if t.pick<int>(1, 2) == 2 and t.pick<string>(\"a\", \"b\") == \"b\" and g.second<int>(1, \"s\") == \"s\"",
+            "        testSuccess()");
+    }
+
+    /** The same with an old generic type parameter, which is erased: the implementations are found as for new ones. */
+    @Test
+    public void anOldGenericTypeParameterOfTheMethodsOwnIsDispatchedThroughTheInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "interface Top",
+            "    function pick<T>(T a, T b) returns T",
+            "class Base",
+            "    function pick<T>(T a, T b) returns T",
+            "        return a",
+            "class C<Y:> extends Base implements Top",
+            "class X implements Top",
+            "    function pick<U>(U a, U b) returns U",
+            "        return b",
+            "init",
+            "    Top c = new C<real>()",
+            "    Top x = new X()",
+            "    if c.pick<int>(1, 2) == 1 and c.pick<A>(new A(5), new A(6)).v == 5",
+            "        and x.pick<int>(1, 2) == 2 and x.pick<A>(new A(5), new A(6)).v == 6",
+            "        testSuccess()");
+    }
+
+    /** A method with another number of type parameters of its own does not implement the interface method. */
+    @Test
+    public void aMethodWithMoreTypeParametersOfItsOwnDoesNotImplementTheInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class C implements Top",
+            "    function pick<T:, U:>(T a, T b) returns T",
+            "        return a");
+    }
+
+    /** A method without the type parameter does not implement the interface method, even where no parameter mentions it. */
+    @Test
+    public void aMethodWithoutTheTypeParameterDoesNotImplementTheInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function count<T:>() returns int",
+            "class C implements Top",
+            "    function count() returns int",
+            "        return 1");
+    }
+
+    /** A method whose type parameter lacks the bound does not implement the interface method: the bounds must be the same. */
+    @Test
+    public void aMethodWithoutTheBoundDoesNotImplementTheInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "interface Top",
+            "    function describe<T: Show>(T value) returns string",
+            "class C implements Top",
+            "    function describe<T:>(T value) returns string",
+            "        return \"\"");
+    }
+
+    /** An override with another number of type parameters of its own says so. */
+    @Test
+    public void anOverrideWithAnotherNumberOfTypeParametersSaysSo() {
+        testAssertErrorsLines(false, "takes 1 type parameters, but there are 2 type parameters here.",
+            "package test",
+            "native testSuccess()",
+            "class Base",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class C extends Base",
+            "    override function pick<T:, U:>(T a, T b) returns T",
+            "        return b");
+    }
+
+    /** An override whose type parameter has a bound the overridden one lacks says which it should be. */
+    @Test
+    public void anOverrideWithAnotherBoundSaysWhichItShouldBe() {
+        testAssertErrorsLines(false, "Type parameter T: Show should be T: to override",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "class Base",
+            "    function describe<T:>(T value) returns string",
+            "        return \"\"",
+            "class C extends Base",
+            "    override function describe<T: Show>(T value) returns string",
+            "        return T.show(value)");
+    }
+
+    /** An override cannot make an old generic type parameter a new one. */
+    @Test
+    public void anOverrideCannotChangeTheKindOfGeneric() {
+        testAssertErrorsLines(false, "Type parameter T: should be T to override",
+            "package test",
+            "native testSuccess()",
+            "class Base",
+            "    function pick<T>(T a, T b) returns T",
+            "        return a",
+            "class C extends Base",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return b");
+    }
 }
