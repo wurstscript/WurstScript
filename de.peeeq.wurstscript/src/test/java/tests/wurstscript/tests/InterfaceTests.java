@@ -1241,12 +1241,14 @@ public class InterfaceTests extends WurstScriptTest {
     }
 
     /**
-     * A class which inherits show from a superclass has an implementation under the existing rules, so taking two
-     * sibling sub-interface defaults as well is no error.
+     * A show the class inherits from a superclass outside the interfaces does not settle which sibling default it
+     * takes, because a default beats an inherited method: the class must override show.
      */
     @Test
-    public void anInheritedClassMethodLeavesNoConflictBetweenSiblingSubInterfaceDefaults() {
-        testAssertOkLines(false,
+    public void anInheritedClassMethodDoesNotSettleTwoSiblingSubInterfaceDefaults() {
+        testAssertErrorsLines(false,
+            "Class E must override function show, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
             "package test",
             "interface Showable",
             "    function show() returns int",

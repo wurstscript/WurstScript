@@ -583,7 +583,8 @@ public class WurstValidator {
     public static @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
         FuncLink best = findClassImplementationLink(c, abstractFunc);
         if (best == null) {
-            List<FuncLink> defaults = nearestSubInterfaceDefaults(c, abstractFunc);
+            List<FuncLink> defaults = nearestSubInterfaceDefaults(c, abstractFunc,
+                c.attrNameLinks().get(abstractFunc.getName()));
             if (!defaults.isEmpty()) {
                 best = defaults.get(0);
             }
@@ -628,17 +629,18 @@ public class WurstValidator {
     /**
      * The defaults which interfaces extending the interface of {@code abstractFunc} give it in {@code c}
      * ({@code interface Shower extends Showable} with a body for Showable's {@code show}, which overrides Showable's
-     * default if it has one), in the order of {@code c}'s name links. A default whose interface another of them extends
+     * default if it has one), among {@code links} and in their order. A default whose interface another of them extends
      * is overridden by that one and left out; of the rest, only those of the interfaces nearest to {@code c} are kept.
      * More than one is a conflict the class must resolve by overriding the method. A default of an unrelated interface
      * with the same signature is not one.
      */
-    private static List<FuncLink> nearestSubInterfaceDefaults(ClassDef c, FuncLink abstractFunc) {
+    private static List<FuncLink> nearestSubInterfaceDefaults(ClassDef c, FuncLink abstractFunc,
+                                                              Iterable<? extends NameLink> links) {
         if (!(abstractFunc.getDef().attrNearestStructureDef() instanceof InterfaceDef declaring)) {
             return Collections.emptyList();
         }
         Map<InterfaceDef, FuncLink> candidates = new LinkedHashMap<>();
-        for (NameLink nameLink : c.attrNameLinks().get(abstractFunc.getName())) {
+        for (NameLink nameLink : links) {
             if (!(nameLink instanceof FuncLink candidate)
                 || !(candidate.getDef() instanceof FuncDef candidateDef)
                 || candidateDef.attrIsAbstract()
@@ -679,7 +681,9 @@ public class WurstValidator {
 
     /**
      * A class which takes a method of an interface from the defaults of several sub-interfaces, none of which extends
-     * another, at the same distance, has no single implementation of it and must override it.
+     * another, at the same distance, has no single implementation of it and must override it. A method the class
+     * inherits from a superclass outside the interface does not settle it, because a default beats an inherited
+     * method ({@code InterfaceTranslator}); one of a superclass which implements the interface itself does.
      */
     private void checkSubInterfaceDefaultConflicts(ClassDef c) {
         if (c.attrIsAbstract()) {
@@ -698,11 +702,20 @@ public class WurstValidator {
                     continue;
                 }
                 FuncLink declaration = FuncLink.create(f, f.getParent().attrNearestScope()).withConfigDef();
-                if (!(NameResolution.matchDefLinkReceiver(declaration, classType, f, false) instanceof FuncLink bound)
-                    || findClassImplementationLink(c, bound) != null) {
+                if (!(NameResolution.matchDefLinkReceiver(declaration, classType, f, false) instanceof FuncLink bound)) {
                     continue;
                 }
-                List<FuncLink> defaults = nearestSubInterfaceDefaults(c, bound);
+                FuncLink implementation = findClassImplementationLink(c, bound);
+                if (implementation != null) {
+                    ClassDef owner = implementation.getDef().attrNearestClassDef();
+                    if (owner == c || (owner != null
+                        && supertypeDistance(owner.attrTypC(), interfaceDef) != Integer.MAX_VALUE)) {
+                        continue;
+                    }
+                }
+                // The interfaces' own methods, not the class's name links: an inherited class method hides the
+                // defaults there.
+                List<FuncLink> defaults = nearestSubInterfaceDefaults(c, bound, interfaceMethods(c, f.getName()));
                 if (defaults.size() < 2) {
                     continue;
                 }
@@ -717,6 +730,26 @@ public class WurstValidator {
                 }
             }
         }
+    }
+
+    /** The methods named {@code name} of the interfaces of {@code c}, each bound to {@code c}. */
+    private static List<FuncLink> interfaceMethods(ClassDef c, String name) {
+        WurstTypeClass classType = c.attrTypC();
+        List<FuncLink> result = new ArrayList<>();
+        Set<InterfaceDef> visited = new HashSet<>();
+        for (WurstTypeInterface superInterface : classType.transitiveSuperInterfaces()) {
+            if (!visited.add(superInterface.getInterfaceDef())) {
+                continue;
+            }
+            for (FuncDef g : superInterface.getInterfaceDef().getMethods()) {
+                if (g.getName().equals(name) && !g.attrIsStatic() && !g.attrIsPrivate()
+                    && NameResolution.matchDefLinkReceiver(FuncLink.create(g, g.getParent().attrNearestScope())
+                        .withConfigDef(), classType, g, false) instanceof FuncLink bound) {
+                    result.add(bound);
+                }
+            }
+        }
+        return result;
     }
 
     /** The fewest supertype steps from {@code start} to {@code target}, or {@link Integer#MAX_VALUE}. */
