@@ -603,7 +603,63 @@ public class WurstValidator {
                 bestDistance = distance;
             }
         }
+        if (best == null) {
+            best = findSubInterfaceDefault(c, abstractFunc);
+        }
         return best;
+    }
+
+    /**
+     * The default which an interface extending the interface of {@code abstractFunc} gives it, for a class with no
+     * implementation of its own or from a superclass ({@code interface Shower extends Showable} with a body for
+     * Showable's {@code show}, which overrides Showable's default if it has one): the default of the interface nearest
+     * to {@code c}, the first one of {@code c}'s name links at the same distance. A default of an unrelated interface
+     * with the same signature is not one.
+     */
+    private static @Nullable FuncLink findSubInterfaceDefault(ClassDef c, FuncLink abstractFunc) {
+        if (!(abstractFunc.getDef().attrNearestStructureDef() instanceof InterfaceDef declaring)) {
+            return null;
+        }
+        FuncLink best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (NameLink nameLink : c.attrNameLinks().get(abstractFunc.getName())) {
+            if (!(nameLink instanceof FuncLink candidate)
+                || !(candidate.getDef() instanceof FuncDef candidateDef)
+                || candidateDef.attrIsAbstract()
+                || !(candidateDef.attrNearestStructureDef() instanceof InterfaceDef owner)
+                || owner == declaring
+                || !WurstValidator.canOverride(candidate, abstractFunc, false)) {
+                continue;
+            }
+            if (supertypeDistance(owner.attrTypI(), declaring) == Integer.MAX_VALUE) {
+                continue;
+            }
+            int distance = supertypeDistance(c.attrTypC(), owner);
+            if (distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    /** The fewest supertype steps from {@code start} to {@code target}, or {@link Integer#MAX_VALUE}. */
+    private static int supertypeDistance(WurstTypeClassOrInterface start, ClassOrInterface target) {
+        Set<ClassOrInterface> visited = new HashSet<>();
+        List<WurstTypeClassOrInterface> level = List.of(start);
+        for (int distance = 0; !level.isEmpty(); distance++) {
+            List<WurstTypeClassOrInterface> next = new ArrayList<>();
+            for (WurstTypeClassOrInterface type : level) {
+                if (type.getDef() == target) {
+                    return distance;
+                }
+                if (visited.add(type.getDef())) {
+                    next.addAll(type.directSupertypes());
+                }
+            }
+            level = next;
+        }
+        return Integer.MAX_VALUE;
     }
 
     private static int distanceToOwner(ClassDef start, ClassDef owner) {

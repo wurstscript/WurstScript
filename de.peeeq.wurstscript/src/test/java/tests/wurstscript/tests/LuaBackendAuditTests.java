@@ -9436,4 +9436,54 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()"
         );
     }
+
+    /**
+     * A class which takes show from Shower's default, which overrides Showable's show, binds the slot a call through
+     * Showable reads to that default; it used to bind nothing, so the call read a nil slot. X implements Showable
+     * itself and keeps its own show.
+     */
+    @Test
+    public void aSubInterfaceDefaultIsBoundToTheSlotOfTheSuperInterfaceMethod() {
+        for (String shower : List.of("Shower", "Shower<T:>")) {
+            String implemented = shower.equals("Shower") ? "Shower" : "Shower<int>";
+            String compiled = compileLuaWithRunArgs("aSubInterfaceDefaultIsBoundToTheSlotOfTheSuperInterfaceMethod",
+                new RunArgs().with("-lua"),
+                "package test",
+                "native testSuccess()",
+                "interface Showable",
+                "    function show() returns int",
+                "interface " + shower + " extends Showable",
+                "    function show() returns int",
+                "        return 7",
+                "class C implements " + implemented,
+                "class X implements Showable",
+                "    function show() returns int",
+                "        return 3",
+                "function viaShowable(Showable s) returns int",
+                "    return s.show()",
+                "init",
+                "    if viaShowable(new C()) == 7 and viaShowable(new X()) == 3",
+                "        testSuccess()");
+            java.util.regex.Matcher call = java.util.regex.Pattern.compile("\\[s\\]\\.(\\w+)\\(s\\)")
+                .matcher(luaFunctionBody(compiled, "viaShowable"));
+            assertTrue(shower + ": viaShowable dispatches through a slot:\n" + compiled, call.find());
+            String slot = call.group(1);
+            for (Map.Entry<String, String> expected : Map.of("C", "7", "X", "3").entrySet()) {
+                java.util.regex.Matcher binding = java.util.regex.Pattern.compile(
+                        "(?m)^\\s*" + expected.getKey() + "\\." + slot + " = (\\w+)\\s*$")
+                    .matcher(compiled);
+                assertTrue(shower + ": " + expected.getKey() + " binds the dispatched slot " + slot + ":\n" + compiled,
+                    binding.find());
+                String body = luaFunctionBody(compiled, binding.group(1));
+                // A generic class's method of its own runs the default through a function of the class.
+                java.util.regex.Matcher bridged =
+                    java.util.regex.Pattern.compile("^\\s*return (\\w+)\\(\\w+\\)\\s*$").matcher(body);
+                if (bridged.find()) {
+                    body = luaFunctionBody(compiled, bridged.group(1));
+                }
+                assertTrue(shower + ": " + expected.getKey() + "." + slot + " = " + binding.group(1)
+                    + " returns " + expected.getValue() + ": " + body, body.contains(expected.getValue()));
+            }
+        }
+    }
 }
