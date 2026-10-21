@@ -859,8 +859,6 @@ public class EliminateGenerics {
      * to the specialised class and the methods attached to it can never disagree. Answers only grow while the
      * specialisation runs (a call is completed with type arguments, never stripped of the ones it depends on), so the
      * first answer is the safe one.
-     * <p>
-     * A closure written inside another closure is left out ({@link #isInsideAnotherClosure}).
      */
     private boolean classNeedsIdentity(ImClass clazz) {
         Boolean known = classNeedsIdentityAnswers.get(clazz);
@@ -868,7 +866,6 @@ public class EliminateGenerics {
             return known;
         }
         boolean answer = !clazz.getTypeVariables().isEmpty()
-            && !(clazz.attrTrace() instanceof ExprClosure closure && isInsideAnotherClosure(closure))
             && classMembersNeedTypeArgument(clazz, Collections.newSetFromMap(new IdentityHashMap<>()),
                 Collections.newSetFromMap(new IdentityHashMap<>()));
         classNeedsIdentityAnswers.put(clazz, answer);
@@ -908,20 +905,6 @@ public class EliminateGenerics {
     /** Whether the class is a closure's. */
     private static boolean isClosureClass(ImClass classDef) {
         return classDef.attrTrace() instanceof ExprClosure;
-    }
-
-    /**
-     * A closure written inside another one is left alone.
-     * <p>
-     * Its captured environment is reached through a receiver belonging to the enclosing closure,
-     * which by then has been specialised itself, and specialising the owner again with what is
-     * left over fails inside the rewrite. Supporting that is a further step; until it is taken,
-     * saying the bound could not be resolved - which is what happens without any of this - is
-     * better than an error about generics of the wrong size.
-     */
-    private static boolean isInsideAnotherClosure(ExprClosure closure) {
-        de.peeeq.wurstscript.ast.Element parent = closure.getParent();
-        return parent != null && parent.attrNearestExprClosure() != null;
     }
 
     /**

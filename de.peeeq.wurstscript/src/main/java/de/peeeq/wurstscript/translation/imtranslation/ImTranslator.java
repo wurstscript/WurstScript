@@ -3193,6 +3193,13 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     private final Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
 
+    /** The closures whose class is being created, by expression: a closure written in one shares its type variables. */
+    private final Map<ExprClosure, ClosureTranslator> closuresInTranslation = new IdentityHashMap<>();
+
+    public Map<ExprClosure, ClosureTranslator> closuresInTranslation() {
+        return closuresInTranslation;
+    }
+
     public ImClass getClassForClosure(ExprClosure s) {
         Preconditions.checkNotNull(s);
         return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
