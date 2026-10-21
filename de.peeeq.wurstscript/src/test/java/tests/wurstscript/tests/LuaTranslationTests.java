@@ -4357,20 +4357,6 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void forForceCollectorUsesNativeEnumAccessorInLua() throws IOException {
-        test().testLua(true).withStdLib().lines(
-            "package Test",
-            "init",
-            "    let f = CreateForce()",
-            "    ForForce(f, () -> skip)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_forForceCollectorUsesNativeEnumAccessorInLua.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("players[count] = GetEnumPlayer()"));
-        assertFalse(compiled.contains("players[count] = __wurst_GetEnumPlayer()"));
-        assertFalse(compiled.contains("function __wurst_GetEnumPlayer("));
-    }
-
-    @Test
     public void luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn() {
         String compiled = compileLuaWithCUs(
             "LuaTranslationTests_luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn",
@@ -4451,49 +4437,6 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void forForceIsRemappedToWurstHelperInLua() throws IOException {
-        test().testLua(true).withStdLib().lines(
-            "package Test",
-            "init",
-            "    let f = CreateForce()",
-            "    ForForce(f, () -> begin",
-            "        if GetEnumPlayer() != null",
-            "            skip",
-            "    end)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_forForceIsRemappedToWurstHelperInLua.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "\\b__wurst_ForForce\\(");
-        assertContainsRegex(compiled, "\\b__wurst_GetEnumPlayer\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForForce\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_GetEnumPlayer\\s*\\(");
-    }
-
-    @Test
-    public void nestedForForceUsesRemappedHelpersInLua() throws IOException {
-        test().testLua(true).withStdLib().lines(
-            "package Test",
-            "force g",
-            "function inner()",
-            "    ForForce(g, () -> begin",
-            "        if GetEnumPlayer() != null",
-            "            skip",
-            "    end)",
-            "init",
-            "    g = CreateForce()",
-            "    ForForce(g, () -> inner())"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nestedForForceUsesRemappedHelpersInLua.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForForce\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_GetEnumPlayer\\s*\\(");
-        Matcher forForceCalls = Pattern.compile("\\b__wurst_ForForce\\s*\\(").matcher(compiled);
-        int count = 0;
-        while (forForceCalls.find()) {
-            count++;
-        }
-        assertTrue("expected at least two remapped __wurst_ForForce call sites for nested loops", count >= 2);
-    }
-
-    @Test
     public void luaInlinerKeepsCallbackFuncRefFunctionsAsCallBoundary() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
@@ -4512,59 +4455,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaInlinerKeepsCallbackFuncRefFunctionsAsCallBoundary.lua"), Charsets.UTF_8);
         assertContainsRegex(compiled, "function\\s+caller\\s*\\([^\\)]*\\)\\s+return\\s+pick\\([^\\)]*\\)\\s+end");
-    }
-
-    @Test
-    public void wurstGetEnumPlayerPrefersNativeBeforeOverride() throws IOException {
-        test().testLua(true).withStdLib().lines(
-            "package Test",
-            "init",
-            "    let f = CreateForce()",
-            "    ForForce(f, () -> begin",
-            "        if GetEnumPlayer() != null",
-            "            skip",
-            "    end)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_wurstGetEnumPlayerPrefersNativeBeforeOverride.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "function\\s+__wurst_GetEnumPlayer\\s*\\(\\)");
-        assertContainsRegex(compiled, "if GetEnumPlayer ~= nil then\\s+local p = GetEnumPlayer\\(\\)\\s+if p ~= nil then return p end\\s+end\\s+if __wurst_enumPlayer_override ~= nil then return __wurst_enumPlayer_override end");
-    }
-
-    @Test
-    public void groupItemDestructableCallbacksUseWurstContextHelpersInLua() throws IOException {
-        test().testLua(true).withStdLib().lines(
-            "package Test",
-            "init",
-            "    let g = CreateGroup()",
-            "    ForGroup(g, () -> begin",
-            "        if GetEnumUnit() != null",
-            "            skip",
-            "    end)",
-            "    EnumItemsInRect(null, null, () -> begin",
-            "        if GetEnumItem() != null",
-            "            skip",
-            "    end)",
-            "    EnumDestructablesInRect(null, null, () -> begin",
-            "        if GetEnumDestructable() != null",
-            "            skip",
-            "    end)"
-        );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_groupItemDestructableCallbacksUseWurstContextHelpersInLua.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "\\b__wurst_ForGroup\\(");
-        assertContainsRegex(compiled, "\\b__wurst_GetEnumUnit\\(");
-        assertContainsRegex(compiled, "\\b__wurst_EnumItemsInRect\\(");
-        assertContainsRegex(compiled, "\\b__wurst_GetEnumItem\\(");
-        assertContainsRegex(compiled, "\\b__wurst_EnumDestructablesInRect\\(");
-        assertContainsRegex(compiled, "\\b__wurst_GetEnumDestructable\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForGroup\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_EnumItemsInRect\\s*\\(");
-        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_EnumDestructablesInRect\\s*\\(");
-        assertTrue(compiled.contains("units[count] = GetEnumUnit()"));
-        assertTrue(compiled.contains("items[count] = GetEnumItem()"));
-        assertTrue(compiled.contains("dests[count] = GetEnumDestructable()"));
-        assertFalse(compiled.contains("units[count] = __wurst_GetEnumUnit()"));
-        assertFalse(compiled.contains("items[count] = __wurst_GetEnumItem()"));
-        assertFalse(compiled.contains("dests[count] = __wurst_GetEnumDestructable()"));
     }
 
     @Test

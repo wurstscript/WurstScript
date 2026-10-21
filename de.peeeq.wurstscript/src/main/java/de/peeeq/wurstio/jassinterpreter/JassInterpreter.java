@@ -31,6 +31,9 @@ public class JassInterpreter implements AbstractInterpreter {
     private final Map<String, JassInitializedVar> uninitializedBjGlobals = new HashMap<>();
     private boolean trace = false;
     private final Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
+    /** One set of native mocks per run: a mock keeps state between its natives, such as the unit ForGroup is
+     *  visiting, which GetEnumUnit answers. */
+    private @Nullable ReflectionNativeProvider nativeProvider;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
     /** Names of the real globals, which convert an integer stored into them. */
     private final Set<String> realGlobals = new HashSet<>();
@@ -490,7 +493,11 @@ public class JassInterpreter implements AbstractInterpreter {
         if (name.equals("ExecuteFunc")) {
             return executeFuncNative();
         }
-        ReflectionNativeProvider nf = new ReflectionNativeProvider(this);
+        ReflectionNativeProvider nf = nativeProvider;
+        if (nf == null) {
+            nf = new ReflectionNativeProvider(this);
+            nativeProvider = nf;
+        }
         ExecutableJassFunction functionPair = nf.getFunctionPair(name);
         return functionPair != null ? functionPair : new UnknownJassFunction(name);
     }

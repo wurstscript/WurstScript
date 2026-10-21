@@ -10,7 +10,7 @@ against the real Blizzard.j implementations instead of minimal mocks.
   FourCC, player-layout constants, text output), the natives the
   standard library's package inits call (timers, forces), and common.j
   natives that executing tests call (string, math and bit natives,
-  `GetHandleId`, player state, units, destructables), kept in step with the
+  `GetHandleId`, player state, units, groups, destructables), kept in step with the
   interpreter's mocks. With the standard library the generated script
   defines no fallback for a common.j native, so one missing here fails
   with `attempt to call a nil value`.

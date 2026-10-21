@@ -74,20 +74,26 @@ public class GroupProvider extends Provider {
         return groupList.iterator().next();
     }
 
+    /** Measured on the 3.0.0.24268 client: ForGroup visits the units the group held when it was called (a unit
+     *  removed during the enumeration is still visited, one added is not), and GetEnumUnit answers the unit being
+     *  visited, also after a nested ForGroup returns. */
     public void ForGroup(IlConstHandle group, ILconstFuncRef funcRef) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
-        groupList.forEach((IlConstHandle u) -> {
+        new ArrayList<>(groupList).forEach((IlConstHandle u) -> {
             enumUnitStack.push(u);
             interpreter.runFuncRef(funcRef, null);
             enumUnitStack.pop();
         });
     }
 
-    public IlConstHandle GetEnumUnit() {
-        if (enumUnitStack.size() == 0 || enumUnitStack.peek() == null) {
+    /** Null outside any ForGroup, as measured on the 3.0.0.24268 client. */
+    public ILconst GetEnumUnit() {
+        IlConstHandle unit = enumUnitStack.peek();
+        if (unit == null) {
             WLogger.warning("Calling GetEnumUnit() outside of callback");
+            return ILconstNull.instance();
         }
-        return enumUnitStack.peek();
+        return unit;
     }
 
     public void DestroyGroup(IlConstHandle group) {
