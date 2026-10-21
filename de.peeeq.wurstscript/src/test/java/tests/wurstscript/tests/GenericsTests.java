@@ -2191,4 +2191,165 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** A field of a new-generic class read straight through an old-generic field holding the instance. */
+    @Test
+    public void newGenericFieldReadThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    let b = new Box<int>",
+            "    b.value = 5",
+            "    h.item = b",
+            "    if h.item.value == 5",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same chained read, inlined and locally optimised. */
+    @Test
+    public void newGenericFieldReadThroughOldGenericFieldOptimized() {
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    let b = new Box<int>",
+            "    b.value = 5",
+            "    h.item = b",
+            "    if h.item.value == 5",
+            "        testSuccess()"
+        );
+    }
+
+    /** A new-generic field written straight through an old-generic field holding the instance. */
+    @Test
+    public void newGenericFieldWrittenThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    h.item = new Box<int>",
+            "    h.item.value = 7",
+            "    if h.item.value == 7",
+            "        testSuccess()"
+        );
+    }
+
+    /** A method of a new-generic class called straight on an old-generic field holding the instance. */
+    @Test
+    public void newGenericMethodCalledThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    let b = new Box<int>",
+            "    b.value = 5",
+            "    h.item = b",
+            "    if h.item.get() == 5",
+            "        testSuccess()"
+        );
+    }
+
+    /** An inherited new-generic field and method reached straight through an old-generic field. */
+    @Test
+    public void inheritedNewGenericMemberThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Sub<U:> extends Box<U>",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Sub<string>>",
+            "    h.item = new Sub<string>",
+            "    h.item.value = \"x\"",
+            "    if h.item.value == \"x\" and h.item.get() == \"x\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A non-generic class's field read straight through an old-generic field. */
+    @Test
+    public void plainFieldReadThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box",
+            "    int value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box>",
+            "    let b = new Box",
+            "    b.value = 5",
+            "    h.item = b",
+            "    if h.item.value == 5",
+            "        testSuccess()"
+        );
+    }
+
+    /** A new-generic class's field read straight through a new-generic field holding the instance. */
+    @Test
+    public void newGenericFieldReadThroughNewGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "class Holder<T:>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    let b = new Box<int>",
+            "    b.value = 5",
+            "    h.item = b",
+            "    if h.item.value == 5",
+            "        testSuccess()"
+        );
+    }
+
+    /** A new-generic field read straight through the result of an old-generic function. */
+    @Test
+    public void newGenericFieldReadThroughOldGenericFunctionResult() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "function id<T>(T t) returns T",
+            "    return t",
+            "init",
+            "    let b = new Box<int>",
+            "    b.value = 5",
+            "    if id(b).value == 5",
+            "        testSuccess()"
+        );
+    }
+
 }

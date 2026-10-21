@@ -21,6 +21,7 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -415,17 +416,17 @@ public class ExprTranslation {
 
                 if (e instanceof AstElementWithIndexes withIndexes) {
                     if (indexGetOverload != null) {
-                        ImExpr receiver = JassIm.ImMemberAccess(e, implicitParam.imTranslateExpr(t, f), JassIm.ImTypeArguments(), v, JassIm.ImExprs());
+                        ImExpr receiver = memberAccess(e, implicitParam, implicitParam.imTranslateExpr(t, f), v, varDef, JassIm.ImExprs(), t);
                         ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
                         ImFunction calledFunc = t.getFuncFor(indexGetOverload.getDef());
                         return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(receiver, index), false, CallType.NORMAL);
                     }
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
+                    return memberAccess(e, implicitParam, index1, v, varDef, JassIm.ImExprs(index2), t);
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
+                    return memberAccess(e, implicitParam, index, v, varDef, JassIm.ImExprs(), t);
                 }
             } else {
                 // direct var access
@@ -454,6 +455,45 @@ public class ExprTranslation {
         } else {
             throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
         }
+    }
+
+    /** The access to {@code field} of {@code receiver}, translated to {@code translatedReceiver}. */
+    static ImMemberAccess memberAccess(Element trace, Expr receiver, ImExpr translatedReceiver, ImVar field,
+                                       VarDef fieldDef, ImExprs indexes, ImTranslator t) {
+        ImTypeArguments typeArguments = ImTypeArguments(
+            erasedReceiverTypeArguments(receiver, translatedReceiver, fieldDef.attrNearestClassOrInterface(), t));
+        return JassIm.ImMemberAccess(trace, translatedReceiver, typeArguments, field, indexes);
+    }
+
+    /**
+     * The type arguments of {@code owner}, the class of a member reached through {@code receiver}, when the receiver
+     * is an old-generic value.
+     * <p>
+     * EliminateGenerics gives a member access or method call the type arguments of the member's class from the
+     * receiver's IM type. An old-generic value is erased to {@code any} there, so in {@code h.item.value} with
+     * {@code h} a {@code Holder<Box<int>>} the type argument of {@code Box} would be gone and the access would reach
+     * the field of the unspecialised class. The receiver's Wurst type still has it, so the translation supplies the
+     * arguments; a receiver of any other IM type gets none here and keeps getting them from that type.
+     */
+    static List<ImTypeArgument> erasedReceiverTypeArguments(@Nullable Expr receiver, ImExpr translatedReceiver,
+                                                            @Nullable ClassOrInterface owner, ImTranslator t) {
+        if (receiver == null || owner == null || !(translatedReceiver.attrTyp() instanceof ImAnyType)
+            || !(receiver.attrTyp().normalize() instanceof WurstTypeClassOrInterface receiverType)) {
+            return List.of();
+        }
+        List<WurstTypeClassOrInterface> types = new ArrayList<>();
+        types.add(receiverType);
+        types.addAll(receiverType.transitiveSupertypes());
+        for (WurstTypeClassOrInterface type : types) {
+            if (type.getDef() == owner && type.imTranslateType(t) instanceof ImClassType classType) {
+                List<ImTypeArgument> typeArguments = new ArrayList<>();
+                for (ImTypeArgument typeArgument : classType.getTypeArguments()) {
+                    typeArguments.add(typeArgument.copy());
+                }
+                return typeArguments;
+            }
+        }
+        return List.of();
     }
 
     private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
@@ -680,6 +720,7 @@ public class ExprTranslation {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(
                 t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            typeArguments.addAll(0, erasedReceiverTypeArguments(leftExpr, receiver, calledFunc.attrNearestClassOrInterface(), t));
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = directFunc;
@@ -1023,11 +1064,11 @@ public class ExprTranslation {
                     }
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = astElementWithIndexes.getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
+                    return memberAccess(e, implicitParam, index1, v, varDef, JassIm.ImExprs(index2), t);
 
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
+                    return memberAccess(e, implicitParam, index, v, varDef, JassIm.ImExprs(), t);
                 }
             } else {
                 // direct var access

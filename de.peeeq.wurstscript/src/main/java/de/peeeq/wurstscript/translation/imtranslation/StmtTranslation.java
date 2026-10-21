@@ -387,7 +387,8 @@ public class StmtTranslation {
         ImExpr receiver;
         if (left.attrImplicitParameter() instanceof Expr) {
             Expr implicit = (Expr) left.attrImplicitParameter();
-            receiver = JassIm.ImMemberAccess(left, implicit.imTranslateExpr(t, f), JassIm.ImTypeArguments(), receiverVar, JassIm.ImExprs());
+            receiver = ExprTranslation.memberAccess(left, implicit, implicit.imTranslateExpr(t, f), receiverVar, varDef,
+                JassIm.ImExprs(), t);
         } else {
             receiver = ImVarAccess(receiverVar);
         }
