@@ -91,7 +91,12 @@ public class StmtTranslation {
             } else {
                 // store from-expression in variable, so that it is only evaluated once
                 ImExpr iterationTargetTr = iterationTarget.imTranslateExpr(t, f);
-                ImVar fromVar = ImVar(s, iterationTargetTr.attrTyp(), "from", false);
+                // An old-generic target is erased to any; the variable takes the class its Wurst type has, so the
+                // hasNext and next calls on it get that class's type arguments.
+                ImType fromType = iterationTargetTr.attrTyp() instanceof ImAnyType
+                    ? iterationTarget.attrTyp().imTranslateType(t)
+                    : iterationTargetTr.attrTyp();
+                ImVar fromVar = ImVar(s, fromType, "from", false);
                 f.getLocals().add(fromVar);
                 result.add(ImSet(s, ImVarAccess(fromVar), iterationTargetTr));
                 fromTarget = JassIm.ImExprs(ImVarAccess(fromVar));
@@ -387,7 +392,8 @@ public class StmtTranslation {
         ImExpr receiver;
         if (left.attrImplicitParameter() instanceof Expr) {
             Expr implicit = (Expr) left.attrImplicitParameter();
-            receiver = JassIm.ImMemberAccess(left, implicit.imTranslateExpr(t, f), JassIm.ImTypeArguments(), receiverVar, JassIm.ImExprs());
+            receiver = ExprTranslation.memberAccess(left, implicit, implicit.imTranslateExpr(t, f), receiverVar, varDef,
+                JassIm.ImExprs(), t);
         } else {
             receiver = ImVarAccess(receiverVar);
         }
