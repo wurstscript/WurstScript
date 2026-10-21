@@ -223,30 +223,6 @@ Notes; finished-work narrative does not.
           testSuccess()
   ```
 
-- **A closure inside another closure which uses its owner's `T` crashes `EliminateGenerics`** on Jass
-  and Lua ("Rewrite generics with wrong sizes", in `specializeClass` through a `GenericMemberAccess` of
-  the outer closure, whose captured `T` gets no type argument). `classNeedsIdentity` leaves such a closure
-  erased (`isInsideAnotherClosure`), so a Lua `instanceof Box<T>` in it would also accept every `Box`:
-
-  ```wurst
-  interface Marker
-  class Box<T:> implements Marker
-  interface Pred
-      function test(Marker m) returns bool
-  interface Mk
-      function mk() returns Pred
-  class G<T:>
-      function pred() returns Pred
-          Mk outer = () -> begin
-              Pred p = (Marker x) -> x instanceof Box<T>
-              return p
-          end
-          return outer.mk()
-  init
-      if new G<int>().pred().test(new Box<int>())
-          testSuccess()
-  ```
-
 - **Executing tests left off Lua.** Master CI runs every executing test on Lua too (`-PallBackends`) on
   its Linux and Windows jobs, whose Lua is 5.3; macOS, with Homebrew's unpinned Lua, does not. The 13
   `MISSING_TEST_NATIVE` exemptions wait for natives in `wc3shim.lua`, and `executeTests()` (Wurst `@Test`
