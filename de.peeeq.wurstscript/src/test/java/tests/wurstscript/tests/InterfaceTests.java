@@ -1317,4 +1317,34 @@ public class InterfaceTests extends WurstScriptTest {
             "    override function pick<T:>(T a, T b) returns T",
             "        return b");
     }
+
+    /**
+     * The interface is an old generic bound to real, so the implementation is reached through a function which converts
+     * the index the interface passes; that function must take the method's own type parameter and pass it on.
+     */
+    @Test
+    public void aMethodWithATypeParameterOfItsOwnImplementsAnOldGenericInterfaceMethodWhichNeedsConversion() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "real array stored",
+            "int count = 0",
+            "real last = 0",
+            "function realToIndex(real r) returns int",
+            "    count++",
+            "    stored[count] = r",
+            "    return count",
+            "function realFromIndex(int i) returns real",
+            "    return stored[i]",
+            "interface I<X>",
+            "    function f<T:>(X x, T t) returns T",
+            "class C implements I<real>",
+            "    function f<T:>(real x, T t) returns T",
+            "        last = x",
+            "        return t",
+            "init",
+            "    I<real> i = new C()",
+            "    if i.f<int>(1.5, 3) == 3 and last == 1.5 and i.f<string>(2.5, \"s\") == \"s\" and last == 2.5",
+            "        testSuccess()");
+    }
 }
