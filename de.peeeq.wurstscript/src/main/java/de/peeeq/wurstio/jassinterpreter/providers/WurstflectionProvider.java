@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
-import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
@@ -8,7 +7,6 @@ import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImProg;
 
 import java.util.Map;
-import java.util.Optional;
 
 import static de.peeeq.wurstscript.translation.imtranslation.EliminateClasses.calculateClassName;
 import static de.peeeq.wurstscript.translation.imtranslation.EliminateClasses.calculateMaxTypeId;
@@ -20,23 +18,16 @@ public class WurstflectionProvider extends Provider {
     }
 
 
+    /** The qualified name of the class with the type id, "unknown" for any other number, as on both targets. */
     public ILconstString typeIdToTypeName(ILconstInt typeId) {
         ImProg prog = interpreter.getImProg();
         int typeIdInt = typeId.getVal();
         for (Map.Entry<ImClass, Integer> e : prog.attrTypeId().entrySet()) {
             if (e.getValue() == typeIdInt) {
-                ILconstString iLconstString = ILconstString.fromText(calculateClassName(e.getKey()));
-                return Optional.of(iLconstString)
-                    .orElseGet(() -> {
-                        throw new InterpreterException("Could not determine type name for id " + typeId);
-                    });
+                return ILconstString.fromText(calculateClassName(e.getKey()));
             }
         }
-        return Optional.<ILconstString>empty()
-            .orElseGet(() -> {
-                throw new InterpreterException("Could not determine type name for id " + typeId);
-            });
-
+        return ILconstString.fromText("unknown");
     }
 
     public ILconstInt maxTypeId() {

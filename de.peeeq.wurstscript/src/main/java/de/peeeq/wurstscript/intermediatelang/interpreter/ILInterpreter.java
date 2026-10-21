@@ -706,26 +706,23 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
     @Override
     public int getInstanceCount(int val) {
-        long count = 0L;
-        for (ILconstObject o : globalState.getAllObjects()) {
-            if (o.getType().getClassDef().attrTypeId() == val) {
-                if (!o.isDestroyed()) {
-                    count++;
-                }
-            }
-        }
-        return (int) count;
+        ImClass c = classOfTypeId(val);
+        return c == null ? 0 : globalState.liveObjectsOfGroup(c);
     }
 
     @Override
     public int getMaxInstanceCount(int val) {
-        long count = 0L;
-        for (ILconstObject o : globalState.getAllObjects()) {
-            if (o.getType().getClassDef().attrTypeId() == val) {
-                count++;
+        ImClass c = classOfTypeId(val);
+        return c == null ? 0 : globalState.mostLiveObjectsOfGroup(c);
+    }
+
+    private @Nullable ImClass classOfTypeId(int typeId) {
+        for (Map.Entry<ImClass, Integer> e : prog.attrTypeId().entrySet()) {
+            if (e.getValue() == typeId) {
+                return e.getKey();
             }
         }
-        return (int) count;
+        return null;
     }
 
     /**
