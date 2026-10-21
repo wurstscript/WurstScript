@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -105,13 +106,37 @@ public class InterfaceTranslator {
             ImMethod m = translator.getMethodFor(subM);
 
             ImClass mClass = translator.getClassFor(subC);
-            if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
-                FuncDef interfaceDefault = defaultOf(subCT, f);
+            if (subM.attrNearestClassDef() == null) {
+                // the default of an interface extending this one, which the class takes for f
+                m = methodOfItsOwn(mClass, subCT, m, subM);
+            } else if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
+                WurstTypeClass adopter = adopterOf(subCT, subM.attrNearestClassDef(), subClasses);
+                FuncDef interfaceDefault = WurstValidator.subInterfaceDefaultOf(adopter.getClassDef(), f);
+                if (interfaceDefault == null) {
+                    interfaceDefault = defaultOf(adopter, f);
+                }
                 m = methodOfItsOwn(mClass, subCT, m, interfaceDefault == null ? subM : interfaceDefault);
             }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
 
+    }
+
+    /**
+     * The class which adopted the method {@code classType} inherits from {@code owner} as its implementation of this
+     * interface: the highest class from {@code classType} up to, not including, {@code owner} which implements the
+     * interface. Its interfaces decide whether a default beats the inherited method, and the classes below it inherit
+     * that choice, as the validator expects ({@code WurstValidator.findImplementationLink}). The default is that of a
+     * sub-interface, generic or not, else one of another interface ({@link #defaultOf}).
+     */
+    private static WurstTypeClass adopterOf(WurstTypeClass classType, ClassDef owner, List<ClassDef> instances) {
+        WurstTypeClass adopter = classType;
+        for (WurstTypeClass t = classType.extendedClass(); t != null && t.getClassDef() != owner; t = t.extendedClass()) {
+            if (instances.contains(t.getClassDef())) {
+                adopter = t;
+            }
+        }
+        return adopter;
     }
 
     /**
@@ -122,7 +147,9 @@ public class InterfaceTranslator {
      * own with Base's implementation, which its subclasses inherit. The overrides below C are its sub-methods, as they
      * are Base's ({@link ImTranslator#linkOverridesBelow}). Where another interface of C gives m a default, the
      * default is the implementation: a default beats an inherited method (a call through that interface runs it on
-     * every backend), and Lua binds one implementation for C to both.
+     * every backend), and Lua binds one implementation for C to both. C also gets a method of its own where it takes m
+     * from the default of an interface extending this one, which belongs to that interface: that default is the
+     * implementation the validator chose ({@code WurstValidator.findImplementationLink}), not the first default found.
      * <p>
      * Where neither C nor the class of the implementation is generic, the method runs that implementation's function.
      * Otherwise it gets a function of C which calls it ({@link #implementationOfItsOwn}).
