@@ -579,21 +579,14 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             }
         }
 
-        /**
-         * The read, as an int expression on the object {@code r} names; lines it needs first go at depth {@code d}.
-         * The instanceof reads a local copy of the field: Jass translation rejects {@code this.held instanceof
-         * Box<T>} in a generic class ("Could not find field array"), which is reported on its own.
-         */
-        private String readOp(int d, String r) {
-            if (c.dep == Dep.INSTANCEOF) {
-                line(d, "let h = " + r + "held");
-            }
+        /** The read, as an int expression on the object {@code r} names. */
+        private String readOp(String r) {
             return switch (c.dep) {
                 case STATIC -> r + "codec.key(sv) + 1000 * cnt";
                 case FIXED_STATIC -> "key" + x.suffix + "(" + r + "cell.get(" + r + "id)) + 1000 * " + r + "cell.writes()";
                 case BOUND -> "T.kkey(" + r + "bv)";
                 case NEW_INSTANCE -> r + "codec.key(" + r + "made) + 1000 * " + r + "madeK";
-                case INSTANCEOF -> "b2i(h instanceof Box<T>) + 2 * b2i(boxX instanceof Box<T>)"
+                case INSTANCEOF -> "b2i(" + r + "held instanceof Box<T>) + 2 * b2i(boxX instanceof Box<T>)"
                     + " + 4 * b2i(boxY instanceof Box<T>)";
                 case FIELD -> r + "codec.key(" + r + "fv)";
             };
@@ -653,10 +646,10 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
             }
             line(d, ov + "function r() returns int");
             switch (c.site) {
-                case METHOD, INHERITED, MODULE -> line(d + 1, "return " + readOp(d + 1, ""));
+                case METHOD, INHERITED, MODULE -> line(d + 1, "return " + readOp(""));
                 case CLOSURE -> {
                     line(d + 1, "Fn f = () -> begin");
-                    line(d + 2, "return " + readOp(d + 2, ""));
+                    line(d + 2, "return " + readOp(""));
                     line(d + 1, "end");
                     line(d + 1, "let v = f.get()");
                     line(d + 1, "destroy f");
@@ -698,7 +691,7 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
                         line(2, "if mode == 1");
                         writeOp(3, "t.", "k");
                         line(2, "else");
-                        line(3, "t.seen = " + readOp(3, "t."));
+                        line(3, "t.seen = " + readOp("t."));
                     } else if (c.site == Site.ONDESTROY) {
                         line(1, "construct(G<T> t, int k, int mode)");
                         line(2, "target = t");
@@ -708,7 +701,7 @@ public class GenericSpecialisationMatrixTests extends WurstScriptTest {
                         line(2, "if opMode == 1");
                         writeOp(3, "target.", "opK");
                         line(2, "else if opMode == 2");
-                        line(3, "target.seen = " + readOp(3, "target."));
+                        line(3, "target.seen = " + readOp("target."));
                     }
                     operations(1);
                 }

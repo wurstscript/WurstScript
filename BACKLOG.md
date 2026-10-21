@@ -25,25 +25,6 @@ Notes; finished-work narrative does not.
   Each repro is a whole program after `package Test` and `native testSuccess()`. The full product
   (`WURST_GENERIC_MATRIX=full`) adds no other class of failure.
 
-- **Jass: `this.field instanceof Box<T>` in a generic class fails translation** ("Could not find field
-  array for this.G_held<integer>"), also for a local captured by a closure, which becomes a field. A
-  local copy (`let h = held`) compiles, so the matrix reads one:
-
-  ```wurst
-  interface Marker
-  class Box<T:> implements Marker
-      T item
-  class G<T:>
-      Marker held = null
-      function r() returns boolean
-          return held instanceof Box<T>
-  init
-      let g = new G<int>()
-      g.held = new Box<int>()
-      if g.r()
-          testSuccess()
-  ```
-
 - **Executing tests left off Lua.** Master CI runs every executing test on Lua too (`-PallBackends`) on
   its Linux and Windows jobs, whose Lua is 5.3; macOS, with Homebrew's unpinned Lua, does not. The 13
   `MISSING_TEST_NATIVE` exemptions wait for natives in `wc3shim.lua`, and `executeTests()` (Wurst `@Test`
@@ -67,14 +48,17 @@ Notes; finished-work narrative does not.
   Bound the Jass search and make the interpreter answer as the backends do (docs/WC3_RUNTIME.md
   "Objects and memory").
 
-- **`GetHandleId` of a unit or another agent is the compiler's own counter on Lua.** `LuaNativeLowering`
-  replaces `GetHandleId` of the `OPAQUE_RUNTIME_HANDLE_TYPES` (unit, item, timer, trigger, ...) with
-  `__wurst_GetHandleId`, which numbers handles from 1 in `__wurst_objectIndexMap` and keeps every handle it
-  numbered. The game's ids start at 0x100000 (measured on the 3.0.0 client), as the interpreter's do, so
-  `InterpreterTests.conversionNativesAsMeasured` is exempt from Lua, and a program which subtracts 0x100000
-  to index an array reads a negative index there. The tests check the remap's shape
-  (`LuaTranslationTests.getHandleIdIsRemappedToWurstPolyfillInLua`), not this difference. Call the game's
-  `GetHandleId`, or record why the remap is needed and document the difference (AGENTS.md §7).
+- **`GetHandleId` of an agent on Lua is the compiler's own counter, for a desync nobody measured.**
+  `LuaNativeLowering` replaces `GetHandleId` of the `OPAQUE_RUNTIME_HANDLE_TYPES` (unit, item, timer, trigger,
+  ...) with `__wurst_GetHandleId`, which numbers handles from 1 in `__wurst_objectIndexMap` and keeps every
+  handle it numbered reachable. The code gives no reason now; #1181 added it with the note that the game's ids
+  "can desync in Lua mode", and nothing in the repository measures that. The game's ids are no contract a
+  program can use either: #1323 saw agent ids from 1048676 up on the 3.0.0 client, the game recycles them, and
+  they run past a Jass array's bounds even less 0x100000. The interpreter numbers agents from 0x100000 as that
+  client did, so `InterpreterTests.conversionNativesAsMeasured` is exempt from Lua.
+  Measure in game whether one agent's `GetHandleId` differs between clients on Lua. If it does not, call the
+  native and drop the remap with the handles it keeps alive; if it does, record the measurement and document
+  the difference (AGENTS.md §7).
 
 - **Represent raw Lua helper bindings structurally.** Lua name compression now runs after backend
   lowering so it includes descriptors, field storage and resolved dispatch slots. `LuaLiteral` still
