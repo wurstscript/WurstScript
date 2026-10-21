@@ -123,6 +123,18 @@ public class EliminateGenerics {
         dbg(checkDanglingMethodRefs("end"));
 
         // TODO fix or remove this check
+        forgetCachedClassStructure();
+    }
+
+    /**
+     * Specialisation adds classes and rewrites superclass lists, so the type ids and subclass lists cached before
+     * it (compile-time code reads them through the interpreter) no longer describe the program's classes.
+     */
+    private void forgetCachedClassStructure() {
+        prog.clearAttributesLocal();
+        for (ImClass c : prog.getClasses()) {
+            c.clearAttributesLocal();
+        }
     }
 
     /**
@@ -171,6 +183,7 @@ public class EliminateGenerics {
         if (!specializeTupleValueTypes && !runtimeTypeSpecializations.isEmpty()) {
             keepErasedChecksWhereAnAllocationStaysErased();
         }
+        forgetCachedClassStructure();
     }
 
     /**
@@ -3023,6 +3036,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImDealloc f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -3030,6 +3044,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImInstanceof f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -3037,6 +3052,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImTypeIdOfObj f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }

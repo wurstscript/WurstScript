@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 public class InterpreterTests extends WurstScriptTest {
 
     private static final String LUA_HANDLE_IDS =
-        "`GetHandleId` of a unit or another agent is the compiler's own counter on Lua.";
+        "`GetHandleId` of an agent on Lua is the compiler's own counter, for a desync nobody measured.";
 
 
 
