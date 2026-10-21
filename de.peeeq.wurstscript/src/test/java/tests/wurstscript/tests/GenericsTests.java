@@ -1485,4 +1485,21 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** The same when a class which sorts before it is used by nothing, which Lua drops from the script. */
+    @Test
+    public void typeIdStoredAtCompileTimeSurvivesAnUnusedClassBeforeIt() {
+        test().testLua(true).luaOnly(false).runCompiletimeFunctions(true).executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Aunused",
+            "class Zused",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant zid = compiletime(new Zused().typeId)",
+            "init",
+            "    if new Zused().typeId == zid",
+            "        testSuccess()"
+        );
+    }
+
 }
