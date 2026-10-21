@@ -1686,6 +1686,32 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** A static inner class of a static inner class of a generic class reads the outermost owner's static. */
+    @Test
+    public void staticInnerClassOfStaticInnerClassReadsOwnerStatic() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T v)",
+            "        last = v",
+            "    function mid() returns Mid",
+            "        return new Mid()",
+            "    static class Mid",
+            "        function leaf() returns Leaf",
+            "            return new Leaf()",
+            "        static class Leaf",
+            "            function read() returns T",
+            "                return last",
+            "init",
+            "    let a = new Outer<int>(7)",
+            "    let b = new Outer<string>(\"x\")",
+            "    if a.mid().leaf().read() == 7 and b.mid().leaf().read() == \"x\"",
+            "        testSuccess()"
+        );
+    }
+
     /** A static inner class as the type argument of a generic class inside its owner reads the owner's static. */
     @Test
     public void staticInnerClassAsTypeArgumentInOwnerReadsOwnerStatic() {

@@ -3277,11 +3277,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         Map<TypeParamDef, ImTypeVar> override =
             capturedOwnerTypeVarsByStaticClass.computeIfAbsent(cd, k -> new IdentityHashMap<>());
 
-        for (TypeParamDef tp : owner.getTypeParameters()) {
-            if (!(tp.getTypeParamConstraints() instanceof TypeExprList)) {
-                continue;
-            }
-
+        for (TypeParamDef tp : typeParametersCapturedFrom(owner)) {
             ImTypeVar captured = override.get(tp);
             if (captured == null) {
                 // Create a *fresh* ImTypeVar node (do NOT reuse getTypeVar(tp))
@@ -3335,6 +3331,31 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             return null;
         }
         return owner == cd ? null : owner;
+    }
+
+    /**
+     * The type parameters a static inner class of {@code owner} captures, in the order of the owner's type variables:
+     * the owner's own, then, when the owner is a static inner class too, those it captured itself. So a class nested
+     * two levels deep in a generic class still has the outermost class's parameters.
+     */
+    private static List<TypeParamDef> typeParametersCapturedFrom(AstElementWithTypeParameters owner) {
+        List<TypeParamDef> result = new ArrayList<>();
+        for (TypeParamDef tp : owner.getTypeParameters()) {
+            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                result.add(tp);
+            }
+        }
+        if (owner instanceof ClassDef ownerClass) {
+            AstElementWithTypeParameters outer = capturingOwnerOf(ownerClass);
+            if (outer != null) {
+                for (TypeParamDef tp : typeParametersCapturedFrom(outer)) {
+                    if (!result.contains(tp)) {
+                        result.add(tp);
+                    }
+                }
+            }
+        }
+        return result;
     }
 
 
