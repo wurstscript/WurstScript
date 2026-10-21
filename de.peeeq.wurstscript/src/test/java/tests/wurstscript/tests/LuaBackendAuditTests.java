@@ -2688,6 +2688,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /** An object which reaches one generic interface through two paths, with two instantiations, is an instance of both. */
+    @Test
+    public void genericInstanceofThroughTwoPathsToOneGenericInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "interface G<T:> extends Marker",
+            "interface IntG extends G<int>",
+            "interface StringG extends G<string>",
+            "class Both implements IntG, StringG",
+            "class OnlyInt implements IntG",
+            "init",
+            "    Marker m = new Both()",
+            "    Marker o = new OnlyInt()",
+            "    if m instanceof G<int> and m instanceof G<string>",
+            "        and o instanceof G<int> and not (o instanceof G<string>)",
+            "        testSuccess()"
+        );
+    }
+
     /** The same through a non-generic interface, which does not name the instantiation of the receiver. */
     @Test
     public void genericInstanceofThroughANonGenericInterface() {

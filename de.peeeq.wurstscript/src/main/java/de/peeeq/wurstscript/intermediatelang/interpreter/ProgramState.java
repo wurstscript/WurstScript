@@ -284,13 +284,33 @@ public class ProgramState extends State implements AutoCloseable {
             return true;
         }
         ImClassType checked = (ImClassType) resolveType(type);
-        ImClassType actual = adaptToSuperclass(obj.getType(), type.getClassDef());
-        if (actual == null || EliminateGenerics.containsTypeVariable(checked)
-            || EliminateGenerics.containsTypeVariable(actual)) {
+        List<ImClassType> instantiations = new ArrayList<>();
+        collectInstantiations(obj.getType(), type.getClassDef(), instantiations);
+        if (instantiations.isEmpty() || EliminateGenerics.containsTypeVariable(checked)
+            || instantiations.stream().anyMatch(EliminateGenerics::containsTypeVariable)) {
             throw new InterpreterException(trace, "Cannot decide whether " + obj.getType() + " is a " + checked
                 + ": an instantiation is unknown here.");
         }
-        return new GenericTypes(checked.getTypeArguments()).equals(new GenericTypes(actual.getTypeArguments()));
+        GenericTypes checkedArguments = new GenericTypes(checked.getTypeArguments());
+        return instantiations.stream()
+            .anyMatch(actual -> checkedArguments.equals(new GenericTypes(actual.getTypeArguments())));
+    }
+
+    /**
+     * The instantiations of {@code owner} which {@code ct} is, through every path of its supertypes: a class can
+     * reach one generic interface with two instantiations, through two other interfaces.
+     */
+    private void collectInstantiations(ImClassType ct, ImClass owner, List<ImClassType> result) {
+        if (ct.getClassDef() == owner) {
+            result.add(ct);
+            return;
+        }
+        List<ImTypeVar> tvs = ct.getClassDef().getTypeVariables();
+        for (ImClassType superType : ct.getClassDef().getSuperClasses()) {
+            if (resolveType(ImAttrType.substituteType(superType, ct.getTypeArguments(), tvs)) instanceof ImClassType st) {
+                collectInstantiations(st, owner, result);
+            }
+        }
     }
 
     /**
