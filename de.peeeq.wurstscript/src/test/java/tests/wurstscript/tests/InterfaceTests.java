@@ -1930,6 +1930,39 @@ public class InterfaceTests extends WurstScriptTest {
             "class C implements S1, S2");
     }
 
+    /**
+     * A plain interface gives only the method's own type argument, a tuple, which Lua specialises; the generic class
+     * implementing it is constructed with a plain type argument and stays erased. The implementation specialised for
+     * the tuple must be bound to the erased class, which the objects come from, and so must the overrides below it,
+     * generic (D) or not (E).
+     */
+    @Test
+    public void aTupleTypeArgumentThroughAPlainInterfaceReachesTheErasedGenericImplementingClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(int a, int b)",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class C<Y:> implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "class D<Y:> extends C<Y>",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class E extends C<int>",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class X implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "function via(Top t) returns int",
+            "    return t.pick<pair>(pair(1, 2), pair(3, 4)).a",
+            "init",
+            "    if via(new C<string>()) == 3 and via(new D<string>()) == 1 and via(new E()) == 1 and via(new X()) == 1",
+            "        testSuccess()");
+    }
+
     /** A sub-interface method of another kind of generic is no default for the super-interface's method. */
     @Test
     public void aSubInterfaceDefaultOfAnotherKindOfGenericDoesNotImplementTheSuperInterfaceMethod() {

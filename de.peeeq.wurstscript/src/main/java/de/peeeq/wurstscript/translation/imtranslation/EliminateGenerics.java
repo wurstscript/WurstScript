@@ -2295,6 +2295,46 @@ public class EliminateGenerics {
         return new GenericTypes(typeArguments);
     }
 
+    /** The methods {@link #specializeOwnTypeArgumentsOnErasedClass} made, by original and the method's own arguments. */
+    private final Table<ImMethod, GenericTypes, ImMethod> erasedClassMethodSpecialisations = HashBasedTable.create();
+
+    /**
+     * Lua: the method of the erased generic class which {@code method} belongs to, specialised for the type arguments
+     * {@code method} declares itself and nothing else. The class's own type variables stay as they are, erased as in
+     * every other method of the class, so the objects of the erased class reach the implementation for these method
+     * arguments. The overrides below it are specialised for the same method arguments.
+     */
+    private ImMethod specializeOwnTypeArgumentsOnErasedClass(ImMethod method, GenericTypes methodGenerics) {
+        ImMethod known = erasedClassMethodSpecialisations.get(method, methodGenerics);
+        if (known != null) {
+            return known;
+        }
+        ImClass erasedClass = method.getMethodClass().getClassDef();
+        ImFunction function = method.getImplementation();
+        ImFunction newImplementation = function.copyWithRefs();
+        prog.getFunctions().add(newImplementation);
+        recordCopiedTypeVars(function.getTypeVariables(), newImplementation.getTypeVariables());
+        newImplementation.getTypeVariables().removeAll();
+        newImplementation.setName(function.getName() + "_specialized");
+        rewriteGenerics(newImplementation, methodGenerics, function.getTypeVariables());
+
+        ImMethod newM = method.copyWithRefs();
+        erasedClassMethodSpecialisations.put(method, methodGenerics, newM);
+        newM.setName(method.getName() + "_specialized_" + methodGenerics.makeName());
+        newM.setImplementation(newImplementation);
+        newM.setMethodClass(JassIm.ImClassType(erasedClass, JassIm.ImTypeArguments()));
+        erasedClass.getMethods().add(newM);
+        collectGenericNewUses(newImplementation);
+
+        newM.setSubMethods(new ArrayList<>());
+        for (ImMethod below : new ArrayList<>(method.getSubMethods())) {
+            newM.getSubMethods().add(isGenericType(below.getMethodClass())
+                ? specializeOwnTypeArgumentsOnErasedClass(below, methodGenerics)
+                : specializeMethod(below, methodGenerics));
+        }
+        return newM;
+    }
+
     private void adaptSubmethods(ImMethod m, ImMethod newM, GenericTypes generics) {
         List<ImMethod> oldSubMethods = m.getSubMethods();
         newM.setSubMethods(new ArrayList<>());
@@ -2326,6 +2366,12 @@ public class EliminateGenerics {
                     subClass.getMethods().add(specializedSubMethod);
                     newM.getSubMethods().add(specializedSubMethod);
                     continue;
+                }
+                if (genericNewOnly && !methodGenerics.getTypeArguments().isEmpty()) {
+                    // The class's type arguments are not known here (a plain interface gives none), but the method's
+                    // own are, and the ordinary objects of the class stay erased: bind the implementation for them
+                    // to the erased class. A specialised instantiation of the class gets its own below.
+                    newM.getSubMethods().add(specializeOwnTypeArgumentsOnErasedClass(subMethod, methodGenerics));
                 }
                 onSpecializeClass(subClass, (subGenerics, specializedSubClass) -> {
                     if (specializedSubClass.isSubclassOf(newMClass)) {
