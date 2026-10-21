@@ -817,7 +817,7 @@ public class InterpreterTests extends WurstScriptTest {
     /** Every expected value here was measured on the 3.0.0 client. */
     @Test
     public void groupOrderAsMeasured() {
-        test().withStdLib().executeProg(true).luaExempt(LuaExemption.MISSING_TEST_NATIVE, "GroupAddUnit").lines(
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
             "package Test",
             "function measured(string name, string actual, string expected)",
             "    if actual != expected",

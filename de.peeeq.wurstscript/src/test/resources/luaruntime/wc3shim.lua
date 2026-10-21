@@ -352,16 +352,19 @@ function ForForce(f, callback)
     end
 end
 
--- Groups hold their units in an array, in the order they were added. Measured on the 3.0.0.24268 client, on
+-- Groups hold their units in an array in creation order, not in the order they were added (measured on the 3.0.0
+-- client, as the interpreter's GroupProvider keeps them). Measured on the 3.0.0.24268 client, on
 -- Lua as on Jass: ForGroup visits the units the group held when it was called (a unit removed during the
 -- enumeration is still visited, one added is not), and GetEnumUnit answers the unit being visited, also after
 -- a nested ForGroup returns. CreateGroup is defined above for blizzard.j.lua.
 function GroupAddUnit(g, u)
     if u == nil then return false end
-    for i = 1, #g.units do
+    local at = #g.units + 1
+    for i = #g.units, 1, -1 do
         if g.units[i] == u then return false end
+        if g.units[i].serial > u.serial then at = i end
     end
-    g.units[#g.units + 1] = u
+    table.insert(g.units, at, u)
     return true
 end
 function GroupRemoveUnit(g, u)
@@ -376,6 +379,9 @@ end
 function GroupClear(g) g.units = {} end
 function DestroyGroup(g) g.units = {} end
 function CountUnitsInGroup(g) return #g.units end
+function BlzGroupGetSize(g) return #g.units end
+function BlzGroupUnitAt(g, index) return g.units[index + 1] end
+function FirstOfGroup(g) return g.units[1] end
 function IsUnitInGroup(u, g)
     for i = 1, #g.units do
         if g.units[i] == u then return true end
@@ -398,9 +404,13 @@ end
 
 -- Units and destructables keep what they were created with; nothing in a test moves them. Plain
 -- records, not a model of the game's units.
+local unitsCreated = 0
 function CreateUnit(owner, unitId, x, y, face)
-    return { owner = owner, typeId = unitId, x = x, y = y, face = face }
+    unitsCreated = unitsCreated + 1
+    return { owner = owner, typeId = unitId, x = x, y = y, face = face, serial = unitsCreated }
 end
+-- A killed unit stays in its groups (measured on the 3.0.0 client).
+function KillUnit(u) u.dead = true end
 function GetUnitTypeId(u) return u.typeId end
 function CreateDestructable(objectId, x, y, face, scale, variation)
     return { typeId = objectId, x = x, y = y, face = face, scale = scale, variation = variation }
