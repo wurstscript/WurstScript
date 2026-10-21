@@ -3,6 +3,13 @@ package tests.wurstscript.tests;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+
 public class GenericsTests extends WurstScriptTest {
 
 
@@ -1536,6 +1543,271 @@ public class GenericsTests extends WurstScriptTest {
             "constant boxId = compiletime(new Box<int>().typeId)",
             "init",
             "    if new Box<int>().typeId == boxId",
+            "        testSuccess()"
+        );
+    }
+
+    /** A default method of a bounded interface dispatches its bound by each implementing class's type argument. */
+    @Test
+    public void interfaceDefaultMethodWithBoundInheritedByConcreteClasses() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kkey(T v) returns int",
+            "implements Kc<int>",
+            "    function kkey(int v) returns int",
+            "        return v + 100",
+            "implements Kc<string>",
+            "    function kkey(string v) returns int",
+            "        return 200",
+            "interface Shower<T: Kc>",
+            "    function val() returns T",
+            "    function show() returns int",
+            "        return T.kkey(val())",
+            "class IntShower implements Shower<int>",
+            "    function val() returns int",
+            "        return 5",
+            "class StrShower implements Shower<string>",
+            "    function val() returns string",
+            "        return \"a\"",
+            "init",
+            "    Shower<int> s = new IntShower()",
+            "    Shower<string> t = new StrShower()",
+            "    if s.show() == 105 and t.show() == 200",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A default method constructing a class with statics reaches the statics of each implementing class's
+     * instantiation. The interpreter runs the translated program only: on untranslated IM a method a class inherits
+     * from a concrete instantiation reaches one static for all, a superclass's as well as an interface's.
+     */
+    @Test
+    public void interfaceDefaultMethodUsingStaticsPerInstantiation() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Counter<T:>",
+            "    static int made = 0",
+            "    construct()",
+            "        made++",
+            "    function count() returns int",
+            "        return made",
+            "interface Maker<T:>",
+            "    function bump() returns int",
+            "        return new Counter<T>().count()",
+            "class IntMaker implements Maker<int>",
+            "class StrMaker implements Maker<string>",
+            "init",
+            "    Maker<int> a = new IntMaker()",
+            "    Maker<string> b = new StrMaker()",
+            "    let a1 = a.bump()",
+            "    let a2 = a.bump()",
+            "    let b1 = b.bump()",
+            "    if a1 == 1 and a2 == 2 and b1 == 1",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A default method's instanceof of an instantiation of its type parameter tells the instantiations apart. The
+     * interpreter runs the translated program only: on untranslated IM the inherited method does not know its
+     * instantiation.
+     */
+    @Test
+    public void interfaceDefaultMethodWithInstanceofOfItsTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "interface Checker<T:>",
+            "    function owns(Marker m) returns boolean",
+            "        return m instanceof Box<T>",
+            "class IntChecker implements Checker<int>",
+            "class StrChecker implements Checker<string>",
+            "init",
+            "    Checker<int> c = new IntChecker()",
+            "    Checker<string> d = new StrChecker()",
+            "    Marker i = new Box<int>()",
+            "    Marker s = new Box<string>()",
+            "    if c.owns(i) and not c.owns(s) and d.owns(s) and not d.owns(i)",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * One implementing class overrides the bounded default and another inherits it; each runs its own. On Lua every
+     * class binds the slot the call site dispatches to its own override or to the default specialised for int.
+     */
+    @Test
+    public void interfaceDefaultMethodWithBoundOverriddenInOneImplementingClass() throws IOException {
+        String name = "interfaceDefaultMethodWithBoundOverriddenInOneImplementingClass";
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(overriddenBoundedDefaultSource());
+        String lua = compiledLua(name);
+        Matcher call = Pattern.compile("__wurst_objectClass\\[a\\]\\.(\\w+)\\(a\\)").matcher(lua);
+        assertTrue(call.find(), lua);
+        String slot = call.group(1);
+        for (String inherits : new String[] {"Inherits", "AlsoInherits"}) {
+            assertTrue(lua.contains("\n\t" + inherits + "." + slot + " = Shower_specialized_integer_Shower_show\n"),
+                inherits + " must bind " + slot + " to the default specialised for int:\n" + lua);
+        }
+        for (String overrides : new String[] {"Overrides", "AlsoOverrides"}) {
+            assertTrue(lua.contains("\n\t" + overrides + "." + slot + " = " + overrides + "_" + overrides + "_show\n"),
+                overrides + " must bind " + slot + " to its own override:\n" + lua);
+        }
+        assertFalse(lua.contains("= Shower_Shower_show"), lua);
+    }
+
+    /** The source of {@link #interfaceDefaultMethodWithBoundOverriddenInOneImplementingClass}. */
+    static String[] overriddenBoundedDefaultSource() {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kkey(T v) returns int",
+            "implements Kc<int>",
+            "    function kkey(int v) returns int",
+            "        return v + 100",
+            "interface Shower<T: Kc>",
+            "    function val() returns T",
+            "    function show() returns int",
+            "        return T.kkey(val())",
+            "class Inherits implements Shower<int>",
+            "    function val() returns int",
+            "        return 5",
+            "class Overrides implements Shower<int>",
+            "    function val() returns int",
+            "        return 6",
+            "    override function show() returns int",
+            "        return 7",
+            "class AlsoInherits implements Shower<int>",
+            "    function val() returns int",
+            "        return 8",
+            "class AlsoOverrides implements Shower<int>",
+            "    function val() returns int",
+            "        return 9",
+            "    override function show() returns int",
+            "        return 10",
+            "init",
+            "    Shower<int> a = new Inherits()",
+            "    Shower<int> b = new Overrides()",
+            "    Shower<int> c = new AlsoInherits()",
+            "    Shower<int> d = new AlsoOverrides()",
+            "    if a.show() == 105 and b.show() == 7 and c.show() == 108 and d.show() == 10",
+            "        testSuccess()"
+        };
+    }
+
+    /** A bounded default inherited through an interface which extends the generic interface, generic or concrete. */
+    @Test
+    public void interfaceDefaultMethodWithBoundInheritedThroughAnExtendingInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kkey(T v) returns int",
+            "implements Kc<int>",
+            "    function kkey(int v) returns int",
+            "        return v + 100",
+            "implements Kc<string>",
+            "    function kkey(string v) returns int",
+            "        return 200",
+            "interface Shower<T: Kc>",
+            "    function val() returns T",
+            "    function show() returns int",
+            "        return T.kkey(val())",
+            "interface MidShower<T: Kc> extends Shower<T>",
+            "interface IntMidShower extends Shower<int>",
+            "class ThroughGeneric implements MidShower<string>",
+            "    function val() returns string",
+            "        return \"a\"",
+            "class ThroughConcrete implements IntMidShower",
+            "    function val() returns int",
+            "        return 5",
+            "init",
+            "    Shower<string> s = new ThroughGeneric()",
+            "    MidShower<string> m = new ThroughGeneric()",
+            "    Shower<int> t = new ThroughConcrete()",
+            "    IntMidShower u = new ThroughConcrete()",
+            "    if s.show() == 200 and m.show() == 200 and t.show() == 105 and u.show() == 105",
+            "        testSuccess()"
+        );
+    }
+
+    /** A generic class implementing the bounded interface with its own type parameter runs the default per instantiation. */
+    @Test
+    public void interfaceDefaultMethodWithBoundInheritedByGenericClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kkey(T v) returns int",
+            "implements Kc<int>",
+            "    function kkey(int v) returns int",
+            "        return v + 100",
+            "implements Kc<string>",
+            "    function kkey(string v) returns int",
+            "        return 200",
+            "interface Shower<T: Kc>",
+            "    function val() returns T",
+            "    function show() returns int",
+            "        return T.kkey(val())",
+            "class G<T: Kc> implements Shower<T>",
+            "    T v",
+            "    construct(T v)",
+            "        this.v = v",
+            "    function val() returns T",
+            "        return v",
+            "init",
+            "    Shower<int> s = new G<int>(5)",
+            "    Shower<string> t = new G<string>(\"a\")",
+            "    let g = new G<int>(7)",
+            "    if s.show() == 105 and t.show() == 200 and g.show() == 107",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A call through a non-generic interface, which names no instantiation, reaches the bounded default of each
+     * implementing class's instantiation. The interpreter runs the translated program only: on untranslated IM such a
+     * call leaves the bound unknown.
+     */
+    @Test
+    public void interfaceDefaultMethodWithBoundReachedThroughNonGenericInterface() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kkey(T v) returns int",
+            "implements Kc<int>",
+            "    function kkey(int v) returns int",
+            "        return v + 100",
+            "implements Kc<string>",
+            "    function kkey(string v) returns int",
+            "        return 200",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower<T: Kc>",
+            "    function val() returns T",
+            "    function shown() returns int",
+            "        return T.kkey(val())",
+            "class IntShower implements Shower<int>, Showable",
+            "    function val() returns int",
+            "        return 5",
+            "    function show() returns int",
+            "        return shown()",
+            "class StrShower implements Shower<string>, Showable",
+            "    function val() returns string",
+            "        return \"a\"",
+            "    function show() returns int",
+            "        return shown()",
+            "init",
+            "    Showable s = new IntShower()",
+            "    Showable t = new StrShower()",
+            "    if s.show() == 105 and t.show() == 200",
             "        testSuccess()"
         );
     }

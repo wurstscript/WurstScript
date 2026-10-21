@@ -1251,6 +1251,44 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     /**
+     * wurstNewInstance in an interface's default method constructs each implementing class's type argument, which only
+     * the implementing class's superclass edge names. The interpreter runs the translated program only.
+     */
+    @Test
+    public void genericConstructionInAnInterfaceDefaultMethod() {
+        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+            "package MagicFunctions",
+            "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+            "        return null",
+            "endpackage",
+            "",
+            "package FieldIterationTest",
+            "    import MagicFunctions",
+            "    native testSuccess()",
+            "",
+            "    class State",
+            "        int value = 7",
+            "",
+            "    class Other",
+            "        int value = 8",
+            "",
+            "    interface Loader<T:>",
+            "        function load() returns T",
+            "            return wurstNewInstance<T>()",
+            "",
+            "    class StateLoader implements Loader<State>",
+            "    class OtherLoader implements Loader<Other>",
+            "",
+            "    init",
+            "        Loader<State> a = new StateLoader()",
+            "        Loader<Other> b = new OtherLoader()",
+            "        if a.load().value == 7 and b.load().value == 8",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    /**
      * wurstNewInstance in the constructor of a generic class, in an ondestroy, and behind a super call, on Jass and Lua.
      * On Lua each reaches a copy specialised for its instantiation (EliminateGenerics.allocatesFromSpecialisedClass).
      * The interpreter runs the translated program only: it does not evaluate the intrinsic in untranslated generic IM.

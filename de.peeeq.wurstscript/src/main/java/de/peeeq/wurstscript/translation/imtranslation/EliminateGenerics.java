@@ -850,14 +850,18 @@ public class EliminateGenerics {
 
     /**
      * Whether a class which extends this instantiation extends the specialised class
-     * ({@link #collectSpecialisedSuperclasses}): when its objects come from the specialised class, unless it is an
-     * interface, which has no code to inherit and whose identity matters only to an {@code instanceof}
+     * ({@link #collectSpecialisedSuperclasses}): when its objects come from the specialised class. An interface only
+     * when one of its default methods needs the type argument ({@link #classNeedsIdentity}): a default method is code
+     * the implementing class inherits, and the erased one cannot dispatch a bound or reach a static for the
+     * implementing class's instantiation. Otherwise an interface's identity matters only to an {@code instanceof}
      * ({@link #needsRuntimeTypeSpecialization}).
      */
     private boolean inheritsFromSpecialisedClass(ImClass clazz, GenericTypes generics) {
-        return !(clazz.attrTrace() instanceof InterfaceDef)
-            && (allocatesFromSpecialisedClass(clazz, generics)
-                || needsRuntimeTypeSpecialization(clazz, generics, new HashSet<>()));
+        if (clazz.attrTrace() instanceof InterfaceDef) {
+            return !generics.containsTypeVariable() && classNeedsIdentity(clazz);
+        }
+        return allocatesFromSpecialisedClass(clazz, generics)
+            || needsRuntimeTypeSpecialization(clazz, generics, new HashSet<>());
     }
 
     /**
