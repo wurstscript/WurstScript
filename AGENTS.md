@@ -444,9 +444,11 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 * Targeted specialized methods needed by Lua dispatch must remain attached to the IM classes consumed by
   `LuaDispatchPreparation`. Concrete implementations for erased generic objects must bind the same root slot used
   by the call site.
-* Do not promise Lua support for a method which combines type parameters from its owning generic class with
-  independent method type parameters. Serialization loaders should be free generic functions, or class methods
-  parameterized only by their owning class.
+* A method of a generic class may declare type parameters of its own beside the class's: on Lua the class's
+  type arguments still come from the receiver, so a bound of the class's parameter dispatches as on Jass
+  (`TypeClassTests.classBoundWithIndependentMethodTypeParam`). Generic construction inside such a method is
+  not covered, so serialization loaders should be free generic functions, or class methods parameterized only
+  by their owning class.
 * A method invoked directly on a freshly constructed generic receiver is supported on Lua. The receiver's
   declared type is still generic at that point, so specialization takes the instantiation from the construction
   (`FieldIterationTests.genericConstructionOnFreshlyConstructedReceiver`).
