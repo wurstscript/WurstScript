@@ -1,6 +1,5 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstscript.attributes.CompileError;
 
 import java.util.regex.Pattern;
 
@@ -16,8 +15,6 @@ import java.util.regex.Pattern;
 public enum LuaExemption {
     /** Jass {@code ==} on reals allows a difference of 0.001; Lua compares exactly, by design. */
     REAL_EQUALITY_TOLERANCE("AGENTS.md §7, \"Reference semantics for arithmetic\"", Kind.PROGRAM_OUTCOME),
-    /** A method combining its class's type parameters with its own is not supported on Lua. */
-    CLASS_AND_METHOD_TYPE_PARAMS("AGENTS.md §9, \"Lowering and backend rules\"", Kind.TRANSLATION_ERROR),
     /**
      * Lua keeps objects and classes otherwise than Jass, as documented: one id space for every class, one erased
      * class for the instantiations of a new generic, and only the compile-time objects it makes again counted.
@@ -36,8 +33,6 @@ public enum LuaExemption {
     enum Kind {
         /** The program ran to its end on Lua and answered otherwise: testFail, or no testSuccess, with no Lua error. */
         PROGRAM_OUTCOME,
-        /** The compiler rejected the program while translating it to Lua. */
-        TRANSLATION_ERROR,
         /** Lua called the missing native the exemption names. */
         MISSING_NATIVE,
         /** Whatever the defect does; only the expected failure is checked. */
@@ -79,13 +74,6 @@ public enum LuaExemption {
                     return "the Lua run raised an error";
                 }
                 return null;
-            case TRANSLATION_ERROR:
-                for (Throwable t = failure; t != null; t = t.getCause() == t ? null : t.getCause()) {
-                    if (t instanceof CompileError) {
-                        return null;
-                    }
-                }
-                return "the Lua translation did not reject the program";
             case MISSING_NATIVE:
                 if (text.contains("attempt to call a nil value (global '" + expected + "')")
                     || text.contains("The native '" + expected + "' is not implemented")) {
