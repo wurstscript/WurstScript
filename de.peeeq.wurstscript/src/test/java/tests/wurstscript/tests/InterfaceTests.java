@@ -1265,6 +1265,35 @@ public class InterfaceTests extends WurstScriptTest {
     }
 
     /**
+     * Base takes Showable's show from GrandBase, so it has settled Showable's show before C adds two sibling defaults:
+     * C is no error, and a call through Showable runs GrandBase's show for C as for Base.
+     */
+    @Test
+    public void aSuperclassWhichImplementsTheInterfaceSettlesTwoSiblingSubInterfaceDefaults() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "class GrandBase",
+            "    function show() returns int",
+            "        return 7",
+            "class Base extends GrandBase implements Showable",
+            "class C extends Base implements S1, S2",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new Base()) == 7 and viaShowable(new C()) == 7",
+            "        testSuccess()");
+    }
+
+    /**
      * Through a chain of three interfaces, the nearest default is the implementation: Middle's for a class which
      * implements Middle, Bottom's for one which implements Bottom, through every interface above them.
      */

@@ -706,12 +706,9 @@ public class WurstValidator {
                     continue;
                 }
                 FuncLink implementation = findClassImplementationLink(c, bound);
-                if (implementation != null) {
-                    ClassDef owner = implementation.getDef().attrNearestClassDef();
-                    if (owner == c || (owner != null
-                        && supertypeDistance(owner.attrTypC(), interfaceDef) != Integer.MAX_VALUE)) {
-                        continue;
-                    }
+                if (implementation != null
+                    && settlesInterfaceMethod(c, implementation.getDef().attrNearestClassDef(), interfaceDef)) {
+                    continue;
                 }
                 // The interfaces' own methods, not the class's name links: an inherited class method hides the
                 // defaults there.
@@ -730,6 +727,33 @@ public class WurstValidator {
                 }
             }
         }
+    }
+
+    /**
+     * Whether the class implementation of an interface method, declared in {@code owner}, is what {@code c} runs for
+     * it: it is declared in {@code c}, or a class from {@code c}'s superclass up to {@code owner} implements the
+     * interface and so has adopted it already, which {@code c} inherits ({@code InterfaceTranslator}). Otherwise a
+     * default of the interfaces {@code c} adds beats it.
+     */
+    private static boolean settlesInterfaceMethod(ClassDef c, @Nullable ClassDef owner, InterfaceDef interfaceDef) {
+        if (owner == null) {
+            return false;
+        }
+        if (owner == c) {
+            return true;
+        }
+        WurstTypeClass superclass = c.attrTypC().extendedClass();
+        Set<ClassDef> visited = new HashSet<>();
+        while (superclass != null && visited.add(superclass.getClassDef())) {
+            if (supertypeDistance(superclass, interfaceDef) != Integer.MAX_VALUE) {
+                return true;
+            }
+            if (superclass.getClassDef() == owner) {
+                break;
+            }
+            superclass = superclass.extendedClass();
+        }
+        return false;
     }
 
     /** The methods named {@code name} of the interfaces of {@code c}, each bound to {@code c}. */

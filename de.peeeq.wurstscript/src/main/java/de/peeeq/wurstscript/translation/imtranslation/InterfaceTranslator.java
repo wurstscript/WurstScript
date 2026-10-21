@@ -109,12 +109,28 @@ public class InterfaceTranslator {
                 // the default of an interface extending this one, which the class takes for f
                 m = methodOfItsOwn(mClass, subCT, m, subM);
             } else if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
-                FuncDef interfaceDefault = defaultOf(subCT, f);
+                FuncDef interfaceDefault = defaultOf(adopterOf(subCT, subM.attrNearestClassDef(), subClasses), f);
                 m = methodOfItsOwn(mClass, subCT, m, interfaceDefault == null ? subM : interfaceDefault);
             }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
         }
 
+    }
+
+    /**
+     * The class which adopted the method {@code classType} inherits from {@code owner} as its implementation of this
+     * interface: the highest class from {@code classType} up to, not including, {@code owner} which implements the
+     * interface. Its interfaces decide whether a default beats the inherited method, and the classes below it inherit
+     * that choice, as the validator expects ({@code WurstValidator.settlesInterfaceMethod}).
+     */
+    private static WurstTypeClass adopterOf(WurstTypeClass classType, ClassDef owner, List<ClassDef> instances) {
+        WurstTypeClass adopter = classType;
+        for (WurstTypeClass t = classType.extendedClass(); t != null && t.getClassDef() != owner; t = t.extendedClass()) {
+            if (instances.contains(t.getClassDef())) {
+                adopter = t;
+            }
+        }
+        return adopter;
     }
 
     /**
