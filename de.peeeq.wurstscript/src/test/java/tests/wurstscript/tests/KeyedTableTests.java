@@ -124,6 +124,22 @@ public class KeyedTableTests extends WurstScriptTest {
             "endpackage"));
     }
 
+    /** A null class instance keys to 0 on every target, as its castTo int does, and as a null unit does above. */
+    @Test
+    public void nullClassInstanceKeysToZeroOnLuaToo() {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(withKeyedTable(
+            "package Test",
+            "import KeyedTable",
+            "class Marker",
+            "Marker none = null",
+            "init",
+            "    let k = wurstKeyOf(none)",
+            "    let some = new Marker",
+            "    if k + 1 == 1 and k == none castTo int and wurstKeyOf(some) == some castTo int and wurstKeyOf(some) != 0",
+            "        testSuccess()",
+            "endpackage"));
+    }
+
     /**
      * A key handed to a native the Lua lowering replaces: the replacement is built from a copy of
      * the arguments, so the key in the copy has to be lowered as well.
