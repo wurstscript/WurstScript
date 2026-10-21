@@ -1004,6 +1004,433 @@ public class InterfaceTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * Shower's default overrides Showable's show, so it is the show of a class which implements Shower: a call
+     * through Showable runs it as a call through Shower does.
+     */
+    @Test
+    public void aSubInterfaceDefaultImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class C implements Shower",
+            "init",
+            "    Showable s = new C()",
+            "    Shower t = new C()",
+            "    if s.show() == 7 and t.show() == 7",
+            "        testSuccess()");
+    }
+
+    /**
+     * A class's own show, and an override below a class which takes the default, beat the default through the
+     * super-interface too.
+     */
+    @Test
+    public void aClassMethodBeatsTheSubInterfaceDefaultThroughTheSuperInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class C implements Shower",
+            "class D extends C",
+            "    override function show() returns int",
+            "        return 9",
+            "class E extends D",
+            "class Own implements Shower",
+            "    override function show() returns int",
+            "        return 11",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "function viaShower(Shower s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShowable(new D()) == 9 and viaShowable(new E()) == 9",
+            "        and viaShowable(new Own()) == 11 and viaShower(new C()) == 7 and viaShower(new D()) == 9",
+            "        and viaShower(new E()) == 9 and viaShower(new Own()) == 11",
+            "        testSuccess()");
+    }
+
+    /**
+     * A class which names Showable as well as Shower implements Showable's show with Shower's default, in either
+     * order: it used to be told that it must implement show.
+     */
+    @Test
+    public void aClassNamingBothInterfacesTakesTheSubInterfaceDefault() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class C implements Showable, Shower",
+            "class D implements Shower, Showable",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "function viaShower(Shower s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShowable(new D()) == 7",
+            "        and viaShower(new C()) == 7 and viaShower(new D()) == 7",
+            "        testSuccess()");
+    }
+
+    /**
+     * A method a class inherits from a superclass outside the interfaces still loses to the sub-interface default
+     * through either interface, as it loses to the default of an interface the class names
+     * ({@link #aDefaultBeatsTheInheritedMethodWhereAnotherInterfaceHasNoBody}).
+     */
+    @Test
+    public void aSubInterfaceDefaultBeatsTheInheritedMethodThroughTheSuperInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class Base",
+            "    function show() returns int",
+            "        return 1",
+            "class C extends Base implements Shower",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "function viaShower(Shower s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShower(new C()) == 7",
+            "        testSuccess()");
+    }
+
+    /** As {@link #aSubInterfaceDefaultBeatsTheInheritedMethodThroughTheSuperInterface}, with Shower generic. */
+    @Test
+    public void aGenericSubInterfaceDefaultBeatsTheInheritedMethodThroughTheSuperInterface() {
+        for (String shower : java.util.List.of("Shower<T:>", "Shower<T>")) {
+            test().testLua(true).luaOnly(false).executeProg().lines(
+                "package test",
+                "native testSuccess()",
+                "interface Showable",
+                "    function show() returns int",
+                "interface " + shower + " extends Showable",
+                "    function show() returns int",
+                "        return 7",
+                "class Base",
+                "    function show() returns int",
+                "        return 1",
+                "class C extends Base implements Shower<int>",
+                "function viaShowable(Showable s) returns int",
+                "    return s.show()",
+                "function viaShower(Shower<int> s) returns int",
+                "    return s.show()",
+                "init",
+                "    if viaShowable(new C()) == 7 and viaShower(new C()) == 7",
+                "        testSuccess()");
+        }
+    }
+
+    /**
+     * Base takes Top's show from S1's default, so it has settled Top's show: C, which adds S2, inherits that choice
+     * through Top as it would inherit a method of Base.
+     */
+    @Test
+    public void aSuperclassWhichAdoptedADefaultSettlesItForItsSubclasses() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function show() returns int",
+            "interface S1 extends Top",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Top",
+            "    function show() returns int",
+            "        return 2",
+            "class Base implements S1",
+            "class C extends Base implements S2",
+            "function viaTop(Top t) returns int",
+            "    return t.show()",
+            "init",
+            "    if viaTop(new Base()) == 1 and viaTop(new C()) == 1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Wrapper adds nothing to S1, so C takes S1's default one step further away than S2's. Distance does not make a
+     * default more specific; only extending the other's interface does, so C must override show.
+     */
+    @Test
+    public void siblingSubInterfaceDefaultsAtDifferentDistancesRequireTheClassToOverride() {
+        testAssertErrorsLines(false,
+            "Class C must override function show, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Top",
+            "    function show() returns int",
+            "interface S1 extends Top",
+            "    function show() returns int",
+            "        return 1",
+            "interface Wrapper extends S1",
+            "interface S2 extends Top",
+            "    function show() returns int",
+            "        return 2",
+            "class C implements Wrapper, S2");
+    }
+
+    /** As {@link #aSubInterfaceDefaultImplementsTheSuperInterfaceMethod}, with Shower a new generic. */
+    @Test
+    public void aGenericSubInterfaceDefaultImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower<T:> extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class C implements Shower<int>",
+            "class G<T:> implements Shower<T>",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "function viaShower(Shower<int> s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShowable(new G<real>()) == 7",
+            "        and viaShower(new C()) == 7 and viaShower(new G<int>()) == 7",
+            "        testSuccess()");
+    }
+
+    /** As {@link #aSubInterfaceDefaultImplementsTheSuperInterfaceMethod}, with Shower an old generic. */
+    @Test
+    public void anOldGenericSubInterfaceDefaultImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower<T> extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class C implements Shower<int>",
+            "class G<T> implements Shower<T>",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "function viaShower(Shower<int> s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShowable(new G<int>()) == 7 and viaShower(new C()) == 7",
+            "        testSuccess()");
+    }
+
+    /**
+     * Shower's default overrides Showable's default too: a call through Showable runs Shower's for a class which
+     * implements Shower, and Showable's for one which implements only Showable.
+     */
+    @Test
+    public void aSubInterfaceDefaultOverridesTheSuperInterfaceDefault() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class C implements Shower",
+            "class D implements Showable",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShowable(new D()) == 1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Two sub-interfaces, neither extending the other, give Showable's show a default each: a class which takes both
+     * has no single show and must override it.
+     */
+    @Test
+    public void twoSiblingSubInterfaceDefaultsRequireTheClassToOverride() {
+        testAssertErrorsLines(false,
+            "Class C must override function show, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "class C implements S1, S2");
+    }
+
+    /**
+     * As {@link #twoSiblingSubInterfaceDefaultsRequireTheClassToOverride}, with the class overriding show: its show is
+     * the implementation through every interface. Where one sub-interface extends the other, its default is the
+     * nearer one and wins without an error.
+     */
+    @Test
+    public void aClassOverridingTwoSiblingSubInterfaceDefaultsIsDispatchedToItsOwnMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "interface S12 extends S1",
+            "    function show() returns int",
+            "        return 5",
+            "class C implements S1, S2",
+            "    override function show() returns int",
+            "        return 3",
+            "class N implements S1, S12",
+            "function via1(S1 s) returns int",
+            "    return s.show()",
+            "function via2(S2 s) returns int",
+            "    return s.show()",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "init",
+            "    if via1(new C()) == 3 and via2(new C()) == 3 and viaShowable(new C()) == 3",
+            "        and via1(new N()) == 5 and viaShowable(new N()) == 5",
+            "        testSuccess()");
+    }
+
+    /**
+     * A show the class inherits from a superclass outside the interfaces does not settle which sibling default it
+     * takes, because a default beats an inherited method: the class must override show.
+     */
+    @Test
+    public void anInheritedClassMethodDoesNotSettleTwoSiblingSubInterfaceDefaults() {
+        testAssertErrorsLines(false,
+            "Class E must override function show, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "class Base",
+            "    function show() returns int",
+            "        return 4",
+            "class E extends Base implements S1, S2");
+    }
+
+    /**
+     * Base takes Showable's show from GrandBase, so it has settled Showable's show before C adds two sibling defaults:
+     * C is no error, and a call through Showable runs GrandBase's show for C as for Base.
+     */
+    @Test
+    public void aSuperclassWhichImplementsTheInterfaceSettlesTwoSiblingSubInterfaceDefaults() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface S1 extends Showable",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Showable",
+            "    function show() returns int",
+            "        return 2",
+            "class GrandBase",
+            "    function show() returns int",
+            "        return 7",
+            "class Base extends GrandBase implements Showable",
+            "class C extends Base implements S1, S2",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new Base()) == 7 and viaShowable(new C()) == 7",
+            "        testSuccess()");
+    }
+
+    /**
+     * Through a chain of three interfaces, the nearest default is the implementation: Middle's for a class which
+     * implements Middle, Bottom's for one which implements Bottom, through every interface above them.
+     */
+    @Test
+    public void theNearestDefaultInAChainOfThreeInterfacesImplementsTheTopMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function show() returns int",
+            "interface Middle extends Top",
+            "    function show() returns int",
+            "        return 1",
+            "interface Bottom extends Middle",
+            "    function show() returns int",
+            "        return 2",
+            "interface Plain extends Top",
+            "interface Leaf extends Plain",
+            "    function show() returns int",
+            "        return 3",
+            "class M implements Middle",
+            "class B implements Bottom",
+            "class L implements Leaf",
+            "function viaTop(Top t) returns int",
+            "    return t.show()",
+            "function viaMiddle(Middle t) returns int",
+            "    return t.show()",
+            "function viaBottom(Bottom t) returns int",
+            "    return t.show()",
+            "function viaPlain(Plain t) returns int",
+            "    return t.show()",
+            "init",
+            "    if viaTop(new M()) == 1 and viaTop(new B()) == 2 and viaTop(new L()) == 3",
+            "        and viaMiddle(new M()) == 1 and viaMiddle(new B()) == 2 and viaBottom(new B()) == 2",
+            "        and viaPlain(new L()) == 3",
+            "        testSuccess()");
+    }
+
+    /** A sub-interface default which calls another method of the interface runs the class's implementation of it. */
+    @Test
+    public void aSubInterfaceDefaultCallingAnotherInterfaceMethodImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "    function value() returns int",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return value() + 1",
+            "class C implements Shower",
+            "    function value() returns int",
+            "        return 6",
+            "class D implements Shower",
+            "    function value() returns int",
+            "        return 10",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()",
+            "init",
+            "    if viaShowable(new C()) == 7 and viaShowable(new D()) == 11",
+            "        testSuccess()");
+    }
+
     /** A class implements an interface method with a type parameter of its own with a method which declares the same one: a call through the interface with either type argument reaches each class's method. */
     @Test
     public void aMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {

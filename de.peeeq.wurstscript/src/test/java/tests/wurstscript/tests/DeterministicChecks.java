@@ -83,6 +83,68 @@ public class DeterministicChecks extends WurstScriptTest {
     }
 
     /**
+     * Sibling classes which take Showable's show from Shower's default, and one with a show of its own, emit the
+     * same Jass and Lua in two compilations, and their sub-methods of Showable's show come out alike whatever order
+     * the units are given in.
+     */
+    @Test
+    public void subInterfaceDefaultDispatchIsIdenticalAcrossCompilations() throws IOException {
+        String name = "subInterfaceDefaultDispatch";
+        List<String> source = new ArrayList<>(List.of(
+            "package test",
+            "native testSuccess()",
+            "interface Showable",
+            "    function show() returns int",
+            "interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7",
+            "class Own implements Shower",
+            "    override function show() returns int",
+            "        return 1",
+            "function viaShowable(Showable s) returns int",
+            "    return s.show()"));
+        for (int i = 0; i < 5; i++) {
+            source.add("class C" + i + " implements Shower");
+        }
+        source.add("init");
+        source.add("    int sum = viaShowable(new Own())");
+        for (int i = 0; i < 5; i++) {
+            source.add("    sum += viaShowable(new C" + i + "())");
+        }
+        source.add("    if sum == 36");
+        source.add("        testSuccess()");
+        String[] lines = source.toArray(new String[0]);
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(lines);
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(lines);
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass);
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua);
+
+        CU interfaces = compilationUnit("PkgShow.wurst",
+            "package PkgShow",
+            "public interface Showable",
+            "    function show() returns int",
+            "public interface Shower extends Showable",
+            "    function show() returns int",
+            "        return 7");
+        List<CU> siblings = new ArrayList<>();
+        for (int i = 1; i <= 4; i++) {
+            siblings.add(compilationUnit("PkgC" + i + ".wurst",
+                "package PkgC" + i,
+                "import PkgShow",
+                "public class C" + i + " implements Shower"));
+        }
+        List<CU> forward = new ArrayList<>();
+        forward.add(interfaces);
+        forward.addAll(siblings);
+        List<CU> shuffled = List.of(siblings.get(2), siblings.get(0), interfaces, siblings.get(3), siblings.get(1));
+        assertSubMethodOrderIgnoresUnitOrder(forward, shuffled, 1);
+    }
+
+    /**
      * Interface methods with type parameters of their own, implemented by inherited methods (through the function a
      * generic class gets for them) and overridden below, emit one script.
      */
