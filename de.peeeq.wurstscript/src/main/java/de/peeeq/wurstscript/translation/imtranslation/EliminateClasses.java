@@ -628,7 +628,8 @@ public class EliminateClasses {
             @Override
             public void visit(ImFunctionCall fc) {
                 ImFunction func = fc.getFunc();
-                if (func == translator.jassSetObjectIdMaxFunc || func == translator.jassClearObjectFreeListFunc) {
+                if (func == translator.jassSetObjectIdMaxFunc || func == translator.jassClearObjectFreeListFunc
+                    || translator.objectIdAdvanceGroup(func) != null) {
                     // its class argument names the allocator and is replaced along with the call
                     objectIdCalls.add(fc);
                     return;
@@ -697,6 +698,11 @@ public class EliminateClasses {
      * are eliminated.
      */
     private void replaceObjectIdCall(ImFunctionCall call) {
+        List<ImClass> erasedGroup = translator.objectIdAdvanceGroup(call.getFunc());
+        if (erasedGroup != null) {
+            replaceAdvanceObjectIds(call, erasedGroup);
+            return;
+        }
         if (!(call.getArguments().get(0) instanceof ImTypeIdOfClass typeIdOfClass)) {
             throw new CompileError(call.attrTrace().attrSource(),
                 call.getFunc().getName() + " expects the type id of a class, not " + call.getArguments().get(0));
@@ -711,6 +717,25 @@ public class EliminateClasses {
             set = JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0));
         }
         call.replaceBy(set);
+    }
+
+    /**
+     * A call of a {@code __wurst_advanceObjectIds} intrinsic ({@link ImTranslator#jassAdvanceObjectIds}) as the write to the maxIndex of every group which holds a
+     * class of its erased group or a class the generics made of one, in the order of the program's classes.
+     */
+    private void replaceAdvanceObjectIds(ImFunctionCall call, List<ImClass> erasedGroup) {
+        Set<ClassManagementVars> groups = new LinkedHashSet<>();
+        for (ImClass c : prog.getClasses()) {
+            if (erasedGroup.contains(translator.canonical(c))) {
+                groups.add(translator.getClassManagementVarsFor(c));
+            }
+        }
+        ImExpr maxId = call.getArguments().get(0);
+        List<ImStmt> sets = new ArrayList<>();
+        for (ClassManagementVars mVars : groups) {
+            sets.add(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(mVars.maxIndex), maxId.copy()));
+        }
+        call.replaceByAll(sets);
     }
 
     private void replaceTypeIdOfObj(ImTypeIdOfObj e) {

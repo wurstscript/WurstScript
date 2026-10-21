@@ -573,7 +573,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (erasedGroup == null) {
                 emitLuaObjectAllocs(objs, finalMax, objectInits);
             } else {
-                emitJassObjectAllocs(objs, finalMax, groupHasNewGenericClass(erasedGroup), objectInits);
+                emitJassObjectAllocs(objs, finalMax, erasedGroup, objectInits);
             }
         }
 
@@ -612,12 +612,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
      * object unless it already is: the objects come in the order of their ids, so the allocator's highest id is below
      * the object's. With a new-generic class in the erased group, that is tracked for each instantiation, since the
      * generics may put each into a group of its own; instantiations which share a group then write it more often
-     * than needed. Each allocator ends at the highest id of the erased group, so the ids of the objects dropped or
-     * destroyed at compile time are not handed out again, as for a plain class, and neither are the ids another
-     * instantiation took.
+     * than needed.
+     * <p>
+     * Each allocator ends at the highest id of the erased group, so the ids of the objects dropped or destroyed at
+     * compile time are not handed out again, as for a plain class, and neither are the ids another instantiation took:
+     * a compile-time value may hold any of them. With a new-generic class in the erased group that holds for every
+     * class the generics make of it, those without a replayed object and those only the run time allocates included,
+     * which only the class elimination knows ({@link ImTranslator#jassAdvanceObjectIds}).
      */
-    private void emitJassObjectAllocs(List<CompiletimeObjectInit> objs, int finalMax, boolean perInstantiation,
+    private void emitJassObjectAllocs(List<CompiletimeObjectInit> objs, int finalMax, ClassManagementVars erasedGroup,
                                       List<ImStmt> objectInits) {
+        boolean perInstantiation = groupHasNewGenericClass(erasedGroup);
         Map<Object, Integer> lastId = new LinkedHashMap<>();
         Map<Object, CompiletimeObjectInit> firstObject = new LinkedHashMap<>();
         for (CompiletimeObjectInit init : objs) {
@@ -640,12 +645,28 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             objectInits.add(allocate(init));
             lastId.put(allocator, desiredId);
         }
+        if (perInstantiation) {
+            objectInits.add(translator.jassAdvanceObjectIds(objs.get(0).object.getTrace(),
+                classesOfGroup(erasedGroup), finalMax));
+            return;
+        }
         for (Map.Entry<Object, Integer> e : lastId.entrySet()) {
             if (finalMax > e.getValue()) {
                 objectInits.add(objectIdIntrinsicCall(firstObject.get(e.getKey()), translator.jassSetObjectIdMaxFunc(),
                     JassIm.ImIntVal(finalMax)));
             }
         }
+    }
+
+    /** The classes of the erased group, in the order of the program. */
+    private List<ImClass> classesOfGroup(ClassManagementVars erasedGroup) {
+        List<ImClass> result = new ArrayList<>();
+        for (ImClass c : imProg.getClasses()) {
+            if (translator.getClassManagementVarsFor(c) == erasedGroup) {
+                result.add(c);
+            }
+        }
+        return result;
     }
 
     /** The key of the one allocator of an erased group which has no new-generic class. */

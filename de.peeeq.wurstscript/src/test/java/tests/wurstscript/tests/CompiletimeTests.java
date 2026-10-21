@@ -855,6 +855,42 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    testSuccess()");
     }
 
+    /**
+     * An instantiation with no kept object continues after the compile-time ids too, as on Lua: a run-time Box&lt;string&gt;
+     * does not get the id a dropped compile-time Box&lt;string&gt; had and a compile-time scalar recorded, and neither
+     * does an instantiation which exists only at run time.
+     */
+    @Test
+    public void testCompiletimeDroppedObjectOfOtherInstantiationKeepsItsIdUnused() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class Box<T:>",
+                        "    T value",
+                        "@compiletime int tempId = 0",
+                        "@compiletime Box<int> kept = null",
+                        "@compiletime function build()",
+                        "    let temp = new Box<string>",
+                        "    tempId = temp castTo int",
+                        "    kept = new Box<int>",
+                        "    kept.value = 2",
+                        "init",
+                        "    let s = new Box<string>",
+                        "    s.value = \"s\"",
+                        "    let r = new Box<real>",
+                        "    r.value = 1.5",
+                        "    if s castTo int == tempId",
+                        "        testFail(\"dropped id reused\")",
+                        "    if s castTo int <= kept castTo int or r castTo int <= kept castTo int",
+                        "        testFail(\"run-time id below the compile-time ids\")",
+                        "    if kept.value != 2 or s.value != \"s\" or r.value != 1.5",
+                        "        testFail(\"value\")",
+                        "    testSuccess()");
+    }
+
     /** A compile-time old-generic HashMap keyed by the ids of new-generic objects finds them at run time. */
     @Test
     public void testCompiletimeHashMapKeyedByIdOfNewGenericObject() {
