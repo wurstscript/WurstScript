@@ -2651,6 +2651,43 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An instantiation whose type argument has a type-class bound inside it is the same instantiation whether the
+     * check and the construction carry that binding or not: a binding is dispatch metadata, not part of the type.
+     */
+    @Test
+    public void genericInstanceofOfANestedBoundTypeArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "class Wrap<T: Kc>",
+            "    function make() returns T",
+            "        return T.kmk(1)",
+            "function isBoxOf<T:>(Marker m) returns bool",
+            "    return m instanceof Box<T>",
+            "function mk<T:>() returns Marker",
+            "    return new Box<T>()",
+            "function mkWrapped<T: Kc>() returns Marker",
+            "    return new Box<Wrap<T>>()",
+            "init",
+            "    Marker direct = new Box<Wrap<int>>()",
+            "    Marker viaGeneric = mk<Wrap<int>>()",
+            "    Marker viaBound = mkWrapped<int>()",
+            "    if direct instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(direct)",
+            "        and viaGeneric instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(viaGeneric)",
+            "        and viaBound instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(viaBound)",
+            "        and not (direct instanceof Box<int>)",
+            "        testSuccess()"
+        );
+    }
+
     /** The same through a non-generic interface, which does not name the instantiation of the receiver. */
     @Test
     public void genericInstanceofThroughANonGenericInterface() {

@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
+import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -271,7 +272,9 @@ public class ProgramState extends State implements AutoCloseable {
 
     /**
      * Whether the object is an instance of {@code type}: of its class or a subclass and, for an instantiation of a new
-     * generic class, of that instantiation, as the backends tell it, where a Box&lt;int&gt; is no Box&lt;string&gt;.
+     * generic class, of that instantiation, as the backends tell it, where a Box&lt;int&gt; is no Box&lt;string&gt;. The
+     * instantiations are compared as the specialisation tells them apart ({@link GenericTypes}): type-class bindings
+     * are dispatch metadata, not part of the type.
      */
     public boolean isInstanceOf(ILconstObject obj, ImClassType type, Element trace) {
         if (!isInstanceOf(obj, type.getClassDef(), trace)) {
@@ -287,12 +290,7 @@ public class ProgramState extends State implements AutoCloseable {
             throw new InterpreterException(trace, "Cannot decide whether " + obj.getType() + " is a " + checked
                 + ": an instantiation is unknown here.");
         }
-        for (int i = 0; i < checked.getTypeArguments().size(); i++) {
-            if (!checked.getTypeArguments().get(i).getType().equalsType(actual.getTypeArguments().get(i).getType())) {
-                return false;
-            }
-        }
-        return true;
+        return new GenericTypes(checked.getTypeArguments()).equals(new GenericTypes(actual.getTypeArguments()));
     }
 
     /**
