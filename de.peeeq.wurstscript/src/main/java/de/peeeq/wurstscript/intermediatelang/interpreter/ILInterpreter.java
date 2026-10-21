@@ -322,7 +322,11 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                     if (p0t instanceof ImClassType sigThisType) {
                         ImClass cls = sigThisType.getClassDef();
                         ImTypeVars tvars = cls.getTypeVariables();
-                        ImTypeArguments concreteArgs = receiverObj.getType().getTypeArguments();
+                        // A method the receiver's class inherits is bound by the receiver's type as an instance of
+                        // the method's class, through the superclasses (Sub extends G<int>), as ImAttrType does.
+                        ImClassType asMethodClass = globalState.adaptToSuperclass(receiverObj.getType(), cls);
+                        ImTypeArguments concreteArgs = (asMethodClass != null ? asMethodClass : receiverObj.getType())
+                            .getTypeArguments();
 
                         int n = Math.min(tvars.size(), concreteArgs.size());
                         for (int i2 = 0; i2 < n; i2++) {

@@ -1540,4 +1540,87 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** An object made with a superclass's type parameter in a method inherited from it has the subclass's instantiation. */
+    @Test
+    public void instanceofOfObjectMadeInInheritedGenericMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class G<T:>",
+            "    function make() returns Marker",
+            "        return new Box<T>()",
+            "class Sub extends G<int>",
+            "init",
+            "    let m = new Sub().make()",
+            "    if m instanceof Box<int> and not (m instanceof Box<string>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same through two generic superclasses, the nearer of which forwards its own parameter. */
+    @Test
+    public void instanceofOfObjectMadeInMethodInheritedThroughTwoGenericClasses() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class G<T:>",
+            "    function make() returns Marker",
+            "        return new Box<T>()",
+            "class H<U:> extends G<U>",
+            "class Sub extends H<int>",
+            "init",
+            "    let m = new Sub().make()",
+            "    if m instanceof Box<int> and not (m instanceof Box<string>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same for a default method of a generic interface. */
+    @Test
+    public void instanceofOfObjectMadeInInheritedInterfaceDefaultMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Maker<T:>",
+            "    function make() returns Marker",
+            "        return new Box<T>()",
+            "class Sub implements Maker<int>",
+            "init",
+            "    let m = new Sub().make()",
+            "    if m instanceof Box<int> and not (m instanceof Box<string>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** A method inherited from a generic class reads the statics of the subclass's instantiation. */
+    @Test
+    public void genericStaticReadInInheritedGenericMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    static T last",
+            "    function put(T v)",
+            "        last = v",
+            "    function get() returns T",
+            "        return last",
+            "class SubI extends G<int>",
+            "class SubS extends G<string>",
+            "init",
+            "    new SubI().put(3)",
+            "    new SubS().put(\"x\")",
+            "    if new SubI().get() == 3 and new SubS().get() == \"x\" and new G<int>().get() == 3",
+            "        testSuccess()"
+        );
+    }
+
 }

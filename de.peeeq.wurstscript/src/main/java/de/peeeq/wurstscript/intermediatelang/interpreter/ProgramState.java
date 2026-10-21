@@ -583,7 +583,8 @@ public class ProgramState extends State implements AutoCloseable {
         return ownerInstantiation instanceof ImClassType ownerType ? adaptToOwner(ownerType, owner) : null;
     }
 
-    private @Nullable ImClassType adaptToSuperclass(ImClassType ct, ImClass owner) {
+    /** {@code ct} as an instantiation of {@code owner}, through the superclass edges, or null if it is none. */
+    public @Nullable ImClassType adaptToSuperclass(ImClassType ct, ImClass owner) {
         if (ct.getClassDef() == owner) return ct;
 
         // Walk super types, substituting this ct's type args into the superclass types
