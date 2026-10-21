@@ -1,14 +1,23 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.jassIm.*;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.*;
 
 public class GenericsTests extends WurstScriptTest {
 
@@ -1923,6 +1932,261 @@ public class GenericsTests extends WurstScriptTest {
             "    let s2 = new Sub2",
             "    s2.set(new A(9))",
             "    if s.get().tag == 7 and s2.get().tag == 9",
+            "        testSuccess()"
+        );
+    }
+
+    private static final String[] INNER_CLASS_IN_CLOSURE_OF_OWNER = {
+            "package Test",
+            "native testSuccess()",
+            "interface Getter<U:>",
+            "    function get() returns U",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T v)",
+            "        last = v",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    function viaClosure() returns T",
+            "        Getter<T> g = () -> begin",
+            "            Reader r = reader()",
+            "            return r.read()",
+            "        end",
+            "        return g.get()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let a = new Outer<int>(7)",
+            "    let b = new Outer<string>(\"x\")",
+            "    if a.viaClosure() == 7 and b.viaClosure() == \"x\"",
+            "        testSuccess()"
+    };
+
+    private static final String[] INNER_CLASS_AS_TYPE_ARGUMENT_IN_OWNER = {
+            "package Test",
+            "native testSuccess()",
+            "class Holder<U:>",
+            "    U v",
+            "    construct(U v)",
+            "        this.v = v",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T v)",
+            "        last = v",
+            "    function held() returns T",
+            "        let h = new Holder<Reader>(new Reader())",
+            "        return h.v.read()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let a = new Outer<int>(7)",
+            "    let b = new Outer<string>(\"x\")",
+            "    if a.held() == 7 and b.held() == \"x\"",
+            "        testSuccess()"
+    };
+
+    private static final String[] INNER_CLASS_OF_INNER_CLASS = {
+            "package Test",
+            "native testSuccess()",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T v)",
+            "        last = v",
+            "    function mid() returns Mid",
+            "        return new Mid()",
+            "    static class Mid",
+            "        function leaf() returns Leaf",
+            "            return new Leaf()",
+            "        static class Leaf",
+            "            function read() returns T",
+            "                return last",
+            "init",
+            "    let a = new Outer<int>(7)",
+            "    let b = new Outer<string>(\"x\")",
+            "    if a.mid().leaf().read() == 7 and b.mid().leaf().read() == \"x\"",
+            "        testSuccess()"
+    };
+
+    /** A closure in a method of a generic class calls a static inner class's reader of the owner's static. */
+    @Test
+    public void staticInnerClassReadsOwnerStaticInClosureOfOwner() {
+        test().testLua(true).luaOnly(false).executeProg().lines(INNER_CLASS_IN_CLOSURE_OF_OWNER);
+    }
+
+    /** A static inner class of a static inner class of a generic class reads the outermost owner's static. */
+    @Test
+    public void staticInnerClassOfStaticInnerClassReadsOwnerStatic() {
+        test().testLua(true).luaOnly(false).executeProg().lines(INNER_CLASS_OF_INNER_CLASS);
+    }
+
+    /** A static inner class as the type argument of a generic class inside its owner reads the owner's static. */
+    @Test
+    public void staticInnerClassAsTypeArgumentInOwnerReadsOwnerStatic() {
+        test().testLua(true).luaOnly(false).executeProg().lines(INNER_CLASS_AS_TYPE_ARGUMENT_IN_OWNER);
+    }
+
+    /** In each program, the inner class's members and constructor name its own captured type variable. */
+    @Test
+    public void staticInnerClassMembersBindTheirOwnCapturedTypeVariable() {
+        assertMembersUseOwnTypeVariables("Reader", List.of("Outer"), INNER_CLASS_IN_CLOSURE_OF_OWNER);
+        assertMembersUseOwnTypeVariables("Reader", List.of("Outer"), INNER_CLASS_AS_TYPE_ARGUMENT_IN_OWNER);
+        assertMembersUseOwnTypeVariables("Leaf", List.of("Mid", "Outer"), INNER_CLASS_OF_INNER_CLASS);
+    }
+
+    /**
+     * Translates the program to the IM, which both backends start from, and checks the signatures of the members and
+     * constructors of {@code className}: none names a type variable of the classes it is nested in, and {@code read}
+     * returns one of the class's own.
+     */
+    private void assertMembersUseOwnTypeVariables(String className, List<String> ownerNames, String... lines) {
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs());
+        WurstModel model = parseFiles(Collections.emptyList(), List.of(new CU("Test.wurst", String.join("\n", lines))),
+            false, compiler);
+        compiler.checkProg(model);
+        assertTrue(gui.getErrorList().isEmpty(), gui.getErrorList().toString());
+        ImProg prog = compiler.translateProgToIm(model);
+        ImClass inner = classNamed(prog, className);
+        assertFalse(inner.getTypeVariables().isEmpty(), className + " must capture its owner's type parameter");
+        Set<ImTypeVar> ownersVariables = new HashSet<>();
+        for (String owner : ownerNames) {
+            ownersVariables.addAll(classNamed(prog, owner).getTypeVariables());
+        }
+        List<ImFunction> signatures = new ArrayList<>();
+        for (ImMethod m : inner.getMethods()) {
+            signatures.add(m.getImplementation());
+            for (ImTypeVar v : typeVariablesIn(m.getMethodClass())) {
+                assertFalse(ownersVariables.contains(v), m.getName() + "'s class type names an owner's " + v.getName());
+            }
+        }
+        for (ImFunction f : prog.getFunctions()) {
+            if (f.getName().startsWith("new_" + className)) {
+                signatures.add(f);
+            }
+        }
+        assertFalse(signatures.isEmpty(), "no members of " + className);
+        for (ImFunction f : signatures) {
+            Set<ImTypeVar> used = new HashSet<>(typeVariablesIn(f.getReturnType()));
+            for (ImVar p : f.getParameters()) {
+                used.addAll(typeVariablesIn(p.getType()));
+            }
+            for (ImTypeVar v : used) {
+                assertFalse(ownersVariables.contains(v), f.getName() + " names " + v.getName() + " of an owner of "
+                    + className + " instead of its own");
+            }
+        }
+        ImMethod read = inner.getMethods().stream().filter(m -> m.getName().contains("read")).findFirst().orElseThrow();
+        ImType readType = read.getImplementation().getReturnType();
+        assertTrue(readType instanceof ImTypeVarRef ref && inner.getTypeVariables().contains(ref.getTypeVariable()),
+            "read must return a type variable of " + className + ", not " + readType);
+    }
+
+    private static ImClass classNamed(ImProg prog, String name) {
+        return prog.getClasses().stream().filter(c -> c.getName().equals(name)).findFirst().orElseThrow();
+    }
+
+    private static List<ImTypeVar> typeVariablesIn(ImType type) {
+        List<ImTypeVar> result = new ArrayList<>();
+        if (type instanceof ImTypeVarRef ref) {
+            result.add(ref.getTypeVariable());
+        } else if (type instanceof ImClassType ct) {
+            for (ImTypeArgument a : ct.getTypeArguments()) {
+                result.addAll(typeVariablesIn(a.getType()));
+            }
+        } else if (type instanceof ImArrayType at) {
+            result.addAll(typeVariablesIn(at.getEntryType()));
+        } else if (type instanceof ImArrayTypeMulti at) {
+            result.addAll(typeVariablesIn(at.getEntryType()));
+        } else if (type instanceof ImTupleType tt) {
+            for (ImType t : tt.getTypes()) {
+                result.addAll(typeVariablesIn(t));
+            }
+        }
+        return result;
+    }
+
+    /** A field of type T which a non-generic subclass inherits has the superclass's type argument as its type. */
+    @Test
+    public void inheritedGenericFieldReadInConditional() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T v",
+            "class Sub extends G<int>",
+            "    construct()",
+            "        v = 3",
+            "init",
+            "    let s = new Sub()",
+            "    let b = s != null",
+            "    let z = b ? s.v : 5",
+            "    if z == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same through the implicit receiver in a method of the subclass. */
+    @Test
+    public void inheritedGenericFieldReadInConditionalInSubclassMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T v",
+            "class Sub extends G<int>",
+            "    construct()",
+            "        v = 3",
+            "    function get(bool b) returns int",
+            "        return b ? v : 5",
+            "init",
+            "    if new Sub().get(true) == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /** A field inherited through two generic superclasses has the argument the chain passes down as its type. */
+    @Test
+    public void genericFieldInheritedTwoLevelsReadInConditional() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T v",
+            "class H<U:> extends G<U>",
+            "class Sub extends H<int>",
+            "    construct()",
+            "        v = 3",
+            "init",
+            "    let s = new Sub()",
+            "    let b = s != null",
+            "    let z = b ? s.v : 5",
+            "    if z == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /** An inherited field takes its type from the superclass argument a generic subclass passes to that position. */
+    @Test
+    public void genericFieldInheritedFromSecondTypeParameterReadInConditional() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<A:, B:>",
+            "    A a",
+            "    B v",
+            "class Sub<U:> extends G<int, U>",
+            "    construct(U u)",
+            "        a = 1",
+            "        v = u",
+            "init",
+            "    let s = new Sub<string>(\"x\")",
+            "    let t = new Sub<int>(3)",
+            "    let b = s != null",
+            "    let y = b ? s.v : \"y\"",
+            "    let z = b ? t.v : 5",
+            "    if y == \"x\" and z == 3 and s.a + t.a == 2",
             "        testSuccess()"
         );
     }

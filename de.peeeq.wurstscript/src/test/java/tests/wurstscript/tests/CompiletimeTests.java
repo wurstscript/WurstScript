@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
@@ -590,11 +591,11 @@ public class CompiletimeTests extends WurstScriptTest {
 
     @Test
     public void testPersistCompiletimeNewGenericClass() {
-        // Translation is the assertion here: executing the synthesized generic
-        // runtime global through the interpreter still needs a separate attachment fix.
-        test()
+        test().testLua(true).luaOnly(false).executeProg(true)
                 .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
                 .lines("package Test",
+                        "native testSuccess()",
                         "class PureMap<T:>",
                         "    T value",
                         "    function put(T value)",
@@ -605,7 +606,10 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    return value",
                         "PureMap<int> map = compiletime(new PureMap<int>)",
                         "@compiletime function populate()",
-                        "    map.put(42)");
+                        "    map.put(42)",
+                        "init",
+                        "    if map.get() == 42",
+                        "        testSuccess()");
     }
 
     @Test
@@ -655,6 +659,357 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if a.a.y == 42 and a.b.y == 43",
                         "        testSuccess()");
+    }
+
+    /** A compile-time object of a new-generic class keeps its fields: its holding global is no static of the class. */
+    @Test
+    public void testPersistCompiletimeObjectOfNewGenericClass() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class Box<T:>",
+                        "    T value",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns Box<int>",
+                        "    let b = new Box<int>",
+                        "    b.value = 5",
+                        "    return b",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    let other = new Box<int>",
+                        "    other.value = 7",
+                        "    if kept.value == 5 and other.value == 7",
+                        "        testSuccess()");
+    }
+
+    /** On Lua a compile-time object of a new-generic class keeps its id after dropped ones, as #1504 keeps it for others. */
+    @Test
+    public void testCompiletimeObjectOfNewGenericClassKeepsIdAfterDroppedObjectOnLua() {
+        // Lua only: Jass gives each instantiation its own allocator after compile time, while the compile-time ids
+        // and the replay of the allocator are those of the erased class, so there the object gets the next id.
+        test().testLua(true).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class Box<T:>",
+                        "    T value",
+                        "    int storedId",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns Box<int>",
+                        "    new Box<int>",
+                        "    let keep = new Box<int>",
+                        "    keep.value = 5",
+                        "    keep.storedId = keep castTo int",
+                        "    new Box<int>",
+                        "    return keep",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    if kept castTo int != kept.storedId",
+                        "        testFail(\"id\")",
+                        "    let other = new Box<int>",
+                        "    other.value = 7",
+                        "    if kept.value != 5 or other.value != 7",
+                        "        testFail(\"value\")",
+                        "    testSuccess()");
+    }
+
+    /** A new-generic object kept in a @compiletime global, from a class with a real static, replays the global. */
+    @Test
+    public void testCompiletimeGlobalHoldingObjectOfNewGenericClassWithStatic() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class Box<T:>",
+                        "    static int made = 0",
+                        "    T v",
+                        "    construct(T v)",
+                        "        this.v = v",
+                        "        made++",
+                        "    function count() returns int",
+                        "        return made",
+                        "    function get() returns T",
+                        "        return v",
+                        "@compiletime Box<int> early = null",
+                        "@compiletime function makeEarly()",
+                        "    early = new Box<int>(5)",
+                        "init",
+                        "    let b = new Box<int>(6)",
+                        "    let s = new Box<string>(\"x\")",
+                        "    if early.get() != 5",
+                        "        testFail(\"value\")",
+                        "    if b.count() != 1 or s.count() != 1 or early.count() != 1",
+                        "        testFail(\"count\")",
+                        "    testSuccess()");
+    }
+
+    /** A compile-time object of a new-generic class with a @compiletime static T keeps both per instantiation. */
+    @Test
+    public void testPersistCompiletimeObjectOfNewGenericClassWithStaticT() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class Box<T:>",
+                        "    @compiletime static T last",
+                        "    T value",
+                        "    construct(T value)",
+                        "        this.value = value",
+                        "        last = value",
+                        "    static function getLast() returns T",
+                        "        return last",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns Box<int>",
+                        "    return new Box<int>(5)",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    if kept.value != 5",
+                        "        testFail(\"value\")",
+                        "    if Box<int>.getLast() != 5",
+                        "        testFail(\"static int\")",
+                        "    let s = new Box<string>(\"x\")",
+                        "    if Box<string>.getLast() != \"x\" or Box<int>.getLast() != 5 or s.value != \"x\"",
+                        "        testFail(\"static string\")",
+                        "    testSuccess()");
+    }
+
+    /** Compile-time objects of two instantiations of one new-generic class each keep their own fields. */
+    @Test
+    public void testPersistCompiletimeObjectsOfTwoNewGenericInstantiations() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class Box<T:>",
+                        "    T value",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function buildInt() returns Box<int>",
+                        "    let b = new Box<int>",
+                        "    b.value = 5",
+                        "    return b",
+                        "@compiletime function buildString() returns Box<string>",
+                        "    let b = new Box<string>",
+                        "    b.value = \"five\"",
+                        "    return b",
+                        "let keptInt = compiletime(buildInt())",
+                        "let keptString = compiletime(buildString())",
+                        "init",
+                        "    let other = new Box<int>",
+                        "    other.value = 7",
+                        "    if keptInt.value != 5 or other.value != 7",
+                        "        testFail(\"int\")",
+                        "    if keptString.value != \"five\"",
+                        "        testFail(\"string\")",
+                        "    testSuccess()");
+    }
+
+    /** A compile-time object of a class which extends a new-generic class keeps its inherited field. */
+    @Test
+    public void testPersistCompiletimeObjectOfSubclassOfNewGenericClass() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class Box<T:>",
+                        "    T value",
+                        "    function get() returns T",
+                        "        return value",
+                        "class IntBox extends Box<int>",
+                        "    int extra",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns IntBox",
+                        "    let b = new IntBox",
+                        "    b.value = 5",
+                        "    b.extra = 6",
+                        "    return b",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    if kept.get() == 5 and kept.value == 5 and kept.extra == 6",
+                        "        testSuccess()");
+    }
+
+    /** A compile-time object of a new-generic class held by an old-generic object comes back with its fields. */
+    @Test
+    public void testPersistCompiletimeObjectOfNewGenericClassInOldGenericHolder() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class Box<T:>",
+                        "    T value",
+                        "class Holder<T>",
+                        "    T item",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns Holder<Box<int>>",
+                        "    let b = new Box<int>",
+                        "    b.value = 5",
+                        "    let h = new Holder<Box<int>>",
+                        "    h.item = b",
+                        "    return h",
+                        "let kept = compiletime(build())",
+                        "init",
+                        // through a local: on Jass kept.item.value fails without compile time too ("Could not find
+                        // field array for Holder_item[...].Box_value"), a separate defect
+                        "    Box<int> item = kept.item",
+                        "    if item.value == 5",
+                        "        testSuccess()");
+    }
+
+    /** The compile-time object of a new-generic class keeps its fields with -inline -localOptimizations on both targets. */
+    @Test
+    public void testPersistCompiletimeObjectOfNewGenericClassOptimized() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .inline().localOptimizations()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class Box<T:>",
+                        "    T value",
+                        "    function get() returns T",
+                        "        return value",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns Box<int>",
+                        "    let b = new Box<int>",
+                        "    b.value = 5",
+                        "    return b",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    let other = new Box<int>",
+                        "    other.value = 7",
+                        "    if kept.get() == 5 and other.get() == 7",
+                        "        testSuccess()");
+    }
+
+    // An object read back from an old-generic HashMap at compile time is the object that was put in.
+    @Test
+    public void testCompiletimeOldGenericMapGetReturnsTheSameObject() {
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "import HashMap",
+            "class A",
+            "function check() returns boolean",
+            "    let kept = new A",
+            "    let m = new HashMap<int, A>",
+            "    m.put(7, kept)",
+            "    return m.get(7) == kept",
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()");
+    }
+
+    /** Runs {@code check} at compile time and at run time; both must answer true. */
+    private void assertOldGenericCheckAtCompileTime(String... checkBody) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "import HashMap",
+            "import HashList",
+            "import LinkedList",
+            "class A",
+            "    int x",
+            "    function value() returns int",
+            "        return x + 1",
+            "function check() returns boolean"));
+        for (String line : checkBody) {
+            lines.add("    " + line);
+        }
+        lines.addAll(List.of(
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()"));
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(lines.toArray(new String[0]));
+    }
+
+    // The object read back from an old-generic HashMap equals the one put in from either side, and != agrees.
+    @Test
+    public void testCompiletimeOldGenericMapGetComparesOnEitherSide() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let other = new A",
+            "let m = new HashMap<int, A>",
+            "m.put(7, kept)",
+            "return kept == m.get(7) and not (m.get(7) != kept) and m.get(7) != other and other != m.get(7)");
+    }
+
+    // In a tuple too, the object read back from an old-generic HashMap equals the one put in, and != agrees.
+    @Test
+    public void testCompiletimeOldGenericMapGetComparesInsideATuple() {
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "import HashMap",
+            "class A",
+            "tuple holder(A a, real r)",
+            "function check() returns boolean",
+            "    let kept = new A",
+            "    let other = new A",
+            "    let m = new HashMap<int, A>",
+            "    m.put(7, kept)",
+            "    let p = holder(m.get(7), 0.5)",
+            "    let q = holder(kept, 0.5)",
+            "    return p == q and not (p != q) and p != holder(other, 0.5)",
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()");
+    }
+
+    // An object read back from an old-generic HashList at compile time is the object that was added.
+    @Test
+    public void testCompiletimeOldGenericHashListGetReturnsTheSameObject() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let l = new HashList<A>",
+            "l.add(kept)",
+            "return l.get(0) == kept and l.has(kept)");
+    }
+
+    // A generic container read back from an old-generic HashMap is the container put in, and so is its element.
+    @Test
+    public void testCompiletimeOldGenericNestedContainerReturnsTheSameObjects() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let inner = new HashMap<int, A>",
+            "inner.put(2, kept)",
+            "let outer = new HashMap<int, HashMap<int, A>>",
+            "outer.put(1, inner)",
+            "let lists = new HashMap<int, LinkedList<A>>",
+            "let list = new LinkedList<A>",
+            "list.add(kept)",
+            "lists.put(1, list)",
+            "return outer.get(1) == inner and outer.get(1).get(2) == kept and lists.get(1) == list",
+            "    and lists.get(1).get(0) == kept");
+    }
+
+    // An object read back from an old-generic HashMap at compile time works as a receiver.
+    @Test
+    public void testCompiletimeOldGenericMapGetAsReceiver() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let m = new HashMap<int, A>",
+            "m.put(7, kept)",
+            "m.get(7).x = 4",
+            "return kept.x == 4 and m.get(7).value() == 5");
     }
 
     @Test
