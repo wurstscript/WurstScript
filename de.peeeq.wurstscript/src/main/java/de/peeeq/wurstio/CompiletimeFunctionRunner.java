@@ -401,9 +401,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private final GetAForB<ILconstObject, ImVar> globalForObject = new GetAForB<ILconstObject, ImVar>() {
         @Override
         public ImVar initFor(ILconstObject obj) {
-
-
-            ImVar res = JassIm.ImVar(obj.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
+            // Traced to the program, as the globals for handles are: the object's trace is its allocation, which
+            // lies in its class, and a global traced into a generic class is taken for a static field of that
+            // class (EliminateGenerics.identifyGenericGlobals), which this global, holding one object, is not.
+            ImVar res = JassIm.ImVar(imProg.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
             imProg.getGlobals().add(res);
             globalState.setValUntracked(res, obj);
 
