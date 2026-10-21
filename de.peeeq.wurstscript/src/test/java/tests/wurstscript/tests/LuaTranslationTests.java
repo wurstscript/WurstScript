@@ -3756,7 +3756,7 @@ public class LuaTranslationTests extends WurstScriptTest {
      * The natives of Reflection answer on Lua what EliminateClasses answers on Jass: the qualified name of a type id's
      * class, the largest type id, and for instanceCount and maxInstanceCount the live objects and the peak of the
      * class's allocation group, every class joined to it by inheritance (one allocator on Jass), not of the class
-     * alone. The interpreter counts the class alone, so it runs only on the translated program here.
+     * alone, and so does the interpreter.
      */
     @Test
     public void reflectionNativesAnswerAsOnJass() throws IOException {
@@ -3785,7 +3785,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    let idsOk = typeIdToTypeName(C.typeId) == \"Test.C\" and maxTypeId() == 4 and typeIdToTypeName(4) == \"Test.D\"",
             "    if groupOk and otherOk and idsOk",
             "        testSuccess()");
-        test().executeProg(true).executeProgOnlyAfterTransforms().testLua(true).luaOnly(false).lines(program);
+        test().executeProg(true).testLua(true).luaOnly(false).lines(program);
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativesAnswerAsOnJass.lua"), Charsets.UTF_8);
         // Printed in place, so no native is defined, and a known type id reads no table.
         for (String nativeName : List.of("typeIdToTypeName", "maxTypeId", "instanceCount", "maxInstanceCount")) {
@@ -3843,14 +3843,10 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().executeProg(true).testLua(true).optimize().inline().localOptimizations().lines(program);
     }
 
-    /**
-     * A number which is no type id answers "unknown" and 0 on Lua, what EliminateClasses returns when its search finds
-     * no class. That search has no bounds, so on Jass a number below 1 answers for the first class and one above
-     * maxTypeId for the last (BACKLOG.md, docs/WC3_RUNTIME.md); Lua does not copy that.
-     */
+    /** A number which is no type id answers "unknown" and 0, on both targets and in the interpreter. */
     @Test
     public void reflectionAnswersDefaultsForNumbersWhichAreNoTypeId() {
-        test().executeProg(true).testLua(true).lines(withReflectionNatives(
+        test().executeProg(true).testLua(true).luaOnly(false).lines(withReflectionNatives(
             "package Test",
             "native testSuccess()",
             "class A",

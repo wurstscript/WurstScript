@@ -31,23 +31,6 @@ Notes; finished-work narrative does not.
   functions) has no Lua path in the harness at all. `-PallBackends=full`, which adds
   `-inline -localOptimizations`, found nothing the plain run did not (October 2026), so CI runs only that.
 
-- **`EliminateGenerics.fillMissingTypeArgsFromScope` matches type variables by name.** On the Jass path it
-  completed the owner type arguments of a static inner class's type, which the IM translation now gives
-  itself (`WurstTypeClassOrInterface.imTranslateType`). Made to throw whenever it fills one, it is reached by
-  none of the generics, closure, module, class and Lua audit test classes (October 2026). Check the whole
-  suite and remove it.
-
-- **The `Reflection` natives answer otherwise on Jass for a number which is no type id, and in the
-  interpreter.** `EliminateClasses` searches the type ids without bounds, so on Jass
-  `typeIdToTypeName(0)` is the first class's name and a number above `maxTypeId()` answers for the last
-  class, where the search's own default (`"unknown"`, 0) and Lua answer the default. The interpreter
-  (`WurstflectionProvider`, `ILInterpreter.getInstanceCount`) counts the objects of the class alone, not
-  of its allocator group, gives as `maxInstanceCount` the number of objects ever made, and raises in
-  `typeIdToTypeName` for an unknown number. Compile-time code sees that, and the parity tests run the
-  interpreter only on the translated program (`LuaTranslationTests.reflectionNativesAnswerAsOnJass`).
-  Bound the Jass search and make the interpreter answer as the backends do (docs/WC3_RUNTIME.md
-  "Objects and memory").
-
 - **`GetHandleId` of an agent on Lua is the compiler's own counter, for a desync nobody measured.**
   `LuaNativeLowering` replaces `GetHandleId` of the `OPAQUE_RUNTIME_HANDLE_TYPES` (unit, item, timer, trigger,
   ...) with `__wurst_GetHandleId`, which numbers handles from 1 in `__wurst_objectIndexMap` and keeps every

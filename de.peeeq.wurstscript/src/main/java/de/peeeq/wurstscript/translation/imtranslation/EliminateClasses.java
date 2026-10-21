@@ -169,7 +169,11 @@ public class EliminateClasses {
             if (c == null) {
                 return JassIm.ImStmts();
             }
-            return JassIm.ImStmts(JassIm.ImReturn(prog.getTrace(), makeAccess.apply(c)));
+            // The search narrows to one id even for a number below the first or above the last, so check it.
+            return JassIm.ImStmts(JassIm.ImIf(prog.getTrace(),
+                JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(typeId), JassIm.ImIntVal(lower))),
+                JassIm.ImStmts(JassIm.ImReturn(prog.getTrace(), makeAccess.apply(c))),
+                JassIm.ImStmts()));
         } else {
             int mid = lower + (upper - lower) / 2;
             return
