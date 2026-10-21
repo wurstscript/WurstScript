@@ -1313,6 +1313,188 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * The enumeration natives and their getters are the game's own on Lua: each call is the native call, with no
+     * collecting table, closure or override global around it, and a getter is a plain native call. The game keeps
+     * the enumerated object per enumeration, nested ones included, as on Jass (measured on the 3.0.0.24268 client).
+     */
+    @Test
+    public void enumerationNativesAreCalledDirectlyOnLua() throws IOException {
+        test().testLua(true).withStdLib().inline().localOptimizations().lines(
+            "package Test",
+            "native consume(handle h)",
+            "@noinline function onUnit()",
+            "    consume(GetEnumUnit())",
+            "@noinline function onPlayer()",
+            "    consume(GetEnumPlayer())",
+            "@noinline function onItem()",
+            "    consume(GetEnumItem())",
+            "@noinline function onDestructable()",
+            "    consume(GetEnumDestructable())",
+            "@noinline function enumerate(group g, force f, rect r)",
+            "    ForGroup(g, function onUnit)",
+            "    ForForce(f, function onPlayer)",
+            "    EnumItemsInRect(r, null, function onItem)",
+            "    EnumDestructablesInRect(r, null, function onDestructable)",
+            "init",
+            "    enumerate(CreateGroup(), CreateForce(), Rect(0., 0., 1., 1.))");
+        String compiled = compiledLua("enumerationNativesAreCalledDirectlyOnLua");
+        for (String helper : new String[]{"__wurst_ForGroup", "__wurst_ForForce", "__wurst_EnumItemsInRect",
+            "__wurst_EnumDestructablesInRect", "__wurst_GetEnum", "_override"}) {
+            assertFalse("no enumeration wrapper " + helper + ":\n" + compiled, compiled.contains(helper));
+        }
+        String enumerate = topLevelFunctionBodyWithPrefix(compiled, "enumerate");
+        for (String call : new String[]{"ForGroup\\(\\w+, __wurst_callback_onUnit\\w*\\)",
+            "ForForce\\(\\w+, __wurst_callback_onPlayer\\w*\\)",
+            "EnumItemsInRect\\(\\w+, nil, __wurst_callback_onItem\\w*\\)",
+            "EnumDestructablesInRect\\(\\w+, nil, __wurst_callback_onDestructable\\w*\\)"}) {
+            assertTrue("the native is called with the callback itself: " + call + "\n" + enumerate,
+                java.util.regex.Pattern.compile(call).matcher(enumerate).find());
+        }
+        assertFalse("no table is built per enumeration:\n" + enumerate, enumerate.contains("{}"));
+        for (String getter : new String[]{"onUnit", "onPlayer", "onItem", "onDestructable"}) {
+            String body = topLevelFunctionBodyWithPrefix(compiled, getter);
+            assertTrue("the getter is a native call:\n" + body,
+                java.util.regex.Pattern.compile("consume\\(GetEnum\\w+\\(\\)\\)").matcher(body).find());
+        }
+    }
+
+    private static final String[] NESTED_FOR_GROUP = {
+        "package Test",
+        "group outer = CreateGroup()",
+        "group inner = CreateGroup()",
+        "unit a",
+        "unit b",
+        "unit c",
+        "unit d",
+        "string trace = \"\"",
+        "function name(unit u) returns string",
+        "    if u == null",
+        "        return \"n\"",
+        "    else if u == a",
+        "        return \"a\"",
+        "    else if u == b",
+        "        return \"b\"",
+        "    else if u == c",
+        "        return \"c\"",
+        "    else if u == d",
+        "        return \"d\"",
+        "    return \"x\"",
+        "function onInner()",
+        "    trace += name(GetEnumUnit())",
+        "function onOuter()",
+        "    trace += name(GetEnumUnit()) + \"[\"",
+        "    ForGroup(inner, function onInner)",
+        "    trace += \"]\" + name(GetEnumUnit()) + \" \"",
+        "init",
+        "    a = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+        "    b = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+        "    c = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+        "    d = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+        "    GroupAddUnit(outer, a)",
+        "    GroupAddUnit(outer, b)",
+        "    GroupAddUnit(inner, c)",
+        "    GroupAddUnit(inner, d)",
+        "    ForGroup(outer, function onOuter)",
+        "    trace += \"|\" + name(GetEnumUnit())",
+        "    if trace == \"a[cd]a b[cd]b |n\"",
+        "        testSuccess()",
+        "    else",
+        "        print(trace)"
+    };
+
+    /**
+     * After a nested ForGroup returns, GetEnumUnit answers the outer enumeration's unit again, and outside any
+     * enumeration null: measured on the 3.0.0.24268 client, on Lua as on Jass.
+     */
+    @Test
+    public void nestedForGroupKeepsTheOuterEnumUnit() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(NESTED_FOR_GROUP);
+    }
+
+    @Test
+    public void nestedForGroupKeepsTheOuterEnumUnitWhenOptimized() {
+        test().testLua(true).luaOnly(false).withStdLib().inline().localOptimizations().executeProg()
+            .lines(NESTED_FOR_GROUP);
+    }
+
+    /**
+     * ForGroup visits the units the group held when it was called: a unit removed during the enumeration is still
+     * visited and one added is not (measured on the 3.0.0.24268 client, on Lua as on Jass).
+     */
+    @Test
+    public void forGroupVisitsTheUnitsItHeldWhenCalled() {
+        test().testLua(true).luaOnly(false).withStdLib().executeProg().lines(
+            "package Test",
+            "group g = CreateGroup()",
+            "unit a",
+            "unit b",
+            "unit c",
+            "unit d",
+            "string trace = \"\"",
+            "function name(unit u) returns string",
+            "    if u == a",
+            "        return \"a\"",
+            "    else if u == b",
+            "        return \"b\"",
+            "    else if u == c",
+            "        return \"c\"",
+            "    else if u == d",
+            "        return \"d\"",
+            "    return \"x\"",
+            "function onUnit()",
+            "    let u = GetEnumUnit()",
+            "    trace += name(u)",
+            "    if u == a",
+            "        GroupRemoveUnit(g, c)",
+            "        GroupAddUnit(g, d)",
+            "init",
+            "    a = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    b = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    c = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    d = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    GroupAddUnit(g, a)",
+            "    GroupAddUnit(g, b)",
+            "    GroupAddUnit(g, c)",
+            "    ForGroup(g, function onUnit)",
+            "    if trace == \"abc\" and IsUnitInGroup(d, g) and not IsUnitInGroup(c, g)",
+            "        testSuccess()",
+            "    else",
+            "        print(trace)");
+    }
+
+    /**
+     * The same for ForForce and GetEnumPlayer. Lua only: the interpreter's ForForce runs its callback once and
+     * has no GetEnumPlayer.
+     */
+    @Test
+    public void nestedForForceKeepsTheOuterEnumPlayer() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "force outer = CreateForce()",
+            "force inner = CreateForce()",
+            "string trace = \"\"",
+            "function name(player p) returns string",
+            "    return p == null ? \"n\" : I2S(GetPlayerId(p))",
+            "function onInner()",
+            "    trace += name(GetEnumPlayer())",
+            "function onOuter()",
+            "    trace += name(GetEnumPlayer()) + \"[\"",
+            "    ForForce(inner, function onInner)",
+            "    trace += \"]\" + name(GetEnumPlayer()) + \" \"",
+            "init",
+            "    ForceAddPlayer(outer, Player(0))",
+            "    ForceAddPlayer(outer, Player(1))",
+            "    ForceAddPlayer(inner, Player(2))",
+            "    ForceAddPlayer(inner, Player(3))",
+            "    ForForce(outer, function onOuter)",
+            "    trace += \"|\" + name(GetEnumPlayer())",
+            "    if trace == \"0[23]0 1[23]1 |n\"",
+            "        testSuccess()",
+            "    else",
+            "        print(trace)");
+    }
+
     /** Fixed-seed model checking also varies the expression substituted for an old-generic key. */
     @Test
     public void randomizedOldGenericMapOperationsMatchReferenceModel() {

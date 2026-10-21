@@ -16,12 +16,14 @@ import java.util.*;
  *   <li><b>GetHandleId</b>: replaced 1:1 by {@code __wurst_GetHandleId}, whose Lua
  *       implementation uses a stable table counter for selected opaque runtime handle
  *       families only. Enum-like handle families keep native semantics in Lua.</li>
- *   <li><b>Hashtable natives</b> ({@code SaveInteger}, {@code LoadBoolean}, …) and
- *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …):
+ *   <li><b>Hashtable natives</b> ({@code SaveInteger}, {@code LoadBoolean}, …):
  *       replaced 1:1 by their {@code __wurst_} prefixed equivalents, whose Lua
  *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.
  *       The backend prints a hashtable operation where it is called instead, as the table accesses
- *       it stands for, and calls its helper only where it cannot ({@link LuaHashtable}).</li>
+ *       it stands for, and calls its helper only where it cannot ({@link LuaHashtable}).
+ *       The enumeration natives ({@code ForGroup}, {@code ForForce}, {@code EnumItemsInRect},
+ *       {@code EnumDestructablesInRect}) and their {@code GetEnum} getters are the game's own: it
+ *       keeps the enumerated object per enumeration, nested ones included, as on Jass.</li>
  *   <li><b>All other BJ calls with at least one handle-typed parameter</b>: wrapped
  *       by a generated IM function that first checks each required handle param for
  *       {@code null} and returns the type-appropriate default (0 / 0.0 / false / "" / nil),
@@ -42,14 +44,6 @@ import java.util.*;
  * {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.
  */
 public final class LuaNativeLowering {
-
-    /** Context-callback natives that need to be remapped to {@code __wurst_} equivalents. */
-    private static final Set<String> CONTEXT_CALLBACK_NATIVE_NAMES = new HashSet<>(Arrays.asList(
-        "ForForce", "GetEnumPlayer",
-        "ForGroup", "GetEnumUnit",
-        "EnumItemsInRect", "GetEnumItem",
-        "EnumDestructablesInRect", "GetEnumDestructable"
-    ));
 
     /** True runtime-object handles that should use Lua-side object identity for GetHandleId. */
     private static final Set<String> OPAQUE_RUNTIME_HANDLE_TYPES = new HashSet<>(Arrays.asList(
@@ -275,8 +269,6 @@ public final class LuaNativeLowering {
                     // Kept by the translator, so the optimizer and the backend match the stub by identity.
                     return translator.luaHashtableStubs.computeIfAbsent(LuaHashtable.stubName(name),
                         stubName -> createNativeStub(stubName, bj));
-                } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
-                    return createNativeStub("__wurst_" + name, bj);
                 } else if (hasHandleParam(bj)) {
                     return createNilSafeWrapper(bj, translator, deferredAdditions);
                 }
