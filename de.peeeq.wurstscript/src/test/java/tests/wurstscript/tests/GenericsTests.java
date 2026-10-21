@@ -1655,4 +1655,88 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** A field of type T which a non-generic subclass inherits has the superclass's type argument as its type. */
+    @Test
+    public void inheritedGenericFieldReadInConditional() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T v",
+            "class Sub extends G<int>",
+            "    construct()",
+            "        v = 3",
+            "init",
+            "    let s = new Sub()",
+            "    let b = s != null",
+            "    let z = b ? s.v : 5",
+            "    if z == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same through the implicit receiver in a method of the subclass. */
+    @Test
+    public void inheritedGenericFieldReadInConditionalInSubclassMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T v",
+            "class Sub extends G<int>",
+            "    construct()",
+            "        v = 3",
+            "    function get(bool b) returns int",
+            "        return b ? v : 5",
+            "init",
+            "    if new Sub().get(true) == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /** A field inherited through two generic superclasses has the argument the chain passes down as its type. */
+    @Test
+    public void genericFieldInheritedTwoLevelsReadInConditional() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T v",
+            "class H<U:> extends G<U>",
+            "class Sub extends H<int>",
+            "    construct()",
+            "        v = 3",
+            "init",
+            "    let s = new Sub()",
+            "    let b = s != null",
+            "    let z = b ? s.v : 5",
+            "    if z == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /** An inherited field takes its type from the superclass argument a generic subclass passes to that position. */
+    @Test
+    public void genericFieldInheritedFromSecondTypeParameterReadInConditional() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class G<A:, B:>",
+            "    A a",
+            "    B v",
+            "class Sub<U:> extends G<int, U>",
+            "    construct(U u)",
+            "        a = 1",
+            "        v = u",
+            "init",
+            "    let s = new Sub<string>(\"x\")",
+            "    let t = new Sub<int>(3)",
+            "    let b = s != null",
+            "    let y = b ? s.v : \"y\"",
+            "    let z = b ? t.v : 5",
+            "    if y == \"x\" and z == 3 and s.a + t.a == 2",
+            "        testSuccess()"
+        );
+    }
+
 }
