@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
@@ -655,6 +656,118 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if a.a.y == 42 and a.b.y == 43",
                         "        testSuccess()");
+    }
+
+    // An object read back from an old-generic HashMap at compile time is the object that was put in.
+    @Test
+    public void testCompiletimeOldGenericMapGetReturnsTheSameObject() {
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "import HashMap",
+            "class A",
+            "function check() returns boolean",
+            "    let kept = new A",
+            "    let m = new HashMap<int, A>",
+            "    m.put(7, kept)",
+            "    return m.get(7) == kept",
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()");
+    }
+
+    /** Runs {@code check} at compile time and at run time; both must answer true. */
+    private void assertOldGenericCheckAtCompileTime(String... checkBody) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "import HashMap",
+            "import HashList",
+            "import LinkedList",
+            "class A",
+            "    int x",
+            "    function value() returns int",
+            "        return x + 1",
+            "function check() returns boolean"));
+        for (String line : checkBody) {
+            lines.add("    " + line);
+        }
+        lines.addAll(List.of(
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()"));
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(lines.toArray(new String[0]));
+    }
+
+    // The object read back from an old-generic HashMap equals the one put in from either side, and != agrees.
+    @Test
+    public void testCompiletimeOldGenericMapGetComparesOnEitherSide() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let other = new A",
+            "let m = new HashMap<int, A>",
+            "m.put(7, kept)",
+            "return kept == m.get(7) and not (m.get(7) != kept) and m.get(7) != other and other != m.get(7)");
+    }
+
+    // In a tuple too, the object read back from an old-generic HashMap equals the one put in, and != agrees.
+    @Test
+    public void testCompiletimeOldGenericMapGetComparesInsideATuple() {
+        test().withStdLib().executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "import HashMap",
+            "class A",
+            "tuple holder(A a, real r)",
+            "function check() returns boolean",
+            "    let kept = new A",
+            "    let other = new A",
+            "    let m = new HashMap<int, A>",
+            "    m.put(7, kept)",
+            "    let p = holder(m.get(7), 0.5)",
+            "    let q = holder(kept, 0.5)",
+            "    return p == q and not (p != q) and p != holder(other, 0.5)",
+            "let sameAtCompileTime = compiletime(check())",
+            "init",
+            "    if sameAtCompileTime and check()",
+            "        testSuccess()");
+    }
+
+    // An object read back from an old-generic HashList at compile time is the object that was added.
+    @Test
+    public void testCompiletimeOldGenericHashListGetReturnsTheSameObject() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let l = new HashList<A>",
+            "l.add(kept)",
+            "return l.get(0) == kept and l.has(kept)");
+    }
+
+    // A generic container read back from an old-generic HashMap is the container put in, and so is its element.
+    @Test
+    public void testCompiletimeOldGenericNestedContainerReturnsTheSameObjects() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let inner = new HashMap<int, A>",
+            "inner.put(2, kept)",
+            "let outer = new HashMap<int, HashMap<int, A>>",
+            "outer.put(1, inner)",
+            "let lists = new HashMap<int, LinkedList<A>>",
+            "let list = new LinkedList<A>",
+            "list.add(kept)",
+            "lists.put(1, list)",
+            "return outer.get(1) == inner and outer.get(1).get(2) == kept and lists.get(1) == list",
+            "    and lists.get(1).get(0) == kept");
+    }
+
+    // An object read back from an old-generic HashMap at compile time works as a receiver.
+    @Test
+    public void testCompiletimeOldGenericMapGetAsReceiver() {
+        assertOldGenericCheckAtCompileTime(
+            "let kept = new A",
+            "let m = new HashMap<int, A>",
+            "m.put(7, kept)",
+            "m.get(7).x = 4",
+            "return kept.x == 4 and m.get(7).value() == 5");
     }
 
     @Test
