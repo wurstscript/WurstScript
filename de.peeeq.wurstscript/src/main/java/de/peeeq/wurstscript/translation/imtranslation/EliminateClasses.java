@@ -52,7 +52,7 @@ public class EliminateClasses {
         translator = tr;
         this.prog = prog;
         this.checkedDispatch = checkedDispatch;
-        this.classIds = TypeId.calculate(prog);
+        this.classIds = tr.typeIds();
     }
 
     public void eliminateClasses() {
@@ -241,7 +241,7 @@ public class EliminateClasses {
         }
 
         // create management functions
-        recycleCodeGen.createAllocFunc(translator, prog, c);
+        recycleCodeGen.createAllocFunc(translator, prog, c, typeIdOf(c));
         recycleCodeGen.createDeallocFunc(translator, prog, c);
     }
 

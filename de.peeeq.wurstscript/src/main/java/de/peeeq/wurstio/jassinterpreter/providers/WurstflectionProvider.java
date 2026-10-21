@@ -21,6 +21,7 @@ public class WurstflectionProvider extends Provider {
 
 
     public ILconstString typeIdToTypeName(ILconstInt typeId) {
+        interpreter.noteTypeIdsRead();
         ImProg prog = interpreter.getImProg();
         int typeIdInt = typeId.getVal();
         for (Map.Entry<ImClass, Integer> e : prog.attrTypeId().entrySet()) {
@@ -40,14 +41,17 @@ public class WurstflectionProvider extends Provider {
     }
 
     public ILconstInt maxTypeId() {
+        interpreter.noteTypeIdsRead();
         return new ILconstInt(calculateMaxTypeId(interpreter.getImProg()));
     }
 
     public ILconstInt instanceCount(ILconstInt typeId) {
+        interpreter.noteTypeIdsRead();
         return new ILconstInt(interpreter.getInstanceCount(typeId.getVal()));
     }
 
     public ILconstInt maxInstanceCount(ILconstInt typeId) {
+        interpreter.noteTypeIdsRead();
         return new ILconstInt(interpreter.getMaxInstanceCount(typeId.getVal()));
     }
 

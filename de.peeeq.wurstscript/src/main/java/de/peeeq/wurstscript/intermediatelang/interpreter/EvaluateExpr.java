@@ -316,6 +316,7 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTypeIdOfClass e,
                                ProgramState globalState, LocalState localState) {
+        globalState.noteTypeIdsRead();
         return new ILconstInt(e.getClazz().getClassDef().attrTypeId());
     }
 

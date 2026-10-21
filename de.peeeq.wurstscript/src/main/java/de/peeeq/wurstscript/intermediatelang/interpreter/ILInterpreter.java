@@ -705,6 +705,11 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     }
 
     @Override
+    public void noteTypeIdsRead() {
+        globalState.noteTypeIdsRead();
+    }
+
+    @Override
     public int getInstanceCount(int val) {
         long count = 0L;
         for (ILconstObject o : globalState.getAllObjects()) {

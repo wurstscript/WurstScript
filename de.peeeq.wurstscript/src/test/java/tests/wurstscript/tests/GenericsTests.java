@@ -1461,4 +1461,28 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A type id compile-time code stored stays the class's type id at run time, although the generics add the
+     * classes of instantiations whose names sort before it.
+     */
+    @Test
+    public void typeIdStoredAtCompileTimeMatchesTheRuntimeTypeId() {
+        test().testLua(true).luaOnly(false).runCompiletimeFunctions(true).executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Plain implements Marker",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant plainId = compiletime(new Plain().typeId)",
+            "init",
+            "    let a = new Box<int>()",
+            "    let b = new Box<string>()",
+            "    if new Plain().typeId == plainId and a != null and b != null",
+            "        testSuccess()"
+        );
+    }
+
 }

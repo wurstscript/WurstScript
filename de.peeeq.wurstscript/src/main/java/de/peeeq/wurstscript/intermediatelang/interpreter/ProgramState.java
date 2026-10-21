@@ -37,6 +37,8 @@ public class ProgramState extends State implements AutoCloseable {
     /** The key of the one id space all classes share; see {@link #useOneObjectIdSpace}. */
     private static final Object SHARED_ID_SPACE = new Object();
     private boolean oneObjectIdSpace;
+    /** Whether the program read a type id; see {@link #noteTypeIdsRead}. */
+    private boolean typeIdsRead;
     /** See {@link #isGenericHierarchy}; only looked up, never iterated. */
     private final Map<ImClass, Boolean> genericHierarchy = new IdentityHashMap<>();
     /** See {@link #dispatch}; only looked up, never iterated. */
@@ -405,7 +407,21 @@ public class ProgramState extends State implements AutoCloseable {
 
     public int getTypeId(ILconstObject obj, Element trace) {
         assertAllocated(obj, trace);
+        noteTypeIdsRead();
         return obj.getImClass().attrTypeId();
+    }
+
+    /**
+     * Records that the program read a type id, or a number which stands for one: compile-time code may keep it in
+     * the generated script, so the classes keep their type ids when the generics add classes
+     * ({@code ImTranslator.rememberTypeIdsBeforeGenerics}).
+     */
+    public void noteTypeIdsRead() {
+        typeIdsRead = true;
+    }
+
+    public boolean typeIdsRead() {
+        return typeIdsRead;
     }
 
     /** {@code entry} is where the frame is entered: the call, or the function when nothing called it. */

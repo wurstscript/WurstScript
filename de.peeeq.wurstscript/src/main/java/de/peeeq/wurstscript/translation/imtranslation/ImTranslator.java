@@ -3410,6 +3410,26 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return classManagementVars;
     }
 
+    /** The type ids handed out before the generics added classes; see {@link #typeIds()}. */
+    private @Nullable Map<ImClass, Integer> typeIdsBeforeGenerics;
+
+    /**
+     * Keeps the type ids the classes have now, before the generics are eliminated, as the ids of the program:
+     * compile-time code read them and may have put them into the script. Only then, since the classes the
+     * generics add are numbered after them and the ids of the classes they replace stay unused.
+     */
+    public void rememberTypeIdsBeforeGenerics() {
+        typeIdsBeforeGenerics = new LinkedHashMap<>(imProg.attrTypeId());
+    }
+
+    /** The type ids of the program's classes, keeping those handed out before the generics were eliminated. */
+    public Map<ImClass, Integer> typeIds() {
+        if (typeIdsBeforeGenerics == null) {
+            return TypeId.calculate(imProg);
+        }
+        return TypeId.keeping(typeIdsBeforeGenerics, imProg.getClasses());
+    }
+
     public void clearStaleClassManagementVars() {
         if (classManagementVars == null) {
             return;

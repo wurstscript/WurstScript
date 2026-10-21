@@ -130,6 +130,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
             execute(toExecute);
             long tExecuted = System.nanoTime();
+            if (globalState.typeIdsRead()) {
+                translator.rememberTypeIdsBeforeGenerics();
+            }
 
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 emitCompiletimeState();
