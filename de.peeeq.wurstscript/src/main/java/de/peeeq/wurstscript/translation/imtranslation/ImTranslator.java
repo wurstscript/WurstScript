@@ -3422,6 +3422,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         typeIdsBeforeGenerics = new LinkedHashMap<>(imProg.attrTypeId());
     }
 
+    /** The type ids handed out before the generics, when compile-time code read them; else null. */
+    public @Nullable Map<ImClass, Integer> typeIdsBeforeGenerics() {
+        return typeIdsBeforeGenerics;
+    }
+
     /** The type ids of the program's classes, keeping those handed out before the generics were eliminated. */
     public Map<ImClass, Integer> typeIds() {
         if (typeIdsBeforeGenerics == null) {

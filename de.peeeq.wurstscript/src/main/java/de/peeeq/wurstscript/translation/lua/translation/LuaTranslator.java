@@ -2988,7 +2988,8 @@ public class LuaTranslator {
 
     /**
      * The type ids of the Lua program. A targeted specialisation keeps the nominal identity of the class it was
-     * copied from, so only those classes are numbered, and a copy has the type id of its class.
+     * copied from, so only those classes are numbered, and a copy has the type id of its class. When compile-time
+     * code read type ids, the classes keep the ids they had then ({@link ImTranslator#typeIdsBeforeGenerics}).
      */
     private @Nullable Map<ImClass, Integer> typeIds;
 
@@ -3002,7 +3003,11 @@ public class LuaTranslator {
                     nominal.add(c);
                 }
             }
-            result = TypeId.calculate(nominal, this::nominalSuperClasses);
+            // Compile-time code which read a type id may have put it into the script, so those ids stay.
+            Map<ImClass, Integer> before = imTr.typeIdsBeforeGenerics();
+            result = before == null
+                ? TypeId.calculate(nominal, this::nominalSuperClasses)
+                : TypeId.keeping(before, nominal, this::nominalSuperClasses);
             typeIds = result;
         }
         return result;
