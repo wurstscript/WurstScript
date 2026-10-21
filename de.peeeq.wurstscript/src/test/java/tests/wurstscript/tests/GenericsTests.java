@@ -2481,4 +2481,51 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An instance array field of an old generic class whose element type is the type parameter: a read or write
+     * through a receiver of a concrete instantiation takes its element type from the receiver's type arguments.
+     */
+    @Test
+    public void oldGenericTypeParamArrayField() {
+        test().executeProg(true).testLua(true).luaOnly(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "class Item",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "class G<T>",
+            "    T array[3] arr",
+            "    function set(int i, T v)",
+            "        arr[i] = v",
+            "    function get(int i) returns T",
+            "        return arr[i]",
+            "class Sub extends G<int>",
+            "    function bump(int i)",
+            "        arr[i] = arr[i] + 1",
+            "init",
+            "    let g = new G<int>()",
+            "    g.arr[1] = 3",
+            "    let c = new G<Item>()",
+            "    c.set(2, new Item(5))",
+            "    c.arr[0] = new Item(6)",
+            "    let s = new Sub()",
+            "    s.arr[1] = 4",
+            "    s.bump(1)",
+            "    if g.arr[1] == 3 and g.get(1) == 3 and c.arr[2].v == 5 and c.get(0).v == 6 and s.arr[1] == 5",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void oldGenericTypeParamArrayFieldWrongElementType() {
+        testAssertErrorsLines(false, "Cannot assign string to int",
+            "package Test",
+            "class G<T>",
+            "    T array[3] arr",
+            "init",
+            "    let g = new G<int>()",
+            "    g.arr[1] = \"x\"");
+    }
+
 }

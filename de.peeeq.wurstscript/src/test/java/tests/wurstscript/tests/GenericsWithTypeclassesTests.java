@@ -2607,4 +2607,155 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         runOnBothTargets("conditionalOfInheritedGenericMethodResult", false, CONDITIONAL_OF_INHERITED_GENERIC_METHOD);
     }
 
+    /**
+     * An instance array field whose element type is the class's type parameter. A read or write through a receiver
+     * of a concrete instantiation takes its element type from the receiver's type arguments.
+     */
+    private static final String[] TYPE_PARAM_ARRAY_FIELD_INT = {
+        "package test",
+        "native testSuccess()",
+        "class G<T:>",
+        "    T array[3] arr",
+        "init",
+        "    let g = new G<int>()",
+        "    g.arr[1] = 3",
+        "    if g.arr[1] == 3 and g.arr[0] == 0",
+        "        testSuccess()"
+    };
+
+    @Test
+    public void typeParamArrayField_int() {
+        runOnBothTargets("typeParamArrayField_int", false, TYPE_PARAM_ARRAY_FIELD_INT);
+    }
+
+    @Test
+    public void typeParamArrayField_int_opt() {
+        runOnBothTargets("typeParamArrayField_int_opt", true, TYPE_PARAM_ARRAY_FIELD_INT);
+    }
+
+    /** Two instantiations, each with its own element type, and methods of G which read and write the array. */
+    @Test
+    public void typeParamArrayField_methodsAndInstantiations() {
+        runOnBothTargets("typeParamArrayField_methodsAndInstantiations", false,
+            "package test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T array[3] arr",
+            "    function set(int i, T v)",
+            "        arr[i] = v",
+            "    function get(int i) returns T",
+            "        return arr[i]",
+            "init",
+            "    let gi = new G<int>()",
+            "    let gs = new G<string>()",
+            "    let gi2 = new G<int>()",
+            "    gi.set(2, 7)",
+            "    gs.set(2, \"x\")",
+            "    gi2.arr[2] = 9",
+            "    gs.arr[0] = gs.get(2) + \"y\"",
+            "    if gi.get(2) == 7 and gi.arr[2] == 7 and gi2.get(2) == 9 and gs.arr[0] == \"xy\" and gs.get(1) == null",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void typeParamArrayField_classElement() {
+        runOnBothTargets("typeParamArrayField_classElement", false,
+            "package test",
+            "native testSuccess()",
+            "class Item",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "class G<T:>",
+            "    T array[2] arr",
+            "    function get(int i) returns T",
+            "        return arr[i]",
+            "init",
+            "    let g = new G<Item>()",
+            "    g.arr[1] = new Item(5)",
+            "    if g.arr[1].v == 5 and g.get(1).v == 5 and g.arr[0] == null",
+            "        testSuccess()");
+    }
+
+    private static final String[] TYPE_PARAM_ARRAY_FIELD_TUPLE = {
+        "package test",
+        "native testSuccess()",
+        "tuple pa(int x, int y)",
+        "class G<T:>",
+        "    T array[2] arr",
+        "    function get(int i) returns T",
+        "        return arr[i]",
+        "init",
+        "    let g = new G<pa>()",
+        "    g.arr[1] = pa(3, 4)",
+        "    let p = g.arr[1]",
+        "    if p.x == 3 and g.get(1).y == 4 and g.arr[1].y == 4 and g.arr[0].x == 0",
+        "        testSuccess()"
+    };
+
+    @Test
+    public void typeParamArrayField_tupleElement() {
+        runOnBothTargets("typeParamArrayField_tupleElement", false, TYPE_PARAM_ARRAY_FIELD_TUPLE);
+    }
+
+    @Test
+    public void typeParamArrayField_tupleElement_opt() {
+        runOnBothTargets("typeParamArrayField_tupleElement_opt", true, TYPE_PARAM_ARRAY_FIELD_TUPLE);
+    }
+
+    /** A subclass which fixes the type argument reads and writes the inherited array with the concrete type. */
+    @Test
+    public void typeParamArrayField_subclass() {
+        runOnBothTargets("typeParamArrayField_subclass", false,
+            "package test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T array[3] arr",
+            "    function get(int i) returns T",
+            "        return arr[i]",
+            "class Sub extends G<int>",
+            "    function bump(int i)",
+            "        arr[i] = arr[i] + 1",
+            "init",
+            "    let s = new Sub()",
+            "    s.arr[1] = 4",
+            "    s.bump(1)",
+            "    G<int> g = s",
+            "    if s.arr[1] == 5 and s.get(1) == 5 and g.arr[1] == 5",
+            "        testSuccess()");
+    }
+
+    /** The element type follows the type parameter of a generic function's receiver. */
+    @Test
+    public void typeParamArrayField_genericReceiver() {
+        runOnBothTargets("typeParamArrayField_genericReceiver", false,
+            "package test",
+            "native testSuccess()",
+            "class G<T:>",
+            "    T array[3] arr",
+            "function first<U:>(G<U> g) returns U",
+            "    return g.arr[0]",
+            "function put<U:>(G<U> g, U v)",
+            "    g.arr[0] = v",
+            "init",
+            "    let g = new G<int>()",
+            "    put(g, 6)",
+            "    let h = new G<string>()",
+            "    put(h, \"a\")",
+            "    if first(g) == 6 and first(h) == \"a\"",
+            "        testSuccess()");
+    }
+
+    /** The element written is checked against the receiver's type argument. */
+    @Test
+    public void typeParamArrayField_wrongElementType() {
+        testAssertErrorsLines(false, "Cannot assign string to int",
+            "package test",
+            "class G<T:>",
+            "    T array[3] arr",
+            "init",
+            "    let g = new G<int>()",
+            "    g.arr[1] = \"x\"");
+    }
+
 }
