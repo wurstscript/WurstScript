@@ -19,210 +19,28 @@ Notes; finished-work narrative does not.
 - **Lua targeted specialisation: defects found by `GenericSpecialisationMatrixTests`.** The matrix runs
   each combination of what depends on `T`, where it sits, how concrete code writes and reads it, the
   instantiation types and the optimiser on Jass (the oracle, which passes every case) and on Lua. The
-  cases that fail on Lua are listed in `genericSpecialisationMatrix-knownFailures.txt` under the tags
+  cases that fail on Lua are listed in `genericSpecialisationMatrix-knownFailures.txt` under the tag
   below and skipped in the pull-request tier; remove a tag's cases (the run names them) with its fix.
   Each repro is a whole program after `package Test` and `native testSuccess()`. The full product
   (`WURST_GENERIC_MATRIX=full`) adds no other class of failure.
 
-- **`lua-static-erased`: a per-instantiation static read through erased code reads the wrong copy.**
-  The instantiations share it, or its initialiser never ran (nil), or a tuple static written in a
-  closure reads back wrong. Fails on Lua with the fix of #1498:
-
-  ```wurst
-  interface Iface
-      function r() returns int
-  class G<T:> implements Iface
-      static int cnt = 0
-      function w()
-          cnt += 1
-      function r() returns int
-          return cnt
-  init
-      let a = new G<int>()
-      let b = new G<string>()
-      a.w()
-      b.w()
-      Iface i = a
-      if i.r() == 1   // Lua: 2, both counts in one store
-          testSuccess()
-  ```
-
-  `static int cnt = 0` reads nil when `r` also calls a `Codec<T>` method on a `T` static and is reached
-  through a non-generic base class.
-
-- **`lua-instanceof-erased`: `instanceof Box<T>` in a generic class reached through a non-generic
-  interface, base class or destroy, or in a closure, accepts every `Box` on Lua**, because the method
-  stays erased (a closure is not specialised for an instanceof: that is `lua-closure-receiver`). A
-  `new Box<T>()` there allocates a `Box` of no instantiation, so while one is reachable every check of
-  `Box`, even `instanceof Box<int>`, stays erased too (`keepErasedChecksWhereAnAllocationStaysErased`).
-  Otherwise an `instanceof` which names its instantiation, or is reached through calls which give it,
-  tells the instantiations apart:
+- **`lua-instanceof-erased`: `instanceof Box<T>` in a closure written in a generic class accepts every
+  `Box` on Lua**, because a closure is not specialised for an instanceof. A `new Box<T>()` in code which
+  stays erased allocates a `Box` of no instantiation, so while one is reachable every check of `Box`,
+  even `instanceof Box<int>`, stays erased too (`EliminateGenerics.keepErasedChecksWhereAnAllocationStaysErased`).
+  Jass passes:
 
   ```wurst
   interface Marker
   class Box<T:> implements Marker
-  interface Check
-      function holds(Marker m) returns bool
-  class G<T:> implements Check
-      function holds(Marker m) returns bool
-          return m instanceof Box<T>
-  init
-      Check c = new G<int>()
-      if not c.holds(new Box<string>())   // Lua: true
-          testSuccess()
-  ```
-
-- **`lua-bound-unresolved`: Lua rejects a type-class requirement reached through a non-generic
-  interface, base class, super call or destroy** ("Type class dispatch of kmk could not be resolved for
-  the Lua target"). Jass compiles and runs it:
-
-  ```wurst
-  interface Kc<T:>
-      function kmk(int n) returns T
-  implements Kc<int>
-      function kmk(int n) returns int
-          return n
-  interface Iface
-      function w()
-  class G<T: Kc> implements Iface
-      T bv
-      function w()
-          bv = T.kmk(10)
-  init
-      let g = new G<int>()
-      Iface i = g
-      i.w()
-      if g.bv == 10
-          testSuccess()
-  ```
-
-- **`lua-closure-receiver`: Lua rejects a closure in a bounded or constructing generic class which
-  touches a field** ("Could not adapt receiver G_specialized_integer to superclass G"): in the program
-  above, make `G` non-implementing, write `Act a = () -> begin bv = T.kmk(10) end` and `a.run()` in `w`
-  (with `interface Act` / `function run()`), and call `g.w()` directly.
-
-- **`lua-new-instance-unresolved`: Lua rejects `wurstNewInstance<T>()` in a constructor, an ondestroy or
-  behind a super call** ("requires its type argument to resolve to a concrete class"):
-
-  ```wurst
-  class CA
-      int tag = 73
+  interface Pred
+      function test(Marker m) returns bool
   class G<T:>
-      T made
-      function w()
-          made = wurstNewInstance<T>()
-  class Sub extends G<CA>
-      override function w()
-          super.w()
+      function pred() returns Pred
+          return (Marker m) -> m instanceof Box<T>
   init
-      let g = new Sub()
-      g.w()
-      if g.made.tag == 73
-          testSuccess()
-  ```
-
-  The same with `construct(G<T> t)` doing `t.made = wurstNewInstance<T>()` and `w` doing
-  `new G<T>(this)`.
-
-- **`lua-new-instance-erased`: `wurstNewInstance<T>()` reached through a non-generic interface or base
-  class** crashes Lua translation ("dangling reference to removed function 'wurstNewMarker'"), and with
-  `-inline -localOptimizations` it compiles but the field reads null (or `CA_tag_storage` is nil):
-
-  ```wurst
-  class CA
-      int tag = 73
-  interface Iface
-      function w()
-  class G<T:> implements Iface
-      T made
-      function w()
-          made = wurstNewInstance<T>()
-  init
-      let g = new G<CA>()
-      Iface i = g
-      i.w()
-      if g.made.tag == 73
-          testSuccess()
-  ```
-
-- **`lua-field-split`: a `T` field written in a second constructor through another instance is not the
-  one read back** when the read is reached through a non-generic base class (Lua reads 0 or nil):
-
-  ```wurst
-  interface Kc<T:>
-      function kmk(int n) returns T
-      function kkey(T v) returns int
-  implements Kc<int>
-      function kmk(int n) returns int
-          return n
-      function kkey(int v) returns int
-          return v
-  abstract class Base
-      abstract function r() returns int
-  class G<T: Kc> extends Base
-      T bv
-      int seen = 0
-      construct()
-      construct(G<T> t, int mode)
-          if mode == 1
-              t.bv = T.kmk(10)
-          else
-              t.seen = T.kkey(t.bv)
-      function w()
-          new G<T>(this, 1)
-      override function r() returns int
-          new G<T>(this, 2)
-          return seen
-  init
-      let g = new G<int>()
-      g.w()
-      Base b = g
-      if b.r() == 10
-          testSuccess()
-  ```
-
-  An unwritten tuple-typed `T` field read the same way has nil components on Lua.
-
-- **`lua-tuple-subclass`: a concrete subclass of a generic class instantiated with a tuple.** Its field
-  storage global is nil after a super call (`G_id_storage`, `T` otherwise unused); called through a
-  generic interface, Lua translation throws `ConcurrentModificationException`, or, when the subclass
-  overrides another method, fails on a dangling reference to the removed `G_r`:
-
-  ```wurst
-  tuple pa(int x, int y)
-  class G<T:>
-      int id = 1
-      function r() returns int
-          return id
-  class Sub extends G<pa>
-      override function r() returns int
-          return super.r()
-  init
-      if new Sub().r() == 1
-          testSuccess()
-  ```
-
-  For the crash, replace the body with `interface GIface<T:>` / `function r() returns int`,
-  `class G<T:> implements GIface<T>` returning 1, an empty `class Sub extends G<pa>`, and
-  `GIface<pa> gr = new Sub()`; `gr.r()`.
-
-- **`lua-tuple-elimination-crash`: `EliminateTuples` throws ("//// Before") on tuple-typed generic
-  code.** In the matrix: a tuple static written in a closure, with the optimiser (Lua only). On both
-  targets, a field of the tuple a subclass's inherited method returns:
-
-  ```wurst
-  tuple pa(int x, int y)
-  class G<T:>
-      static T sv
-      function w(T v)
-          sv = v
-      function r() returns T
-          return sv
-  class Sub extends G<pa>
-  init
-      let g = new Sub()
-      g.w(pa(1, 2))
-      if g.r().x == 1   // let p = g.r() first compiles
+      let p = new G<int>().pred()
+      if not p.test(new Box<string>())   // Lua: true
           testSuccess()
   ```
 
@@ -245,28 +63,19 @@ Notes; finished-work narrative does not.
           testSuccess()
   ```
 
+- **The interpreter ignores the type arguments of `instanceof`.** `EvaluateExpr.eval(ImInstanceof)` asks
+  `ProgramState.isInstanceOf` about the class alone, so before the transformations `m instanceof Box<T>` in a
+  method of `G<T:>` is true for a `Box<string>` when `T` is `int`: in the `lua-instanceof-erased` program, and
+  where `G<T:> implements Check` holds the check in `function holds(Marker m) returns bool` and is called
+  through `Check c = new G<int>()`, which Jass and Lua answer correctly (October 2026). Compile-time code and
+  `@Test` functions run there. The backend tests of `instanceof` run `executeProgOnlyAfterTransforms()`,
+  which skips that run.
+
 - **Executing tests left off Lua.** Master CI runs every executing test on Lua too (`-PallBackends`) on
   its Linux and Windows jobs, whose Lua is 5.3; macOS, with Homebrew's unpinned Lua, does not. The 13
   `MISSING_TEST_NATIVE` exemptions wait for natives in `wc3shim.lua`, and `executeTests()` (Wurst `@Test`
   functions) has no Lua path in the harness at all. `-PallBackends=full`, which adds
   `-inline -localOptimizations`, found nothing the plain run did not (October 2026), so CI runs only that.
-
-- **A generic class's static is split on Lua when its constructor passes a constant static to a method.**
-  `GenericsWithTypeclassesTests.arrayListInClosure` stops on Lua at `ImTranslator.assertNoLiveErasedGenericStatic`
-  ("init_Hello uses the erased generic static ArrayList_nextFreeIndex, which has specialised copies"),
-  and is exempt from Lua. Reduced: `class L<T:>` with `static int next = 0` and `static constant int CAP = 16`,
-  a constructor calling `alloc(CAP)`, a private method which reads and writes `next`, and `new L<C>()` for a
-  class `C`. With the literal `16` for `CAP`, or with the constructor using `next` itself, it passes; the
-  closure the test is named after plays no part, and it still fails after #1509. Fix it in
-  `EliminateGenerics`, where the store is split, and replace the exemption with `testLua(true).luaOnly(false)`.
-
-- **A generic class constructed with a tuple loses the static its constructor writes, on Lua.** In
-  `class Outer<T:>` with `static T last` and `construct(T value)` / `last = value`,
-  `new Outer<pair>(pair(2, 3))` leaves `Outer<pair>.get().y` unset on Lua; Jass passes. The constructor's
-  copy keeps the class's `T` as its parameter type, so the emitted function takes one parameter more than
-  the call passes tuple components: `EliminateGenerics.specializeFunction` rewrites the type variables only
-  of a function which declares some, and a function which writes a generic static takes that branch, while
-  this target does not lift the class's variables onto its functions (`specializeClassFunction` does it).
 
 - **`EliminateGenerics.fillMissingTypeArgsFromScope` matches type variables by name.** On the Jass path it
   completed the owner type arguments of a static inner class's type, which the IM translation now gives
