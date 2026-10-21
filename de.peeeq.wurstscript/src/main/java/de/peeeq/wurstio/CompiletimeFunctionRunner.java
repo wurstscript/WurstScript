@@ -566,48 +566,117 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
             objs.sort(Comparator.comparingInt(o -> o.object.getObjectId()));
 
-            // Lua has one allocator for every class; its intrinsic empties the free list along with each
-            // new maximum, so it is called before the first object even when that one needs no gap.
-            @Nullable ClassManagementVars mVars = entry.getKey() instanceof ClassManagementVars v ? v : null;
-            if (mVars != null) {
-                // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
-                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
-                    JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
-            }
-
-            int currentMax = 0;
+            // The ids are unique in the interpreter's id space: the inheritance group of the erased classes on Jass
+            // (ProgramState.classKey), which the groups after the generics divide, and one space on Lua.
             int finalMax = globalState.getMaxAllocatedId(objs.get(0).object.getImClass());
-
-            for (CompiletimeObjectInit init : objs) {
-                int desiredId = init.object.getObjectId();
-                int targetMax = desiredId - 1;
-                if (targetMax > currentMax || (mVars == null && init == objs.get(0))) {
-                    objectInits.add(setMaxObjectId(init.object.getTrace(), mVars, targetMax));
-                    currentMax = targetMax;
-                }
-
-                ImAlloc alloc = JassIm.ImAlloc(init.object.getTrace(), init.object.getType());
-                ImSet assign = JassIm.ImSet(init.object.getTrace(), JassIm.ImVarAccess(init.targetVar), alloc);
-                objectInits.add(assign);
-                imProg.getGlobalInits().put(init.targetVar, Collections.singletonList(assign));
-                currentMax = desiredId;
-            }
-
-            if (finalMax > currentMax) {
-                objectInits.add(setMaxObjectId(objs.get(0).object.getTrace(), mVars, finalMax));
+            @Nullable ClassManagementVars erasedGroup = entry.getKey() instanceof ClassManagementVars v ? v : null;
+            if (erasedGroup == null) {
+                emitLuaObjectAllocs(objs, finalMax, objectInits);
+            } else {
+                emitJassObjectAllocs(objs, finalMax, groupHasNewGenericClass(erasedGroup), objectInits);
             }
         }
 
         getCompiletimeStateInitFunction().getBody().addAll(0, objectInits);
     }
 
-    /** The next allocation is maxId + 1: Jass sets the group's maxIndex, Lua resumes its one allocator. */
-    private ImStmt setMaxObjectId(Element trace, @Nullable ClassManagementVars mVars, int maxId) {
-        if (mVars != null) {
-            return JassIm.ImSet(trace, JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxId));
+    /**
+     * Lua has one allocator for every class; its intrinsic empties the free list along with each new maximum, so it
+     * is called before the first object even when that one needs no gap.
+     */
+    private void emitLuaObjectAllocs(List<CompiletimeObjectInit> objs, int finalMax, List<ImStmt> objectInits) {
+        int currentMax = 0;
+        for (CompiletimeObjectInit init : objs) {
+            int desiredId = init.object.getObjectId();
+            int targetMax = desiredId - 1;
+            if (targetMax > currentMax || init == objs.get(0)) {
+                objectInits.add(JassIm.ImFunctionCall(init.object.getTrace(), translator.luaResumeObjectIdsFunc(),
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(targetMax)), false, CallType.NORMAL));
+            }
+            objectInits.add(allocate(init));
+            currentMax = desiredId;
         }
-        return JassIm.ImFunctionCall(trace, translator.luaResumeObjectIdsFunc(), JassIm.ImTypeArguments(),
-            JassIm.ImExprs(JassIm.ImIntVal(maxId)), false, CallType.NORMAL);
+        if (finalMax > currentMax) {
+            objectInits.add(JassIm.ImFunctionCall(objs.get(0).object.getTrace(), translator.luaResumeObjectIdsFunc(),
+                JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(finalMax)), false, CallType.NORMAL));
+        }
+    }
+
+    /**
+     * Jass has an allocator per inheritance group of the classes after the generics are eliminated, which make a class
+     * of each instantiation of a new-generic class. Those groups divide the group of the erased classes the objects
+     * were numbered in, and are known only then, so the replay names the class of each write
+     * ({@link ImTranslator#jassSetObjectIdMaxFunc}) and the class elimination writes that group's allocator.
+     * <p>
+     * Each allocator empties its free list before its first object, and is set to an object's id - 1 before the
+     * object unless it already is: the objects come in the order of their ids, so the allocator's highest id is below
+     * the object's. With a new-generic class in the erased group, that is tracked for each instantiation, since the
+     * generics may put each into a group of its own; instantiations which share a group then write it more often
+     * than needed. Each allocator ends at the highest id of the erased group, so the ids of the objects dropped or
+     * destroyed at compile time are not handed out again, as for a plain class, and neither are the ids another
+     * instantiation took.
+     */
+    private void emitJassObjectAllocs(List<CompiletimeObjectInit> objs, int finalMax, boolean perInstantiation,
+                                      List<ImStmt> objectInits) {
+        Map<Object, Integer> lastId = new LinkedHashMap<>();
+        Map<Object, CompiletimeObjectInit> firstObject = new LinkedHashMap<>();
+        for (CompiletimeObjectInit init : objs) {
+            ImClassType type = init.object.getType();
+            Object allocator = perInstantiation
+                ? new Instantiation(type.getClassDef(), new GenericTypes(type.getTypeArguments()))
+                : SHARED_ERASED_GROUP;
+            int desiredId = init.object.getObjectId();
+            Integer last = lastId.get(allocator);
+            if (last == null) {
+                // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
+                objectInits.add(objectIdIntrinsicCall(init, translator.jassClearObjectFreeListFunc()));
+                firstObject.put(allocator, init);
+                last = 0;
+            }
+            if (desiredId - 1 > last) {
+                objectInits.add(objectIdIntrinsicCall(init, translator.jassSetObjectIdMaxFunc(),
+                    JassIm.ImIntVal(desiredId - 1)));
+            }
+            objectInits.add(allocate(init));
+            lastId.put(allocator, desiredId);
+        }
+        for (Map.Entry<Object, Integer> e : lastId.entrySet()) {
+            if (finalMax > e.getValue()) {
+                objectInits.add(objectIdIntrinsicCall(firstObject.get(e.getKey()), translator.jassSetObjectIdMaxFunc(),
+                    JassIm.ImIntVal(finalMax)));
+            }
+        }
+    }
+
+    /** The key of the one allocator of an erased group which has no new-generic class. */
+    private static final Object SHARED_ERASED_GROUP = new Object();
+
+    /** A class with its type arguments, compared as the specialisation tells instantiations apart. */
+    private record Instantiation(ImClass clazz, GenericTypes typeArguments) {
+    }
+
+    /** Whether the generics can divide the group: whether a class in it is a new-generic class. */
+    private boolean groupHasNewGenericClass(ClassManagementVars erasedGroup) {
+        for (ImClass c : imProg.getClasses()) {
+            if (!c.getTypeVariables().isEmpty() && translator.getClassManagementVarsFor(c) == erasedGroup) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ImStmt objectIdIntrinsicCall(CompiletimeObjectInit init, ImFunction intrinsic, ImExpr... values) {
+        ImExprs arguments = JassIm.ImExprs(JassIm.ImTypeIdOfClass((ImClassType) init.object.getType().copy()));
+        arguments.addAll(Arrays.asList(values));
+        return JassIm.ImFunctionCall(init.object.getTrace(), intrinsic, JassIm.ImTypeArguments(), arguments, false,
+            CallType.NORMAL);
+    }
+
+    private ImStmt allocate(CompiletimeObjectInit init) {
+        ImAlloc alloc = JassIm.ImAlloc(init.object.getTrace(), init.object.getType());
+        ImSet assign = JassIm.ImSet(init.object.getTrace(), JassIm.ImVarAccess(init.targetVar), alloc);
+        imProg.getGlobalInits().put(init.targetVar, Collections.singletonList(assign));
+        return assign;
     }
 
     private static class CompiletimeObjectInit {

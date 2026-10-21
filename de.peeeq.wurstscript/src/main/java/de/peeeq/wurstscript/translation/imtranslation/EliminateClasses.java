@@ -72,6 +72,7 @@ public class EliminateClasses {
         for (ImFunction f : new ArrayList<>(prog.getFunctions())) {
             eliminateClassRelatedExprs(f.getBody());
         }
+        translator.removeJassObjectIdIntrinsics();
 
         prog.getClasses().clear();
         prog.getMethods().clear();
@@ -580,6 +581,7 @@ public class EliminateClasses {
         final List<ImTypeIdOfObj> typeIdObjs = Lists.newArrayList();
         final List<ImTypeIdOfClass> typeIdClasses = Lists.newArrayList();
         final List<ImFunctionCall> nativeCalls = Lists.newArrayList();
+        final List<ImFunctionCall> objectIdCalls = Lists.newArrayList();
         body.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImMemberAccess e) {
@@ -625,8 +627,13 @@ public class EliminateClasses {
 
             @Override
             public void visit(ImFunctionCall fc) {
-                super.visit(fc);
                 ImFunction func = fc.getFunc();
+                if (func == translator.jassSetObjectIdMaxFunc || func == translator.jassClearObjectFreeListFunc) {
+                    // its class argument names the allocator and is replaced along with the call
+                    objectIdCalls.add(fc);
+                    return;
+                }
+                super.visit(fc);
                 if (!func.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
                     return;
                 }
@@ -635,6 +642,9 @@ public class EliminateClasses {
                 }
             }
         });
+        for (ImFunctionCall call : objectIdCalls) {
+            replaceObjectIdCall(call);
+        }
         for (ImMemberAccess ma : mas) {
             replaceMemberAccess(ma);
         }
@@ -679,6 +689,28 @@ public class EliminateClasses {
             default:
                 throw new RuntimeException("unhandled case: " + func.getName());
         }
+    }
+
+    /**
+     * A call of {@link ImTranslator#jassSetObjectIdMaxFunc} or {@link ImTranslator#jassClearObjectFreeListFunc} as the
+     * write to the allocator of its class: the variables of the class's group, which exist only now that the generics
+     * are eliminated.
+     */
+    private void replaceObjectIdCall(ImFunctionCall call) {
+        if (!(call.getArguments().get(0) instanceof ImTypeIdOfClass typeIdOfClass)) {
+            throw new CompileError(call.attrTrace().attrSource(),
+                call.getFunc().getName() + " expects the type id of a class, not " + call.getArguments().get(0));
+        }
+        ClassManagementVars mVars = translator.getClassManagementVarsFor(typeIdOfClass.getClazz().getClassDef());
+        ImSet set;
+        if (call.getFunc() == translator.jassSetObjectIdMaxFunc) {
+            ImExpr maxId = call.getArguments().get(1);
+            maxId.setParent(null);
+            set = JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(mVars.maxIndex), maxId);
+        } else {
+            set = JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0));
+        }
+        call.replaceBy(set);
     }
 
     private void replaceTypeIdOfObj(ImTypeIdOfObj e) {

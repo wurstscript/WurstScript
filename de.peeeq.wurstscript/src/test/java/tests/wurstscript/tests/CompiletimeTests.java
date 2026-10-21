@@ -685,12 +685,14 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        testSuccess()");
     }
 
-    /** On Lua a compile-time object of a new-generic class keeps its id after dropped ones, as #1504 keeps it for others. */
+    /**
+     * A compile-time object of a new-generic class keeps its id after dropped ones, as #1504 keeps it for others, and
+     * the next object of the class comes after the highest id used at compile time. On Jass the instantiation is a class
+     * of its own with its own allocator after compile time, which the replay resumes.
+     */
     @Test
-    public void testCompiletimeObjectOfNewGenericClassKeepsIdAfterDroppedObjectOnLua() {
-        // Lua only: Jass gives each instantiation its own allocator after compile time, while the compile-time ids
-        // and the replay of the allocator are those of the erased class, so there the object gets the next id.
-        test().testLua(true).executeProg(true)
+    public void testCompiletimeObjectOfNewGenericClassKeepsIdAfterDroppedObject() {
+        test().testLua(true).luaOnly(false).executeProg(true)
                 .runCompiletimeFunctions(true)
                 .executeProgOnlyAfterTransforms()
                 .lines("package Test",
@@ -701,7 +703,7 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    int storedId",
                         "function compiletime<T:>(T t) returns T",
                         "    return t",
-                        "@compiletime function build() returns Box<int>",
+                        "function build() returns Box<int>",
                         "    new Box<int>",
                         "    let keep = new Box<int>",
                         "    keep.value = 5",
@@ -716,6 +718,208 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    other.value = 7",
                         "    if kept.value != 5 or other.value != 7",
                         "        testFail(\"value\")",
+                        "    if other castTo int != 4",
+                        "        testFail(\"next id\")",
+                        "    testSuccess()");
+    }
+
+    /**
+     * Two instantiations made at compile time share the erased class's ids there, freed ones included; each keeps its
+     * id, and the objects made at run time collide with none of them.
+     */
+    private void assertTwoInstantiationsKeepTheirCompiletimeIds(boolean optimized) {
+        TestConfig config = test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms();
+        if (optimized) {
+            config = config.inline().localOptimizations();
+        }
+        config.lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class Box<T:>",
+                        "    T value",
+                        "    int storedId",
+                        "    function get() returns T",
+                        "        return value",
+                        "@compiletime Box<int> a = null",
+                        "@compiletime Box<string> b = null",
+                        "@compiletime Box<int> c = null",
+                        "@compiletime int maxId = 0",
+                        "@compiletime function build()",
+                        "    a = new Box<int>",
+                        "    a.value = 1",
+                        "    a.storedId = a castTo int",
+                        "    let tmp = new Box<string>",
+                        "    b = new Box<string>",
+                        "    b.value = \"b\"",
+                        "    b.storedId = b castTo int",
+                        "    destroy tmp",
+                        "    new Box<int>",
+                        "    let d = new Box<string>",
+                        "    destroy d",
+                        "    c = new Box<int>",
+                        "    c.value = 3",
+                        "    c.storedId = c castTo int",
+                        "    let last = new Box<string>",
+                        "    maxId = last castTo int",
+                        "init",
+                        "    if a castTo int != a.storedId or b castTo int != b.storedId or c castTo int != c.storedId",
+                        "        testFail(\"id\")",
+                        "    let n1 = new Box<int>",
+                        "    n1.value = 11",
+                        "    let n2 = new Box<int>",
+                        "    n2.value = 12",
+                        "    let s1 = new Box<string>",
+                        "    s1.value = \"s1\"",
+                        "    let s2 = new Box<string>",
+                        "    s2.value = \"s2\"",
+                        "    if n1 castTo int <= maxId or n2 castTo int <= maxId or s1 castTo int <= maxId or s2 castTo int <= maxId",
+                        "        testFail(\"run-time id\")",
+                        "    if a.get() != 1 or b.get() != \"b\" or c.get() != 3",
+                        "        testFail(\"kept value\")",
+                        "    if n1.get() != 11 or n2.get() != 12 or s1.get() != \"s1\" or s2.get() != \"s2\"",
+                        "        testFail(\"run-time value\")",
+                        "    testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeObjectsOfTwoNewGenericInstantiationsKeepTheirIds() {
+        assertTwoInstantiationsKeepTheirCompiletimeIds(false);
+    }
+
+    @Test
+    public void testCompiletimeObjectsOfTwoNewGenericInstantiationsKeepTheirIdsOptimized() {
+        assertTwoInstantiationsKeepTheirCompiletimeIds(true);
+    }
+
+    /**
+     * Instantiations joined to a plain class by an interface are one allocator group on Jass, as on Lua; the objects
+     * of all three keep their ids, dispatch through the interface, and the run-time objects take new ids.
+     */
+    @Test
+    public void testCompiletimeObjectsOfNewGenericClassJoinedByInterfaceKeepTheirIds() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "interface I",
+                        "    function id() returns int",
+                        "class Plain implements I",
+                        "    int storedId",
+                        "    function id() returns int",
+                        "        return storedId",
+                        "class Box<T:> implements I",
+                        "    T value",
+                        "    int storedId",
+                        "    function id() returns int",
+                        "        return storedId",
+                        "@compiletime Plain p = null",
+                        "@compiletime Box<int> bi = null",
+                        "@compiletime Box<string> bs = null",
+                        "@compiletime function build()",
+                        "    new Plain",
+                        "    bi = new Box<int>",
+                        "    bi.value = 2",
+                        "    bi.storedId = bi castTo int",
+                        "    let tmp = new Plain",
+                        "    p = new Plain",
+                        "    p.storedId = p castTo int",
+                        "    destroy tmp",
+                        "    bs = new Box<string>",
+                        "    bs.value = \"s\"",
+                        "    bs.storedId = bs castTo int",
+                        "function idOf(I i) returns int",
+                        "    return i.id()",
+                        "init",
+                        "    if p castTo int != p.storedId or bi castTo int != bi.storedId or bs castTo int != bs.storedId",
+                        "        testFail(\"id\")",
+                        "    if idOf(p) != p.storedId or idOf(bi) != bi.storedId or idOf(bs) != bs.storedId",
+                        "        testFail(\"dispatch\")",
+                        "    let np = new Plain",
+                        "    np.storedId = 100",
+                        "    let nb = new Box<int>",
+                        "    nb.storedId = 101",
+                        "    let ns = new Box<string>",
+                        "    ns.storedId = 102",
+                        "    if np castTo int <= 4 or nb castTo int <= 4 or ns castTo int <= 4",
+                        "        testFail(\"run-time id\")",
+                        "    if np castTo int == nb castTo int or nb castTo int == ns castTo int or np castTo int == ns castTo int",
+                        "        testFail(\"run-time ids collide\")",
+                        "    if idOf(p) != p castTo int or idOf(bi) != bi castTo int or idOf(bs) != bs castTo int",
+                        "        testFail(\"kept after run time\")",
+                        "    if idOf(np) != 100 or idOf(nb) != 101 or idOf(ns) != 102 or bi.value != 2 or bs.value != \"s\"",
+                        "        testFail(\"run-time value\")",
+                        "    testSuccess()");
+    }
+
+    /** A compile-time old-generic HashMap keyed by the ids of new-generic objects finds them at run time. */
+    @Test
+    public void testCompiletimeHashMapKeyedByIdOfNewGenericObject() {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "import HashMap",
+                        "class Box<T:>",
+                        "    T value",
+                        "@compiletime HashMap<int, Box<int>> byId = null",
+                        "@compiletime Box<int> a = null",
+                        "@compiletime Box<int> b = null",
+                        "@compiletime function build()",
+                        "    byId = new HashMap<int, Box<int>>",
+                        "    new Box<int>",
+                        "    a = new Box<int>",
+                        "    a.value = 10",
+                        "    byId.put(a castTo int, a)",
+                        "    new Box<string>",
+                        "    b = new Box<int>",
+                        "    b.value = 20",
+                        "    byId.put(b castTo int, b)",
+                        "init",
+                        "    let other = new Box<int>",
+                        "    other.value = 30",
+                        // through locals: on Jass a field read of an old-generic call's result fails without compile
+                        // time too (testPersistCompiletimeObjectOfNewGenericClassInOldGenericHolder)
+                        "    Box<int> gotA = byId.get(a castTo int)",
+                        "    Box<int> gotB = byId.get(b castTo int)",
+                        "    if byId.has(a castTo int) and gotA == a and gotB == b and gotA.value == 10 and gotB.value == 20",
+                        "        and not byId.has(other castTo int)",
+                        "        testSuccess()");
+    }
+
+    /** A compile-time object of a plain class keeps its id on Jass when the program also has a new-generic class. */
+    @Test
+    public void testCompiletimeObjectKeepsIdNextToNewGenericClass() {
+        test().testLua(true).luaOnly(false).executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "native testFail(string s)",
+                        "class A",
+                        "    int storedId",
+                        "class Box<T:>",
+                        "    T value",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "function build() returns A",
+                        "    new A",
+                        "    let keep = new A",
+                        "    keep.storedId = keep castTo int",
+                        "    return keep",
+                        "let kept = compiletime(build())",
+                        "init",
+                        "    let other = new A",
+                        "    other.storedId = 9",
+                        "    let box = new Box<int>",
+                        "    box.value = 1",
+                        "    if kept castTo int != kept.storedId or kept.storedId != 2",
+                        "        testFail(\"id\")",
+                        "    if other castTo int != 3 or box.value != 1",
+                        "        testFail(\"next id\")",
                         "    testSuccess()");
     }
 
