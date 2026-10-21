@@ -20,6 +20,8 @@ public class WurstTypeArray extends WurstType {
     private Expr arSize;
     private final WurstType baseType;
     private int[] sizes;
+    /** The array whose sizes this one shares, when this is that array with its type arguments substituted. */
+    private @Nullable WurstTypeArray sizeSource;
 
 
     public WurstTypeArray(WurstType baseType, Expr arSize) {
@@ -46,8 +48,19 @@ public class WurstTypeArray extends WurstType {
         this.sizes = new int[] { size };
     }
 
+    private WurstTypeArray(WurstType baseType, WurstTypeArray sizeSource) {
+        this.baseType = baseType;
+        this.sizeSource = sizeSource;
+    }
+
     private void initSizes() {
         if (sizes != null) {
+            return;
+        }
+        if (sizeSource != null) {
+            // evaluated (and reported) once, by the declared array
+            sizeSource.initSizes();
+            sizes = sizeSource.sizes;
             return;
         }
         // default is to have no array sizes:
@@ -95,6 +108,15 @@ public class WurstTypeArray extends WurstType {
             return mapping;
         }
         return null;
+    }
+
+    @Override
+    public WurstType setTypeArgs(VariableBinding typeParamMapping) {
+        WurstType b = baseType.setTypeArgs(typeParamMapping);
+        if (b == baseType) {
+            return this;
+        }
+        return new WurstTypeArray(b, this);
     }
 
     @Override
