@@ -1963,6 +1963,31 @@ public class InterfaceTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * Another interface's default returns int where the abstract method returns its type parameter: it cannot stand
+     * for the abstract method, so the inherited method with the right return type runs.
+     */
+    @Test
+    public void aDefaultWithAnotherReturnTypeDoesNotBeatTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function pick<T:>(T value) returns T",
+            "interface Default",
+            "    function pick<U:>(U value) returns int",
+            "        return 2",
+            "class Base",
+            "    function pick<T:>(T value) returns T",
+            "        return value",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns string",
+            "    return a.pick<string>(\"s\")",
+            "init",
+            "    if viaAbstract(new C<int>()) == \"s\"",
+            "        testSuccess()");
+    }
+
     /** A sub-interface method of another kind of generic is no default for the super-interface's method. */
     @Test
     public void aSubInterfaceDefaultOfAnotherKindOfGenericDoesNotImplementTheSuperInterfaceMethod() {

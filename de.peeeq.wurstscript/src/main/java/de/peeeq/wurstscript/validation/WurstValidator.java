@@ -4136,10 +4136,9 @@ public class WurstValidator {
     /**
      * Checks that the type parameters {@code overriding} declares itself are those {@code overridden} declares, up to
      * renaming: as many, each of the same kind of generic with the same bounds. Returns null if they are, and otherwise
-     * the error which says why {@code overriding} cannot override {@code overridden}. Overriding and an interface
-     * default standing for an abstract method ({@code InterfaceTranslator}) both need this.
+     * the error which says why {@code overriding} cannot override {@code overridden}.
      */
-    public static @Nullable String checkOwnTypeParameters(FunctionDefinition overriding, FunctionDefinition overridden) {
+    private static @Nullable String checkOwnTypeParameters(FunctionDefinition overriding, FunctionDefinition overridden) {
         List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
         List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
         if (ownTypeParams1.size() != ownTypeParams2.size()) {
@@ -4163,7 +4162,7 @@ public class WurstValidator {
      * {@code overriding}, so that types of {@code overridden} can be compared with those of {@code overriding}.
      * Positions beyond the shorter list stay unbound; {@link #checkOwnTypeParameters} rejects such a pair.
      */
-    public static VariableBinding ownTypeParameterRenaming(FunctionDefinition overriding, FunctionDefinition overridden) {
+    private static VariableBinding ownTypeParameterRenaming(FunctionDefinition overriding, FunctionDefinition overridden) {
         List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
         List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
         VariableBinding renaming = VariableBinding.emptyMapping();

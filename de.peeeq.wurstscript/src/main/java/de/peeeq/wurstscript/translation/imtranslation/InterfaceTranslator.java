@@ -8,6 +8,9 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.types.VariableBinding;
@@ -264,10 +267,17 @@ public class InterfaceTranslator {
 
     /**
      * The default which another interface of the class gives {@code abstractMethod}: a method of an interface which
-     * is not generic, with the same name and parameter types and a body, the nearest first (the class's own
-     * interfaces before its superclass's, as in {@link #typeBindingOf}); null if there is none.
+     * is not generic, with the same name and a body, which could override the abstract method as the class sees it
+     * ({@link WurstValidator#canOverride}: its own type parameters, parameter and return types), the nearest first
+     * (the class's own interfaces before its superclass's, as in {@link #typeBindingOf}); null if there is none.
      */
     private static @org.eclipse.jdt.annotation.Nullable FuncDef defaultOf(WurstTypeClass classType, FuncDef abstractMethod) {
+        DefLink bound = NameResolution.matchDefLinkReceiver(
+            FuncLink.create(abstractMethod, abstractMethod.getParent().attrNearestScope()).withConfigDef(), classType,
+            abstractMethod, false);
+        if (!(bound instanceof FuncLink abstractLink)) {
+            return null;
+        }
         ArrayDeque<WurstTypeClassOrInterface> queue = new ArrayDeque<>();
         queue.add(classType);
         while (!queue.isEmpty()) {
@@ -276,7 +286,9 @@ public class InterfaceTranslator {
                 for (FuncDef candidate : i.getDef().getMethods()) {
                     if (candidate != abstractMethod && !candidate.attrHasEmptyBody()
                         && candidate.getName().equals(abstractMethod.getName())
-                        && sameParameterTypes(candidate, abstractMethod)) {
+                        && WurstValidator.canOverride(
+                            FuncLink.create(candidate, candidate.getParent().attrNearestScope()).withConfigDef(),
+                            abstractLink, false)) {
                         return candidate;
                     }
                 }
@@ -292,25 +304,6 @@ public class InterfaceTranslator {
             }
         }
         return null;
-    }
-
-    /**
-     * Whether default {@code a} can stand for abstract {@code b}: its own type parameters are b's up to renaming, of the
-     * same kind and with the same bounds, as for an override ({@link WurstValidator#checkOwnTypeParameters}), and its
-     * parameter types are b's once b's type parameters are renamed to a's.
-     */
-    private static boolean sameParameterTypes(FuncDef a, FuncDef b) {
-        if (a.getParameters().size() != b.getParameters().size()
-            || WurstValidator.checkOwnTypeParameters(a, b) != null) {
-            return false;
-        }
-        VariableBinding renaming = WurstValidator.ownTypeParameterRenaming(a, b);
-        for (int i = 0; i < a.getParameters().size(); i++) {
-            if (!a.getParameters().get(i).attrTyp().equalsType(b.getParameters().get(i).attrTyp().setTypeArgs(renaming), a)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
