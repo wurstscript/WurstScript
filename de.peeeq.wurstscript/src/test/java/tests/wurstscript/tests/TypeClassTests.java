@@ -233,15 +233,13 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * A closure written inside another one is still rejected, and this pins that it is rejected in
-     * the same words as before rather than falling over inside the rewrite. The inner closure
-     * reaches its captured environment through a receiver belonging to the outer one, which has
-     * been specialised by then, so specialising the owner again with what is left over does not
-     * work. Should that be made to work, this test fails and becomes a success case.
+     * A closure written inside another one dispatches on the bound of the generic function both are written in:
+     * the closures share the type variables they capture, so the inner one reaches the outer one's captured
+     * environment with the instantiation the outer one was specialised for.
      */
     @Test
-    public void nestedClosuresInsideBoundedGenericAreRejectedForLua() {
-        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target").lines(
+    public void nestedClosuresInsideBoundedGenericDispatchOnTheBound() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package test",
             "native testSuccess()",
             "interface ToIndex<T:>",

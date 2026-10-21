@@ -13,11 +13,14 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 
@@ -33,12 +36,20 @@ public class ClosureTranslator {
     private ImFunction impl;
     private ImClass c;
     private ImVar capturedThisField;
+    // the outermost closure whose class is being created around this one, which captures the type variables
+    // of both, or null
+    private final ClosureTranslator outermost;
+    // the closures written inside this one, at any depth, in the order they were translated; only of an outermost one
+    private final List<ClosureTranslator> nested = new ArrayList<>();
 
     public ClosureTranslator(ExprClosure e, ImTranslator tr, ImFunction f) {
         super();
         this.e = e;
         this.tr = tr;
         this.f = f;
+        ExprClosure enclosingClosure = e.getParent() == null ? null : e.getParent().attrNearestExprClosure();
+        ClosureTranslator enclosing = enclosingClosure == null ? null : tr.closuresInTranslation().get(enclosingClosure);
+        this.outermost = enclosing == null ? null : enclosing.outermost == null ? enclosing : enclosing.outermost;
     }
 
 
@@ -189,6 +200,7 @@ public class ClosureTranslator {
         //JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
         tr.imProg().getClasses().add(c);
 
+        tr.closuresInTranslation().put(e, this);
         impl = tr.getFuncFor(e);
         impl.setName(makeFuncName(superMethod));
         tr.getImProg().getFunctions().remove(impl);
@@ -227,8 +239,15 @@ public class ClosureTranslator {
         }
         captureEnclosingThis();
         transformTranslated(translated);
+        tr.closuresInTranslation().remove(e);
 
-        typeVars = rewriteTypeVars(c);
+        if (outermost != null) {
+            // Allocated in the enclosing closure without type arguments, which the outermost one gives it.
+            outermost.nested.add(this);
+            typeVars = Collections.emptyMap();
+        } else {
+            typeVars = rewriteTypeVars();
+        }
         return c;
     }
 
@@ -277,23 +296,65 @@ public class ClosureTranslator {
     }
 
     /**
-     * Replaces all captured type variables with new type variables.
-     * And adds these type variables to the closure-class c.
+     * Replaces all captured type variables with new type variables of the closure's class, for the closure and the
+     * closures written inside it, and returns the variables of the closure's own class.
+     * <p>
+     * A closure written in another one is created first, while the class of the enclosing closure has no type
+     * variables yet: the inner closure names that class without type arguments, as the type of the enclosing
+     * {@code this} it captures, and the enclosing closure allocates the inner one without them. So the closures
+     * written inside each other capture the same type variables, all those any of them uses, in the same order, and
+     * each class names another of them with its own variables.
      */
-    private Map<ImTypeVar, ImTypeVar> rewriteTypeVars(ImClass c) {
-        Map<ImTypeVar, ImTypeVar> result = new LinkedHashMap<>();
-        ImClassType thisType = JassIm.ImClassType(c, JassIm.ImTypeArguments());
-        TypeRewriter.rewriteTypes(c, t -> rewriteType(thisType, result, t));
-        return result;
+    private Map<ImTypeVar, ImTypeVar> rewriteTypeVars() {
+        List<ImClass> classes = new ArrayList<>();
+        classes.add(c);
+        for (ClosureTranslator n : nested) {
+            classes.add(n.c);
+        }
+        Set<ImTypeVar> captured = new LinkedHashSet<>();
+        for (ImClass k : classes) {
+            TypeRewriter.rewriteTypes(k, t -> {
+                collectTypeVars(t, captured);
+                return t;
+            });
+        }
+        List<Map<ImTypeVar, ImTypeVar>> newVarsByClass = new ArrayList<>();
+        for (ImClass k : classes) {
+            Map<ImTypeVar, ImTypeVar> newVars = new LinkedHashMap<>();
+            ImTypeArguments ownArguments = JassIm.ImTypeArguments();
+            for (ImTypeVar oldTypevar : captured) {
+                ImTypeVar newTypevar = JassIm.ImTypeVar(oldTypevar.getName() + "_captured");
+                // The same parameter as the one it captures: what the closure's body reads of the enclosing
+                // class, such as a static, belongs to the instantiation the closure was made for.
+                tr.recordSpecialisation(newTypevar, oldTypevar);
+                newVars.put(oldTypevar, newTypevar);
+                k.getTypeVariables().add(newTypevar);
+                ownArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(newTypevar), Collections.emptyMap()));
+            }
+            TypeRewriter.rewriteTypes(k, t -> rewriteType(classes, ownArguments, newVars, t));
+            newVarsByClass.add(newVars);
+        }
+        return newVarsByClass.get(0);
     }
 
-    private ImType rewriteType(ImClassType thisType, Map<ImTypeVar, ImTypeVar> result, ImType type) {
+    private static void collectTypeVars(ImType type, Set<ImTypeVar> captured) {
+        type.match(new TypeRewriteMatcher() {
+            @Override
+            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
+                captured.add(t.getTypeVariable());
+                return t;
+            }
+        });
+    }
+
+    private static ImType rewriteType(List<ImClass> classes, ImTypeArguments ownArguments,
+                                      Map<ImTypeVar, ImTypeVar> newVars, ImType type) {
         return type.match(new TypeRewriteMatcher() {
 
             @Override
             public ImType case_ImClassType(ImClassType t) {
-                if (t.getClassDef() == c) {
-                    return thisType;
+                if (classes.contains(t.getClassDef())) {
+                    return JassIm.ImClassType(t.getClassDef(), ownArguments.copy());
                 }
                 return super.case_ImClassType(t);
             }
@@ -301,21 +362,7 @@ public class ClosureTranslator {
 
             @Override
             public ImType case_ImTypeVarRef(ImTypeVarRef t) {
-                ImTypeVar oldTypevar = t.getTypeVariable();
-                ImTypeVar newTypevar = result.get(oldTypevar);
-                if (newTypevar == null) {
-                    newTypevar = JassIm.ImTypeVar(oldTypevar.getName() + "_captured");
-                    // The same parameter as the one it captures: what the closure's body reads of the enclosing
-                    // class, such as a static, belongs to the instantiation the closure was made for.
-                    tr.recordSpecialisation(newTypevar, oldTypevar);
-                    result.put(oldTypevar, newTypevar);
-                    c.getTypeVariables().add(newTypevar);
-                    thisType.getTypeArguments().add(
-                            JassIm.ImTypeArgument(
-                                    JassIm.ImTypeVarRef(newTypevar),
-                                    Collections.emptyMap()));
-                }
-                return JassIm.ImTypeVarRef(newTypevar);
+                return JassIm.ImTypeVarRef(newVars.get(t.getTypeVariable()));
             }
         });
     }

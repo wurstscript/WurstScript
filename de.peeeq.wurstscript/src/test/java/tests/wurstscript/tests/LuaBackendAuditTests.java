@@ -2834,6 +2834,164 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * A closure written inside another closure checks against the instantiation of the class both are written in,
+     * which reaches the inner closure through the outer one's captured type parameter.
+     */
+    @Test
+    public void genericInstanceofInAClosureInsideAnotherClosure() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "interface Pred",
+            "    function test(Marker m) returns bool",
+            "interface Mk",
+            "    function mk() returns Pred",
+            "class G<T:>",
+            "    function pred() returns Pred",
+            "        Mk outer = () -> begin",
+            "            Pred p = (Marker x) -> x instanceof Box<T>",
+            "            return p",
+            "        end",
+            "        return outer.mk()",
+            "init",
+            "    let pi = new G<int>().pred()",
+            "    let ps = new G<string>().pred()",
+            "    Marker bi = new Box<int>()",
+            "    Marker bs = new Box<string>()",
+            "    if pi.test(bi) and not pi.test(bs)",
+            "        and ps.test(bs) and not ps.test(bi)",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure inside another closure constructs with its owner's type parameter. */
+    @Test
+    public void genericConstructionInAClosureInsideAnotherClosure() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T item",
+            "interface Make",
+            "    function make(int i) returns int",
+            "interface Mk",
+            "    function mk() returns Make",
+            "class G<T:>",
+            "    function maker() returns Make",
+            "        Mk outer = () -> begin",
+            "            Make inner = (int i) -> begin",
+            "                let b = new Box<T>()",
+            "                destroy b",
+            "                return i + 1",
+            "            end",
+            "            return inner",
+            "        end",
+            "        return outer.mk()",
+            "init",
+            "    if new G<int>().maker().make(1) == 2",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure inside another closure reads a field of type T of the object both captured. */
+    @Test
+    public void genericFieldReadInAClosureInsideAnotherClosure() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Get<T:>",
+            "    function get() returns T",
+            "interface MkGet<T:>",
+            "    function mk() returns Get<T>",
+            "class G<T:>",
+            "    T val",
+            "    construct(T v)",
+            "        val = v",
+            "    function getter() returns Get<T>",
+            "        MkGet<T> outer = () -> begin",
+            "            Get<T> inner = () -> val",
+            "            return inner",
+            "        end",
+            "        return outer.mk()",
+            "init",
+            "    let gi = new G<int>(5)",
+            "    let gs = new G<string>(\"a\")",
+            "    if gi.getter().get() == 5 and gs.getter().get() == \"a\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A closure inside another closure dispatches on its owner's type-class bound. */
+    @Test
+    public void boundDispatchInAClosureInsideAnotherClosure() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n + 1",
+            "implements Kc<string>",
+            "    function kmk(int n) returns string",
+            "        return \"s\"",
+            "interface Get<T:>",
+            "    function get() returns T",
+            "interface MkGet<T:>",
+            "    function mk() returns Get<T>",
+            "class G<T: Kc>",
+            "    function getter() returns Get<T>",
+            "        MkGet<T> outer = () -> begin",
+            "            Get<T> inner = () -> T.kmk(4)",
+            "            return inner",
+            "        end",
+            "        return outer.mk()",
+            "init",
+            "    if new G<int>().getter().get() == 5 and new G<string>().getter().get() == \"s\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** Three closures inside each other read the static of the instantiation of the class they are written in. */
+    @Test
+    public void genericStaticInAClosureTwoClosuresDeep() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Fn",
+            "    function get() returns int",
+            "interface MkFn",
+            "    function mk() returns Fn",
+            "interface MkMkFn",
+            "    function mk() returns MkFn",
+            "class G<T:>",
+            "    static int cnt = 0",
+            "    T val",
+            "    function count() returns int",
+            "        MkMkFn outer = () -> begin",
+            "            MkFn middle = () -> begin",
+            "                Fn inner = () -> begin",
+            "                    cnt += 1",
+            "                    return cnt",
+            "                end",
+            "                return inner",
+            "            end",
+            "            return middle",
+            "        end",
+            "        return outer.mk().mk().get()",
+            "init",
+            "    let gi = new G<int>()",
+            "    let gs = new G<string>()",
+            "    gi.count()",
+            "    gi.count()",
+            "    if gs.count() == 1 and gi.count() == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /**
      * An instantiation whose type argument has a type-class bound inside it is the same instantiation whether the
      * check and the construction carry that binding or not: a binding is dispatch metadata, not part of the type.
      */
