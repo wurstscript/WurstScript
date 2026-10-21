@@ -181,9 +181,20 @@ public class ImAttrType {
             ImTypeArguments typeArgs = e.getTypeArguments();
             try {
                 if (typeArgs.isEmpty()) {
-                    typeArgs = receiverType.getTypeArguments();
+                    // A field the receiver's class inherits has its own class's type variables, whose arguments the
+                    // receiver's type gives through the superclasses (Sub extends G<int>).
+                    ImClassType ct = receiverType;
+                    Element fields = e.getVar().getParent();
+                    if (fields != null && fields.getParent() instanceof ImClass fieldClass) {
+                        ImClassType fieldClassType = asSuperclass(receiverType, fieldClass);
+                        if (fieldClassType != null) {
+                            ct = fieldClassType;
+                        }
+                    }
+                    t = substituteType(t, ct.getTypeArguments(), ct.getClassDef().getTypeVariables());
+                } else {
+                    t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
                 }
-                t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
 
                 if (!e.getIndexes().isEmpty()) {
                     if (t instanceof ImArrayType) {
