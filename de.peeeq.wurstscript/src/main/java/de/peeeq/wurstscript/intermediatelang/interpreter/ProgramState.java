@@ -37,6 +37,12 @@ public class ProgramState extends State implements AutoCloseable {
     /** The key of the one id space all classes share; see {@link #useOneObjectIdSpace}. */
     private static final Object SHARED_ID_SPACE = new Object();
     private boolean oneObjectIdSpace;
+    /** Whether the program read a type id; see {@link #noteTypeIdsRead}. */
+    private boolean typeIdsRead;
+    /** Where the program first read the type id of each new-generic class; see {@link #noteTypeIdRead}. */
+    private final Map<ImClass, Element> genericTypeIdReads = new LinkedHashMap<>();
+    /** The live objects and the most alive at once of each allocation group, by its key; only looked up. */
+    private final Map<Object, int[]> groupCounts = new HashMap<>();
     /** See {@link #isGenericHierarchy}; only looked up, never iterated. */
     private final Map<ImClass, Boolean> genericHierarchy = new IdentityHashMap<>();
     /** See {@link #dispatch}; only looked up, never iterated. */
@@ -222,6 +228,9 @@ public class ProgramState extends State implements AutoCloseable {
         int objId = !idSpace.freeObjectIds.isEmpty() ? idSpace.freeObjectIds.pop() : ++idSpace.objectIdCounter;
         ILconstObject res = new ILconstObject(clazz, objId, trace);
         idSpace.indexToObject.put(objId, res);
+        int[] counts = groupCounts(clazz.getClassDef());
+        counts[0]++;
+        counts[1] = Math.max(counts[1], counts[0]);
         WLogger.trace(() -> "alloc objId=" + objId + " type=" + clazz + " trace=" + trace);
         return res;
     }
@@ -249,6 +258,7 @@ public class ProgramState extends State implements AutoCloseable {
     public void deallocate(ILconstObject obj, ImClass clazz, Element trace) {
         assertAllocated(obj, trace);
         obj.destroy();
+        groupCounts(clazz)[0]--;
         ObjectIdSpace idSpace = getIdSpace(classKey(clazz));
         idSpace.freeObjectIds.push(obj.getObjectId());
     }
@@ -405,7 +415,53 @@ public class ProgramState extends State implements AutoCloseable {
 
     public int getTypeId(ILconstObject obj, Element trace) {
         assertAllocated(obj, trace);
+        noteTypeIdRead(obj.getImClass(), trace);
         return obj.getImClass().attrTypeId();
+    }
+
+    /**
+     * Records the read of the type id of {@code clazz} at {@code trace}. The interpreter has one class for all the
+     * instantiations of a new-generic class, as Lua does; Jass makes a class of each after compile time.
+     */
+    public void noteTypeIdRead(ImClass clazz, Element trace) {
+        noteTypeIdsRead();
+        if (!clazz.getTypeVariables().isEmpty()) {
+            genericTypeIdReads.putIfAbsent(clazz, trace);
+        }
+    }
+
+    public Map<ImClass, Element> genericTypeIdReads() {
+        return genericTypeIdReads;
+    }
+
+    /**
+     * Records that the program read a type id, or a number which stands for one: compile-time code may keep it in
+     * the generated script, so the classes keep their type ids when the generics add classes
+     * ({@code ImTranslator.rememberTypeIdsBeforeGenerics}).
+     */
+    public void noteTypeIdsRead() {
+        typeIdsRead = true;
+    }
+
+    public boolean typeIdsRead() {
+        return typeIdsRead;
+    }
+
+    /**
+     * The counts of the allocation group of {@code clazz}, every class joined to it by inheritance, which one
+     * allocator serves on Jass: its live objects and the most it had alive at once (Reflection's instanceCount and
+     * maxInstanceCount, which Lua counts the same way).
+     */
+    private int[] groupCounts(ImClass clazz) {
+        return groupCounts.computeIfAbsent(classKeyLookup.getOrDefault(clazz, clazz), k -> new int[2]);
+    }
+
+    public int liveObjectsOfGroup(ImClass clazz) {
+        return groupCounts(clazz)[0];
+    }
+
+    public int mostLiveObjectsOfGroup(ImClass clazz) {
+        return groupCounts(clazz)[1];
     }
 
     /** {@code entry} is where the frame is entered: the call, or the function when nothing called it. */

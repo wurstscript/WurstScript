@@ -21,4 +21,8 @@ public interface AbstractInterpreter {
     int getInstanceCount(int val);
 
     int getMaxInstanceCount(int val);
+
+    /** Records that the program read a type id; see {@code ProgramState.noteTypeIdsRead}. */
+    default void noteTypeIdsRead() {
+    }
 }

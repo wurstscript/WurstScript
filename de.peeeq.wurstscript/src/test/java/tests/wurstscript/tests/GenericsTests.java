@@ -1364,4 +1364,180 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** An instanceof of a field of a generic class, against the class's own type parameter. */
+    @Test
+    public void instanceofOfFieldAgainstTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function r() returns boolean",
+            "        return held instanceof Box<T>",
+            "init",
+            "    let ints = new G<int>()",
+            "    ints.held = new Box<int>()",
+            "    let strings = new G<string>()",
+            "    strings.held = new Box<int>()",
+            "    if ints.r() and not strings.r()",
+            "        testSuccess()"
+        );
+    }
+
+    /** A local captured by a closure becomes a field of the closure's class, so the same holds there. */
+    @Test
+    public void instanceofOfCapturedLocalAgainstTypeParameter() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "interface Pred",
+            "    function test() returns boolean",
+            "class G<T:>",
+            "    function pred(Marker m) returns Pred",
+            "        return () -> m instanceof Box<T>",
+            "init",
+            "    let ints = new G<int>()",
+            "    let strings = new G<string>()",
+            "    let b = new Box<int>()",
+            "    if ints.pred(b).test() and not strings.pred(b).test()",
+            "        testSuccess()"
+        );
+    }
+
+    /** The type id of a field of a generic class, read inside the class. */
+    @Test
+    public void typeIdOfFieldInGenericClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function tid() returns int",
+            "        return held.typeId",
+            "init",
+            "    let g = new G<int>()",
+            "    let b = new Box<int>()",
+            "    g.held = b",
+            "    if g.tid() == b.typeId",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * Compile-time code reads a type id before the generics are eliminated, which then adds the classes of the
+     * instantiations: their type ids must not come from what compile time saw.
+     */
+    @Test
+    public void typeIdReadAtCompileTimeBeforeInstantiationsExist() {
+        test().testLua(true).luaOnly(false).runCompiletimeFunctions(true).executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Plain implements Marker",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant plainId = compiletime(new Plain().typeId)",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function tid() returns int",
+            "        return held.typeId",
+            "init",
+            "    let g = new G<int>()",
+            "    let b = new Box<int>()",
+            "    g.held = b",
+            "    if g.tid() == b.typeId and plainId != 0",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A type id compile-time code stored stays the class's type id at run time, although the generics add the
+     * classes of instantiations whose names sort before it.
+     */
+    @Test
+    public void typeIdStoredAtCompileTimeMatchesTheRuntimeTypeId() {
+        test().testLua(true).luaOnly(false).runCompiletimeFunctions(true).executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T item",
+            "class Plain implements Marker",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant plainId = compiletime(new Plain().typeId)",
+            "init",
+            "    let a = new Box<int>()",
+            "    let b = new Box<string>()",
+            "    if new Plain().typeId == plainId and a != null and b != null",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same when a class which sorts before it is used by nothing, which Lua drops from the script. */
+    @Test
+    public void typeIdStoredAtCompileTimeSurvivesAnUnusedClassBeforeIt() {
+        test().testLua(true).luaOnly(false).runCompiletimeFunctions(true).executeProg().executeProgOnlyAfterTransforms().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Aunused",
+            "class Zused",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant zid = compiletime(new Zused().typeId)",
+            "init",
+            "    if new Zused().typeId == zid",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * Compile-time code sees one class for every instantiation of a new generic class, which Jass makes a class of
+     * its own after compile time. So a type id of an instantiation read then can match nothing Jass makes: an error.
+     */
+    @Test
+    public void typeIdOfGenericInstantiationReadAtCompileTimeIsAnErrorOnJass() {
+        test().runCompiletimeFunctions(true).executeProg(false)
+            .expectError("compile-time code read the type id of Box").lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T item",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant boxId = compiletime(new Box<int>().typeId)",
+            "init",
+            "    if new Box<int>().typeId == boxId",
+            "        testSuccess()"
+        );
+    }
+
+    /** Lua keeps one class for the instantiations, as compile time does, so the id stays the class's. */
+    @Test
+    public void typeIdOfGenericInstantiationReadAtCompileTimeMatchesOnLua() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T item",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "constant boxId = compiletime(new Box<int>().typeId)",
+            "init",
+            "    if new Box<int>().typeId == boxId",
+            "        testSuccess()"
+        );
+    }
+
 }

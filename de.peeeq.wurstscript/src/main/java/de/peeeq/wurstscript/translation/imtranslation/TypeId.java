@@ -48,6 +48,36 @@ public class TypeId {
         return result;
     }
 
+    /**
+     * Type ids for {@code classes} which keep the ids in {@code before} and number the classes not in it after the
+     * largest of them: compile-time code may have stored an id, so a class which had one keeps it. The checks and
+     * dispatch built from type ids take a list of ids, so the ids need not be contiguous.
+     */
+    public static Map<ImClass, Integer> keeping(Map<ImClass, Integer> before, Collection<ImClass> classes) {
+        return keeping(before, classes, TypeId::superClassDefs);
+    }
+
+    /** {@link #keeping(Map, Collection)} along the superclass edges {@code superClasses} gives. */
+    public static Map<ImClass, Integer> keeping(Map<ImClass, Integer> before, Collection<ImClass> classes,
+                                                Function<ImClass, List<ImClass>> superClasses) {
+        Map<ImClass, Integer> result = Maps.newLinkedHashMap();
+        List<ImClass> added = new java.util.ArrayList<>();
+        for (ImClass c : classes) {
+            Integer id = before.get(c);
+            if (id != null) {
+                result.put(c, id);
+            } else {
+                added.add(c);
+            }
+        }
+        int offset = before.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+        java.util.Set<ImClass> addedSet = new java.util.HashSet<>(added);
+        Map<ImClass, Integer> addedIds = calculate(added, c -> superClasses.apply(c).stream()
+                .filter(addedSet::contains).collect(Collectors.toList()));
+        addedIds.forEach((c, id) -> result.put(c, offset + id));
+        return result;
+    }
+
     private static List<ImClass> superClassDefs(ImClass c) {
         return c.getSuperClasses().stream().map(ImClassType::getClassDef).collect(Collectors.toList());
     }
