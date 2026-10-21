@@ -1344,7 +1344,7 @@ public class TypeClassTests extends WurstScriptTest {
     /** A method with its own type parameters must not disturb the class binding taken from the receiver. */
     @Test
     public void classBoundWithIndependentMethodTypeParam() {
-        test().executeProg(true).luaExempt(LuaExemption.CLASS_AND_METHOD_TYPE_PARAMS, "Generics should match class method type variables for Box_describe").lines(
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
             "package test",
             "native testSuccess()",
             "interface Show<T:>",
