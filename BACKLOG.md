@@ -50,28 +50,6 @@ Notes; finished-work narrative does not.
   `static int cnt = 0` reads nil when `r` also calls a `Codec<T>` method on a `T` static and is reached
   through a non-generic base class.
 
-- **`lua-instanceof-erased`: `instanceof Box<T>` in a generic class reached through a non-generic
-  interface, base class or destroy, or in a closure, accepts every `Box` on Lua**, because the method
-  stays erased (a closure is not specialised for an instanceof: that is `lua-closure-receiver`). A
-  `new Box<T>()` there allocates a `Box` of no instantiation, so while one is reachable every check of
-  `Box`, even `instanceof Box<int>`, stays erased too (`keepErasedChecksWhereAnAllocationStaysErased`).
-  Otherwise an `instanceof` which names its instantiation, or is reached through calls which give it,
-  tells the instantiations apart:
-
-  ```wurst
-  interface Marker
-  class Box<T:> implements Marker
-  interface Check
-      function holds(Marker m) returns bool
-  class G<T:> implements Check
-      function holds(Marker m) returns bool
-          return m instanceof Box<T>
-  init
-      Check c = new G<int>()
-      if not c.holds(new Box<string>())   // Lua: true
-          testSuccess()
-  ```
-
 - **`lua-bound-unresolved`: Lua rejects a type-class requirement reached through a non-generic
   interface, base class, super call or destroy** ("Type class dispatch of kmk could not be resolved for
   the Lua target"). Jass compiles and runs it:
@@ -242,6 +220,30 @@ Notes; finished-work narrative does not.
       let g = new G<int>()
       g.held = new Box<int>()
       if g.r()
+          testSuccess()
+  ```
+
+- **A closure inside another closure which uses its owner's `T` crashes `EliminateGenerics`** on Jass
+  and Lua ("Rewrite generics with wrong sizes", in `specializeClass` through a `GenericMemberAccess` of
+  the outer closure, whose captured `T` gets no type argument). `classNeedsIdentity` leaves such a closure
+  erased (`isInsideAnotherClosure`), so a Lua `instanceof Box<T>` in it would also accept every `Box`:
+
+  ```wurst
+  interface Marker
+  class Box<T:> implements Marker
+  interface Pred
+      function test(Marker m) returns bool
+  interface Mk
+      function mk() returns Pred
+  class G<T:>
+      function pred() returns Pred
+          Mk outer = () -> begin
+              Pred p = (Marker x) -> x instanceof Box<T>
+              return p
+          end
+          return outer.mk()
+  init
+      if new G<int>().pred().test(new Box<int>())
           testSuccess()
   ```
 

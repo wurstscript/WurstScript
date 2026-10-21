@@ -52,6 +52,11 @@ public class EliminateGenerics {
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
     /** Concrete generic identities named by runtime instanceof checks. */
     private final Table<ImClass, GenericTypes, Boolean> runtimeTypeSpecializations = HashBasedTable.create();
+    /**
+     * The classes an instanceof names an instantiation of, concrete or still written with a type variable such as
+     * {@code Box<T>}, which names a concrete instantiation once its function is specialised.
+     */
+    private final Set<ImClass> classesWithObservedIdentity = Collections.newSetFromMap(new IdentityHashMap<>());
     private record RuntimeTypeUse(ImClass clazz, GenericTypes generics) {
     }
     private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
@@ -143,6 +148,9 @@ public class EliminateGenerics {
         }
         indexGenericGlobalUses();
         collectUnspecializedGenericClassMethods();
+        if (observesGenericIdentity) {
+            collectClassesWithObservedIdentity();
+        }
         // Specialising a constructor makes its result type concrete, which is what lets a method
         // call on that result resolve. Repeat until a pass finds nothing new; collection is
         // idempotent, so this terminates once every reachable site has been rewritten.
@@ -444,6 +452,23 @@ public class EliminateGenerics {
                     if (runtimeTypeSpecializations.put(original, generics, true) == null) {
                         rewriteExistingRuntimeTypeSuperEdges();
                     }
+                }
+            }
+        });
+    }
+
+    /**
+     * Records the classes whose identity an instanceof observes ({@link #classesWithObservedIdentity}), once,
+     * before the specialisation: whether a construction of such a class needs its caller specialised must not
+     * depend on how far the specialisation has got, because {@link #classNeedsIdentity} keeps its first answer.
+     */
+    private void collectClassesWithObservedIdentity() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                if (!instanceOf.getClazz().getTypeArguments().isEmpty()) {
+                    classesWithObservedIdentity.add(instanceOf.getClazz().getClassDef());
                 }
             }
         });
@@ -842,26 +867,13 @@ public class EliminateGenerics {
         if (known != null) {
             return known;
         }
-        boolean outer = identityIgnored;
-        // A closure is not given an identity for an instanceof alone (wurstscript/WurstScript#1507): its check
-        // stays erased while the closure's own constructions do. Programs with tuple type arguments keep what
-        // they always counted.
-        identityIgnored = isClosureClass(clazz) && !specializeTupleValueTypes;
-        boolean answer;
-        try {
-            answer = !clazz.getTypeVariables().isEmpty()
-                && !(clazz.attrTrace() instanceof ExprClosure closure && isInsideAnotherClosure(closure))
-                && classMembersNeedTypeArgument(clazz, Collections.newSetFromMap(new IdentityHashMap<>()),
-                    Collections.newSetFromMap(new IdentityHashMap<>()));
-        } finally {
-            identityIgnored = outer;
-        }
+        boolean answer = !clazz.getTypeVariables().isEmpty()
+            && !(clazz.attrTrace() instanceof ExprClosure closure && isInsideAnotherClosure(closure))
+            && classMembersNeedTypeArgument(clazz, Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
         classNeedsIdentityAnswers.put(clazz, answer);
         return answer;
     }
-
-    /** Set while {@link #classNeedsIdentity} asks about a closure: instanceof identity does not count. */
-    private boolean identityIgnored;
 
     private final Map<ImClass, Boolean> classNeedsIdentityAnswers = new IdentityHashMap<>();
 
@@ -1190,7 +1202,7 @@ public class EliminateGenerics {
             return true;
         }
         if (node instanceof ImInstanceof instanceOf) {
-            return !identityIgnored && typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
+            return typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments());
         }
         if (node instanceof ImAlloc alloc) {
             // Constructing a class whose methods dispatch has to be specialised as well:
@@ -1304,7 +1316,7 @@ public class EliminateGenerics {
      * instantiation is redirected only when that instantiation is observed.
      */
     private boolean constructsClassWithObservedIdentity(ImFunction enclosingFunction, ImFunctionCall call) {
-        if (identityIgnored || runtimeTypeSpecializations.isEmpty()
+        if (classesWithObservedIdentity.isEmpty()
             || !(call.getFunc().getTrace() instanceof ConstructorDef)
             || !typeArgumentsContainTypeVariable(call.getTypeArguments())
             || enclosingFunction.getTrace() == call.getFunc().getTrace()) {
@@ -1319,7 +1331,7 @@ public class EliminateGenerics {
         if (!visited.add(clazz)) {
             return false;
         }
-        if (runtimeTypeSpecializations.containsRow(clazz)) {
+        if (classesWithObservedIdentity.contains(clazz)) {
             return true;
         }
         for (ImClassType superType : clazz.getSuperClasses()) {
@@ -3130,7 +3142,7 @@ public class EliminateGenerics {
         });
     }
 
-    static boolean containsTypeVariable(ImType type) {
+    public static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
             @Override
             public Boolean case_ImArrayTypeMulti(ImArrayTypeMulti t) {

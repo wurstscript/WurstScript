@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
 import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -260,12 +261,38 @@ public class ProgramState extends State implements AutoCloseable {
         }
     }
 
-    public boolean isInstanceOf(ILconstObject obj, ImClass clazz, Element trace) {
+    private boolean isInstanceOf(ILconstObject obj, ImClass clazz, Element trace) {
         if (obj == null) {
             return false;
         }
         assertAllocated(obj, trace);
         return ancestors(obj.getImClass()).contains(clazz);
+    }
+
+    /**
+     * Whether the object is an instance of {@code type}: of its class or a subclass and, for an instantiation of a new
+     * generic class, of that instantiation, as the backends tell it, where a Box&lt;int&gt; is no Box&lt;string&gt;.
+     */
+    public boolean isInstanceOf(ILconstObject obj, ImClassType type, Element trace) {
+        if (!isInstanceOf(obj, type.getClassDef(), trace)) {
+            return false;
+        }
+        if (type.getTypeArguments().isEmpty()) {
+            return true;
+        }
+        ImClassType checked = (ImClassType) resolveType(type);
+        ImClassType actual = adaptToSuperclass(obj.getType(), type.getClassDef());
+        if (actual == null || EliminateGenerics.containsTypeVariable(checked)
+            || EliminateGenerics.containsTypeVariable(actual)) {
+            throw new InterpreterException(trace, "Cannot decide whether " + obj.getType() + " is a " + checked
+                + ": an instantiation is unknown here.");
+        }
+        for (int i = 0; i < checked.getTypeArguments().size(); i++) {
+            if (!checked.getTypeArguments().get(i).getType().equalsType(actual.getTypeArguments().get(i).getType())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
