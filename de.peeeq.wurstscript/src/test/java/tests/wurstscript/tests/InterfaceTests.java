@@ -1852,4 +1852,94 @@ public class InterfaceTests extends WurstScriptTest {
             "    if viaAbstract(new C<int>()) == 1",
             "        testSuccess()");
     }
+
+    /**
+     * A sub-interface default of a method with a type parameter of its own, which renames it, as the implementation
+     * of the super-interface's method: {@code Sub} gives the default, the classes take it, and a call through Top with
+     * either type argument runs it. {@code mark} tells the implementations apart.
+     */
+    private static String[] subInterfaceDefaultWithOwnTypeParameter(String sub, String implementing, String construct) {
+        return new String[]{
+            "package test",
+            "native testSuccess()",
+            "int mark = 0",
+            "interface Top",
+            "    function id<T:>(T value) returns T",
+            "interface " + sub + " extends Top",
+            "    function id<U:>(U value) returns U",
+            "        mark = 1",
+            "        return value",
+            "class " + implementing,
+            "class X implements Top",
+            "    function id<T:>(T value) returns T",
+            "        mark = 3",
+            "        return value",
+            "function viaTop(Top t, int expected) returns bool",
+            "    mark = 0",
+            "    let i = t.id<int>(3)",
+            "    let first = mark",
+            "    mark = 0",
+            "    return i == 3 and first == expected and t.id<string>(\"x\") == \"x\" and mark == expected",
+            "init",
+            "    if viaTop(" + construct + ", 1) and viaTop(new X(), 3)",
+            "        testSuccess()"};
+    }
+
+    /** The sub-interface is generic, so the class's method for the default runs it through a function of its own. */
+    @Test
+    public void aGenericSubInterfaceDefaultWithATypeParameterOfItsOwnImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub<X:>", "C implements Sub<int>", "new C()"));
+    }
+
+    @Test
+    public void aSubInterfaceDefaultWithATypeParameterOfItsOwnImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub", "C implements Sub", "new C()"));
+    }
+
+    /** The class is generic too, and gives the sub-interface its own type parameter. */
+    @Test
+    public void aGenericClassTakesTheSubInterfaceDefaultWithATypeParameterOfItsOwn() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub<X:>", "C<Y:> implements Sub<Y>", "new C<real>()"));
+    }
+
+    /** A generic class takes the default of a plain sub-interface. */
+    @Test
+    public void aGenericClassTakesThePlainSubInterfaceDefaultWithATypeParameterOfItsOwn() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub", "C<Y:> implements Sub", "new C<real>()"));
+    }
+
+    /** Two sibling sub-interfaces give the method with its own type parameter a default each: the class must override. */
+    @Test
+    public void siblingSubInterfaceDefaultsWithATypeParameterOfTheirOwnRequireTheClassToOverride() {
+        testAssertErrorsLines(false,
+            "Class C must override function id, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Top",
+            "    function id<T:>(T value) returns T",
+            "interface S1 extends Top",
+            "    function id<T:>(T value) returns T",
+            "        return value",
+            "interface S2 extends Top",
+            "    function id<U:>(U value) returns U",
+            "        return value",
+            "class C implements S1, S2");
+    }
+
+    /** A sub-interface method of another kind of generic is no default for the super-interface's method. */
+    @Test
+    public void aSubInterfaceDefaultOfAnotherKindOfGenericDoesNotImplementTheSuperInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "interface Top",
+            "    function id<T:>(T value) returns T",
+            "interface Sub extends Top",
+            "    function id<U>(U value) returns U",
+            "        return value",
+            "class C implements Sub");
+    }
 }
