@@ -575,16 +575,23 @@ public class WurstValidator {
     }
 
     /**
-     * The most specific non-abstract implementation of {@code abstractFunc} visible in {@code c}, if any: a method of
-     * {@code c} or of a superclass, else the default of a sub-interface ({@link #nearestSubInterfaceDefaults}). Where
-     * several sub-interfaces tie, the validator reports it ({@link #checkSubInterfaceDefaultConflicts}) and this is the
-     * first of them.
+     * The non-abstract implementation of {@code abstractFunc} which {@code c} runs, if any. For a method of an interface
+     * which {@code c}'s superclass implements too, the superclass has settled it and {@code c} inherits that choice,
+     * unless {@code c} declares the method itself. Otherwise it is a method of {@code c} or of a superclass, else the
+     * default of a sub-interface ({@link #subInterfaceDefaults}). Where several sub-interface defaults compete, the
+     * validator reports it ({@link #checkSubInterfaceDefaultConflicts}) and this is the first of them.
      */
     public static @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink abstractFunc) {
         FuncLink best = findClassImplementationLink(c, abstractFunc);
+        if (best != null && best.getDef().attrNearestClassDef() == c) {
+            return best;
+        }
+        FuncLink inherited = settledBySuperclass(c, abstractFunc);
+        if (inherited != null) {
+            return inherited;
+        }
         if (best == null) {
-            List<FuncLink> defaults = nearestSubInterfaceDefaults(c, abstractFunc,
-                c.attrNameLinks().get(abstractFunc.getName()));
+            List<FuncLink> defaults = subInterfaceDefaults(abstractFunc, interfaceMethods(c, abstractFunc.getName()));
             if (!defaults.isEmpty()) {
                 best = defaults.get(0);
             }
@@ -627,15 +634,47 @@ public class WurstValidator {
     }
 
     /**
-     * The defaults which interfaces extending the interface of {@code abstractFunc} give it in {@code c}
-     * ({@code interface Shower extends Showable} with a body for Showable's {@code show}, which overrides Showable's
-     * default if it has one), among {@code links} and in their order. A default whose interface another of them extends
-     * is overridden by that one and left out; of the rest, only those of the interfaces nearest to {@code c} are kept.
-     * More than one is a conflict the class must resolve by overriding the method. A default of an unrelated interface
-     * with the same signature is not one.
+     * The implementation {@code c}'s superclass runs for {@code abstractFunc}, a method of an interface which the
+     * superclass implements as well, or null when it does not implement the interface or has no implementation.
      */
-    private static List<FuncLink> nearestSubInterfaceDefaults(ClassDef c, FuncLink abstractFunc,
-                                                              Iterable<? extends NameLink> links) {
+    private static @Nullable FuncLink settledBySuperclass(ClassDef c, FuncLink abstractFunc) {
+        WurstTypeClass superclass = c.attrTypC().extendedClass();
+        if (superclass == null
+            || !(abstractFunc.getDef().attrNearestStructureDef() instanceof InterfaceDef declaring)
+            || supertypeDistance(superclass, declaring) == Integer.MAX_VALUE) {
+            return null;
+        }
+        FunctionDefinition def = abstractFunc.getDef();
+        DefLink bound = NameResolution.matchDefLinkReceiver(
+            FuncLink.create(def, def.getParent().attrNearestScope()).withConfigDef(), superclass, def, false);
+        return bound instanceof FuncLink superLink ? findImplementationLink(superclass.getClassDef(), superLink) : null;
+    }
+
+    /**
+     * The default of a sub-interface which the class {@code c} takes for the interface method {@code f} in place of a
+     * method it inherits from a class outside the interface, or null; the first one where several compete, which the
+     * validator reports. Used by the translation ({@code InterfaceTranslator}), which lets such a default beat the
+     * inherited method.
+     */
+    public static @Nullable FuncDef subInterfaceDefaultOf(ClassDef c, FuncDef f) {
+        DefLink bound = NameResolution.matchDefLinkReceiver(
+            FuncLink.create(f, f.getParent().attrNearestScope()).withConfigDef(), c.attrTypC(), f, false);
+        if (!(bound instanceof FuncLink abstractFunc)) {
+            return null;
+        }
+        List<FuncLink> defaults = subInterfaceDefaults(abstractFunc, interfaceMethods(c, f.getName()));
+        return defaults.isEmpty() ? null : (FuncDef) defaults.get(0).getDef();
+    }
+
+    /**
+     * The defaults which interfaces extending the interface of {@code abstractFunc} give it ({@code interface Shower
+     * extends Showable} with a body for Showable's {@code show}, which overrides Showable's default if it has one),
+     * among {@code links} and in their order. A default whose interface another candidate's interface extends is
+     * overridden by that one and left out. More than one left is a conflict the class must resolve by overriding the
+     * method, however far from the class each interface is. A default of an unrelated interface with the same
+     * signature is not one.
+     */
+    private static List<FuncLink> subInterfaceDefaults(FuncLink abstractFunc, Iterable<? extends NameLink> links) {
         if (!(abstractFunc.getDef().attrNearestStructureDef() instanceof InterfaceDef declaring)) {
             return Collections.emptyList();
         }
@@ -653,8 +692,7 @@ public class WurstValidator {
                 candidates.putIfAbsent(owner, candidate);
             }
         }
-        List<FuncLink> nearest = new ArrayList<>();
-        int nearestDistance = Integer.MAX_VALUE;
+        List<FuncLink> mostSpecific = new ArrayList<>();
         for (Map.Entry<InterfaceDef, FuncLink> candidate : candidates.entrySet()) {
             boolean overridden = false;
             for (InterfaceDef other : candidates.keySet()) {
@@ -664,26 +702,18 @@ public class WurstValidator {
                     break;
                 }
             }
-            if (overridden) {
-                continue;
-            }
-            int distance = supertypeDistance(c.attrTypC(), candidate.getKey());
-            if (distance < nearestDistance) {
-                nearest.clear();
-                nearestDistance = distance;
-            }
-            if (distance == nearestDistance) {
-                nearest.add(candidate.getValue());
+            if (!overridden) {
+                mostSpecific.add(candidate.getValue());
             }
         }
-        return nearest;
+        return mostSpecific;
     }
 
     /**
      * A class which takes a method of an interface from the defaults of several sub-interfaces, none of which extends
-     * another, at the same distance, has no single implementation of it and must override it. A method the class
-     * inherits from a superclass outside the interface does not settle it, because a default beats an inherited
-     * method ({@code InterfaceTranslator}); one of a superclass which implements the interface itself does.
+     * another, has no single implementation of it and must override it. A method the class inherits from a superclass
+     * outside the interface does not settle it, because a default beats an inherited method
+     * ({@code InterfaceTranslator}); a superclass which implements the interface itself does, whatever it runs.
      */
     private void checkSubInterfaceDefaultConflicts(ClassDef c) {
         if (c.attrIsAbstract()) {
@@ -706,13 +736,13 @@ public class WurstValidator {
                     continue;
                 }
                 FuncLink implementation = findClassImplementationLink(c, bound);
-                if (implementation != null
-                    && settlesInterfaceMethod(c, implementation.getDef().attrNearestClassDef(), interfaceDef)) {
+                if ((implementation != null && implementation.getDef().attrNearestClassDef() == c)
+                    || settledBySuperclass(c, bound) != null) {
                     continue;
                 }
                 // The interfaces' own methods, not the class's name links: an inherited class method hides the
                 // defaults there.
-                List<FuncLink> defaults = nearestSubInterfaceDefaults(c, bound, interfaceMethods(c, f.getName()));
+                List<FuncLink> defaults = subInterfaceDefaults(bound, interfaceMethods(c, f.getName()));
                 if (defaults.size() < 2) {
                     continue;
                 }
@@ -727,33 +757,6 @@ public class WurstValidator {
                 }
             }
         }
-    }
-
-    /**
-     * Whether the class implementation of an interface method, declared in {@code owner}, is what {@code c} runs for
-     * it: it is declared in {@code c}, or a class from {@code c}'s superclass up to {@code owner} implements the
-     * interface and so has adopted it already, which {@code c} inherits ({@code InterfaceTranslator}). Otherwise a
-     * default of the interfaces {@code c} adds beats it.
-     */
-    private static boolean settlesInterfaceMethod(ClassDef c, @Nullable ClassDef owner, InterfaceDef interfaceDef) {
-        if (owner == null) {
-            return false;
-        }
-        if (owner == c) {
-            return true;
-        }
-        WurstTypeClass superclass = c.attrTypC().extendedClass();
-        Set<ClassDef> visited = new HashSet<>();
-        while (superclass != null && visited.add(superclass.getClassDef())) {
-            if (supertypeDistance(superclass, interfaceDef) != Integer.MAX_VALUE) {
-                return true;
-            }
-            if (superclass.getClassDef() == owner) {
-                break;
-            }
-            superclass = superclass.extendedClass();
-        }
-        return false;
     }
 
     /** The methods named {@code name} of the interfaces of {@code c}, each bound to {@code c}. */

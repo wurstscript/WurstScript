@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -109,7 +110,11 @@ public class InterfaceTranslator {
                 // the default of an interface extending this one, which the class takes for f
                 m = methodOfItsOwn(mClass, subCT, m, subM);
             } else if (f.attrHasEmptyBody() && !subClasses.contains(subM.attrNearestClassDef())) {
-                FuncDef interfaceDefault = defaultOf(adopterOf(subCT, subM.attrNearestClassDef(), subClasses), f);
+                WurstTypeClass adopter = adopterOf(subCT, subM.attrNearestClassDef(), subClasses);
+                FuncDef interfaceDefault = WurstValidator.subInterfaceDefaultOf(adopter.getClassDef(), f);
+                if (interfaceDefault == null) {
+                    interfaceDefault = defaultOf(adopter, f);
+                }
                 m = methodOfItsOwn(mClass, subCT, m, interfaceDefault == null ? subM : interfaceDefault);
             }
             OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
@@ -121,7 +126,8 @@ public class InterfaceTranslator {
      * The class which adopted the method {@code classType} inherits from {@code owner} as its implementation of this
      * interface: the highest class from {@code classType} up to, not including, {@code owner} which implements the
      * interface. Its interfaces decide whether a default beats the inherited method, and the classes below it inherit
-     * that choice, as the validator expects ({@code WurstValidator.settlesInterfaceMethod}).
+     * that choice, as the validator expects ({@code WurstValidator.findImplementationLink}). The default is that of a
+     * sub-interface, generic or not, else one of another interface ({@link #defaultOf}).
      */
     private static WurstTypeClass adopterOf(WurstTypeClass classType, ClassDef owner, List<ClassDef> instances) {
         WurstTypeClass adopter = classType;

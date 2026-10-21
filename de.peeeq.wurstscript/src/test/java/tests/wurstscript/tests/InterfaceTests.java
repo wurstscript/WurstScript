@@ -1113,6 +1113,80 @@ public class InterfaceTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** As {@link #aSubInterfaceDefaultBeatsTheInheritedMethodThroughTheSuperInterface}, with Shower generic. */
+    @Test
+    public void aGenericSubInterfaceDefaultBeatsTheInheritedMethodThroughTheSuperInterface() {
+        for (String shower : java.util.List.of("Shower<T:>", "Shower<T>")) {
+            test().testLua(true).luaOnly(false).executeProg().lines(
+                "package test",
+                "native testSuccess()",
+                "interface Showable",
+                "    function show() returns int",
+                "interface " + shower + " extends Showable",
+                "    function show() returns int",
+                "        return 7",
+                "class Base",
+                "    function show() returns int",
+                "        return 1",
+                "class C extends Base implements Shower<int>",
+                "function viaShowable(Showable s) returns int",
+                "    return s.show()",
+                "function viaShower(Shower<int> s) returns int",
+                "    return s.show()",
+                "init",
+                "    if viaShowable(new C()) == 7 and viaShower(new C()) == 7",
+                "        testSuccess()");
+        }
+    }
+
+    /**
+     * Base takes Top's show from S1's default, so it has settled Top's show: C, which adds S2, inherits that choice
+     * through Top as it would inherit a method of Base.
+     */
+    @Test
+    public void aSuperclassWhichAdoptedADefaultSettlesItForItsSubclasses() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function show() returns int",
+            "interface S1 extends Top",
+            "    function show() returns int",
+            "        return 1",
+            "interface S2 extends Top",
+            "    function show() returns int",
+            "        return 2",
+            "class Base implements S1",
+            "class C extends Base implements S2",
+            "function viaTop(Top t) returns int",
+            "    return t.show()",
+            "init",
+            "    if viaTop(new Base()) == 1 and viaTop(new C()) == 1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Wrapper adds nothing to S1, so C takes S1's default one step further away than S2's. Distance does not make a
+     * default more specific; only extending the other's interface does, so C must override show.
+     */
+    @Test
+    public void siblingSubInterfaceDefaultsAtDifferentDistancesRequireTheClassToOverride() {
+        testAssertErrorsLines(false,
+            "Class C must override function show, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Top",
+            "    function show() returns int",
+            "interface S1 extends Top",
+            "    function show() returns int",
+            "        return 1",
+            "interface Wrapper extends S1",
+            "interface S2 extends Top",
+            "    function show() returns int",
+            "        return 2",
+            "class C implements Wrapper, S2");
+    }
+
     /** As {@link #aSubInterfaceDefaultImplementsTheSuperInterfaceMethod}, with Shower a new generic. */
     @Test
     public void aGenericSubInterfaceDefaultImplementsTheSuperInterfaceMethod() {
