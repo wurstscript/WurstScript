@@ -19,30 +19,11 @@ Notes; finished-work narrative does not.
 - **Lua targeted specialisation: defects found by `GenericSpecialisationMatrixTests`.** The matrix runs
   each combination of what depends on `T`, where it sits, how concrete code writes and reads it, the
   instantiation types and the optimiser on Jass (the oracle, which passes every case) and on Lua. The
-  cases that fail on Lua are listed in `genericSpecialisationMatrix-knownFailures.txt` under the tag
-  below and skipped in the pull-request tier; remove a tag's cases (the run names them) with its fix.
+  cases that fail on Lua are listed in `genericSpecialisationMatrix-knownFailures.txt` under a tag naming
+  their entry here and skipped in the pull-request tier (none at present); remove a tag's cases (the run
+  names them) with its fix.
   Each repro is a whole program after `package Test` and `native testSuccess()`. The full product
   (`WURST_GENERIC_MATRIX=full`) adds no other class of failure.
-
-- **`lua-instanceof-erased`: `instanceof Box<T>` in a closure written in a generic class accepts every
-  `Box` on Lua**, because a closure is not specialised for an instanceof. A `new Box<T>()` in code which
-  stays erased allocates a `Box` of no instantiation, so while one is reachable every check of `Box`,
-  even `instanceof Box<int>`, stays erased too (`EliminateGenerics.keepErasedChecksWhereAnAllocationStaysErased`).
-  Jass passes:
-
-  ```wurst
-  interface Marker
-  class Box<T:> implements Marker
-  interface Pred
-      function test(Marker m) returns bool
-  class G<T:>
-      function pred() returns Pred
-          return (Marker m) -> m instanceof Box<T>
-  init
-      let p = new G<int>().pred()
-      if not p.test(new Box<string>())   // Lua: true
-          testSuccess()
-  ```
 
 - **Jass: `this.field instanceof Box<T>` in a generic class fails translation** ("Could not find field
   array for this.G_held<integer>"), also for a local captured by a closure, which becomes a field. A
@@ -62,14 +43,6 @@ Notes; finished-work narrative does not.
       if g.r()
           testSuccess()
   ```
-
-- **The interpreter ignores the type arguments of `instanceof`.** `EvaluateExpr.eval(ImInstanceof)` asks
-  `ProgramState.isInstanceOf` about the class alone, so before the transformations `m instanceof Box<T>` in a
-  method of `G<T:>` is true for a `Box<string>` when `T` is `int`: in the `lua-instanceof-erased` program, and
-  where `G<T:> implements Check` holds the check in `function holds(Marker m) returns bool` and is called
-  through `Check c = new G<int>()`, which Jass and Lua answer correctly (October 2026). Compile-time code and
-  `@Test` functions run there. The backend tests of `instanceof` run `executeProgOnlyAfterTransforms()`,
-  which skips that run.
 
 - **Executing tests left off Lua.** Master CI runs every executing test on Lua too (`-PallBackends`) on
   its Linux and Windows jobs, whose Lua is 5.3; macOS, with Homebrew's unpinned Lua, does not. The 13

@@ -311,7 +311,7 @@ public class EvaluateExpr {
     public static ILconst eval(ImInstanceof e, ProgramState globalState,
                                LocalState localState) {
         ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState), e.getClazz());
-        return ILconstBool.instance(globalState.isInstanceOf(obj, e.getClazz().getClassDef(), e.attrTrace()));
+        return ILconstBool.instance(globalState.isInstanceOf(obj, e.getClazz(), e.attrTrace()));
     }
 
     public static ILconst eval(ImTypeIdOfClass e,

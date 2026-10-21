@@ -2313,14 +2313,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /**
      * An instanceof naming one instantiation of a new generic class rejects every other one, as on
      * Jass, where each instantiation is a class of its own. Lua keeps objects erased and gives a
-     * distinct identity only to an instantiation such a check names.
-     * <p>
-     * These tests run the interpreter on the translated program only: on the generic program it
-     * compares the class without its type arguments, so it takes every Box for a Box&lt;int&gt;.
+     * distinct identity only to an instantiation such a check names. The interpreter, which runs the
+     * generic program before the translation, compares the type arguments too.
      */
     @Test
     public void genericInstanceofRejectsAnotherPrimitiveInstantiation() throws IOException {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2339,7 +2337,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     @Test
     public void genericInstanceofRejectsAnotherClassInstantiation() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2356,7 +2354,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     @Test
     public void genericInstanceofAcceptsItsOwnInstantiation() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2376,7 +2374,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     @Test
     public void genericInstanceofSeesTheInstantiationOfASuperclass() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2396,7 +2394,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /** The check and the allocation sit in generic code, which only the instantiation makes concrete. */
     @Test
     public void genericInstanceofThroughGenericCode() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2418,7 +2416,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /** The same in the methods of a generic class, whose type argument the receiver gives. */
     @Test
     public void genericInstanceofThroughAGenericClass() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2447,7 +2445,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      */
     @Test
     public void genericInstanceofIdentityKeepsVirtualDispatch() throws IOException {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2502,7 +2500,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      */
     @Test
     public void genericInstanceofAcceptsAnObjectAllocatedByErasedCode() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2528,7 +2526,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      */
     @Test
     public void genericInstanceofInAClosureReadingItsReceiver() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2561,7 +2559,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     /** A closure in a generic class which constructs into a field of its receiver. */
     @Test
     public void genericInstanceofOfAnObjectAClosureConstructs() {
-        test().testLua(true).luaOnly(false).executeProgOnlyAfterTransforms().executeProg().lines(
+        test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
             "native testSuccess()",
             "interface Marker",
@@ -2582,6 +2580,155 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    g.w()",
             "    let h = g.held",
             "    if h instanceof Box<int>",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A closure written in a method of a generic class checks against its owner's instantiation, so the
+     * closure made by a G&lt;int&gt; rejects a Box&lt;string&gt; and the one made by a G&lt;string&gt; accepts it.
+     */
+    @Test
+    public void genericInstanceofInAClosureRejectsAnotherInstantiation() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "interface Pred",
+            "    function test(Marker m) returns bool",
+            "class G<T:>",
+            "    function pred() returns Pred",
+            "        return (Marker m) -> m instanceof Box<T>",
+            "init",
+            "    let pi = new G<int>().pred()",
+            "    let ps = new G<string>().pred()",
+            "    Marker bi = new Box<int>()",
+            "    Marker bs = new Box<string>()",
+            "    if pi.test(bi) and not pi.test(bs)",
+            "        and ps.test(bs) and not ps.test(bi)",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * One closure constructs the Box&lt;T&gt; another one checks. The check names Box&lt;int&gt; only once the reading
+     * closure is specialised, after the writing closure was first asked whether it needs its type argument; the
+     * writer has to allocate from the specialised class all the same, or every check of Box stays erased.
+     */
+    @Test
+    public void genericInstanceofOfAnObjectAnotherClosureConstructs() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "interface Act",
+            "    function run()",
+            "interface Pred",
+            "    function test(Marker m) returns bool",
+            "class G<T:>",
+            "    Marker held = null",
+            "    function w()",
+            "        Act a = () -> begin",
+            "            held = new Box<T>()",
+            "        end",
+            "        a.run()",
+            "        destroy a",
+            "    function holds(Marker m) returns bool",
+            "        Pred p = (Marker x) -> x instanceof Box<T>",
+            "        let r = p.test(m)",
+            "        destroy p",
+            "        return r",
+            "init",
+            "    let gi = new G<int>()",
+            "    let gs = new G<string>()",
+            "    gi.w()",
+            "    gs.w()",
+            "    if gi.holds(gi.held) and not gi.holds(gs.held)",
+            "        and gs.holds(gs.held) and not gs.holds(gi.held)",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * An instantiation whose type argument has a type-class bound inside it is the same instantiation whether the
+     * check and the construction carry that binding or not: a binding is dispatch metadata, not part of the type.
+     */
+    @Test
+    public void genericInstanceofOfANestedBoundTypeArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "class Wrap<T: Kc>",
+            "    function make() returns T",
+            "        return T.kmk(1)",
+            "function isBoxOf<T:>(Marker m) returns bool",
+            "    return m instanceof Box<T>",
+            "function mk<T:>() returns Marker",
+            "    return new Box<T>()",
+            "function mkWrapped<T: Kc>() returns Marker",
+            "    return new Box<Wrap<T>>()",
+            "init",
+            "    Marker direct = new Box<Wrap<int>>()",
+            "    Marker viaGeneric = mk<Wrap<int>>()",
+            "    Marker viaBound = mkWrapped<int>()",
+            "    if direct instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(direct)",
+            "        and viaGeneric instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(viaGeneric)",
+            "        and viaBound instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(viaBound)",
+            "        and not (direct instanceof Box<int>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** An object which reaches one generic interface through two paths, with two instantiations, is an instance of both. */
+    @Test
+    public void genericInstanceofThroughTwoPathsToOneGenericInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "interface G<T:> extends Marker",
+            "interface IntG extends G<int>",
+            "interface StringG extends G<string>",
+            "class Both implements IntG, StringG",
+            "class OnlyInt implements IntG",
+            "init",
+            "    Marker m = new Both()",
+            "    Marker o = new OnlyInt()",
+            "    if m instanceof G<int> and m instanceof G<string>",
+            "        and o instanceof G<int> and not (o instanceof G<string>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same through a non-generic interface, which does not name the instantiation of the receiver. */
+    @Test
+    public void genericInstanceofThroughANonGenericInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "interface Check",
+            "    function holds(Marker m) returns bool",
+            "class G<T:> implements Check",
+            "    function holds(Marker m) returns bool",
+            "        return m instanceof Box<T>",
+            "init",
+            "    Check ci = new G<int>()",
+            "    Check cs = new G<string>()",
+            "    Marker bi = new Box<int>()",
+            "    Marker bs = new Box<string>()",
+            "    if ci.holds(bi) and not ci.holds(bs)",
+            "        and cs.holds(bs) and not cs.holds(bi)",
             "        testSuccess()"
         );
     }
