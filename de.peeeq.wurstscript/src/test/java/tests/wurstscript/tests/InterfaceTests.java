@@ -1027,6 +1027,48 @@ public class InterfaceTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * Implementations of an interface method with a type parameter of its own, which each declares under a name of its
+     * choosing: one which a generic class inherits from a class outside the interface (the function the class gets of
+     * its own for it forwards the type parameter), and overrides below that class and below a class with its own method.
+     */
+    public static String[] ownTypeParameterDispatchSource() {
+        return new String[]{
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class Base",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class C<Y:> extends Base implements Top",
+            "class D<Y:> extends C<Y>",
+            "    override function pick<U:>(U a, U b) returns U",
+            "        return b",
+            "class E implements Top",
+            "    function pick<S:>(S a, S b) returns S",
+            "        return b",
+            "class F extends E",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "function viaTopInt(Top t) returns int",
+            "    return t.pick<int>(1, 2)",
+            "function viaTopString(Top t) returns string",
+            "    return t.pick<string>(\"a\", \"b\")",
+            "init",
+            "    if viaTopInt(new C<real>()) == 1 and viaTopString(new C<real>()) == \"a\"",
+            "        and viaTopInt(new D<int>()) == 2 and viaTopString(new D<int>()) == \"b\"",
+            "        and viaTopInt(new E()) == 2 and viaTopString(new E()) == \"b\"",
+            "        and viaTopInt(new F()) == 1 and viaTopString(new F()) == \"a\"",
+            "        and new C<int>().pick(5, 6) == 5 and new D<int>().pick(5, 6) == 6",
+            "        testSuccess()"};
+    }
+
+    @Test
+    public void implementationsWithTypeParametersOfTheirOwnAreDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(ownTypeParameterDispatchSource());
+    }
+
     /** A plain class implements the interface method with a method with a type parameter of its own which it inherits, and a subclass overrides it. */
     @Test
     public void aPlainClassInheritingAMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
@@ -1051,6 +1093,31 @@ public class InterfaceTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** The method of a generic interface has a type parameter of its own beside the interface's, and a generic superclass implements it: the function a class gets for it substitutes the superclass's type arguments as the class sees them and forwards the method's own. */
+    @Test
+    public void aMethodWithATypeParameterOfItsOwnOfAGenericSuperclassImplementsAGenericInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface GTop<Y:>",
+            "    function pick<T:>(T a, Y y) returns T",
+            "class Base<Y:>",
+            "    Y last",
+            "    function pick<T:>(T a, Y y) returns T",
+            "        last = y",
+            "        return a",
+            "class C<Y:> extends Base<Y> implements GTop<Y>",
+            "class P extends Base<string> implements GTop<string>",
+            "init",
+            "    let c = new C<real>()",
+            "    GTop<real> g = c",
+            "    let p = new P()",
+            "    GTop<string> h = p",
+            "    if g.pick<int>(3, 1.5) == 3 and c.last == 1.5 and g.pick<string>(\"x\", 2.5) == \"x\" and c.last == 2.5",
+            "        and h.pick<int>(4, \"s\") == 4 and p.last == \"s\"",
+            "        testSuccess()");
+    }
+
     /** A generic class's own method with a type parameter of its own implements the method of a plain interface and of a generic one. */
     @Test
     public void aGenericClassMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
@@ -1070,6 +1137,36 @@ public class InterfaceTests extends WurstScriptTest {
             "    Top t = new C<real>()",
             "    GTop<string> g = new C<string>()",
             "    if t.pick<int>(1, 2) == 2 and t.pick<string>(\"a\", \"b\") == \"b\" and g.second<int>(1, \"s\") == \"s\"",
+            "        testSuccess()");
+    }
+
+    /** A bounded type parameter of the method's own is dispatched with the call's type argument, also through the function a generic class gets for the method it inherits. */
+    @Test
+    public void aBoundedTypeParameterOfTheMethodsOwnIsDispatchedThroughTheInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "interface Top",
+            "    function describe<T: Show>(T value) returns string",
+            "class Base",
+            "    function describe<T: Show>(T value) returns string",
+            "        return \"b\" + T.show(value)",
+            "class C<Y:> extends Base implements Top",
+            "class X implements Top",
+            "    function describe<U: Show>(U value) returns string",
+            "        return \"x\" + U.show(value)",
+            "function via(Top t) returns string",
+            "    return t.describe<int>(3) + t.describe(\"z\")",
+            "init",
+            "    if via(new C<real>()) == \"bibs\" and via(new X()) == \"xixs\"",
             "        testSuccess()");
     }
 
@@ -1097,6 +1194,30 @@ public class InterfaceTests extends WurstScriptTest {
             "    Top x = new X()",
             "    if c.pick<int>(1, 2) == 1 and c.pick<A>(new A(5), new A(6)).v == 5",
             "        and x.pick<int>(1, 2) == 2 and x.pick<A>(new A(5), new A(6)).v == 6",
+            "        testSuccess()");
+    }
+
+    /** A default with a type parameter of its own beats the inherited method where another interface declares the method without a body, as without type parameters ({@link #aDefaultBeatsTheInheritedMethodWhereAnotherInterfaceHasNoBody}). */
+    @Test
+    public void aDefaultWithATypeParameterOfItsOwnBeatsTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function wrap<T:>(T value) returns int",
+            "interface Default",
+            "    function wrap<U:>(U value) returns int",
+            "        return 2",
+            "class Base",
+            "    function wrap<T:>(T value) returns int",
+            "        return 1",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.wrap<int>(3) + a.wrap(\"x\")",
+            "function viaDefault(Default a) returns int",
+            "    return a.wrap<int>(3)",
+            "init",
+            "    if viaAbstract(new C<int>()) == 4 and viaDefault(new C<int>()) == 2",
             "        testSuccess()");
     }
 

@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
@@ -153,25 +154,42 @@ public class InterfaceTranslator {
      * its own ({@code C<T:> extends Base<string>}). So the function calls the inherited one with this, as
      * {@code super.m()} does, and the specialisation finds Base's type arguments from the type of this. It takes the
      * inherited function's parameters with Base's type variables replaced by those arguments, and is vararg where that
-     * function is. The translator adds it to the class ({@link ImTranslator#bridgeFunction}).
+     * function is. Type parameters the implementation declares itself ({@code id<T:>}) are not Base's: the function
+     * declares a copy of each and passes them to the implementation, so a call through the interface specialises it
+     * with the call's type arguments, whatever Base's are. The translator adds it to the class
+     * ({@link ImTranslator#bridgeFunction}).
      */
     private ImFunction implementationOfItsOwn(ImClass imClass, WurstTypeClass classType, FuncDef implementation,
                                               ImFunction inherited, @org.eclipse.jdt.annotation.Nullable ClassOrInterface owner) {
-        List<ImTypeVar> ownerVariables = owner == null
-            ? Collections.emptyList() : translator.getClassFor(owner).getTypeVariables();
-        List<ImTypeArgument> ownerArguments = owner == null
-            ? Collections.emptyList() : typeArgumentsAsSeenFrom(classType, owner, ownerVariables);
+        List<ImTypeVar> variables = new java.util.ArrayList<>();
+        List<ImTypeArgument> substitutes = new java.util.ArrayList<>();
+        if (owner != null) {
+            List<ImTypeVar> ownerVariables = translator.getClassFor(owner).getTypeVariables();
+            variables.addAll(ownerVariables);
+            substitutes.addAll(typeArgumentsAsSeenFrom(classType, owner, ownerVariables));
+        }
+        // The implementation's own type parameters are not the class's: the function declares them again and passes
+        // them on, as a call through the interface gives them.
+        ImTypeVars ownVariables = JassIm.ImTypeVars();
+        ImTypeArguments forwarded = JassIm.ImTypeArguments();
+        for (ImTypeVar inheritedVariable : inherited.getTypeVariables()) {
+            ImTypeVar ownVariable = translator.copyTypeVar(inheritedVariable);
+            ownVariables.add(ownVariable);
+            variables.add(inheritedVariable);
+            substitutes.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ownVariable), Collections.emptyMap()));
+            forwarded.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ownVariable), Collections.emptyMap()));
+        }
         ImVar thisVar = JassIm.ImVar(implementation, translator.selfType(imClass), "this", false);
         ImVars parameters = JassIm.ImVars(thisVar);
         ImExprs arguments = JassIm.ImExprs(JassIm.ImVarAccess(thisVar));
         for (ImVar p : inherited.getParameters().subList(1, inherited.getParameters().size())) {
             ImVar parameter = JassIm.ImVar(p.getTrace(),
-                ImAttrType.substituteType(p.getType(), ownerArguments, ownerVariables), p.getName(), false);
+                ImAttrType.substituteType(p.getType(), substitutes, variables), p.getName(), false);
             parameters.add(parameter);
             arguments.add(JassIm.ImVarAccess(parameter));
         }
-        ImType returnType = ImAttrType.substituteType(inherited.getReturnType(), ownerArguments, ownerVariables);
-        ImExpr call = JassIm.ImFunctionCall(implementation, inherited, JassIm.ImTypeArguments(), arguments, false,
+        ImType returnType = ImAttrType.substituteType(inherited.getReturnType(), substitutes, variables);
+        ImExpr call = JassIm.ImFunctionCall(implementation, inherited, forwarded, arguments, false,
             CallType.NORMAL);
         ImStmts body = returnType instanceof ImVoid
             ? JassIm.ImStmts(call)
@@ -181,7 +199,7 @@ public class InterfaceTranslator {
             flags.add(FunctionFlagEnum.IS_VARARG);
         }
         return JassIm.ImFunction(implementation, imClass.getName() + "_" + implementation.getName(),
-            JassIm.ImTypeVars(), parameters, returnType, JassIm.ImVars(), body, flags);
+            ownVariables, parameters, returnType, JassIm.ImVars(), body, flags);
     }
 
     /**
@@ -250,12 +268,20 @@ public class InterfaceTranslator {
         return null;
     }
 
+    /** Whether the parameter types are equal once b's own type parameters are renamed to a's. */
     private static boolean sameParameterTypes(FuncDef a, FuncDef b) {
-        if (a.getParameters().size() != b.getParameters().size()) {
+        if (a.getParameters().size() != b.getParameters().size()
+            || a.getTypeParameters().size() != b.getTypeParameters().size()) {
             return false;
         }
+        VariableBinding renaming = VariableBinding.emptyMapping();
+        for (int i = 0; i < a.getTypeParameters().size(); i++) {
+            TypeParamDef bParameter = b.getTypeParameters().get(i);
+            renaming = renaming.set(bParameter,
+                new WurstTypeBoundTypeParam(bParameter, a.getTypeParameters().get(i).attrTyp(), a));
+        }
         for (int i = 0; i < a.getParameters().size(); i++) {
-            if (!a.getParameters().get(i).attrTyp().equalsType(b.getParameters().get(i).attrTyp(), a)) {
+            if (!a.getParameters().get(i).attrTyp().equalsType(b.getParameters().get(i).attrTyp().setTypeArgs(renaming), a)) {
                 return false;
             }
         }

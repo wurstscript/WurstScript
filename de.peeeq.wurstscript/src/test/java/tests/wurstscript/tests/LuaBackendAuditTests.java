@@ -9436,4 +9436,29 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()"
         );
     }
+
+    /**
+     * Each class implementing an interface method with a type parameter of its own binds the slot the call through the
+     * interface reads to its own implementation (AGENTS.md section 8): C, which inherits Base's method, to the function
+     * it gets of its own for it, which calls Base's, and the overrides D and F to theirs. None binds the interface's
+     * abstract method.
+     */
+    @Test
+    public void implementationsWithTypeParametersOfTheirOwnBindTheDispatchedSlot() throws IOException {
+        test().testLua(true).executeProg().lines(InterfaceTests.ownTypeParameterDispatchSource());
+        String lua = compiledLua("implementationsWithTypeParametersOfTheirOwnBindTheDispatchedSlot");
+        java.util.regex.Matcher callSite = java.util.regex.Pattern.compile(
+            "__wurst_objectClass\\[t\\]\\.(\\w+)\\(t, 1, 2\\)").matcher(luaFunctionBody(lua, "viaTopInt"));
+        assertTrue("viaTopInt dispatches through a slot:\n" + lua, callSite.find());
+        String slot = callSite.group(1);
+        for (String c : List.of("C", "D", "E", "F")) {
+            java.util.regex.Matcher binding = java.util.regex.Pattern.compile(
+                "(?m)^\\s*" + c + "\\." + java.util.regex.Pattern.quote(slot) + " = (\\w+)\\s*$").matcher(lua);
+            assertTrue(c + " binds " + slot + ":\n" + lua, binding.find());
+            assertEquals(c + " binds " + slot + " to its own implementation", c + "_" + c + "_pick", binding.group(1));
+        }
+        assertTrue("C's function for Base's method calls it:\n" + lua,
+            luaFunctionBody(lua, "C_C_pick").contains("Base_Base_pick("));
+        assertFalse("no class binds the interface's abstract method", lua.contains(" = Top_Top_pick"));
+    }
 }
