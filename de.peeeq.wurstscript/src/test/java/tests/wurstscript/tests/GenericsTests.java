@@ -1623,4 +1623,36 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * The same inherited methods with old generics, whose type parameter is erased: the value a method inherited
+     * through one or two generic superclasses returns is the object stored, in the interpreter and on both targets.
+     */
+    @Test
+    public void oldGenericValueReturnedByInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "    int tag",
+            "    construct(int tag)",
+            "        this.tag = tag",
+            "class G<T>",
+            "    T val",
+            "    function set(T v)",
+            "        val = v",
+            "    function get() returns T",
+            "        return val",
+            "class H<U> extends G<U>",
+            "class Sub extends G<A>",
+            "class Sub2 extends H<A>",
+            "init",
+            "    let s = new Sub",
+            "    s.set(new A(7))",
+            "    let s2 = new Sub2",
+            "    s2.set(new A(9))",
+            "    if s.get().tag == 7 and s2.get().tag == 9",
+            "        testSuccess()"
+        );
+    }
+
 }
