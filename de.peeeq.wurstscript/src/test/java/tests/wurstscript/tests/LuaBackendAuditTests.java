@@ -2809,6 +2809,64 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An instantiation whose type argument has a type-class bound inside it is the same instantiation whether the
+     * check and the construction carry that binding or not: a binding is dispatch metadata, not part of the type.
+     */
+    @Test
+    public void genericInstanceofOfANestedBoundTypeArgument() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Kc<T:>",
+            "    function kmk(int n) returns T",
+            "implements Kc<int>",
+            "    function kmk(int n) returns int",
+            "        return n",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "class Wrap<T: Kc>",
+            "    function make() returns T",
+            "        return T.kmk(1)",
+            "function isBoxOf<T:>(Marker m) returns bool",
+            "    return m instanceof Box<T>",
+            "function mk<T:>() returns Marker",
+            "    return new Box<T>()",
+            "function mkWrapped<T: Kc>() returns Marker",
+            "    return new Box<Wrap<T>>()",
+            "init",
+            "    Marker direct = new Box<Wrap<int>>()",
+            "    Marker viaGeneric = mk<Wrap<int>>()",
+            "    Marker viaBound = mkWrapped<int>()",
+            "    if direct instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(direct)",
+            "        and viaGeneric instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(viaGeneric)",
+            "        and viaBound instanceof Box<Wrap<int>> and isBoxOf<Wrap<int>>(viaBound)",
+            "        and not (direct instanceof Box<int>)",
+            "        testSuccess()"
+        );
+    }
+
+    /** An object which reaches one generic interface through two paths, with two instantiations, is an instance of both. */
+    @Test
+    public void genericInstanceofThroughTwoPathsToOneGenericInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "interface G<T:> extends Marker",
+            "interface IntG extends G<int>",
+            "interface StringG extends G<string>",
+            "class Both implements IntG, StringG",
+            "class OnlyInt implements IntG",
+            "init",
+            "    Marker m = new Both()",
+            "    Marker o = new OnlyInt()",
+            "    if m instanceof G<int> and m instanceof G<string>",
+            "        and o instanceof G<int> and not (o instanceof G<string>)",
+            "        testSuccess()"
+        );
+    }
+
     /** The same through a non-generic interface, which does not name the instantiation of the receiver. */
     @Test
     public void genericInstanceofThroughANonGenericInterface() {

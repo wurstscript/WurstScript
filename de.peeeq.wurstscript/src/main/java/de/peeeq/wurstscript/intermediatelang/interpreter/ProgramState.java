@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
+import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -271,7 +272,9 @@ public class ProgramState extends State implements AutoCloseable {
 
     /**
      * Whether the object is an instance of {@code type}: of its class or a subclass and, for an instantiation of a new
-     * generic class, of that instantiation, as the backends tell it, where a Box&lt;int&gt; is no Box&lt;string&gt;.
+     * generic class, of that instantiation, as the backends tell it, where a Box&lt;int&gt; is no Box&lt;string&gt;. The
+     * instantiations are compared as the specialisation tells them apart ({@link GenericTypes}): type-class bindings
+     * are dispatch metadata, not part of the type.
      */
     public boolean isInstanceOf(ILconstObject obj, ImClassType type, Element trace) {
         if (!isInstanceOf(obj, type.getClassDef(), trace)) {
@@ -281,18 +284,33 @@ public class ProgramState extends State implements AutoCloseable {
             return true;
         }
         ImClassType checked = (ImClassType) resolveType(type);
-        ImClassType actual = adaptToSuperclass(obj.getType(), type.getClassDef());
-        if (actual == null || EliminateGenerics.containsTypeVariable(checked)
-            || EliminateGenerics.containsTypeVariable(actual)) {
+        List<ImClassType> instantiations = new ArrayList<>();
+        collectInstantiations(obj.getType(), type.getClassDef(), instantiations);
+        if (instantiations.isEmpty() || EliminateGenerics.containsTypeVariable(checked)
+            || instantiations.stream().anyMatch(EliminateGenerics::containsTypeVariable)) {
             throw new InterpreterException(trace, "Cannot decide whether " + obj.getType() + " is a " + checked
                 + ": an instantiation is unknown here.");
         }
-        for (int i = 0; i < checked.getTypeArguments().size(); i++) {
-            if (!checked.getTypeArguments().get(i).getType().equalsType(actual.getTypeArguments().get(i).getType())) {
-                return false;
+        GenericTypes checkedArguments = new GenericTypes(checked.getTypeArguments());
+        return instantiations.stream()
+            .anyMatch(actual -> checkedArguments.equals(new GenericTypes(actual.getTypeArguments())));
+    }
+
+    /**
+     * The instantiations of {@code owner} which {@code ct} is, through every path of its supertypes: a class can
+     * reach one generic interface with two instantiations, through two other interfaces.
+     */
+    private void collectInstantiations(ImClassType ct, ImClass owner, List<ImClassType> result) {
+        if (ct.getClassDef() == owner) {
+            result.add(ct);
+            return;
+        }
+        List<ImTypeVar> tvs = ct.getClassDef().getTypeVariables();
+        for (ImClassType superType : ct.getClassDef().getSuperClasses()) {
+            if (resolveType(ImAttrType.substituteType(superType, ct.getTypeArguments(), tvs)) instanceof ImClassType st) {
+                collectInstantiations(st, owner, result);
             }
         }
-        return true;
     }
 
     /**
