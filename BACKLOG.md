@@ -50,12 +50,6 @@ Notes; finished-work narrative does not.
   functions) has no Lua path in the harness at all. `-PallBackends=full`, which adds
   `-inline -localOptimizations`, found nothing the plain run did not (October 2026), so CI runs only that.
 
-- **`EliminateGenerics.fillMissingTypeArgsFromScope` matches type variables by name.** On the Jass path it
-  completed the owner type arguments of a static inner class's type, which the IM translation now gives
-  itself (`WurstTypeClassOrInterface.imTranslateType`). Made to throw whenever it fills one, it is reached by
-  none of the generics, closure, module, class and Lua audit test classes (October 2026). Check the whole
-  suite and remove it.
-
 - **The `Reflection` natives answer otherwise on Jass for a number which is no type id, and in the
   interpreter.** `EliminateClasses` searches the type ids without bounds, so on Jass
   `typeIdToTypeName(0)` is the first class's name and a number above `maxTypeId()` answers for the last
