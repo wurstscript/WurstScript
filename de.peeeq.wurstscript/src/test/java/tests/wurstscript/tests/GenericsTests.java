@@ -2294,6 +2294,135 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** A new-generic class's toString called implicitly on an old-generic field holding the instance. */
+    @Test
+    public void newGenericToStringThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function toString() returns string",
+            "        return \"box\"",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    h.item = new Box<int>",
+            "    if h.item + \"!\" == \"box!\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A new-generic class's instance destroyed straight through an old-generic field. */
+    @Test
+    public void newGenericDestroyedThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int destroyed = 0",
+            "class Box<T:>",
+            "    T value",
+            "    ondestroy",
+            "        destroyed = destroyed + 1",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<int>>",
+            "    h.item = new Box<int>",
+            "    destroy h.item",
+            "    if destroyed == 1",
+            "        testSuccess()"
+        );
+    }
+
+    /** Null-safe and cascade accesses through an old-generic field keep the receiver's class type. */
+    @Test
+    public void newGenericNullSafeAndCascadeThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function set(T v)",
+            "        value = v",
+            "    function get() returns T",
+            "        return value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Box<string>>",
+            "    h.item = new Box<string>",
+            "    h.item..set(\"x\")",
+            "    if h.item?.value == \"x\" and h.item?.get() == \"x\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A for-from loop over a new-generic iterator held in an old-generic field. */
+    @Test
+    public void newGenericForFromThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Counter<T:>",
+            "    T value",
+            "    int left = 3",
+            "    function hasNext() returns bool",
+            "        return left > 0",
+            "    function next() returns T",
+            "        left--",
+            "        return value",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Counter<int>>",
+            "    h.item = new Counter<int>",
+            "    h.item.value = 2",
+            "    int sum = 0",
+            "    for x from h.item",
+            "        sum += x",
+            "    if sum == 6",
+            "        testSuccess()"
+        );
+    }
+
+    /** A for-in loop over a new-generic class held in an old-generic field. */
+    @Test
+    public void newGenericForInThroughOldGenericField() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Counter<T:>",
+            "    T value",
+            "    int left = 3",
+            "    function hasNext() returns bool",
+            "        return left > 0",
+            "    function next() returns T",
+            "        left--",
+            "        return value",
+            "    function close()",
+            "        destroy this",
+            "class Bag<T:>",
+            "    T value",
+            "    function iterator() returns Counter<T>",
+            "        let c = new Counter<T>",
+            "        c.value = value",
+            "        return c",
+            "class Holder<T>",
+            "    T item",
+            "init",
+            "    let h = new Holder<Bag<int>>",
+            "    h.item = new Bag<int>",
+            "    h.item.value = 2",
+            "    int sum = 0",
+            "    for x in h.item",
+            "        sum += x",
+            "    if sum == 6",
+            "        testSuccess()"
+        );
+    }
+
     /** A non-generic class's field read straight through an old-generic field. */
     @Test
     public void plainFieldReadThroughOldGenericField() {

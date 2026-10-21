@@ -302,6 +302,7 @@ public class ExprTranslation {
             ImMethod method = t.getMethodFor(funcDef);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(
                 t, signature, operand, method.getImplementation().getTypeVariables());
+            typeArguments.addAll(0, erasedReceiverTypeArguments(operand, translated, funcDef.attrNearestClassOrInterface(), t));
             return ImMethodCall(operand, method, typeArguments, translated, ImExprs(), false);
         }
 
@@ -476,7 +477,7 @@ public class ExprTranslation {
      * arguments; a receiver of any other IM type gets none here and keeps getting them from that type.
      */
     static List<ImTypeArgument> erasedReceiverTypeArguments(@Nullable Expr receiver, ImExpr translatedReceiver,
-                                                            @Nullable ClassOrInterface owner, ImTranslator t) {
+                                                            @Nullable StructureDef owner, ImTranslator t) {
         if (receiver == null || owner == null || !(translatedReceiver.attrTyp() instanceof ImAnyType)
             || !(receiver.attrTyp().normalize() instanceof WurstTypeClassOrInterface receiverType)) {
             return List.of();
@@ -950,7 +951,10 @@ public class ExprTranslation {
 
     public static ImExpr destroyClass(ExprDestroy s, ImTranslator t, ImFunction f, StructureDef classDef) {
         ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
-        return ImMethodCall(s, destroyFunc, ImTypeArguments(), s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+        Expr destroyed = s.getDestroyedObj();
+        ImExpr receiver = destroyed.imTranslateExpr(t, f);
+        return ImMethodCall(s, destroyFunc, ImTypeArguments(erasedReceiverTypeArguments(destroyed, receiver, classDef, t)),
+            receiver, ImExprs(), false);
 
     }
 
