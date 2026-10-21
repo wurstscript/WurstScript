@@ -284,6 +284,90 @@ public class ImTranslator implements SpecialisationLookup {
         return f;
     }
 
+    /**
+     * {@code __wurst_setObjectIdMax(C.typeId, n)}: on Jass the allocator of class C hands out n + 1 next, as the
+     * compile-time state needs to give each of its objects its id. The class names the allocator, not its variables:
+     * the allocator belongs to the inheritance group of C after the generics are eliminated, which makes a class of
+     * each instantiation of a new-generic class, and new variables for each group. The class elimination writes the
+     * group's maxIndex in place of each call ({@code EliminateClasses}).
+     */
+    @Nullable public ImFunction jassSetObjectIdMaxFunc = null;
+    /** {@code __wurst_clearObjectFreeList(C.typeId)}: as {@link #jassSetObjectIdMaxFunc}, for the group's freeCount. */
+    @Nullable public ImFunction jassClearObjectFreeListFunc = null;
+
+    /** {@link #jassSetObjectIdMaxFunc}, created on first use. */
+    public ImFunction jassSetObjectIdMaxFunc() {
+        ImFunction f = jassSetObjectIdMaxFunc;
+        if (f == null) {
+            f = jassObjectIdIntrinsic("__wurst_setObjectIdMax", "maxId");
+            jassSetObjectIdMaxFunc = f;
+        }
+        return f;
+    }
+
+    /** {@link #jassClearObjectFreeListFunc}, created on first use. */
+    public ImFunction jassClearObjectFreeListFunc() {
+        ImFunction f = jassClearObjectFreeListFunc;
+        if (f == null) {
+            f = jassObjectIdIntrinsic("__wurst_clearObjectFreeList");
+            jassClearObjectFreeListFunc = f;
+        }
+        return f;
+    }
+
+    /**
+     * {@code __wurst_advanceObjectIds(n)}: on Jass every allocator of a group of erased classes hands out n + 1 next,
+     * the allocator of each class the generics make from them included, whether the compile-time state allocates an
+     * object of it or not. The compile-time interpreter numbers the objects of all those classes together, so an id
+     * up to n may be held by a compile-time value. The erased classes are not an argument, as the generics would
+     * specialise a class named there: each group has an intrinsic of its own, which this map gives the classes of,
+     * and the class elimination writes the maxIndex of each group of their classes in place of a call. Kept in the
+     * order the compile-time state made them.
+     */
+    private final Map<ImFunction, List<ImClass>> jassAdvanceObjectIdsFuncs = new LinkedHashMap<>();
+
+    /** A call of a new {@code __wurst_advanceObjectIds} intrinsic for the classes {@code erasedGroup}. */
+    public ImFunctionCall jassAdvanceObjectIds(de.peeeq.wurstscript.ast.Element trace, List<ImClass> erasedGroup,
+                                               int maxId) {
+        ImVar parameter = JassIm.ImVar(imProg.getTrace(), TypesHelper.imInt(), "maxId", false);
+        ImFunction f = JassIm.ImFunction(imProg.getTrace(), "__wurst_advanceObjectIds", JassIm.ImTypeVars(),
+            JassIm.ImVars(parameter), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        imProg.getFunctions().add(f);
+        jassAdvanceObjectIdsFuncs.put(f, List.copyOf(erasedGroup));
+        return JassIm.ImFunctionCall(trace, f, JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(maxId)), false,
+            CallType.NORMAL);
+    }
+
+    /** The erased classes a {@code __wurst_advanceObjectIds} intrinsic advances, or null for any other function. */
+    public @Nullable List<ImClass> objectIdAdvanceGroup(ImFunction f) {
+        return jassAdvanceObjectIdsFuncs.get(f);
+    }
+
+    private ImFunction jassObjectIdIntrinsic(String name, String... valueParameters) {
+        ImVars parameters = JassIm.ImVars(JassIm.ImVar(imProg.getTrace(), TypesHelper.imInt(), "typeId", false));
+        for (String parameter : valueParameters) {
+            parameters.add(JassIm.ImVar(imProg.getTrace(), TypesHelper.imInt(), parameter, false));
+        }
+        ImFunction f = JassIm.ImFunction(imProg.getTrace(), name, JassIm.ImTypeVars(), parameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        imProg.getFunctions().add(f);
+        return f;
+    }
+
+    /** Removes the intrinsics of {@link #jassSetObjectIdMaxFunc} once the class elimination has replaced their calls. */
+    public void removeJassObjectIdIntrinsics() {
+        for (ImFunction f : new ImFunction[]{jassSetObjectIdMaxFunc, jassClearObjectFreeListFunc}) {
+            if (f != null) {
+                imProg.getFunctions().remove(f);
+            }
+        }
+        imProg.getFunctions().removeAll(jassAdvanceObjectIdsFuncs.keySet());
+        jassSetObjectIdMaxFunc = null;
+        jassClearObjectFreeListFunc = null;
+        jassAdvanceObjectIdsFuncs.clear();
+    }
+
     @Nullable public ImFunction luaIntDivFunc = null;
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;
@@ -301,13 +385,15 @@ public class ImTranslator implements SpecialisationLookup {
             luaRawFloorDivIntFunc, luaRawFmodIntFunc, luaRawFloorModIntFunc,
             luaRawConcatFunc,
             luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
-            luaRawToStringFunc, luaResumeObjectIdsFunc, luaIntDivFunc, luaModIntFunc, luaModRealFunc,
+            luaRawToStringFunc, luaResumeObjectIdsFunc, jassSetObjectIdMaxFunc, jassClearObjectFreeListFunc,
+            luaIntDivFunc, luaModIntFunc, luaModRealFunc,
             debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
             if (f != null) {
                 result.add(f);
             }
         }
         result.addAll(luaKeyedStubs.values());
+        result.addAll(jassAdvanceObjectIdsFuncs.keySet());
         return result;
     }
 
