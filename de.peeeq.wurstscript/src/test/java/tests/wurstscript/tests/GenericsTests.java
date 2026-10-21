@@ -1655,4 +1655,63 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    /** A closure in a method of a generic class calls a static inner class's reader of the owner's static. */
+    @Test
+    public void staticInnerClassReadsOwnerStaticInClosureOfOwner() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Getter<U:>",
+            "    function get() returns U",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T v)",
+            "        last = v",
+            "    function reader() returns Reader",
+            "        return new Reader()",
+            "    function viaClosure() returns T",
+            "        Getter<T> g = () -> begin",
+            "            Reader r = reader()",
+            "            return r.read()",
+            "        end",
+            "        return g.get()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let a = new Outer<int>(7)",
+            "    let b = new Outer<string>(\"x\")",
+            "    if a.viaClosure() == 7 and b.viaClosure() == \"x\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A static inner class as the type argument of a generic class inside its owner reads the owner's static. */
+    @Test
+    public void staticInnerClassAsTypeArgumentInOwnerReadsOwnerStatic() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Holder<U:>",
+            "    U v",
+            "    construct(U v)",
+            "        this.v = v",
+            "class Outer<T:>",
+            "    static T last",
+            "    construct(T v)",
+            "        last = v",
+            "    function held() returns T",
+            "        let h = new Holder<Reader>(new Reader())",
+            "        return h.v.read()",
+            "    static class Reader",
+            "        function read() returns T",
+            "            return last",
+            "init",
+            "    let a = new Outer<int>(7)",
+            "    let b = new Outer<string>(\"x\")",
+            "    if a.held() == 7 and b.held() == \"x\"",
+            "        testSuccess()"
+        );
+    }
+
 }

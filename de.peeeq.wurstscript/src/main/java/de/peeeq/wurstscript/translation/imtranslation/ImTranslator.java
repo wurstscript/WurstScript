@@ -36,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -434,6 +435,33 @@ public class ImTranslator implements SpecialisationLookup {
             typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(capturedVariable), Collections.emptyMap()));
         }
         return JassIm.ImClassType(ownerClass, typeArguments);
+    }
+
+    /**
+     * Translates the types of a class member's declaration, its signature or its type, in the type variable context of
+     * the class which declares it, whatever asked for it first. A static inner class names the parameters it captured
+     * from its owner by its own variables; the owner's code, or a closure in it, can ask for a member of the inner
+     * class before that class is translated, and the owner's context would give the member the owner's variables,
+     * which the inner class's instantiation does not bind. {@code own} are the declaration's own variables.
+     */
+    private <R> R inDeclarationContext(de.peeeq.wurstscript.ast.Element declaration,
+                                       Map<TypeParamDef, ImTypeVar> own, Supplier<R> translation) {
+        ClassDef declaringClass = declaration.attrNearestClassDef();
+        Map<TypeParamDef, ImTypeVar> captured = Collections.emptyMap();
+        if (declaringClass != null && capturingOwnerOf(declaringClass) != null) {
+            getClassFor(declaringClass); // records what the class captured
+            captured = getTypeVarOverridesForClass(declaringClass);
+        }
+        List<Map<TypeParamDef, ImTypeVar>> requesterContext = new ArrayList<>(typeVarOverrideStack);
+        typeVarOverrideStack.clear();
+        pushTypeVarOverrides(captured);
+        pushTypeVarOverrides(own);
+        try {
+            return translation.get();
+        } finally {
+            typeVarOverrideStack.clear();
+            typeVarOverrideStack.addAll(requesterContext);
+        }
     }
 
     public void pushTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
@@ -1671,11 +1699,19 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
         ImFunction f = ImFunction(funcDef, name, typeVars, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         Map<TypeParamDef, ImTypeVar> ov = getTypeVarOverridesForFunction(f);
-        pushTypeVarOverrides(ov);
-        try {
-            funcDef.imCreateFuncSkeleton(this, f);
-        } finally {
-            popTypeVarOverrides(ov);
+        if (funcDef instanceof ExprClosure) {
+            // an expression, typed where it is written
+            pushTypeVarOverrides(ov);
+            try {
+                funcDef.imCreateFuncSkeleton(this, f);
+            } finally {
+                popTypeVarOverrides(ov);
+            }
+        } else {
+            inDeclarationContext(funcDef, ov, () -> {
+                funcDef.imCreateFuncSkeleton(this, f);
+                return null;
+            });
         }
 
         addFunction(f, funcDef);
@@ -1940,12 +1976,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (v == null) {
             requireCompilationUnit(varDef);
             Map<TypeParamDef, ImTypeVar> ov = getOwnerTypeVarOverridesForStaticClassVar(varDef);
-            pushTypeVarOverrides(ov);
             ImType type;
-            try {
-                type = varDef.attrTyp().imTranslateType(this);
-            } finally {
-                popTypeVarOverrides(ov);
+            if (varDef instanceof GlobalVarDef && varDef.attrNearestClassOrInterface() != null) {
+                // a field or static of a class, which any code can ask for first
+                type = inDeclarationContext(varDef, ov, () -> varDef.attrTyp().imTranslateType(this));
+            } else {
+                pushTypeVarOverrides(ov);
+                try {
+                    type = varDef.attrTyp().imTranslateType(this);
+                } finally {
+                    popTypeVarOverrides(ov);
+                }
             }
             String name = varDef.getName();
             if (isNamedScopeVar(varDef)) {
@@ -3223,35 +3264,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             return;
         }
 
-        boolean isStatic = cd.attrIsStatic();
-        if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] isStatic=" + isStatic);
-        if (!isStatic) return;
-
-        de.peeeq.wurstscript.ast.Element parent = cd.getParent();
-        de.peeeq.wurstscript.ast.Element parent2 = parent == null ? null : parent.getParent();
-
-        AstElementWithTypeParameters owner = null;
-        String ownerInfo = null;
-
-        if (parent2 instanceof ModuleInstanciation mi) {
-            ClassDef o = mi.attrNearestClassDef();
-            owner = o;
-            ownerInfo = "moduleInst=" + mi.getName() + " owner=" + (o == null ? "null" : o.getName());
-        } else if (parent2 instanceof ClassDef o) {
-            owner = o;
-            ownerInfo = "outerClass=" + o.getName();
-        } else if (parent2 instanceof InterfaceDef o) {
-            owner = o;
-            ownerInfo = "outerInterface=" + o.getName();
-        } else {
-            if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] parent2 not ModuleInstanciation/ClassDef/InterfaceDef -> skip");
-            return;
+        AstElementWithTypeParameters owner = capturingOwnerOf(cd);
+        if (isIteratorLike(s) && WLogger.isTraceEnabled()) {
+            WLogger.trace("[GENCAP] static=" + cd.attrIsStatic() + " owner=" + owner);
         }
-
-        if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] " + ownerInfo);
-
         if (owner == null) return;
-        if (owner == cd) return;
         if (owner instanceof ClassOrInterface ownerScope) {
             capturingOwnerByStaticClass.put(cd, ownerScope);
         }
@@ -3295,6 +3312,29 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] captured owner tvar added: " + captured.getName());
             }
         }
+    }
+
+    /**
+     * The class or interface whose type parameters a static inner class sees: the one it is written in, or the class
+     * using the module it is written in. Null for any other class.
+     */
+    private static @Nullable AstElementWithTypeParameters capturingOwnerOf(ClassDef cd) {
+        if (!cd.attrIsStatic()) {
+            return null;
+        }
+        de.peeeq.wurstscript.ast.Element parent = cd.getParent();
+        de.peeeq.wurstscript.ast.Element parent2 = parent == null ? null : parent.getParent();
+        AstElementWithTypeParameters owner;
+        if (parent2 instanceof ModuleInstanciation mi) {
+            owner = mi.attrNearestClassDef();
+        } else if (parent2 instanceof ClassDef o) {
+            owner = o;
+        } else if (parent2 instanceof InterfaceDef o) {
+            owner = o;
+        } else {
+            return null;
+        }
+        return owner == cd ? null : owner;
     }
 
 
@@ -3347,7 +3387,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             // otherwise EliminateClasses dispatch lookup can fail.
             String methodName = imFunc.getName();
             WLogger.trace(() -> "[GENCAP] getMethodFor " + elementNameWithPath(f) + " -> methodName=" + methodName);
-            m = JassIm.ImMethod(f, selfType(f), methodName, imFunc, Lists.newArrayList(), Lists.newArrayList(), "", false);
+            ImClassType methodClass = inDeclarationContext(f, Collections.emptyMap(), () -> selfType(f));
+            m = JassIm.ImMethod(f, methodClass, methodName, imFunc, Lists.newArrayList(), Lists.newArrayList(), "", false);
             methodForFuncDef.put(f, m);
         }
         return m;
