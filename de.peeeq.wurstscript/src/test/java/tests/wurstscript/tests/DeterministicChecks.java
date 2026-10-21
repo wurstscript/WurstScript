@@ -67,6 +67,20 @@ public class DeterministicChecks extends WurstScriptTest {
         assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua);
     }
 
+    /** A bounded interface default, inherited by some implementing classes and overridden by others, emits one script. */
+    @Test
+    public void interfaceDefaultWithBoundIsIdenticalAcrossCompilations() throws IOException {
+        String name = "interfaceDefaultWithBound";
+        String[] source = GenericsTests.overriddenBoundedDefaultSource();
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(source);
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(source);
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass);
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua);
+    }
 
     @Test
     public void simple() throws IOException {

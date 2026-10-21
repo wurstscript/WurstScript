@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
@@ -96,7 +97,8 @@ public final class TreeShaker {
 
     /**
      * The same before the generics are specialised. A generic function calls through its type arguments, so what the
-     * type arguments in reachable code bind is reachable too: the implementations a type class binding names, and
+     * type arguments in reachable code, and those a constructed class gives its superclasses, bind is reachable too:
+     * the implementations a type class binding names, and
      * the function which constructs a class given as a type argument (the specialisation of {@code wurstNewInstance}
      * calls it).
      *
@@ -191,6 +193,7 @@ public final class TreeShaker {
         private final boolean followTypeArguments;
         private final Set<ImFunction> reachable;
         private final Set<ImClass> constructedClasses = new ReferenceOpenHashSet<>();
+        private final Set<ImClass> classesWithFollowedSuperclasses = new ReferenceOpenHashSet<>();
         private final Set<ImMethod> usedMethods = new ReferenceOpenHashSet<>();
         private final ArrayDeque<ImFunction> work = new ArrayDeque<>();
         private final Set<ImVar> globals;
@@ -403,6 +406,31 @@ public final class TreeShaker {
             super.visit(argument);
             if (followTypeArguments) {
                 followTypeArgument(argument);
+            }
+        }
+
+        @Override
+        public void visit(ImAlloc alloc) {
+            super.visit(alloc);
+            if (followTypeArguments) {
+                followSuperclassTypeArguments(alloc.getClazz().getClassDef());
+            }
+        }
+
+        /**
+         * The type arguments a constructed class gives its superclasses, which are in no body: given
+         * {@code class StateLoader implements Loader<State>}, the inherited methods of {@code Loader<State>} construct
+         * {@code State} and dispatch through the bindings of its type argument, as the specialisation makes them do.
+         */
+        private void followSuperclassTypeArguments(ImClass imClass) {
+            if (!classesWithFollowedSuperclasses.add(imClass)) {
+                return;
+            }
+            for (ImClassType superType : imClass.getSuperClasses()) {
+                for (ImTypeArgument argument : superType.getTypeArguments()) {
+                    followTypeArgument(argument);
+                }
+                followSuperclassTypeArguments(superType.getClassDef());
             }
         }
 
