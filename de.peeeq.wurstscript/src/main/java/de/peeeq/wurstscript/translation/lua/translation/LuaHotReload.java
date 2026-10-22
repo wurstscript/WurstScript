@@ -271,6 +271,18 @@ public final class LuaHotReload {
                 reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
             }
         }
+        Map<String, Integer> oldCounts = identityCounts(baseline.bindings());
+        Map<String, Integer> newCounts = identityCounts(current.bindings());
+        Set<String> identities = new TreeSet<>(oldCounts.keySet());
+        identities.addAll(newCounts.keySet());
+        for (String id : identities) {
+            int before = oldCounts.getOrDefault(id, 0);
+            int after = newCounts.getOrDefault(id, 0);
+            if (before != after && Math.max(before, after) > 1) {
+                reasons.add("declarations which share the identity " + id + " (closures of one interface method in one function)"
+                    + " were added or removed; they are told apart by their order, so restart the map");
+            }
+        }
 
         List<String> defined = new ArrayList<>();
         List<String> changedInits = new ArrayList<>();
@@ -405,6 +417,15 @@ public final class LuaHotReload {
             case "boot" -> "class or runtime data";
             default -> "initialisation";
         };
+    }
+
+    /** How many names each identity has: more than one for the closures of one interface method in one function. */
+    private static Map<String, Integer> identityCounts(List<String> bindings) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String id : bindingMap(bindings).values()) {
+            counts.merge(id, 1, Integer::sum);
+        }
+        return counts;
     }
 
     private static Map<String, String> bindingMap(List<String> bindings) {

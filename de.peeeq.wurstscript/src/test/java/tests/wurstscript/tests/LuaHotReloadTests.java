@@ -316,6 +316,40 @@ public class LuaHotReloadTests extends WurstScriptTest {
         expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(baseline, changed, Set.of(), 1));
     }
 
+    /**
+     * The closures of one interface method in one function share an identity and are told apart by their order. A
+     * closure added before another would give the old one's name to the new one, so the edit is rejected.
+     */
+    @Test
+    public void closureAddedBesideAnotherOfTheSameMethodIsRejected() {
+        String[] base = {
+            "package Test",
+            "interface Op",
+            "    function apply(int v) returns int",
+            "function run() returns int",
+            "    Op a = (int v) -> v + 1",
+            "    Op b = (int v) -> v + 2",
+            "    return a.apply(1) + b.apply(1)",
+            "init",
+            "    run()",
+        };
+        String[] edited = {
+            "package Test",
+            "interface Op",
+            "    function apply(int v) returns int",
+            "function run() returns int",
+            "    Op z = (int v) -> v + 3",
+            "    Op a = (int v) -> v + 1",
+            "    Op b = (int v) -> v + 2",
+            "    return z.apply(1) + a.apply(1) + b.apply(1)",
+            "init",
+            "    run()",
+        };
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(manifest(base), manifest(edited), Set.of(), 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+    }
+
     private static String[] structuralProgram(boolean edited) {
         List<String> lines = new java.util.ArrayList<>(List.of(
             "package Test",

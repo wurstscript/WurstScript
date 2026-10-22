@@ -41,6 +41,9 @@ payload compares the running script's manifest with the edited one:
 - A changed initial value of a global the map has is skipped with a warning: the map keeps the value it has.
 - Any other changed bootstrap statement (class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
+- The closures of one interface method in one function share an identity and are told apart by their order, so
+  adding or removing one of them is rejected: the new closure would take an old one's name, and objects of the old
+  one would run its body.
 - The init of a new package runs once, after the rest. Other changed package init code ran when the map started and
   does not run again: the payload carries the change, with a warning that applying it needs a restart.
 
