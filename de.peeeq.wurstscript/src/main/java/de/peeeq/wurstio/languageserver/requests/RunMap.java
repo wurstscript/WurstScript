@@ -132,7 +132,8 @@ public class RunMap extends MapRequest {
             return "ok";
         }
         if (luaHotReloadManifest != null) {
-            LuaHotReloadSession.start(buildDir.toPath(), luaHotReloadManifest);
+            // The new map polls from the first file; the session itself changes only once the map is launched, so a
+            // launch which fails leaves the session of a map that is still running.
             LuaHotReloadSession.clearDeliveries(getCustomMapDataPath());
         }
 
@@ -149,6 +150,9 @@ public class RunMap extends MapRequest {
 
         if (testMap.isPresent()) {
             startGame(gui, result);
+            if (luaHotReloadManifest != null) {
+                LuaHotReloadSession.start(buildDir.toPath(), luaHotReloadManifest);
+            }
         }
         return null;
     }

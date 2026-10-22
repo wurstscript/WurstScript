@@ -372,7 +372,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "for i = 1, 4 do " + LuaHotReload.POLL_FUNCTION + "() scores[i] = score(1) end",
             "print(table.concat(requested, ' '))",
             "print(table.concat(scores, ' '))",
-            "print(" + LuaHotReload.STATUS_FUNCTION + "())");
+            "print(" + LuaHotReload.STATUS_FUNCTION + "())",
+            "print(BlzGetAbilityTooltip(0, 0))");
         java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_pollDriver.lua");
         java.nio.file.Files.writeString(driverFile.toPath(), driver);
         Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
@@ -382,6 +383,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals("Wurst\\hotreload-1.pld Wurst\\hotreload-2.pld Wurst\\hotreload-3.pld Wurst\\hotreload-4.pld", lines[0]);
         assertEquals("the broken file changes nothing, the next one applies", "11 11 101 101", lines[1]);
         assertEquals("applied payload 2", lines[2]);
+        assertEquals("the poll puts the ability's tooltip back", "Attribute Bonus", lines[3]);
     }
 
     /** The preload file hands the payload over unchanged, whatever characters and length it has. */

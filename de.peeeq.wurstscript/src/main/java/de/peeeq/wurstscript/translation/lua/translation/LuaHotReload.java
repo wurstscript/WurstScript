@@ -371,10 +371,13 @@ public final class LuaHotReload {
             "function " + POLL_FUNCTION + "()",
             "    if not bj_isSinglePlayer then return end",
             "    local channel = FourCC(\"" + CHANNEL_ABILITY + "\")",
+            // The map may show this ability: its tooltip is put back after each poll.
+            "    local shown = BlzGetAbilityTooltip(channel, 0)",
             // "" does not clear a tooltip, so the payload last read would be read again.
             "    BlzSetAbilityTooltip(channel, \" \", 0)",
             "    Preloader(\"" + PRELOAD_FILE_PREFIX.replace("\\", "\\\\") + "\" .. __wurst_hotreload_nextFile .. \".pld\")",
             "    local text = BlzGetAbilityTooltip(channel, 0)",
+            "    BlzSetAbilityTooltip(channel, shown, 0)",
             "    local marker = \"" + PAYLOAD_MARKER + "\"",
             "    if text:sub(1, #marker) ~= marker then return end",
             "    local source = text:sub(#marker + 1)",
