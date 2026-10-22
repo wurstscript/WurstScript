@@ -141,6 +141,9 @@ has a cost; do not silently put one on every copy.
 
 ## Lua hot reload: feasible mechanism, substantial contract
 
+A prototype now exists behind `-luaHotReload`: [LUA_HOT_RELOAD.md](LUA_HOT_RELOAD.md). The text below is the
+investigation it started from.
+
 The existing `wurst.hotreload` command reaches the JHCR update path in `RunMap`; it is not an existing
 Lua reload implementation. Lua can load a text factory with an explicit environment and return a
 closure capturing supplied storage bindings. Those are standard

@@ -1,0 +1,7 @@
+function PreloadFiles takes nothing returns nothing
+//!beginusercode
+local p = {}
+p[#p + 1] = "wurst hot reload probe: \"quoted\" back\\slash //\033 marker\nsecond line"
+BlzSetAbilityTooltip(FourCC("Aamk"), table.concat(p), 0)
+//!endusercode
+endfunction

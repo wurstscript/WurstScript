@@ -13,6 +13,7 @@ import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
@@ -125,6 +126,14 @@ public class RunMap extends MapRequest {
         }
         Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
         CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
+
+        if (runArgs.isHotReload() && runArgs.isLua()) {
+            sendLuaHotReloadPayload(gui, buildDir);
+            return "ok";
+        }
+        if (luaHotReloadManifest != null) {
+            LuaHotReloadSession.start(buildDir.toPath(), luaHotReloadManifest);
+        }
 
         if (runArgs.isHotReload()) {
             // call jhcr update
@@ -410,6 +419,26 @@ public class RunMap extends MapRequest {
         CANCEL
     }
 
+
+    /**
+     * Sends the running Lua map the payload of the edits since it started (docs/LUA_HOT_RELOAD.md). The map polls the
+     * CustomMapData folder for it; an edit a payload cannot carry fails here, with the reasons, and changes nothing.
+     */
+    private void sendLuaHotReloadPayload(WurstGui gui, File buildDir) throws IOException {
+        if (luaHotReloadManifest == null) {
+            throw new RequestFailedException(MessageType.Error, "Lua hot reload needs -luaHotReload in the run arguments,"
+                + " and a map started with it.");
+        }
+        LuaHotReload.Payload payload;
+        try {
+            payload = LuaHotReloadSession.nextPayload(buildDir.toPath(), luaHotReloadManifest);
+        } catch (LuaHotReload.Rejected e) {
+            throw new RequestFailedException(MessageType.Warning, e.getMessage());
+        }
+        Path file = LuaHotReloadSession.deliver(getCustomMapDataPath(), payload);
+        gui.sendProgress("Hot reload payload " + payload.version() + " (" + String.join(", ", payload.functions())
+            + ") written to " + file);
+    }
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {
         File mapScriptFolder = mapScript.getParentFile();

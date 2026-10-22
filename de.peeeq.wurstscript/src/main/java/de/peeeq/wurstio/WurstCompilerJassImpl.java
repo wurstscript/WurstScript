@@ -961,6 +961,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public LuaCompilationUnit transformProgToLua() {
+        if (runArgs.isLuaHotReload() && (runArgs.isInline() || runArgs.isOptimize())) {
+            // Inlining copies a body into each caller and -opt renames every declaration per build, so a payload
+            // would have to replace the callers or could not name anything in the running script.
+            throw new IllegalArgumentException("-luaHotReload is for development builds: remove -inline and -opt.");
+        }
 
         ImAttrType.setWurstClassType(null);
         int stage;
