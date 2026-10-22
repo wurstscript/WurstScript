@@ -2,7 +2,7 @@
 
 Status: implemented behind `-luaHotReload`. The whole path (a payload compiled by the editor, written as a preload
 file, picked up by the running map and installed) was measured once on the 3.0.1.24371 client in a test map; see
-"Measured in the game". The VS Code command has not been driven against a running game yet.
+"Measured in the game", where the editor side was also driven through the language server as VS Code drives it.
 Background: [LUA_RUNTIME_OPPORTUNITIES.md](LUA_RUNTIME_OPPORTUNITIES.md), "Lua hot reload".
 
 ## What it does
@@ -129,9 +129,14 @@ unit tests had missed: the id of a function whose signature has a new-generics t
 printer's identity hash, so two compilations of the same map never matched. Ids now print types structurally
 (`genericSignaturesHaveTheSameIdInEveryCompilation`).
 
+The same suite then ran with the editor side driven through the language server, over the protocol, as the VS Code
+extension drives it: `wurst.hotstartmap` compiled the map and started the session (the game was launched for the test,
+from the map that request prepared); when the map was ready, the probe file was edited and saved (`didChange`,
+`didSave`) and `wurst.hotreload` sent, as the extension does on save. The request compiled the project and wrote the
+payload in 3.7 s, and the map ran the new bodies 4.5 s after the ready file, with the same results as above.
+
 Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); payloads larger
-than this one; a rejected payload in the game; threads suspended by a wait during a reload; the VS Code command
-against a running game.
+than this one; a rejected payload in the game; threads suspended by a wait during a reload.
 
 ## Probe for other clients
 
@@ -171,7 +176,7 @@ editor loop in the game.
 
 ## Next stages
 
-1. Try the whole loop in a real map with the VS Code command, with a larger payload and a rejected one.
+1. Use it on a real map: a larger payload, and a rejected one.
 2. Accept new functions: a payload can define a function which is not yet in the skeleton, provided nothing in the
    skeleton has to refer to it. Today any new function, including a new lambda, is rejected.
 3. A reload hook for libraries (see "Why not a reactive emission").
