@@ -350,9 +350,22 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertFalse("the new map does not see the payloads of the last", java.nio.file.Files.exists(second.file()));
         LuaHotReloadSession.restoreDeliveries(customMapData);
         assertTrue("a failed launch keeps them for the map still running", java.nio.file.Files.exists(second.file()));
+        // A restore which was interrupted leaves the set-aside folder: the next launch puts its files back first.
+        java.nio.file.Path aside = customMapData.resolve("Wurst").resolve("hotreload-set-aside");
         LuaHotReloadSession.setAsideDeliveries(customMapData);
+        LuaHotReloadSession.setAsideDeliveries(customMapData);
+        assertTrue("files left aside are not lost", java.nio.file.Files.exists(aside.resolve("hotreload-2.pld")));
         LuaHotReloadSession.discardDeliveries(customMapData);
         assertFalse(java.nio.file.Files.exists(second.file()));
+        // One whose deletion was interrupted is marked: the next launch deletes it instead.
+        java.nio.file.Files.createDirectories(aside);
+        java.nio.file.Files.writeString(aside.resolve("hotreload-9.pld"), "old session");
+        java.nio.file.Files.writeString(aside.resolve("superseded"), "");
+        LuaHotReloadSession.setAsideDeliveries(customMapData);
+        assertFalse("a superseded session's file does not come back",
+            java.nio.file.Files.exists(customMapData.resolve("Wurst").resolve("hotreload-9.pld")));
+        assertFalse(java.nio.file.Files.exists(aside.resolve("hotreload-9.pld")));
+        LuaHotReloadSession.discardDeliveries(customMapData);
         assertFalse(java.nio.file.Files.exists(customMapData.resolve("Wurst").resolve("hotreload-set-aside")));
         assertTrue(java.nio.file.Files.exists(other));
     }

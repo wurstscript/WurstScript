@@ -194,7 +194,13 @@ public final class LuaHotReloadSession {
     public static void setAsideDeliveries(Path customMapData) throws IOException {
         Path folder = deliveryFolder(customMapData);
         Path aside = folder.resolve(SET_ASIDE);
-        deleteFolder(aside);
+        if (Files.exists(aside.resolve(SUPERSEDED))) {
+            // Left by a launch which succeeded: the files of a session no map runs any more.
+            deleteFolder(aside);
+        } else {
+            // Left by a restore which was interrupted: the running map may not have read them yet.
+            restoreDeliveries(customMapData);
+        }
         if (!Files.isDirectory(folder)) {
             return;
         }
@@ -223,12 +229,21 @@ public final class LuaHotReloadSession {
         deleteFolder(aside);
     }
 
-    /** Deletes the files {@link #setAsideDeliveries} moved, once the new map is launched. */
+    /**
+     * Deletes the files {@link #setAsideDeliveries} moved, once the new map is launched. The folder is marked first, so
+     * a deletion which is interrupted leaves files the next launch knows to delete rather than restore.
+     */
     public static void discardDeliveries(Path customMapData) throws IOException {
-        deleteFolder(deliveryFolder(customMapData).resolve(SET_ASIDE));
+        Path aside = deliveryFolder(customMapData).resolve(SET_ASIDE);
+        if (!Files.isDirectory(aside)) {
+            return;
+        }
+        Files.writeString(aside.resolve(SUPERSEDED), "");
+        deleteFolder(aside);
     }
 
     private static final String SET_ASIDE = "hotreload-set-aside";
+    private static final String SUPERSEDED = "superseded";
 
     private static Path deliveryFolder(Path customMapData) {
         return customMapData.resolve(LuaHotReload.PRELOAD_FILE_PREFIX.replace('\\', '/')).getParent();
@@ -251,6 +266,7 @@ public final class LuaHotReloadSession {
         for (Path file : deliveries(folder)) {
             Files.delete(file);
         }
+        Files.deleteIfExists(folder.resolve(SUPERSEDED));
         Files.delete(folder);
     }
 
