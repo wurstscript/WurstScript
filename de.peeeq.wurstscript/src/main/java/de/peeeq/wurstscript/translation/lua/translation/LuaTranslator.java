@@ -184,7 +184,7 @@ public class LuaTranslator {
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
-                name = uniqueName(name);
+                name = a.isGlobal() ? declarationName(name, LuaHotReload.variableId(a)) : uniqueName(name);
             } else {
                 usedNames.add(name);
             }
@@ -213,7 +213,7 @@ public class LuaTranslator {
             String name = a.getName();
             if (!a.isExtern() && !a.isBj() && !a.isNative()
                 && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
-                name = uniqueName(name);
+                name = declarationName(name, LuaHotReload.functionId(a));
             } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
                 usedNames.add(name);
             }
@@ -242,7 +242,8 @@ public class LuaTranslator {
     GetAForB<ImClass, LuaVariable> luaClassVar = new GetAForB<ImClass, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImClass a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+            return LuaAst.LuaVariable(declarationName(a.getName(), LuaHotReload.classId(a)),
+                LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
     };
 
@@ -260,7 +261,7 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar field) {
-            LuaVariable storage = LuaAst.LuaVariable(uniqueName(field.getName() + "_storage"),
+            LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", LuaHotReload.variableId(field)),
                 LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
             localizableStorageTables.add(storage);
             return storage;
@@ -288,7 +289,7 @@ public class LuaTranslator {
         public LuaFunction initFor(ImMethod method) {
             LuaVariable receiver = LuaAst.LuaVariable("receiver", LuaAst.LuaNoExpr());
             LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
-            LuaFunction result = LuaAst.LuaFunction(uniqueName("dispatch_" + method.getName()),
+            LuaFunction result = LuaAst.LuaFunction(declarationName("dispatch_" + method.getName(), LuaHotReload.methodId(method)),
                 LuaAst.LuaParams(receiver, dots), LuaAst.LuaStatements());
             LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
                 LuaAst.LuaExprVarAccess(objectClass),
@@ -335,7 +336,8 @@ public class LuaTranslator {
     GetAForB<ImClass, LuaFunction> luaClassAllocator = new GetAForB<ImClass, LuaFunction>() {
         @Override
         public LuaFunction initFor(ImClass a) {
-            return LuaAst.LuaFunction(uniqueName(a.getName() + "_create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            return LuaAst.LuaFunction(declarationName(a.getName() + "_create", LuaHotReload.classId(a)),
+                LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
 
@@ -430,6 +432,15 @@ public class LuaTranslator {
         this.imTr = imTr;
         this.hotReload = imTr.getRunArgs().isLuaHotReload();
         luaModel = LuaAst.LuaCompilationUnit();
+    }
+
+    /**
+     * The name of a declaration of the program. A hot-reload build adds a hash of the declaration's identity
+     * ({@link LuaHotReload#shortHash}), so that a name depends on its declaration alone: numbered names change when a
+     * declaration of the same name is added or removed before them, which a payload cannot carry.
+     */
+    String declarationName(String rawName, String identity) {
+        return uniqueName(hotReload ? rawName + "_" + LuaHotReload.shortHash(identity) : rawName);
     }
 
     protected String uniqueName(String rawName) {
@@ -565,7 +576,7 @@ public class LuaTranslator {
     private void nameFunctionsBeforeTheirBodies() {
         for (ImClass c : prog.getClasses()) {
             for (ImFunction f : c.getFunctions()) {
-                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+                luaFunc.getFor(f).setName(declarationName(c.getName() + "_" + classFunctionName(f), LuaHotReload.functionId(f)));
                 classFunctionsNamed.add(f);
             }
         }
@@ -3109,6 +3120,17 @@ public class LuaTranslator {
      * {@code ImTranslator.luaInitFunctions}. The generated script calls each in an xpcall
      * ({@code StmtTranslation.emitLuaInitXpcall}); the test harness watches them.
      */
+    /** The Lua names of the program's functions called {@code imName}, for a test harness which replaces one. */
+    public List<String> functionNames(String imName) {
+        List<String> names = new ArrayList<>();
+        for (ImFunction f : prog.getFunctions()) {
+            if (f.getName().equals(imName)) {
+                names.add(luaFunc.getFor(f).getName());
+            }
+        }
+        return names;
+    }
+
     public List<String> initFunctionNames() {
         List<String> names = new ArrayList<>();
         for (ImFunction f : imTr.luaInitFunctions.keySet()) {

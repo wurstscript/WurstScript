@@ -917,6 +917,16 @@ public class WurstScriptTest {
                 // Callback adapters can consume the error. Record an independent failure signal
                 // before raising it so a later testSuccess cannot make the Java harness pass.
                 chunk.append("testFail = function(message) print('__wurst_testFail'); error(message, 0) end;");
+                // A hot-reload build names the library's functions with a hash of their identity.
+                if (luaTranslator != null) {
+                    for (String test : List.of("testSuccess", "testFail")) {
+                        for (String luaName : luaTranslator.functionNames(test)) {
+                            if (!luaName.equals(test)) {
+                                chunk.append(luaName).append(" = ").append(test).append(";");
+                            }
+                        }
+                    }
+                }
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,

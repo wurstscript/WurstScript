@@ -52,7 +52,7 @@ is undone is undone in the map.
 | Point | Answer in the prototype |
 | --- | --- |
 | Engine `load` and delivery | Measured on the 3.0.1.24371 client: the preload file's Lua section runs, the tooltip carries the payload, `load` compiles it in the map's environment and the bodies are replaced (see "Measured in the game"). |
-| Stable semantic ids | Generated names are numbered in translation order, so names alone are not stable. A hot-reload build names every function before it translates any body, so a local added to a body cannot take a function's name (`newLocalNamedLikeALaterFunctionIsABodyEdit`). Each emitted name is bound to `package:IM name` (with the IM signature for functions) in the fingerprint. A swap of two numbered names, a new declaration or a removed one changes the fingerprint and is rejected. Renaming support (mapping ids across builds) is a later stage. |
+| Stable semantic ids | Release builds number generated names in translation order. A hot-reload build names each function, global, class, field, allocator and dispatch stub from its own identity instead: the source name and six hex digits of a hash of its package, IM name and signature (`score_010f82`). Adding or removing a declaration therefore renames nothing else (`addedDeclarationsRenameNothing`), and every function is named before any body is translated, so a new local cannot take a function's name (`newLocalNamedLikeALaterFunctionIsABodyEdit`). The fingerprint still binds each name to its identity and type. |
 | Explicit lexical storage bindings | A payload is a separate chunk and cannot see the main chunk's locals. A hot-reload build therefore declares no main-chunk local: the allocator state, deallocator, hashtable sentinels and the old-generics zero become globals (`LuaTranslator.declareChunkLocal`). Every binding a body reaches is a global of the script's environment, and the payload is compiled with that environment (`load(source, name, "t", _ENV)`). Function-level aliases of field stores are inside the bodies and are rebuilt with them. |
 | All slot aliases | `LuaHotReload.collectFunctionValues` finds every place a reloadable function is used as a value. A class-table binding `Class.slot = f` is repeated after the new definition (`Square.Circle_area = Square_Square_area` in the test), for every class which binds it. A callback adapter passes its target to `xpcall` by name on each call and needs nothing. Any other stored value would keep the old body, so such a function is refused by name. Neither the test programs nor a program over `LinkedList` and `ClosureTimers` from the standard library has one. |
 | ABI / version rejection | The map checks the fingerprint and that the payload's version is newer than the last applied one before it installs anything. A syntax error, a foreign script or a stale payload returns a reason and changes nothing. The poll also skips text it has already seen. |
@@ -203,8 +203,12 @@ editor loop in the game.
 
 ## Next stages
 
-1. Use it on a real map: a larger payload, and a rejected one.
-2. Accept new functions: a payload can define a function which is not yet in the skeleton, provided nothing in the
-   skeleton has to refer to it. Today any new function, including a new lambda, is rejected.
-3. A reload hook for libraries (see "Why not a reactive emission").
-4. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.
+Stable names are in place. The goal is that nearly every edit reloads:
+
+1. New functions and signature changes: the payload defines the new functions; callers of a changed signature ship
+   anyway, since their text changes.
+2. New globals and class fields: a new global runs its initialiser once; a new field gets its own storage table, whose
+   default existing objects read.
+3. New lambdas and classes: the payload builds their class tables and dispatch slots.
+4. A reload hook for libraries (see "Why not a reactive emission").
+5. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.
