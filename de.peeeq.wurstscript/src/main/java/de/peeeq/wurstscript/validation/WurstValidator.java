@@ -4052,7 +4052,7 @@ public class WurstValidator {
      * checks if func1 can override func2
      */
     public static boolean canOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
-        return checkOverride(func1, func2, allowStaticOverride) == null;
+        return overrideError(func1, func2, allowStaticOverride, false) == null;
     }
 
     /**
@@ -4060,48 +4060,65 @@ public class WurstValidator {
      * <p>
      * Returns null if yes and an error message if not.
      */
-    public static String checkOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
+    public static @Nullable String checkOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
+        return overrideError(func1, func2, allowStaticOverride, true);
+    }
+
+    /** What {@link #overrideError} returns in place of a message which nobody reads. */
+    private static final String CANNOT_OVERRIDE = "cannot override";
+
+    /**
+     * Null if func1 can override func2, else why not; with {@code explain} false only {@link #CANNOT_OVERRIDE}.
+     * Most pairs a lookup compares are overloads which cannot override each other, and the message names the
+     * overridden function with its position, so a check which only needs the answer does not build it.
+     */
+    private static @Nullable String overrideError(FuncLink func1, FuncLink func2, boolean allowStaticOverride,
+                                                  boolean explain) {
         if (!allowStaticOverride) {
             if (func1.isStatic()) {
-                return "Static method " + func1.getName() + " cannot override other methods.";
+                return explain
+                    ? "Static method " + func1.getName() + " cannot override other methods."
+                    : CANNOT_OVERRIDE;
             }
             if (func2.isStatic()) {
-                return "Static " + Utils.printElementWithSource(Optional.of(func2.getDef())) + " cannot be overridden.";
+                return explain
+                    ? "Static " + Utils.printElementWithSource(Optional.of(func2.getDef())) + " cannot be overridden."
+                    : CANNOT_OVERRIDE;
             }
         } else {
             if (func1.isStatic() && !func2.isStatic()) {
-                return "Static method "
+                return explain ? "Static method "
                     + func1.getName()
                     + " cannot override dynamic "
                     + Utils.printElementWithSource(Optional.of(func2.getDef()))
-                    + ".";
+                    + "." : CANNOT_OVERRIDE;
             } else if (!func1.isStatic() && func2.isStatic()) {
-                return "Method "
+                return explain ? "Method "
                     + func1.getName()
                     + " cannot override static "
                     + Utils.printElementWithSource(Optional.of(func2.getDef()))
-                    + ".";
+                    + "." : CANNOT_OVERRIDE;
             }
         }
         if (func1.isVarargMethod() && !func2.isVarargMethod()) {
-            return "Vararg method "
+            return explain ? "Vararg method "
                 + func1.getName()
                 + " cannot override non-vararg method "
                 + Utils.printElementWithSource(Optional.of(func2.getDef()))
-                + ".";
+                + "." : CANNOT_OVERRIDE;
         }
         if (!func1.isVarargMethod() && func2.isVarargMethod()) {
-            return "Non-vararg method "
+            return explain ? "Non-vararg method "
                 + func1.getName()
                 + " cannot override vararg method "
                 + Utils.printElementWithSource(Optional.of(func2.getDef()))
-                + ".";
+                + "." : CANNOT_OVERRIDE;
         }
         int paramCount2 = func2.getParameterTypes().size();
         int paramCount1 = func1.getParameterTypes().size();
         if (paramCount1 != paramCount2) {
-            return Utils.printElement(func2.getDef()) + " takes " + paramCount2
-                    + " parameters, but there are only " + paramCount1 + " parameters here.";
+            return explain ? Utils.printElement(func2.getDef()) + " takes " + paramCount2
+                    + " parameters, but there are only " + paramCount1 + " parameters here." : CANNOT_OVERRIDE;
         }
 
         // the functions' own type parameters are equal up to renaming
@@ -4116,18 +4133,18 @@ public class WurstValidator {
             WurstType type1 = func1.getParameterType(i);
             WurstType type2 = renaming.isEmpty() ? func2.getParameterType(i) : func2.getParameterType(i).setTypeArgs(renaming);
             if (!type1.isSupertypeOf(type2, func1.getDef())) {
-                return "Parameter " + type1 + " " + func1.getParameterName(i) + " should have type " + type2
-                        + " to override " + Utils.printElementWithSource(Optional.of(func2.getDef())) + ".";
+                return explain ? "Parameter " + type1 + " " + func1.getParameterName(i) + " should have type " + type2
+                        + " to override " + Utils.printElementWithSource(Optional.of(func2.getDef())) + "." : CANNOT_OVERRIDE;
             }
         }
         // covariant return types
         WurstType returnType2 = renaming.isEmpty() ? func2.getReturnType() : func2.getReturnType().setTypeArgs(renaming);
         if (!func1.getReturnType().isSubtypeOf(returnType2, func1.getDef())) {
-            return "Return type should be "
+            return explain ? "Return type should be "
                 + func2.getReturnType()
                 + " to override "
                 + Utils.printElementWithSource(Optional.of(func2.getDef()))
-                + ".";
+                + "." : CANNOT_OVERRIDE;
         }
         // no error
         return null;

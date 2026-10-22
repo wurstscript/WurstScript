@@ -247,7 +247,9 @@ public class Utils {
 
     public static <T extends Element> String printElement(Optional<T> el) {
         return el.map(e -> {
-            String type = makeReadableTypeName(e);
+            // The readable type name costs three regular expressions and most kinds of element are
+            // printed without it, so it is made only for those which print it.
+            String type = null;
             String name = "";
             if (e instanceof ExprFunctionCall fc) {
                 return "function call " + fc.getFuncName() + "()";
@@ -285,7 +287,7 @@ public class Utils {
                 }
                 type = "type";
             }
-            return type + " " + name;
+            return (type != null ? type : makeReadableTypeName(e)) + " " + name;
         }).orElse("null");
     }
 

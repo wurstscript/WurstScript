@@ -33,12 +33,16 @@ public class NameLinks {
         // inherited functions used for override checks only, skip reporting
         boolean skipErrorReporting = false;
 
-        // errors for functions with same name that it does not override
-        io.vavr.collection.List<String> overrideErrors = io.vavr.collection.List.empty();
+        // functions with same name that it does not override, latest first; why it does not is worked out only
+        // where it is reported, for a function marked override which overrides nothing
+        io.vavr.collection.List<FailedOverride> failedOverrides = io.vavr.collection.List.empty();
 
-        public void addError(String error) {
-            this.overrideErrors = overrideErrors.prepend(error);
+        public void addFailedOverride(FuncLink overridden, boolean allowStaticOverride) {
+            this.failedOverrides = failedOverrides.prepend(new FailedOverride(overridden, allowStaticOverride));
         }
+    }
+
+    private record FailedOverride(FuncLink overridden, boolean allowStaticOverride) {
     }
 
     /**
@@ -94,9 +98,10 @@ public class NameLinks {
                 }
                 if (f.attrIsOverride() && !check.doesOverride) {
                     StringBuilder msg = new StringBuilder("Function " + f.getName() + " does not override anything.");
-                    for (String overrideError : check.overrideErrors) {
+                    for (FailedOverride failed : check.failedOverrides) {
                         msg.append("\n  ");
-                        msg.append(overrideError);
+                        msg.append(WurstValidator.checkOverride(e.getKey(), failed.overridden(),
+                            failed.allowStaticOverride()));
                     }
                     f.addError(msg.toString());
                 } else if (!f.attrIsOverride() && check.doesOverride) {
@@ -173,15 +178,14 @@ public class NameLinks {
                     FuncLink otherFunc = e2.getKey();
                     OverrideCheckResult checkResult = e2.getValue();
 
-                    String error = WurstValidator.checkOverride(otherFunc, func, allowStaticOverride);
-                    if (error == null) {
+                    if (WurstValidator.canOverride(otherFunc, func, allowStaticOverride)) {
                         checkResult.doesOverride = true;
                         if (!(func.getReceiverType() instanceof WurstTypeInterface)) {
                             checkResult.requiresOverrideMod = true;
                         }
                         isOverridden = true;
                     } else {
-                        checkResult.addError(error);
+                        checkResult.addFailedOverride(func, allowStaticOverride);
                     }
 
 
