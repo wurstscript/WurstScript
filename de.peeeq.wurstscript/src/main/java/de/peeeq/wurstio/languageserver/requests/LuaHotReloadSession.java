@@ -110,11 +110,16 @@ public final class LuaHotReloadSession {
      */
     private static Path deliver(Path customMapData, LuaHotReload.Payload payload) throws IOException {
         Path file = customMapData.resolve(LuaHotReload.preloadFile(payload.version()).replace('\\', '/'));
+        writeAtomically(file, preloadFile(payload.source()));
+        return file;
+    }
+
+    /** Writes a complete temporary file and renames it, so no reader and no interrupted write leaves a partial file. */
+    private static void writeAtomically(Path file, String text) throws IOException {
         Files.createDirectories(file.getParent());
         Path partial = file.resolveSibling(file.getFileName() + ".tmp");
-        Files.writeString(partial, preloadFile(payload.source()), StandardCharsets.UTF_8);
+        Files.writeString(partial, text, StandardCharsets.UTF_8);
         Files.move(partial, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        return file;
     }
 
     /**
@@ -193,8 +198,7 @@ public final class LuaHotReloadSession {
     }
 
     private static void save(Path buildDir, State state) throws IOException {
-        Path file = stateFile(buildDir);
-        Files.createDirectories(file.getParent());
-        Files.writeString(file, GSON.toJson(state), StandardCharsets.UTF_8);
+        // A payload may already be out: a half-written state would lose the number the map waits for next.
+        writeAtomically(stateFile(buildDir), GSON.toJson(state));
     }
 }
