@@ -493,9 +493,18 @@ public final class LuaHotReload {
      * depend on that declaration alone, so adding or removing another one renames nothing.
      */
     static String shortHash(String identity) {
+        return hash(identity, 3);
+    }
+
+    /** Sixteen hex digits: for the identities whose short hashes collide ({@link LuaTranslator#declarationName}). */
+    static String longHash(String identity) {
+        return hash(identity, 8);
+    }
+
+    private static String hash(String identity, int bytes) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, 3);
+            return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, bytes);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }

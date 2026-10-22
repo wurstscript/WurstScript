@@ -201,6 +201,31 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue("every name the first build had means the same in the second: " + lost, lost.isEmpty());
     }
 
+    /**
+     * Locals are numbered within their function: with stack traces every function has the position parameter, and a
+     * function added in front of others must not renumber theirs, which would change every body and initialisation.
+     */
+    @Test
+    public void addedFunctionLeavesOtherFunctionsAlone() throws Exception {
+        RunArgs traced = HOT_RELOAD.with("-stacktraces");
+        String[] base = program("x + 1", "side * side", INIT);
+        // At the end of the file: a function in front would move the source positions of the ones after it.
+        String[] added = concat(program("added(x)", "side * side", INIT),
+            new String[] {"function added(int x) returns int", "    let y = x + 1", "    return y"});
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, traced,
+            new CU("addedFunctionLeavesOtherFunctionsAlone", String.join("\n", base) + "\n"));
+        LuaHotReload.Manifest after = compileLuaHotReloadManifest(false, traced,
+            new CU("addedFunctionLeavesOtherFunctionsAlone", String.join("\n", added) + "\n"));
+        List<String> changed = new java.util.ArrayList<>();
+        for (LuaHotReload.Function f : before.functions().values()) {
+            LuaHotReload.Function now = after.functions().get(f.name());
+            if (now != null && !now.definition().equals(f.definition())) {
+                changed.add(f.name());
+            }
+        }
+        assertEquals("only the edited function's text changes", List.of("score"), sourceNames(changed));
+    }
+
     /** Overloads of a method are separate declarations: each dispatch stub is named from its own signature. */
     @Test
     public void overloadedMethodsHaveTheirOwnNames() throws IOException {
@@ -233,6 +258,21 @@ public class LuaHotReloadTests extends WurstScriptTest {
         for (String name : names) {
             assertTrue("named from its identity, not numbered: " + names, name.matches(".*_[0-9a-f]{6}"));
         }
+    }
+
+    /**
+     * Two declarations whose short hashes collide ({@code P4769:C.C_x} and {@code P8706:C.C_x}) both get the long hash, so
+     * their names do not depend on the order of the compilation units.
+     */
+    @Test
+    public void collidingShortHashesDoNotDependOnOrder() {
+        CU first = new CU("P4769", String.join("\n", "package P4769", "public class C", "    int x = 1", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
+        CU second = new CU("P8706", String.join("\n", "package P8706", "public class C", "    int x = 2", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
+        LuaHotReload.Manifest forward = compileLuaHotReloadManifest(false, HOT_RELOAD, first, second);
+        LuaHotReload.Manifest backward = compileLuaHotReloadManifest(false, HOT_RELOAD, second, first);
+        assertEquals(new java.util.TreeSet<>(forward.bindings()), new java.util.TreeSet<>(backward.bindings()));
+        assertTrue(forward.bindings().toString(), forward.bindings().stream()
+            .anyMatch(b -> b.matches("C_x_storage_[0-9a-f]{16}=P4769:C\\.C_x.*")));
     }
 
     /** A class of the same name from another package is another type. */
