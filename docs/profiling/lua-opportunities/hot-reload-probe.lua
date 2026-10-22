@@ -8,7 +8,7 @@ do
     local CHANNEL = FourCC("Aamk")
     local GAME_FILE = "Wurst\\hotreload-probe-game.pld"
     local TOOL_FILE = "Wurst\\hotreload-probe.pld"
-    local TOOL_TEXT = "wurst hot reload probe: \"quoted\" back\\slash //! marker\nsecond line"
+    local TOOL_TEXT = "wurst-hot-reload-payload:wurst hot reload probe: \"quoted\" back\\slash //! marker\nsecond line"
 
     local function report(name, ok, detail)
         BJDebugMsg("Wurst probe " .. name .. ": " .. tostring(ok) .. " " .. tostring(detail or ""))

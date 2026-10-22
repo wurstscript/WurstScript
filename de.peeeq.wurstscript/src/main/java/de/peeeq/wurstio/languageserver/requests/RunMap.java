@@ -133,6 +133,7 @@ public class RunMap extends MapRequest {
         }
         if (luaHotReloadManifest != null) {
             LuaHotReloadSession.start(buildDir.toPath(), luaHotReloadManifest);
+            LuaHotReloadSession.clearDeliveries(getCustomMapDataPath());
         }
 
         if (runArgs.isHotReload()) {

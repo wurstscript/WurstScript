@@ -884,9 +884,10 @@ public class WurstScriptTest {
                     // The map's poll (LuaHotReload.POLL_FUNCTION) reads the payload as the game is expected to hand it
                     // over: Preloader runs the Lua section of the file, which leaves the payload in an ability tooltip.
                     // Defined before the script, which then does not define fallbacks for these natives.
+                    // As measured in the game: a tooltip starts as the ability's own text, and setting "" leaves it.
                     chunk.append("local tooltips = {};"
-                        + "BlzSetAbilityTooltip = function(id, s, level) tooltips[id .. ':' .. level] = s end;"
-                        + "BlzGetAbilityTooltip = function(id, level) return tooltips[id .. ':' .. level] or '' end;"
+                        + "BlzSetAbilityTooltip = function(id, s, level) if s ~= '' then tooltips[id .. ':' .. level] = s end end;"
+                        + "BlzGetAbilityTooltip = function(id, level) return tooltips[id .. ':' .. level] or 'Attribute Bonus' end;"
                         + "Preloader = function(path) local f = assert(io.open('")
                         .append(payloadFile.getPath().replace('\\', '/'))
                         .append("', 'rb')) local text = f:read('a') f:close()"

@@ -97,10 +97,29 @@ public final class LuaHotReloadSession {
 
     /** Writes {@code payload} where the map's poll reads it, under the game's CustomMapData folder. */
     public static Path deliver(Path customMapData, LuaHotReload.Payload payload) throws IOException {
-        Path file = customMapData.resolve(LuaHotReload.PRELOAD_FILE.replace('\\', '/'));
+        Path file = customMapData.resolve(LuaHotReload.preloadFile(payload.version()).replace('\\', '/'));
         Files.createDirectories(file.getParent());
         Files.writeString(file, preloadFile(payload.source()), StandardCharsets.UTF_8);
         return file;
+    }
+
+    /**
+     * Deletes the payload files of earlier sessions, before a map starts: its poll begins again at the first file, and a
+     * payload left from another session must not reach it.
+     */
+    public static void clearDeliveries(Path customMapData) throws IOException {
+        Path folder = customMapData.resolve(LuaHotReload.PRELOAD_FILE_PREFIX.replace('\\', '/')).getParent();
+        if (!Files.isDirectory(folder)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> files = Files.list(folder)) {
+            for (Path file : (Iterable<Path>) files::iterator) {
+                String name = file.getFileName().toString();
+                if (name.startsWith("hotreload-") && name.endsWith(".pld")) {
+                    Files.delete(file);
+                }
+            }
+        }
     }
 
     /**
@@ -113,7 +132,8 @@ public final class LuaHotReloadSession {
         StringBuilder sb = new StringBuilder();
         sb.append("function PreloadFiles takes nothing returns nothing\n");
         sb.append("//!beginusercode\n");
-        sb.append("local p = {}\n");
+        // The marker tells the map's poll that the tooltip holds a payload rather than the ability's own text.
+        sb.append("local p = {\"").append(LuaHotReload.PAYLOAD_MARKER).append("\"}\n");
         for (int i = 0; i < payload.length(); i += PRELOAD_CHUNK) {
             sb.append("p[#p + 1] = \"");
             appendEscaped(sb, payload.substring(i, Math.min(payload.length(), i + PRELOAD_CHUNK)));

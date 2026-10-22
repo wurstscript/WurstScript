@@ -490,6 +490,10 @@ public class LuaTranslator {
             luaModel.add(classVar);
         }
 
+        if (hotReload) {
+            nameFunctionsBeforeTheirBodies();
+        }
+
         for (ImClass c : prog.getClasses()) {
             translateClass(c);
         }
@@ -541,6 +545,26 @@ public class LuaTranslator {
             hotReloadManifest = LuaHotReload.install(this, hotReloadFunctions, CompileTimeInfo.version);
         }
         return luaModel;
+    }
+
+    /** The class functions a hot-reload build named before translating any body. */
+    private final Set<ImFunction> classFunctionsNamed = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    /**
+     * Locals and functions share one namespace of numbered names, and a function is otherwise named when it is first
+     * called or after its class's bodies are translated. So a local added to one body could take the name of a function
+     * named later, which would change the script outside the bodies. A hot-reload build names every function first.
+     */
+    private void nameFunctionsBeforeTheirBodies() {
+        for (ImClass c : prog.getClasses()) {
+            for (ImFunction f : c.getFunctions()) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+                classFunctionsNamed.add(f);
+            }
+        }
+        for (ImFunction f : prog.getFunctions()) {
+            luaFunc.getFor(f);
+        }
     }
 
     /** What a {@code -luaHotReload} build emitted, null in any other build. */
@@ -1573,7 +1597,9 @@ public class LuaTranslator {
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+            if (!classFunctionsNamed.contains(f)) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+            }
         }
 
         if (allocator != null) {

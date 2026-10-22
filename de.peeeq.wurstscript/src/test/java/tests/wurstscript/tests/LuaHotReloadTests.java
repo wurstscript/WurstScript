@@ -132,6 +132,29 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(LuaHotReload.payload(first, second, Set.of(), 1).functions().isEmpty());
     }
 
+    /**
+     * Lua names are numbered in one namespace for functions and locals, so a new local named like a function which is
+     * named later must not take that function's name: the edit only changes a body.
+     */
+    @Test
+    public void newLocalNamedLikeALaterFunctionIsABodyEdit() throws Exception {
+        String[] base = {
+            "package Test",
+            "function first() returns int",
+            "    return 1",
+            "function helper() returns int",
+            "    return 2",
+            "init",
+            "    first()",
+            "    helper()",
+        };
+        String[] edited = base.clone();
+        edited[2] = "    let helper = 5\n    return helper";
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(edited), Set.of(), 1);
+        assertEquals(List.of("first"), payload.functions());
+    }
+
     /** An edit outside the bodies changes the script the map is running, which a payload cannot reach. */
     @Test
     public void structuralEditIsRejected() {
@@ -149,6 +172,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
         rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(baseline, withFunction, Set.of(), 1));
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("functions the running script does not have: helper"));
+        assertFalse("a new function shifts the names after it, which is not reported apart:\n" + rejected.getMessage(),
+            rejected.getMessage().contains("a name now means something else"));
     }
 
     @Test
@@ -255,7 +280,65 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(second.functions().contains("score"));
 
         java.nio.file.Path delivered = de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.deliver(buildDir, second);
-        assertEquals(buildDir.resolve("Wurst").resolve("hotreload.pld"), delivered);
+        assertEquals("each payload has a file of its own", buildDir.resolve("Wurst").resolve("hotreload-2.pld"), delivered);
+        java.nio.file.Path other = buildDir.resolve("Wurst").resolve("other.pld");
+        java.nio.file.Files.writeString(other, "kept");
+        de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.clearDeliveries(buildDir);
+        assertFalse("a new session deletes the payload files of the last", java.nio.file.Files.exists(delivered));
+        assertTrue(java.nio.file.Files.exists(other));
+    }
+
+    /**
+     * The game reads a preload file once, so payload n comes in file n and the poll reads each file once, in order. A
+     * file whose payload is rejected is not read again, and the next payload still applies.
+     */
+    @Test
+    public void pollReadsEachPayloadFileOnceInOrder() throws Exception {
+        String[] base = program("x + 1", "side * side", INIT);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_pollReadsEachPayloadFileOnceInOrder.lua";
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReload.Payload first = LuaHotReload.payload(baseline, manifest(program("x + 10", "side * side", INIT)), Set.of(), 1);
+        LuaHotReload.Payload second = LuaHotReload.payload(baseline, manifest(program("x + 100", "side * side", INIT)), Set.of("score"), 2);
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadPoll");
+        java.nio.file.Files.writeString(dir.resolve("hotreload-1.pld"),
+            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile(first.source()));
+        java.nio.file.Files.writeString(dir.resolve("hotreload-2.pld"),
+            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile("return ("));
+        java.nio.file.Files.writeString(dir.resolve("hotreload-3.pld"),
+            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile(second.source()));
+        String runtime = "src/test/resources/luaruntime/";
+        String driver = String.join("\n",
+            "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
+            "dofile('" + script + "')",
+            "__wurst_init_bootstrap()",
+            "bj_isSinglePlayer = true",
+            "local tooltips, requested = {}, {}",
+            // As measured in the game: a tooltip starts as the ability's own text, and setting "" leaves it.
+            "BlzSetAbilityTooltip = function(id, s, level) if s ~= '' then tooltips[level] = s end end",
+            "BlzGetAbilityTooltip = function(id, level) return tooltips[level] or 'Attribute Bonus' end",
+            "BJDebugMsg = function() end",
+            "Preloader = function(path)",
+            "  requested[#requested + 1] = path",
+            "  local f = io.open('" + dir.toString().replace('\\', '/') + "/' .. path:match('[^\\\\]+$'), 'rb')",
+            "  if not f then return end",
+            "  local text = f:read('a') f:close()",
+            "  assert(load(text:match('//!beginusercode%s(.-)%s//!endusercode')))()",
+            "end",
+            "local scores = {}",
+            "for i = 1, 4 do " + LuaHotReload.POLL_FUNCTION + "() scores[i] = score(1) end",
+            "print(table.concat(requested, ' '))",
+            "print(table.concat(scores, ' '))",
+            "print(" + LuaHotReload.STATUS_FUNCTION + "())");
+        java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_pollDriver.lua");
+        java.nio.file.Files.writeString(driverFile.toPath(), driver);
+        Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
+        String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+        assertEquals(output, 0, p.waitFor());
+        String[] lines = output.split("\\R");
+        assertEquals("Wurst\\hotreload-1.pld Wurst\\hotreload-2.pld Wurst\\hotreload-3.pld Wurst\\hotreload-4.pld", lines[0]);
+        assertEquals("the broken file changes nothing, the next one applies", "11 11 101 101", lines[1]);
+        assertEquals("applied payload 2", lines[2]);
     }
 
     /** The preload file hands the payload over unchanged, whatever characters and length it has. */
@@ -279,7 +362,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         Process p = new ProcessBuilder(getLuaExecutable(), "-e", chunk).redirectErrorStream(true).start();
         String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
         assertEquals(output, 0, p.waitFor());
-        assertEquals(payload.toString(), java.nio.file.Files.readString(received.toPath()));
+        assertEquals(LuaHotReload.PAYLOAD_MARKER + payload, java.nio.file.Files.readString(received.toPath()));
 
         assertEquals("the in-game probe reads a file in the layout the editor writes",
             de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile(

@@ -32,10 +32,28 @@ public final class LuaHotReload {
     public static final String VERSION_GLOBAL = "__wurst_hotreload_version";
     public static final String APPLY_FUNCTION = "__wurst_hotreload_apply";
     public static final String POLL_FUNCTION = "__wurst_hotreload_poll";
-    /** The file a payload is delivered in, relative to the game's CustomMapData folder. */
-    public static final String PRELOAD_FILE = "Wurst\\hotreload.pld";
+    /** Answers what became of the last payload the poll read, for a map's own diagnostics. */
+    public static final String STATUS_FUNCTION = "__wurst_hotreload_status";
+    /**
+     * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
+     * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
+     * measured on the 3.0.1.24371 client, {@code Preloader} never saw a file rewritten during the game (20 s), while a
+     * file created during the game was read within 0.5 s.
+     */
+    public static final String PRELOAD_FILE_PREFIX = "Wurst\\hotreload-";
+
+    /** The file of payload {@code version}, relative to CustomMapData, with Windows separators. */
+    public static String preloadFile(int version) {
+        return PRELOAD_FILE_PREFIX + version + ".pld";
+    }
     /** The ability whose tooltip carries the payload from the preload file to the map; unverified in game. */
     public static final String CHANNEL_ABILITY = "Aamk";
+    /**
+     * What a payload file puts before the payload in the tooltip. Setting a tooltip to "" does not clear it: in the
+     * 3.0.1.24371 client the tooltip then read back is the ability's own text, so only text after this marker comes
+     * from a payload file.
+     */
+    public static final String PAYLOAD_MARKER = "wurst-hot-reload-payload:";
 
     private LuaHotReload() {
     }
@@ -172,7 +190,8 @@ public final class LuaHotReload {
         if (!removed.isEmpty()) {
             reasons.add("functions the edit removes: " + String.join(", ", removed));
         }
-        List<String> oldBindings = baseline.bindings();
+        // An added or removed function shifts every binding after it, which says nothing more.
+        List<String> oldBindings = added.isEmpty() && removed.isEmpty() ? baseline.bindings() : List.of();
         List<String> newBindings = current.bindings();
         for (int i = 0; i < Math.min(oldBindings.size(), newBindings.size()); i++) {
             if (!oldBindings.get(i).equals(newBindings.get(i))) {
@@ -311,8 +330,9 @@ public final class LuaHotReload {
 
     /**
      * The runtime of a hot-reload build: the fingerprint, the applied payload version, the function which applies a
-     * payload, and the poll which reads one from a preload file (single-player development only; the file is local,
-     * so a multiplayer game would desync).
+     * payload, and the poll which reads the next payload file (single-player development only; the files are local,
+     * so a multiplayer game would desync). The poll reads each file once, in order, whatever its payload does: a
+     * rejected payload is not read again, and the next one is in the next file.
      *
      * <p>A payload is compiled with the script's own environment, so its bodies reach the same globals. Compiling it
      * and calling its chunk run no program code; the ABI and version are checked before the install function, which
@@ -321,6 +341,7 @@ public final class LuaHotReload {
     private static void appendRuntime(LuaTranslator tr, LuaCompilationUnit model, String abi) {
         model.add(LuaAst.LuaLiteral(ABI_GLOBAL + " = \"" + abi + "\""));
         model.add(LuaAst.LuaLiteral(VERSION_GLOBAL + " = 0"));
+        model.add(LuaAst.LuaLiteral("__wurst_hotreload_nextFile = 1"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",
@@ -333,25 +354,34 @@ public final class LuaHotReload {
             "    if type(version) ~= \"number\" or version <= " + VERSION_GLOBAL + " then",
             "        return false, \"payload \" .. tostring(version) .. \" is not newer than \" .. " + VERSION_GLOBAL,
             "    end",
-            "    install()",
+            "    local installed, installErr = pcall(install)",
+            "    if not installed then",
+            "        return false, \"the payload failed while it was installed, so the map may run old and new bodies: \" .. tostring(installErr)",
+            "    end",
             "    " + VERSION_GLOBAL + " = version",
             "    return true",
             "end")));
+        model.add(LuaAst.LuaLiteral("__wurst_hotreload_lastStatus = \"no payload read\""));
+        model.add(LuaAst.LuaLiteral("function " + STATUS_FUNCTION + "() return __wurst_hotreload_lastStatus end"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + POLL_FUNCTION + "()",
             "    if not bj_isSinglePlayer then return end",
             "    local channel = FourCC(\"" + CHANNEL_ABILITY + "\")",
-            "    BlzSetAbilityTooltip(channel, \"\", 0)",
-            "    Preloader(\"" + PRELOAD_FILE.replace("\\", "\\\\") + "\")",
-            "    local source = BlzGetAbilityTooltip(channel, 0)",
-            "    if source == \"\" or source == __wurst_hotreload_seen then return end",
-            "    __wurst_hotreload_seen = source",
+            // "" does not clear a tooltip, so the payload last read would be read again.
+            "    BlzSetAbilityTooltip(channel, \" \", 0)",
+            "    Preloader(\"" + PRELOAD_FILE_PREFIX.replace("\\", "\\\\") + "\" .. __wurst_hotreload_nextFile .. \".pld\")",
+            "    local text = BlzGetAbilityTooltip(channel, 0)",
+            "    local marker = \"" + PAYLOAD_MARKER + "\"",
+            "    if text:sub(1, #marker) ~= marker then return end",
+            "    local source = text:sub(#marker + 1)",
+            "    __wurst_hotreload_nextFile = __wurst_hotreload_nextFile + 1",
             "    local ok, err = " + APPLY_FUNCTION + "(source)",
             "    if ok then",
-            "        BJDebugMsg(\"Wurst hot reload: applied payload \" .. " + VERSION_GLOBAL + ")",
-            "    elseif err then",
-            "        BJDebugMsg(\"Wurst hot reload rejected: \" .. tostring(err))",
+            "        __wurst_hotreload_lastStatus = \"applied payload \" .. " + VERSION_GLOBAL,
+            "    else",
+            "        __wurst_hotreload_lastStatus = \"rejected: \" .. tostring(err)",
             "    end",
+            "    BJDebugMsg(\"Wurst hot reload: \" .. __wurst_hotreload_lastStatus)",
             "end")));
     }
 }
