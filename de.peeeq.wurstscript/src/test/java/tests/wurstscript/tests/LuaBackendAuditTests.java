@@ -1160,7 +1160,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * The nil guard of a handle native passes a null enum handle on as the handle of id 0, which is what the
      * engine reads a null enum argument as (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
      * IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result); a null unit still answers
-     * the default.
+     * the default. The parameters here only reach the natives, so the caller makes the enum tests.
      */
     @Test
     public void aNullEnumHandleIsTheHandleOfIdZeroOnLua() throws IOException {
@@ -1174,12 +1174,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    read(null, null, null)");
         String compiled = compiledLua("aNullEnumHandleIsTheHandleOfIdZeroOnLua");
-        String state = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState");
+        String state = topLevelFunctionBodyWithPrefix(compiled, "__wurst_enumOrZero_unitstate(");
         assertTrue("a null unit state is UNIT_STATE_LIFE:\n" + state,
             java.util.regex.Pattern.compile("if \\(?(\\w+) == nil\\)? then\\s+\\1 = ConvertUnitState\\(0\\)").matcher(state).find());
-        assertTrue("a null unit answers the default:\n" + state,
-            java.util.regex.Pattern.compile("if \\(?\\w+ == nil\\)? then\\s+return 0\\.").matcher(state).find());
-        String type = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_IsUnitType");
+        String unit = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState_whichUnit(");
+        assertTrue("a null unit answers the default:\n" + unit,
+            java.util.regex.Pattern.compile("if \\(?\\w+ == nil\\)? then\\s+return 0\\.").matcher(unit).find());
+        String type = topLevelFunctionBodyWithPrefix(compiled, "__wurst_enumOrZero_unittype(");
         assertTrue("a null unit type is UNIT_TYPE_HERO:\n" + type, type.contains("ConvertUnitType(0)"));
     }
 
@@ -1202,7 +1203,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * A converter which no common.j constant calls is not in the program until a wrapper needs it; it is created
+     * A converter which no common.j constant calls is not in the program until a nil test needs it; it is created
      * before the lowering walks the program's functions, so the walk does not see the function list change.
      */
     @Test
@@ -1215,8 +1216,161 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    read(null, null)");
         String compiled = compiledLua("aConverterNothingElseCallsIsCreatedForTheNilGuard");
-        String wrapper = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_BlzGetAbilityIntegerLevelArrayField");
-        assertTrue("a null field is the field of id 0:\n" + wrapper, wrapper.contains("ConvertAbilityIntegerLevelArrayField(0)"));
+        String normaliser = topLevelFunctionBodyWithPrefix(compiled, "__wurst_enumOrZero_abilityintegerlevelarrayfield(");
+        assertTrue("a null field is the field of id 0:\n" + normaliser, normaliser.contains("ConvertAbilityIntegerLevelArrayField(0)"));
+    }
+
+    /**
+     * A common.j constant is never nil, so a native given one is not tested for null there: the guard is chosen
+     * where the native is called. A local and a global of the program's own may be null and keep the guard, and a
+     * native whose every guarded argument is a constant is called directly.
+     */
+    @Test
+    public void aCommonJConstantArgumentIsNotTestedForNil() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "native consume(real r)",
+            "unitstate userState = UNIT_STATE_MAX_LIFE",
+            "@noinline function readConstant(unit u)",
+            "    consume(GetUnitState(u, UNIT_STATE_MAX_LIFE))",
+            "@noinline function readLocal(unit u)",
+            "    var s = UNIT_STATE_LIFE",
+            "    consume(GetUnitState(u, s))",
+            "@noinline function readUserGlobal(unit u)",
+            "    consume(GetUnitState(u, userState))",
+            "@noinline function setTime()",
+            "    SetFloatGameState(GAME_STATE_TIME_OF_DAY, 12.)",
+            "init",
+            "    readConstant(null)",
+            "    readLocal(null)",
+            "    readUserGlobal(null)",
+            "    setTime()");
+        String compiled = compiledLua("aCommonJConstantArgumentIsNotTestedForNil");
+
+        String constant = topLevelFunctionBodyWithPrefix(compiled, "readConstant(");
+        assertTrue("a constant state takes the wrapper which tests only the unit:\n" + constant,
+            java.util.regex.Pattern.compile("__wurst_safe_GetUnitState_whichUnit\\(\\w+, UNIT_STATE_MAX_LIFE\\)").matcher(constant).find());
+        String unitOnly = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState_whichUnit(");
+        assertFalse("no nil test for the constant:\n" + unitOnly, unitOnly.contains("ConvertUnitState"));
+        assertTrue("the unit is still tested:\n" + unitOnly,
+            java.util.regex.Pattern.compile("if \\(?\\w+ == nil\\)? then\\s+return 0\\.").matcher(unitOnly).find());
+
+        String both = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState(");
+        assertTrue("a state which may be null is still tested:\n" + both,
+            java.util.regex.Pattern.compile("if \\(?(\\w+) == nil\\)? then\\s+\\1 = ConvertUnitState\\(0\\)").matcher(both).find());
+        assertTrue("a local keeps the guard:\n" + compiled,
+            java.util.regex.Pattern.compile("__wurst_safe_GetUnitState\\(\\w+, \\w+\\)")
+                .matcher(topLevelFunctionBodyWithPrefix(compiled, "readLocal(")).find());
+        assertTrue("a global of the program's own keeps the guard:\n" + compiled,
+            java.util.regex.Pattern.compile("__wurst_safe_GetUnitState\\(\\w+, \\w*userState\\)")
+                .matcher(topLevelFunctionBodyWithPrefix(compiled, "readUserGlobal(")).find());
+
+        assertTrue("a native given only constants is called directly:\n" + compiled,
+            topLevelFunctionBodyWithPrefix(compiled, "setTime(").contains("SetFloatGameState(GAME_STATE_TIME_OF_DAY, 12.)"));
+        assertFalse("and has no wrapper:\n" + compiled, compiled.contains("__wurst_safe_SetFloatGameState"));
+    }
+
+    /**
+     * A parameter which a function only hands on to a native's enum parameter, as the standard library's
+     * unit.getState does, is tested where the function is called: a constant needs no test there, and anything else
+     * is normalised to the handle of id 0 before the call. A method's implementation may be called through dispatch
+     * and a parameter which is also compared is read as given, so both keep the test inside.
+     */
+    @Test
+    public void aForwardedEnumParameterIsTestedByTheCaller() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "native consume(real r)",
+            "@noinline function stateOf(unit u, unitstate s) returns real",
+            "    return GetUnitState(u, s)",
+            "@noinline function checked(unit u, unitstate s) returns real",
+            "    if s == null",
+            "        return -1.",
+            "    return GetUnitState(u, s)",
+            "class Reader",
+            "    unit u = null",
+            "    function readState(unitstate s) returns real",
+            "        return GetUnitState(u, s)",
+            "init",
+            "    var v = UNIT_STATE_LIFE",
+            "    consume(stateOf(null, UNIT_STATE_MAX_LIFE))",
+            "    consume(stateOf(null, v))",
+            "    consume(checked(null, UNIT_STATE_MAX_LIFE))",
+            "    consume(new Reader().readState(UNIT_STATE_MAX_LIFE))");
+        String compiled = compiledLua("aForwardedEnumParameterIsTestedByTheCaller");
+
+        String stateOf = topLevelFunctionBodyWithPrefix(compiled, "stateOf(");
+        assertTrue("the forwarded state is not tested inside:\n" + stateOf,
+            stateOf.contains("__wurst_safe_GetUnitState_whichUnit("));
+        assertTrue("a constant is passed as it is:\n" + compiled,
+            compiled.contains("stateOf(nil, UNIT_STATE_MAX_LIFE)"));
+        assertTrue("a local is normalised by the caller:\n" + compiled,
+            java.util.regex.Pattern.compile("stateOf\\(nil, __wurst_enumOrZero_unitstate\\(\\w+\\)\\)").matcher(compiled).find());
+        String normaliser = topLevelFunctionBodyWithPrefix(compiled, "__wurst_enumOrZero_unitstate(");
+        assertTrue("null is the handle of id 0:\n" + normaliser,
+            java.util.regex.Pattern.compile("if \\(?(\\w+) == nil\\)? then\\s+\\1 = ConvertUnitState\\(0\\)").matcher(normaliser).find());
+
+        assertTrue("a compared parameter keeps the test inside:\n" + compiled,
+            topLevelFunctionBodyWithPrefix(compiled, "checked(").contains("__wurst_safe_GetUnitState("));
+        assertTrue("a method keeps the test inside:\n" + compiled,
+            topLevelFunctionContaining(compiled, "readState").contains("__wurst_safe_GetUnitState("));
+    }
+
+    /**
+     * Inlined and optimised, a native given a common.j constant has no nil test before it.
+     */
+    @Test
+    public void anInlinedCommonJConstantArgumentIsNotTestedForNil() throws IOException {
+        test().testLua(true).withStdLib().inline().localOptimizations().lines(
+            "package Test",
+            "native consume(real r)",
+            "unit u = null",
+            "init",
+            "    consume(GetUnitState(u, UNIT_STATE_MAX_LIFE))");
+        String compiled = compiledLua("anInlinedCommonJConstantArgumentIsNotTestedForNil");
+        assertTrue("the native is called inline:\n" + compiled,
+            java.util.regex.Pattern.compile("= GetUnitState\\(\\w+, \\w+\\)").matcher(compiled).find());
+        assertFalse("no nil test for the constant:\n" + compiled, compiled.contains("ConvertUnitState(0)"));
+    }
+
+    /**
+     * A common.j constant, a local, a global of the program's own and a null argument read the same player state
+     * on Lua as on Jass.
+     */
+    @Test
+    public void aCommonJConstantArgumentReadsTheSameAsAGuardedOne() {
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
+            "package Test",
+            "playerstate userState = PLAYER_STATE_RESOURCE_GOLD",
+            "@noinline function read(player p, playerstate s) returns int",
+            "    return GetPlayerState(p, s)",
+            "class Reader",
+            "    player p = Player(1)",
+            "    function readState(playerstate s) returns int",
+            "        return GetPlayerState(p, s)",
+            "init",
+            "    let p = Player(1)",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD, 250)",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_LUMBER, -5)",
+            "    if GetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD) != 250",
+            "        testFail(\"constant gold\")",
+            "    if GetPlayerState(p, PLAYER_STATE_RESOURCE_LUMBER) != 0",
+            "        testFail(\"constant lumber\")",
+            "    if GetPlayerState(p, userState) != 250",
+            "        testFail(\"user global\")",
+            "    if read(p, PLAYER_STATE_RESOURCE_GOLD) != 250",
+            "        testFail(\"parameter\")",
+            "    if read(p, null) != 3",
+            "        testFail(\"null state is the game result\")",
+            "    playerstate noState = null",
+            "    if read(p, noState) != 3",
+            "        testFail(\"null local\")",
+            "    let r = new Reader()",
+            "    if r.readState(PLAYER_STATE_RESOURCE_GOLD) != 250 or r.readState(null) != 3",
+            "        testFail(\"method\")",
+            "    if GetPlayerState(null, PLAYER_STATE_RESOURCE_GOLD) != 0",
+            "        testFail(\"null player\")",
+            "    testSuccess()");
     }
 
     /**

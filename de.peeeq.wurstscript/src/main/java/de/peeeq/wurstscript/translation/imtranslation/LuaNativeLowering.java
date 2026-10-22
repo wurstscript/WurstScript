@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.*;
 
@@ -32,6 +34,9 @@ import java.util.*;
  *       {@code boolexpr} and {@code code} typed params are intentionally skipped: these
  *       are optional/nullable in Jass (e.g. the filter arg of
  *       {@code TriggerRegisterPlayerUnitEvent}) and passing {@code nil} is valid.
+ *       The guards are chosen per call: an argument which reads a common.j constant is never nil and is
+ *       not tested, and an enum parameter which a function only hands on to such a native is tested by
+ *       the function's callers ({@link #enumParamsTestedByCallers}).
  *       <p>KNOWN LIMITATION: natives where {@code null} in a non-boolexpr/code handle
  *       param is a meaningful "clear/reset" argument are silently skipped by the
  *       wrapper instead of being forwarded. If such a native is identified, add it
@@ -183,9 +188,11 @@ public final class LuaNativeLowering {
         lowerDivMod(prog, translator);
         lowerRealToInt(prog, translator);
 
-        // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
+        // Maps original BJ function → replacement (IS_NATIVE hashtable stub).
         // Populated lazily during the traversal.
         Map<ImFunction, ImFunction> replacements = new LinkedHashMap<>();
+        // Nil-safety wrappers by name, one per BJ function and set of guarded parameters.
+        Map<String, ImFunction> nilSafeWrappers = new LinkedHashMap<>();
         Map<String, ImFunction> specialNativeStubs = new LinkedHashMap<>();
         // BJ functions that don't need a replacement (not GetHandleId, not hashtable/callback,
         // no handle params). Cached to avoid rechecking the same function at every call site.
@@ -195,6 +202,10 @@ public final class LuaNativeLowering {
         // - Wrappers: deferred so the visitor doesn't see their internal BJ delegate calls and
         //   recursively wrap them, which would cause infinite wrapping.
         List<ImFunction> deferredAdditions = new ArrayList<>();
+
+        Map<String, ImFunction> converters = new HashMap<>(); // looked up by type, never iterated
+        Set<ImVar> forwarded = enumParamsTestedByCallers(prog, translator, converters);
+        Map<String, ImFunction> enumNormalisers = new LinkedHashMap<>();
 
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -222,7 +233,10 @@ public final class LuaNativeLowering {
                     }
                     return;
                 }
-                if (!f.isBj()) return;
+                if (!f.isBj()) {
+                    normaliseForwardedEnums(call, prog, forwarded, converters, enumNormalisers, deferredAdditions);
+                    return;
+                }
                 if ("GetHandleId".equals(f.getName())) {
                     if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
@@ -240,39 +254,43 @@ public final class LuaNativeLowering {
                 }
                 if (noReplacement.contains(f)) return;
 
-                if (!replacements.containsKey(f)) {
-                    ImFunction r = computeReplacement(f);
-                    if (r != null) {
-                        replacements.put(f, r);
+                ImFunction replacement;
+                if (LuaHashtable.isNative(f.getName())) {
+                    replacement = replacements.computeIfAbsent(f, bj -> {
+                        // Kept by the translator, so the optimizer and the backend match the stub by identity.
+                        ImFunction stub = translator.luaHashtableStubs.computeIfAbsent(LuaHashtable.stubName(bj.getName()),
+                            stubName -> createNativeStub(stubName, bj));
                         // A hashtable stub of an earlier run is already in the program, unless it was removed.
-                        if (r.getParent() == null) {
-                            deferredAdditions.add(r);
+                        if (stub.getParent() == null) {
+                            deferredAdditions.add(stub);
                         }
-                    } else {
-                        noReplacement.add(f);
+                        return stub;
+                    });
+                } else if (hasGuardedParam(f)) {
+                    // Decided per call: an argument which is never nil needs no test.
+                    List<ImVar> params = f.getParameters();
+                    boolean[] guarded = new boolean[params.size()];
+                    boolean any = false;
+                    for (int i = 0; i < guarded.length; i++) {
+                        guarded[i] = isGuardedParam(params.get(i)) && !isNeverNil(call.getArguments().get(i), prog, forwarded);
+                        any |= guarded[i];
                     }
+                    if (!any) return;
+                    replacement = nilSafeWrappers.computeIfAbsent(nilSafeWrapperName(f, guarded), name -> {
+                        ImFunction wrapper = createNilSafeWrapper(f, guarded, name, translator, deferredAdditions);
+                        deferredAdditions.add(wrapper);
+                        return wrapper;
+                    });
+                } else {
+                    noReplacement.add(f);
+                    return;
                 }
-                ImFunction replacement = replacements.get(f);
 
-                if (replacement != null) {
-                    call.replaceBy(JassIm.ImFunctionCall(
-                        call.attrTrace(), replacement,
-                        JassIm.ImTypeArguments(),
-                        call.getArguments().copy(),
-                        false, CallType.NORMAL));
-                }
-            }
-
-            private ImFunction computeReplacement(ImFunction bj) {
-                String name = bj.getName();
-                if (LuaHashtable.isNative(name)) {
-                    // Kept by the translator, so the optimizer and the backend match the stub by identity.
-                    return translator.luaHashtableStubs.computeIfAbsent(LuaHashtable.stubName(name),
-                        stubName -> createNativeStub(stubName, bj));
-                } else if (hasHandleParam(bj)) {
-                    return createNilSafeWrapper(bj, translator, deferredAdditions);
-                }
-                return null;
+                call.replaceBy(JassIm.ImFunctionCall(
+                    call.attrTrace(), replacement,
+                    JassIm.ImTypeArguments(),
+                    call.getArguments().copy(),
+                    false, CallType.NORMAL));
             }
         });
 
@@ -903,13 +921,14 @@ public final class LuaNativeLowering {
     }
 
     /**
-     * Creates a nil-safety wrapper for {@code bjNative}.
+     * Creates a nil-safety wrapper for {@code bjNative} named {@code name}.
      *
-     * <p>The generated function checks each handle-typed parameter against
-     * {@code null} and returns the type-appropriate default value if any is
+     * <p>The generated function checks each parameter marked in {@code guarded}
+     * against {@code null} and returns the type-appropriate default value if any is
      * null.  Otherwise it delegates to the original BJ function.
      */
-    private static ImFunction createNilSafeWrapper(ImFunction bjNative, ImTranslator translator, List<ImFunction> deferredAdditions) {
+    private static ImFunction createNilSafeWrapper(ImFunction bjNative, boolean[] guarded, String name,
+                                                   ImTranslator translator, List<ImFunction> deferredAdditions) {
         ImVars params = JassIm.ImVars();
         List<ImVar> paramVars = new ArrayList<>();
         for (ImVar p : bjNative.getParameters()) {
@@ -920,16 +939,15 @@ public final class LuaNativeLowering {
 
         ImStmts body = JassIm.ImStmts();
 
-        // Null-check each required handle param: if param == null then return <default> end
-        // boolexpr and code params are intentionally skipped because they are optional/nullable
-        // in Jass (e.g. the filter arg of TriggerRegisterPlayerUnitEvent).
+        // Null-check each guarded param: if param == null then return <default> end
         // A null enum handle is no missing handle: the engine reads it as the handle of id 0, so the
         // wrapper passes that one on (measured on the 3.0.0 client: GetUnitState(u, null) is the life,
         // IsUnitType(hero, null) is true, GetPlayerState(p, null) is the game result, and
         // UnitDamageTarget with a null attack, damage and weapon type deals the damage).
         ImExpr returnDefault = defaultValueExpr(bjNative.getReturnType());
-        for (ImVar param : paramVars) {
-            if (isHandleType(param.getType()) && !isNullableHandleType(param.getType())) {
+        for (int i = 0; i < paramVars.size(); i++) {
+            ImVar param = paramVars.get(i);
+            if (guarded[i]) {
                 ImExpr condition = JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
                     JassIm.ImVarAccess(param),
                     JassIm.ImNull(param.getType().copy())
@@ -973,20 +991,252 @@ public final class LuaNativeLowering {
 
         return JassIm.ImFunction(
             bjNative.attrTrace(),
-            "__wurst_safe_" + bjNative.getName(),
+            name,
             JassIm.ImTypeVars(), params,
             bjNative.getReturnType().copy(),
             JassIm.ImVars(), body,
             Collections.emptyList());
     }
 
-    private static boolean hasHandleParam(ImFunction f) {
+    /**
+     * {@code __wurst_safe_GetUnitState} when every guardable parameter is tested, otherwise the
+     * names of the tested ones appended ({@code __wurst_safe_GetUnitState_whichUnit}).
+     */
+    private static String nilSafeWrapperName(ImFunction bj, boolean[] guarded) {
+        StringBuilder name = new StringBuilder("__wurst_safe_").append(bj.getName());
+        StringBuilder tested = new StringBuilder();
+        boolean all = true;
+        for (int i = 0; i < guarded.length; i++) {
+            ImVar param = bj.getParameters().get(i);
+            if (guarded[i]) {
+                tested.append('_').append(param.getName());
+            } else if (isGuardedParam(param)) {
+                all = false;
+            }
+        }
+        return all ? name.toString() : name.append(tested).toString();
+    }
+
+    private static boolean hasGuardedParam(ImFunction f) {
         for (ImVar p : f.getParameters()) {
-            if (isHandleType(p.getType())) {
+            if (isGuardedParam(p)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * A handle parameter which the wrapper tests for null. boolexpr and code params are intentionally skipped
+     * because they are optional/nullable in Jass (e.g. the filter arg of TriggerRegisterPlayerUnitEvent).
+     */
+    private static boolean isGuardedParam(ImVar param) {
+        return isHandleType(param.getType()) && !isNullableHandleType(param.getType());
+    }
+
+    /**
+     * A read of a common.j constant made by its converter ({@code constant unitstate UNIT_STATE_MAX_LIFE =
+     * ConvertUnitState(1)}), or of a parameter whose callers test it ({@link #enumParamsTestedByCallers}). The game
+     * defines the constant before any script runs and nothing can assign it, so it is never nil, and an argument
+     * which reads it needs no nil test.
+     */
+    private static boolean isNeverNil(ImExpr arg, ImProg prog, Set<ImVar> forwarded) {
+        if (!(arg instanceof ImVarAccess access)) {
+            return false;
+        }
+        ImVar v = access.getVar();
+        if (forwarded.contains(v)) {
+            return true;
+        }
+        if (!v.getIsBJ() || !(v.getTrace() instanceof GlobalVarDef def) || !def.attrIsConstant()) {
+            return false;
+        }
+        List<ImSet> inits = prog.getGlobalInits().get(v);
+        return inits != null && inits.size() == 1
+            && inits.get(0).getRight() instanceof ImFunctionCall init
+            && init.getFunc().isNative() && init.getFunc().isBj()
+            && init.getFunc().getName().startsWith("Convert")
+            && isHandleType(init.getFunc().getReturnType())
+            && init.getArguments().size() == 1
+            && init.getArguments().get(0) instanceof ImIntVal;
+    }
+
+    /** A read of a parameter as the argument at {@code index} of {@code call}. */
+    private record ParamUse(ImFunctionCall call, int index) {}
+
+    /**
+     * The enum parameters whose nil test their callers make. A function such as the standard library's
+     * {@code unit.getState(unitstate state)} only hands its parameter on to a native, which reads a null enum as the
+     * handle of id 0. The native's wrapper would test the parameter inside the function, where nothing is known of
+     * the argument; tested where the function is called, a common.j constant needs no test, and the native is given
+     * the parameter as it is.
+     *
+     * <p>A parameter qualifies when its enum type has a converter, nothing assigns it and it is only read as the
+     * argument of a native's guarded parameter of its type or of another such parameter, and when every call of its
+     * function is seen here: a function which is referenced, implements a method, is run by ExecuteFunc or keeps its
+     * name may be called with anything. Moving the test changes nothing else: the converter has no effect, and
+     * nothing but the native reads the parameter.
+     *
+     * @param converters filled with the converter of each type found, by the type's name
+     */
+    private static Set<ImVar> enumParamsTestedByCallers(ImProg prog, ImTranslator translator, Map<String, ImFunction> converters) {
+        Set<ImFunction> open = new HashSet<>(); // looked up, never iterated
+        Map<ImVar, List<ParamUse>> uses = new LinkedHashMap<>();
+        Set<ImVar> readOtherwise = new HashSet<>(); // looked up, never iterated
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction f) {
+                if (!f.isBj() && !f.isNative() && !NamePreservation.isPreserved(f)
+                    && !f.hasFlag(FunctionFlagEnum.IS_EXTERN) && !f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+                    for (ImVar p : f.getParameters()) {
+                        if (isGuardedParam(p)) {
+                            uses.put(p, new ArrayList<>());
+                        }
+                    }
+                }
+                super.visit(f);
+            }
+
+            @Override
+            public void visit(ImFuncRef ref) {
+                super.visit(ref);
+                open.add(ref.getFunc());
+            }
+
+            @Override
+            public void visit(ImMethod m) {
+                super.visit(m);
+                open.add(m.getImplementation());
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getCallType() != CallType.NORMAL) {
+                    open.add(call.getFunc());
+                }
+            }
+
+            @Override
+            public void visit(ImVarAccess access) {
+                super.visit(access);
+                List<ParamUse> paramUses = uses.get(access.getVar());
+                if (paramUses == null) {
+                    return;
+                }
+                if (access.getParent() instanceof ImExprs args && args.getParent() instanceof ImFunctionCall call) {
+                    for (int i = 0; i < args.size(); i++) {
+                        if (args.get(i) == access) {
+                            paramUses.add(new ParamUse(call, i));
+                        }
+                    }
+                } else {
+                    readOtherwise.add(access.getVar());
+                }
+            }
+        });
+
+        // after the walk: a converter nothing called before is added to the program's functions
+        Set<ImVar> forwarded = new LinkedHashSet<>();
+        for (Map.Entry<ImVar, List<ParamUse>> e : uses.entrySet()) {
+            ImVar p = e.getKey();
+            if (e.getValue().isEmpty() || readOtherwise.contains(p)
+                || !(p.getParent() instanceof ImVars params) || open.contains((ImFunction) params.getParent())) {
+                continue;
+            }
+            String typename = ((ImSimpleType) p.getType()).getTypename();
+            if (!converters.containsKey(typename)) {
+                converters.put(typename, translator.enumConverter(typename));
+            }
+            if (converters.get(typename) != null) {
+                forwarded.add(p);
+            }
+        }
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (Iterator<ImVar> it = forwarded.iterator(); it.hasNext(); ) {
+                ImVar p = it.next();
+                for (ParamUse use : uses.get(p)) {
+                    if (!forwardsTo(use, p, forwarded)) {
+                        it.remove();
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return forwarded;
+    }
+
+    /** Whether {@code use} hands {@code p} to a native's guarded parameter of its type, or to another forwarded one. */
+    private static boolean forwardsTo(ParamUse use, ImVar p, Set<ImVar> forwarded) {
+        ImFunction g = use.call().getFunc();
+        if (use.call().getCallType() != CallType.NORMAL || use.index() >= g.getParameters().size()) {
+            return false;
+        }
+        ImVar target = g.getParameters().get(use.index());
+        if (!(target.getType() instanceof ImSimpleType t)
+            || !t.getTypename().equals(((ImSimpleType) p.getType()).getTypename())) {
+            return false;
+        }
+        if (g.isBj()) {
+            // a hashtable store keeps the null; GetHandleId takes any handle
+            return g.isNative() && isGuardedParam(target)
+                && !LuaHashtable.isNative(g.getName()) && !"GetHandleId".equals(g.getName());
+        }
+        return forwarded.contains(target);
+    }
+
+    /**
+     * Tests the arguments of {@code call} which a forwarded parameter receives ({@link #enumParamsTestedByCallers}),
+     * unless they are never nil: such an argument becomes a call of the type's normaliser, which gives the handle of
+     * id 0 for null, as the native's wrapper did.
+     */
+    private static void normaliseForwardedEnums(ImFunctionCall call, ImProg prog, Set<ImVar> forwarded,
+                                                Map<String, ImFunction> converters, Map<String, ImFunction> normalisers,
+                                                List<ImFunction> deferredAdditions) {
+        if (call.getCallType() != CallType.NORMAL) {
+            return;
+        }
+        List<ImVar> params = call.getFunc().getParameters();
+        ImExprs args = call.getArguments();
+        for (int i = 0; i < params.size() && i < args.size(); i++) {
+            ImVar p = params.get(i);
+            ImExpr arg = args.get(i);
+            if (!forwarded.contains(p) || isNeverNil(arg, prog, forwarded)) {
+                continue;
+            }
+            ImSimpleType type = (ImSimpleType) p.getType();
+            ImFunction normaliser = normalisers.computeIfAbsent(type.getTypename(), typename -> {
+                ImFunction converter = converters.get(typename);
+                // A converter nothing else called may have been shaken out of the program.
+                if (converter.getParent() == null && !deferredAdditions.contains(converter)) {
+                    deferredAdditions.add(converter);
+                }
+                ImFunction created = createEnumNormaliser(type, converter);
+                deferredAdditions.add(created);
+                return created;
+            });
+            arg.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), normaliser, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(arg.copy()), false, CallType.NORMAL));
+        }
+    }
+
+    /** {@code __wurst_enumOrZero_unitstate(x)}: {@code x}, or the handle of id 0 when it is null. */
+    private static ImFunction createEnumNormaliser(ImSimpleType type, ImFunction converter) {
+        de.peeeq.wurstscript.ast.Element trace = converter.attrTrace();
+        ImVar x = JassIm.ImVar(trace, type.copy(), "x", false);
+        ImStmts body = JassIm.ImStmts(
+            JassIm.ImIf(trace,
+                JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImNull(type.copy()))),
+                JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(x),
+                    JassIm.ImFunctionCall(trace, converter, JassIm.ImTypeArguments(),
+                        JassIm.ImExprs(JassIm.ImIntVal(0)), false, CallType.NORMAL))),
+                JassIm.ImStmts()),
+            JassIm.ImReturn(trace, JassIm.ImVarAccess(x)));
+        return JassIm.ImFunction(trace, "__wurst_enumOrZero_" + type.getTypename(), JassIm.ImTypeVars(),
+            JassIm.ImVars(x), type.copy(), JassIm.ImVars(), body, Collections.emptyList());
     }
 
     /** Returns true for WC3 handle types (ImSimpleType that is not int/real/boolean/string). */
