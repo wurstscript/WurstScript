@@ -174,7 +174,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     private List<String> subclassCreateClasses(String output, String baseName) {
         // a class with its own allocator, or one which allocates with the shared one
         String ownerPattern = "(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+)";
-        Matcher matcher = Pattern.compile("function\\s+" + ownerPattern + ":create\\d*\\s*\\(|__wurst_allocObject\\(" + ownerPattern + "\\)")
+        Matcher matcher = Pattern.compile("function\\s+" + ownerPattern + "_create\\d*\\s*\\(|__wurst_allocObject\\(" + ownerPattern + "\\)")
             .matcher(output);
         List<String> result = new ArrayList<>();
         while (matcher.find()) {
@@ -1923,7 +1923,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassTablesExistBeforeCreateMethodDefinitions.lua"), Charsets.UTF_8);
-        assertOccursBefore(compiled, "A = ({})", "function A:create(");
+        assertOccursBefore(compiled, "A = ({})", "function A_create(");
     }
 
 
@@ -4551,9 +4551,9 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         // Within Child's own allocation function (Window is never allocated, so its allocation writes nothing).
         assertContainsRegex(compiled,
-            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorTop_storage\\[new_inst\\] = 0");
+            "function\\s+Child_create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorTop_storage\\[new_inst\\] = 0");
         assertContainsRegex(compiled,
-            "function\\s+Child:create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorBottom_storage\\[new_inst\\] = 0");
+            "function\\s+Child_create\\d*\\s*\\(\\)(?:(?!\\nend)[\\s\\S])*?Window_anchorBottom_storage\\[new_inst\\] = 0");
     }
 
     // ----- GetHandleId remapping -----

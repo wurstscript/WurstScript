@@ -7137,14 +7137,53 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
         String compiled = compiledLua("classesWhichOnlyAllocateShareOneAllocator");
         assertEquals("the shared allocator and one for each class which keeps its own:\n" + compiled,
-            1 + java.util.regex.Pattern.compile("(?m)^function \\w+:create\\d*\\(").matcher(compiled).results().count(),
+            1 + java.util.regex.Pattern.compile("(?m)^function \\w+_create\\d*\\(\\) ").matcher(compiled).results().count(),
             countOccurrences(compiled, "if (__wurst_objectFreeCount == 0) then"));
         assertTrue(compiled, compiled.contains("local function __wurst_allocObject(class) \n"));
-        assertFalse(compiled, compiled.contains("Circle:create"));
+        assertFalse(compiled, compiled.contains("Circle_create"));
         assertTrue(compiled, compiled.contains("__wurst_allocObject(Circle)"));
-        String grid = topLevelFunctionBodyWithPrefix(compiled, "Grid:create");
+        String grid = topLevelFunctionBodyWithPrefix(compiled, "Grid_create");
         assertTrue("the array field's table is made on allocation:\n" + grid, grid.contains("Grid_cells_storage[new_inst]"));
         assertFalse("which allocates in place:\n" + grid, grid.contains("__wurst_allocObject"));
+    }
+
+    /**
+     * A class with an allocator of its own gets it as a plain function, which an allocation calls directly. As a
+     * method of the class table, {@code Grid:create()}, each allocation looked the allocator up in the table and
+     * passed the table, which the allocator never read.
+     */
+    @Test
+    public void ownAllocatorIsAPlainFunction() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Grid",
+            "    int array[4] cells",
+            "    function update() returns int",
+            "        return 7",
+            "class Wide extends Grid",
+            "    int array[2] more",
+            "    override function update() returns int",
+            "        return 8",
+            "init",
+            "    let g = new Grid()",
+            "    g.cells[1] = 5",
+            "    destroy g",
+            "    Grid w = new Wide()",
+            "    let h = new Grid()",
+            "    w.cells[2] = 3",
+            "    h.cells[2] = 4",
+            "    if w castTo int != h castTo int and w.cells[2] == 3 and h.cells[2] == 4 and w.update() == 8",
+            "        and h.update() == 7 and w instanceof Wide and not (h instanceof Wide)",
+            "        testSuccess()");
+        String compiled = compiledLua("ownAllocatorIsAPlainFunction");
+        assertFalse("no allocator is a method of its class table:\n" + compiled, compiled.contains(":create"));
+        String grid = topLevelFunctionBodyWithPrefix(compiled, "Grid_create");
+        assertTrue("the allocator records its class:\n" + grid, grid.contains("__wurst_objectClass[new_inst] = Grid\n"));
+        assertTrue("an allocation calls it directly:\n" + compiled,
+            java.util.regex.Pattern.compile("= Grid_create\\d*\\(\\)").matcher(compiled).find());
+        assertTrue("an allocation calls it directly:\n" + compiled,
+            java.util.regex.Pattern.compile("= Wide_create\\d*\\(\\)").matcher(compiled).find());
     }
 
     /**
@@ -8531,9 +8570,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             luaTablesWithPrefix(lua, "Under_pass"));
         assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test", "Hidden_passHidden_Test1"),
             luaTablesWithPrefix(lua, "Hidden_pass"));
-        assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test__hidden", "Hidden_passHidden_Test__hidden1"),
+        // the closure which captures a variable has an allocator of its own, named after its class
+        assertEquals(java.util.Arrays.asList("Hidden_passHidden_Test__hidden", "Hidden_passHidden_Test__hidden1",
+                "Hidden_passHidden_Test_create"),
             luaFunctionsWithPrefix(lua, "Hidden_pass"));
-        assertEquals(java.util.Arrays.asList("Under_passUnder_Test_do_it", "Under_passUnder_Test_do_it1"),
+        assertEquals(java.util.Arrays.asList("Under_passUnder_Test_create", "Under_passUnder_Test_do_it",
+                "Under_passUnder_Test_do_it1"),
             luaFunctionsWithPrefix(lua, "Under_pass"));
         assertFalse(lua, lua.contains("passUnder_passUnder"));
     }
@@ -8568,7 +8610,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
         String compiled = compiledLua("aConstructedFieldIsWrittenOnceNotFirstWithItsDefault");
         // an allocation which writes no field is the shared allocator's (classesWhichOnlyAllocateShareOneAllocator)
-        assertFalse("the allocation writes no field:\n" + compiled, compiled.contains("Hit:create"));
+        assertFalse("the allocation writes no field:\n" + compiled, compiled.contains("Hit_create"));
         assertTrue("the allocation:\n" + compiled, compiled.contains("__wurst_allocObject(Hit)"));
         for (String field : new String[] {"amount", "factor", "crit", "label", "next"}) {
             int writes = compiled.split("Hit_" + field + "_storage(_local\\d*)?\\[[^\\]]+\\] = ", -1).length - 1;

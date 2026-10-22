@@ -1277,7 +1277,7 @@ public class CompiletimeTests extends WurstScriptTest {
         // id the kept object stored at compile time is the one it gets.
         String lua = compiledLua("testCompiletimeObjectKeepsIdAfterDroppedObject");
         java.util.regex.Matcher replay = java.util.regex.Pattern.compile(
-            "__wurst_objectFreeCount = 0\\s+__wurst_objectMax = (\\d+)\\s+(\\w+) = A:create\\(\\)\\s+"
+            "__wurst_objectFreeCount = 0\\s+__wurst_objectMax = (\\d+)\\s+(\\w+) = A_create\\d*\\(\\)\\s+"
                 + "A_storedId_storage\\[\\2\\] = (\\d+)").matcher(lua);
         assertTrue(replay.find(), lua);
         assertEquals(Integer.parseInt(replay.group(3)), Integer.parseInt(replay.group(1)) + 1, lua);

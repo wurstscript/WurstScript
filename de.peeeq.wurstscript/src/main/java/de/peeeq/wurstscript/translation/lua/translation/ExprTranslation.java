@@ -47,12 +47,7 @@ public class ExprTranslation {
             return LuaAst.LuaExprFunctionCall(tr.objectAlloc(),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(classVar)));
         }
-        LuaMethod m = tr.luaClassInitMethod.getFor(c);
-        return LuaAst.LuaExprMethodCall(
-            LuaAst.LuaExprVarAccess(classVar),
-            m,
-            LuaAst.LuaExprlist()
-        );
+        return LuaAst.LuaExprFunctionCall(tr.luaClassAllocator.getFor(c), LuaAst.LuaExprlist());
     }
 
     public static LuaExpr translate(ImBoolVal e, LuaTranslator tr) {
