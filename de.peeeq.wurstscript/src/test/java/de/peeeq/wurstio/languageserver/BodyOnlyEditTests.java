@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -351,6 +352,41 @@ public class BodyOnlyEditTests {
         manager.reconcile(sync(manager, root, "Fns", moved));
         assertEquals(manager.bodyEdits(), 0, "the arrow moves");
         assertSameAsFreshBuild(root, manager, log);
+    }
+
+    /**
+     * The lookup cache is keyed by nodes: the entries of the bodies an edit replaces go with them, so repeated edits
+     * of a body leave the cache as large as one edit does.
+     */
+    @Test
+    public void aBodyEditDropsTheLookupCacheKeysOfTheReplacedBody() throws IOException {
+        Path root = project();
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        manager.buildProject();
+        ExprFunctionCall oldCall = callIn(linkedFunction(manager, "A", "f"), unit(manager, "A"));
+        GlobalCaches.CacheKey oldKey = new GlobalCaches.CacheKey(oldCall, "f", GlobalCaches.LookupType.FUNC);
+        GlobalCaches.lookupCache.put(oldKey, oldCall);
+
+        manager.reconcile(sync(manager, root, "A", A.replace("    return f(2)", "    return f(3)")));
+        assertEquals(manager.bodyEdits(), 1);
+        assertFalse(GlobalCaches.lookupCache.containsKey(oldKey),
+            "the replaced body must not stay alive as a key of the lookup cache");
+    }
+
+    /** The call of f in the body of g. */
+    private static ExprFunctionCall callIn(FuncDef f, CompilationUnit unit) {
+        List<ExprFunctionCall> found = new ArrayList<>();
+        unit.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (call.attrFuncLink() != null && call.attrFuncLink().getDef() == f) {
+                    found.add(call);
+                }
+            }
+        });
+        assertEquals(found.size(), 1, "one call of f in A");
+        return found.get(0);
     }
 
     /**

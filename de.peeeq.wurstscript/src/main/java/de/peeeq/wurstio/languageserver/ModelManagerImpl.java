@@ -756,9 +756,10 @@ public class ModelManagerImpl implements ModelManager {
                     if (gui.getErrorCount() == 0 && BodyOnlyEdit.applies(c, cu)) {
                         // Nothing another unit sees has changed: what it resolved to stays, and only this unit
                         // has to be checked again.
+                        // before the old bodies leave the tree: the cache is keyed by their nodes
+                        GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
                         BodyOnlyEdit.apply(c, cu);
                         bodyEdits++;
-                        GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
                         model2.clearAttributesLocal();
                         c.clearAttributes();
                         synchronized (modelLock) {
