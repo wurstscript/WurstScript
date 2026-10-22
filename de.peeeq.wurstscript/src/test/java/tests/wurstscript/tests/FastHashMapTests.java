@@ -466,7 +466,7 @@ public class FastHashMapTests extends WurstScriptTest {
     }
 
     private static @Nullable String allocatedFieldsOrNull(String compiled, String classPattern) {
-        Matcher allocation = Pattern.compile("function " + classPattern + ":create\\d*\\(\\)\\s*\\R"
+        Matcher allocation = Pattern.compile("function " + classPattern + "_create\\d*\\(\\)\\s*\\R"
             + "(.*?)\\R\\s*return new_inst\\s*\\Rend", Pattern.DOTALL).matcher(compiled);
         if (!allocation.find()) {
             return null;

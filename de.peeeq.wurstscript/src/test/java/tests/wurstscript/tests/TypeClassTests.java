@@ -127,7 +127,7 @@ public class TypeClassTests extends WurstScriptTest {
         String compiled = Files.toString(
             new File("test-output/lua/TypeClassTests_dispatchInsideClosureLua.lua"), Charsets.UTF_8);
 
-        Matcher allocation = Pattern.compile("(\\w+_specialized\\w*):create\\d*\\(").matcher(compiled);
+        Matcher allocation = Pattern.compile("(\\w+_specialized\\w*?)_create\\d*\\(").matcher(compiled);
         assertTrue(allocation.find(),
             "the closure should be allocated from its specialised class:\n" + compiled);
         String specialised = allocation.group(1);
