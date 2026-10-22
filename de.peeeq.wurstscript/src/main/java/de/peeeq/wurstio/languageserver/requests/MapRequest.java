@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
@@ -124,6 +125,9 @@ public abstract class MapRequest extends UserRequest<Object> {
         public File script;
         public File w3i;
     }
+
+    /** What the last {@code -luaHotReload} compilation emitted ({@link LuaHotReloadSession}), null otherwise. */
+    protected LuaHotReload.@Nullable Manifest luaHotReloadManifest;
 
     public MapRequest(WurstLanguageServer langServer, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
                       Optional<String> wc3Path, Optional<String> gameExePath) {
@@ -264,7 +268,16 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 String compiledMapScript = sb.toString();
                 LuaAssertions.assertNoLeakedNativeCalls(compiledMapScript);
+                luaHotReloadManifest = runArgs.isLuaHotReload() ? compiler.getLuaTranslator().hotReloadManifest() : null;
+                if (luaHotReloadManifest != null) {
+                    long stored = luaHotReloadManifest.functions().values().stream().filter(f -> !f.captures().isEmpty()).count();
+                    println("Lua hot reload: " + luaHotReloadManifest.functions().size() + " reloadable functions, "
+                        + stored + " of them stored as values (not reloadable)");
+                }
                 File buildDir = getBuildDir();
+                if (luaHotReloadManifest != null) {
+                    LuaHotReloadSession.writeManifest(buildDir.toPath(), luaHotReloadManifest);
+                }
                 File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
                 return outFile;

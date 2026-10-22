@@ -16,6 +16,7 @@ public class RunArgs {
 
     private final String[] args;
     private final RunOption optionLua;
+    private final RunOption optionLuaHotReload;
     private final RunOption optionCompiletimeCache;
     private final List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
@@ -148,14 +149,16 @@ public class RunArgs {
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
         optionLegacyJassChecks = addOption("legacyJassChecks", "Relax Jass type checks for legacy (pre-1.24) targets whose Blizzard-provided "
                 + "common.j/blizzard.j contain return-type mismatches the Jass VM tolerates. Also skips PJass on the generated script.");
-        optionHotStartmap = addOption("hotstart", "Uses Jass Hot Code Reload (JHCR) to start the map.");
-        optionHotReload = addOption("hotreload", "Reloads the mapscript after running the map with Jass Hot Code Reload (JHCR).");
+        optionHotStartmap = addOption("hotstart", "Starts the map so that it can be reloaded: with Jass Hot Code Reload (JHCR) on Jass, with -luaHotReload on Lua.");
+        optionHotReload = addOption("hotreload", "Reloads the running map's script: through JHCR on Jass, with a body payload on Lua (docs/LUA_HOT_RELOAD.md).");
 
         optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
         optionDevBuild = addOption("dev", "Builds an output map in development/run mode, so compiletime isProductionBuild() is false.");
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
+        optionLuaHotReload = addOption("luaHotReload", "Lua development builds only: emits the script so that the running map "
+                + "can replace function bodies (docs/LUA_HOT_RELOAD.md). Not combinable with -inline or -opt.");
         optionCompiletimeCache = addOption("compiletimeCache", "(Experimental) Cache results of compiletime invocations without side effects");
 
         addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
@@ -429,6 +432,11 @@ public class RunArgs {
 
     public boolean isLua() {
         return optionLua.isSet;
+    }
+
+    /** The editor's hot run and hot reload of a Lua project ({@code -hotstart}, {@code -hotreload}) imply it. */
+    public boolean isLuaHotReload() {
+        return optionLuaHotReload.isSet || (isLua() && (isHotStartmap() || isHotReload()));
     }
 
     public boolean isCompiletimeCache() {

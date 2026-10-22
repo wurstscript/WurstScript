@@ -33,6 +33,17 @@ public class RunArgsTests {
         Assert.assertEquals(args.getAdditionalLibDirs(), java.util.List.of(new File("lib")));
     }
 
+    /** The editor's hot run and hot reload commands send -hotstart and -hotreload; on Lua they mean the Lua hot reload. */
+    @Test
+    public void hotRunOfALuaProjectBuildsForLuaHotReload() {
+        Assert.assertTrue(new RunArgs("-lua", "-hotstart").isLuaHotReload());
+        Assert.assertTrue(new RunArgs("-lua", "-hotreload").isLuaHotReload());
+        Assert.assertTrue(new RunArgs("-lua", "-luaHotReload").isLuaHotReload());
+        Assert.assertFalse(new RunArgs("-lua").isLuaHotReload());
+        Assert.assertFalse(new RunArgs("-hotstart").isLuaHotReload(), "a Jass hot start is JHCR");
+        Assert.assertFalse(new RunArgs("-hotreload").isLuaHotReload(), "a Jass hot reload is JHCR");
+    }
+
     @Test
     public void exposesModeAndSafetyFlags() {
         RunArgs args = new RunArgs("-build", "-dev", "-stacktraces", "-nodebug", "-uncheckedDispatch",

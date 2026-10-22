@@ -210,13 +210,11 @@ Notes; finished-work narrative does not.
   overlapping loops can mean something different from `table.move`; prove overlap/direction, bounds,
   defaults and counter semantics. Establish game availability, crossover and hot consumers before
   selecting an API or automatic lowering. Scripts and raw samples are in the investigation note.
-- **Scope an opt-in Lua body hot reload.** Stock-Lua model and actual generated-code probes replace
-  a body on an existing object without resetting storage/allocators. This is not implemented in the
-  existing JHCR command. First verify engine `load` and delivery, then design stable semantic IDs,
-  explicit lexical storage bindings, all slot aliases, ABI/version rejection, inlining dependencies,
-  saved callbacks and active-frame policy. Begin with named function bodies in single-player dev
-  mode; no schema/init/closure migration and no release overhead. Multiplayer needs synchronized
-  payload/application ordering. See the investigation note for a staged plan and capability probe.
+- **Use the Lua body hot reload on a real map.** Hot run of a Lua project replaces bodies in the
+  running map on save, measured on the 3.0.1.24371 client in a test map over five payloads
+  ([docs/LUA_HOT_RELOAD.md](docs/LUA_HOT_RELOAD.md)). Not yet measured: how often a real project's
+  edits are rejected, and its payload sizes and reload times. Later stages are in the design note: new
+  functions, a library reload hook, and multiplayer only through a synchronised channel.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

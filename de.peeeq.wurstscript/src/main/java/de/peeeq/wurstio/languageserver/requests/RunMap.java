@@ -13,6 +13,7 @@ import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
@@ -126,6 +127,11 @@ public class RunMap extends MapRequest {
         Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
         CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
 
+        if (runArgs.isHotReload() && runArgs.isLua()) {
+            sendLuaHotReloadPayload(gui, buildDir);
+            return "ok";
+        }
+
         if (runArgs.isHotReload()) {
             // call jhcr update
             gui.sendProgress("Calling JHCR update");
@@ -138,7 +144,24 @@ public class RunMap extends MapRequest {
 
 
         if (testMap.isPresent()) {
-            startGame(gui, result);
+            if (luaHotReloadManifest == null) {
+                startGame(gui, result);
+            } else {
+                // The new map polls from the first file. The session and the files of a map which is still running
+                // change only once the new map is launched, so a launch which fails leaves that map's session intact.
+                Path customMapData = getCustomMapDataPath();
+                LuaHotReloadSession.stage(buildDir.toPath(), luaHotReloadManifest);
+                LuaHotReloadSession.setAsideDeliveries(customMapData);
+                try {
+                    startGame(gui, result);
+                } catch (Exception e) {
+                    LuaHotReloadSession.restoreDeliveries(customMapData);
+                    LuaHotReloadSession.unstage(buildDir.toPath());
+                    throw e;
+                }
+                LuaHotReloadSession.activate(buildDir.toPath());
+                LuaHotReloadSession.discardDeliveries(customMapData);
+            }
         }
         return null;
     }
@@ -410,6 +433,28 @@ public class RunMap extends MapRequest {
         CANCEL
     }
 
+
+    /**
+     * Sends the running Lua map the payload of the edits since it started (docs/LUA_HOT_RELOAD.md). The map polls the
+     * CustomMapData folder for it; an edit a payload cannot carry fails here, with the reasons, and changes nothing.
+     */
+    private void sendLuaHotReloadPayload(WurstGui gui, File buildDir) throws IOException {
+        if (luaHotReloadManifest == null) {
+            throw new RequestFailedException(MessageType.Error, "Lua hot reload needs a Lua build;"
+                + " start the map with hot run first.");
+        }
+        LuaHotReloadSession.Sent sent;
+        try {
+            sent = LuaHotReloadSession.send(buildDir.toPath(), getCustomMapDataPath(), luaHotReloadManifest);
+        } catch (LuaHotReload.Rejected e) {
+            throw new RequestFailedException(MessageType.Warning, e.getMessage());
+        }
+        gui.sendProgress("Hot reload payload " + sent.payload().version() + " (" + String.join(", ", sent.payload().functions())
+            + ") written to " + sent.file());
+        for (String warning : sent.payload().warnings()) {
+            gui.showInfoMessage(warning);
+        }
+    }
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {
         File mapScriptFolder = mapScript.getParentFile();

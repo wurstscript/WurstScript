@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
+import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -418,9 +419,16 @@ public class LuaTranslator {
     final ImTranslator imTr;
 
 
+    /** Whether this is a {@code -luaHotReload} build ({@link LuaHotReload}). */
+    private final boolean hotReload;
+    /** In a hot-reload build, the functions translated from the program, whose bodies a payload can replace. */
+    private final Map<LuaFunction, ImFunction> hotReloadFunctions = new LinkedHashMap<>();
+    private LuaHotReload.@Nullable Manifest hotReloadManifest;
+
     public LuaTranslator(ImProg prog, ImTranslator imTr) {
         this.prog = prog;
         this.imTr = imTr;
+        this.hotReload = imTr.getRunArgs().isLuaHotReload();
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
@@ -482,6 +490,10 @@ public class LuaTranslator {
             luaModel.add(classVar);
         }
 
+        if (hotReload) {
+            nameFunctionsBeforeTheirBodies();
+        }
+
         for (ImClass c : prog.getClasses()) {
             translateClass(c);
         }
@@ -528,7 +540,54 @@ public class LuaTranslator {
             LuaNameCompressor.compress(luaModel, preserved, descriptors, emittedDispatchSlots, targets);
         }
 
+        if (hotReload) {
+            startHotReloadPoll();
+            Set<ImFunction> runOnce = Collections.newSetFromMap(new IdentityHashMap<>());
+            runOnce.addAll(imTr.luaInitFunctions.keySet());
+            for (ImFunction f : new ImFunction[] {imTr.getMainFunc(), imTr.getConfFunc(), imTr.getGlobalInitFunc()}) {
+                if (f != null) {
+                    runOnce.add(f);
+                }
+            }
+            hotReloadManifest = LuaHotReload.install(this, hotReloadFunctions, runOnce, CompileTimeInfo.version);
+        }
         return luaModel;
+    }
+
+    /** The class functions a hot-reload build named before translating any body. */
+    private final Set<ImFunction> classFunctionsNamed = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    /**
+     * Locals and functions share one namespace of numbered names, and a function is otherwise named when it is first
+     * called or after its class's bodies are translated. So a local added to one body could take the name of a function
+     * named later, which would change the script outside the bodies. A hot-reload build names every function first.
+     */
+    private void nameFunctionsBeforeTheirBodies() {
+        for (ImClass c : prog.getClasses()) {
+            for (ImFunction f : c.getFunctions()) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+                classFunctionsNamed.add(f);
+            }
+        }
+        for (ImFunction f : prog.getFunctions()) {
+            luaFunc.getFor(f);
+        }
+    }
+
+    /** What a {@code -luaHotReload} build emitted, null in any other build. */
+    public LuaHotReload.@Nullable Manifest hotReloadManifest() {
+        return hotReloadManifest;
+    }
+
+    /** Main polls for a payload once a second, after the bootstrap, which the poll's natives need. */
+    private void startHotReloadPoll() {
+        ImFunction mainIm = imTr.getMainFunc();
+        if (mainIm == null) {
+            return;
+        }
+        LuaStatements body = luaFunc.getFor(mainIm).getBody();
+        body.add(bootstrapFunction == null ? 0 : 1,
+            LuaAst.LuaLiteral("TimerStart(CreateTimer(), 1.0, true, " + LuaHotReload.POLL_FUNCTION + ")"));
     }
 
     /**
@@ -932,7 +991,9 @@ public class LuaTranslator {
      * deallocator and, when used, the old-generics zero sentinel.
      */
     void declareChunkLocal(LuaDefinition definition) {
-        luaModel.add(chunkLocalCount++, LuaAst.LuaChunkLocal(definition));
+        // A payload is compiled as a chunk of its own, which cannot see the locals of the map's chunk: a hot-reload
+        // build keeps this state in globals, which a replaced body reaches by the same name.
+        luaModel.add(chunkLocalCount++, hotReload ? definition : LuaAst.LuaChunkLocal(definition));
     }
 
     private void createObjectManagement() {
@@ -1122,6 +1183,9 @@ public class LuaTranslator {
             }
         } else {
             luaModel.add(lf);
+            if (hotReload) {
+                hotReloadFunctions.put(lf, f);
+            }
         }
     }
 
@@ -1540,7 +1604,9 @@ public class LuaTranslator {
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+            if (!classFunctionsNamed.contains(f)) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+            }
         }
 
         if (allocator != null) {

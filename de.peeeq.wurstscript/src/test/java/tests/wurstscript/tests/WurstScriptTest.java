@@ -7,6 +7,7 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
@@ -26,6 +27,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
@@ -149,6 +151,7 @@ public class WurstScriptTest {
         private String luaExemptionDetail;
         private String luaExpectedFailure;
         private boolean runLuaAsAllBackends = false;
+        private String[] luaHotReloadEdit;
 
         TestConfig(String name) {
             this.name = name;
@@ -410,8 +413,15 @@ public class WurstScriptTest {
             if (testLua) {
                 // test lua translation
                 runArgs = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
+                HotReloadEdit hotReloadEdit = null;
+                if (luaHotReloadEdit != null) {
+                    runArgs = runArgs.with("-luaHotReload");
+                    String unitName = additionalCompilationUnits.get(additionalCompilationUnits.size() - 1).name;
+                    hotReloadEdit = new HotReloadEdit(new CU(unitName, Utils.join(luaHotReloadEdit, "\n") + "\n"),
+                        withStdLib, runArgs);
+                }
                 compiler.setRunArgs(runArgs);
-                translateAndTestLua(name, executeProg, gui, model, compiler);
+                translateAndTestLua(name, executeProg, gui, model, compiler, hotReloadEdit);
             } else if (executeProg && (ALL_BACKENDS_ON || runLuaAsAllBackends)) {
                 runLuaForAllBackends(gui, model, compiler, runArgs);
             }
@@ -571,6 +581,16 @@ public class WurstScriptTest {
 
         public TestConfig luaOnly(boolean b) {
             this.luaOnly = b;
+            return this;
+        }
+
+        /**
+         * Builds the Lua run with {@code -luaHotReload} and gives the program the native {@code hotReload()}, which
+         * applies the payload that takes it to {@code editedLines}, the program after an edit, and fails the test if
+         * the running script rejects it.
+         */
+        TestConfig luaHotReload(String... editedLines) {
+            this.luaHotReloadEdit = editedLines;
             return this;
         }
     }
@@ -776,6 +796,31 @@ public class WurstScriptTest {
     }
 
     private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model, WurstCompilerJassImpl compiler) {
+        translateAndTestLua(name, executeProg, gui, model, compiler, null);
+    }
+
+    /** The program after an edit, which a hot-reload test applies to the running program ({@code TestConfig.luaHotReload}). */
+    record HotReloadEdit(CU unit, boolean withStdLib, RunArgs runArgs) {
+    }
+
+    /** Compiles {@code units} to Lua with {@code runArgs}, which include {@code -luaHotReload}, and returns the manifest. */
+    LuaHotReload.Manifest compileLuaHotReloadManifest(boolean withStdLib, RunArgs runArgs, CU... units) {
+        WurstGui gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+        compiler.getErrorHandler().enableUnitTestMode();
+        WurstModel model = parseFiles(Collections.emptyList(), Arrays.asList(units), withStdLib, compiler);
+        compiler.checkProg(model);
+        if (!gui.getErrorList().isEmpty()) {
+            throw gui.getErrorList().get(0);
+        }
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+        compiler.transformProgToLua();
+        return compiler.getLuaTranslator().hotReloadManifest();
+    }
+
+    private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model,
+                                     WurstCompilerJassImpl compiler, HotReloadEdit hotReloadEdit) {
         try {
             name = name.replaceAll("[^a-zA-Z0-9_]", "_");
 
@@ -799,6 +844,16 @@ public class WurstScriptTest {
             // replace builtin lua functions
 
             FileUtils.write(luaScript, luaFile);
+
+            File payloadFile = null;
+            if (hotReloadEdit != null) {
+                LuaHotReload.Manifest edited = compileLuaHotReloadManifest(hotReloadEdit.withStdLib(),
+                    hotReloadEdit.runArgs(), hotReloadEdit.unit());
+                LuaHotReload.Payload payload = LuaHotReload.payload(luaTranslator.hotReloadManifest(), edited, Set.of(), 1);
+                FileUtils.write(payload.source(), new File(luaDir, name + "_hotreload_payload.lua"));
+                payloadFile = new File(luaDir, name + "_hotreload.pld");
+                FileUtils.write(LuaHotReloadSession.preloadFile(payload.source()), payloadFile);
+            }
 
             // run with lua -l SimpleStatementTests_testIf1 -e 'main()'
             String luacExecutable = getLuacExecutable();
@@ -824,6 +879,21 @@ public class WurstScriptTest {
                             .append(new File(runtimeDir, runtimeFile).getPath().replace('\\', '/'))
                             .append("');");
                     }
+                }
+                if (payloadFile != null) {
+                    // The map's poll (LuaHotReload.POLL_FUNCTION) reads the payload as the game is expected to hand it
+                    // over: Preloader runs the Lua section of the file, which leaves the payload in an ability tooltip.
+                    // Defined before the script, which then does not define fallbacks for these natives.
+                    // As measured in the game: a tooltip starts as the ability's own text, and setting "" leaves it.
+                    chunk.append("local tooltips = {};"
+                        + "BlzSetAbilityTooltip = function(id, s, level) if s ~= '' then tooltips[id .. ':' .. level] = s end end;"
+                        + "BlzGetAbilityTooltip = function(id, level) return tooltips[id .. ':' .. level] or 'Attribute Bonus' end;"
+                        + "Preloader = function(path) local f = assert(io.open('")
+                        .append(payloadFile.getPath().replace('\\', '/'))
+                        .append("', 'rb')) local text = f:read('a') f:close()"
+                            + " assert(load(text:match('//!beginusercode%s(.-)//!endusercode')))() end;"
+                            + "hotReload = function() bj_isSinglePlayer = true " + LuaHotReload.POLL_FUNCTION + "()"
+                            + " if " + LuaHotReload.VERSION_GLOBAL + " ~= 1 then testFail('the payload was not applied') end end;");
                 }
                 chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");
                 // The generated script reports a package whose init raised, through the program's error
