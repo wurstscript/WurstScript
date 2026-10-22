@@ -542,7 +542,14 @@ public class LuaTranslator {
 
         if (hotReload) {
             startHotReloadPoll();
-            hotReloadManifest = LuaHotReload.install(this, hotReloadFunctions, CompileTimeInfo.version);
+            Set<ImFunction> runOnce = Collections.newSetFromMap(new IdentityHashMap<>());
+            runOnce.addAll(imTr.luaInitFunctions.keySet());
+            for (ImFunction f : new ImFunction[] {imTr.getMainFunc(), imTr.getConfFunc(), imTr.getGlobalInitFunc()}) {
+                if (f != null) {
+                    runOnce.add(f);
+                }
+            }
+            hotReloadManifest = LuaHotReload.install(this, hotReloadFunctions, runOnce, CompileTimeInfo.version);
         }
         return luaModel;
     }

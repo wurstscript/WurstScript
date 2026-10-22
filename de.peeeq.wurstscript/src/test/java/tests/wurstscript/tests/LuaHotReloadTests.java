@@ -102,6 +102,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertFalse("a sibling's slot is left alone:\n" + area.source(),
             Pattern.compile("(?m)^Circle\\.").matcher(area.source()).find());
 
+        assertTrue("an ordinary body edit warns of nothing", payload.warnings().isEmpty());
+        LuaHotReload.Payload initEdit = LuaHotReload.payload(baseline,
+            manifest(program("x + 1", "side * side", initWithSquare(4))), Set.of(), 1);
+        assertEquals("a changed init body ships, with a warning that it does not run again", 1, initEdit.warnings().size());
+        assertTrue(initEdit.warnings().get(0), initEdit.warnings().get(0).contains("restart the map"));
         assertTrue("an unchanged program needs an empty payload",
             LuaHotReload.payload(baseline, baseline, Set.of(), 1).functions().isEmpty());
         assertEquals("a function an earlier payload replaced is replaced again, here by its original body",
@@ -445,6 +450,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
     private LuaHotReload.Manifest libraryManifest(RunArgs args, String[] lines) {
         return compileLuaHotReloadManifest(true, args,
             new CU("movedLinesShipTheBodiesWhosePositionsChanged", String.join("\n", lines) + "\n"));
+    }
+
+    /** INIT with the first square made with another side: a change to the package init body. */
+    private static String[] initWithSquare(int side) {
+        String[] init = INIT.clone();
+        init[1] = "    Shape square = new Square(" + side + ")";
+        return init;
     }
 
     private LuaHotReload.Manifest manifest(String... lines) {

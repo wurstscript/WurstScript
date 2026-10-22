@@ -72,10 +72,33 @@ public final class LuaHotReloadSession {
 
     /** Records the manifest of a map which is being started; earlier payloads do not apply to it. */
     public static void start(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
+        stage(buildDir, manifest);
+        activate(buildDir);
+    }
+
+    /**
+     * Writes the session of a map about to be launched beside the current one, which stays in effect: a launch which
+     * fails leaves the map that is still running its session. {@link #activate} makes the staged one current, as one
+     * rename, once the map is launched; {@link #unstage} drops it.
+     */
+    public static void stage(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
         State state = new State();
         state.baseline = manifest;
-        save(buildDir, state);
+        writeAtomically(stagedFile(buildDir), GSON.toJson(state));
+    }
+
+    public static void activate(Path buildDir) throws IOException {
+        Files.move(stagedFile(buildDir), stateFile(buildDir), java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         Files.deleteIfExists(pendingFile(buildDir));
+    }
+
+    public static void unstage(Path buildDir) throws IOException {
+        Files.deleteIfExists(stagedFile(buildDir));
+    }
+
+    private static Path stagedFile(Path buildDir) {
+        return buildDir.resolve(SESSION_FOLDER).resolve("session-staged.json");
     }
 
     /** A payload being written: recorded before its file, so a session which could not record it can still account for it. */
@@ -176,8 +199,14 @@ public final class LuaHotReloadSession {
             return;
         }
         Files.createDirectories(aside);
-        for (Path file : deliveries(folder)) {
-            Files.move(file, aside.resolve(file.getFileName()));
+        try {
+            for (Path file : deliveries(folder)) {
+                Files.move(file, aside.resolve(file.getFileName()));
+            }
+        } catch (IOException e) {
+            // A file the running map has not read must not stay hidden: put back what was moved.
+            restoreDeliveries(customMapData);
+            throw e;
         }
     }
 

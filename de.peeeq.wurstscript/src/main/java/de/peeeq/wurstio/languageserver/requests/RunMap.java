@@ -150,14 +150,16 @@ public class RunMap extends MapRequest {
                 // The new map polls from the first file. The session and the files of a map which is still running
                 // change only once the new map is launched, so a launch which fails leaves that map's session intact.
                 Path customMapData = getCustomMapDataPath();
+                LuaHotReloadSession.stage(buildDir.toPath(), luaHotReloadManifest);
                 LuaHotReloadSession.setAsideDeliveries(customMapData);
                 try {
                     startGame(gui, result);
                 } catch (Exception e) {
                     LuaHotReloadSession.restoreDeliveries(customMapData);
+                    LuaHotReloadSession.unstage(buildDir.toPath());
                     throw e;
                 }
-                LuaHotReloadSession.start(buildDir.toPath(), luaHotReloadManifest);
+                LuaHotReloadSession.activate(buildDir.toPath());
                 LuaHotReloadSession.discardDeliveries(customMapData);
             }
         }
@@ -449,6 +451,9 @@ public class RunMap extends MapRequest {
         }
         gui.sendProgress("Hot reload payload " + sent.payload().version() + " (" + String.join(", ", sent.payload().functions())
             + ") written to " + sent.file());
+        for (String warning : sent.payload().warnings()) {
+            gui.showInfoMessage(warning);
+        }
     }
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {

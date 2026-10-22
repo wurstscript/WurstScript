@@ -58,8 +58,12 @@ public final class LuaHotReload {
     private LuaHotReload() {
     }
 
-    /** A function whose body a payload can replace. */
-    public record Function(String name, String semanticId, String definition, List<String> slots, List<String> captures) {
+    /**
+     * A function whose body a payload can replace. One which {@code runsOnce} (main, config, the global initialisers, a
+     * package init) has already run when a payload arrives, so a new body of it changes nothing until a restart.
+     */
+    public record Function(String name, String semanticId, String definition, List<String> slots, List<String> captures,
+                           boolean runsOnce) {
     }
 
     /**
@@ -69,8 +73,11 @@ public final class LuaHotReload {
     public record Manifest(String abi, Map<String, Function> functions, List<String> skeleton, List<String> bindings) {
     }
 
-    /** A payload which rebinds {@code functions}, in Lua source which {@code load} compiles. */
-    public record Payload(int version, List<String> functions, String source) {
+    /**
+     * A payload which rebinds {@code functions}, in Lua source which {@code load} compiles. {@code warnings} name what it
+     * carries but cannot apply: changed code which ran once when the map started.
+     */
+    public record Payload(int version, List<String> functions, String source, List<String> warnings) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -92,7 +99,8 @@ public final class LuaHotReload {
      * Called once, on the final model; {@code reloadable} maps each function translated from the program to its IM
      * function, in translation order.
      */
-    static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, String compilerVersion) {
+    static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, Set<ImFunction> runOnce,
+                            String compilerVersion) {
         LuaCompilationUnit model = tr.luaModel;
         Map<LuaFunction, List<String>> slots = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> captures = new IdentityHashMap<>();
@@ -132,7 +140,8 @@ public final class LuaHotReload {
             StringBuilder definition = new StringBuilder();
             lf.print(definition, 0);
             functions.put(lf.getName(), new Function(lf.getName(), id, definition.toString(),
-                List.copyOf(slots.getOrDefault(lf, List.of())), List.copyOf(captures.getOrDefault(lf, List.of()))));
+                List.copyOf(slots.getOrDefault(lf, List.of())), List.copyOf(captures.getOrDefault(lf, List.of())),
+                runOnce.contains(e.getValue())));
         }
 
         String abi = fingerprint(compilerVersion, skeleton, bindings);
@@ -152,6 +161,7 @@ public final class LuaHotReload {
             describeAbiChange(baseline, current, reasons);
         }
         List<String> changed = new ArrayList<>();
+        List<String> runOnce = new ArrayList<>();
         for (Function f : current.functions().values()) {
             Function old = baseline.functions().get(f.name());
             if (old == null) {
@@ -165,6 +175,9 @@ public final class LuaHotReload {
                     + "), which keeps the old body");
             }
             changed.add(f.name());
+            if (f.runsOnce() && !old.definition().equals(f.definition())) {
+                runOnce.add(f.name());
+            }
         }
         if (!reasons.isEmpty()) {
             throw new Rejected(reasons);
@@ -180,7 +193,9 @@ public final class LuaHotReload {
             }
         }
         sb.append("end\n");
-        return new Payload(version, List.copyOf(changed), sb.toString());
+        List<String> warnings = runOnce.isEmpty() ? List.of() : List.of("Changed code which ran once when the map started ("
+            + String.join(", ", runOnce) + ") does not run again: restart the map to apply it.");
+        return new Payload(version, List.copyOf(changed), sb.toString(), warnings);
     }
 
     private static void describeAbiChange(Manifest baseline, Manifest current, List<String> reasons) {
