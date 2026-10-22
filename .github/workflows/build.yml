@@ -135,7 +135,7 @@ jobs:
         run: |
           # Master pushes also run every executing test on Lua (-PallBackends) where the Lua is 5.3, as
           # the exemptions were established on: Linux installs lua5.3 and Windows uses the bundled lua.exe.
-          # macOS takes Homebrew's unpinned Lua and runs a single test fork.
+          # macOS takes Homebrew's unpinned Lua.
           ALL_BACKENDS=""
           if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" != "macOS" ]]; then
             ALL_BACKENDS="-PallBackends"

@@ -6,11 +6,7 @@ on:
 
 jobs:
   measure:
-    name: macos-latest with ${{ matrix.forks }} test fork(s)
-    strategy:
-      fail-fast: false
-      matrix:
-        forks: [1, 2, 3]
+    name: macos-latest with the default fork count
     runs-on: macos-latest
     timeout-minutes: 35
     env:
@@ -63,7 +59,9 @@ jobs:
           SAMPLER=$!
           start=$(date +%s)
           status=0
-          ./gradlew test -PtestForks=${{ matrix.forks }} --no-daemon --stacktrace --quiet || status=$?
+          set -o pipefail
+          ./gradlew test --info --no-daemon --stacktrace | grep -o "Gradle Test Executor [0-9]*" | sort -u > "$RUNNER_TEMP/executors.txt" || status=$?
+          echo "test executors started: $(wc -l < "$RUNNER_TEMP/executors.txt")"
           echo "test task wall time: $(( $(date +%s) - start )) s, exit $status"
           kill $SAMPLER || true
           echo "--- memory samples (swap usage, free percentage)"
@@ -73,6 +71,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-forks-${{ matrix.forks }}
+          name: test-results-default-forks
           path: de.peeeq.wurstscript/build/test-results/test/*.xml
           retention-days: 7

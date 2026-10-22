@@ -295,15 +295,20 @@ tasks.named('compileJava') { it.dependsOn('gen') }
  * many cores and little memory has to be counted the other way. Measured on eight cores: serial
  * 13m11s, four forks 8m39s, eight forks 7m03s; more forks kept winning even though each test runs
  * slower under the contention, so this errs towards cores where memory allows.
+ *
+ * Half the cores round up, and the reserve is what the macOS arm64 CI runner (3 cores, 7 GiB) showed
+ * it needs: halving down and a 4 GiB reserve both gave it one fork, which outgrew the job's time
+ * limit. Measured there: one fork 881 s, two 641 s, three 537 s, never swapping, with at least
+ * 48% of memory free even with three.
  */
 int testForkCount() {
     def override = project.findProperty('testForks')
     if (override) {
         return Math.max(1, override.toString().toInteger())
     }
-    int byCores = Math.max(1, (int) (Runtime.runtime.availableProcessors() / 2))
+    int byCores = Math.max(1, (Runtime.runtime.availableProcessors() + 1).intdiv(2))
     int workerHeapGb = 2      // keep in step with -Xmx below
-    int reservedGb = 4        // the daemon's own heap, plus room for the OS and the lua/pjass runs
+    int reservedGb = 3        // the daemon's own heap, plus room for the OS and the lua/pjass runs
     try {
         def os = java.lang.management.ManagementFactory.operatingSystemMXBean
         long totalBytes = os."getTotalMemorySize"()
