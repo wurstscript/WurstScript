@@ -98,17 +98,21 @@ public final class LuaHotReload {
                            List<String> bindings) {
     }
 
-    /** What earlier payloads sent to the running map: the functions they defined and the functions they stored as values. */
-    public record History(Set<String> reloaded, Set<String> captured) {
-        public static final History NONE = new History(Set.of(), Set.of());
+    /**
+     * What earlier payloads sent to the running map: the functions they defined, and the functions they stored as
+     * values, each with the hash of the definition it had then ({@link #definitionHash}).
+     */
+    public record History(Set<String> reloaded, Map<String, String> captured) {
+        public static final History NONE = new History(Set.of(), Map.of());
     }
 
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
-     * it carries but cannot apply; {@code captured} the functions its version stores as values.
+     * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
+     * hashes.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
-                          List<String> captured) {
+                          Map<String, String> captured) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -246,13 +250,7 @@ public final class LuaHotReload {
     /** The payload which takes a map running {@code baseline} to {@code current}, which earlier payloads did not reach. */
     public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore, int version)
         throws Rejected {
-        return payload(baseline, current, new History(reloadedBefore, Set.of()), version);
-    }
-
-    /** {@link #payload(Manifest, Manifest, History, int)} with the functions and stores of earlier payloads only. */
-    public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore,
-                                  Set<String> capturedBefore, int version) throws Rejected {
-        return payload(baseline, current, new History(reloadedBefore, capturedBefore), version);
+        return payload(baseline, current, new History(reloadedBefore, Map.of()), version);
     }
 
     /**
@@ -304,10 +302,13 @@ public final class LuaHotReload {
             if (old != null) {
                 stored.addAll(old.captures());
             }
-            if (history.captured().contains(f.name())) {
+            // A function stored by an earlier payload keeps the body it had then, which may not be the baseline's.
+            String capturedAs = history.captured().get(f.name());
+            boolean changedSinceStored = capturedAs != null && !capturedAs.equals(definitionHash(f));
+            if (changedSinceStored) {
                 stored.add("by an earlier payload");
             }
-            if (old != null && changed && !stored.isEmpty()) {
+            if ((old != null && changed || changedSinceStored) && !stored.isEmpty()) {
                 reasons.add("function " + f.name() + " is stored as a value (" + String.join(", ", new LinkedHashSet<>(stored))
                     + "), which keeps the old body");
             }
@@ -423,7 +424,8 @@ public final class LuaHotReload {
             sb.append(marker).append(" = true\n");
             for (Statement s : current.statements()) {
                 if (s.owner().equals(init) && s.kind().equals("global")) {
-                    sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = true\n");
+                    sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.text()))
+                        .append("\"\n");
                 }
             }
             sb.append("end\n");
@@ -432,19 +434,26 @@ public final class LuaHotReload {
             appendOnce(sb, s);
         }
         sb.append("end\n");
-        List<String> captured = new ArrayList<>();
+        Map<String, String> captured = new LinkedHashMap<>();
         for (Function f : current.functions().values()) {
             if (!f.captures().isEmpty()) {
-                captured.add(f.name());
+                captured.put(f.name(), definitionHash(f));
             }
         }
-        return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings), List.copyOf(captured));
+        return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
+            Collections.unmodifiableMap(captured));
+    }
+
+    /** What tells a function's definitions apart, for {@link History#captured}. */
+    public static String definitionHash(Function f) {
+        return identityHash(f.definition());
     }
 
     /**
      * A statement which must run once in the map: it runs unless the map recorded it, and is recorded after it ran, so
-     * one a failed payload did not reach runs with the next. A local is a temporary of the statements after it and runs
-     * each time.
+     * one a failed payload did not reach runs with the next. The record is kept under what the statement assigns, with
+     * the hash of its text: a global whose initial value a later edit changes keeps its value, and the map says so. A
+     * local is a temporary of the statements after it and runs each time.
      */
     private static void appendOnce(StringBuilder sb, Statement s) {
         if (s.text().startsWith("local ")) {
@@ -452,13 +461,20 @@ public final class LuaHotReload {
             return;
         }
         String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
+        String text = "\"" + identityHash(s.text()) + "\"";
         sb.append("if not ").append(marker).append(" then\n").append(s.text()).append("\n")
-            .append(marker).append(" = true\nend\n");
+            .append(marker).append(" = ").append(text).append("\n");
+        if (s.kind().equals("global")) {
+            sb.append("elseif ").append(marker).append(" ~= ").append(text).append(" then\n")
+                .append("BJDebugMsg(\"Wurst hot reload: ").append(s.key())
+                .append(" keeps its value; restart the map to apply its new initial value\")\n");
+        }
+        sb.append("end\n");
     }
 
-    /** The key under which the map records that a statement ran. */
+    /** The key under which the map records that a statement ran: where it is and what it assigns, not its text. */
     static String runKey(Statement s) {
-        return identityHash(s.scope() + "\n" + s.text());
+        return identityHash(s.scope() + "\n" + s.owner() + "\n" + s.key());
     }
 
     private static String describe(String scope) {

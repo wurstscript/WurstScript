@@ -57,9 +57,11 @@ before a payload added the field reads the default; objects made after run the n
 The payload of an edit is cumulative from the start of the map: every function which differs from the baseline, or
 which an earlier payload defined, is defined again, so an edit which is undone is undone in the map too. Each
 statement which must run once (a declaration, an initial value, a new package's init) is guarded by the map's own
-record (`__wurst_hotreload_ran`) and recorded only after it ran. The editor writes a file and cannot tell how far a
-payload got, so the map decides: a statement a failed payload did not reach runs with the next one, and none runs
-twice. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
+record (`__wurst_hotreload_ran`), kept under what the statement assigns, and recorded only after it ran. The editor
+writes a file and cannot tell how far a payload got, so the map decides: a statement a failed payload did not reach
+runs with the next one, and none runs twice. A global a payload added keeps its value when a later edit changes its
+initial value, as the map's own globals do, and the map says so. A function stored as a value keeps the body it had
+then: the session records that definition, and a later change to it is rejected. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
 
 ### Answers to the staged plan
 

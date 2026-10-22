@@ -178,7 +178,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(byBaseline.getMessage(), byBaseline.getMessage().contains("in g"));
         LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", plain), List.of(), List.of());
         expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(plainBaseline, current, Set.of(), Set.of("f"), 2));
+            () -> LuaHotReload.payload(plainBaseline, current,
+                new LuaHotReload.History(Set.of(), java.util.Map.of("f", LuaHotReload.definitionHash(plain))), 2));
     }
 
     /**
@@ -386,34 +387,109 @@ public class LuaHotReloadTests extends WurstScriptTest {
             LuaHotReload.payload(baseline, failing, LuaHotReload.History.NONE, 1).source(),
             LuaHotReload.payload(baseline, fixed, LuaHotReload.History.NONE, 2).source(),
             LuaHotReload.payload(baseline, fixed, LuaHotReload.History.NONE, 3).source());
-        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadInit");
+        String output = applyInLua(script, payloads, globalName(fixed, "made"), globalName(fixed, "first"));
+        String[] lines = output.split("\\R");
+        // made: 1 from Main's init; the failing init bumps to 2, adds 2 and fails; the fixed one runs again: 5, plus 5.
+        assertTrue(output, lines[0].startsWith("false 4 2 ") && lines[0].contains("the init of a new package"));
+        assertEquals(output, "true 10 5 nil", lines[1]);
+        assertEquals("nothing runs twice: " + output, "true 10 5 nil", lines[2]);
+    }
+
+    /**
+     * Runs {@code script}'s main, then applies each payload directly, printing for each whether it applied, the values
+     * of {@code globals} and the reason it did not.
+     */
+    private String applyInLua(String script, List<String> payloads, String... globals) throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadApply");
         for (int i = 0; i < payloads.size(); i++) {
             java.nio.file.Files.writeString(dir.resolve("p" + (i + 1) + ".lua"), payloads.get(i));
         }
-        String made = globalName(fixed, "made");
-        String first = globalName(fixed, "first");
+        StringBuilder values = new StringBuilder();
+        for (String g : globals) {
+            values.append(" .. ' ' .. tostring(").append(g).append(")");
+        }
         String runtime = "src/test/resources/luaruntime/";
         String driver = String.join("\n",
             "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
             "dofile('" + script + "')",
             "BJDebugMsg = function() end",
             "main()",
-            "for i = 1, 3 do",
+            "for i = 1, " + payloads.size() + " do",
             "  local f = io.open('" + dir.toString().replace('\\', '/') + "/p' .. i .. '.lua', 'rb')",
             "  local source = f:read('a') f:close()",
             "  local ok, err = " + LuaHotReload.APPLY_FUNCTION + "(source)",
-            "  print(tostring(ok) .. ' ' .. tostring(" + made + ") .. ' ' .. tostring(" + first + ") .. ' ' .. tostring(err))",
+            "  print(tostring(ok)" + values + " .. ' ' .. tostring(err))",
             "end");
-        java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_initDriver.lua");
+        java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_applyDriver.lua");
         java.nio.file.Files.writeString(driverFile.toPath(), driver);
         Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
         String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
         assertEquals(output, 0, p.waitFor());
+        return output;
+    }
+
+    private static String[] mainWithExtra(String initialValue) {
+        // MAIN_PACKAGE with a global, and a function which reads it and which its init calls, so neither is removed.
+        return new String[] {
+            "package Main",
+            "public int made = 0",
+            "public function bump() returns int",
+            "    made++",
+            "    return made",
+            "int extra = " + initialValue,
+            "public function readExtra() returns int",
+            "    return extra",
+            "init",
+            "    bump()",
+            "    readExtra()",
+        };
+    }
+
+    /**
+     * A global which a payload added keeps the value the map gave it when a later edit changes its initial value, as a
+     * global of the started map does: the map records the global, not the text which initialised it.
+     */
+    @Test
+    public void changedInitialValueOfAnAddedGlobalDoesNotRunAgain() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_changedInitialValueOfAnAddedGlobalDoesNotRunAgain.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(mainWithExtra("bump()"));
+        LuaHotReload.Manifest changed = manifest(mainWithExtra("bump() + 100"));
+        List<String> payloads = List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, changed, LuaHotReload.History.NONE, 2).source());
+        String output = applyInLua(script, payloads, globalName(changed, "made"), globalName(changed, "extra"));
         String[] lines = output.split("\\R");
-        // made: 1 from Main's init; the failing init bumps to 2, adds 2 and fails; the fixed one runs again: 5, plus 5.
-        assertTrue(output, lines[0].startsWith("false 4 2 ") && lines[0].contains("the init of a new package"));
-        assertEquals(output, "true 10 5 nil", lines[1]);
-        assertEquals("nothing runs twice: " + output, "true 10 5 nil", lines[2]);
+        // made: 1 from the init; the first payload bumps it to 2 for extra; the second runs nothing again.
+        assertEquals(output, "true 2 2 nil", lines[0]);
+        assertEquals(output, "true 2 2 nil", lines[1]);
+    }
+
+    /** A function an earlier payload stored as a value keeps that payload's body, so a later change to it is rejected. */
+    @Test
+    public void changeOfAFunctionAnEarlierPayloadStoredIsRejected() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = withCaptured(manifest(mainWithExtra("bump()")), "readExtra", "");
+        LuaHotReload.Payload first = LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1);
+        assertEquals(first.captured().toString(), 1, first.captured().size());
+        LuaHotReload.History history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured());
+        // Unchanged, it is sent again; changed, it is rejected.
+        LuaHotReload.payload(baseline, added, history, 2);
+        LuaHotReload.Manifest changed = withCaptured(manifest(mainWithExtra("bump()")), "readExtra", "\n-- edited");
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, changed, history, 3));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("by an earlier payload"));
+    }
+
+    /** {@code m} with function {@code source} stored as a value, its definition extended by {@code edit}. */
+    private static LuaHotReload.Manifest withCaptured(LuaHotReload.Manifest m, String source, String edit) {
+        java.util.Map<String, LuaHotReload.Function> functions = new java.util.LinkedHashMap<>(m.functions());
+        String name = luaName(m, source);
+        LuaHotReload.Function f = functions.get(name);
+        functions.put(name, new LuaHotReload.Function(name, f.semanticId(), f.definition() + edit, f.slots(),
+            List.of("in a test"), f.kind()));
+        return new LuaHotReload.Manifest(m.abi(), m.compilerVersion(), functions, m.statements(), m.bindings());
     }
 
     private static String globalName(LuaHotReload.Manifest m, String source) {
