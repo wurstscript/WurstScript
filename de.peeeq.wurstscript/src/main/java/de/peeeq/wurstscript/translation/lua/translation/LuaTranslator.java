@@ -326,11 +326,15 @@ public class LuaTranslator {
         return LuaAst.LuaExprFunctionCallE(target, args);
     }
 
-    GetAForB<ImClass, LuaMethod> luaClassInitMethod = new GetAForB<ImClass, LuaMethod>() {
+    /**
+     * The allocator of a class with one of its own ({@link #allocatesOnly}): a plain function, not a method of the
+     * class table. An allocation then calls it directly, while a method would cost each allocation a lookup in the
+     * class table and pass the table as an argument nothing reads.
+     */
+    GetAForB<ImClass, LuaFunction> luaClassAllocator = new GetAForB<ImClass, LuaFunction>() {
         @Override
-        public LuaMethod initFor(ImClass a) {
-            LuaExprVarAccess receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a));
-            return LuaAst.LuaMethod(receiver, uniqueName("create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        public LuaFunction initFor(ImClass a) {
+            return LuaAst.LuaFunction(uniqueName(a.getName() + "_create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
 
@@ -1528,9 +1532,9 @@ public class LuaTranslator {
         // following the code at http://lua-users.org/wiki/InheritanceTutorial
         LuaVariable classVar = luaClassVar.getFor(c);
         // a class which only allocates has no allocator of its own (allocatesOnly)
-        LuaMethod initMethod = allocatesOnly(c) ? null : luaClassInitMethod.getFor(c);
-        if (initMethod != null) {
-            luaModel.add(initMethod);
+        LuaFunction allocator = allocatesOnly(c) ? null : luaClassAllocator.getFor(c);
+        if (allocator != null) {
+            luaModel.add(allocator);
         }
 
         // translate functions
@@ -1539,8 +1543,8 @@ public class LuaTranslator {
             luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
         }
 
-        if (initMethod != null) {
-            createClassInitFunction(c, classVar, initMethod);
+        if (allocator != null) {
+            createClassInitFunction(c, classVar, allocator);
         }
     }
 
@@ -1593,9 +1597,8 @@ public class LuaTranslator {
         return f.getName();
     }
 
-    private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaMethod initMethod) {
-        // create init function:
-        LuaStatements body = initMethod.getBody();
+    private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaFunction allocator) {
+        LuaStatements body = allocator.getBody();
         LuaVariable newInst = addAllocation(body, LuaAst.LuaExprVarAccess(classVar));
         // The defaults the optimiser did not remove at some allocation of this class (LuaFieldDefaults), and the
         // table an array field needs per object, which only the backend can make.
@@ -1689,6 +1692,9 @@ public class LuaTranslator {
         groups.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
         List<List<ImMethod>> preparedGroups = new ArrayList<>();
         Map<List<ImMethod>, ImMethod> chosenByGroup = new LinkedHashMap<>();
+        // Both passes below read the slot names of every group and the names of its members; they are made once.
+        Map<List<ImMethod>, Set<String>> slotNamesByGroup = new IdentityHashMap<>();
+        Map<List<ImMethod>, Set<String>> memberNamesByGroup = new IdentityHashMap<>();
         for (List<ImMethod> groupMethods : groups) {
             if (groupMethods == null || groupMethods.isEmpty()) {
                 continue;
@@ -1700,6 +1706,12 @@ public class LuaTranslator {
             }
             preparedGroups.add(groupMethods);
             chosenByGroup.put(groupMethods, chosen);
+            Set<String> memberNames = new HashSet<>();
+            for (ImMethod m : groupMethods) {
+                memberNames.add(dispatchSlotName(m.getName()));
+            }
+            memberNamesByGroup.put(groupMethods, memberNames);
+            slotNamesByGroup.put(groupMethods, collectDispatchSlotNames(c, groupMethods));
         }
 
         // Slots are assigned in two passes: a slot name that is the (normalized)
@@ -1715,11 +1727,8 @@ public class LuaTranslator {
         Set<String> directSlots = new HashSet<>();
         for (List<ImMethod> groupMethods : preparedGroups) {
             ImMethod chosen = chosenByGroup.get(groupMethods);
-            Set<String> memberNames = new HashSet<>();
-            for (ImMethod m : groupMethods) {
-                memberNames.add(dispatchSlotName(m.getName()));
-            }
-            Set<String> slotNames = collectDispatchSlotNames(c, groupMethods);
+            Set<String> memberNames = memberNamesByGroup.get(groupMethods);
+            Set<String> slotNames = slotNamesByGroup.get(groupMethods);
             for (String slotName : slotNames) {
                 if (!memberNames.contains(slotName)) {
                     continue;
@@ -1735,11 +1744,8 @@ public class LuaTranslator {
         }
         for (List<ImMethod> groupMethods : preparedGroups) {
             ImMethod chosen = chosenByGroup.get(groupMethods);
-            Set<String> memberNames = new HashSet<>();
-            for (ImMethod m : groupMethods) {
-                memberNames.add(dispatchSlotName(m.getName()));
-            }
-            for (String slotName : collectDispatchSlotNames(c, groupMethods)) {
+            Set<String> memberNames = memberNamesByGroup.get(groupMethods);
+            for (String slotName : slotNamesByGroup.get(groupMethods)) {
                 if (memberNames.contains(slotName)) {
                     continue;
                 }
@@ -1761,17 +1767,6 @@ public class LuaTranslator {
         ImMethod destroyImplementation = chooseBestImplementationForClass(c, destroyMethods);
         if (destroyImplementation != null) {
             slotToImpl.put("__wurst_destroy", destroyImplementation);
-        }
-
-        // Constructor helpers (create, create1, ...) live in the same class-table
-        // key namespace as dispatch slots. If a slot would overwrite this class's
-        // constructor at main() time, rename the constructor instead (allocation
-        // sites reference the shared LuaMethod object, so a rename is safe here).
-        if (!allocatesOnly(c)) {
-            LuaMethod initMethod = luaClassInitMethod.getFor(c);
-            while (slotToImpl.containsKey(initMethod.getName())) {
-                initMethod.setName(uniqueName(c.getName() + "_create"));
-            }
         }
 
         for (Map.Entry<String, ImMethod> e : slotToImpl.entrySet()) {
