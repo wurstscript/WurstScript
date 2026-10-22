@@ -92,6 +92,11 @@ public class ModelManagerImpl implements ModelManager {
     // leaves its units here, so the next check takes them along. Guarded by modelLock.
     private final Set<CompilationUnit> uncheckedUnits = Collections.newSetFromMap(new IdentityHashMap<>());
 
+    // The units which an edit of nothing but bodies replaced in place (BodyOnlyEdit) and which no check has
+    // validated since. The other units were not invalidated, and their attributes point into these units' module
+    // instantiations, so a check of such a unit keeps the instantiations. Guarded by modelLock.
+    private final Set<CompilationUnit> bodyEdited = Collections.newSetFromMap(new IdentityHashMap<>());
+
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
         this.bufferManager = bufferManager;
@@ -137,6 +142,7 @@ public class ModelManagerImpl implements ModelManager {
                     model2.removeAll(toRemove);
                     uncheckedUnits.removeAll(toRemove);
                     uncheckedUnits.addAll(dependents);
+                    bodyEdited.removeAll(toRemove);
                 }
             }
         }
@@ -164,6 +170,7 @@ public class ModelManagerImpl implements ModelManager {
         model = null;
         synchronized (modelLock) {
             uncheckedUnits.clear();
+            bodyEdited.clear();
         }
         dependencies.clear();
         WLogger.info("Clean done.");
@@ -527,19 +534,39 @@ public class ModelManagerImpl implements ModelManager {
      * clear the attributes and module instantiations for all compilation units in the given collection
      */
     private void clearCompilationUnits(Collection<CompilationUnit> toCheck) {
+        clearCompilationUnits(toCheck, false);
+    }
+
+    /**
+     * @param forCheck the units are cleared for a check of their own, which keeps the module instantiations of a
+     *                 unit edited in place: the units which were not invalidated point into them. Any other clearing
+     *                 invalidates a unit completely, and those which point into it are cleared with it.
+     */
+    private void clearCompilationUnits(Collection<CompilationUnit> toCheck, boolean forCheck) {
         WurstModel model2 = model;
         if (model2 == null) {
             return;
         }
         model2.clearAttributesLocal();
         for (CompilationUnit cu : toCheck) {
-            clearCompilationUnit(cu);
+            boolean keepInstantiations = false;
+            synchronized (modelLock) {
+                if (forCheck) {
+                    keepInstantiations = bodyEdited.contains(cu);
+                } else {
+                    bodyEdited.remove(cu);
+                }
+            }
+            clearCompilationUnit(cu, keepInstantiations);
         }
     }
 
-    private void clearCompilationUnit(CompilationUnit cu) {
+    private void clearCompilationUnit(CompilationUnit cu, boolean keepInstantiations) {
         SyntacticSugar.restoreDirectFieldIterations(cu);
         cu.clearAttributes();
+        if (keepInstantiations) {
+            return;
+        }
         // clear module instantiations
         for (WPackage p : cu.getPackages()) {
             for (WEntity elem : p.getElements()) {
@@ -603,6 +630,7 @@ public class ModelManagerImpl implements ModelManager {
             if (comp.checkProg(model2)) {
                 synchronized (modelLock) {
                     uncheckedUnits.clear();
+                    bodyEdited.clear();
                 }
             }
         } catch (CompileError e) {
@@ -685,6 +713,20 @@ public class ModelManagerImpl implements ModelManager {
         return reconciliations;
     }
 
+    /** How many times a new version of a unit was moved into the one of the model (BodyOnlyEdit), for the tests. */
+    private int bodyEdits = 0;
+
+    int bodyEdits() {
+        return bodyEdits;
+    }
+
+    /** How many units the last partial check validated, for the tests. */
+    private int lastCheckedUnits = 0;
+
+    int lastCheckedUnits() {
+        return lastCheckedUnits;
+    }
+
     /** How many units are unchecked, for the tests. */
     int uncheckedCount() {
         synchronized (modelLock) {
@@ -692,7 +734,11 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    private void updateModel(CompilationUnit cu, WurstGui gui) {
+    /**
+     * Puts a newly parsed unit into the model, and returns the unit which is in the model for it now: the one of the
+     * model itself when the new one changes nothing but bodies and was moved into it (BodyOnlyEdit).
+     */
+    private CompilationUnit updateModel(CompilationUnit cu, WurstGui gui) {
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
@@ -707,6 +753,20 @@ public class ModelManagerImpl implements ModelManager {
             while (it.hasNext()) {
                 CompilationUnit c = it.next();
                 if (wFile(c).equals(wFile(cu))) {
+                    if (gui.getErrorCount() == 0 && BodyOnlyEdit.applies(c, cu)) {
+                        // Nothing another unit sees has changed: what it resolved to stays, and only this unit
+                        // has to be checked again.
+                        BodyOnlyEdit.apply(c, cu);
+                        bodyEdits++;
+                        GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
+                        model2.clearAttributesLocal();
+                        c.clearAttributes();
+                        synchronized (modelLock) {
+                            uncheckedUnits.add(c);
+                            bodyEdited.add(c);
+                        }
+                        return c;
+                    }
                     // get old provided packages:
                     Set<String> oldPackages = providedPackages(c);
                     reconciliations++;
@@ -719,6 +779,7 @@ public class ModelManagerImpl implements ModelManager {
                     synchronized (modelLock) {
                         it.set(cu);
                         uncheckedUnits.remove(c);
+                        bodyEdited.remove(c);
                         uncheckedUnits.addAll(mustUpdate);
                     }
                     updated = true;
@@ -753,7 +814,7 @@ public class ModelManagerImpl implements ModelManager {
                 }
             }
         }
-        //doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
+        return cu;
     }
 
     private Set<String> providedPackages(CompilationUnit c) {
@@ -862,7 +923,11 @@ public class ModelManagerImpl implements ModelManager {
         }
         Set<String> oldPackages = declaredPackages(filename);
         boolean oldJassNames = declaredJassNames(filename);
-        replaceCompilationUnit(filename, contents, false);
+        CompilationUnit replaced = replaceCompilationUnit(filename, contents, false);
+        if (isBodyEdited(replaced)) {
+            // its packages are the same, and nothing which imports them has to be checked again
+            return new Changes(io.vavr.collection.HashSet.of(filename), io.vavr.collection.HashSet.empty(), false);
+        }
         return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages, oldJassNames);
     }
 
@@ -999,8 +1064,12 @@ public class ModelManagerImpl implements ModelManager {
         }
         Set<String> oldPackages = declaredPackages(f);
         boolean oldJassNames = declaredJassNames(f);
-        replaceCompilationUnit(f, contents, true);
+        CompilationUnit replaced = replaceCompilationUnit(f, contents, true);
         WLogger.debug("replaced file " + f);
+        if (isBodyEdited(replaced)) {
+            // its packages are the same, and nothing which imports them has to be checked again
+            oldPackages = Collections.emptySet();
+        }
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages, oldJassNames);
         return new Changes(io.vavr.collection.HashSet.of(f), oldPackages, oldJassNames);
@@ -1061,7 +1130,7 @@ public class ModelManagerImpl implements ModelManager {
         if (isUnderDependenciesFolder(filename)) {
             cu.getCuInfo().setLibrary(true);
         }
-        updateModel(cu, gui);
+        cu = updateModel(cu, gui);
         fileHashcodes.put(filename, newHash);
         if (reportErrors) {
             if (gui.getErrorCount() > 0) {
@@ -1138,11 +1207,18 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
+    private boolean isBodyEdited(@Nullable CompilationUnit cu) {
+        synchronized (modelLock) {
+            return cu != null && bodyEdited.contains(cu);
+        }
+    }
+
     @Override
     public void markFullyChecked(WurstModel checkedModel) {
         synchronized (modelLock) {
             if (checkedModel != null && checkedModel == model) {
                 uncheckedUnits.clear();
+                bodyEdited.clear();
             }
         }
     }
@@ -1167,6 +1243,7 @@ public class ModelManagerImpl implements ModelManager {
         synchronized (modelLock) {
             if (checkedModel != null && checkedModel == model) {
                 uncheckedUnits.removeAll(units);
+                bodyEdited.removeAll(units);
             }
         }
     }
@@ -1262,10 +1339,11 @@ public class ModelManagerImpl implements ModelManager {
         Collection<CompilationUnit> toCheck = withUncheckedUnits(model2, toCheckRec);
         boolean validated = false;
         try {
-            clearCompilationUnits(toCheck);
+            clearCompilationUnits(toCheck, true);
             addImportedLibs(comp, model2);
             // the libraries which were just loaded are not checked either
             toCheck = withUncheckedUnits(model2, toCheck);
+            lastCheckedUnits = toCheck.size();
             validated = comp.checkProg(model2, toCheck);
         } catch (ModelChangedException e) {
             // model changed, early return
@@ -1276,6 +1354,7 @@ public class ModelManagerImpl implements ModelManager {
         if (validated) {
             synchronized (modelLock) {
                 uncheckedUnits.removeAll(toCheck);
+                bodyEdited.removeAll(toCheck);
             }
         }
         List<WFile> fileNames = getfileNames(toCheck);
@@ -1321,8 +1400,9 @@ public class ModelManagerImpl implements ModelManager {
             return result;
         }
 
-        // get packages provided by the changed CUs
+        // get packages provided by the changed CUs; a unit edited in place provides what it did before
         Stream<String> providedPackages = changed.stream()
+                .filter(cu -> !isBodyEdited(cu))
                 .flatMap(cu -> cu.getPackages().stream())
                 .map(WPackage::getName);
 
@@ -1412,13 +1492,18 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     /**
-     * Add all compilation units that transitively depend on the units in result
+     * Add all compilation units that transitively depend on the units in result, except through a unit edited in
+     * place: what depends on it sees what it saw before. Any other change of such a unit, or of what it depends on,
+     * invalidates it, and it is not edited in place any more.
      */
     private void addTransitiveDeps(Set<CompilationUnit> result, WurstModel model) {
         Multimap<CompilationUnit, CompilationUnit> dependencyMap = calculateDirectDependencies(model);
         ArrayDeque<CompilationUnit> todo = new ArrayDeque<>(result);
         while (!todo.isEmpty()) {
             CompilationUnit cu = todo.remove();
+            if (isBodyEdited(cu)) {
+                continue;
+            }
             Collection<CompilationUnit> directDeps = dependencyMap.get(cu);
             for (CompilationUnit c : directDeps) {
                 if (result.add(c)) {
