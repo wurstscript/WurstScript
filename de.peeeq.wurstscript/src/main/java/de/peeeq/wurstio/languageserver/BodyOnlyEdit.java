@@ -36,7 +36,7 @@ final class BodyOnlyEdit {
         WPackages b = fresh.getPackages().copy();
         normalise(a, false);
         normalise(b, false);
-        return a.structuralEquals(b);
+        return a.structuralEquals(b) && modulesStayPut(old.getPackages(), fresh.getPackages());
     }
 
     /**
@@ -49,14 +49,21 @@ final class BodyOnlyEdit {
     }
 
     /**
-     * Whether every class and module of the unit got an instantiation for each module it uses. Expanding a module
-     * reports what is wrong with its use only while it expands, and an edit in place keeps the instantiations
-     * rather than expanding them again.
+     * Whether every class and module of the unit got an instantiation for each module it uses, without an error.
+     * Expanding a module reports what is wrong with its use only while it expands, and an edit in place keeps the
+     * instantiations rather than expanding them again.
      */
     private static boolean modulesExpandedCleanly(Element e) {
-        if (e instanceof ClassOrModuleOrModuleInstanciation c && !(e instanceof ModuleInstanciation)
-            && c.getP_moduleInstanciations().size() != c.getModuleUses().size()) {
-            return false;
+        if (e instanceof ClassOrModuleOrModuleInstanciation c && !(e instanceof ModuleInstanciation)) {
+            if (c.getP_moduleInstanciations().size() != c.getModuleUses().size()) {
+                return false;
+            }
+            for (ModuleUse use : c.getModuleUses()) {
+                ModuleDef used = use.attrModuleDef();
+                if (used == null || used.getTypeParameters().size() != use.getTypeArgs().size()) {
+                    return false;
+                }
+            }
         }
         for (int i = 0; i < e.size(); i++) {
             Element child = e.get(i);
@@ -64,6 +71,41 @@ final class BodyOnlyEdit {
                 continue;
             }
             if (!modulesExpandedCleanly(child)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether nothing in a module the unit declares moves. Every class using the module, in this unit or another,
+     * holds a copy of it with its positions, and the copies are kept.
+     */
+    private static boolean modulesStayPut(WPackages old, WPackages fresh) {
+        for (int p = 0; p < old.size(); p++) {
+            WEntities oldElements = old.get(p).getElements();
+            WEntities freshElements = fresh.get(p).getElements();
+            for (int i = 0; i < oldElements.size(); i++) {
+                if (oldElements.get(i) instanceof ModuleDef && !samePositions(oldElements.get(i), freshElements.get(i))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean samePositions(Element old, Element fresh) {
+        if (old instanceof AstElementWithSource o && fresh instanceof AstElementWithSource f
+            && (o.getSource().getLeftPos() != f.getSource().getLeftPos()
+                || o.getSource().getRightPos() != f.getSource().getRightPos())) {
+            return false;
+        }
+        for (int i = 0; i < old.size(); i++) {
+            Element child = old.get(i);
+            if (old instanceof ClassOrModuleOrModuleInstanciation c && child == c.getP_moduleInstanciations()) {
+                continue;
+            }
+            if (!samePositions(child, fresh.get(i))) {
                 return false;
             }
         }

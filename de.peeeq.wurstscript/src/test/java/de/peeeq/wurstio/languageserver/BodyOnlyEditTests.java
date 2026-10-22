@@ -33,11 +33,17 @@ public class BodyOnlyEditTests {
     private static final String MOD = String.join("\n",
         "package Mod",
         "import NoWurst",
+        "public module Tagged<T>",
+        "    T tag",
+        "public function before() returns int",
+        "    return 0",
         "public module Counter",
         "    int count = 0",
         "    function bump() returns int",
         "        count++",
         "        return count",
+        "public function after() returns int",
+        "    return 1",
         "");
 
     private static final String A = String.join("\n",
@@ -176,6 +182,52 @@ public class BodyOnlyEditTests {
             manager.reconcile(sync(manager, root, pkg, pkg.equals("Mod") ? MOD : A));
             assertSameAsFreshBuild(root, manager, log);
         }
+    }
+
+    /**
+     * Every class using a module holds a copy of it with the module's positions, here and in B, and the copies
+     * are kept: an edit which moves the module is not made in place, one below it is.
+     */
+    @Test
+    public void aBodyEditWhichMovesAModuleReplacesTheUnit() throws IOException {
+        Path root = project();
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+
+        String below = MOD.replace("    return 1", "    let one = 1\n    return one");
+        manager.reconcile(sync(manager, root, "Mod", below));
+        assertEquals(manager.bodyEdits(), 1, "nothing moves in the module");
+        assertSameAsFreshBuild(root, manager, log);
+
+        String above = below.replace("    return 0", "    let zero = 0\n    return zero");
+        int reconciliations = manager.reconciliations();
+        manager.reconcile(sync(manager, root, "Mod", above));
+        assertEquals(manager.bodyEdits(), 1, "the module moves down a line");
+        assertEquals(manager.reconciliations(), reconciliations + 1, "the unit was replaced");
+        assertEquals(linkedName(manager, "B", "count").getDef().getSource().getLine(), 9,
+            "B resolves the field Box got from the module at the module's new line");
+        assertSameAsFreshBuild(root, manager, log);
+    }
+
+    /**
+     * A module use with an error still gets an instantiation, and the error is reported only while the module is
+     * expanded, so a unit with such a use is not edited in place: its kept instantiation would not report it again.
+     */
+    @Test
+    public void aBodyEditOfAUnitWithAWrongModuleUseReplacesTheUnit() throws IOException {
+        Path root = project();
+        String wrongUse = A.replace("    use Counter", "    use Counter\n    use Tagged");
+        write(root, "A", wrongUse);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+        assertTrue(log.hasErrors(), "the use of Tagged misses its type argument");
+
+        manager.reconcile(sync(manager, root, "A", wrongUse.replace("    return x + 1", "    return x + 2")));
+        assertEquals(manager.bodyEdits(), 0);
+        assertTrue(log.hasErrors(), "the use of Tagged still misses its type argument");
+        assertSameAsFreshBuild(root, manager, log);
     }
 
     // ---------------------------------------------------------------- helpers
