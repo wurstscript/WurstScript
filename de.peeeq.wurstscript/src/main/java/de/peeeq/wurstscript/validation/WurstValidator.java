@@ -4122,7 +4122,7 @@ public class WurstValidator {
         }
 
         // the functions' own type parameters are equal up to renaming
-        String typeParameterError = checkOwnTypeParameters(func1.getDef(), func2.getDef());
+        String typeParameterError = checkOwnTypeParameters(func1.getDef(), func2.getDef(), explain);
         if (typeParameterError != null) {
             return typeParameterError;
         }
@@ -4153,22 +4153,25 @@ public class WurstValidator {
     /**
      * Checks that the type parameters {@code overriding} declares itself are those {@code overridden} declares, up to
      * renaming: as many, each of the same kind of generic with the same bounds. Returns null if they are, and otherwise
-     * the error which says why {@code overriding} cannot override {@code overridden}.
+     * the error which says why {@code overriding} cannot override {@code overridden} (with {@code explain} false only
+     * {@link #CANNOT_OVERRIDE}).
      */
-    private static @Nullable String checkOwnTypeParameters(FunctionDefinition overriding, FunctionDefinition overridden) {
+    private static @Nullable String checkOwnTypeParameters(FunctionDefinition overriding, FunctionDefinition overridden,
+                                                           boolean explain) {
         List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
         List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
         if (ownTypeParams1.size() != ownTypeParams2.size()) {
-            return Utils.printElement(overridden) + " takes " + ownTypeParams2.size()
-                    + " type parameters, but there are " + ownTypeParams1.size() + " type parameters here.";
+            return explain ? Utils.printElement(overridden) + " takes " + ownTypeParams2.size()
+                    + " type parameters, but there are " + ownTypeParams1.size() + " type parameters here."
+                    : CANNOT_OVERRIDE;
         }
         VariableBinding renaming = ownTypeParameterRenaming(overriding, overridden);
         for (int i = 0; i < ownTypeParams1.size(); i++) {
             TypeParamDef tp1 = ownTypeParams1.get(i);
             TypeParamDef tp2 = ownTypeParams2.get(i);
             if (!sameTypeParamConstraints(tp1, tp2, renaming)) {
-                return "Type parameter " + printTypeParam(tp1) + " should be " + printTypeParam(tp2)
-                    + " to override " + Utils.printElementWithSource(Optional.of(overridden)) + ".";
+                return explain ? "Type parameter " + printTypeParam(tp1) + " should be " + printTypeParam(tp2)
+                    + " to override " + Utils.printElementWithSource(Optional.of(overridden)) + "." : CANNOT_OVERRIDE;
             }
         }
         return null;
