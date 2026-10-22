@@ -325,8 +325,10 @@ public final class LuaHotReload {
         return semanticId(c, c.getName());
     }
 
+    /** The identity of a method: with its implementation's signature, which tells overloads apart. */
     static String methodId(ImMethod m) {
-        return semanticId(m, m.getName());
+        ImFunction implementation = m.getImplementation();
+        return semanticId(m, m.getName() + (implementation == null ? "" : "/" + signature(implementation)));
     }
 
     /**
