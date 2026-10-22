@@ -1728,8 +1728,11 @@ public class LuaTranslator {
         // The defaults the optimiser did not remove at some allocation of this class (LuaFieldDefaults), and the
         // table an array field needs per object, which only the backend can make.
         Set<ImVar> survivingDefaults = fieldDefaultsOnAllocation.getOrDefault(c, Collections.emptySet());
+        LuaVariable arrayBuffer = null;
         for (ImVar field : LuaFieldDefaults.fieldsOf(c, imTr)) {
-            if (LuaFieldDefaults.isArrayField(field) || survivingDefaults.contains(imTr.canonical(field))) {
+            if (LuaFieldDefaults.isArrayField(field)) {
+                arrayBuffer = resetArrayField(body, field, newInst, arrayBuffer);
+            } else if (survivingDefaults.contains(imTr.canonical(field))) {
                 body.add(LuaAst.LuaAssignment(
                     LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
                         LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
@@ -1740,6 +1743,48 @@ public class LuaTranslator {
             reflection.addAllocationCount(body, c);
         }
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+    }
+
+    private @Nullable LuaFunction arrayReset;
+
+    /**
+     * Array fields have no first-class identity in Wurst. Resetting the old buffer is therefore equivalent to
+     * replacing it, while retaining its capacity across manually recycled object IDs. No Wurst object lifetime
+     * depends on the Lua collector. Clearing keys invokes no user code, and its order cannot affect the result.
+     */
+    private LuaVariable resetArrayField(LuaStatements body, ImVar field, LuaVariable instance,
+                                       @Nullable LuaVariable buffer) {
+        LuaExpr slot = LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
+            LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(instance)));
+        if (buffer == null) {
+            buffer = LuaAst.LuaVariable(uniqueName("array"), slot.copy());
+            body.add(buffer);
+        } else {
+            body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(buffer), slot.copy()));
+        }
+        LuaVariable metatable = defaultArrayMetatable(arrayComponentType((ImArrayLikeType) field.getType()));
+        body.add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(buffer), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+            LuaAst.LuaStatements(LuaAst.LuaAssignment(slot, defaultValue(field.getType()))),
+            LuaAst.LuaStatements(LuaAst.LuaExprFunctionCall(resetArrayFunction(),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(buffer),
+                    metatable == null ? LuaAst.LuaExprNull() : LuaAst.LuaExprVarAccess(metatable))))));
+        return buffer;
+    }
+
+    private LuaFunction resetArrayFunction() {
+        if (arrayReset == null) {
+            arrayReset = LuaAst.LuaFunction(uniqueName("__wurst_resetArray"),
+                LuaAst.LuaParams(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()),
+                    LuaAst.LuaVariable("mt", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
+            // A fixed-size helper: the generic for's hidden registers never depend on the user's local count.
+            arrayReset.getBody().add(LuaAst.LuaLiteral("for k in pairs(t) do t[k] = nil end"));
+            // Specialised fields share canonical storage. A recycled ID can change its element
+            // type, so it must get the current default, including removing a previous metatable.
+            arrayReset.getBody().add(LuaAst.LuaLiteral("setmetatable(t, mt)"));
+            luaModel.add(arrayReset);
+        }
+        return arrayReset;
     }
 
     /** Adds to {@code body} the local {@code new_inst}, a fresh or recycled id recorded as an object of {@code classExpr}. */
@@ -2936,15 +2981,7 @@ public class LuaTranslator {
 
             @Override
             public LuaExpr case_ImArrayTypeMulti(ImArrayTypeMulti at) {
-                ImType baseType;
-                if (at.getArraySize().size() <= 1) {
-                    baseType = at.getEntryType();
-                } else {
-                    List<Integer> arraySizes = new ArrayList<>(at.getArraySize());
-                    arraySizes.remove(0);
-                    baseType = JassIm.ImArrayTypeMulti(at.getEntryType(), arraySizes);
-                }
-                return newDefaultArray(baseType);
+                return newDefaultArray(arrayComponentType(at));
             }
 
             @Override
@@ -2974,6 +3011,15 @@ public class LuaTranslator {
         });
     }
 
+    private static ImType arrayComponentType(ImArrayLikeType array) {
+        if (array instanceof ImArrayTypeMulti multi && multi.getArraySize().size() > 1) {
+            List<Integer> sizes = new ArrayList<>(multi.getArraySize());
+            sizes.remove(0);
+            return JassIm.ImArrayTypeMulti(multi.getEntryType(), sizes);
+        }
+        return array.getEntryType();
+    }
+
     /**
      * Builds a fresh array table whose reads of never-written slots yield the
      * default value for {@code entryType}, matching Jass's fully-initialized
@@ -2984,16 +3030,22 @@ public class LuaTranslator {
      * per-class instance metatable in translateClass().
      */
     private LuaExpr newDefaultArray(ImType entryType) {
+        LuaVariable metatable = defaultArrayMetatable(entryType);
+        return metatable == null ? LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())
+            : setmetatableCall(metatable);
+    }
+
+    private @Nullable LuaVariable defaultArrayMetatable(ImType entryType) {
         if (isAlwaysNilDefault(entryType)) {
             // An untouched Lua table key already reads as nil - no metatable needed.
-            return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
+            return null;
         }
         if (entryType instanceof ImSimpleType imSimpleType) {
-            return setmetatableCall(getOrCreatePrimitiveArrayMetatable(imSimpleType));
+            return getOrCreatePrimitiveArrayMetatable(imSimpleType);
         }
         // Table-typed default (tuple / nested array): each slot needs its own,
         // separately mutable default value, materialized lazily on first read.
-        return setmetatableCall(getOrCreateLazyArrayMetatable(entryType));
+        return getOrCreateLazyArrayMetatable(entryType);
     }
 
     private LuaExpr setmetatableCall(LuaVariable metatableVar) {

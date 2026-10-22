@@ -38,11 +38,11 @@ public class GlobalsInliner implements OptimizerPass {
                 // so it is important, that we do not optimize away the compiletime constant
                 continue;
             }
-            if (v.getName().equals("MagicFunctions_isLua") && trans.isLuaTarget()) {
-                // In Lua mode, isLua must evaluate to true.
-                // Normal inlining would use the declared value (false); override it here.
+            if (v.getName().equals("MagicFunctions_isLua")) {
+                // A backend constant, including when compile-time serialization has left several
+                // initialization writes. Ordinary global analysis must not keep the other backend's code.
                 for (ImVarRead read : new ArrayList<>(v.attrReads())) {
-                    read.replaceBy(JassIm.ImBoolVal(true));
+                    read.replaceBy(JassIm.ImBoolVal(trans.isLuaTarget()));
                 }
                 for (ImVarWrite write : new ArrayList<>(v.attrWrites())) {
                     if (write.getParent() != null) {

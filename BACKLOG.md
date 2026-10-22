@@ -220,6 +220,20 @@ Notes; finished-work narrative does not.
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
   hand-written Lua would be, list every compiler-introduced call, allocation or table write on an
   ordinary path, and fix the root (AGENTS.md §3, §7).
+
+- **Give collections a Lua-native backing store instead of carrying the Jass arena.**
+  Implemented as draft [stdlib #517](https://github.com/wurstscript/WurstStdlib2/pull/517)
+  and [compiler #1545](https://github.com/wurstscript/WurstScript/pull/1545), using
+  existing typed array fields rather than adding vector intrinsics. Lua avoids
+  arena offsets, allocation and relocation; Jass retains its arena. Array buffers
+  are reset and reused on recycled Wurst IDs, with explicit destruction-time
+  reference cleanup. [Generated-code benchmark and controls](docs/LUA_COLLECTION_STORAGE.md)
+  cover growth, scans, small-list churn, scratch reuse and stopped-GC heap growth.
+  In-game acceptance, long-session retained memory and real-map profiling remain
+  open; high-water buffer retention and tiny-list costs must be assessed before
+  release. Result ownership/reduction could then remove the spatial query's
+  snapshot-to-list copy without breaking yielding or nested callbacks.
+
 ## Blocked on a decision
 
 - **Is the generated AST the right shape for the passes?** Generated nodes are single-parent mutable

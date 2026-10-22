@@ -36,6 +36,39 @@ public class SimpleRewrites implements OptimizerPass {
         return totalRewrites;
     }
 
+    /**
+     * Resolve literal branches before inlining without merging sequential stores into larger expressions.
+     * Such merging belongs after inlining: doing it here changes the simultaneous register demand of
+     * otherwise independent inline sites. Boolean rewrites can make statement expressions, so flatten here too.
+     */
+    public int simplifyControlFlow(ImTranslator trans) {
+        ImProg prog = trans.getImProg();
+        sideEffectAnalysis = new SideEffectAnalyzer(prog);
+        jassTarget = !trans.isLuaTarget();
+        totalRewrites = 0;
+        simplifyControlFlow(prog);
+        prog.flatten(trans);
+        removeUnreachableCode(prog);
+        return totalRewrites;
+    }
+
+    private void simplifyControlFlow(Element elem) {
+        for (int i = 0; i < elem.size(); i++) {
+            simplifyControlFlow(elem.get(i));
+        }
+        if (elem instanceof ImOperatorCall call) {
+            WurstOperator op = call.getOp();
+            if (op == WurstOperator.NOT || op == WurstOperator.AND || op == WurstOperator.OR
+                || call.getArguments().stream().allMatch(ImBoolVal.class::isInstance)) {
+                optimizeOpCall(call);
+            }
+        } else if (elem instanceof ImIf branch) {
+            optimizeIf(branch);
+        } else if (elem instanceof ImExitwhen exit) {
+            optimizeExitwhen(exit);
+        }
+    }
+
     @Override
     public String getName() {
         return "Simple Rewrites";

@@ -30,6 +30,26 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void recycledArrayBuffersIgnoreCompilationUnitOrder() throws IOException {
+        CU first = compilationUnit("ArraysA.wurst", "package ArraysA", "public class IntBuffer",
+            "    int array[4] cells");
+        CU second = compilationUnit("ArraysB.wurst", "package ArraysB", "public class TextBuffer",
+            "    string array[4] cells");
+        CU main = compilationUnit("Main.wurst", "package Main", "import ArraysA", "import ArraysB",
+            "native testSuccess()", "init", "    let a = new IntBuffer()", "    let b = new TextBuffer()",
+            "    a.cells[3] = 42", "    b.cells[2] = \"old\"", "    destroy a", "    destroy b",
+            "    let c = new TextBuffer()", "    let d = new IntBuffer()",
+            "    if c.cells[2] == \"\" and d.cells[3] == 0", "        testSuccess()");
+        String name = "recycledArrayBuffers";
+        testNamed(name).testLua(true).inline().localOptimizations().executeProg()
+            .compilationUnits(first, second, main);
+        String forward = compiledLua(name);
+        testNamed(name).testLua(true).inline().localOptimizations().executeProg()
+            .compilationUnits(second, main, first);
+        assertEquals(compiledLua(name), forward);
+    }
+
+    @Test
     public void branchNullFactsIgnoreCompilationUnitOrder() throws IOException {
         CU program = compilationUnit("NullFacts.wurst",
             "type unit extends handle",

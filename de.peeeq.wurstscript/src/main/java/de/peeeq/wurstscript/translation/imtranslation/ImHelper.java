@@ -205,7 +205,9 @@ public class ImHelper {
 
             @Override
             public ImExpr case_ImClassType(ImClassType imClassType) {
-                return JassIm.ImIntVal(0);
+                // Keep semantic null until class lowering chooses its representation. Tuple
+                // lowering uses this on Lua too, where a class null is nil rather than integer 0.
+                return JassIm.ImNull(imClassType.copy());
             }
 
             @Override
