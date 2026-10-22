@@ -82,7 +82,7 @@ public final class LuaHotReloadSession {
         throws IOException, LuaHotReload.Rejected {
         Path file = stateFile(buildDir);
         if (!Files.exists(file)) {
-            throw new LuaHotReload.Rejected(List.of("no map was started with -luaHotReload since the build folder was cleaned"));
+            throw new LuaHotReload.Rejected(List.of("no map was started with hot run (or -luaHotReload): start the map with hot run first"));
         }
         State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
         LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current,

@@ -426,8 +426,8 @@ public class RunMap extends MapRequest {
      */
     private void sendLuaHotReloadPayload(WurstGui gui, File buildDir) throws IOException {
         if (luaHotReloadManifest == null) {
-            throw new RequestFailedException(MessageType.Error, "Lua hot reload needs -luaHotReload in the run arguments,"
-                + " and a map started with it.");
+            throw new RequestFailedException(MessageType.Error, "Lua hot reload needs a Lua build;"
+                + " start the map with hot run first.");
         }
         LuaHotReload.Payload payload;
         try {

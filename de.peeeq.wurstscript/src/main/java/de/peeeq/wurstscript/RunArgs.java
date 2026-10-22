@@ -149,8 +149,8 @@ public class RunArgs {
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
         optionLegacyJassChecks = addOption("legacyJassChecks", "Relax Jass type checks for legacy (pre-1.24) targets whose Blizzard-provided "
                 + "common.j/blizzard.j contain return-type mismatches the Jass VM tolerates. Also skips PJass on the generated script.");
-        optionHotStartmap = addOption("hotstart", "Uses Jass Hot Code Reload (JHCR) to start the map.");
-        optionHotReload = addOption("hotreload", "Reloads the mapscript after running the map with Jass Hot Code Reload (JHCR).");
+        optionHotStartmap = addOption("hotstart", "Starts the map so that it can be reloaded: with Jass Hot Code Reload (JHCR) on Jass, with -luaHotReload on Lua.");
+        optionHotReload = addOption("hotreload", "Reloads the running map's script: through JHCR on Jass, with a body payload on Lua (docs/LUA_HOT_RELOAD.md).");
 
         optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
         optionDevBuild = addOption("dev", "Builds an output map in development/run mode, so compiletime isProductionBuild() is false.");
@@ -434,8 +434,9 @@ public class RunArgs {
         return optionLua.isSet;
     }
 
+    /** The editor's hot run and hot reload of a Lua project ({@code -hotstart}, {@code -hotreload}) imply it. */
     public boolean isLuaHotReload() {
-        return optionLuaHotReload.isSet;
+        return optionLuaHotReload.isSet || (isLua() && (isHotStartmap() || isHotReload()));
     }
 
     public boolean isCompiletimeCache() {

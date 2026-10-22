@@ -67,12 +67,13 @@ is undone is undone in the map.
 
 Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
 
-1. Add `-luaHotReload` to the run arguments (`wurst_run.args`) of a Lua project and run the map. The run saves
-   the manifest of the started script in `_build/luaHotReload/session.json`.
-2. The existing `wurst.hotreload` command (VS Code "hot reload") sends `-hotreload`. For a Lua project, `RunMap`
-   compiles the project, builds the next cumulative payload against the saved baseline and writes it to
-   `CustomMapData\Wurst\hotreload.pld` (`customMapDataPath` in the configuration overrides the folder). JHCR stays
-   the path for Jass maps. A rejected edit fails the request with the reasons.
+1. Start the map with hot run (`wurst.hotstartmap`, which sends `-hotstart`). On a Lua project that is a
+   `-luaHotReload` build (`RunArgs.isLuaHotReload`); an ordinary run with `-luaHotReload` in `wurst_run.args` does the
+   same. The run saves the manifest of the started script in `_build/luaHotReload/session.json`.
+2. `wurst.hotreload` sends `-hotreload`. For a Lua project, `RunMap` compiles the project, builds the next cumulative
+   payload against the saved baseline and writes it to `CustomMapData\Wurst\hotreload.pld` (`customMapDataPath` in
+   the configuration overrides the folder). JHCR stays the path for Jass maps. A rejected edit fails the request
+   with the reasons. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
 
 Game side (measured once, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. The poll
 clears the tooltip of ability `Aamk`, calls `Preloader` on the file, and reads the tooltip back. The file's Lua
