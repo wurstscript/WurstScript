@@ -990,9 +990,13 @@ public class ExprTranslation {
             return translateStatementsBlock(exprStatementsBlock, t, f, expectedType);
         }
         if (e instanceof ExprUnary unary) {
-            ImExpr right = translateWithExpectedType(unary.getRight(), t, f, expectedType);
+            // The operator takes and gives its concrete type (int, real or boolean): the operand converts to it (its
+            // own expected type, AttrExprExpectedType), and only the result converts to what the context expects,
+            // such as an old generic's index.
+            WurstType operatorType = unary.attrTyp();
+            ImExpr right = unary.getRight().imTranslateExpr(t, f);
             ImExpr translated = ImOperatorCall(unary.getOpU(), ImExprs(right));
-            return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
+            return wrapTranslation(e, t, translated, operatorType, expectedType);
         }
         ImExpr translated = e.imTranslateExpr(t, f);
         if (isAlreadyTypeAssured(translated, t)) {

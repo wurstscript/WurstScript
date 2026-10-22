@@ -9511,4 +9511,70 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             luaFunctionBody(lua, "C_C_pick").contains("Base_Base_pick("));
         assertFalse("no class binds the interface's abstract method", lua.contains(" = Top_Top_pick"));
     }
+
+    /**
+     * A negated or negating expression handed to an old generic converts to the erased index once. Lua converted the
+     * operand as well as the result, so {@code -2.5} arrived as {@code realToIndex(-(realToIndex(2.5)))} and read back
+     * as -2500.
+     */
+    @Test
+    public void unaryExpressionPassedToAnOldGenericIsConvertedOnce() throws IOException {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "import LinkedList",
+            "import Wurstunit",
+            "interface Get<T>",
+            "    function get() returns T",
+            "function id<T>(T t) returns T",
+            "    return t",
+            "init",
+            "    real r = id<real>(-2.5)",
+            "    boolean b = id<boolean>(not false)",
+            "    Get<real> g = () -> -1.5",
+            "    let l = new LinkedList<real>()",
+            "    l.add(-2.)",
+            "    let m = l.map<real>(x -> -x)",
+            "    Get<real> h = () -> -(id<boolean>(true) ? 1. : 2.)",
+            "    let box = new LinkedList<real>()",
+            "    box.add(3.5)",
+            "    if r == -2.5 and b and g.get() == -1.5 and l.get(0) == -2. and m.get(0) == 2."
+            + " and h.get() == -1. and id<real>(-box.get(0)) == -3.5",
+            "        testSuccess()");
+        String lua = compiledLua("unaryExpressionPassedToAnOldGenericIsConvertedOnce");
+        assertFalse("no operand of a unary operator converts to the erased index:\n" + lua,
+            java.util.regex.Pattern.compile("ToIndex\\((-|not)\\(\\w*ToIndex\\(").matcher(lua).find());
+        assertTrue("the negated real converts once:\n" + lua, lua.contains("realToIndex(-(2.5))"));
+        assertTrue("the negated boolean converts once:\n" + lua, lua.contains("booleanToIndex(not(false))"));
+    }
+
+    /**
+     * The new-generic counterpart: a unary expression handed to a {@code <T:>} parameter, closure or class keeps the
+     * native representation of its type and goes through no erased index at all.
+     */
+    @Test
+    public void unaryExpressionPassedToANewGenericKeepsItsRepresentation() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "native testSuccess()",
+            "interface Get<T:>",
+            "    function get() returns T",
+            "class Cell<T:>",
+            "    T v",
+            "    construct(T v)",
+            "        this.v = v",
+            "function id<T:>(T t) returns T",
+            "    return t",
+            "init",
+            "    real r = id<real>(-2.5)",
+            "    boolean b = id<boolean>(not false)",
+            "    Get<real> g = () -> -1.5",
+            "    let c = new Cell<real>(-2.)",
+            "    let d = new Cell<real>(-c.v)",
+            "    Get<real> h = () -> -(id<boolean>(true) ? 1. : 2.)",
+            "    if r == -2.5 and b and g.get() == -1.5 and c.v == -2. and d.v == 2. and h.get() == -1.",
+            "        testSuccess()");
+        String lua = compiledLua("unaryExpressionPassedToANewGenericKeepsItsRepresentation");
+        assertFalse("a new generic takes no erased index:\n" + lua,
+            java.util.regex.Pattern.compile("\\b(real|boolean)(To|From)Index\\(").matcher(lua).find());
+    }
 }
