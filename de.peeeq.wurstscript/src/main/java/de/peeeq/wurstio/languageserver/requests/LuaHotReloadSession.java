@@ -163,22 +163,66 @@ public final class LuaHotReloadSession {
     }
 
     /**
-     * Deletes the payload files of earlier sessions, before a map starts: its poll begins again at the first file, and a
-     * payload left from another session must not reach it.
+     * Moves the payload files of the current session aside before a map is launched: the new map's poll begins again at
+     * the first file, and a payload of another session must not reach it. If the launch fails the map which is still
+     * running may not have read them yet, so {@link #restoreDeliveries} puts them back; once the new map is launched
+     * {@link #discardDeliveries} deletes them.
      */
-    public static void clearDeliveries(Path customMapData) throws IOException {
-        Path folder = customMapData.resolve(LuaHotReload.PRELOAD_FILE_PREFIX.replace('\\', '/')).getParent();
+    public static void setAsideDeliveries(Path customMapData) throws IOException {
+        Path folder = deliveryFolder(customMapData);
+        Path aside = folder.resolve(SET_ASIDE);
+        deleteFolder(aside);
         if (!Files.isDirectory(folder)) {
             return;
         }
-        try (java.util.stream.Stream<Path> files = Files.list(folder)) {
-            for (Path file : (Iterable<Path>) files::iterator) {
-                String name = file.getFileName().toString();
-                if (name.startsWith("hotreload-") && (name.endsWith(".pld") || name.endsWith(".pld.tmp"))) {
-                    Files.delete(file);
-                }
-            }
+        Files.createDirectories(aside);
+        for (Path file : deliveries(folder)) {
+            Files.move(file, aside.resolve(file.getFileName()));
         }
+    }
+
+    /** Puts the files {@link #setAsideDeliveries} moved back, after a launch which failed. */
+    public static void restoreDeliveries(Path customMapData) throws IOException {
+        Path folder = deliveryFolder(customMapData);
+        Path aside = folder.resolve(SET_ASIDE);
+        if (!Files.isDirectory(aside)) {
+            return;
+        }
+        for (Path file : deliveries(aside)) {
+            Files.move(file, folder.resolve(file.getFileName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+        deleteFolder(aside);
+    }
+
+    /** Deletes the files {@link #setAsideDeliveries} moved, once the new map is launched. */
+    public static void discardDeliveries(Path customMapData) throws IOException {
+        deleteFolder(deliveryFolder(customMapData).resolve(SET_ASIDE));
+    }
+
+    private static final String SET_ASIDE = "hotreload-set-aside";
+
+    private static Path deliveryFolder(Path customMapData) {
+        return customMapData.resolve(LuaHotReload.PRELOAD_FILE_PREFIX.replace('\\', '/')).getParent();
+    }
+
+    private static List<Path> deliveries(Path folder) throws IOException {
+        try (java.util.stream.Stream<Path> files = Files.list(folder)) {
+            return files.filter(file -> {
+                String name = file.getFileName().toString();
+                return Files.isRegularFile(file) && name.startsWith("hotreload-")
+                    && (name.endsWith(".pld") || name.endsWith(".pld.tmp"));
+            }).sorted().toList();
+        }
+    }
+
+    private static void deleteFolder(Path folder) throws IOException {
+        if (!Files.isDirectory(folder)) {
+            return;
+        }
+        for (Path file : deliveries(folder)) {
+            Files.delete(file);
+        }
+        Files.delete(folder);
     }
 
     /**

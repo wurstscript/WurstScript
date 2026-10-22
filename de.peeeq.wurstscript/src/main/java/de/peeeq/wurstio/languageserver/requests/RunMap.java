@@ -131,11 +131,6 @@ public class RunMap extends MapRequest {
             sendLuaHotReloadPayload(gui, buildDir);
             return "ok";
         }
-        if (luaHotReloadManifest != null) {
-            // The new map polls from the first file; the session itself changes only once the map is launched, so a
-            // launch which fails leaves the session of a map that is still running.
-            LuaHotReloadSession.clearDeliveries(getCustomMapDataPath());
-        }
 
         if (runArgs.isHotReload()) {
             // call jhcr update
@@ -149,9 +144,21 @@ public class RunMap extends MapRequest {
 
 
         if (testMap.isPresent()) {
-            startGame(gui, result);
-            if (luaHotReloadManifest != null) {
+            if (luaHotReloadManifest == null) {
+                startGame(gui, result);
+            } else {
+                // The new map polls from the first file. The session and the files of a map which is still running
+                // change only once the new map is launched, so a launch which fails leaves that map's session intact.
+                Path customMapData = getCustomMapDataPath();
+                LuaHotReloadSession.setAsideDeliveries(customMapData);
+                try {
+                    startGame(gui, result);
+                } catch (Exception e) {
+                    LuaHotReloadSession.restoreDeliveries(customMapData);
+                    throw e;
+                }
                 LuaHotReloadSession.start(buildDir.toPath(), luaHotReloadManifest);
+                LuaHotReloadSession.discardDeliveries(customMapData);
             }
         }
         return null;

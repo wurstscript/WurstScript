@@ -156,6 +156,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(List.of("first"), payload.functions());
     }
 
+    /** A class of the same name from another package is another type. */
+    @Test
+    public void fieldTypeOfAnotherPackagesClassIsRejected() {
+        CU first = new CU("First", String.join("\n", "package First", "public class Item", "init", "    new Item()", ""));
+        CU second = new CU("Second", String.join("\n", "package Second", "public class Item", "init", "    new Item()", ""));
+        String holder = String.join("\n", "package Test", "import %s", "class Holder", "    Item held = null",
+            "function read(Holder h) returns int", "    return h.held castTo int", "init", "    read(new Holder())", "");
+        LuaHotReload.Manifest baseline = compileLuaHotReloadManifest(false, HOT_RELOAD, first, second,
+            new CU("Test", String.format(holder, "First")));
+        LuaHotReload.Manifest changed = compileLuaHotReloadManifest(false, HOT_RELOAD, first, second,
+            new CU("Test", String.format(holder, "Second")));
+        expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(baseline, changed, Set.of(), 1));
+    }
+
     /** A field which holds objects of another class now: objects which exist keep values of the old one. */
     @Test
     public void fieldTypeChangeIsRejected() {
@@ -326,8 +340,15 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
         java.nio.file.Path other = customMapData.resolve("Wurst").resolve("other.pld");
         java.nio.file.Files.writeString(other, "kept");
-        LuaHotReloadSession.clearDeliveries(customMapData);
-        assertFalse("a new session deletes the payload files of the last", java.nio.file.Files.exists(second.file()));
+        // A launch which fails puts the files of the map still running back; one which succeeds deletes them.
+        LuaHotReloadSession.setAsideDeliveries(customMapData);
+        assertFalse("the new map does not see the payloads of the last", java.nio.file.Files.exists(second.file()));
+        LuaHotReloadSession.restoreDeliveries(customMapData);
+        assertTrue("a failed launch keeps them for the map still running", java.nio.file.Files.exists(second.file()));
+        LuaHotReloadSession.setAsideDeliveries(customMapData);
+        LuaHotReloadSession.discardDeliveries(customMapData);
+        assertFalse(java.nio.file.Files.exists(second.file()));
+        assertFalse(java.nio.file.Files.exists(customMapData.resolve("Wurst").resolve("hotreload-set-aside")));
         assertTrue(java.nio.file.Files.exists(other));
     }
 

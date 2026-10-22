@@ -296,7 +296,8 @@ public final class LuaHotReload {
         if (t instanceof ImTypeVarRef r) {
             return r.getTypeVariable().getName();
         } else if (t instanceof ImClassType ct) {
-            StringJoiner args = new StringJoiner(",", ct.getClassDef().getName() + "<", ">");
+            // By package as well: two packages may each have a class of the same name.
+            StringJoiner args = new StringJoiner(",", semanticId(ct.getClassDef(), ct.getClassDef().getName()) + "<", ">");
             for (ImTypeArgument ta : ct.getTypeArguments()) {
                 args.add(typeKey(ta.getType()));
             }
