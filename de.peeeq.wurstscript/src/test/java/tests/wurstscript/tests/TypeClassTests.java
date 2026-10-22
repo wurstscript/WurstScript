@@ -23,6 +23,35 @@ import static org.testng.Assert.assertTrue;
 public class TypeClassTests extends WurstScriptTest {
 
     @Test
+    public void recursiveSpecializationDemandFromBothEntrypoints() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "function first<Q: ToIndex>(Q x, int depth) returns int",
+            "    if depth == 0",
+            "        return Q.toIndex(x)",
+            "    return second(x, depth - 1)",
+            "function second<Q: ToIndex>(Q x, int depth) returns int",
+            "    return first(x, depth)",
+            "function erasedFirst<Q:>(Q x, int depth) returns int",
+            "    if depth == 0",
+            "        return 42",
+            "    return erasedSecond(x, depth - 1)",
+            "function erasedSecond<Q:>(Q x, int depth) returns int",
+            "    return erasedFirst(x, depth)",
+            "init",
+            "    if second(21, 2) == 42 and first(21, 2) == 42",
+            "        if erasedSecond(\"a\", 2) == 42 and erasedFirst(7, 2) == 42",
+            "            testSuccess()"
+        );
+    }
+
+    @Test
     public void parseInstanceDecl() {
         testAssertOkLines(false,
             "package test",
