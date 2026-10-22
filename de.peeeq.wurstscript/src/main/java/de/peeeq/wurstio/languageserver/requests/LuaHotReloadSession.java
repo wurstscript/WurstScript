@@ -25,7 +25,7 @@ public final class LuaHotReloadSession {
     static final String SESSION_FOLDER = "luaHotReload";
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
     /** The longest string one line of the preload file passes to the map. */
-    static final int PRELOAD_CHUNK = 1000;
+    public static final int PRELOAD_CHUNK = 1000;
 
     private LuaHotReloadSession() {
     }
@@ -134,10 +134,16 @@ public final class LuaHotReloadSession {
         sb.append("//!beginusercode\n");
         // The marker tells the map's poll that the tooltip holds a payload rather than the ability's own text.
         sb.append("local p = {\"").append(LuaHotReload.PAYLOAD_MARKER).append("\"}\n");
-        for (int i = 0; i < payload.length(); i += PRELOAD_CHUNK) {
+        for (int i = 0; i < payload.length(); ) {
+            int end = Math.min(payload.length(), i + PRELOAD_CHUNK);
+            // A chunk ends on a whole character: half a surrogate pair cannot be written as UTF-8.
+            if (end < payload.length() && Character.isHighSurrogate(payload.charAt(end - 1))) {
+                end--;
+            }
             sb.append("p[#p + 1] = \"");
-            appendEscaped(sb, payload.substring(i, Math.min(payload.length(), i + PRELOAD_CHUNK)));
+            appendEscaped(sb, payload.substring(i, end));
             sb.append("\"\n");
+            i = end;
         }
         sb.append("BlzSetAbilityTooltip(FourCC(\"").append(LuaHotReload.CHANNEL_ABILITY).append("\"), table.concat(p), 0)\n");
         sb.append("//!endusercode\n");

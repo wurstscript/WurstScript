@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import org.testng.annotations.Test;
@@ -345,6 +346,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void preloadFileCarriesThePayloadText() throws Exception {
         StringBuilder payload = new StringBuilder("-- \"quoted\" \\ back\\slash\r\n\ttab \u0001 ctrl1 2\n//!endusercode\n");
+        // A character outside the BMP is two Java chars; this one straddles the first chunk boundary.
+        while (payload.length() < LuaHotReloadSession.PRELOAD_CHUNK - 1) {
+            payload.append('x');
+        }
+        payload.append("😀");
         while (payload.length() < 2500) {
             payload.append("x = \"").append(payload.length()).append("\"\n");
         }
