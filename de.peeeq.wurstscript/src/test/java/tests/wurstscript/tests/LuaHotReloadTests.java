@@ -107,6 +107,31 @@ public class LuaHotReloadTests extends WurstScriptTest {
             List.of("score"), LuaHotReload.payload(baseline, baseline, Set.of("score"), 2).functions());
     }
 
+    /**
+     * A type variable in a signature is part of a function's id, and the IM printer adds an identity hash to it, which
+     * differs between compilations: the same program must still have the same fingerprint.
+     */
+    @Test
+    public void genericSignaturesHaveTheSameIdInEveryCompilation() throws Exception {
+        String[] generic = {
+            "package Test",
+            "class Box<T:>",
+            "    T value",
+            "function unbox<T:>(Box<T> box) returns T",
+            "    return box.value",
+            "init",
+            "    let box = new Box<int>",
+            "    box.value = 3",
+            "    unbox(box)",
+        };
+        LuaHotReload.Manifest first = manifest(generic);
+        assertTrue(first.bindings().toString(), first.bindings().stream().anyMatch(b -> b.contains("Box<T>")));
+        LuaHotReload.Manifest second = manifest(generic);
+        assertEquals(first.bindings(), second.bindings());
+        assertEquals(first.abi(), second.abi());
+        assertTrue(LuaHotReload.payload(first, second, Set.of(), 1).functions().isEmpty());
+    }
+
     /** An edit outside the bodies changes the script the map is running, which a payload cannot reach. */
     @Test
     public void structuralEditIsRejected() {

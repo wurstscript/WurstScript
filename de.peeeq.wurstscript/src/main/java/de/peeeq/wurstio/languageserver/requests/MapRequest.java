@@ -275,6 +275,9 @@ public abstract class MapRequest extends UserRequest<Object> {
                         + stored + " of them stored as values (not reloadable)");
                 }
                 File buildDir = getBuildDir();
+                if (luaHotReloadManifest != null) {
+                    LuaHotReloadSession.writeManifest(buildDir.toPath(), luaHotReloadManifest);
+                }
                 File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
                 return outFile;

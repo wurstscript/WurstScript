@@ -210,12 +210,11 @@ Notes; finished-work narrative does not.
   overlapping loops can mean something different from `table.move`; prove overlap/direction, bounds,
   defaults and counter semantics. Establish game availability, crossover and hot consumers before
   selecting an API or automatic lowering. Scripts and raw samples are in the investigation note.
-- **Verify the Lua body hot reload in the game.** A prototype is behind `-luaHotReload`: payloads,
-  the editor session and the `wurst.hotreload` path for Lua maps, tested in the test runtime
-  ([docs/LUA_HOT_RELOAD.md](docs/LUA_HOT_RELOAD.md)). The delivery is unverified: run
-  `docs/profiling/lua-opportunities/hot-reload-probe.lua` in a Lua map and record the client version.
-  Then fix what it contradicts and try the loop in a real map. Later stages are listed in the design
-  note: new functions, a library reload hook, and multiplayer only through a synchronised channel.
+- **Try the Lua body hot reload from VS Code.** `-luaHotReload` replaces bodies in a running map;
+  the delivery was measured once on the 3.0.1.24371 client in a test map
+  ([docs/LUA_HOT_RELOAD.md](docs/LUA_HOT_RELOAD.md)). Not yet tried: the `wurst.hotreload` command
+  against a running game, a large payload, a rejected one. Later stages are in the design note: new
+  functions, a library reload hook, and multiplayer only through a synchronised channel.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

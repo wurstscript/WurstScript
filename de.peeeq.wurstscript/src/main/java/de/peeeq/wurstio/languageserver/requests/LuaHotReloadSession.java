@@ -37,6 +37,39 @@ public final class LuaHotReloadSession {
         List<String> reloaded = new ArrayList<>();
     }
 
+    /**
+     * Builds the payload which takes a script with the first manifest to the program of the second and writes it as
+     * a preload file: {@code <baseline manifest.json> <current manifest.json> <output .pld>}. Each build with
+     * {@code -luaHotReload} leaves its manifest in {@code _build/luaHotReload/manifest.json}.
+     */
+    public static void main(String[] args) throws IOException {
+        if (args.length != 3) {
+            System.err.println("usage: <baseline manifest.json> <current manifest.json> <output .pld>");
+            System.exit(2);
+        }
+        LuaHotReload.Manifest baseline = readManifest(Path.of(args[0]));
+        LuaHotReload.Manifest current = readManifest(Path.of(args[1]));
+        try {
+            LuaHotReload.Payload payload = LuaHotReload.payload(baseline, current, Set.of(), 1);
+            Files.writeString(Path.of(args[2]), preloadFile(payload.source()), StandardCharsets.UTF_8);
+            System.out.println("payload " + payload.version() + ": " + String.join(", ", payload.functions()));
+        } catch (LuaHotReload.Rejected e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+    }
+
+    /** Leaves the manifest of a build where {@link #main} reads it. */
+    public static void writeManifest(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
+        Path file = buildDir.resolve(SESSION_FOLDER).resolve("manifest.json");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, GSON.toJson(manifest), StandardCharsets.UTF_8);
+    }
+
+    private static LuaHotReload.Manifest readManifest(Path file) throws IOException {
+        return GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), LuaHotReload.Manifest.class);
+    }
+
     /** Records the manifest of a map which is being started; earlier payloads do not apply to it. */
     public static void start(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
         State state = new State();

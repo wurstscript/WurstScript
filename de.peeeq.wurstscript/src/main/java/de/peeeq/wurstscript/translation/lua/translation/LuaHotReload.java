@@ -2,10 +2,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.jassIm.ElementWithTrace;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 
 import java.nio.charset.StandardCharsets;
@@ -263,9 +260,36 @@ public final class LuaHotReload {
     private static String signature(ImFunction f) {
         StringJoiner sig = new StringJoiner(",", f.getName() + "(", ")");
         for (ImVar p : f.getParameters()) {
-            sig.add(p.getType().toString());
+            sig.add(typeKey(p.getType()));
         }
-        return sig + f.getReturnType().toString();
+        return sig + typeKey(f.getReturnType());
+    }
+
+    /**
+     * A type as the same text in every compilation. The IM printer appends an identity hash to a type variable, which
+     * differs from one compilation to the next, so it cannot be part of an id.
+     */
+    private static String typeKey(ImType t) {
+        if (t instanceof ImTypeVarRef r) {
+            return r.getTypeVariable().getName();
+        } else if (t instanceof ImClassType ct) {
+            StringJoiner args = new StringJoiner(",", ct.getClassDef().getName() + "<", ">");
+            for (ImTypeArgument ta : ct.getTypeArguments()) {
+                args.add(typeKey(ta.getType()));
+            }
+            return args.toString();
+        } else if (t instanceof ImArrayType a) {
+            return typeKey(a.getEntryType()) + "[]";
+        } else if (t instanceof ImArrayTypeMulti a) {
+            return typeKey(a.getEntryType()) + a.getArraySize();
+        } else if (t instanceof ImTupleType tuple) {
+            StringJoiner types = new StringJoiner(",", "(", ")");
+            for (ImType component : tuple.getTypes()) {
+                types.add(typeKey(component));
+            }
+            return types.toString();
+        }
+        return t.toString();
     }
 
     private static String fingerprint(String compilerVersion, List<String> skeleton, List<String> bindings) {

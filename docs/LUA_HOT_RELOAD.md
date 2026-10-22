@@ -1,8 +1,8 @@
 # Lua body hot reload (prototype)
 
-Status: compiler, payload and editor side implemented behind `-luaHotReload`; the game side is designed and
-emitted but **not verified in the game**. Nothing here is claimed about the real client until the probe in
-[profiling/lua-opportunities/hot-reload-probe.lua](profiling/lua-opportunities/hot-reload-probe.lua) has been run.
+Status: implemented behind `-luaHotReload`. The whole path (a payload compiled by the editor, written as a preload
+file, picked up by the running map and installed) was measured once on the 3.0.1.24371 client in a test map; see
+"Measured in the game". The VS Code command has not been driven against a running game yet.
 Background: [LUA_RUNTIME_OPPORTUNITIES.md](LUA_RUNTIME_OPPORTUNITIES.md), "Lua hot reload".
 
 ## What it does
@@ -51,7 +51,7 @@ is undone is undone in the map.
 
 | Point | Answer in the prototype |
 | --- | --- |
-| Engine `load` and delivery | Emitted, with an in-game probe written; unverified (see "Delivery" and "Probe"). |
+| Engine `load` and delivery | Measured on the 3.0.1.24371 client: the preload file's Lua section runs, the tooltip carries the payload, `load` compiles it in the map's environment and the bodies are replaced (see "Measured in the game"). |
 | Stable semantic ids | Generated names are numbered in translation order, so names alone are not stable. Each emitted name is bound to `package:IM name` (with the IM signature for functions) in the fingerprint. A swap of two numbered names, a new declaration or a removed one changes the fingerprint and is rejected. Renaming support (mapping ids across builds) is a later stage. |
 | Explicit lexical storage bindings | A payload is a separate chunk and cannot see the main chunk's locals. A hot-reload build therefore declares no main-chunk local: the allocator state, deallocator, hashtable sentinels and the old-generics zero become globals (`LuaTranslator.declareChunkLocal`). Every binding a body reaches is a global of the script's environment, and the payload is compiled with that environment (`load(source, name, "t", _ENV)`). Function-level aliases of field stores are inside the bodies and are rebuilt with them. |
 | All slot aliases | `LuaHotReload.collectFunctionValues` finds every place a reloadable function is used as a value. A class-table binding `Class.slot = f` is repeated after the new definition (`Square.Circle_area = Square_Square_area` in the test), for every class which binds it. A callback adapter passes its target to `xpcall` by name on each call and needs nothing. Any other stored value would keep the old body, so such a function is refused by name. Neither the test programs nor a program over `LinkedList` and `ClosureTimers` from the standard library has one. |
@@ -63,7 +63,7 @@ is undone is undone in the map.
 | No release overhead | Without the flag the emission is unchanged, byte for byte (see "Release output"). With it, the runtime costs a global lookup where a main-chunk upvalue was, plus a once-a-second poll. |
 | Multiplayer | Not supported: a preload file is local to one machine, so applying it would desync the game. The poll returns at once unless `bj_isSinglePlayer`. Multiplayer would need the payload sent through a synchronised channel (for example `BlzSendSyncData` from the host, in chunks), applied by every client at the same point in the game's order, with the fingerprint checked identically on every client. |
 
-### Delivery (designed and stubbed)
+### Delivery
 
 Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
 
@@ -74,12 +74,12 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
    `CustomMapData\Wurst\hotreload.pld` (`customMapDataPath` in the configuration overrides the folder). JHCR stays
    the path for Jass maps. A rejected edit fails the request with the reasons.
 
-Game side (emitted, unverified): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. The poll
+Game side (measured once, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. The poll
 clears the tooltip of ability `Aamk`, calls `Preloader` on the file, and reads the tooltip back. The file's Lua
 section (between `//!beginusercode` and `//!endusercode`) puts the payload in that tooltip in chunks of 1,000
 characters. Any non-empty, unseen text is passed to `__wurst_hotreload_apply`. The payload is relayed through a
-tooltip because the Preloader may not run the section in the map's environment; the probe checks this. The writer
-escapes `//!` inside the payload so that no marker can end the section early.
+tooltip because whether the Preloader runs the section in the map's environment is not measured. The writer escapes
+`//!` inside the payload so that no marker can end the section early.
 
 The test runtime runs the same path: `TestConfig.luaHotReload` writes the preload file, its `Preloader` stub runs the
 Lua section, and the program's `hotReload()` calls the emitted poll.
@@ -105,7 +105,34 @@ With the flag off, the change only adds unused fields and branches to the transl
 built from master and from this branch with the same command line, produces byte-identical Lua (see
 "Measurements").
 
-## Probe
+## Measured in the game
+
+On the 3.0.1.24371 client, single player, a test map built with `-lua -luaHotReload` (no `-inline`) ran a suite which
+read two bodies, wrote a ready file, and waited for them to change. When the ready file appeared, the editor's
+payload was copied to `CustomMapData\Wurst\hotreload.pld`. The payload was built by `LuaHotReloadSession` from the
+manifests of the map and of the same map with the two bodies edited, and held exactly those two functions. Results:
+
+| What | Before | After |
+| --- | --- | --- |
+| a function called by name (`return 1`, edited to `return 2`) | 1 | 2 |
+| an override reached through its class table (`4`, edited to `40`), on an object made before the reload and one made after | 4 | 40, 40 |
+| the sibling class's override (unchanged) | 3 | 3 |
+| a global set before the reload | 7 | 7 |
+| `bj_isSinglePlayer` | 1 | |
+| seconds from the first check after the ready file to the new body | | 0.5 |
+| characters in the `Aamk` tooltip after the poll (the payload) | | 343 |
+
+An object allocated after the reload got a higher id than the objects allocated before it (16 more, other
+allocations between), so the allocator was not restarted. The first attempt on the real map found a defect which the
+unit tests had missed: the id of a function whose signature has a new-generics type variable included the IM
+printer's identity hash, so two compilations of the same map never matched. Ids now print types structurally
+(`genericSignaturesHaveTheSameIdInEveryCompilation`).
+
+Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); payloads larger
+than this one; a rejected payload in the game; threads suspended by a wait during a reload; the VS Code command
+against a running game.
+
+## Probe for other clients
 
 The probe is `profiling/lua-opportunities/hot-reload-probe.lua`, plus the file `hot-reload-probe.pld` next to it,
 which is in the editor's layout and kept equal to the writer's output by `preloadFileCarriesThePayloadText`. It
@@ -143,9 +170,8 @@ editor loop in the game.
 
 ## Next stages
 
-1. Run the probe; fix the delivery details it contradicts (channel ability, markers, environment).
-2. Try the whole loop in a real map with the VS Code command.
-3. Accept new functions: a payload can define a function which is not yet in the skeleton, provided nothing in the
+1. Try the whole loop in a real map with the VS Code command, with a larger payload and a rejected one.
+2. Accept new functions: a payload can define a function which is not yet in the skeleton, provided nothing in the
    skeleton has to refer to it. Today any new function, including a new lambda, is rejected.
-4. A reload hook for libraries (see "Why not a reactive emission").
-5. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.
+3. A reload hook for libraries (see "Why not a reactive emission").
+4. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.
