@@ -156,6 +156,28 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(List.of("first"), payload.functions());
     }
 
+    /** A field which holds objects of another class now: objects which exist keep values of the old one. */
+    @Test
+    public void fieldTypeChangeIsRejected() {
+        String[] base = {
+            "package Test",
+            "class A",
+            "class B",
+            "class Holder",
+            "    A held = null",
+            "function read(Holder h) returns int",
+            "    return h.held castTo int",
+            "init",
+            "    read(new Holder())",
+        };
+        String[] edited = base.clone();
+        edited[4] = "    B held = null";
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReload.Manifest changed = manifest(edited);
+        assertFalse(baseline.abi().equals(changed.abi()));
+        expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(baseline, changed, Set.of(), 1));
+    }
+
     /** An edit outside the bodies changes the script the map is running, which a payload cannot reach. */
     @Test
     public void structuralEditIsRejected() {
@@ -288,6 +310,19 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(second.payload().functions().contains("score"));
         assertFalse("the file is written whole, then renamed", java.nio.file.Files.exists(
             second.file().resolveSibling("hotreload-2.pld.tmp")));
+
+        // The state cannot be saved after payload 3 is out: the next payload must not reuse its file, and carries its
+        // functions again.
+        java.nio.file.Path stateTemp = buildDir.resolve("luaHotReload").resolve("session.json.tmp");
+        java.nio.file.Files.createDirectories(stateTemp);
+        LuaHotReload.Manifest areaOnly = manifest(program("x + 1", "side * side * 100", INIT));
+        expectThrows(IOException.class, () -> LuaHotReloadSession.send(buildDir, customMapData, areaOnly));
+        java.nio.file.Files.delete(stateTemp);
+        assertTrue(java.nio.file.Files.exists(customMapData.resolve("Wurst").resolve("hotreload-3.pld")));
+        LuaHotReloadSession.Sent fourth = LuaHotReloadSession.send(buildDir, customMapData,
+            manifest(program("x + 1", "side * side", INIT)));
+        assertEquals("the unrecorded payload 3 counts as sent", 4, fourth.payload().version());
+        assertTrue("the area override, back at its original body, is sent again", fourth.payload().functions().size() == 2);
 
         java.nio.file.Path other = customMapData.resolve("Wurst").resolve("other.pld");
         java.nio.file.Files.writeString(other, "kept");

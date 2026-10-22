@@ -75,6 +75,13 @@ public final class LuaHotReloadSession {
         State state = new State();
         state.baseline = manifest;
         save(buildDir, state);
+        Files.deleteIfExists(pendingFile(buildDir));
+    }
+
+    /** A payload being written: recorded before its file, so a session which could not record it can still account for it. */
+    private static final class Pending {
+        int version;
+        List<String> functions = new ArrayList<>();
     }
 
     /** A payload and the file it was written to. */
@@ -93,15 +100,48 @@ public final class LuaHotReloadSession {
             throw new LuaHotReload.Rejected(List.of("no map was started with hot run (or -luaHotReload): start the map with hot run first"));
         }
         State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
+        recoverPending(buildDir, customMapData, state);
         LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current,
             new LinkedHashSet<>(state.reloaded), state.version + 1);
-        Set<String> reloaded = new LinkedHashSet<>(state.reloaded);
-        reloaded.addAll(payload.functions());
+        Pending pending = new Pending();
+        pending.version = payload.version();
+        pending.functions = payload.functions();
+        writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
-        state.reloaded = new ArrayList<>(reloaded);
-        state.version = payload.version();
+        record(state, pending);
         save(buildDir, state);
+        Files.deleteIfExists(pendingFile(buildDir));
         return new Sent(payload, delivered);
+    }
+
+    /**
+     * A payload whose file was written but which the session could not record (the build stopped, or the state could not
+     * be saved) may already be in the map, which reads each file once: the session takes it as sent, so the next payload
+     * gets the next number and carries its functions again. One whose file is missing never reached the map.
+     */
+    private static void recoverPending(Path buildDir, Path customMapData, State state) throws IOException {
+        Path file = pendingFile(buildDir);
+        if (!Files.exists(file)) {
+            return;
+        }
+        Pending pending = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), Pending.class);
+        Path delivered = customMapData.resolve(LuaHotReload.preloadFile(pending.version).replace('\\', '/'));
+        if (pending.version > state.version && Files.exists(delivered)) {
+            record(state, pending);
+            save(buildDir, state);
+        }
+        Files.delete(file);
+    }
+
+    private static void record(State state, Pending sent) {
+        Set<String> reloaded = new LinkedHashSet<>(state.reloaded);
+        reloaded.addAll(sent.functions);
+        state.reloaded = new ArrayList<>(reloaded);
+        state.version = sent.version;
+    }
+
+    private static Path pendingFile(Path buildDir) {
+        return buildDir.resolve(SESSION_FOLDER).resolve("pending.json");
     }
 
     /**

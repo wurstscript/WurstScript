@@ -111,12 +111,16 @@ public final class LuaHotReload {
 
         List<String> bindings = new ArrayList<>();
         for (ImVar global : tr.prog.getGlobals()) {
-            bindings.add(tr.luaVar.getFor(global).getName() + "=" + semanticId(global, global.getName()));
+            bindings.add(tr.luaVar.getFor(global).getName() + "=" + semanticId(global, global.getName())
+                + ":" + typeKey(global.getType()));
         }
         for (ImClass c : tr.prog.getClasses()) {
             bindings.add(tr.luaClassVar.getFor(c).getName() + "=" + semanticId(c, c.getName()));
             for (ImVar field : c.getFields()) {
-                bindings.add(tr.fieldStorage(field).getName() + "=" + semanticId(field, c.getName() + "." + field.getName()));
+                // With its type: objects which exist keep the values of the old one, which two class types
+                // with the same nil default and storage would not reveal.
+                bindings.add(tr.fieldStorage(field).getName() + "=" + semanticId(field, c.getName() + "." + field.getName())
+                    + ":" + typeKey(field.getType()));
             }
         }
 
