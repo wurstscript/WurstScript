@@ -88,7 +88,6 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void payloadCarriesTheChangedFunctionsAndTheirSlots() throws Exception {
         LuaHotReload.Manifest baseline = manifest(program("x + 1", "side * side", INIT));
         LuaHotReload.Manifest edited = manifest(program("x + 10", "side * side", INIT));
-        assertEquals(baseline.abi(), edited.abi());
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline, edited, Set.of(), 1);
         assertEquals(List.of("score"), sourceNames(payload.functions()));
         assertTrue(payload.source(), payload.source().contains("(x + 10)"));
@@ -168,16 +167,16 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void functionStoredAsAValueByTheRunningMapIsNotReloadable() {
         LuaHotReload.Function stored = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
-            List.of(), List.of("in g"), false);
+            List.of(), List.of("in g"), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Function edited = new LuaHotReload.Function("f", "Test:f()void", "function f() return 2 end",
-            List.of(), List.of(), false);
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Function plain = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
-            List.of(), List.of(), false);
-        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", java.util.Map.of("f", edited), List.of(), List.of());
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", edited), List.of(), List.of());
         LuaHotReload.Rejected byBaseline = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(
-            new LuaHotReload.Manifest("abi", java.util.Map.of("f", stored), List.of(), List.of()), current, Set.of(), 1));
+            new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored), List.of(), List.of()), current, Set.of(), 1));
         assertTrue(byBaseline.getMessage(), byBaseline.getMessage().contains("in g"));
-        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", java.util.Map.of("f", plain), List.of(), List.of());
+        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", plain), List.of(), List.of());
         expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(plainBaseline, current, Set.of(), Set.of("f"), 2));
     }
@@ -238,25 +237,89 @@ public class LuaHotReloadTests extends WurstScriptTest {
         expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(baseline, changed, Set.of(), 1));
     }
 
-    /** An edit outside the bodies changes the script the map is running, which a payload cannot reach. */
-    @Test
-    public void structuralEditIsRejected() {
-        LuaHotReload.Manifest baseline = manifest(program("x + 1", "side * side", INIT));
-        String[] withGlobalLines = program("x + 1 + extra", "side * side", INIT);
-        withGlobalLines[4] = "int calls = 0\nint extra = 4";
-        LuaHotReload.Manifest withGlobal = manifest(withGlobalLines);
-        assertFalse(baseline.abi().equals(withGlobal.abi()));
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, withGlobal, Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("outside the function bodies"));
+    private static String[] structuralProgram(boolean edited) {
+        List<String> lines = new java.util.ArrayList<>(List.of(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "native I2S(int i) returns string",
+            "interface Op",
+            "    function apply(int v) returns int",
+            edited ? "int counter = 6" : "int counter = 5"));
+        if (edited) {
+            // A new global, class and function above the existing declarations: they must move nothing.
+            lines.addAll(List.of("int extra = 40", "class Fresh", "    function value() returns int",
+                "        return 100", "function helper() returns int", "    return extra"));
+        }
+        lines.addAll(List.of("class Box", "    int a"));
+        if (edited) {
+            lines.add("    int bonus = 3");
+        }
+        lines.addAll(List.of(
+            "    construct(int a)",
+            "        this.a = a",
+            "    function get() returns int",
+            edited ? "        return a + bonus" : "        return a",
+            edited ? "function compute(int x, int y) returns int" : "function compute(int x) returns int",
+            edited ? "    return x * y + helper()" : "    return x + 1",
+            "function run() returns int"));
+        if (edited) {
+            lines.addAll(List.of("    let f = new Fresh()", "    Op op = (int v) -> v + 2",
+                "    return compute(2, 3) + f.value() + op.apply(1) + counter"));
+        } else {
+            lines.add("    return compute(1) + counter - 5");
+        }
+        lines.addAll(List.of(
+            "init",
+            "    let b = new Box(7)",
+            "    if run() != 2 or b.get() != 7",
+            "        testFail(\"the original program did not run\")",
+            "    hotReload()",
+            // compute(2, 3) 6 + extra 40 + Fresh 100 + the lambda 3 + counter 5: the running map keeps its counter.
+            "    if run() != 154",
+            "        testFail(\"after the reload run() is \" + I2S(run()))",
+            "    if b.get() != 7",
+            "        testFail(\"an object made before has the new field's default\")",
+            "    if new Box(1).get() != 4",
+            "        testFail(\"a new object runs the new constructor\")",
+            "    testSuccess()"));
+        return lines.toArray(new String[0]);
+    }
 
-        LuaHotReload.Manifest withFunction = manifest(program("helper(x)", "side * side",
-            concat(new String[] {"function helper(int x) returns int", "    return x"}, INIT)));
-        rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, withFunction, Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("functions the running script does not have: helper_"));
-        assertFalse("a new function shifts the names after it, which is not reported apart:\n" + rejected.getMessage(),
-            rejected.getMessage().contains("a name now means something else"));
+    /**
+     * One payload adds a function, changes a signature, adds a global, a class field, a class and a lambda, and changes a
+     * global's initial value: the map runs the new program, keeps its counter and its object, and new objects get the
+     * new field.
+     */
+    @Test
+    public void structuralEditsReload() {
+        test().testLua(true).executeProg()
+            .luaHotReload(structuralProgram(true))
+            .lines(structuralProgram(false));
+    }
+
+    @Test
+    public void structuralPayloadRunsWhatIsNewAndWarnsOfKeptValues() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(structuralProgram(false));
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(structuralProgram(true)), LuaHotReload.History.NONE, 1);
+        List<String> names = sourceNames(payload.functions());
+        assertTrue(names.toString(), names.contains("helper") && names.contains("compute") && names.contains("run"));
+        assertTrue(payload.source(), payload.source().contains("Fresh_"));
+        assertEquals(payload.warnings().toString(), 1, payload.warnings().size());
+        assertTrue(payload.warnings().get(0), payload.warnings().get(0).contains("counter"));
+        assertTrue("a new global's initial value runs: " + payload.source(), payload.source().contains("= 40"));
+
+        // A later payload does not run again what an earlier one ran: the new global keeps the value the map gave it.
+        LuaHotReload.Payload again = LuaHotReload.payload(baseline, manifest(structuralProgram(true)), new LuaHotReload.History(
+            new java.util.HashSet<>(payload.functions()), Set.of(), new java.util.HashSet<>(payload.ran())), 2);
+        for (String statement : payload.ran()) {
+            // A slot binding comes again with the function it binds, which a cumulative payload defines again.
+            if (!statement.matches("\\w+\\.\\w+ = \\w+")) {
+                // Unindented: a statement the payload runs, not one in the body of a function it defines.
+                assertFalse(statement, again.source().contains("\n" + statement + "\n"));
+            }
+        }
     }
 
     @Test
@@ -335,7 +398,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         RunArgs library = HOT_RELOAD.with("-lib", StdLib.getLib(), "-runcompiletimefunctions");
         LuaHotReload.Manifest plainBase = libraryManifest(library, base);
         assertTrue("no function the standard library stores as a value",
-            plainBase.functions().values().stream().allMatch(f -> f.captures().isEmpty()));
+            plainBase.functions().values().stream().allMatch(f -> f.kind() != LuaHotReload.Kind.PROGRAM || f.captures().isEmpty()));
         assertTrue(LuaHotReload.payload(plainBase, libraryManifest(library, moved), Set.of(), 1).functions().isEmpty());
 
         RunArgs traced = library.with("-stacktraces");

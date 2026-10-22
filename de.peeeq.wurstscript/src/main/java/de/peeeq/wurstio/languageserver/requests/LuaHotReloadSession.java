@@ -37,6 +37,8 @@ public final class LuaHotReloadSession {
         List<String> reloaded = new ArrayList<>();
         /** The functions a version the map ran stored as a value. */
         List<String> captured = new ArrayList<>();
+        /** The statements earlier payloads ran, so that a later one does not run them again. */
+        List<String> ran = new ArrayList<>();
     }
 
     /**
@@ -108,6 +110,7 @@ public final class LuaHotReloadSession {
         int version;
         List<String> functions = new ArrayList<>();
         List<String> captured = new ArrayList<>();
+        List<String> ran = new ArrayList<>();
     }
 
     /** A payload and the file it was written to. */
@@ -127,16 +130,14 @@ public final class LuaHotReloadSession {
         }
         State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
         recoverPending(buildDir, customMapData, state);
-        LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current,
-            new LinkedHashSet<>(state.reloaded), new LinkedHashSet<>(state.captured), state.version + 1);
+        LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current, new LuaHotReload.History(
+            new LinkedHashSet<>(state.reloaded), new LinkedHashSet<>(orEmpty(state.captured)),
+            new LinkedHashSet<>(orEmpty(state.ran))), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
-        for (LuaHotReload.Function f : current.functions().values()) {
-            if (!f.captures().isEmpty()) {
-                pending.captured.add(f.name());
-            }
-        }
+        pending.captured = payload.captured();
+        pending.ran = payload.ran();
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -168,10 +169,18 @@ public final class LuaHotReloadSession {
         Set<String> reloaded = new LinkedHashSet<>(state.reloaded);
         reloaded.addAll(sent.functions);
         state.reloaded = new ArrayList<>(reloaded);
-        Set<String> captured = new LinkedHashSet<>(state.captured == null ? List.of() : state.captured);
-        captured.addAll(sent.captured == null ? List.of() : sent.captured);
+        Set<String> captured = new LinkedHashSet<>(orEmpty(state.captured));
+        captured.addAll(orEmpty(sent.captured));
         state.captured = new ArrayList<>(captured);
+        Set<String> ran = new LinkedHashSet<>(orEmpty(state.ran));
+        ran.addAll(orEmpty(sent.ran));
+        state.ran = new ArrayList<>(ran);
         state.version = sent.version;
+    }
+
+    /** A list Gson left null because an older session file did not have it. */
+    private static List<String> orEmpty(List<String> list) {
+        return list == null ? List.of() : list;
     }
 
     private static Path pendingFile(Path buildDir) {
