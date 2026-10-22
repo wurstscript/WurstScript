@@ -134,6 +134,8 @@ Lambdas used as the Jass `code` type cannot accept parameters or capture locals.
 
 Objects created with `new` generally need `destroy`; tuples are value types and must not be destroyed. Destructors (`ondestroy`) remain explicit for Lua output: Lua garbage collection does not replace Wurst ownership and cleanup.
 
+A field without an initialiser has no defined value in a new object that reuses a destroyed one's id: Jass keeps what the old object left, while Lua and compile-time code start from the field's default (`docs/WC3_RUNTIME.md`, "Objects and memory"). Give such a field an initialiser, or assign it in the constructor, when its starting value matters.
+
 ```wurst
 class Missile
 	function onCollide(unit target)

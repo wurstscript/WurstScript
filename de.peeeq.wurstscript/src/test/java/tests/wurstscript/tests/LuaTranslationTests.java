@@ -4921,4 +4921,69 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("lua-path branch must be present", compiled.contains("lua-path"));
     }
 
+    /**
+     * An object which gets the id of a destroyed one. A field without an initialiser keeps on Jass what the destroyed
+     * object left in it, since the field is an array indexed by id and nothing resets it; Lua writes the default of
+     * every field at allocation, and the interpreter of compile-time code makes a fresh object (docs/WC3_RUNTIME.md,
+     * "Objects and memory"). A field with an initialiser starts from it everywhere.
+     */
+    private static String[] reusedObjectFields(int plain, int arrayElement) {
+        return new String[]{
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "    int plain",
+            "    int initialised = 7",
+            "    int array[2] arr",
+            "init",
+            "    let a = new A()",
+            "    a.plain = 5",
+            "    a.initialised = 9",
+            "    a.arr[1] = 6",
+            "    let id = a castTo int",
+            "    destroy a",
+            "    let b = new A()",
+            "    if b castTo int == id and b.plain == " + plain + " and b.initialised == 7 and b.arr[1] == "
+                + arrayElement,
+            "        testSuccess()"
+        };
+    }
+
+    @Test
+    public void reusedObjectKeepsAFieldWithoutInitialiserOnJass() {
+        test().executeProg(true).executeProgOnlyAfterTransforms()
+            .luaExempt(LuaExemption.OBJECT_BOOKKEEPING, "Succeed function not called")
+            .lines(reusedObjectFields(5, 6));
+    }
+
+    @Test
+    public void reusedObjectStartsFromTheFieldDefaultsOnLua() {
+        test().testLua(true).executeProg(true).lines(reusedObjectFields(0, 0));
+    }
+
+    @Test
+    public void reusedObjectStartsFromTheFieldDefaultsAtCompileTime() {
+        test().executeProg(true).runCompiletimeFunctions(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "function compiletime(int i) returns int",
+            "    return i",
+            "class A",
+            "    int plain",
+            "    int array[2] arr",
+            "function reuse() returns int",
+            "    let a = new A()",
+            "    a.plain = 5",
+            "    a.arr[1] = 6",
+            "    destroy a",
+            "    let b = new A()",
+            "    let r = b.plain * 10 + b.arr[1]",
+            "    destroy b",
+            "    return r",
+            "constant reused = compiletime(reuse())",
+            "init",
+            "    if reused == 0",
+            "        testSuccess()");
+    }
+
 }
