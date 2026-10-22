@@ -222,6 +222,24 @@ Notes; finished-work narrative does not.
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
   hand-written Lua would be, list every compiler-introduced call, allocation or table write on an
   ordinary path, and fix the root (AGENTS.md §3, §7).
+- **Lua enum nil tests on gameplay paths, given a common.j constant through a parameter.** A native's
+  nil-safety wrapper turns a null enum argument into the handle of id 0, and skips that test where the call
+  passes a common.j constant. On the optimised Lua of a large real map (Oct 2026), that removed 305 of the
+  471 tests given a constant, all of them in init code (`SetPlayerAlliance`, `SetStartLocPrio`). The 166
+  left include every gameplay one: `IsUnitType` 46, `GetUnitState` 29, `GetPlayerState` 13,
+  `SetUnitState` 12. They reach the native through a standard library parameter that only forwards the
+  enum (`unit.getState(unitstate state)` calls `GetUnitState(this, state)`), and the constant appears only
+  once the inliner has removed that function, after the lowering has chosen the test. Two candidate roots;
+  choose one:
+  1. In the lowering, move the `p = ConvertX(0)` normalisation of such a parameter to the function's direct
+     callers, where a constant needs none. This is only sound when every call of the function is seen (not
+     referenced, not a method implementation, not run by ExecuteFunc, name not preserved), nothing assigns
+     the parameter and nothing else reads it. A return-default guard (a null unit) must never move. A
+     prototype of about 100 lines took the map from 494 enum tests to 25 (2 still given a constant), for
+     about −2,900 static Lua instructions.
+  2. Decide after inlining, where the code reads `t = UNIT_STATE_MAX_LIFE; if t == nil then ...`: the fact
+     that a common.j constant global is never nil would fold the test there. That belongs to the optimiser,
+     which is outside this repository's scope.
 
 ## Blocked on a decision
 
