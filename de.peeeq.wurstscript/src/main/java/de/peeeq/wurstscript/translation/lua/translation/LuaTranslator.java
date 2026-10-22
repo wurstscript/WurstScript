@@ -90,6 +90,11 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    /**
+     * The names of the locals of every function in a hot-reload build, which {@link #uniqueName} avoids: a global named
+     * after a local of the same name (a helper made when a body first needs it) would be shadowed in that body.
+     */
+    private final Set<String> localNames = new HashSet<>();
     private final Set<LuaVariable> localizableStorageTables = Collections.newSetFromMap(new IdentityHashMap<>());
     private LuaFunction bootstrapFunction;
     private final Set<String> emittedDispatchSlots = new HashSet<>();
@@ -184,7 +189,7 @@ public class LuaTranslator {
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
-                name = uniqueName(name);
+                name = a.isGlobal() ? declarationName(name, LuaHotReload.variableId(a)) : localName(ownerFunction(a), name);
             } else {
                 usedNames.add(name);
             }
@@ -200,7 +205,7 @@ public class LuaTranslator {
             ImTupleType type = (ImTupleType) v.getType();
             List<LuaVariable> vars = new ArrayList<>();
             for (String component : type.getNames()) {
-                vars.add(LuaAst.LuaVariable(uniqueName(v.getName() + "_" + component), LuaAst.LuaNoExpr()));
+                vars.add(LuaAst.LuaVariable(localName(ownerFunction(v), v.getName() + "_" + component), LuaAst.LuaNoExpr()));
             }
             return vars;
         });
@@ -213,12 +218,13 @@ public class LuaTranslator {
             String name = a.getName();
             if (!a.isExtern() && !a.isBj() && !a.isNative()
                 && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
-                name = uniqueName(name);
+                name = declarationName(name, LuaHotReload.functionId(a));
             } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
                 usedNames.add(name);
             }
 
             LuaFunction lf = LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
+            imFunctionOf.put(lf, a);
             // translate parameters
             for (ImVar p : a.getParameters()) {
                 LuaVariable pv = luaVar.getFor(p);
@@ -242,7 +248,8 @@ public class LuaTranslator {
     GetAForB<ImClass, LuaVariable> luaClassVar = new GetAForB<ImClass, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImClass a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+            return LuaAst.LuaVariable(declarationName(a.getName(), LuaHotReload.classId(a)),
+                LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
     };
 
@@ -260,7 +267,7 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar field) {
-            LuaVariable storage = LuaAst.LuaVariable(uniqueName(field.getName() + "_storage"),
+            LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", LuaHotReload.variableId(field)),
                 LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
             localizableStorageTables.add(storage);
             return storage;
@@ -288,7 +295,7 @@ public class LuaTranslator {
         public LuaFunction initFor(ImMethod method) {
             LuaVariable receiver = LuaAst.LuaVariable("receiver", LuaAst.LuaNoExpr());
             LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
-            LuaFunction result = LuaAst.LuaFunction(uniqueName("dispatch_" + method.getName()),
+            LuaFunction result = LuaAst.LuaFunction(declarationName("dispatch_" + method.getName(), LuaHotReload.methodId(method)),
                 LuaAst.LuaParams(receiver, dots), LuaAst.LuaStatements());
             LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
                 LuaAst.LuaExprVarAccess(objectClass),
@@ -335,7 +342,8 @@ public class LuaTranslator {
     GetAForB<ImClass, LuaFunction> luaClassAllocator = new GetAForB<ImClass, LuaFunction>() {
         @Override
         public LuaFunction initFor(ImClass a) {
-            return LuaAst.LuaFunction(uniqueName(a.getName() + "_create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            return LuaAst.LuaFunction(declarationName(a.getName() + "_create", LuaHotReload.classId(a)),
+                LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
 
@@ -432,12 +440,63 @@ public class LuaTranslator {
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
+    /**
+     * The name of a declaration of the program. A hot-reload build adds a hash of the declaration's identity
+     * ({@link LuaHotReload#identityHash}), so that a name depends on its declaration alone: numbered names change when a
+     * declaration of the same name is added or removed before them, which a payload cannot carry.
+     */
+    String declarationName(String rawName, String identity) {
+        return uniqueName(hotReload ? rawName + "_" + LuaHotReload.identityHash(identity) : rawName);
+    }
+
+    /**
+     * In a hot-reload build, the names given to the locals of each function, kept per function: numbered across the
+     * program, a local added to one function would rename the locals of every function translated after it.
+     */
+    private final Map<Object, Set<String>> localNamesByScope = new IdentityHashMap<>();
+    /** The IM function each Lua function was translated from. */
+    private final Map<LuaFunction, ImFunction> imFunctionOf = new IdentityHashMap<>();
+
+    /**
+     * The name of a local of {@code scope} (an IM function, or a Lua function the backend made). A hot-reload build
+     * numbers it within its function alone, avoiding the names of every global; any other build numbers it across the
+     * program, as {@link #uniqueName} does.
+     */
+    String localName(@Nullable Object scope, String rawName) {
+        if (!hotReload || scope == null) {
+            return uniqueName(rawName);
+        }
+        String name = LuaIdentifiers.toIdentifier(rawName);
+        Set<String> used = localNamesByScope.computeIfAbsent(scope, k -> new HashSet<>());
+        String candidate = name;
+        for (int i = 1; usedNames.contains(candidate) || used.contains(candidate); i++) {
+            candidate = name + i;
+        }
+        used.add(candidate);
+        localNames.add(candidate);
+        return candidate;
+    }
+
+    private static @Nullable ImFunction ownerFunction(ImVar v) {
+        de.peeeq.wurstscript.jassIm.Element e = v.getParent();
+        while (e != null && !(e instanceof ImFunction)) {
+            e = e.getParent();
+        }
+        return (ImFunction) e;
+    }
+
+    /** The scope of the locals of a Lua function: the IM function it was translated from, when there is one. */
+    private Object scopeOf(Object luaFunction) {
+        ImFunction im = luaFunction instanceof LuaFunction lf ? imFunctionOf.get(lf) : null;
+        return im != null ? im : luaFunction;
+    }
+
     protected String uniqueName(String rawName) {
         String name = LuaIdentifiers.toIdentifier(rawName);
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);
-            if (usedNames.add(name)) {
+            if (!localNames.contains(name) && usedNames.add(name)) {
                 return name;
             }
             nextIndex = 1;
@@ -446,7 +505,7 @@ public class LuaTranslator {
         do {
             candidate = name + nextIndex;
             nextIndex++;
-        } while (!usedNames.add(candidate));
+        } while (localNames.contains(candidate) || !usedNames.add(candidate));
         uniqueNameCounters.put(name, nextIndex);
         return candidate;
     }
@@ -565,7 +624,7 @@ public class LuaTranslator {
     private void nameFunctionsBeforeTheirBodies() {
         for (ImClass c : prog.getClasses()) {
             for (ImFunction f : c.getFunctions()) {
-                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + classFunctionName(f)));
+                luaFunc.getFor(f).setName(declarationName(c.getName() + "_" + classFunctionName(f), LuaHotReload.functionId(f)));
                 classFunctionsNamed.add(f);
             }
         }
@@ -1285,13 +1344,13 @@ public class LuaTranslator {
             @Override
             public void visit(LuaFunction f) {
                 super.visit(f);
-                spillLocalsIntoTableIfNeeded(f.getName(), f.getParams(), f.getBody());
+                spillLocalsIntoTableIfNeeded(f, f.getName(), f.getParams(), f.getBody());
             }
 
             @Override
             public void visit(LuaMethod m) {
                 super.visit(m);
-                spillLocalsIntoTableIfNeeded(m.getName(), m.getParams(), m.getBody());
+                spillLocalsIntoTableIfNeeded(m, m.getName(), m.getParams(), m.getBody());
             }
         });
     }
@@ -1366,18 +1425,18 @@ public class LuaTranslator {
             @Override
             public void visit(LuaFunction f) {
                 super.visit(f);
-                localizeHotStorageTables(f.getParams(), f.getBody());
+                localizeHotStorageTables(f, f.getParams(), f.getBody());
             }
 
             @Override
             public void visit(LuaMethod m) {
                 super.visit(m);
-                localizeHotStorageTables(m.getParams(), m.getBody());
+                localizeHotStorageTables(m, m.getParams(), m.getBody());
             }
         });
     }
 
-    private void localizeHotStorageTables(LuaParams params, LuaStatements body) {
+    private void localizeHotStorageTables(Object owner, LuaParams params, LuaStatements body) {
         Map<LuaVariable, Integer> loopAccessCounts = new IdentityHashMap<>();
         collectLoopStorageAccesses(body, false, loopAccessCounts);
         if (loopAccessCounts.isEmpty()) {
@@ -1400,7 +1459,7 @@ public class LuaTranslator {
 
         Map<LuaVariable, LuaVariable> aliases = new IdentityHashMap<>();
         for (LuaVariable storage : selected) {
-            aliases.put(storage, LuaAst.LuaVariable(uniqueName(storage.getName() + "_local"),
+            aliases.put(storage, LuaAst.LuaVariable(localName(scopeOf(owner), storage.getName() + "_local"),
                 LuaAst.LuaExprVarAccess(storage)));
         }
         rewriteStorageAccesses(body, aliases);
@@ -1456,7 +1515,7 @@ public class LuaTranslator {
         return 0;
     }
 
-    private void spillLocalsIntoTableIfNeeded(String functionName, LuaParams params, LuaStatements body) {
+    private void spillLocalsIntoTableIfNeeded(Object owner, String functionName, LuaParams params, LuaStatements body) {
         List<LuaVariable> scopeLocals = collectFunctionScopeLocals(body);
         int localCount = params.size() + scopeLocals.size() + forLoopRegisters(body);
         if (DEBUG_LUA_LOCALS) {
@@ -1469,7 +1528,7 @@ public class LuaTranslator {
 
         LuaVariable localsTable = findTopLevelLocalsTable(body);
         if (localsTable == null) {
-            localsTable = LuaAst.LuaVariable(uniqueName("__wurst_locals"),
+            localsTable = LuaAst.LuaVariable(localName(scopeOf(owner), "__wurst_locals"),
                 LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
         // Must be declared before any rewritten uses; otherwise accesses become global lookups.
@@ -3109,6 +3168,17 @@ public class LuaTranslator {
      * {@code ImTranslator.luaInitFunctions}. The generated script calls each in an xpcall
      * ({@code StmtTranslation.emitLuaInitXpcall}); the test harness watches them.
      */
+    /** The Lua names of the program's functions called {@code imName}, for a test harness which replaces one. */
+    public List<String> functionNames(String imName) {
+        List<String> names = new ArrayList<>();
+        for (ImFunction f : prog.getFunctions()) {
+            if (f.getName().equals(imName)) {
+                names.add(luaFunc.getFor(f).getName());
+            }
+        }
+        return names;
+    }
+
     public List<String> initFunctionNames() {
         List<String> names = new ArrayList<>();
         for (ImFunction f : imTr.luaInitFunctions.keySet()) {

@@ -90,7 +90,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.Manifest edited = manifest(program("x + 10", "side * side", INIT));
         assertEquals(baseline.abi(), edited.abi());
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline, edited, Set.of(), 1);
-        assertEquals(List.of("score"), payload.functions());
+        assertEquals(List.of("score"), sourceNames(payload.functions()));
         assertTrue(payload.source(), payload.source().contains("(x + 10)"));
 
         LuaHotReload.Payload area = LuaHotReload.payload(baseline,
@@ -98,9 +98,9 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(1, area.functions().size());
         String areaFunction = area.functions().get(0);
         assertTrue("the override's class-table slot is rebound:\n" + area.source(),
-            Pattern.compile("(?m)^Square\\.\\w+ = " + areaFunction + "$").matcher(area.source()).find());
+            Pattern.compile("(?m)^Square_[0-9a-f]{12}\\.\\w+ = " + areaFunction + "$").matcher(area.source()).find());
         assertFalse("a sibling's slot is left alone:\n" + area.source(),
-            Pattern.compile("(?m)^Circle\\.").matcher(area.source()).find());
+            Pattern.compile("(?m)^Circle_[0-9a-f]{12}\\.").matcher(area.source()).find());
 
         assertTrue("an ordinary body edit warns of nothing", payload.warnings().isEmpty());
         LuaHotReload.Payload initEdit = LuaHotReload.payload(baseline,
@@ -110,7 +110,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue("an unchanged program needs an empty payload",
             LuaHotReload.payload(baseline, baseline, Set.of(), 1).functions().isEmpty());
         assertEquals("a function an earlier payload replaced is replaced again, here by its original body",
-            List.of("score"), LuaHotReload.payload(baseline, baseline, Set.of("score"), 2).functions());
+            List.of("score"), sourceNames(LuaHotReload.payload(baseline, baseline, Set.of(luaName(baseline, "score")), 2).functions()));
     }
 
     /**
@@ -158,7 +158,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         edited[2] = "    let helper = 5\n    return helper";
         LuaHotReload.Manifest baseline = manifest(base);
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(edited), Set.of(), 1);
-        assertEquals(List.of("first"), payload.functions());
+        assertEquals(List.of("first"), sourceNames(payload.functions()));
     }
 
     /**
@@ -180,6 +180,105 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", java.util.Map.of("f", plain), List.of(), List.of());
         expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(plainBaseline, current, Set.of(), Set.of("f"), 2));
+    }
+
+    /**
+     * A hot-reload build names each declaration from its identity, so declarations added in front of others, even ones
+     * of the same names in another package, rename nothing that the running script has.
+     */
+    @Test
+    public void addedDeclarationsRenameNothing() {
+        CU other = new CU("Other", String.join("\n", "package Other", "public int calls = 0",
+            "public function score(int x) returns int", "    return x", "public class Square", "init", "    score(calls)", "    new Square()", ""));
+        String[] base = program("x + 1", "side * side", INIT);
+        String[] added = base.clone();
+        added[4] = "int extra = 3\nfunction helper(int x) returns int\n    return x * extra\nclass Extra\n    int f\n" + base[4];
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("addedDeclarationsRenameNothing", String.join("\n", base) + "\n"));
+        LuaHotReload.Manifest after = compileLuaHotReloadManifest(false, HOT_RELOAD, other,
+            new CU("addedDeclarationsRenameNothing", String.join("\n", added) + "\n"));
+        java.util.List<String> lost = new java.util.ArrayList<>(before.bindings());
+        lost.removeAll(after.bindings());
+        assertTrue("every name the first build had means the same in the second: " + lost, lost.isEmpty());
+    }
+
+    /**
+     * Locals are numbered within their function: with stack traces every function has the position parameter, and a
+     * function added in front of others must not renumber theirs, which would change every body and initialisation.
+     */
+    @Test
+    public void addedFunctionLeavesOtherFunctionsAlone() throws Exception {
+        RunArgs traced = HOT_RELOAD.with("-stacktraces");
+        String[] base = program("x + 1", "side * side", INIT);
+        // At the end of the file: a function in front would move the source positions of the ones after it.
+        String[] added = concat(program("added(x)", "side * side", INIT),
+            new String[] {"function added(int x) returns int", "    let y = x + 1", "    return y"});
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, traced,
+            new CU("addedFunctionLeavesOtherFunctionsAlone", String.join("\n", base) + "\n"));
+        LuaHotReload.Manifest after = compileLuaHotReloadManifest(false, traced,
+            new CU("addedFunctionLeavesOtherFunctionsAlone", String.join("\n", added) + "\n"));
+        List<String> changed = new java.util.ArrayList<>();
+        for (LuaHotReload.Function f : before.functions().values()) {
+            LuaHotReload.Function now = after.functions().get(f.name());
+            if (now != null && !now.definition().equals(f.definition())) {
+                changed.add(f.name());
+            }
+        }
+        assertEquals("only the edited function's text changes", List.of("score"), sourceNames(changed));
+    }
+
+    /** Overloads of a method are separate declarations: each dispatch stub is named from its own signature. */
+    @Test
+    public void overloadedMethodsHaveTheirOwnNames() throws IOException {
+        String[] lines = {
+            "package Test",
+            "native testSuccess()",
+            "native hotReload()",
+            "abstract class A",
+            "    abstract function f(int x) returns int",
+            "    abstract function f(string x) returns int",
+            "class B extends A",
+            "    override function f(int x) returns int",
+            "        return 1",
+            "    override function f(string x) returns int",
+            "        return 2",
+            "function getA() returns A",
+            "    return new B()",
+            "init",
+            "    if getA().f(1) == 1 and getA().f(\"s\") == 2",
+            "        testSuccess()",
+        };
+        test().testLua(true).executeProg().luaHotReload(lines).lines(lines);
+        String compiled = compiledLua("overloadedMethodsHaveTheirOwnNames");
+        java.util.regex.Matcher stubs = Pattern.compile("(?m)^function (dispatch_\\w+)\\(").matcher(compiled);
+        List<String> names = new java.util.ArrayList<>();
+        while (stubs.find()) {
+            names.add(stubs.group(1));
+        }
+        assertEquals(compiled, 2, names.size());
+        for (String name : names) {
+            assertTrue("named from its identity, not numbered: " + names, name.matches(".*_[0-9a-f]{12}"));
+        }
+    }
+
+    /**
+     * {@code P4769:C.C_x} and {@code P8706:C.C_x} share the first six hex digits of their hashes. Adding the second
+     * renames nothing of the first, and the names do not depend on the order of the compilation units.
+     */
+    @Test
+    public void addedDeclarationWithSimilarHashRenamesNothing() {
+        CU first = new CU("P4769", String.join("\n", "package P4769", "public class C", "    int x = 1", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
+        CU second = new CU("P8706", String.join("\n", "package P8706", "public class C", "    int x = 2", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
+        LuaHotReload.Manifest alone = compileLuaHotReloadManifest(false, HOT_RELOAD, first);
+        LuaHotReload.Manifest forward = compileLuaHotReloadManifest(false, HOT_RELOAD, first, second);
+        LuaHotReload.Manifest backward = compileLuaHotReloadManifest(false, HOT_RELOAD, second, first);
+        assertEquals(new java.util.TreeSet<>(forward.bindings()), new java.util.TreeSet<>(backward.bindings()));
+        assertTrue(alone.bindings().toString(), forward.bindings().containsAll(alone.bindings()));
+        java.util.Set<String> prefixes = forward.bindings().stream()
+            .filter(b -> b.matches("C_x_storage_[0-9a-f]{12}=P(4769|8706):C\\.C_x.*"))
+            .map(b -> b.substring("C_x_storage_".length(), "C_x_storage_".length() + 6))
+            .collect(java.util.stream.Collectors.toSet());
+        assertEquals("both stores, sharing six digits: " + forward.bindings(), 1, prefixes.size());
     }
 
     /** A class of the same name from another package is another type. */
@@ -234,7 +333,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
             concat(new String[] {"function helper(int x) returns int", "    return x"}, INIT)));
         rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(baseline, withFunction, Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("functions the running script does not have: helper"));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("functions the running script does not have: helper_"));
         assertFalse("a new function shifts the names after it, which is not reported apart:\n" + rejected.getMessage(),
             rejected.getMessage().contains("a name now means something else"));
     }
@@ -340,14 +439,14 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
         LuaHotReloadSession.Sent first = LuaHotReloadSession.send(buildDir, customMapData, firstEdit);
         assertEquals(1, first.payload().version());
-        assertEquals(List.of("score"), first.payload().functions());
+        assertEquals(List.of("score"), sourceNames(first.payload().functions()));
         assertEquals("each payload has a file of its own", customMapData.resolve("Wurst").resolve("hotreload-1.pld"), first.file());
 
         LuaHotReloadSession.Sent second = LuaHotReloadSession.send(buildDir, customMapData,
             manifest(program("x + 1", "side * side * 10", INIT)));
         assertEquals(2, second.payload().version());
         assertEquals("score, back at its original body, is sent again with the new edit", 2, second.payload().functions().size());
-        assertTrue(second.payload().functions().contains("score"));
+        assertTrue(sourceNames(second.payload().functions()).contains("score"));
         assertFalse("the file is written whole, then renamed", java.nio.file.Files.exists(
             second.file().resolveSibling("hotreload-2.pld.tmp")));
 
@@ -402,7 +501,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String script = "test-output/lua/LuaHotReloadTests_pollReadsEachPayloadFileOnceInOrder.lua";
         LuaHotReload.Manifest baseline = manifest(base);
         LuaHotReload.Payload first = LuaHotReload.payload(baseline, manifest(program("x + 10", "side * side", INIT)), Set.of(), 1);
-        LuaHotReload.Payload second = LuaHotReload.payload(baseline, manifest(program("x + 100", "side * side", INIT)), Set.of("score"), 2);
+        LuaHotReload.Payload second = LuaHotReload.payload(baseline, manifest(program("x + 100", "side * side", INIT)), Set.of(luaName(baseline, "score")), 2);
         java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadPoll");
         java.nio.file.Files.writeString(dir.resolve("hotreload-1.pld"),
             de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile(first.source()));
@@ -429,7 +528,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "  assert(load(text:match('//!beginusercode%s(.-)%s//!endusercode')))()",
             "end",
             "local scores = {}",
-            "for i = 1, 4 do " + LuaHotReload.POLL_FUNCTION + "() scores[i] = score(1) end",
+            "for i = 1, 4 do " + LuaHotReload.POLL_FUNCTION + "() scores[i] = " + luaName(baseline, "score") + "(1) end",
             "print(table.concat(requested, ' '))",
             "print(table.concat(scores, ' '))",
             "print(" + LuaHotReload.STATUS_FUNCTION + "())",
@@ -484,6 +583,17 @@ public class LuaHotReloadTests extends WurstScriptTest {
     private LuaHotReload.Manifest libraryManifest(RunArgs args, String[] lines) {
         return compileLuaHotReloadManifest(true, args,
             new CU("movedLinesShipTheBodiesWhosePositionsChanged", String.join("\n", lines) + "\n"));
+    }
+
+    /** The source names of Lua names: a hot-reload build adds a hash of its identity to each declaration's name. */
+    private static List<String> sourceNames(List<String> luaNames) {
+        return luaNames.stream().map(n -> n.replaceAll("_[0-9a-f]{12}$", "")).toList();
+    }
+
+    /** The Lua name of the function called {@code source} in a hot-reload build. */
+    private static String luaName(LuaHotReload.Manifest m, String source) {
+        return m.functions().keySet().stream().filter(n -> n.matches(Pattern.quote(source) + "_[0-9a-f]{12}")).findFirst()
+            .orElseThrow();
     }
 
     /** INIT with the first square made with another side: a change to the package init body. */

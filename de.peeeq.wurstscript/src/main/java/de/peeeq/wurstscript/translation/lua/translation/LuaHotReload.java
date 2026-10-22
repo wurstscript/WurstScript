@@ -310,6 +310,43 @@ public final class LuaHotReload {
         return (p instanceof WPackage wp ? wp.getName() : "global") + ":" + name;
     }
 
+    /** The identity of a function: its package, IM name and signature. */
+    static String functionId(ImFunction f) {
+        return semanticId(f, signature(f));
+    }
+
+    /** The identity of a global or a field (with its class), or of a class. */
+    static String variableId(ImVar v) {
+        de.peeeq.wurstscript.jassIm.Element owner = v.getParent() == null ? null : v.getParent().getParent();
+        return semanticId(v, (owner instanceof ImClass c ? c.getName() + "." : "") + v.getName());
+    }
+
+    static String classId(ImClass c) {
+        return semanticId(c, c.getName());
+    }
+
+    /** The identity of a method: with its implementation's signature, which tells overloads apart. */
+    static String methodId(ImMethod m) {
+        ImFunction implementation = m.getImplementation();
+        return semanticId(m, m.getName() + (implementation == null ? "" : "/" + signature(implementation)));
+    }
+
+    /**
+     * Twelve hex digits of a hash of {@code identity}: the suffix which makes a hot-reload build's name of a declaration
+     * depend on that declaration alone, so adding or removing another one renames nothing. The width is fixed, so a name
+     * never depends on which other declarations exist. Two identities which share it (about one chance in 50,000 for a
+     * program of 100,000 declarations) are numbered by {@link LuaTranslator#uniqueName}; a payload whose names then mean
+     * other declarations is rejected by the binding check.
+     */
+    static String identityHash(String identity) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, 6);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private static String signature(ImFunction f) {
         StringJoiner sig = new StringJoiner(",", f.getName() + "(", ")");
         for (ImVar p : f.getParameters()) {
