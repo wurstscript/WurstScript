@@ -9511,4 +9511,34 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             luaFunctionBody(lua, "C_C_pick").contains("Base_Base_pick("));
         assertFalse("no class binds the interface's abstract method", lua.contains(" = Top_Top_pick"));
     }
+
+    /**
+     * A negated or negating expression handed to an old generic converts to the erased index once. Lua converted the
+     * operand as well as the result, so {@code -2.5} arrived as {@code realToIndex(-(realToIndex(2.5)))} and read back
+     * as -2500.
+     */
+    @Test
+    public void unaryExpressionPassedToAnOldGenericIsConvertedOnce() {
+        test().withStdLib().testLua(true).luaOnly(false).executeProg(true).lines(
+            "package Repro",
+            "import LinkedList",
+            "import Wurstunit",
+            "interface Get<T>",
+            "    function get() returns T",
+            "function id<T>(T t) returns T",
+            "    return t",
+            "init",
+            "    real r = id<real>(-2.5)",
+            "    boolean b = id<boolean>(not false)",
+            "    Get<real> g = () -> -1.5",
+            "    let l = new LinkedList<real>()",
+            "    l.add(-2.)",
+            "    let m = l.map<real>(x -> -x)",
+            "    Get<real> h = () -> -(id<boolean>(true) ? 1. : 2.)",
+            "    let box = new LinkedList<real>()",
+            "    box.add(3.5)",
+            "    if r == -2.5 and b and g.get() == -1.5 and l.get(0) == -2. and m.get(0) == 2."
+            + " and h.get() == -1. and id<real>(-box.get(0)) == -3.5",
+            "        testSuccess()");
+    }
 }
