@@ -230,6 +230,32 @@ public class BodyOnlyEditTests {
         assertSameAsFreshBuild(root, manager, log);
     }
 
+    /**
+     * A body edit of A and a change of the declarations of Mod, which A imports, reconciled together: A is
+     * invalidated by Mod's change, so what imports A has to be checked again too, in either order.
+     */
+    @Test
+    public void aBodyEditAndAChangeOfWhatItImportsReconciledTogetherCheckTheImporters() throws IOException {
+        String renamed = MOD.replace("    int count = 0", "    int counted = 0").replace("count++", "counted++")
+            .replace("return count", "return counted");
+        String aBody = A.replace("    return x + 1", "    return x + 2");
+        for (boolean bodyFirst : new boolean[]{true, false}) {
+            Path root = project();
+            ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+            Log log = new Log(manager);
+            manager.buildProject();
+
+            ModelManager.Changes changes = bodyFirst
+                ? sync(manager, root, "A", aBody).mergeWith(sync(manager, root, "Mod", renamed))
+                : sync(manager, root, "Mod", renamed).mergeWith(sync(manager, root, "A", aBody));
+            assertFalse(manager.isChecked(manager.getModel(), List.of(unit(manager, "B"))),
+                "B, which imports A, is unchecked before the reconciliation already: a run would check it");
+            manager.reconcile(changes);
+            assertTrue(log.hasErrors(), "B reads count, which Box does not get from the module any more");
+            assertSameAsFreshBuild(root, manager, log);
+        }
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private static ModelManager.Changes sync(ModelManagerImpl manager, Path root, String pkg, String text)

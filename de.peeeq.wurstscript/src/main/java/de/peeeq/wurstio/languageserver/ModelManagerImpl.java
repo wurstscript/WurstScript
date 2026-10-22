@@ -1400,9 +1400,15 @@ public class ModelManagerImpl implements ModelManager {
             return result;
         }
 
-        // get packages provided by the changed CUs; a unit edited in place provides what it did before
+        // A changed unit which was edited in place provides what it did before, and nothing depending on it is
+        // affected by its change. It still is by any other change: of what it imports, of a package it declares,
+        // or of its config relative, and then its dependents are as well.
+        Set<CompilationUnit> quiet = Collections.newSetFromMap(new IdentityHashMap<>());
+        changed.stream().filter(this::isBodyEdited).forEach(quiet::add);
+
+        // get packages provided by the changed CUs
         Stream<String> providedPackages = changed.stream()
-                .filter(cu -> !isBodyEdited(cu))
+                .filter(cu -> !quiet.contains(cu))
                 .flatMap(cu -> cu.getPackages().stream())
                 .map(WPackage::getName);
 
@@ -1410,10 +1416,44 @@ public class ModelManagerImpl implements ModelManager {
         Set<String> affectedPackages = Stream.concat(providedPackages, oldPackages.stream())
                 .collect(Collectors.toSet());
         affectedPackages.addAll(configRelatives(affectedPackages));
+        quiet.removeIf(cu -> usesOrDeclares(cu, affectedPackages) || hasConfigRelative(cu, model));
 
-        addPossiblyAffectedPackages(affectedPackages, model, result);
+        addPossiblyAffectedPackages(affectedPackages, model, result, quiet);
 
         return result;
+    }
+
+    private static boolean usesOrDeclares(CompilationUnit cu, Set<String> packageNames) {
+        for (WPackage p : cu.getPackages()) {
+            if (packageNames.contains(p.getName())) {
+                return true;
+            }
+            for (WImport imp : p.getImports()) {
+                if (packageNames.contains(imp.getPackagenameId().getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Whether a package of the unit is a config package, or another unit of the model declares its config package. */
+    private static boolean hasConfigRelative(CompilationUnit cu, WurstModel model) {
+        Set<String> relatives = configRelatives(providedPackagesOf(cu));
+        for (CompilationUnit other : model) {
+            if (other != cu && providedPackagesOf(other).stream().anyMatch(relatives::contains)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> providedPackagesOf(CompilationUnit cu) {
+        Set<String> names = new HashSet<>();
+        for (WPackage p : cu.getPackages()) {
+            names.add(p.getName());
+        }
+        return names;
     }
 
 
@@ -1437,7 +1477,12 @@ public class ModelManagerImpl implements ModelManager {
     /**
      * Add all packages that directly or indirectly depend on the providedPackages
      */
-    private void addPossiblyAffectedPackages(Collection<String> providedPackages, WurstModel model, Set<CompilationUnit> result) {
+    /**
+     * @param quiet units of result whose dependents are not affected: they changed in nothing another unit sees, and
+     *              nothing they depend on changed, unless a unit they depend on turns out to be affected after all
+     */
+    private void addPossiblyAffectedPackages(Collection<String> providedPackages, WurstModel model,
+                                             Set<CompilationUnit> result, Set<CompilationUnit> quiet) {
 
         nextCu:
         for (CompilationUnit compilationUnit : model) {
@@ -1460,10 +1505,10 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
 
-        addTransitiveDeps(result, model);
+        addTransitiveDeps(result, model, quiet);
         // a config package is checked with the package it configures, and what follows from either
         while (addConfigRelatives(result, model)) {
-            addTransitiveDeps(result, model);
+            addTransitiveDeps(result, model, quiet);
         }
     }
 
@@ -1492,23 +1537,28 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     /**
-     * Add all compilation units that transitively depend on the units in result, except through a unit edited in
-     * place: what depends on it sees what it saw before. Any other change of such a unit, or of what it depends on,
-     * invalidates it, and it is not edited in place any more.
+     * Add all compilation units that transitively depend on the units in result, except on a quiet one: what depends
+     * on it sees what it saw before. A quiet unit which depends on a unit of result is affected itself, and so is
+     * what depends on it.
      */
-    private void addTransitiveDeps(Set<CompilationUnit> result, WurstModel model) {
+    private void addTransitiveDeps(Set<CompilationUnit> result, WurstModel model, Set<CompilationUnit> quiet) {
         Multimap<CompilationUnit, CompilationUnit> dependencyMap = calculateDirectDependencies(model);
-        ArrayDeque<CompilationUnit> todo = new ArrayDeque<>(result);
+        Set<CompilationUnit> propagated = Collections.newSetFromMap(new IdentityHashMap<>());
+        ArrayDeque<CompilationUnit> todo = new ArrayDeque<>();
+        for (CompilationUnit cu : result) {
+            if (!quiet.contains(cu)) {
+                todo.add(cu);
+            }
+        }
         while (!todo.isEmpty()) {
             CompilationUnit cu = todo.remove();
-            if (isBodyEdited(cu)) {
+            if (!propagated.add(cu)) {
                 continue;
             }
-            Collection<CompilationUnit> directDeps = dependencyMap.get(cu);
-            for (CompilationUnit c : directDeps) {
-                if (result.add(c)) {
-                    todo.add(c);
-                }
+            for (CompilationUnit c : dependencyMap.get(cu)) {
+                result.add(c);
+                quiet.remove(c);
+                todo.add(c);
             }
         }
     }
