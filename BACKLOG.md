@@ -222,6 +222,20 @@ Notes; finished-work narrative does not.
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
   hand-written Lua would be, list every compiler-introduced call, allocation or table write on an
   ordinary path, and fix the root (AGENTS.md §3, §7).
+
+- **Give collections a Lua-native backing store instead of carrying the Jass arena.**
+  ArrayList still searches/compacts free sections and relocates/clears its shared
+  store on Lua. A real-map snapshot contains 115 offset-indexed getters in this
+  family. [Proposal and reproducible controls](docs/LUA_COLLECTION_STORAGE.md):
+  dense reads were equal after hoisting, while isolated copy/clear growth took
+  0.380 s against 0.046 s for native growth in stock Lua. Sparse-key costs depend
+  strongly on alignment and allocation history; no in-game gain is established.
+  Start with declaration-based vector storage intrinsics and the stdlib's owning
+  implementation, preserving Jass fallback, Wurst IDs/destruction, explicit size,
+  defaults and retained-reference semantics. Measure many-small-list allocation
+  and peak memory too. Result ownership/reduction could then remove the spatial
+  query's snapshot-to-list copy without breaking yielding or nested callbacks.
+
 ## Blocked on a decision
 
 - **Is the generated AST the right shape for the passes?** Generated nodes are single-parent mutable
