@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -1031,21 +1030,7 @@ public final class LuaNativeLowering {
      * never nil, and an argument which reads it needs no nil test.
      */
     private static boolean isNeverNil(ImExpr arg, ImProg prog) {
-        if (!(arg instanceof ImVarAccess access)) {
-            return false;
-        }
-        ImVar v = access.getVar();
-        if (!v.getIsBJ() || !(v.getTrace() instanceof GlobalVarDef def) || !def.attrIsConstant()) {
-            return false;
-        }
-        List<ImSet> inits = prog.getGlobalInits().get(v);
-        return inits != null && inits.size() == 1
-            && inits.get(0).getRight() instanceof ImFunctionCall init
-            && init.getFunc().isNative() && init.getFunc().isBj()
-            && init.getFunc().getName().startsWith("Convert")
-            && isHandleType(init.getFunc().getReturnType())
-            && init.getArguments().size() == 1
-            && init.getArguments().get(0) instanceof ImIntVal;
+        return arg instanceof ImVarAccess access && ImHelper.isNonNullHandleConstant(access.getVar(), prog);
     }
 
     /** Returns true for WC3 handle types (ImSimpleType that is not int/real/boolean/string). */

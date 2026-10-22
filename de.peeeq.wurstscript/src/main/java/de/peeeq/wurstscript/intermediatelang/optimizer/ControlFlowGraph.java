@@ -48,6 +48,20 @@ public class ControlFlowGraph {
         buildCfg(stmts);
     }
 
+    /** The value of an if's condition on this edge, or unknown when both branches reach the same node. */
+    public @Nullable Boolean branchValue(Node from, Node to) {
+        ImStmt stmt = from.getStmt();
+        if (stmt == null || !(stmt.getParent() instanceof ImIf imIf) || stmt != imIf.getCondition()) {
+            return null;
+        }
+        Node thenNode = imIf.getThenBlock().isEmpty() ? getEndIfNode(imIf) : getNode(imIf.getThenBlock().get(0));
+        Node elseNode = imIf.getElseBlock().isEmpty() ? getEndIfNode(imIf) : getNode(imIf.getElseBlock().get(0));
+        if (thenNode == elseNode) {
+            return null;
+        }
+        return to == thenNode ? Boolean.TRUE : to == elseNode ? Boolean.FALSE : null;
+    }
+
     /**
      * The statements which no path from the first statement reaches, without the statements inside them: what follows
      * a return, a loop which has no exitwhen of its own, or an if neither branch of which comes to its end.
