@@ -49,16 +49,19 @@ a representation change is not credited for an ordinary hoisting opportunity.
 
 | Workload | Arena, seconds | Arena-hoisted | Native vector |
 | --- | ---: | ---: | ---: |
-| Dense live storage | 0.315 | 0.208 | 0.208 |
-| Sparse, aligned offsets (stride 4096) | 1.862 | 1.841 | 0.178 |
-| Sparse, staggered offsets (stride 4099) | 0.260 | 0.197 | 0.168 |
-| Sparse after both stores were fully populated | 0.224 | 0.177 | 0.178 |
-| Append 4096 values, 1024 fresh lists | 0.380 | n/a | 0.046 |
+| Dense live storage | 0.221 | 0.179 | 0.173 |
+| Sparse, aligned offsets (stride 4096) | 1.813 | 1.770 | 0.168 |
+| Sparse, staggered offsets (stride 4099) | 0.251 | 0.188 | 0.165 |
+| Sparse after both stores were fully populated | 0.222 | 0.169 | 0.175 |
+| Grow/destroy 1024 sequential lists of 4096 values | 0.230 | n/a | 0.090 |
 
-The growth control models only explicit relocation and clearing, with a monotonic
-allocator. It excludes free-section searches/compaction, Wurst object bookkeeping,
-bounds checks and callbacks. It is not a replacement implementation of ArrayList.
-Both variants pay Lua's own allocation and collector costs during growth.
+The growth control reuses one shared arena across all 1,024 sequential list
+lifetimes, with perfect offset reclamation between lists. Only the native variant
+creates a table per list. Both explicitly clear their final live references, and
+the arena additionally relocates and clears at each capacity increase. Free-section
+searches/compaction, Wurst object bookkeeping, bounds checks and callbacks are
+excluded; this is a favorable arena control, not a replacement implementation of
+ArrayList. Lua's own allocation and collector costs during the workload are timed.
 
 The useful result is removal of a whole growth/allocator layer, rather than a
 promise that every table read becomes faster. Dense and previously dense reads

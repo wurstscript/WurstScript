@@ -116,13 +116,16 @@ for _, workload in ipairs({
     end
 end
 
--- Growth-only control: the copy-and-clear work of regrow(), with a monotonic
--- arena allocator. Free-section search/compaction and object bookkeeping are
--- deliberately excluded, not approximated. This does not model the full stdlib.
+-- Growth-only control: reuse one shared store across logical list lifetimes.
+-- Give the arena perfect offset reclamation between lists; free-section search
+-- and compaction are excluded, not approximated. Both representations clear
+-- their final live references. Only the native variant allocates a table per
+-- list. This is a favorable arena control, not the full stdlib allocator.
 local function arenaGrowth()
     local sum = 0
+    local store = {}
     for _ = 1, repetitions do
-        local store, base, capacity, head = {}, 0, 16, 16
+        local base, capacity, head = 0, 16, 16
         for i = 0, 4095 do
             if i >= capacity then
                 local old = base
@@ -139,6 +142,9 @@ local function arenaGrowth()
             store[base + i] = i
         end
         sum = sum + store[base + 4095]
+        for i = 0, 4095 do
+            store[base + i] = nil
+        end
     end
     return sum
 end
@@ -151,6 +157,9 @@ local function nativeGrowth()
             store[i + 1] = i
         end
         sum = sum + store[4096]
+        for i = 1, 4096 do
+            store[i] = nil
+        end
     end
     return sum
 end

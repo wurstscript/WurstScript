@@ -228,7 +228,8 @@ Notes; finished-work narrative does not.
   store on Lua. A real-map snapshot contains 115 offset-indexed getters in this
   family. [Proposal and reproducible controls](docs/LUA_COLLECTION_STORAGE.md):
   dense reads were equal after hoisting, while isolated copy/clear growth took
-  0.380 s against 0.046 s for native growth in stock Lua. Sparse-key costs depend
+  0.230 s against 0.090 s for native growth/clear in stock Lua, with one arena reused
+  across sequential list lifetimes and final references cleared on both sides. Sparse-key costs depend
   strongly on alignment and allocation history; no in-game gain is established.
   Start with declaration-based vector storage intrinsics and the stdlib's owning
   implementation, preserving Jass fallback, Wurst IDs/destruction, explicit size,
