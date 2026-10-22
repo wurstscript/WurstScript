@@ -720,6 +720,13 @@ public class ModelManagerImpl implements ModelManager {
         return bodyEdits;
     }
 
+    /** How many units are edited in place now, for the tests. */
+    int bodyEditedCount() {
+        synchronized (modelLock) {
+            return bodyEdited.size();
+        }
+    }
+
     /** How many units the last partial check validated, for the tests. */
     private int lastCheckedUnits = 0;
 
@@ -1204,6 +1211,7 @@ public class ModelManagerImpl implements ModelManager {
             if (model == this.model) {
                 uncheckedUnits.removeIf(cu -> !keep.test(cu));
                 uncheckedUnits.addAll(dependents);
+                bodyEdited.removeIf(cu -> !keep.test(cu));
             }
         }
     }

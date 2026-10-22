@@ -373,6 +373,20 @@ public class BodyOnlyEditTests {
             "the replaced body must not stay alive as a key of the lookup cache");
     }
 
+    /** A unit purged from the model is not held as edited in place any more. */
+    @Test
+    public void aPurgedUnitIsNoLongerHeldAsEditedInPlace() throws IOException {
+        Path root = project();
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        manager.buildProject();
+        manager.reconcile(sync(manager, root, "A", A.replace("    return x + 1", "    return x + 2")));
+        assertEquals(manager.bodyEditedCount(), 1);
+
+        CompilationUnit a = unit(manager, "A");
+        manager.retainCompilationUnits(manager.getModel(), cu -> cu != a);
+        assertEquals(manager.bodyEditedCount(), 0);
+    }
+
     /** The call of f in the body of g. */
     private static ExprFunctionCall callIn(FuncDef f, CompilationUnit unit) {
         List<ExprFunctionCall> found = new ArrayList<>();
