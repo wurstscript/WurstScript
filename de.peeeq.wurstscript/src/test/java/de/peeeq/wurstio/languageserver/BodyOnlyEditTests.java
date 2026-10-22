@@ -256,6 +256,47 @@ public class BodyOnlyEditTests {
         }
     }
 
+    /**
+     * A node may have a position besides its own, of a token errors point at: the keyword of an explicit super call
+     * moves with it when a body above grows.
+     */
+    @Test
+    public void theKeywordOfASuperCallMovesWithIt() throws IOException {
+        Path root = project();
+        String withSuper = A + String.join("\n",
+            "public class Base",
+            "    construct(int i)",
+            "public class Sub extends Base",
+            "    construct()",
+            "        super(1)",
+            "");
+        write(root, "A", withSuper);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+
+        manager.reconcile(sync(manager, root, "A",
+            withSuper.replace("    return x + 1", "    let y = x\n    let z = y\n    return z + 1")));
+        assertEquals(manager.bodyEdits(), 1);
+        assertSameAsFreshBuild(root, manager, log);
+        ModelManagerImpl fresh = new ModelManagerImpl(root.toFile(), new BufferManager());
+        fresh.buildProject();
+        assertEquals(superKeywordLine(manager), superKeywordLine(fresh));
+    }
+
+    private static int superKeywordLine(ModelManagerImpl manager) {
+        List<Integer> lines = new ArrayList<>();
+        unit(manager, "A").accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(SomeSuperConstructorCall call) {
+                super.visit(call);
+                lines.add(call.getKeywordSource().getLine());
+            }
+        });
+        assertEquals(lines.size(), 1, "one super call");
+        return lines.get(0);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private static ModelManager.Changes sync(ModelManagerImpl manager, Path root, String pkg, String text)

@@ -133,6 +133,13 @@ final class BodyOnlyEdit {
         if (old instanceof AstElementWithSource o && fresh instanceof AstElementWithSource f) {
             o.setSource(f.getSource());
         }
+        // the positions a node has besides its own, of a token in it which errors point at
+        if (old instanceof SomeSuperConstructorCall o && fresh instanceof SomeSuperConstructorCall f) {
+            o.setKeywordSource(f.getKeywordSource());
+        }
+        if (old instanceof ExprClosure o && fresh instanceof ExprClosure f) {
+            o.setArrowSource(f.getArrowSource());
+        }
         boolean template = inTemplate || isTemplate(old);
         WStatements movedBody = null;
         if (!template && old instanceof AstElementWithBody o && holdsBody(old)) {
