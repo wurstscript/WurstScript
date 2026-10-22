@@ -25,9 +25,10 @@ import java.util.*;
  *   which exists is skipped with a warning, since the map keeps its value; any other changed one is rejected;</li>
  *   <li>the init of a new package runs once; a changed init of a package which ran warns that it needs a restart.</li>
  * </ul>
- * Payloads are cumulative from the start of the map, so the session tells which statements an earlier payload already
- * ran ({@link History}). A function stored as a value anywhere but a class table keeps the body it was taken from, so a
- * change to one is rejected.
+ * Payloads are cumulative from the start of the map. The map records each statement a payload ran
+ * ({@link #RAN_TABLE}), only once it ran, so a later payload runs what an earlier one did not reach and nothing twice.
+ * A function stored as a value anywhere but a class table keeps the body it was taken from, so a change to one is
+ * rejected.
  */
 public final class LuaHotReload {
 
@@ -37,6 +38,11 @@ public final class LuaHotReload {
     public static final String POLL_FUNCTION = "__wurst_hotreload_poll";
     /** Answers what became of the last payload the poll read, for a map's own diagnostics. */
     public static final String STATUS_FUNCTION = "__wurst_hotreload_status";
+    /**
+     * The map's record of the statements payloads ran, by {@link #runKey}, and of the new package inits which succeeded.
+     * The map keeps it, not the editor: a payload is delivered as a file, and only the map knows how far it ran.
+     */
+    public static final String RAN_TABLE = "__wurst_hotreload_ran";
     /**
      * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
      * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
@@ -92,19 +98,16 @@ public final class LuaHotReload {
                            List<String> bindings) {
     }
 
-    /**
-     * What earlier payloads did in the running map: the functions they defined, the functions they stored as values,
-     * and the statements they ran (with {@code init:} and the name for a package init they ran).
-     */
-    public record History(Set<String> reloaded, Set<String> captured, Set<String> ran) {
-        public static final History NONE = new History(Set.of(), Set.of(), Set.of());
+    /** What earlier payloads sent to the running map: the functions they defined and the functions they stored as values. */
+    public record History(Set<String> reloaded, Set<String> captured) {
+        public static final History NONE = new History(Set.of(), Set.of());
     }
 
     /**
-     * A payload: Lua source which {@code load} compiles and which applies {@code functions} and {@code ran}.
-     * {@code warnings} name what it carries but cannot apply; {@code captured} the functions its version stores as values.
+     * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
+     * it carries but cannot apply; {@code captured} the functions its version stores as values.
      */
-    public record Payload(int version, List<String> functions, String source, List<String> warnings, List<String> ran,
+    public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           List<String> captured) {
     }
 
@@ -243,13 +246,13 @@ public final class LuaHotReload {
     /** The payload which takes a map running {@code baseline} to {@code current}, which earlier payloads did not reach. */
     public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore, int version)
         throws Rejected {
-        return payload(baseline, current, new History(reloadedBefore, Set.of(), Set.of()), version);
+        return payload(baseline, current, new History(reloadedBefore, Set.of()), version);
     }
 
     /** {@link #payload(Manifest, Manifest, History, int)} with the functions and stores of earlier payloads only. */
     public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore,
                                   Set<String> capturedBefore, int version) throws Rejected {
-        return payload(baseline, current, new History(reloadedBefore, capturedBefore, Set.of()), version);
+        return payload(baseline, current, new History(reloadedBefore, capturedBefore), version);
     }
 
     /**
@@ -323,6 +326,7 @@ public final class LuaHotReload {
 
         List<Statement> declarations = new ArrayList<>();
         List<Statement> initialisations = new ArrayList<>();
+        List<Statement> newPackageValues = new ArrayList<>();
         Set<String> knownNames = bindingMap(baseline.bindings()).keySet();
         for (String scope : List.of("top", "boot", "globals", "init")) {
             Map<String, Statement> oldByKey = new LinkedHashMap<>();
@@ -339,8 +343,12 @@ public final class LuaHotReload {
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
-                if (scope.equals("init") && newInits.contains(s.owner()) && !history.ran().contains("init:" + s.owner())) {
-                    // The init of a new package runs as a whole, below.
+                if (scope.equals("init") && newInits.contains(s.owner())) {
+                    // The init of a new package runs as a whole, below, and records its initial values as run. One added
+                    // to it after it ran runs on its own, after it.
+                    if (s.kind().equals("global") && !knownNames.contains(s.key())) {
+                        newPackageValues.add(s);
+                    }
                     continue;
                 }
                 if (scope.equals("init")) {
@@ -350,7 +358,7 @@ public final class LuaHotReload {
                         changedInits.add(firstLine(s.text()));
                     } else if (knownNames.contains(s.key())) {
                         keptValues.add(s.key());
-                    } else if (!history.ran().contains(s.text())) {
+                    } else {
                         initialisations.add(s);
                     }
                     continue;
@@ -362,9 +370,6 @@ public final class LuaHotReload {
                         reasons.add("the running script's " + describe(scope) + " " + s.key() + " changed: was "
                             + firstLine(old.text()) + ", now " + firstLine(s.text()));
                     }
-                    continue;
-                }
-                if (history.ran().contains(s.text())) {
                     continue;
                 }
                 (scope.equals("top") ? declarations : initialisations).add(s);
@@ -386,15 +391,13 @@ public final class LuaHotReload {
         sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", defined)).append("\n");
         // The running script's fingerprint: the payload applies to that script, whatever the edit made of the rest.
         sb.append("return \"").append(baseline.abi()).append("\", ").append(version).append(", function()\n");
-        List<String> ran = new ArrayList<>();
         // Functions first: a new declaration may hold one (a metatable's __index). Then the declarations, which the
         // slots of a new class need, then the slots of what changed.
         for (String name : defined) {
             sb.append(current.functions().get(name).definition()).append("\n");
         }
         for (Statement s : declarations) {
-            sb.append(s.text()).append("\n");
-            ran.add(s.text());
+            appendOnce(sb, s);
         }
         for (String name : defined) {
             for (String slot : current.functions().get(name).slots()) {
@@ -402,23 +405,31 @@ public final class LuaHotReload {
             }
         }
         for (Statement s : initialisations) {
-            sb.append(s.text()).append("\n");
-            ran.add(s.text());
+            if (s.kind().equals("slot")) {
+                // Binding a slot again changes nothing, and one changed back must be bound again.
+                sb.append(s.text()).append("\n");
+            } else {
+                appendOnce(sb, s);
+            }
         }
         for (String init : newInits) {
-            String marker = "init:" + init;
-            if (history.ran().contains(marker)) {
-                continue;
-            }
-            // A new package: its init runs once, as at the start of a map, and reports an error as a map's init does.
-            sb.append("xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end)\n");
-            ran.add(marker);
-            // What it initialises ran with it, and a later payload must not run it again on its own.
+            // A new package: its init runs once, as at the start of a map, and reports its error as a map's init does.
+            // One which fails fails the install, so the map says so, and is not recorded: the next payload runs it again.
+            String marker = RAN_TABLE + "[\"init:" + init + "\"]";
+            sb.append("if not ").append(marker).append(" then\n");
+            sb.append("if not xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end) then\n");
+            sb.append("error(\"the init of a new package (").append(init).append(") failed; the next payload runs it again\", 0)\n");
+            sb.append("end\n");
+            sb.append(marker).append(" = true\n");
             for (Statement s : current.statements()) {
-                if (s.owner().equals(init)) {
-                    ran.add(s.text());
+                if (s.owner().equals(init) && s.kind().equals("global")) {
+                    sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = true\n");
                 }
             }
+            sb.append("end\n");
+        }
+        for (Statement s : newPackageValues) {
+            appendOnce(sb, s);
         }
         sb.append("end\n");
         List<String> captured = new ArrayList<>();
@@ -427,8 +438,27 @@ public final class LuaHotReload {
                 captured.add(f.name());
             }
         }
-        return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings), List.copyOf(ran),
-            List.copyOf(captured));
+        return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings), List.copyOf(captured));
+    }
+
+    /**
+     * A statement which must run once in the map: it runs unless the map recorded it, and is recorded after it ran, so
+     * one a failed payload did not reach runs with the next. A local is a temporary of the statements after it and runs
+     * each time.
+     */
+    private static void appendOnce(StringBuilder sb, Statement s) {
+        if (s.text().startsWith("local ")) {
+            sb.append(s.text()).append("\n");
+            return;
+        }
+        String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
+        sb.append("if not ").append(marker).append(" then\n").append(s.text()).append("\n")
+            .append(marker).append(" = true\nend\n");
+    }
+
+    /** The key under which the map records that a statement ran. */
+    static String runKey(Statement s) {
+        return identityHash(s.scope() + "\n" + s.text());
     }
 
     private static String describe(String scope) {
@@ -612,6 +642,7 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(ABI_GLOBAL + " = \"" + abi + "\""));
         model.add(LuaAst.LuaLiteral(VERSION_GLOBAL + " = 0"));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_nextFile = 1"));
+        model.add(LuaAst.LuaLiteral(RAN_TABLE + " = {}"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",

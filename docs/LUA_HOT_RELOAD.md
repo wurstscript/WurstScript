@@ -44,7 +44,8 @@ payload compares the running script's manifest with the edited one:
 - The closures of one interface method in one function share an identity and are told apart by their order, so
   adding or removing one of them is rejected: the new closure would take an old one's name, and objects of the old
   one would run its body.
-- The init of a new package runs once, after the rest, with the initial values of its globals. Other changed package
+- The init of a new package runs once, after the rest, with the initial values of its globals. If it fails, the
+  install fails with that reason and the next payload runs it again. Other changed package
   init code, and a change to `main` or `config`, ran when the map started and does not run again: the payload carries
   the change, with a warning that applying it needs a restart.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
@@ -54,9 +55,11 @@ A field store of a hot-reload build answers its type's default for an object it 
 before a payload added the field reads the default; objects made after run the new constructor.
 
 The payload of an edit is cumulative from the start of the map: every function which differs from the baseline, or
-which an earlier payload defined, is defined again, so an edit which is undone is undone in the map too. The session
-remembers what earlier payloads ran (`LuaHotReload.History`), so a new global is initialised once, not by every
-later payload. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
+which an earlier payload defined, is defined again, so an edit which is undone is undone in the map too. Each
+statement which must run once (a declaration, an initial value, a new package's init) is guarded by the map's own
+record (`__wurst_hotreload_ran`) and recorded only after it ran. The editor writes a file and cannot tell how far a
+payload got, so the map decides: a statement a failed payload did not reach runs with the next one, and none runs
+twice. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
 
 ### Answers to the staged plan
 
