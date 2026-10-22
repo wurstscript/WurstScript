@@ -12,23 +12,33 @@ intrinsic demand and outgoing call/class dependencies; virtual methods depend on
 and overrides; class-members nodes depend on their implementations and inherited members.
 The graph and reference search share the local demand and dependency predicates.
 
-Intrinsic demand propagates to callers through reverse edges. Queries on built facts read a boolean.
-Seedless recursive cycles remain false. When method-call argument completion changes dependency
-eligibility, the graph rebuilds that owner's outgoing facts and recomputes the affected reverse
-region. Clearing that region before reseeding prevents a cycle from retaining its own stale true
-answer when its only external demand disappears.
+Intrinsic demand propagates to callers through reverse edges. Before returning a cached answer,
+a query validates its dependency closure. Function facts and their relevant-node indexes compare
+`ImFunction.modificationCount()`; method/class facts compare implementation, override, member and
+superclass references with their snapshots. Changes rebuild the affected facts and reverse region.
+There is no caller-supplied invalidation notification. Seedless cycles remain false; clearing an
+affected reverse region before reseeding prevents a cycle from retaining its own stale true answer
+when its only external demand disappears. Newly introduced dependencies are validated before returning.
 
-The graph exists only during `collectGenericNewRoots`. Bodies and dispatch structure stay fixed
-during collection; the existing method-call argument mutation site updates dependency eligibility.
-The graph is discarded before specialization mutates bodies. Queries while scanning newly
+The graph exists only during `collectGenericNewRoots` and is discarded before specialization.
+The pass's previously computed global/type-identity analysis remains fixed during collection.
+Queries while scanning newly
 specialized bodies still use the reference search. No facts survive a specialization round,
 compilation or source edit; there is no cross-build invalidation contract.
 
-Initial discovery/propagation is linear in the materialized graph. Dependency updates can revisit
-affected callers. This removes repeated demand discovery, not necessary instantiation or copying,
-and changes neither specialization policy nor emitted script.
+Initial discovery/propagation is linear in the materialized graph. Each query still walks its
+reachable cached facts to validate counts and references, but does not rescan unchanged function
+bodies or recompute their specialization predicates. Updates can revisit affected callers. This
+removes repeated demand discovery, not every dependency walk, necessary instantiation or copying,
+and changes neither specialization policy nor emitted script. The earlier prototype's claim of
+constant-time stable queries does not apply to this version-validated implementation.
 
 ## Real-map benchmarks
+
+**Review-fix timing is pending.** The results in this section measure the initial explicit-notification
+prototype at `c76a2d6`, before the modification-count/reference validation fix. The latter adds
+dependency validation work, so these percentages are not a verified speedup for the latest head.
+The rebenchmark was stopped before publication at the maintainer's request to finish promptly.
 
 Measured on baseline `9893fb9accc7ce7a2b7b5bdbceb6f2135c678fef`, which includes incremental LSP
 PR #1542, on Windows x64 with Zulu Java 27, `-Xmx4g -XX:+UseParallelGC`. The PR is based on newer
@@ -43,7 +53,8 @@ ending before game launch; edit reconciliation is separate. A fixed timestamp ma
 comparable. JFR and work counters were disabled during timing. The finer timing labels and earlier
 scope-scan pruning were shared by both variants and are outside this PR's production changes.
 
-Final implementation; positive paired savings:
+Initial explicit-notification prototype, superseded by the version-validation review fix;
+positive paired savings:
 
 | Map | Specialization legacy / worklist medians | Paired specialization saving | Paired whole-request saving |
 | --- | ---: | ---: | ---: |
@@ -62,7 +73,8 @@ version uses adjacency lists. Independent sessions have substantial absolute tim
 do not subtract their medians to estimate the effect of this revision. Both trials support a
 substantial Castle improvement; Zombie is approximately neutral to modestly positive.
 
-Untimed audit counters, summed over four collection rounds per request:
+Untimed audit counters from that initial prototype, summed over four collection rounds per request
+(these do not measure the later version-validation walks):
 
 | Work | Castle Fight | Zombie Defense |
 | --- | ---: | ---: |
@@ -110,6 +122,11 @@ reference search. The benchmarked prototype passed 951 focused cases without fai
 graph, type-class, field-iteration, generic-specialization matrix, Lua translation and backend audit.
 The same focused suites passed **955 cases, zero failures or skips**, on PR base `9820e3a98`
 with Error Prone enabled and the normal stdlib prefetch; that base adds four backend audit cases.
+Review regressions additionally mutate a callee without changing/notifying its caller, and verify
+stable snapshots of generated class lists, changed implementations and changed superclass lists.
+The version-validated implementation passed a 957-case focused run with no failures or skips;
+the graph class was rerun after adding a seventh regression for newly introduced dependencies.
+A mutation probe fails with the old cache behavior and passes with validation enabled.
 
 Identity maps/sets are used for lookup/membership; graph traversal follows stable input lists.
 The change adds no platform-specific production code or dependency. Local measurements and tests

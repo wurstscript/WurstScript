@@ -1,15 +1,17 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 /** Pass-local existential dependency facts. Cycles require a real intrinsic demand, not their own cached truth. */
 final class SpecializationDemandGraph<T> {
-    record Facts<T>(boolean intrinsic, List<T> dependencies) {
+    record Facts<T>(boolean intrinsic, List<T> dependencies, BooleanSupplier valid) {
     }
 
     private final Function<T, Facts<T>> facts;
     private final Map<T, Node> nodes = new IdentityHashMap<>();
+    private int validationRound;
 
     private final class Node {
         final T key;
@@ -18,6 +20,8 @@ final class SpecializationDemandGraph<T> {
         boolean built;
         boolean intrinsic;
         boolean demanded;
+        BooleanSupplier valid;
+        int validatedAt;
 
         Node(T key) { this.key = key; }
     }
@@ -29,13 +33,29 @@ final class SpecializationDemandGraph<T> {
     boolean query(T key) {
         Node root = node(key);
         if (!root.built) materialize(root);
-        return root.demanded;
+        while (true) {
+            List<Node> changed = null;
+            int round = ++validationRound;
+            ArrayDeque<Node> work = new ArrayDeque<>();
+            work.add(root);
+            while (!work.isEmpty()) {
+                Node current = work.removeFirst();
+                if (current.validatedAt == round) continue;
+                current.validatedAt = round;
+                if (!current.valid.getAsBoolean()) {
+                    if (changed == null) changed = new ArrayList<>();
+                    changed.add(current);
+                }
+                work.addAll(current.dependencies);
+            }
+            if (changed == null) return root.demanded;
+            for (Node node : changed) rebuild(node);
+            // Rebuilding can introduce dependencies that were not part of the previous validation.
+        }
     }
 
     /** Rebuild this node's outgoing edges; its unchanged dependencies keep their already computed facts. */
-    void changed(T key) {
-        Node root = nodes.get(key);
-        if (root == null || !root.built) return;
+    private void rebuild(Node root) {
         List<Node> previous = new ArrayList<>(root.dependencies);
         boolean intrinsicBefore = root.intrinsic;
         for (Node dependency : previous) dependency.users.remove(root);
@@ -76,6 +96,7 @@ final class SpecializationDemandGraph<T> {
             Node current = work.removeFirst();
             if (current.built) continue;
             Facts<T> currentFacts = facts.apply(current.key);
+            current.valid = currentFacts.valid();
             current.built = true;
             current.intrinsic = currentFacts.intrinsic();
             added.add(current);

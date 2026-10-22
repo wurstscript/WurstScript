@@ -957,7 +957,6 @@ public class EliminateGenerics {
         if (specializedCallSites.contains(call)) {
             return;
         }
-        boolean dependedOnCaller = dependsOnCaller(call.getTypeArguments());
         ImMethod method = call.getMethod();
         ImTranslator.Specialisation existing = translator.specialisationOf(method);
         if (existing != null && existing.original() instanceof ImMethod) {
@@ -966,7 +965,6 @@ public class EliminateGenerics {
             // boundary with no type variables and loses the phase invariant.
             call.getTypeArguments().removeAll();
             specializedCallSites.add(call);
-            updateCallDependency(call, dependedOnCaller);
             return;
         }
         if (isMissingClassTypeArguments(call, method)) {
@@ -977,7 +975,6 @@ public class EliminateGenerics {
             // from that construction before deciding between specialization and fixed-body scan.
             useConstructionTypeArguments(call);
         }
-        updateCallDependency(call, dependedOnCaller);
         boolean needsSpecialization = methodNeedsSpecializationAnswer(method);
         if (!shouldSpecializeTupleArguments(call.getTypeArguments()) && !needsSpecialization) {
             recordFixedErasedStaticAllocations(method);
@@ -1080,9 +1077,8 @@ public class EliminateGenerics {
     }
 
     /**
-     * Collection leaves function bodies and dispatch structure fixed. Completing method-call type arguments
-     * can change dependency eligibility; {@link #updateCallDependency} updates that edge. Discard all facts
-     * before specialization mutates bodies, so nothing survives a collection round or compilation.
+     * Facts validate function modification counts and referenced method/class structure on each query.
+     * Discard all facts before specialization, so nothing survives a collection round or compilation.
      */
     private @Nullable SpecializationDemandGraph<Element> specializationDemand;
 
@@ -1105,28 +1101,59 @@ public class EliminateGenerics {
     private SpecializationDemandGraph.Facts<Element> specializationDemandFacts(Element root) {
         List<Element> dependencies = new ArrayList<>();
         if (root instanceof ImFunction function) {
-            if (needsGlobalSpecialization(function)) return new SpecializationDemandGraph.Facts<>(true, List.of());
-            Map<ImFunction, List<Element>> relevant = Objects.requireNonNull(specializationRelevantNodes);
-            for (Element node : relevant.computeIfAbsent(function, EliminateGenerics::specializationRelevantNodesOf)) {
+            int version = function.modificationCount();
+            if (needsGlobalSpecialization(function)) return new SpecializationDemandGraph.Facts<>(true, List.of(),
+                () -> function.modificationCount() == version);
+            for (Element node : specializationRelevantNodes(function)) {
                 if (intrinsicSpecializationDemand(function, node)) {
-                    return new SpecializationDemandGraph.Facts<>(true, List.of());
+                    return new SpecializationDemandGraph.Facts<>(true, List.of(),
+                        () -> function.modificationCount() == version);
                 }
                 Element dependency = specializationDependency(node);
                 if (dependency != null) dependencies.add(dependency);
             }
+            return new SpecializationDemandGraph.Facts<>(false, dependencies,
+                () -> function.modificationCount() == version);
         } else if (root instanceof ImMethod method) {
             if (method.getImplementation() != null) dependencies.add(method.getImplementation());
             dependencies.addAll(method.getSubMethods());
+            ImFunction implementation = method.getImplementation();
+            List<ImMethod> subMethods = List.copyOf(method.getSubMethods());
+            return new SpecializationDemandGraph.Facts<>(false, dependencies,
+                () -> method.getImplementation() == implementation && sameReferences(method.getSubMethods(), subMethods));
         } else if (root instanceof ImClass clazz) {
             // classMembersNeedTypeArgument follows implementations and inherited members, not virtual submethods.
             for (ImMethod method : clazz.getMethods()) {
                 if (method.getImplementation() != null) dependencies.add(method.getImplementation());
             }
             for (ImClassType superClass : clazz.getSuperClasses()) dependencies.add(superClass.getClassDef());
+            List<ImMethod> methods = List.copyOf(clazz.getMethods());
+            List<ImFunction> implementations = methods.stream().map(ImMethod::getImplementation).toList();
+            List<ImClass> superClasses = clazz.getSuperClasses().stream().map(ImClassType::getClassDef).toList();
+            return new SpecializationDemandGraph.Facts<>(false, dependencies,
+                () -> classMembersUnchanged(clazz, methods, implementations, superClasses));
         } else {
             throw new IllegalArgumentException("Unsupported specialization dependency: " + root.getClass());
         }
-        return new SpecializationDemandGraph.Facts<>(false, dependencies);
+    }
+
+    static boolean classMembersUnchanged(ImClass clazz, List<ImMethod> methods,
+                                                 List<ImFunction> implementations, List<ImClass> superClasses) {
+        if (clazz.getMethods().size() != methods.size() || clazz.getSuperClasses().size() != superClasses.size()) return false;
+        for (int i = 0; i < methods.size(); i++) {
+            if (clazz.getMethods().get(i) != methods.get(i)
+                || methods.get(i).getImplementation() != implementations.get(i)) return false;
+        }
+        for (int i = 0; i < superClasses.size(); i++) {
+            if (clazz.getSuperClasses().get(i).getClassDef() != superClasses.get(i)) return false;
+        }
+        return true;
+    }
+
+    private static boolean sameReferences(List<?> current, List<?> previous) {
+        if (current.size() != previous.size()) return false;
+        for (int i = 0; i < current.size(); i++) if (current.get(i) != previous.get(i)) return false;
+        return true;
     }
 
     /**
@@ -1145,9 +1172,9 @@ public class EliminateGenerics {
         if (!visitedFunctions.add(function)) {
             return false;
         }
-        Map<ImFunction, List<Element>> relevantNodes = specializationRelevantNodes;
+        Map<ImFunction, SpecializationNodes> relevantNodes = specializationRelevantNodes;
         if (relevantNodes != null) {
-            for (Element node : relevantNodes.computeIfAbsent(function, EliminateGenerics::specializationRelevantNodesOf)) {
+            for (Element node : specializationRelevantNodes(function)) {
                 if (nodeNeedsSpecialization(function, node, visitedFunctions, visitedMethods)) {
                     return true;
                 }
@@ -1308,18 +1335,20 @@ public class EliminateGenerics {
             Collections.newSetFromMap(new IdentityHashMap<>()));
     }
 
-    private void updateCallDependency(ImMethodCall call, boolean dependedOnCaller) {
-        if (dependsOnCaller(call.getTypeArguments()) != dependedOnCaller) {
-            // Only this function's outgoing method dependency changed. Calls outside a function are in no body facts.
-            ImFunction owner = call.getNearestFunc();
-            if (specializationDemand != null && owner != null) {
-                specializationDemand.changed(owner);
-            }
+    private record SpecializationNodes(int version, List<Element> nodes) {}
+
+    private List<Element> specializationRelevantNodes(ImFunction function) {
+        Map<ImFunction, SpecializationNodes> index = Objects.requireNonNull(specializationRelevantNodes);
+        SpecializationNodes known = index.get(function);
+        if (known == null || known.version() != function.modificationCount()) {
+            known = new SpecializationNodes(function.modificationCount(), specializationRelevantNodesOf(function));
+            index.put(function, known);
         }
+        return known.nodes();
     }
 
-    /** Set while a collection pass runs, which changes no body: the relevant elements of each function reached. */
-    private @Nullable Map<ImFunction, List<Element>> specializationRelevantNodes;
+    /** Collection-local node indexes also validate changes to a function's body. */
+    private @Nullable Map<ImFunction, SpecializationNodes> specializationRelevantNodes;
 
     /**
      * A generic caller containing {@code new Box<T>()} must be revisited after {@code T} becomes
