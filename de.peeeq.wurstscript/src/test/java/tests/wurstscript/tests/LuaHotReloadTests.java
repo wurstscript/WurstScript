@@ -350,6 +350,89 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
     }
 
+    /** A new package's init runs once, with its globals' initial values: they do not run again on their own. */
+    @Test
+    public void newPackageInitialisesItsGlobalsOnce() throws Exception {
+        CU main = new CU("Main", String.join("\n", "package Main", "public int made = 0", "public function bump() returns int",
+            "    made++", "    return made", "init", "    bump()", ""));
+        CU added = new CU("Added", String.join("\n", "package Added", "import Main", "int first = bump()", "init", "    made += first", ""));
+        LuaHotReload.Manifest baseline = compileLuaHotReloadManifest(false, HOT_RELOAD, main);
+        LuaHotReload.Manifest edited = compileLuaHotReloadManifest(false, HOT_RELOAD, main, added);
+        LuaHotReload.Payload first = LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1);
+        Pattern initialiser = Pattern.compile("first_[0-9a-f]{12} = bump_[0-9a-f]{12}\\(\\)");
+        assertEquals(first.source(), 1, initialiser.matcher(first.source()).results().count());
+        assertEquals(first.source(), 1, occurrences(first.source(), "\nxpcall("));
+        LuaHotReload.Payload second = LuaHotReload.payload(baseline, edited,
+            new LuaHotReload.History(Set.copyOf(first.functions()), Set.copyOf(first.captured()), Set.copyOf(first.ran())), 2);
+        assertEquals(second.source(), 1, initialiser.matcher(second.source()).results().count());
+        assertEquals(second.source(), 0, occurrences(second.source(), "\nxpcall("));
+    }
+
+    private static int occurrences(String text, String part) {
+        int n = 0;
+        for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + 1)) {
+            n++;
+        }
+        return n;
+    }
+
+    private static String[] mutableFieldProgram(boolean edited) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "class Box",
+            "    int a",
+            edited ? "    int array[2] xs" : "",
+            "function poke(Box b) returns int",
+            edited ? "    b.xs[1] = 5" : "",
+            edited ? "    return b.xs[1]" : "    return b.a",
+            "init",
+            "    let b = new Box()",
+            "    poke(b)",
+            "    hotReload()",
+            "    if poke(b) != 5",
+            "        testFail(\"an array field added to an object made before does not keep its value\")",
+            "    testSuccess()",
+        };
+    }
+
+    /** An array field added while an object exists gets an array of its own, which keeps what is stored in it. */
+    @Test
+    public void addedArrayFieldOfAnOldObjectKeepsItsValues() {
+        test().testLua(true).executeProg().luaHotReload(mutableFieldProgram(true)).lines(mutableFieldProgram(false));
+    }
+
+    /** {@code main} ran when the map started: a change to it ships with a warning that it needs a restart. */
+    @Test
+    public void changedEntryWarnsOfARestart() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(mutableFieldProgram(false));
+        LuaHotReload.Manifest current = new LuaHotReload.Manifest(baseline.abi(), baseline.compilerVersion(),
+            withChangedEntry(baseline.functions()), baseline.statements(), baseline.bindings());
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("restart")));
+    }
+
+    private static java.util.Map<String, LuaHotReload.Function> withChangedEntry(java.util.Map<String, LuaHotReload.Function> functions) {
+        java.util.Map<String, LuaHotReload.Function> changed = new java.util.LinkedHashMap<>(functions);
+        LuaHotReload.Function main = functions.values().stream().filter(f -> f.kind() == LuaHotReload.Kind.ENTRY).findFirst()
+            .orElseThrow();
+        changed.put(main.name(), new LuaHotReload.Function(main.name(), main.semanticId(), main.definition() + "\n-- edited",
+            main.slots(), main.captures(), main.kind()));
+        return changed;
+    }
+
+    /** A session saved by an older compiler has no statements: the payload is rejected with the reason, not a crash. */
+    @Test
+    public void manifestOfAnOlderCompilerIsRejected() {
+        LuaHotReload.Manifest current = manifest(mutableFieldProgram(false));
+        LuaHotReload.Manifest legacy = new LuaHotReload.Manifest(current.abi(), null, current.functions(), null, current.bindings());
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("another compiler"));
+    }
+
     private static String[] structuralProgram(boolean edited) {
         List<String> lines = new java.util.ArrayList<>(List.of(
             "package Test",

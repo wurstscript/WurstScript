@@ -44,8 +44,11 @@ payload compares the running script's manifest with the edited one:
 - The closures of one interface method in one function share an identity and are told apart by their order, so
   adding or removing one of them is rejected: the new closure would take an old one's name, and objects of the old
   one would run its body.
-- The init of a new package runs once, after the rest. Other changed package init code ran when the map started and
-  does not run again: the payload carries the change, with a warning that applying it needs a restart.
+- The init of a new package runs once, after the rest, with the initial values of its globals. Other changed package
+  init code, and a change to `main` or `config`, ran when the map started and does not run again: the payload carries
+  the change, with a warning that applying it needs a restart.
+- A field added to a class gives objects made before it its default; an array or tuple default is made once per object
+  and kept, so what is stored in it stays.
 
 A field store of a hot-reload build answers its type's default for an object it has no entry for, so an object made
 before a payload added the field reads the default; objects made after run the new constructor.

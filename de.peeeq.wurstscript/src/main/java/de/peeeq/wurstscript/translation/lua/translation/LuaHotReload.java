@@ -82,9 +82,9 @@ public final class LuaHotReload {
      * A statement of the script outside the functions: {@code scope} is {@code top} (a top-level declaration),
      * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key} is what it assigns;
      * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
-     * {@code other}.
+     * {@code other}; {@code owner} is the package init it is part of, or empty.
      */
-    public record Statement(String scope, String key, String text, String kind) {
+    public record Statement(String scope, String key, String text, String kind, String owner) {
     }
 
     /** What a hot-reload build emitted: its fingerprint, which the script holds, and its parts. */
@@ -151,7 +151,7 @@ public final class LuaHotReload {
                 if (f == bootstrap || f == globalInit) {
                     String scope = f == bootstrap ? "boot" : "globals";
                     for (LuaStatement s : f.getBody()) {
-                        statements.add(statement(scope, s, globals));
+                        statements.add(statement(scope, "", s, globals));
                     }
                     continue;
                 }
@@ -167,7 +167,7 @@ public final class LuaHotReload {
                 if (kind == Kind.PACKAGE_INIT) {
                     // The initial values of a package's globals are given here: a new global's must run.
                     for (LuaStatement s : f.getBody()) {
-                        statements.add(statement("init", s, globals));
+                        statements.add(statement("init", f.getName(), s, globals));
                     }
                 }
                 StringBuilder definition = new StringBuilder();
@@ -175,7 +175,7 @@ public final class LuaHotReload {
                 functions.put(f.getName(), new Function(f.getName(), id, definition.toString(),
                     List.copyOf(slots.getOrDefault(f, List.of())), List.copyOf(captures.getOrDefault(f, List.of())), kind));
             } else {
-                statements.add(statement("top", statement, globals));
+                statements.add(statement("top", "", statement, globals));
             }
         }
 
@@ -206,7 +206,7 @@ public final class LuaHotReload {
             List.copyOf(bindings));
     }
 
-    private static Statement statement(String scope, LuaStatement s, Set<LuaVariable> globals) {
+    private static Statement statement(String scope, String owner, LuaStatement s, Set<LuaVariable> globals) {
         StringBuilder text = new StringBuilder();
         String key;
         String kind = "other";
@@ -237,7 +237,7 @@ public final class LuaHotReload {
             s.print(text, 0);
             key = text.toString();
         }
-        return new Statement(scope, key, text.toString(), kind);
+        return new Statement(scope, key, text.toString(), kind, owner);
     }
 
     /** The payload which takes a map running {@code baseline} to {@code current}, which earlier payloads did not reach. */
@@ -263,6 +263,8 @@ public final class LuaHotReload {
         if (!Objects.equals(baseline.compilerVersion(), current.compilerVersion())) {
             reasons.add("the edit was compiled by another compiler (" + current.compilerVersion() + ") than the running script ("
                 + baseline.compilerVersion() + ")");
+            // A manifest of another compiler need not have the parts read below.
+            throw new Rejected(reasons);
         }
         Map<String, String> oldBindings = bindingMap(baseline.bindings());
         for (Map.Entry<String, String> b : bindingMap(current.bindings()).entrySet()) {
@@ -288,6 +290,7 @@ public final class LuaHotReload {
         List<String> changedInits = new ArrayList<>();
         List<String> newInits = new ArrayList<>();
         List<String> keptValues = new ArrayList<>();
+        List<String> changedEntries = new ArrayList<>();
         for (Function f : current.functions().values()) {
             Function old = baseline.functions().get(f.name());
             boolean changed = old == null || !old.definition().equals(f.definition());
@@ -309,6 +312,13 @@ public final class LuaHotReload {
             if (f.kind() == Kind.PACKAGE_INIT && old == null) {
                 newInits.add(f.name());
             }
+            if (f.kind() == Kind.ENTRY && changed) {
+                changedEntries.add(f.name());
+            }
+        }
+        if (!changedEntries.isEmpty()) {
+            warnings.add("Changed " + String.join(", ", changedEntries) + " ran when the map started and does not run again"
+                + " (the payload starts new packages itself): restart the map to apply other changes to it.");
         }
 
         List<Statement> declarations = new ArrayList<>();
@@ -329,6 +339,10 @@ public final class LuaHotReload {
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
+                if (scope.equals("init") && newInits.contains(s.owner()) && !history.ran().contains("init:" + s.owner())) {
+                    // The init of a new package runs as a whole, below.
+                    continue;
+                }
                 if (scope.equals("init")) {
                     // A package init ran when the map started. Of what changed in one, only the initial value of a global
                     // the running script does not have can run now; the map keeps the values of the globals it has.
@@ -399,6 +413,12 @@ public final class LuaHotReload {
             // A new package: its init runs once, as at the start of a map, and reports an error as a map's init does.
             sb.append("xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end)\n");
             ran.add(marker);
+            // What it initialises ran with it, and a later payload must not run it again on its own.
+            for (Statement s : current.statements()) {
+                if (s.owner().equals(init)) {
+                    ran.add(s.text());
+                }
+            }
         }
         sb.append("end\n");
         List<String> captured = new ArrayList<>();

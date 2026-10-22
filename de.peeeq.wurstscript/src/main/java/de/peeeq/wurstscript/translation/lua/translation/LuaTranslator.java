@@ -650,7 +650,13 @@ public class LuaTranslator {
         }
         StringBuilder value = new StringBuilder();
         fieldDefault.print(value, 0);
-        return LuaAst.LuaLiteral("setmetatable({}, {__index = function() return " + value + " end})");
+        if (fieldDefault instanceof LuaExprIntVal || fieldDefault instanceof LuaExprRealVal
+            || fieldDefault instanceof LuaExprBoolVal || fieldDefault instanceof LuaExprStringVal) {
+            return LuaAst.LuaLiteral("setmetatable({}, {__index = function() return " + value + " end})");
+        }
+        // An array or a tuple is changed in place: the object keeps the one it was given first.
+        return LuaAst.LuaLiteral("setmetatable({}, {__index = function(t, k) local v = " + value
+            + " t[k] = v return v end})");
     }
 
     /** What a {@code -luaHotReload} build emitted, null in any other build. */
