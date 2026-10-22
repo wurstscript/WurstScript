@@ -92,9 +92,10 @@ public class ModelManagerImpl implements ModelManager {
     // leaves its units here, so the next check takes them along. Guarded by modelLock.
     private final Set<CompilationUnit> uncheckedUnits = Collections.newSetFromMap(new IdentityHashMap<>());
 
-    // The units which an edit of nothing but bodies replaced in place (BodyOnlyEdit) and which no check has
-    // validated since. The other units were not invalidated, and their attributes point into these units' module
-    // instantiations, so a check of such a unit keeps the instantiations. Guarded by modelLock.
+    // The units which an edit of nothing but bodies replaced in place (BodyOnlyEdit) and which nothing invalidated
+    // since, checked or not: the other units were not invalidated, and their attributes point into these units'
+    // module instantiations, so a check of such a unit keeps the instantiations, and a change of such a unit does
+    // not affect what depends on it. Guarded by modelLock.
     private final Set<CompilationUnit> bodyEdited = Collections.newSetFromMap(new IdentityHashMap<>());
 
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
@@ -630,7 +631,6 @@ public class ModelManagerImpl implements ModelManager {
             if (comp.checkProg(model2)) {
                 synchronized (modelLock) {
                     uncheckedUnits.clear();
-                    bodyEdited.clear();
                 }
             }
         } catch (CompileError e) {
@@ -1218,7 +1218,6 @@ public class ModelManagerImpl implements ModelManager {
         synchronized (modelLock) {
             if (checkedModel != null && checkedModel == model) {
                 uncheckedUnits.clear();
-                bodyEdited.clear();
             }
         }
     }
@@ -1243,7 +1242,6 @@ public class ModelManagerImpl implements ModelManager {
         synchronized (modelLock) {
             if (checkedModel != null && checkedModel == model) {
                 uncheckedUnits.removeAll(units);
-                bodyEdited.removeAll(units);
             }
         }
     }
@@ -1354,7 +1352,6 @@ public class ModelManagerImpl implements ModelManager {
         if (validated) {
             synchronized (modelLock) {
                 uncheckedUnits.removeAll(toCheck);
-                bodyEdited.removeAll(toCheck);
             }
         }
         List<WFile> fileNames = getfileNames(toCheck);

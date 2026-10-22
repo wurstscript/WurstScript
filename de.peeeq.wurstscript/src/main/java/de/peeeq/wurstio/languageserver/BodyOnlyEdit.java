@@ -96,8 +96,7 @@ final class BodyOnlyEdit {
 
     private static boolean samePositions(Element old, Element fresh) {
         if (old instanceof AstElementWithSource o && fresh instanceof AstElementWithSource f
-            && (o.getSource().getLeftPos() != f.getSource().getLeftPos()
-                || o.getSource().getRightPos() != f.getSource().getRightPos())) {
+            && !samePosition(o.getSource(), f.getSource())) {
             return false;
         }
         for (int i = 0; i < old.size(); i++) {
@@ -110,6 +109,13 @@ final class BodyOnlyEdit {
             }
         }
         return true;
+    }
+
+    /** The same characters at the same lines and columns: lines come from the line table of each parse. */
+    private static boolean samePosition(WPos a, WPos b) {
+        return a.getLeftPos() == b.getLeftPos() && a.getRightPos() == b.getRightPos()
+            && a.getLine() == b.getLine() && a.getStartColumn() == b.getStartColumn()
+            && a.getEndLine() == b.getEndLine() && a.getEndColumn() == b.getEndColumn();
     }
 
     /** Takes positions, module instantiations and bodies out of a copy, so that only the declarations remain. */

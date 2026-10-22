@@ -297,6 +297,52 @@ public class BodyOnlyEditTests {
         return lines.get(0);
     }
 
+    /**
+     * An edit can keep every character of a module where it was and still move it to another line: positions are
+     * offsets, and their lines come from the line table of each parse. One comment line in a body above the module
+     * becomes two of the same length.
+     */
+    @Test
+    public void aBodyEditWhichMovesAModuleToAnotherLineReplacesTheUnit() throws IOException {
+        Path root = project();
+        String commented = MOD.replace("    return 0", "    // xx\n    return 0");
+        write(root, "Mod", commented);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+
+        String twoLines = commented.replace("    // xx", "    //\n//");
+        assertEquals(twoLines.length(), commented.length());
+        manager.reconcile(sync(manager, root, "Mod", twoLines));
+        assertEquals(manager.bodyEdits(), 0, "the module moves down a line");
+        assertSameAsFreshBuild(root, manager, log);
+        ModelManagerImpl fresh = new ModelManagerImpl(root.toFile(), new BufferManager());
+        fresh.buildProject();
+        assertEquals(linkedName(manager, "B", "count").getDef().getSource().getLine(),
+            linkedName(fresh, "B", "count").getDef().getSource().getLine());
+    }
+
+    /**
+     * A file saved or changed on disk is checked when it is synced, and the reconciliation after it still knows the
+     * edit was made in place: it checks nothing else.
+     */
+    @Test
+    public void aBodyEditSyncedFromDiskChecksOnlyItsUnit() throws IOException {
+        Path root = project();
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+
+        write(root, "A", A.replace("    return x + 1", "    return x + 2"));
+        ModelManager.Changes changes = manager.syncCompilationUnit(
+            WFile.create(root.resolve("wurst/A.wurst").toFile()));
+        assertEquals(manager.bodyEdits(), 1);
+        assertEquals(manager.lastCheckedUnits(), 1, "the sync checked A alone");
+        manager.reconcile(changes);
+        assertEquals(manager.lastCheckedUnits(), 1, "and so did the reconciliation");
+        assertSameAsFreshBuild(root, manager, log);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private static ModelManager.Changes sync(ModelManagerImpl manager, Path root, String pkg, String text)
