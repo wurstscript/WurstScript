@@ -437,15 +437,11 @@ public class LuaTranslator {
 
     /**
      * The name of a declaration of the program. A hot-reload build adds a hash of the declaration's identity
-     * ({@link LuaHotReload#shortHash}), so that a name depends on its declaration alone: numbered names change when a
+     * ({@link LuaHotReload#identityHash}), so that a name depends on its declaration alone: numbered names change when a
      * declaration of the same name is added or removed before them, which a payload cannot carry.
      */
     String declarationName(String rawName, String identity) {
-        if (!hotReload) {
-            return uniqueName(rawName);
-        }
-        String hash = longHashed.contains(identity) ? LuaHotReload.longHash(identity) : LuaHotReload.shortHash(identity);
-        return uniqueName(rawName + "_" + hash);
+        return uniqueName(hotReload ? rawName + "_" + LuaHotReload.identityHash(identity) : rawName);
     }
 
     /**
@@ -453,6 +449,11 @@ public class LuaTranslator {
      * program, a local added to one function would rename the locals of every function translated after it.
      */
     private final Map<Object, Set<String>> localNamesByScope = new IdentityHashMap<>();
+    /**
+     * The names of the locals of every function in a hot-reload build, which {@link #uniqueName} avoids: a global named
+     * after a local of the same name (a helper made when a body first needs it) would be shadowed in that body.
+     */
+    private final Set<String> localNames = new HashSet<>();
     /** The IM function each Lua function was translated from. */
     private final Map<LuaFunction, ImFunction> imFunctionOf = new IdentityHashMap<>();
 
@@ -472,6 +473,7 @@ public class LuaTranslator {
             candidate = name + i;
         }
         used.add(candidate);
+        localNames.add(candidate);
         return candidate;
     }
 
@@ -489,48 +491,12 @@ public class LuaTranslator {
         return im != null ? im : luaFunction;
     }
 
-    /** The identities whose short hashes collide with another's, which get the long hash instead. */
-    private final Set<String> longHashed = new HashSet<>();
-
-    /**
-     * Finds the declarations whose short hashes collide, before anything is named. Two of them would otherwise be told
-     * apart by a number given in the order they are named, which depends on the order of the compilation units; which
-     * identities collide does not.
-     */
-    private void findShortHashCollisions() {
-        Map<String, Set<String>> byHash = new HashMap<>();
-        java.util.function.Consumer<String> add = id -> byHash.computeIfAbsent(LuaHotReload.shortHash(id), h -> new HashSet<>()).add(id);
-        for (ImVar global : prog.getGlobals()) {
-            add.accept(LuaHotReload.variableId(global));
-        }
-        for (ImFunction f : prog.getFunctions()) {
-            add.accept(LuaHotReload.functionId(f));
-        }
-        for (ImClass c : prog.getClasses()) {
-            add.accept(LuaHotReload.classId(c));
-            for (ImVar field : c.getFields()) {
-                add.accept(LuaHotReload.variableId(field));
-            }
-            for (ImFunction f : c.getFunctions()) {
-                add.accept(LuaHotReload.functionId(f));
-            }
-            for (ImMethod m : c.getMethods()) {
-                add.accept(LuaHotReload.methodId(m));
-            }
-        }
-        for (Set<String> ids : byHash.values()) {
-            if (ids.size() > 1) {
-                longHashed.addAll(ids);
-            }
-        }
-    }
-
     protected String uniqueName(String rawName) {
         String name = LuaIdentifiers.toIdentifier(rawName);
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);
-            if (usedNames.add(name)) {
+            if (!localNames.contains(name) && usedNames.add(name)) {
                 return name;
             }
             nextIndex = 1;
@@ -539,16 +505,13 @@ public class LuaTranslator {
         do {
             candidate = name + nextIndex;
             nextIndex++;
-        } while (!usedNames.add(candidate));
+        } while (localNames.contains(candidate) || !usedNames.add(candidate));
         uniqueNameCounters.put(name, nextIndex);
         return candidate;
     }
 
     public LuaCompilationUnit translate() {
         collectPredefinedNames();
-        if (hotReload) {
-            findShortHashCollisions();
-        }
         assertNoDanglingFunctionReferences(prog);
         fieldDefaultsOnAllocation = LuaFieldDefaults.moveSurvivorsToAllocations(prog, imTr);
 

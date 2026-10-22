@@ -98,9 +98,9 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(1, area.functions().size());
         String areaFunction = area.functions().get(0);
         assertTrue("the override's class-table slot is rebound:\n" + area.source(),
-            Pattern.compile("(?m)^Square_[0-9a-f]{6}\\.\\w+ = " + areaFunction + "$").matcher(area.source()).find());
+            Pattern.compile("(?m)^Square_[0-9a-f]{12}\\.\\w+ = " + areaFunction + "$").matcher(area.source()).find());
         assertFalse("a sibling's slot is left alone:\n" + area.source(),
-            Pattern.compile("(?m)^Circle_[0-9a-f]{6}\\.").matcher(area.source()).find());
+            Pattern.compile("(?m)^Circle_[0-9a-f]{12}\\.").matcher(area.source()).find());
 
         assertTrue("an ordinary body edit warns of nothing", payload.warnings().isEmpty());
         LuaHotReload.Payload initEdit = LuaHotReload.payload(baseline,
@@ -257,23 +257,24 @@ public class LuaHotReloadTests extends WurstScriptTest {
         }
         assertEquals(compiled, 2, names.size());
         for (String name : names) {
-            assertTrue("named from its identity, not numbered: " + names, name.matches(".*_[0-9a-f]{6}"));
+            assertTrue("named from its identity, not numbered: " + names, name.matches(".*_[0-9a-f]{12}"));
         }
     }
 
     /**
-     * Two declarations whose short hashes collide ({@code P4769:C.C_x} and {@code P8706:C.C_x}) both get the long hash, so
-     * their names do not depend on the order of the compilation units.
+     * {@code P4769:C.C_x} and {@code P8706:C.C_x} share the first six hex digits of their hashes. Adding the second
+     * renames nothing of the first, and the names do not depend on the order of the compilation units.
      */
     @Test
-    public void collidingShortHashesDoNotDependOnOrder() {
+    public void addedDeclarationWithSimilarHashRenamesNothing() {
         CU first = new CU("P4769", String.join("\n", "package P4769", "public class C", "    int x = 1", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
         CU second = new CU("P8706", String.join("\n", "package P8706", "public class C", "    int x = 2", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
+        assertEquals(LuaHotReload.identityHash("P4769:C.C_x").substring(0, 6), LuaHotReload.identityHash("P8706:C.C_x").substring(0, 6));
+        LuaHotReload.Manifest alone = compileLuaHotReloadManifest(false, HOT_RELOAD, first);
         LuaHotReload.Manifest forward = compileLuaHotReloadManifest(false, HOT_RELOAD, first, second);
         LuaHotReload.Manifest backward = compileLuaHotReloadManifest(false, HOT_RELOAD, second, first);
         assertEquals(new java.util.TreeSet<>(forward.bindings()), new java.util.TreeSet<>(backward.bindings()));
-        assertTrue(forward.bindings().toString(), forward.bindings().stream()
-            .anyMatch(b -> b.matches("C_x_storage_[0-9a-f]{16}=P4769:C\\.C_x.*")));
+        assertTrue(alone.bindings().toString(), forward.bindings().containsAll(alone.bindings()));
     }
 
     /** A class of the same name from another package is another type. */
@@ -582,12 +583,12 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
     /** The source names of Lua names: a hot-reload build adds a hash of its identity to each declaration's name. */
     private static List<String> sourceNames(List<String> luaNames) {
-        return luaNames.stream().map(n -> n.replaceAll("_[0-9a-f]{6}$", "")).toList();
+        return luaNames.stream().map(n -> n.replaceAll("_[0-9a-f]{12}$", "")).toList();
     }
 
     /** The Lua name of the function called {@code source} in a hot-reload build. */
     private static String luaName(LuaHotReload.Manifest m, String source) {
-        return m.functions().keySet().stream().filter(n -> n.matches(Pattern.quote(source) + "_[0-9a-f]{6}")).findFirst()
+        return m.functions().keySet().stream().filter(n -> n.matches(Pattern.quote(source) + "_[0-9a-f]{12}")).findFirst()
             .orElseThrow();
     }
 
