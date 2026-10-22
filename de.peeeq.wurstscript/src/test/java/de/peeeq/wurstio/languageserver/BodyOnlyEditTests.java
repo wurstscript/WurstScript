@@ -323,6 +323,37 @@ public class BodyOnlyEditTests {
     }
 
     /**
+     * The arrow of a closure has a position of its own: a module whose closure keeps its bounds but moves its
+     * arrow still moves, and the copies of the module would keep the old position.
+     */
+    @Test
+    public void aBodyEditWhichMovesOnlyTheArrowOfAClosureInAModuleReplacesTheUnit() throws IOException {
+        Path root = project();
+        String fns = String.join("\n",
+            "package Fns",
+            "import NoWurst",
+            "public interface Fn",
+            "    function run(int x) returns int",
+            "public module Mapper",
+            "    function map() returns int",
+            "        Fn f = (x) ->  x",
+            "        return f.run(1)",
+            "public class UsesMapper",
+            "    use Mapper",
+            "");
+        write(root, "Fns", fns);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+
+        String moved = fns.replace("(x) ->  x", "(x)  -> x");
+        assertEquals(moved.length(), fns.length());
+        manager.reconcile(sync(manager, root, "Fns", moved));
+        assertEquals(manager.bodyEdits(), 0, "the arrow moves");
+        assertSameAsFreshBuild(root, manager, log);
+    }
+
+    /**
      * A file saved or changed on disk is checked when it is synced, and the reconciliation after it still knows the
      * edit was made in place: it checks nothing else.
      */

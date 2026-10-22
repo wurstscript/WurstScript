@@ -99,6 +99,14 @@ final class BodyOnlyEdit {
             && !samePosition(o.getSource(), f.getSource())) {
             return false;
         }
+        if (old instanceof SomeSuperConstructorCall o && fresh instanceof SomeSuperConstructorCall f
+            && !samePosition(o.getKeywordSource(), f.getKeywordSource())) {
+            return false;
+        }
+        if (old instanceof ExprClosure o && fresh instanceof ExprClosure f
+            && !samePosition(o.getArrowSource(), f.getArrowSource())) {
+            return false;
+        }
         for (int i = 0; i < old.size(); i++) {
             Element child = old.get(i);
             if (old instanceof ClassOrModuleOrModuleInstanciation c && child == c.getP_moduleInstanciations()) {
