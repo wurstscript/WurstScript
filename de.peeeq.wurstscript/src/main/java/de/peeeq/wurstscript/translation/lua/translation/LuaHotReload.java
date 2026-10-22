@@ -489,22 +489,16 @@ public final class LuaHotReload {
     }
 
     /**
-     * Six hex digits of a hash of {@code identity}: the suffix which makes a hot-reload build's name of a declaration
-     * depend on that declaration alone, so adding or removing another one renames nothing.
+     * Twelve hex digits of a hash of {@code identity}: the suffix which makes a hot-reload build's name of a declaration
+     * depend on that declaration alone, so adding or removing another one renames nothing. The width is fixed, so a name
+     * never depends on which other declarations exist. Two identities which share it (about one chance in 50,000 for a
+     * program of 100,000 declarations) are numbered by {@link LuaTranslator#uniqueName}; a payload whose names then mean
+     * other declarations is rejected by the binding check.
      */
-    static String shortHash(String identity) {
-        return hash(identity, 3);
-    }
-
-    /** Sixteen hex digits: for the identities whose short hashes collide ({@link LuaTranslator#declarationName}). */
-    static String longHash(String identity) {
-        return hash(identity, 8);
-    }
-
-    private static String hash(String identity, int bytes) {
+    static String identityHash(String identity) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, bytes);
+            return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, 6);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
