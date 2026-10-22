@@ -269,12 +269,16 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void addedDeclarationWithSimilarHashRenamesNothing() {
         CU first = new CU("P4769", String.join("\n", "package P4769", "public class C", "    int x = 1", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
         CU second = new CU("P8706", String.join("\n", "package P8706", "public class C", "    int x = 2", "init", "    let c = new C()", "    c.x = c.x + 1", ""));
-        assertEquals(LuaHotReload.identityHash("P4769:C.C_x").substring(0, 6), LuaHotReload.identityHash("P8706:C.C_x").substring(0, 6));
         LuaHotReload.Manifest alone = compileLuaHotReloadManifest(false, HOT_RELOAD, first);
         LuaHotReload.Manifest forward = compileLuaHotReloadManifest(false, HOT_RELOAD, first, second);
         LuaHotReload.Manifest backward = compileLuaHotReloadManifest(false, HOT_RELOAD, second, first);
         assertEquals(new java.util.TreeSet<>(forward.bindings()), new java.util.TreeSet<>(backward.bindings()));
         assertTrue(alone.bindings().toString(), forward.bindings().containsAll(alone.bindings()));
+        java.util.Set<String> prefixes = forward.bindings().stream()
+            .filter(b -> b.matches("C_x_storage_[0-9a-f]{12}=P(4769|8706):C\\.C_x.*"))
+            .map(b -> b.substring("C_x_storage_".length(), "C_x_storage_".length() + 6))
+            .collect(java.util.stream.Collectors.toSet());
+        assertEquals("both stores, sharing six digits: " + forward.bindings(), 1, prefixes.size());
     }
 
     /** A class of the same name from another package is another type. */

@@ -90,6 +90,11 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    /**
+     * The names of the locals of every function in a hot-reload build, which {@link #uniqueName} avoids: a global named
+     * after a local of the same name (a helper made when a body first needs it) would be shadowed in that body.
+     */
+    private final Set<String> localNames = new HashSet<>();
     private final Set<LuaVariable> localizableStorageTables = Collections.newSetFromMap(new IdentityHashMap<>());
     private LuaFunction bootstrapFunction;
     private final Set<String> emittedDispatchSlots = new HashSet<>();
@@ -449,11 +454,6 @@ public class LuaTranslator {
      * program, a local added to one function would rename the locals of every function translated after it.
      */
     private final Map<Object, Set<String>> localNamesByScope = new IdentityHashMap<>();
-    /**
-     * The names of the locals of every function in a hot-reload build, which {@link #uniqueName} avoids: a global named
-     * after a local of the same name (a helper made when a body first needs it) would be shadowed in that body.
-     */
-    private final Set<String> localNames = new HashSet<>();
     /** The IM function each Lua function was translated from. */
     private final Map<LuaFunction, ImFunction> imFunctionOf = new IdentityHashMap<>();
 
