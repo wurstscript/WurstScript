@@ -94,10 +94,10 @@ public class LuaNameCompressionTests extends WurstScriptTest {
     private void assertSiblingBindings(String lua, String slot) {
         String identifier = "[A-Za-z_][A-Za-z_0-9]*";
         // Each sibling's unique field initializer identifies its allocated descriptor and field
-        // table even after all names are compressed. Both a shared allocator(descriptor) and
-        // descriptor:create() identify the descriptor used by the allocation.
+        // table even after all names are compressed. A shared allocator(descriptor) names the
+        // descriptor at the allocation, a class's own allocator() in its body.
         var allocations = Pattern.compile("(?m)^\\s*(" + identifier + ") = (" + identifier
-            + ")(?::" + identifier + ")?\\((" + identifier + ")?\\)\\s*\\R\\s*(" + identifier
+            + ")\\((" + identifier + ")?\\)\\s*\\R\\s*(" + identifier
             + ")\\[\\1\\] = ([1-4])\\b").matcher(lua);
         Map<Integer, String> descriptors = new HashMap<>();
         Set<String> implementations = new HashSet<>();
@@ -107,7 +107,15 @@ public class LuaNameCompressionTests extends WurstScriptTest {
         while (noOpFunctions.find()) noOps.add(noOpFunctions.group(1));
         while (allocations.find()) {
             int sibling = Integer.parseInt(allocations.group(5));
-            String descriptor = allocations.group(3) == null ? allocations.group(2) : allocations.group(3);
+            String descriptor = allocations.group(3);
+            if (descriptor == null) {
+                // the allocator records the object's descriptor before any field default
+                var recorded = Pattern.compile("(?m)^function " + Pattern.quote(allocations.group(2))
+                    + "\\(\\)(?:(?!\\nend)[\\s\\S])*?^\\s*" + identifier + "\\[" + identifier + "\\] = ("
+                    + identifier + ")\\s*$").matcher(lua);
+                assertTrue("Find the descriptor sibling " + sibling + "'s allocator records", recorded.find());
+                descriptor = recorded.group(1);
+            }
             assertNull("One allocation anchor per sibling " + sibling, descriptors.put(sibling, descriptor));
             String storage = allocations.group(4);
             var override = Pattern.compile("(?m)^function (" + identifier + ")\\((" + identifier
