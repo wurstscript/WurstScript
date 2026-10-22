@@ -1689,6 +1689,9 @@ public class LuaTranslator {
         groups.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
         List<List<ImMethod>> preparedGroups = new ArrayList<>();
         Map<List<ImMethod>, ImMethod> chosenByGroup = new LinkedHashMap<>();
+        // Both passes below read the slot names of every group and the names of its members; they are made once.
+        Map<List<ImMethod>, Set<String>> slotNamesByGroup = new IdentityHashMap<>();
+        Map<List<ImMethod>, Set<String>> memberNamesByGroup = new IdentityHashMap<>();
         for (List<ImMethod> groupMethods : groups) {
             if (groupMethods == null || groupMethods.isEmpty()) {
                 continue;
@@ -1700,6 +1703,12 @@ public class LuaTranslator {
             }
             preparedGroups.add(groupMethods);
             chosenByGroup.put(groupMethods, chosen);
+            Set<String> memberNames = new HashSet<>();
+            for (ImMethod m : groupMethods) {
+                memberNames.add(dispatchSlotName(m.getName()));
+            }
+            memberNamesByGroup.put(groupMethods, memberNames);
+            slotNamesByGroup.put(groupMethods, collectDispatchSlotNames(c, groupMethods));
         }
 
         // Slots are assigned in two passes: a slot name that is the (normalized)
@@ -1715,11 +1724,8 @@ public class LuaTranslator {
         Set<String> directSlots = new HashSet<>();
         for (List<ImMethod> groupMethods : preparedGroups) {
             ImMethod chosen = chosenByGroup.get(groupMethods);
-            Set<String> memberNames = new HashSet<>();
-            for (ImMethod m : groupMethods) {
-                memberNames.add(dispatchSlotName(m.getName()));
-            }
-            Set<String> slotNames = collectDispatchSlotNames(c, groupMethods);
+            Set<String> memberNames = memberNamesByGroup.get(groupMethods);
+            Set<String> slotNames = slotNamesByGroup.get(groupMethods);
             for (String slotName : slotNames) {
                 if (!memberNames.contains(slotName)) {
                     continue;
@@ -1735,11 +1741,8 @@ public class LuaTranslator {
         }
         for (List<ImMethod> groupMethods : preparedGroups) {
             ImMethod chosen = chosenByGroup.get(groupMethods);
-            Set<String> memberNames = new HashSet<>();
-            for (ImMethod m : groupMethods) {
-                memberNames.add(dispatchSlotName(m.getName()));
-            }
-            for (String slotName : collectDispatchSlotNames(c, groupMethods)) {
+            Set<String> memberNames = memberNamesByGroup.get(groupMethods);
+            for (String slotName : slotNamesByGroup.get(groupMethods)) {
                 if (memberNames.contains(slotName)) {
                     continue;
                 }
