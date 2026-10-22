@@ -1430,4 +1430,574 @@ public class InterfaceTests extends WurstScriptTest {
             "    if viaShowable(new C()) == 7 and viaShowable(new D()) == 11",
             "        testSuccess()");
     }
+
+    /** A class implements an interface method with a type parameter of its own with a method which declares the same one: a call through the interface with either type argument reaches each class's method. */
+    @Test
+    public void aMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class C implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class X implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "function viaTopInt(Top t) returns int",
+            "    return t.pick<int>(1, 2)",
+            "function viaTopString(Top t) returns string",
+            "    return t.pick<string>(\"a\", \"b\")",
+            "init",
+            "    if viaTopInt(new C()) == 1 and viaTopString(new C()) == \"a\" and viaTopInt(new X()) == 2 and viaTopString(new X()) == \"b\"",
+            "        testSuccess()");
+    }
+
+    /**
+     * Implementations of an interface method with a type parameter of its own, which each declares under a name of its
+     * choosing: one which a generic class inherits from a class outside the interface (the function the class gets of
+     * its own for it forwards the type parameter), and overrides below that class and below a class with its own method.
+     */
+    public static String[] ownTypeParameterDispatchSource() {
+        return new String[]{
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class Base",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class C<Y:> extends Base implements Top",
+            "class D<Y:> extends C<Y>",
+            "    override function pick<U:>(U a, U b) returns U",
+            "        return b",
+            "class E implements Top",
+            "    function pick<S:>(S a, S b) returns S",
+            "        return b",
+            "class F extends E",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "function viaTopInt(Top t) returns int",
+            "    return t.pick<int>(1, 2)",
+            "function viaTopString(Top t) returns string",
+            "    return t.pick<string>(\"a\", \"b\")",
+            "init",
+            "    if viaTopInt(new C<real>()) == 1 and viaTopString(new C<real>()) == \"a\"",
+            "        and viaTopInt(new D<int>()) == 2 and viaTopString(new D<int>()) == \"b\"",
+            "        and viaTopInt(new E()) == 2 and viaTopString(new E()) == \"b\"",
+            "        and viaTopInt(new F()) == 1 and viaTopString(new F()) == \"a\"",
+            "        and new C<int>().pick(5, 6) == 5 and new D<int>().pick(5, 6) == 6",
+            "        testSuccess()"};
+    }
+
+    @Test
+    public void implementationsWithTypeParametersOfTheirOwnAreDispatched() {
+        test().testLua(true).luaOnly(false).executeProg().lines(ownTypeParameterDispatchSource());
+    }
+
+    /** A plain class implements the interface method with a method with a type parameter of its own which it inherits, and a subclass overrides it. */
+    @Test
+    public void aPlainClassInheritingAMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class Base",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class C extends Base implements Top",
+            "class D extends C",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "function viaTopInt(Top t) returns int",
+            "    return t.pick<int>(1, 2)",
+            "function viaTopString(Top t) returns string",
+            "    return t.pick<string>(\"a\", \"b\")",
+            "init",
+            "    if viaTopInt(new C()) == 1 and viaTopString(new C()) == \"a\" and viaTopInt(new D()) == 2 and viaTopString(new D()) == \"b\"",
+            "        testSuccess()");
+    }
+
+    /** The method of a generic interface has a type parameter of its own beside the interface's, and a generic superclass implements it: the function a class gets for it substitutes the superclass's type arguments as the class sees them and forwards the method's own. */
+    @Test
+    public void aMethodWithATypeParameterOfItsOwnOfAGenericSuperclassImplementsAGenericInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface GTop<Y:>",
+            "    function pick<T:>(T a, Y y) returns T",
+            "class Base<Y:>",
+            "    Y last",
+            "    function pick<T:>(T a, Y y) returns T",
+            "        last = y",
+            "        return a",
+            "class C<Y:> extends Base<Y> implements GTop<Y>",
+            "class P extends Base<string> implements GTop<string>",
+            "init",
+            "    let c = new C<real>()",
+            "    GTop<real> g = c",
+            "    let p = new P()",
+            "    GTop<string> h = p",
+            "    if g.pick<int>(3, 1.5) == 3 and c.last == 1.5 and g.pick<string>(\"x\", 2.5) == \"x\" and c.last == 2.5",
+            "        and h.pick<int>(4, \"s\") == 4 and p.last == \"s\"",
+            "        testSuccess()");
+    }
+
+    /** A generic class's own method with a type parameter of its own implements the method of a plain interface and of a generic one. */
+    @Test
+    public void aGenericClassMethodWithATypeParameterOfItsOwnImplementsTheInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "interface GTop<Y:>",
+            "    function second<T:>(T a, Y y) returns Y",
+            "class C<Y:> implements Top, GTop<Y>",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "    function second<T:>(T a, Y y) returns Y",
+            "        return y",
+            "init",
+            "    Top t = new C<real>()",
+            "    GTop<string> g = new C<string>()",
+            "    if t.pick<int>(1, 2) == 2 and t.pick<string>(\"a\", \"b\") == \"b\" and g.second<int>(1, \"s\") == \"s\"",
+            "        testSuccess()");
+    }
+
+    /** A bounded type parameter of the method's own is dispatched with the call's type argument, also through the function a generic class gets for the method it inherits. */
+    @Test
+    public void aBoundedTypeParameterOfTheMethodsOwnIsDispatchedThroughTheInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "interface Top",
+            "    function describe<T: Show>(T value) returns string",
+            "class Base",
+            "    function describe<T: Show>(T value) returns string",
+            "        return \"b\" + T.show(value)",
+            "class C<Y:> extends Base implements Top",
+            "class X implements Top",
+            "    function describe<U: Show>(U value) returns string",
+            "        return \"x\" + U.show(value)",
+            "function via(Top t) returns string",
+            "    return t.describe<int>(3) + t.describe(\"z\")",
+            "init",
+            "    if via(new C<real>()) == \"bibs\" and via(new X()) == \"xixs\"",
+            "        testSuccess()");
+    }
+
+    /** The same with an old generic type parameter, which is erased: the implementations are found as for new ones. */
+    @Test
+    public void anOldGenericTypeParameterOfTheMethodsOwnIsDispatchedThroughTheInterface() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "interface Top",
+            "    function pick<T>(T a, T b) returns T",
+            "class Base",
+            "    function pick<T>(T a, T b) returns T",
+            "        return a",
+            "class C<Y:> extends Base implements Top",
+            "class X implements Top",
+            "    function pick<U>(U a, U b) returns U",
+            "        return b",
+            "init",
+            "    Top c = new C<real>()",
+            "    Top x = new X()",
+            "    if c.pick<int>(1, 2) == 1 and c.pick<A>(new A(5), new A(6)).v == 5",
+            "        and x.pick<int>(1, 2) == 2 and x.pick<A>(new A(5), new A(6)).v == 6",
+            "        testSuccess()");
+    }
+
+    /** A default with a type parameter of its own beats the inherited method where another interface declares the method without a body, as without type parameters ({@link #aDefaultBeatsTheInheritedMethodWhereAnotherInterfaceHasNoBody}). */
+    @Test
+    public void aDefaultWithATypeParameterOfItsOwnBeatsTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function wrap<T:>(T value) returns int",
+            "interface Default",
+            "    function wrap<U:>(U value) returns int",
+            "        return 2",
+            "class Base",
+            "    function wrap<T:>(T value) returns int",
+            "        return 1",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.wrap<int>(3) + a.wrap(\"x\")",
+            "function viaDefault(Default a) returns int",
+            "    return a.wrap<int>(3)",
+            "init",
+            "    if viaAbstract(new C<int>()) == 4 and viaDefault(new C<int>()) == 2",
+            "        testSuccess()");
+    }
+
+    /** A method with another number of type parameters of its own does not implement the interface method. */
+    @Test
+    public void aMethodWithMoreTypeParametersOfItsOwnDoesNotImplementTheInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class C implements Top",
+            "    function pick<T:, U:>(T a, T b) returns T",
+            "        return a");
+    }
+
+    /** A method without the type parameter does not implement the interface method, even where no parameter mentions it. */
+    @Test
+    public void aMethodWithoutTheTypeParameterDoesNotImplementTheInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "native testSuccess()",
+            "interface Top",
+            "    function count<T:>() returns int",
+            "class C implements Top",
+            "    function count() returns int",
+            "        return 1");
+    }
+
+    /** A method whose type parameter lacks the bound does not implement the interface method: the bounds must be the same. */
+    @Test
+    public void aMethodWithoutTheBoundDoesNotImplementTheInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "interface Top",
+            "    function describe<T: Show>(T value) returns string",
+            "class C implements Top",
+            "    function describe<T:>(T value) returns string",
+            "        return \"\"");
+    }
+
+    /** An override with another number of type parameters of its own says so. */
+    @Test
+    public void anOverrideWithAnotherNumberOfTypeParametersSaysSo() {
+        testAssertErrorsLines(false, "takes 1 type parameters, but there are 2 type parameters here.",
+            "package test",
+            "native testSuccess()",
+            "class Base",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class C extends Base",
+            "    override function pick<T:, U:>(T a, T b) returns T",
+            "        return b");
+    }
+
+    /** An override whose type parameter has a bound the overridden one lacks says which it should be. */
+    @Test
+    public void anOverrideWithAnotherBoundSaysWhichItShouldBe() {
+        testAssertErrorsLines(false, "Type parameter T: Show should be T: to override",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "class Base",
+            "    function describe<T:>(T value) returns string",
+            "        return \"\"",
+            "class C extends Base",
+            "    override function describe<T: Show>(T value) returns string",
+            "        return T.show(value)");
+    }
+
+    /** An override cannot make an old generic type parameter a new one. */
+    @Test
+    public void anOverrideCannotChangeTheKindOfGeneric() {
+        testAssertErrorsLines(false, "Type parameter T: should be T to override",
+            "package test",
+            "native testSuccess()",
+            "class Base",
+            "    function pick<T>(T a, T b) returns T",
+            "        return a",
+            "class C extends Base",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return b");
+    }
+
+    /**
+     * The method's own type argument is a tuple, which Lua specialises, while the generic class implementing the generic
+     * interface is constructed with a plain type argument and stays erased: the implementation specialised for the
+     * tuple must still be bound to the erased class, which the objects come from.
+     */
+    @Test
+    public void aTupleTypeArgumentOfTheMethodsOwnReachesTheErasedImplementingClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(int a, int b)",
+            "interface GTop<Y:>",
+            "    function second<T:>(T a, Y y) returns int",
+            "class C<Y:> implements GTop<Y>",
+            "    function second<T:>(T a, Y y) returns int",
+            "        return 1",
+            "class X<Y:> implements GTop<Y>",
+            "    function second<T:>(T a, Y y) returns int",
+            "        return 2",
+            "function via(GTop<string> g) returns int",
+            "    return g.second<pair>(pair(1, 2), \"s\")",
+            "init",
+            "    if via(new C<string>()) == 1 and via(new X<string>()) == 2",
+            "        testSuccess()");
+    }
+
+    /**
+     * The interface is an old generic bound to real, so the implementation is reached through a function which converts
+     * the index the interface passes; that function must take the method's own type parameter and pass it on.
+     */
+    @Test
+    public void aMethodWithATypeParameterOfItsOwnImplementsAnOldGenericInterfaceMethodWhichNeedsConversion() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "real array stored",
+            "int count = 0",
+            "real last = 0",
+            "function realToIndex(real r) returns int",
+            "    count++",
+            "    stored[count] = r",
+            "    return count",
+            "function realFromIndex(int i) returns real",
+            "    return stored[i]",
+            "interface I<X>",
+            "    function f<T:>(X x, T t) returns T",
+            "class C implements I<real>",
+            "    function f<T:>(real x, T t) returns T",
+            "        last = x",
+            "        return t",
+            "init",
+            "    I<real> i = new C()",
+            "    if i.f<int>(1.5, 3) == 3 and last == 1.5 and i.f<string>(2.5, \"s\") == \"s\" and last == 2.5",
+            "        testSuccess()");
+    }
+
+    /**
+     * A default of another interface is chosen over the inherited method only where it could override the abstract
+     * method: an old generic default does not stand for a new generic method, and the inherited method runs.
+     */
+    @Test
+    public void aDefaultOfAnotherKindOfGenericDoesNotBeatTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function wrap<T:>(T value) returns int",
+            "interface Default",
+            "    function wrap<U>(U value) returns int",
+            "        return 2",
+            "class Base",
+            "    function wrap<T:>(T value) returns int",
+            "        return 1",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.wrap<int>(3)",
+            "init",
+            "    if viaAbstract(new C<int>()) == 1",
+            "        testSuccess()");
+    }
+
+    /** As {@link #aDefaultOfAnotherKindOfGenericDoesNotBeatTheInheritedMethod}, with a default which asks for a bound. */
+    @Test
+    public void aDefaultWithAnotherBoundDoesNotBeatTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return 2",
+            "interface Abstract",
+            "    function wrap<T:>(T value) returns int",
+            "interface Default",
+            "    function wrap<U: Show>(U value) returns int",
+            "        return U.show(value)",
+            "class Base",
+            "    function wrap<T:>(T value) returns int",
+            "        return 1",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns int",
+            "    return a.wrap<int>(3)",
+            "init",
+            "    if viaAbstract(new C<int>()) == 1",
+            "        testSuccess()");
+    }
+
+    /**
+     * A sub-interface default of a method with a type parameter of its own, which renames it, as the implementation
+     * of the super-interface's method: {@code Sub} gives the default, the classes take it, and a call through Top with
+     * either type argument runs it. {@code mark} tells the implementations apart.
+     */
+    private static String[] subInterfaceDefaultWithOwnTypeParameter(String sub, String implementing, String construct) {
+        return new String[]{
+            "package test",
+            "native testSuccess()",
+            "int mark = 0",
+            "interface Top",
+            "    function id<T:>(T value) returns T",
+            "interface " + sub + " extends Top",
+            "    function id<U:>(U value) returns U",
+            "        mark = 1",
+            "        return value",
+            "class " + implementing,
+            "class X implements Top",
+            "    function id<T:>(T value) returns T",
+            "        mark = 3",
+            "        return value",
+            "function viaTop(Top t, int expected) returns bool",
+            "    mark = 0",
+            "    let i = t.id<int>(3)",
+            "    let first = mark",
+            "    mark = 0",
+            "    return i == 3 and first == expected and t.id<string>(\"x\") == \"x\" and mark == expected",
+            "init",
+            "    if viaTop(" + construct + ", 1) and viaTop(new X(), 3)",
+            "        testSuccess()"};
+    }
+
+    /** The sub-interface is generic, so the class's method for the default runs it through a function of its own. */
+    @Test
+    public void aGenericSubInterfaceDefaultWithATypeParameterOfItsOwnImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub<X:>", "C implements Sub<int>", "new C()"));
+    }
+
+    @Test
+    public void aSubInterfaceDefaultWithATypeParameterOfItsOwnImplementsTheSuperInterfaceMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub", "C implements Sub", "new C()"));
+    }
+
+    /** The class is generic too, and gives the sub-interface its own type parameter. */
+    @Test
+    public void aGenericClassTakesTheSubInterfaceDefaultWithATypeParameterOfItsOwn() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub<X:>", "C<Y:> implements Sub<Y>", "new C<real>()"));
+    }
+
+    /** A generic class takes the default of a plain sub-interface. */
+    @Test
+    public void aGenericClassTakesThePlainSubInterfaceDefaultWithATypeParameterOfItsOwn() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            subInterfaceDefaultWithOwnTypeParameter("Sub", "C<Y:> implements Sub", "new C<real>()"));
+    }
+
+    /** Two sibling sub-interfaces give the method with its own type parameter a default each: the class must override. */
+    @Test
+    public void siblingSubInterfaceDefaultsWithATypeParameterOfTheirOwnRequireTheClassToOverride() {
+        testAssertErrorsLines(false,
+            "Class C must override function id, because it inherits a default implementation of it from each of "
+                + "the interfaces S1, S2.",
+            "package test",
+            "interface Top",
+            "    function id<T:>(T value) returns T",
+            "interface S1 extends Top",
+            "    function id<T:>(T value) returns T",
+            "        return value",
+            "interface S2 extends Top",
+            "    function id<U:>(U value) returns U",
+            "        return value",
+            "class C implements S1, S2");
+    }
+
+    /**
+     * A plain interface gives only the method's own type argument, a tuple, which Lua specialises; the generic class
+     * implementing it is constructed with a plain type argument and stays erased. The implementation specialised for
+     * the tuple must be bound to the erased class, which the objects come from, and so must the overrides below it,
+     * generic (D) or not (E).
+     */
+    @Test
+    public void aTupleTypeArgumentThroughAPlainInterfaceReachesTheErasedGenericImplementingClass() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(int a, int b)",
+            "interface Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "class C<Y:> implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return b",
+            "class D<Y:> extends C<Y>",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class E extends C<int>",
+            "    override function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "class X implements Top",
+            "    function pick<T:>(T a, T b) returns T",
+            "        return a",
+            "function via(Top t) returns int",
+            "    return t.pick<pair>(pair(1, 2), pair(3, 4)).a",
+            "init",
+            "    if via(new C<string>()) == 3 and via(new D<string>()) == 1 and via(new E()) == 1 and via(new X()) == 1",
+            "        testSuccess()");
+    }
+
+    /**
+     * Another interface's default returns int where the abstract method returns its type parameter: it cannot stand
+     * for the abstract method, so the inherited method with the right return type runs.
+     */
+    @Test
+    public void aDefaultWithAnotherReturnTypeDoesNotBeatTheInheritedMethod() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Abstract",
+            "    function pick<T:>(T value) returns T",
+            "interface Default",
+            "    function pick<U:>(U value) returns int",
+            "        return 2",
+            "class Base",
+            "    function pick<T:>(T value) returns T",
+            "        return value",
+            "class C<Y:> extends Base implements Abstract, Default",
+            "function viaAbstract(Abstract a) returns string",
+            "    return a.pick<string>(\"s\")",
+            "init",
+            "    if viaAbstract(new C<int>()) == \"s\"",
+            "        testSuccess()");
+    }
+
+    /** A sub-interface method of another kind of generic is no default for the super-interface's method. */
+    @Test
+    public void aSubInterfaceDefaultOfAnotherKindOfGenericDoesNotImplementTheSuperInterfaceMethod() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "interface Top",
+            "    function id<T:>(T value) returns T",
+            "interface Sub extends Top",
+            "    function id<U>(U value) returns U",
+            "        return value",
+            "class C implements Sub");
+    }
 }

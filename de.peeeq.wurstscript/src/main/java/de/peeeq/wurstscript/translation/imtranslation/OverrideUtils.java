@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.ArrayList;
@@ -83,8 +84,25 @@ public class OverrideUtils {
             return;
         }
 
-        ImVars parameters = superMethodIm.getImplementation().getParameters().copy();
-        ImType rType = superMethodIm.getImplementation().getReturnType();
+        // The wrapper declares the method's own type parameters again and passes them on, as the bridge of
+        // InterfaceTranslator.implementationOfItsOwn does: a call through the interface specialises it with them.
+        ImFunction superImplementation = superMethodIm.getImplementation();
+        List<ImTypeVar> superTypeVars = superImplementation.getTypeVariables();
+        ImTypeVars typeVars = JassIm.ImTypeVars();
+        List<ImTypeArgument> ownTypeArgs = new ArrayList<>();
+        ImTypeArguments forwardedTypeArgs = JassIm.ImTypeArguments();
+        for (ImTypeVar superTypeVar : superTypeVars) {
+            ImTypeVar typeVar = tr.copyTypeVar(superTypeVar);
+            typeVars.add(typeVar);
+            ownTypeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar), Collections.emptyMap()));
+            forwardedTypeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar), Collections.emptyMap()));
+        }
+        ImVars parameters = JassIm.ImVars();
+        for (ImVar p : superImplementation.getParameters()) {
+            parameters.add(JassIm.ImVar(p.getTrace(), ImAttrType.substituteType(p.getType(), ownTypeArgs, superTypeVars),
+                p.getName(), false));
+        }
+        ImType rType = ImAttrType.substituteType(superImplementation.getReturnType(), ownTypeArgs, superTypeVars);
         ImVars locals = JassIm.ImVars();
         ImStmts body = JassIm.ImStmts();
 
@@ -101,7 +119,7 @@ public class OverrideUtils {
             arguments.add(arg);
         }
 
-        ImExpr wrappedCall = JassIm.ImFunctionCall(e, subMethod.getImplementation(), JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL);
+        ImExpr wrappedCall = JassIm.ImFunctionCall(e, subMethod.getImplementation(), forwardedTypeArgs, arguments, false, CallType.NORMAL);
         if (rType instanceof ImVoid) {
             body.add(wrappedCall);
         } else {
@@ -114,7 +132,7 @@ public class OverrideUtils {
 
         List<FunctionFlag> flags = Collections.emptyList();
 
-        ImFunction implementation = JassIm.ImFunction(e, subMethod.getName() + "_wrapper", JassIm.ImTypeVars(), parameters, rType, locals, body, flags);
+        ImFunction implementation = JassIm.ImFunction(e, subMethod.getName() + "_wrapper", typeVars, parameters, rType, locals, body, flags);
         tr.getImProg().getFunctions().add(implementation);
 
         ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getMethodClass(), subMethod.getName() + "_wrapper", implementation, JassIm.ImMethods(), new ArrayList<>(), "", false);

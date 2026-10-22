@@ -144,6 +144,32 @@ public class DeterministicChecks extends WurstScriptTest {
         assertSubMethodOrderIgnoresUnitOrder(forward, shuffled, 1);
     }
 
+    /**
+     * Interface methods with type parameters of their own, implemented by inherited methods (through the function a
+     * generic class gets for them) and overridden below, emit one script.
+     */
+    @Test
+    public void ownTypeParameterDispatchIsIdenticalAcrossCompilations() throws IOException {
+        String name = "ownTypeParameterDispatch";
+        String[] source = InterfaceTests.ownTypeParameterDispatchSource();
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(source);
+        File jass = new File("test-output/DeterministicChecks_" + name + "_no_opts.j");
+        File lua = new File("test-output/lua/DeterministicChecks_" + name + ".lua");
+        String firstJass = Files.toString(jass, Charsets.UTF_8);
+        String firstLua = Files.toString(lua, Charsets.UTF_8);
+        testNamed(name).testLua(true).luaOnly(false).executeProg().lines(source);
+        assertEquals(Files.toString(jass, Charsets.UTF_8), firstJass);
+        assertEquals(Files.toString(lua, Charsets.UTF_8), firstLua);
+
+        CU program = compilationUnit("OwnTypeParameters.wurst", source);
+        CU extra = compilationUnit("Extra.wurst", "package Extra", "native consume(int value)",
+            "init", "    consume(7)");
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(program, extra);
+        String forward = compiledLua(name);
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(extra, program);
+        assertEquals(compiledLua(name), forward);
+    }
+
     @Test
     public void simple() throws IOException {
         ErrorHandler.outputTestSource = true;

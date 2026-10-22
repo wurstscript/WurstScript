@@ -2772,6 +2772,16 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return typeVariableReverse.get(tv);
     }
 
+    /** A new type variable for the same source parameter as {@code tv}, for a function which declares it again. */
+    public ImTypeVar copyTypeVar(ImTypeVar tv) {
+        ImTypeVar copy = JassIm.ImTypeVar(tv.getName());
+        TypeParamDef tp = typeVariableReverse.get(tv);
+        if (tp != null) {
+            typeVariableReverse.put(copy, tp);
+        }
+        return copy;
+    }
+
     /**
      * The signature node standing for one type class requirement.
      * <p>

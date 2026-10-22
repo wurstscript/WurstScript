@@ -4104,17 +4104,25 @@ public class WurstValidator {
                     + " parameters, but there are only " + paramCount1 + " parameters here.";
         }
 
+        // the functions' own type parameters are equal up to renaming
+        String typeParameterError = checkOwnTypeParameters(func1.getDef(), func2.getDef());
+        if (typeParameterError != null) {
+            return typeParameterError;
+        }
+        VariableBinding renaming = ownTypeParameterRenaming(func1.getDef(), func2.getDef());
+
         // contravariant parametertypes
         for (int i = 0; i < paramCount1; i++) {
             WurstType type1 = func1.getParameterType(i);
-            WurstType type2 = func2.getParameterType(i);
+            WurstType type2 = renaming.isEmpty() ? func2.getParameterType(i) : func2.getParameterType(i).setTypeArgs(renaming);
             if (!type1.isSupertypeOf(type2, func1.getDef())) {
                 return "Parameter " + type1 + " " + func1.getParameterName(i) + " should have type " + type2
                         + " to override " + Utils.printElementWithSource(Optional.of(func2.getDef())) + ".";
             }
         }
         // covariant return types
-        if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getDef())) {
+        WurstType returnType2 = renaming.isEmpty() ? func2.getReturnType() : func2.getReturnType().setTypeArgs(renaming);
+        if (!func1.getReturnType().isSubtypeOf(returnType2, func1.getDef())) {
             return "Return type should be "
                 + func2.getReturnType()
                 + " to override "
@@ -4123,6 +4131,90 @@ public class WurstValidator {
         }
         // no error
         return null;
+    }
+
+    /**
+     * Checks that the type parameters {@code overriding} declares itself are those {@code overridden} declares, up to
+     * renaming: as many, each of the same kind of generic with the same bounds. Returns null if they are, and otherwise
+     * the error which says why {@code overriding} cannot override {@code overridden}.
+     */
+    private static @Nullable String checkOwnTypeParameters(FunctionDefinition overriding, FunctionDefinition overridden) {
+        List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
+        List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
+        if (ownTypeParams1.size() != ownTypeParams2.size()) {
+            return Utils.printElement(overridden) + " takes " + ownTypeParams2.size()
+                    + " type parameters, but there are " + ownTypeParams1.size() + " type parameters here.";
+        }
+        VariableBinding renaming = ownTypeParameterRenaming(overriding, overridden);
+        for (int i = 0; i < ownTypeParams1.size(); i++) {
+            TypeParamDef tp1 = ownTypeParams1.get(i);
+            TypeParamDef tp2 = ownTypeParams2.get(i);
+            if (!sameTypeParamConstraints(tp1, tp2, renaming)) {
+                return "Type parameter " + printTypeParam(tp1) + " should be " + printTypeParam(tp2)
+                    + " to override " + Utils.printElementWithSource(Optional.of(overridden)) + ".";
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Binds each type parameter {@code overridden} declares itself to the one in the same position of
+     * {@code overriding}, so that types of {@code overridden} can be compared with those of {@code overriding}.
+     * Positions beyond the shorter list stay unbound; {@link #checkOwnTypeParameters} rejects such a pair.
+     */
+    private static VariableBinding ownTypeParameterRenaming(FunctionDefinition overriding, FunctionDefinition overridden) {
+        List<TypeParamDef> ownTypeParams1 = ownTypeParameters(overriding);
+        List<TypeParamDef> ownTypeParams2 = ownTypeParameters(overridden);
+        VariableBinding renaming = VariableBinding.emptyMapping();
+        for (int i = 0; i < Math.min(ownTypeParams1.size(), ownTypeParams2.size()); i++) {
+            renaming = renaming.set(ownTypeParams2.get(i),
+                new WurstTypeBoundTypeParam(ownTypeParams2.get(i), ownTypeParams1.get(i).attrTyp(), overriding));
+        }
+        return renaming;
+    }
+
+    /** The type parameters a function declares itself, not those of the structure it is in. */
+    private static List<TypeParamDef> ownTypeParameters(FunctionDefinition func) {
+        if (func instanceof AstElementWithTypeParameters generic) {
+            return generic.getTypeParameters();
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Whether two type parameters are the same kind of generic (old {@code <T>} or new {@code <T:>}) with the same
+     * bounds in the same order, once {@code renaming} has replaced the overridden function's type parameters by the
+     * overriding one's. Bounds must match exactly: a call through the overridden function only guarantees its bounds,
+     * and the overriding function is specialised with what that call provides.
+     */
+    private static boolean sameTypeParamConstraints(TypeParamDef tp1, TypeParamDef tp2, VariableBinding renaming) {
+        if (isTypeParamNewGeneric(tp1) != isTypeParamNewGeneric(tp2)) {
+            return false;
+        }
+        List<TypeExpr> bounds1 = TypeClassConstraints.boundExprs(tp1);
+        List<TypeExpr> bounds2 = TypeClassConstraints.boundExprs(tp2);
+        if (bounds1.size() != bounds2.size()) {
+            return false;
+        }
+        for (int i = 0; i < bounds1.size(); i++) {
+            if (!bounds1.get(i).attrTyp().equalsType(bounds2.get(i).attrTyp().setTypeArgs(renaming), tp1)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** A type parameter as it is written: {@code T}, {@code T:} or {@code T: A and B}. */
+    private static String printTypeParam(TypeParamDef tp) {
+        if (!isTypeParamNewGeneric(tp)) {
+            return tp.getName();
+        }
+        StringJoiner bounds = new StringJoiner(" and ", " ", "");
+        bounds.setEmptyValue("");
+        for (TypeExpr bound : TypeClassConstraints.boundExprs(tp)) {
+            bounds.add(Utils.prettyPrint(bound));
+        }
+        return tp.getName() + ":" + bounds;
     }
 
     private void checkForDuplicateNames(WScope scope) {
