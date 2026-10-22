@@ -1220,6 +1220,106 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * A common.j constant is never nil, so a native given one is not tested for null there: the guard is chosen
+     * where the native is called. A local and a global of the program's own may be null and keep the guard, and a
+     * native whose every guarded argument is a constant is called directly.
+     */
+    @Test
+    public void aCommonJConstantArgumentIsNotTestedForNil() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "native consume(real r)",
+            "unitstate userState = UNIT_STATE_MAX_LIFE",
+            "@noinline function readConstant(unit u)",
+            "    consume(GetUnitState(u, UNIT_STATE_MAX_LIFE))",
+            "@noinline function readLocal(unit u)",
+            "    var s = UNIT_STATE_LIFE",
+            "    consume(GetUnitState(u, s))",
+            "@noinline function readUserGlobal(unit u)",
+            "    consume(GetUnitState(u, userState))",
+            "@noinline function setTime()",
+            "    SetFloatGameState(GAME_STATE_TIME_OF_DAY, 12.)",
+            "init",
+            "    readConstant(null)",
+            "    readLocal(null)",
+            "    readUserGlobal(null)",
+            "    setTime()");
+        String compiled = compiledLua("aCommonJConstantArgumentIsNotTestedForNil");
+
+        String constant = topLevelFunctionBodyWithPrefix(compiled, "readConstant(");
+        assertTrue("a constant state takes the wrapper which tests only the unit:\n" + constant,
+            java.util.regex.Pattern.compile("__wurst_safe_whichUnit_GetUnitState\\(\\w+, UNIT_STATE_MAX_LIFE\\)").matcher(constant).find());
+        String unitOnly = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_whichUnit_GetUnitState(");
+        assertFalse("no nil test for the constant:\n" + unitOnly, unitOnly.contains("ConvertUnitState"));
+        assertTrue("the unit is still tested:\n" + unitOnly,
+            java.util.regex.Pattern.compile("if \\(?\\w+ == nil\\)? then\\s+return 0\\.").matcher(unitOnly).find());
+
+        String both = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_GetUnitState(");
+        assertTrue("a state which may be null is still tested:\n" + both,
+            java.util.regex.Pattern.compile("if \\(?(\\w+) == nil\\)? then\\s+\\1 = ConvertUnitState\\(0\\)").matcher(both).find());
+        assertTrue("a local keeps the guard:\n" + compiled,
+            java.util.regex.Pattern.compile("__wurst_safe_GetUnitState\\(\\w+, \\w+\\)")
+                .matcher(topLevelFunctionBodyWithPrefix(compiled, "readLocal(")).find());
+        assertTrue("a global of the program's own keeps the guard:\n" + compiled,
+            java.util.regex.Pattern.compile("__wurst_safe_GetUnitState\\(\\w+, \\w*userState\\)")
+                .matcher(topLevelFunctionBodyWithPrefix(compiled, "readUserGlobal(")).find());
+
+        assertTrue("a native given only constants is called directly:\n" + compiled,
+            topLevelFunctionBodyWithPrefix(compiled, "setTime(").contains("SetFloatGameState(GAME_STATE_TIME_OF_DAY, 12.)"));
+        assertFalse("and has no wrapper:\n" + compiled, compiled.contains("__wurst_safe_SetFloatGameState"));
+    }
+
+    /**
+     * Inlined and optimised, a native given a common.j constant has no nil test before it.
+     */
+    @Test
+    public void anInlinedCommonJConstantArgumentIsNotTestedForNil() throws IOException {
+        test().testLua(true).withStdLib().inline().localOptimizations().lines(
+            "package Test",
+            "native consume(real r)",
+            "unit u = null",
+            "init",
+            "    consume(GetUnitState(u, UNIT_STATE_MAX_LIFE))");
+        String compiled = compiledLua("anInlinedCommonJConstantArgumentIsNotTestedForNil");
+        assertTrue("the native is called inline:\n" + compiled,
+            java.util.regex.Pattern.compile("= GetUnitState\\(\\w+, \\w+\\)").matcher(compiled).find());
+        assertFalse("no nil test for the constant:\n" + compiled, compiled.contains("ConvertUnitState(0)"));
+    }
+
+    /**
+     * A common.j constant, a local, a global of the program's own and a null argument read the same player state
+     * on Lua as on Jass.
+     */
+    @Test
+    public void aCommonJConstantArgumentReadsTheSameAsAGuardedOne() {
+        test().withStdLib().executeProg(true).testLua(true).luaOnly(false).lines(
+            "package Test",
+            "playerstate userState = PLAYER_STATE_RESOURCE_GOLD",
+            "@noinline function read(player p, playerstate s) returns int",
+            "    return GetPlayerState(p, s)",
+            "init",
+            "    let p = Player(1)",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD, 250)",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_LUMBER, -5)",
+            "    if GetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD) != 250",
+            "        testFail(\"constant gold\")",
+            "    if GetPlayerState(p, PLAYER_STATE_RESOURCE_LUMBER) != 0",
+            "        testFail(\"constant lumber\")",
+            "    if GetPlayerState(p, userState) != 250",
+            "        testFail(\"user global\")",
+            "    if read(p, PLAYER_STATE_RESOURCE_GOLD) != 250",
+            "        testFail(\"parameter\")",
+            "    if read(p, null) != 3",
+            "        testFail(\"null state is the game result\")",
+            "    playerstate noState = null",
+            "    if read(p, noState) != 3",
+            "        testFail(\"null local\")",
+            "    if GetPlayerState(null, PLAYER_STATE_RESOURCE_GOLD) != 0",
+            "        testFail(\"null player\")",
+            "    testSuccess()");
+    }
+
+    /**
      * A package whose init fails is reported by the generated script and the program goes on, so a test which
      * still reaches testSuccess has run without that package. The harness fails it: 49 tests with the standard
      * library passed so, their ErrorHandling never initialised for want of CreateForce in the test runtime.
