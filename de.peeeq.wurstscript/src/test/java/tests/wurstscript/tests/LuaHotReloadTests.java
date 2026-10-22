@@ -172,11 +172,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
             List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Function plain = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
             List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
-        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", edited), List.of(), List.of());
+        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", edited), List.of(), List.of(),
+            List.of());
         LuaHotReload.Rejected byBaseline = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(
-            new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored), List.of(), List.of()), current, Set.of(), 1));
+            new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored), List.of(), List.of(), List.of()), current, Set.of(), 1));
         assertTrue(byBaseline.getMessage(), byBaseline.getMessage().contains("in g"));
-        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", plain), List.of(), List.of());
+        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", plain), List.of(), List.of(),
+            List.of());
         expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(plainBaseline, current,
                 new LuaHotReload.History(Set.of(), java.util.Map.of("f", LuaHotReload.definitionHash(plain))), 2));
@@ -482,6 +484,61 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("by an earlier payload"));
     }
 
+    private static String[] mainWithHolder(String fieldType) {
+        return new String[] {
+            "package Main",
+            "public int made = 0",
+            "public function bump() returns int",
+            "    made++",
+            "    return made",
+            "class Holder",
+            "    " + fieldType + " v",
+            "function useHolder()",
+            "    let h = new Holder()",
+            "    h.v = 1",
+            "    if h.v != 0",
+            "        made++",
+            "    destroy h",
+            "init",
+            "    bump()",
+            "    useHolder()",
+        };
+    }
+
+    /**
+     * A declaration an earlier payload installed which a later edit changes (a field store of another type) cannot be
+     * kept: the map refuses the payload before it changes anything.
+     */
+    @Test
+    public void declarationChangedAfterAPayloadInstalledItIsRefused() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_declarationChangedAfterAPayloadInstalledItIsRefused.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        List<String> payloads = List.of(
+            LuaHotReload.payload(baseline, manifest(mainWithHolder("int")), LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, manifest(mainWithHolder("real")), LuaHotReload.History.NONE, 2).source());
+        String output = applyInLua(script, payloads, globalName(baseline, "made"));
+        String[] lines = output.split("\\R");
+        assertTrue(output, lines[0].startsWith("true "));
+        assertTrue(output, lines[1].startsWith("false ") && lines[1].contains("restart the map"));
+    }
+
+    /** Packages one payload adds are initialised in the order the map would initialise them: a dependency first. */
+    @Test
+    public void newPackagesInitialiseInDependencyOrder() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_newPackagesInitialiseInDependencyOrder.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        CU main = new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n");
+        CU alpha = new CU("Alpha", String.join("\n", "package Alpha", "import Main", "import Zulu",
+            "int doubled = zulu * 2", "init", "    made += doubled", ""));
+        CU zulu = new CU("Zulu", String.join("\n", "package Zulu", "public int zulu = 5", "init", "    zulu += 0", ""));
+        LuaHotReload.Manifest edited = compileLuaHotReloadManifest(false, HOT_RELOAD, main, alpha, zulu);
+        List<String> payloads = List.of(LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1).source());
+        String output = applyInLua(script, payloads, globalName(edited, "made"));
+        assertEquals(output, "true 11 nil", output.split("\\R")[0]);
+    }
+
     /** {@code m} with function {@code source} stored as a value, its definition extended by {@code edit}. */
     private static LuaHotReload.Manifest withCaptured(LuaHotReload.Manifest m, String source, String edit) {
         java.util.Map<String, LuaHotReload.Function> functions = new java.util.LinkedHashMap<>(m.functions());
@@ -489,7 +546,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.Function f = functions.get(name);
         functions.put(name, new LuaHotReload.Function(name, f.semanticId(), f.definition() + edit, f.slots(),
             List.of("in a test"), f.kind()));
-        return new LuaHotReload.Manifest(m.abi(), m.compilerVersion(), functions, m.statements(), m.bindings());
+        return new LuaHotReload.Manifest(m.abi(), m.compilerVersion(), functions, m.statements(), m.bindings(), m.initOrder());
     }
 
     private static String globalName(LuaHotReload.Manifest m, String source) {
@@ -539,7 +596,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void changedEntryWarnsOfARestart() throws Exception {
         LuaHotReload.Manifest baseline = manifest(mutableFieldProgram(false));
         LuaHotReload.Manifest current = new LuaHotReload.Manifest(baseline.abi(), baseline.compilerVersion(),
-            withChangedEntry(baseline.functions()), baseline.statements(), baseline.bindings());
+            withChangedEntry(baseline.functions()), baseline.statements(), baseline.bindings(), baseline.initOrder());
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
         assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("restart")));
     }
@@ -557,7 +614,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void manifestOfAnOlderCompilerIsRejected() {
         LuaHotReload.Manifest current = manifest(mutableFieldProgram(false));
-        LuaHotReload.Manifest legacy = new LuaHotReload.Manifest(current.abi(), null, current.functions(), null, current.bindings());
+        LuaHotReload.Manifest legacy = new LuaHotReload.Manifest(current.abi(), null, current.functions(), null, current.bindings(),
+            null);
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("another compiler"));

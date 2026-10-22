@@ -601,8 +601,8 @@ public class LuaTranslator {
 
         if (hotReload) {
             startHotReloadPoll();
-            Set<ImFunction> packageInits = Collections.newSetFromMap(new IdentityHashMap<>());
-            packageInits.addAll(imTr.luaInitFunctions.keySet());
+            // In the order main initialises them: a package after the packages it depends on.
+            List<ImFunction> packageInits = new ArrayList<>(imTr.luaInitFunctions.keySet());
             Set<ImFunction> entries = Collections.newSetFromMap(new IdentityHashMap<>());
             for (ImFunction f : new ImFunction[] {imTr.getMainFunc(), imTr.getConfFunc()}) {
                 if (f != null) {

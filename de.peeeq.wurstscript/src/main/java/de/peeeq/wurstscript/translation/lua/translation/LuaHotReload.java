@@ -93,9 +93,12 @@ public final class LuaHotReload {
     public record Statement(String scope, String key, String text, String kind, String owner) {
     }
 
-    /** What a hot-reload build emitted: its fingerprint, which the script holds, and its parts. */
+    /**
+     * What a hot-reload build emitted: its fingerprint, which the script holds, and its parts; {@code initOrder} names
+     * the package inits in the order main calls them.
+     */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
-                           List<String> bindings) {
+                           List<String> bindings, List<String> initOrder) {
     }
 
     /**
@@ -134,8 +137,11 @@ public final class LuaHotReload {
      * payloads, and returns the manifest. Called once, on the final model; {@code reloadable} maps each function
      * translated from the program to its IM function.
      */
-    static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, Set<ImFunction> packageInits,
+    static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, List<ImFunction> packageInits,
                             Set<ImFunction> entries, String compilerVersion) {
+        Set<ImFunction> inits = Collections.newSetFromMap(new IdentityHashMap<>());
+        inits.addAll(packageInits);
+        Map<ImFunction, String> initNames = new IdentityHashMap<>();
         LuaCompilationUnit model = tr.luaModel;
         LuaFunction bootstrap = tr.bootstrapFunction();
         ImFunction globalInitIm = tr.imTr.getGlobalInitFunc();
@@ -164,7 +170,7 @@ public final class LuaHotReload {
                 }
                 ImFunction im = reloadable.get(f);
                 Kind kind = im == null ? Kind.HELPER
-                    : packageInits.contains(im) ? Kind.PACKAGE_INIT
+                    : inits.contains(im) ? Kind.PACKAGE_INIT
                     : entries.contains(im) ? Kind.ENTRY
                     : Kind.PROGRAM;
                 String id = im == null ? "generated:" + f.getName() : functionId(im);
@@ -172,6 +178,7 @@ public final class LuaHotReload {
                     bindings.add(f.getName() + "=" + id);
                 }
                 if (kind == Kind.PACKAGE_INIT) {
+                    initNames.put(im, f.getName());
                     // The initial values of a package's globals are given here: a new global's must run.
                     for (LuaStatement s : f.getBody()) {
                         statements.add(statement("init", f.getName(), s, globals));
@@ -209,8 +216,15 @@ public final class LuaHotReload {
         }
         String abi = fingerprint(compilerVersion, parts, bindings);
         appendRuntime(tr, model, abi);
+        List<String> initOrder = new ArrayList<>();
+        for (ImFunction init : packageInits) {
+            String name = initNames.get(init);
+            if (name != null) {
+                initOrder.add(name);
+            }
+        }
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
-            List.copyOf(bindings));
+            List.copyOf(bindings), List.copyOf(initOrder));
     }
 
     private static Statement statement(String scope, String owner, LuaStatement s, Set<LuaVariable> globals) {
@@ -388,10 +402,30 @@ public final class LuaHotReload {
             throw new Rejected(reasons);
         }
 
+        // New packages start in the order main starts packages: after the packages they depend on.
+        newInits.sort(Comparator.comparingInt(current.initOrder()::indexOf));
+        List<Statement> once = new ArrayList<>(declarations);
+        for (Statement s : initialisations) {
+            if (!s.kind().equals("slot")) {
+                once.add(s);
+            }
+        }
+        once.addAll(newPackageValues);
+
         StringBuilder sb = new StringBuilder();
         sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", defined)).append("\n");
         // The running script's fingerprint: the payload applies to that script, whatever the edit made of the rest.
         sb.append("return \"").append(baseline.abi()).append("\", ").append(version).append(", function()\n");
+        // Before anything changes: a declaration or class data an earlier payload installed which this edit changes
+        // cannot be kept (a field store of another type), and the running script has no way to replace it.
+        for (Statement s : once) {
+            if (!keepsValue(s) && !s.text().startsWith("local ")) {
+                String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
+                sb.append("if ").append(marker).append(" and ").append(marker).append(" ~= \"").append(identityHash(s.text()))
+                    .append("\" then error(").append(luaString("an earlier payload installed another version of the "
+                        + describe(s.scope()) + " " + firstLine(s.key()) + ": restart the map")).append(", 0) end\n");
+            }
+        }
         // Functions first: a new declaration may hold one (a metatable's __index). Then the declarations, which the
         // slots of a new class need, then the slots of what changed.
         for (String name : defined) {
@@ -464,12 +498,26 @@ public final class LuaHotReload {
         String text = "\"" + identityHash(s.text()) + "\"";
         sb.append("if not ").append(marker).append(" then\n").append(s.text()).append("\n")
             .append(marker).append(" = ").append(text).append("\n");
-        if (s.kind().equals("global")) {
+        if (keepsValue(s)) {
             sb.append("elseif ").append(marker).append(" ~= ").append(text).append(" then\n")
                 .append("BJDebugMsg(\"Wurst hot reload: ").append(s.key())
                 .append(" keeps its value; restart the map to apply its new initial value\")\n");
         }
         sb.append("end\n");
+    }
+
+    /**
+     * Whether a later edit of {@code s} is skipped with a message rather than refused: the initial value of a global,
+     * which the map keeps as it keeps its own globals'. A top-level declaration (a class table, a field store) cannot be
+     * kept: code compiled for the new one would use the old.
+     */
+    private static boolean keepsValue(Statement s) {
+        return s.kind().equals("global") && !s.scope().equals("top");
+    }
+
+    /** {@code s} as a Lua string literal. */
+    private static String luaString(String s) {
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\"";
     }
 
     /** The key under which the map records that a statement ran: where it is and what it assigns, not its text. */

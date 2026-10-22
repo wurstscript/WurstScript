@@ -44,7 +44,8 @@ payload compares the running script's manifest with the edited one:
 - The closures of one interface method in one function share an identity and are told apart by their order, so
   adding or removing one of them is rejected: the new closure would take an old one's name, and objects of the old
   one would run its body.
-- The init of a new package runs once, after the rest, with the initial values of its globals. If it fails, the
+- The init of a new package runs once, after the rest, with the initial values of its globals, and new packages start
+  in the order the map starts packages: after the packages they depend on. If it fails, the
   install fails with that reason and the next payload runs it again. Other changed package
   init code, and a change to `main` or `config`, ran when the map started and does not run again: the payload carries
   the change, with a warning that applying it needs a restart.
@@ -60,7 +61,9 @@ statement which must run once (a declaration, an initial value, a new package's 
 record (`__wurst_hotreload_ran`), kept under what the statement assigns, and recorded only after it ran. The editor
 writes a file and cannot tell how far a payload got, so the map decides: a statement a failed payload did not reach
 runs with the next one, and none runs twice. A global a payload added keeps its value when a later edit changes its
-initial value, as the map's own globals do, and the map says so. A function stored as a value keeps the body it had
+initial value, as the map's own globals do, and the map says so. A declaration a payload installed (a class table, a
+field store) which a later edit changes cannot be kept: the map refuses that payload before it changes anything. A
+function stored as a value keeps the body it had
 then: the session records that definition, and a later change to it is rejected. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
 
 ### Answers to the staged plan
