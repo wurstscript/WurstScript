@@ -92,6 +92,12 @@ public class ModelManagerImpl implements ModelManager {
     // leaves its units here, so the next check takes them along. Guarded by modelLock.
     private final Set<CompilationUnit> uncheckedUnits = Collections.newSetFromMap(new IdentityHashMap<>());
 
+    // The units which an edit of nothing but bodies replaced in place (BodyOnlyEdit) and which nothing invalidated
+    // since, checked or not: the other units were not invalidated, and their attributes point into these units'
+    // module instantiations, so a check of such a unit keeps the instantiations, and a change of such a unit does
+    // not affect what depends on it. Guarded by modelLock.
+    private final Set<CompilationUnit> bodyEdited = Collections.newSetFromMap(new IdentityHashMap<>());
+
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
         this.bufferManager = bufferManager;
@@ -137,6 +143,7 @@ public class ModelManagerImpl implements ModelManager {
                     model2.removeAll(toRemove);
                     uncheckedUnits.removeAll(toRemove);
                     uncheckedUnits.addAll(dependents);
+                    bodyEdited.removeAll(toRemove);
                 }
             }
         }
@@ -164,6 +171,7 @@ public class ModelManagerImpl implements ModelManager {
         model = null;
         synchronized (modelLock) {
             uncheckedUnits.clear();
+            bodyEdited.clear();
         }
         dependencies.clear();
         WLogger.info("Clean done.");
@@ -527,19 +535,39 @@ public class ModelManagerImpl implements ModelManager {
      * clear the attributes and module instantiations for all compilation units in the given collection
      */
     private void clearCompilationUnits(Collection<CompilationUnit> toCheck) {
+        clearCompilationUnits(toCheck, false);
+    }
+
+    /**
+     * @param forCheck the units are cleared for a check of their own, which keeps the module instantiations of a
+     *                 unit edited in place: the units which were not invalidated point into them. Any other clearing
+     *                 invalidates a unit completely, and those which point into it are cleared with it.
+     */
+    private void clearCompilationUnits(Collection<CompilationUnit> toCheck, boolean forCheck) {
         WurstModel model2 = model;
         if (model2 == null) {
             return;
         }
         model2.clearAttributesLocal();
         for (CompilationUnit cu : toCheck) {
-            clearCompilationUnit(cu);
+            boolean keepInstantiations = false;
+            synchronized (modelLock) {
+                if (forCheck) {
+                    keepInstantiations = bodyEdited.contains(cu);
+                } else {
+                    bodyEdited.remove(cu);
+                }
+            }
+            clearCompilationUnit(cu, keepInstantiations);
         }
     }
 
-    private void clearCompilationUnit(CompilationUnit cu) {
+    private void clearCompilationUnit(CompilationUnit cu, boolean keepInstantiations) {
         SyntacticSugar.restoreDirectFieldIterations(cu);
         cu.clearAttributes();
+        if (keepInstantiations) {
+            return;
+        }
         // clear module instantiations
         for (WPackage p : cu.getPackages()) {
             for (WEntity elem : p.getElements()) {
@@ -685,6 +713,27 @@ public class ModelManagerImpl implements ModelManager {
         return reconciliations;
     }
 
+    /** How many times a new version of a unit was moved into the one of the model (BodyOnlyEdit), for the tests. */
+    private int bodyEdits = 0;
+
+    int bodyEdits() {
+        return bodyEdits;
+    }
+
+    /** How many units are edited in place now, for the tests. */
+    int bodyEditedCount() {
+        synchronized (modelLock) {
+            return bodyEdited.size();
+        }
+    }
+
+    /** How many units the last partial check validated, for the tests. */
+    private int lastCheckedUnits = 0;
+
+    int lastCheckedUnits() {
+        return lastCheckedUnits;
+    }
+
     /** How many units are unchecked, for the tests. */
     int uncheckedCount() {
         synchronized (modelLock) {
@@ -692,7 +741,11 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    private void updateModel(CompilationUnit cu, WurstGui gui) {
+    /**
+     * Puts a newly parsed unit into the model, and returns the unit which is in the model for it now: the one of the
+     * model itself when the new one changes nothing but bodies and was moved into it (BodyOnlyEdit).
+     */
+    private CompilationUnit updateModel(CompilationUnit cu, WurstGui gui) {
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
@@ -707,6 +760,21 @@ public class ModelManagerImpl implements ModelManager {
             while (it.hasNext()) {
                 CompilationUnit c = it.next();
                 if (wFile(c).equals(wFile(cu))) {
+                    if (gui.getErrorCount() == 0 && BodyOnlyEdit.applies(c, cu)) {
+                        // Nothing another unit sees has changed: what it resolved to stays, and only this unit
+                        // has to be checked again.
+                        // before the old bodies leave the tree: the cache is keyed by their nodes
+                        GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
+                        BodyOnlyEdit.apply(c, cu);
+                        bodyEdits++;
+                        model2.clearAttributesLocal();
+                        c.clearAttributes();
+                        synchronized (modelLock) {
+                            uncheckedUnits.add(c);
+                            bodyEdited.add(c);
+                        }
+                        return c;
+                    }
                     // get old provided packages:
                     Set<String> oldPackages = providedPackages(c);
                     reconciliations++;
@@ -719,6 +787,7 @@ public class ModelManagerImpl implements ModelManager {
                     synchronized (modelLock) {
                         it.set(cu);
                         uncheckedUnits.remove(c);
+                        bodyEdited.remove(c);
                         uncheckedUnits.addAll(mustUpdate);
                     }
                     updated = true;
@@ -753,7 +822,7 @@ public class ModelManagerImpl implements ModelManager {
                 }
             }
         }
-        //doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
+        return cu;
     }
 
     private Set<String> providedPackages(CompilationUnit c) {
@@ -862,7 +931,11 @@ public class ModelManagerImpl implements ModelManager {
         }
         Set<String> oldPackages = declaredPackages(filename);
         boolean oldJassNames = declaredJassNames(filename);
-        replaceCompilationUnit(filename, contents, false);
+        CompilationUnit replaced = replaceCompilationUnit(filename, contents, false);
+        if (isBodyEdited(replaced)) {
+            // its packages are the same, and nothing which imports them has to be checked again
+            return new Changes(io.vavr.collection.HashSet.of(filename), io.vavr.collection.HashSet.empty(), false);
+        }
         return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages, oldJassNames);
     }
 
@@ -999,8 +1072,12 @@ public class ModelManagerImpl implements ModelManager {
         }
         Set<String> oldPackages = declaredPackages(f);
         boolean oldJassNames = declaredJassNames(f);
-        replaceCompilationUnit(f, contents, true);
+        CompilationUnit replaced = replaceCompilationUnit(f, contents, true);
         WLogger.debug("replaced file " + f);
+        if (isBodyEdited(replaced)) {
+            // its packages are the same, and nothing which imports them has to be checked again
+            oldPackages = Collections.emptySet();
+        }
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages, oldJassNames);
         return new Changes(io.vavr.collection.HashSet.of(f), oldPackages, oldJassNames);
@@ -1061,7 +1138,7 @@ public class ModelManagerImpl implements ModelManager {
         if (isUnderDependenciesFolder(filename)) {
             cu.getCuInfo().setLibrary(true);
         }
-        updateModel(cu, gui);
+        cu = updateModel(cu, gui);
         fileHashcodes.put(filename, newHash);
         if (reportErrors) {
             if (gui.getErrorCount() > 0) {
@@ -1134,7 +1211,14 @@ public class ModelManagerImpl implements ModelManager {
             if (model == this.model) {
                 uncheckedUnits.removeIf(cu -> !keep.test(cu));
                 uncheckedUnits.addAll(dependents);
+                bodyEdited.removeIf(cu -> !keep.test(cu));
             }
+        }
+    }
+
+    private boolean isBodyEdited(@Nullable CompilationUnit cu) {
+        synchronized (modelLock) {
+            return cu != null && bodyEdited.contains(cu);
         }
     }
 
@@ -1262,10 +1346,11 @@ public class ModelManagerImpl implements ModelManager {
         Collection<CompilationUnit> toCheck = withUncheckedUnits(model2, toCheckRec);
         boolean validated = false;
         try {
-            clearCompilationUnits(toCheck);
+            clearCompilationUnits(toCheck, true);
             addImportedLibs(comp, model2);
             // the libraries which were just loaded are not checked either
             toCheck = withUncheckedUnits(model2, toCheck);
+            lastCheckedUnits = toCheck.size();
             validated = comp.checkProg(model2, toCheck);
         } catch (ModelChangedException e) {
             // model changed, early return
@@ -1321,8 +1406,15 @@ public class ModelManagerImpl implements ModelManager {
             return result;
         }
 
+        // A changed unit which was edited in place provides what it did before, and nothing depending on it is
+        // affected by its change. It still is by any other change: of what it imports, of a package it declares,
+        // or of its config relative, and then its dependents are as well.
+        Set<CompilationUnit> quiet = Collections.newSetFromMap(new IdentityHashMap<>());
+        changed.stream().filter(this::isBodyEdited).forEach(quiet::add);
+
         // get packages provided by the changed CUs
         Stream<String> providedPackages = changed.stream()
+                .filter(cu -> !quiet.contains(cu))
                 .flatMap(cu -> cu.getPackages().stream())
                 .map(WPackage::getName);
 
@@ -1330,10 +1422,44 @@ public class ModelManagerImpl implements ModelManager {
         Set<String> affectedPackages = Stream.concat(providedPackages, oldPackages.stream())
                 .collect(Collectors.toSet());
         affectedPackages.addAll(configRelatives(affectedPackages));
+        quiet.removeIf(cu -> usesOrDeclares(cu, affectedPackages) || hasConfigRelative(cu, model));
 
-        addPossiblyAffectedPackages(affectedPackages, model, result);
+        addPossiblyAffectedPackages(affectedPackages, model, result, quiet);
 
         return result;
+    }
+
+    private static boolean usesOrDeclares(CompilationUnit cu, Set<String> packageNames) {
+        for (WPackage p : cu.getPackages()) {
+            if (packageNames.contains(p.getName())) {
+                return true;
+            }
+            for (WImport imp : p.getImports()) {
+                if (packageNames.contains(imp.getPackagenameId().getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Whether a package of the unit is a config package, or another unit of the model declares its config package. */
+    private static boolean hasConfigRelative(CompilationUnit cu, WurstModel model) {
+        Set<String> relatives = configRelatives(providedPackagesOf(cu));
+        for (CompilationUnit other : model) {
+            if (other != cu && providedPackagesOf(other).stream().anyMatch(relatives::contains)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> providedPackagesOf(CompilationUnit cu) {
+        Set<String> names = new HashSet<>();
+        for (WPackage p : cu.getPackages()) {
+            names.add(p.getName());
+        }
+        return names;
     }
 
 
@@ -1357,7 +1483,12 @@ public class ModelManagerImpl implements ModelManager {
     /**
      * Add all packages that directly or indirectly depend on the providedPackages
      */
-    private void addPossiblyAffectedPackages(Collection<String> providedPackages, WurstModel model, Set<CompilationUnit> result) {
+    /**
+     * @param quiet units of result whose dependents are not affected: they changed in nothing another unit sees, and
+     *              nothing they depend on changed, unless a unit they depend on turns out to be affected after all
+     */
+    private void addPossiblyAffectedPackages(Collection<String> providedPackages, WurstModel model,
+                                             Set<CompilationUnit> result, Set<CompilationUnit> quiet) {
 
         nextCu:
         for (CompilationUnit compilationUnit : model) {
@@ -1380,10 +1511,10 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
 
-        addTransitiveDeps(result, model);
+        addTransitiveDeps(result, model, quiet);
         // a config package is checked with the package it configures, and what follows from either
         while (addConfigRelatives(result, model)) {
-            addTransitiveDeps(result, model);
+            addTransitiveDeps(result, model, quiet);
         }
     }
 
@@ -1412,18 +1543,28 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     /**
-     * Add all compilation units that transitively depend on the units in result
+     * Add all compilation units that transitively depend on the units in result, except on a quiet one: what depends
+     * on it sees what it saw before. A quiet unit which depends on a unit of result is affected itself, and so is
+     * what depends on it.
      */
-    private void addTransitiveDeps(Set<CompilationUnit> result, WurstModel model) {
+    private void addTransitiveDeps(Set<CompilationUnit> result, WurstModel model, Set<CompilationUnit> quiet) {
         Multimap<CompilationUnit, CompilationUnit> dependencyMap = calculateDirectDependencies(model);
-        ArrayDeque<CompilationUnit> todo = new ArrayDeque<>(result);
+        Set<CompilationUnit> propagated = Collections.newSetFromMap(new IdentityHashMap<>());
+        ArrayDeque<CompilationUnit> todo = new ArrayDeque<>();
+        for (CompilationUnit cu : result) {
+            if (!quiet.contains(cu)) {
+                todo.add(cu);
+            }
+        }
         while (!todo.isEmpty()) {
             CompilationUnit cu = todo.remove();
-            Collection<CompilationUnit> directDeps = dependencyMap.get(cu);
-            for (CompilationUnit c : directDeps) {
-                if (result.add(c)) {
-                    todo.add(c);
-                }
+            if (!propagated.add(cu)) {
+                continue;
+            }
+            for (CompilationUnit c : dependencyMap.get(cu)) {
+                result.add(c);
+                quiet.remove(c);
+                todo.add(c);
             }
         }
     }
