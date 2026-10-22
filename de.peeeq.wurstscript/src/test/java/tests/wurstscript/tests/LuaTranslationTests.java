@@ -4218,8 +4218,10 @@ public class LuaTranslationTests extends WurstScriptTest {
     public void stdLibDoesNotEmitWar3HashtableNatives() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
+            "import Hashtable",
             "init",
-            "    skip"
+            "    let h = InitHashtable()",
+            "    h.saveInt(1, 2, 7)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibDoesNotEmitWar3HashtableNatives.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bInitHashtable\\(");
@@ -4236,8 +4238,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        // The stdlib init code saves into hashtables. A save is printed in place, through the child
-        // constructor, and the helper of one which cannot be is defined where it is called.
+        // Exercise an integer save explicitly: stdlib initialization can use native KeyedMap
+        // storage instead. The save is printed in place through the child constructor.
         assertContainsRegex(compiled, "\\blocal function __wurst_htNewChild\\s*\\(");
         assertContainsRegex(compiled, "\n\\s*;\\(\\w+\\.__wurst_ht_int\\[");
         LuaAssertions.assertNoLeakedHashtableNativeCalls(compiled);

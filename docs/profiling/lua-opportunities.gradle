@@ -2,5 +2,12 @@
 allprojects {
     afterEvaluate {
         sourceSets.test.java.srcDir('../docs/profiling/lua-opportunities')
+        tasks.withType(Test).configureEach {
+            ['arrayListSource', 'arrayListBaseline', 'arrayListTests'].each { key ->
+                if (providers.gradleProperty(key).isPresent()) {
+                    systemProperty("wurst.${key}", providers.gradleProperty(key).get())
+                }
+            }
+        }
     }
 }

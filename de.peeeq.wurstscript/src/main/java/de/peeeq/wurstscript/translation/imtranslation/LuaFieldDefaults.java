@@ -23,8 +23,8 @@ import java.util.*;
  * goes back; only the allocation function of a class nothing allocates (an abstract base), which nothing calls, is
  * left without them.
  * <p>
- * An array field gets a table of its own per object, which IM cannot express; the backend's allocation always makes
- * those ({@link #isArrayField}).
+ * An array field gets a buffer of its own per object, which IM cannot express; the backend initializes those,
+ * resetting and reusing a buffer when an object ID is recycled ({@link #isArrayField}).
  */
 public final class LuaFieldDefaults {
 

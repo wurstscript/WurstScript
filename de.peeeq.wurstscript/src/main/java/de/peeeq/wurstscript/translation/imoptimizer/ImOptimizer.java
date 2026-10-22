@@ -56,6 +56,10 @@ public class ImOptimizer {
         removeGarbage();
         GlobalsInliner globalsInliner = new GlobalsInliner();
         globalsInliner.optimize(trans);
+        // Constants (including Lua's isLua) must choose their branches before the inliner rates
+        // the callees. Otherwise an empty Lua operation is charged for its entire Jass body and
+        // survives as a call even after local optimisations remove that body.
+        new SimpleRewrites().simplifyControlFlow(trans);
         ImInliner inliner = new ImInliner(trans);
         inliner.doInlining();
         trans.assertProperties();

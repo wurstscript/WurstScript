@@ -224,18 +224,17 @@ Notes; finished-work narrative does not.
   ordinary path, and fix the root (AGENTS.md §3, §7).
 
 - **Give collections a Lua-native backing store instead of carrying the Jass arena.**
-  ArrayList still searches/compacts free sections and relocates/clears its shared
-  store on Lua. A real-map snapshot contains 115 offset-indexed getters in this
-  family. [Proposal and reproducible controls](docs/LUA_COLLECTION_STORAGE.md):
-  dense reads were equal after hoisting, while isolated copy/clear growth took
-  0.230 s against 0.090 s for native growth/clear in stock Lua, with one arena reused
-  across sequential list lifetimes and final references cleared on both sides. Sparse-key costs depend
-  strongly on alignment and allocation history; no in-game gain is established.
-  Start with declaration-based vector storage intrinsics and the stdlib's owning
-  implementation, preserving Jass fallback, Wurst IDs/destruction, explicit size,
-  defaults and retained-reference semantics. Measure many-small-list allocation
-  and peak memory too. Result ownership/reduction could then remove the spatial
-  query's snapshot-to-list copy without breaking yielding or nested callbacks.
+  Implemented as draft [stdlib #517](https://github.com/wurstscript/WurstStdlib2/pull/517)
+  and [compiler #1545](https://github.com/wurstscript/WurstScript/pull/1545), using
+  existing typed array fields rather than adding vector intrinsics. Lua avoids
+  arena offsets, allocation and relocation; Jass retains its arena. Array buffers
+  are reset and reused on recycled Wurst IDs, with explicit destruction-time
+  reference cleanup. [Generated-code benchmark and controls](docs/LUA_COLLECTION_STORAGE.md)
+  cover growth, scans, small-list churn, scratch reuse and stopped-GC heap growth.
+  In-game acceptance, long-session retained memory and real-map profiling remain
+  open; high-water buffer retention and tiny-list costs must be assessed before
+  release. Result ownership/reduction could then remove the spatial query's
+  snapshot-to-list copy without breaking yielding or nested callbacks.
 
 ## Blocked on a decision
 
