@@ -201,6 +201,40 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue("every name the first build had means the same in the second: " + lost, lost.isEmpty());
     }
 
+    /** Overloads of a method are separate declarations: each dispatch stub is named from its own signature. */
+    @Test
+    public void overloadedMethodsHaveTheirOwnNames() throws IOException {
+        String[] lines = {
+            "package Test",
+            "native testSuccess()",
+            "native hotReload()",
+            "abstract class A",
+            "    abstract function f(int x) returns int",
+            "    abstract function f(string x) returns int",
+            "class B extends A",
+            "    override function f(int x) returns int",
+            "        return 1",
+            "    override function f(string x) returns int",
+            "        return 2",
+            "function getA() returns A",
+            "    return new B()",
+            "init",
+            "    if getA().f(1) == 1 and getA().f(\"s\") == 2",
+            "        testSuccess()",
+        };
+        test().testLua(true).executeProg().luaHotReload(lines).lines(lines);
+        String compiled = compiledLua("overloadedMethodsHaveTheirOwnNames");
+        java.util.regex.Matcher stubs = Pattern.compile("(?m)^function (dispatch_\\w+)\\(").matcher(compiled);
+        List<String> names = new java.util.ArrayList<>();
+        while (stubs.find()) {
+            names.add(stubs.group(1));
+        }
+        assertEquals(compiled, 2, names.size());
+        for (String name : names) {
+            assertTrue("named from its identity, not numbered: " + names, name.matches(".*_[0-9a-f]{6}"));
+        }
+    }
+
     /** A class of the same name from another package is another type. */
     @Test
     public void fieldTypeOfAnotherPackagesClassIsRejected() {
