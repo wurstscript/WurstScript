@@ -35,6 +35,8 @@ public final class LuaHotReloadSession {
         LuaHotReload.Manifest baseline;
         int version;
         List<String> reloaded = new ArrayList<>();
+        /** The functions a version the map ran stored as a value. */
+        List<String> captured = new ArrayList<>();
     }
 
     /**
@@ -105,6 +107,7 @@ public final class LuaHotReloadSession {
     private static final class Pending {
         int version;
         List<String> functions = new ArrayList<>();
+        List<String> captured = new ArrayList<>();
     }
 
     /** A payload and the file it was written to. */
@@ -125,10 +128,15 @@ public final class LuaHotReloadSession {
         State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
         recoverPending(buildDir, customMapData, state);
         LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current,
-            new LinkedHashSet<>(state.reloaded), state.version + 1);
+            new LinkedHashSet<>(state.reloaded), new LinkedHashSet<>(state.captured), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
+        for (LuaHotReload.Function f : current.functions().values()) {
+            if (!f.captures().isEmpty()) {
+                pending.captured.add(f.name());
+            }
+        }
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -160,6 +168,9 @@ public final class LuaHotReloadSession {
         Set<String> reloaded = new LinkedHashSet<>(state.reloaded);
         reloaded.addAll(sent.functions);
         state.reloaded = new ArrayList<>(reloaded);
+        Set<String> captured = new LinkedHashSet<>(state.captured == null ? List.of() : state.captured);
+        captured.addAll(sent.captured == null ? List.of() : sent.captured);
+        state.captured = new ArrayList<>(captured);
         state.version = sent.version;
     }
 

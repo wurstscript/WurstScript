@@ -156,6 +156,16 @@ public final class LuaHotReload {
      */
     public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore, int version)
         throws Rejected {
+        return payload(baseline, current, reloadedBefore, Set.of(), version);
+    }
+
+    /**
+     * {@link #payload(Manifest, Manifest, Set, int)} for a map which earlier payloads reached: {@code capturedBefore} names
+     * the functions one of them stored as a value. A stored value keeps the body it was taken from even when the edit
+     * no longer stores it, so such a function, like one the baseline stores, is not reloadable.
+     */
+    public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore,
+                                  Set<String> capturedBefore, int version) throws Rejected {
         List<String> reasons = new ArrayList<>();
         if (!baseline.abi().equals(current.abi())) {
             describeAbiChange(baseline, current, reasons);
@@ -170,8 +180,13 @@ public final class LuaHotReload {
             if (old.definition().equals(f.definition()) && !reloadedBefore.contains(f.name())) {
                 continue;
             }
-            if (!f.captures().isEmpty()) {
-                reasons.add("function " + f.name() + " is stored as a value (" + String.join(", ", f.captures())
+            List<String> stored = new ArrayList<>(f.captures());
+            stored.addAll(old.captures());
+            if (capturedBefore.contains(f.name())) {
+                stored.add("by an earlier payload");
+            }
+            if (!stored.isEmpty()) {
+                reasons.add("function " + f.name() + " is stored as a value (" + String.join(", ", new LinkedHashSet<>(stored))
                     + "), which keeps the old body");
             }
             changed.add(f.name());

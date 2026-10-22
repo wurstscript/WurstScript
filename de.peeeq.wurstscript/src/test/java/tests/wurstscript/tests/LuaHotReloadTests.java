@@ -161,6 +161,27 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(List.of("first"), payload.functions());
     }
 
+    /**
+     * A function a running version stores as a value keeps that body, so it is not reloadable even when the edit no
+     * longer stores it: whether the baseline stored it or an earlier payload did.
+     */
+    @Test
+    public void functionStoredAsAValueByTheRunningMapIsNotReloadable() {
+        LuaHotReload.Function stored = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
+            List.of(), List.of("in g"), false);
+        LuaHotReload.Function edited = new LuaHotReload.Function("f", "Test:f()void", "function f() return 2 end",
+            List.of(), List.of(), false);
+        LuaHotReload.Function plain = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
+            List.of(), List.of(), false);
+        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", java.util.Map.of("f", edited), List.of(), List.of());
+        LuaHotReload.Rejected byBaseline = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(
+            new LuaHotReload.Manifest("abi", java.util.Map.of("f", stored), List.of(), List.of()), current, Set.of(), 1));
+        assertTrue(byBaseline.getMessage(), byBaseline.getMessage().contains("in g"));
+        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", java.util.Map.of("f", plain), List.of(), List.of());
+        expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(plainBaseline, current, Set.of(), Set.of("f"), 2));
+    }
+
     /** A class of the same name from another package is another type. */
     @Test
     public void fieldTypeOfAnotherPackagesClassIsRejected() {
