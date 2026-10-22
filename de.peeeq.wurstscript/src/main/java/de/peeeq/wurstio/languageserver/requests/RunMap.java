@@ -430,15 +430,14 @@ public class RunMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, "Lua hot reload needs a Lua build;"
                 + " start the map with hot run first.");
         }
-        LuaHotReload.Payload payload;
+        LuaHotReloadSession.Sent sent;
         try {
-            payload = LuaHotReloadSession.nextPayload(buildDir.toPath(), luaHotReloadManifest);
+            sent = LuaHotReloadSession.send(buildDir.toPath(), getCustomMapDataPath(), luaHotReloadManifest);
         } catch (LuaHotReload.Rejected e) {
             throw new RequestFailedException(MessageType.Warning, e.getMessage());
         }
-        Path file = LuaHotReloadSession.deliver(getCustomMapDataPath(), payload);
-        gui.sendProgress("Hot reload payload " + payload.version() + " (" + String.join(", ", payload.functions())
-            + ") written to " + file);
+        gui.sendProgress("Hot reload payload " + sent.payload().version() + " (" + String.join(", ", sent.payload().functions())
+            + ") written to " + sent.file());
     }
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {

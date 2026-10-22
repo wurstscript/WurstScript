@@ -266,26 +266,33 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void sessionPayloadsAreCumulative() throws Exception {
         java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadSession");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
         LuaHotReload.Manifest baseline = manifest(program("x + 1", "side * side", INIT));
-        de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.start(buildDir, baseline);
+        LuaHotReloadSession.start(buildDir, baseline);
 
-        LuaHotReload.Payload first = de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.nextPayload(buildDir,
-            manifest(program("x + 10", "side * side", INIT)));
-        assertEquals(1, first.version());
-        assertEquals(List.of("score"), first.functions());
+        // A payload which cannot be written leaves the session as it was: the map waits for file 1.
+        java.nio.file.Files.writeString(customMapData, "a file where the folder should be");
+        LuaHotReload.Manifest firstEdit = manifest(program("x + 10", "side * side", INIT));
+        expectThrows(IOException.class, () -> LuaHotReloadSession.send(buildDir, customMapData, firstEdit));
+        java.nio.file.Files.delete(customMapData);
 
-        LuaHotReload.Payload second = de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.nextPayload(buildDir,
+        LuaHotReloadSession.Sent first = LuaHotReloadSession.send(buildDir, customMapData, firstEdit);
+        assertEquals(1, first.payload().version());
+        assertEquals(List.of("score"), first.payload().functions());
+        assertEquals("each payload has a file of its own", customMapData.resolve("Wurst").resolve("hotreload-1.pld"), first.file());
+
+        LuaHotReloadSession.Sent second = LuaHotReloadSession.send(buildDir, customMapData,
             manifest(program("x + 1", "side * side * 10", INIT)));
-        assertEquals(2, second.version());
-        assertEquals("score, back at its original body, is sent again with the new edit", 2, second.functions().size());
-        assertTrue(second.functions().contains("score"));
+        assertEquals(2, second.payload().version());
+        assertEquals("score, back at its original body, is sent again with the new edit", 2, second.payload().functions().size());
+        assertTrue(second.payload().functions().contains("score"));
+        assertFalse("the file is written whole, then renamed", java.nio.file.Files.exists(
+            second.file().resolveSibling("hotreload-2.pld.tmp")));
 
-        java.nio.file.Path delivered = de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.deliver(buildDir, second);
-        assertEquals("each payload has a file of its own", buildDir.resolve("Wurst").resolve("hotreload-2.pld"), delivered);
-        java.nio.file.Path other = buildDir.resolve("Wurst").resolve("other.pld");
+        java.nio.file.Path other = customMapData.resolve("Wurst").resolve("other.pld");
         java.nio.file.Files.writeString(other, "kept");
-        de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.clearDeliveries(buildDir);
-        assertFalse("a new session deletes the payload files of the last", java.nio.file.Files.exists(delivered));
+        LuaHotReloadSession.clearDeliveries(customMapData);
+        assertFalse("a new session deletes the payload files of the last", java.nio.file.Files.exists(second.file()));
         assertTrue(java.nio.file.Files.exists(other));
     }
 

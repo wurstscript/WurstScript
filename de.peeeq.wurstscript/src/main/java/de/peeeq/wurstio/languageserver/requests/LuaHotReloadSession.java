@@ -77,8 +77,16 @@ public final class LuaHotReloadSession {
         save(buildDir, state);
     }
 
-    /** The next payload for the running map, recorded as sent. */
-    public static LuaHotReload.Payload nextPayload(Path buildDir, LuaHotReload.Manifest current)
+    /** A payload and the file it was written to. */
+    public record Sent(LuaHotReload.Payload payload, Path file) {
+    }
+
+    /**
+     * Writes the next payload for the running map where its poll reads it, under the game's CustomMapData folder, and
+     * only then records it as sent: a payload which could not be written leaves the session as it was, so the next
+     * attempt takes the number the map is waiting for.
+     */
+    public static Sent send(Path buildDir, Path customMapData, LuaHotReload.Manifest current)
         throws IOException, LuaHotReload.Rejected {
         Path file = stateFile(buildDir);
         if (!Files.exists(file)) {
@@ -89,17 +97,23 @@ public final class LuaHotReloadSession {
             new LinkedHashSet<>(state.reloaded), state.version + 1);
         Set<String> reloaded = new LinkedHashSet<>(state.reloaded);
         reloaded.addAll(payload.functions());
+        Path delivered = deliver(customMapData, payload);
         state.reloaded = new ArrayList<>(reloaded);
         state.version = payload.version();
         save(buildDir, state);
-        return payload;
+        return new Sent(payload, delivered);
     }
 
-    /** Writes {@code payload} where the map's poll reads it, under the game's CustomMapData folder. */
-    public static Path deliver(Path customMapData, LuaHotReload.Payload payload) throws IOException {
+    /**
+     * Writes the payload's file by renaming a complete temporary file: the game reads a file once, so a poll which met a
+     * file half written would never see the rest.
+     */
+    private static Path deliver(Path customMapData, LuaHotReload.Payload payload) throws IOException {
         Path file = customMapData.resolve(LuaHotReload.preloadFile(payload.version()).replace('\\', '/'));
         Files.createDirectories(file.getParent());
-        Files.writeString(file, preloadFile(payload.source()), StandardCharsets.UTF_8);
+        Path partial = file.resolveSibling(file.getFileName() + ".tmp");
+        Files.writeString(partial, preloadFile(payload.source()), StandardCharsets.UTF_8);
+        Files.move(partial, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         return file;
     }
 
@@ -115,7 +129,7 @@ public final class LuaHotReloadSession {
         try (java.util.stream.Stream<Path> files = Files.list(folder)) {
             for (Path file : (Iterable<Path>) files::iterator) {
                 String name = file.getFileName().toString();
-                if (name.startsWith("hotreload-") && name.endsWith(".pld")) {
+                if (name.startsWith("hotreload-") && (name.endsWith(".pld") || name.endsWith(".pld.tmp"))) {
                     Files.delete(file);
                 }
             }
