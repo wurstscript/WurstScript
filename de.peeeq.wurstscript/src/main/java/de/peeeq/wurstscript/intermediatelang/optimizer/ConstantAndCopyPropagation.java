@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.NodeWorklist;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
@@ -16,7 +17,8 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 
 /**
- * Replaces a read of a local by the constant or the other local it is known to hold. It needs no locality analysis:
+ * Replaces a read of a local by the constant or the other local it is known to hold, and propagates nullness
+ * established by branches. It needs no locality analysis:
  * a read which is replaced reads the same value on every client, and no computation moves, so a value which depends
  * on the local player is propagated like any other.
  */
@@ -30,7 +32,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         totalPropagated = 0;
         for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
             if (!func.isNative() && !func.isBj()) {
-                optimizeFunc(func);
+                optimizeFunc(func, prog);
             }
         }
         return totalPropagated;
@@ -47,6 +49,18 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         final int component;
         final @Nullable ImConst constantValue;
         final @Nullable ImTupleExpr constantTuple;
+        final boolean nonNull;
+
+        /** A branch proves non-nullness without proving which value the local holds. */
+        private Value() {
+            copyVar = null;
+            component = -1;
+            constantValue = null;
+            constantTuple = null;
+            nonNull = true;
+        }
+
+        private static final Value NON_NULL = new Value();
 
         public Value(ImVar copyVar) {
             this(copyVar, -1);
@@ -58,6 +72,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             this.component = component;
             this.constantValue = null;
             this.constantTuple = null;
+            this.nonNull = false;
             if(results.isGlobal()) {
                 throw new IllegalArgumentException("copyVar must not be a Global.");
             }
@@ -68,6 +83,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             this.component = -1;
             this.constantValue = constantValue;
             this.constantTuple = null;
+            this.nonNull = false;
         }
 
         public Value(ImTupleExpr tupleExpr) {
@@ -75,6 +91,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             this.component = -1;
             this.constantValue = null;
             this.constantTuple = tupleExpr;
+            this.nonNull = false;
 
             for(ImExpr e : tupleExpr.getExprs()) {
                 if(tryValue(e) == null) {
@@ -108,7 +125,9 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         }
 
         public boolean equalValue(Value other) {
-            if (copyVar != null && other.copyVar != null) {
+            if (nonNull || other.nonNull) {
+                return nonNull == other.nonNull;
+            } else if (copyVar != null && other.copyVar != null) {
                 return copyVar == other.copyVar && component == other.component;
             } else if (constantValue != null && other.constantValue != null) {
                 return constantValue.equalValue(other.constantValue);
@@ -132,7 +151,9 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
         @Override
         public String toString() {
-            if (copyVar != null) {
+            if (nonNull) {
+                return "non-null";
+            } else if (copyVar != null) {
                 return "copy of " + copyVar + (component < 0 ? "" : "." + component);
             } else if (constantValue != null) {
                 return "constant " + constantValue;
@@ -152,13 +173,13 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         }
     }
 
-    void optimizeFunc(ImFunction func) {
+    void optimizeFunc(ImFunction func, ImProg prog) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
-        Map<Node, Knowledge> knowledge = calculateKnowledge(cfg);
-        rewriteCode(cfg, knowledge);
+        Map<Node, Knowledge> knowledge = calculateKnowledge(cfg, prog);
+        rewriteCode(cfg, knowledge, prog);
     }
 
-    private void rewriteCode(ControlFlowGraph cfg, Map<Node, Knowledge> knowledge) {
+    private void rewriteCode(ControlFlowGraph cfg, Map<Node, Knowledge> knowledge, ImProg prog) {
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt == null) {
@@ -166,6 +187,23 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             }
             Knowledge kn = knowledge.get(node);
             stmt.accept(new ImStmt.DefaultVisitor() {
+
+                @Override
+                public void visit(ImOperatorCall call) {
+                    if ((call.getOp() == WurstOperator.EQ || call.getOp() == WurstOperator.NOTEQ)
+                        && call.getArguments().size() == 2) {
+                        ImExpr left = call.getArguments().get(0);
+                        ImExpr right = call.getArguments().get(1);
+                        Boolean nonNull = left instanceof ImNull ? nonNull(right, kn.varKnowledge, prog)
+                            : right instanceof ImNull ? nonNull(left, kn.varKnowledge, prog) : null;
+                        if (nonNull != null) {
+                            call.replaceBy(JassIm.ImBoolVal(nonNull == (call.getOp() == WurstOperator.NOTEQ)));
+                            totalPropagated++;
+                            return;
+                        }
+                    }
+                    super.visit(call);
+                }
 
                 @Override
                 public void visit(ImSet imSet) {
@@ -239,7 +277,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         }
     }
 
-    private Map<Node, Knowledge> calculateKnowledge(ControlFlowGraph cfg) {
+    private Map<Node, Knowledge> calculateKnowledge(ControlFlowGraph cfg, ImProg prog) {
         Map<Node, Knowledge> knowledge = new java.util.HashMap<>();
         List<Node> allNodes = cfg.getNodes();
         if (allNodes.isEmpty()) {
@@ -265,7 +303,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
         // Analyze each SCC in topological order
         for (List<Node> scc : sccs) {
-            analyzeComponent(scc, knowledge);
+            analyzeComponent(scc, knowledge, cfg, prog);
         }
 
         return knowledge;
@@ -274,7 +312,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
     /**
      * Runs a local worklist algorithm on a single SCC until it reaches a fixed-point.
      */
-    private void analyzeComponent(List<Node> scc, Map<Node, Knowledge> knowledge) {
+    private void analyzeComponent(List<Node> scc, Map<Node, Knowledge> knowledge, ControlFlowGraph cfg, ImProg prog) {
         NodeWorklist worklist = new NodeWorklist(scc);
         java.util.HashSet<Node> sccNodeSet = new java.util.HashSet<>(scc);
 
@@ -286,22 +324,15 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             HashMap<ImVar, Value> newKnowledge = HashMap.empty();
             if (!n.getPredecessors().isEmpty()) {
                 Node pred1 = n.getPredecessors().get(0);
-                newKnowledge = knowledge.get(pred1).varKnowledgeOut;
+                newKnowledge = edgeKnowledge(pred1, n, knowledge, cfg);
 
-                if (n.getPredecessors().size() > 1) {
+                for (int i = 1; i < n.getPredecessors().size(); i++) {
+                    HashMap<ImVar, Value> other = edgeKnowledge(n.getPredecessors().get(i), n, knowledge, cfg);
                     for (Tuple2<ImVar, Value> e : newKnowledge) {
                         ImVar var = e._1();
                         Value val = e._2();
-                        boolean allSame = true;
-                        for (int i = 1; i < n.getPredecessors().size(); i++) {
-                            Node predi = n.getPredecessors().get(i);
-                            Value predi_val = knowledge.get(predi).varKnowledgeOut.get(var).getOrNull();
-                            if (predi_val == null || !predi_val.equalValue(val)) {
-                                allSame = false;
-                                break;
-                            }
-                        }
-                        if (!allSame) {
+                        Value otherValue = other.get(var).getOrNull();
+                        if (otherValue == null || !otherValue.equalValue(val)) {
                             newKnowledge = newKnowledge.remove(var);
                         }
                     }
@@ -339,7 +370,8 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                                 if(newOut.containsKey(varRight)) {
                                     newValue = newOut.get(varRight).getOrNull();
                                 } else {
-                                    newValue = Value.tryValue(right);
+                                    newValue = ImHelper.isNonNullHandleConstant(varRight, prog)
+                                        ? Value.NON_NULL : Value.tryValue(right);
                                 }
                             } else if(right instanceof ImTupleExpr) {
                                 newValue = Value.tryValue(right);
@@ -439,5 +471,67 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                 }
             }
         }
+    }
+
+    private HashMap<ImVar, Value> edgeKnowledge(Node from, Node to, Map<Node, Knowledge> knowledge,
+                                               ControlFlowGraph cfg) {
+        HashMap<ImVar, Value> values = knowledge.get(from).varKnowledgeOut;
+        Boolean branch = cfg.branchValue(from, to);
+        return branch == null ? values : assume((ImExpr) from.getStmt(), branch, values);
+    }
+
+    private HashMap<ImVar, Value> assume(ImExpr condition, boolean truth, HashMap<ImVar, Value> values) {
+        if (!(condition instanceof ImOperatorCall call)) {
+            return values;
+        }
+        ImExprs args = call.getArguments();
+        if (call.getOp() == WurstOperator.NOT) {
+            return assume(args.get(0), !truth, values);
+        }
+        if ((call.getOp() == WurstOperator.AND && truth) || (call.getOp() == WurstOperator.OR && !truth)) {
+            for (ImExpr arg : args) {
+                values = assume(arg, truth, values);
+            }
+        } else if (call.getOp() == WurstOperator.EQ || call.getOp() == WurstOperator.NOTEQ) {
+            ImExpr left = args.get(0);
+            ImExpr right = args.get(1);
+            ImExpr tested = left instanceof ImNull ? right : right instanceof ImNull ? left : null;
+            if (tested instanceof ImVarAccess access && !access.getVar().isGlobal()) {
+                boolean nonNull = truth == (call.getOp() == WurstOperator.NOTEQ);
+                Value value = nonNull ? Value.NON_NULL : new Value((ImConst) (left instanceof ImNull ? left : right));
+                values = values.put(access.getVar(), value);
+            }
+        }
+        return values;
+    }
+
+    private @Nullable Boolean nonNull(ImExpr expr, HashMap<ImVar, Value> values, ImProg prog) {
+        if (expr instanceof ImNull) {
+            return false;
+        }
+        if (!(expr instanceof ImVarAccess access)) {
+            return null;
+        }
+        ImVar var = access.getVar();
+        for (int i = 0; i <= values.size(); i++) {
+            if (ImHelper.isNonNullHandleConstant(var, prog)) {
+                return true;
+            }
+            Value value = values.get(var).getOrNull();
+            if (value == null) {
+                return null;
+            }
+            if (value.nonNull) {
+                return true;
+            }
+            if (value.constantValue instanceof ImNull) {
+                return false;
+            }
+            if (value.copyVar == null || value.component >= 0) {
+                return null;
+            }
+            var = value.copyVar;
+        }
+        return null;
     }
 }

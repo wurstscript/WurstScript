@@ -30,6 +30,32 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void branchNullFactsIgnoreCompilationUnitOrder() throws IOException {
+        CU program = compilationUnit("NullFacts.wurst",
+            "type unit extends handle",
+            "package NullFacts",
+            "@extern native GetUnitX(unit u) returns real",
+            "native source() returns unit",
+            "native consume(real value)",
+            "function coordinate(unit u) returns real",
+            "    return u == null ? 0. : GetUnitX(u)",
+            "@noinline function update(unit u)",
+            "    if u != null",
+            "        consume(coordinate(u))",
+            "init",
+            "    update(source())");
+        CU extra = compilationUnit("Extra.wurst", "package Extra", "native observe(int value)",
+            "init", "    observe(7)");
+        String name = "branchNullFacts";
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(program, extra);
+        String first = compiledLua(name);
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(extra, program);
+        assertEquals(compiledLua(name), first);
+        testNamed(name).testLua(true).inline().localOptimizations().compilationUnits(program, extra);
+        assertEquals(compiledLua(name), first);
+    }
+
+    @Test
     public void erasedDispatchConcreteStoresAreDeterministic() throws IOException {
         CU program = compilationUnit("Stores.wurst", GenericStoreGeneratedTests.program(7));
         CU extra = compilationUnit("Extra.wurst", "package Extra", "native consume(int value)",

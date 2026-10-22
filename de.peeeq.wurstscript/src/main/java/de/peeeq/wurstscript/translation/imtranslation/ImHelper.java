@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
@@ -11,6 +12,21 @@ public class ImHelper {
 
     /** A Jass function takes at most this many parameters. */
     public static final int JASS_MAX_PARAMETERS = 31;
+
+    /** An immutable common.j handle made by its enum converter exists before the script runs. */
+    public static boolean isNonNullHandleConstant(ImVar v, ImProg prog) {
+        if (!v.getIsBJ() || !(v.getTrace() instanceof GlobalVarDef def) || !def.attrIsConstant()) {
+            return false;
+        }
+        List<ImSet> inits = prog.getGlobalInits().get(v);
+        return inits != null && inits.size() == 1
+            && inits.get(0).getRight() instanceof ImFunctionCall init
+            && init.getFunc().isNative() && init.getFunc().isBj()
+            && init.getFunc().getName().startsWith("Convert")
+            && LuaNativeLowering.isHandleType(init.getFunc().getReturnType())
+            && init.getArguments().size() == 1
+            && init.getArguments().get(0) instanceof ImIntVal;
+    }
 
     /**
      * How many Jass parameters a value of this type occupies.

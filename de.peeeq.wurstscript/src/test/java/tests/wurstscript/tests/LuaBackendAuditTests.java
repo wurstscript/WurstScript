@@ -4879,6 +4879,122 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("arithmetic("));
     }
 
+    @Test
+    public void coordinateWrapperChainsInlineInOptimizedLoops() {
+        String compiled = compileOptimizedLuaWithStdLib("coordinateWrapperChainsInlineInOptimizedLoops",
+            "package Test",
+            "native consume(real x, real y)",
+            "function position(unit u) returns vec2",
+            "    return u.getPos()",
+            "@noinline function update(unit u, int n)",
+            "    for i = 1 to n",
+            "        let p = position(u)",
+            "        consume(p.x, p.y)",
+            "init",
+            "    update(null, 3)");
+        String update = topLevelFunctionBodyWithPrefix(compiled, "update(");
+        assertTrue(update, update.contains("GetUnitX(") && update.contains("GetUnitY("));
+        for (String wrapper : new String[]{"position(", "unit_getPos(", "unit_getX(", "unit_getY(", "__wurst_safe_"}) {
+            assertFalse("no coordinate wrapper call in the loop:\n" + update, update.contains(wrapper));
+        }
+    }
+
+    @Test
+    public void inlinedNativeGuardsReuseTheEnclosingNullCheck() {
+        String compiled = compileOptimizedLuaWithStdLib("inlinedNativeGuardsReuseTheEnclosingNullCheck",
+            "package Test",
+            "native consume(real x, real y)",
+            "@noinline function update(unit u)",
+            "    if u != null",
+            "        consume(u.getX(), u.getY())",
+            "@noinline function afterReturn(unit u)",
+            "    if u == null",
+            "        return",
+            "    consume(u.getX(), u.getY())",
+            "init",
+            "    update(null)",
+            "    afterReturn(null)");
+        for (String name : new String[]{"update(", "afterReturn("}) {
+            String body = topLevelFunctionBodyWithPrefix(compiled, name);
+            assertEquals("only the source null check remains:\n" + body, 1, countOccurrences(body, "== nil"));
+        }
+    }
+
+    @Test
+    public void commonJConstantExposedByInliningNeedsNoEnumGuard() {
+        String compiled = compileOptimizedLuaWithStdLib("commonJConstantExposedByInliningNeedsNoEnumGuard",
+            "package Test",
+            "native consume(real value)",
+            "function readState(unit u, unitstate state) returns real",
+            "    return GetUnitState(u, state)",
+            "@noinline function update(unit u)",
+            "    consume(readState(u, UNIT_STATE_MAX_LIFE))",
+            "init",
+            "    update(null)");
+        String body = topLevelFunctionBodyWithPrefix(compiled, "update(");
+        assertTrue(body, body.contains("GetUnitState("));
+        assertFalse("the constant stays non-null through the inlined parameter:\n" + body,
+            body.contains("ConvertUnitState(0)"));
+        assertEquals("the unit still needs its guard:\n" + body, 1, countOccurrences(body, "== nil"));
+    }
+
+    @Test
+    public void nullFactsRespectAssignmentsJoinsLoopsAndCalls() {
+        test().testLua(true).luaOnly(false).withStdLib().inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "player shared",
+            "class Box",
+            "    player p",
+            "@noinline function choose(bool present) returns player",
+            "    return present ? Player(1) : null",
+            "@noinline function branch(player source, bool clear) returns int",
+            "    var p = source",
+            "    if p == null",
+            "        return 10",
+            "    let saved = p",
+            "    if clear",
+            "        p = null",
+            "    if saved == null",
+            "        testFail(\"a copy keeps its old value\")",
+            "    return p == null ? 20 : 30",
+            "@noinline function flip(player source) returns player",
+            "    var p = source",
+            "    for i = 0 to 2",
+            "        if p == null",
+            "            p = Player(1)",
+            "        else",
+            "            p = null",
+            "    return p",
+            "@noinline function clear(Box b)",
+            "    shared = null",
+            "    b.p = null",
+            "@noinline function mutableStorage(Box b) returns bool",
+            "    if shared != null and b.p != null",
+            "        clear(b)",
+            "        return shared == null and b.p == null",
+            "    return false",
+            "@noinline function pair(player p, player q) returns int",
+            "    if p != null and q != null",
+            "        return 1",
+            "    if p == null or q == null",
+            "        return 2",
+            "    return 3",
+            "init",
+            "    if branch(choose(false), false) != 10 or branch(choose(true), true) != 20 or branch(choose(true), false) != 30",
+            "        testFail(\"branch join or assignment\")",
+            "    if flip(choose(false)) == null or flip(choose(true)) != null",
+            "        testFail(\"loop backedge\")",
+            "    if pair(choose(true), choose(true)) != 1 or pair(choose(true), choose(false)) != 2 or pair(choose(false), choose(true)) != 2 or pair(choose(false), choose(false)) != 2",
+            "        testFail(\"short circuit branch facts\")",
+            "    let b = new Box()",
+            "    shared = choose(true)",
+            "    b.p = shared",
+            "    if not mutableStorage(b)",
+            "        testFail(\"calls can change globals and fields\")",
+            "    destroy b",
+            "    testSuccess()");
+    }
+
     /**
      * The nil check around every native with a handle parameter returns early, and an inlined
      * early return used to leave a done flag with two tests and a dead default write behind. A
