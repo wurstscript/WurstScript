@@ -185,6 +185,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
                 new LuaHotReload.History(Set.of(), java.util.Map.of("f", LuaHotReload.definitionHash(plain))), 2));
     }
 
+    /** Removing a callback cannot leave an already-registered adapter silently running its old body. */
+    @Test
+    public void removedStoredFunctionIsRejectedFromBaselineAndHistory() {
+        LuaHotReload.Function stored = new LuaHotReload.Function("f", "Test:f()void", "function f() end",
+            List.of(), List.of("in register"), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", java.util.Map.of(), List.of(), List.of(), List.of());
+        LuaHotReload.Manifest baseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored),
+            List.of(), List.of(), List.of());
+        LuaHotReload.Rejected original = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1));
+        assertTrue(original.getMessage(), original.getMessage().contains("removed") && original.getMessage().contains("register"));
+        LuaHotReload.Rejected added = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(empty, empty,
+            new LuaHotReload.History(Set.of("f"), java.util.Map.of("f", LuaHotReload.definitionHash(stored))), 2));
+        assertTrue(added.getMessage(), added.getMessage().contains("earlier payload"));
+    }
+
+    @Test
+    public void removedCallbackAdapterIsRejected() {
+        String[] callback = concat(MAIN_PACKAGE, new String[] {"native register(code callback)",
+            "function callback()", "    bump()", "function setup()", "    register(function callback)",
+            "init", "    setup()"});
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(manifest(callback), manifest(MAIN_PACKAGE), LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("removed") && rejected.getMessage().contains("stored"));
+    }
+
     /**
      * A hot-reload build names each declaration from its identity, so declarations added in front of others, even ones
      * of the same names in another package, rename nothing that the running script has.

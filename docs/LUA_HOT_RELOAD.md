@@ -42,7 +42,8 @@ global initializer. This adds an initialization-time call only in opt-in develop
 The payload compares the running script's manifest with the edited one:
 
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a
-  value anywhere else keeps the body it was taken from, so a change to it is rejected.
+  value anywhere else keeps the body it was taken from, so a change to or removal of it is rejected. This includes
+  callback adapters already registered by the baseline or an earlier payload.
 - A new top-level declaration runs (a new class table, a new field store); a changed one is rejected.
 - A new bootstrap or initialiser statement runs; a changed slot binding runs; the initial value of a new global runs.
 - A changed initial value of a global the map has is skipped with a warning: the map keeps the value it has.

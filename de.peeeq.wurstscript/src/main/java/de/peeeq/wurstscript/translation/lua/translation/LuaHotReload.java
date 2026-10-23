@@ -326,6 +326,21 @@ public final class LuaHotReload {
             }
         }
 
+        Set<String> removed = new TreeSet<>(baseline.functions().keySet());
+        removed.addAll(history.captured().keySet());
+        removed.removeAll(current.functions().keySet());
+        for (String name : removed) {
+            Function old = baseline.functions().get(name);
+            List<String> stored = new ArrayList<>(old == null ? List.of() : old.captures());
+            if (history.captured().containsKey(name)) {
+                stored.add("by an earlier payload");
+            }
+            if (!stored.isEmpty()) {
+                reasons.add("function " + name + " was removed but is stored as a value ("
+                    + String.join(", ", new LinkedHashSet<>(stored)) + "), which keeps the old body");
+            }
+        }
+
         List<String> defined = new ArrayList<>();
         List<String> changedInits = new ArrayList<>();
         Set<String> newInits = new LinkedHashSet<>();
