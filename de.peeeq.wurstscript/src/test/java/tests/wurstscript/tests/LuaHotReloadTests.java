@@ -700,12 +700,9 @@ public class LuaHotReloadTests extends WurstScriptTest {
         expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(baseline, changed, Set.of(), 1));
     }
 
-    /**
-     * The closures of one interface method in one function share an identity and are told apart by their order. A
-     * closure added before another would give the old one's name to the new one, so the edit is rejected.
-     */
+    /** A variable-bound closure has its own source identity, so a sibling addition preserves existing bindings. */
     @Test
-    public void closureAddedBesideAnotherOfTheSameMethodIsRejected() {
+    public void namedClosureAddedBesideAnotherOfTheSameMethodIsAccepted() throws Exception {
         String[] base = {
             "package Test",
             "interface Op",
@@ -729,6 +726,66 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "init",
             "    run()",
         };
+        var baseline = manifest(base);
+        var inserted = manifest(edited);
+        assertTrue(inserted.functions().keySet().containsAll(baseline.functions().keySet()));
+        LuaHotReload.payload(baseline, inserted, Set.of(), 1);
+        String swap = edited[5];
+        edited[5] = edited[6];
+        edited[6] = swap;
+        var reordered = manifest(edited);
+        assertTrue(reordered.functions().keySet().containsAll(baseline.functions().keySet()));
+        LuaHotReload.payload(baseline, reordered, Set.of(), 1);
+    }
+
+    @DataProvider
+    public Object[][] namedClosureCases() {
+        return new Object[][] {{"apply", false}, {"_apply", false}, {"apply", true}, {"_apply", true}};
+    }
+
+    @Test(dataProvider = "namedClosureCases")
+    public void namedClosureAdditionPreservesOldCapturesAndUpdatesTheirBodies(String method, boolean nested) {
+        String[] base = namedClosureProgram(false, nested);
+        String[] edited = namedClosureProgram(true, nested);
+        for (int i = 0; i < base.length; i++) {
+            base[i] = base[i].replace("apply(", method + "(");
+            edited[i] = edited[i].replace("apply(", method + "(");
+        }
+        test().testLua(true).executeProg().luaHotReload(edited).lines(base);
+    }
+
+    private static String[] namedClosureProgram(boolean edited, boolean nested) {
+        return new String[] {"package Test", "native hotReload()", "native testSuccess()", "native testFail(string msg)",
+            "interface Op", "    function apply(int v) returns int", "Op savedA", "Op savedB", "int siblingScore",
+            "function install(int seed)",
+            edited ? "    Op z = " + closureExpression("seed + v + 300", nested) : "",
+            "    Op a = " + closureExpression("seed + v" + (edited ? " + 100" : ""), nested),
+            "    Op b = " + closureExpression("seed * 10 + v" + (edited ? " + 200" : ""), nested),
+            "    savedA = a", "    savedB = b",
+            edited ? "    siblingScore = z.apply(2)\n    destroy z" : "",
+            "init", "    install(3)", "    let oldA = savedA", "    let oldB = savedB",
+            "    if oldA.apply(1) != 4 or oldB.apply(1) != 31", "        testFail(\"original closures failed\")",
+            "    hotReload()", "    if oldA.apply(1) != 104 or oldB.apply(1) != 231",
+            "        testFail(\"existing closure bodies or captures changed identity\")", "    install(5)",
+            "    if savedA.apply(1) != 106 or savedB.apply(1) != 251 or siblingScore != 307",
+            "        testFail(\"new closures failed\")", "    destroy oldA", "    destroy oldB",
+            "    destroy savedA", "    destroy savedB", "    testSuccess()"};
+    }
+
+    private static String closureExpression(String expression, boolean nested) {
+        return nested ? "(int v) -> begin\n        Op inner = (int x) -> " + expression.replace("v", "x")
+            + "\n        let result = inner.apply(v)\n        destroy inner\n        return result\n    end"
+            : "(int v) -> " + expression;
+    }
+
+    @Test
+    public void unanchoredSiblingClosureAdditionStillRequiresARestart() throws Exception {
+        String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
+            "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
+            "function run() returns int", "    return consume((int v) -> v + 1) + consume((int v) -> v + 2)",
+            "init", "    run()"};
+        String[] edited = base.clone();
+        edited[8] += " + consume((int v) -> v + 3)";
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(manifest(base), manifest(edited), Set.of(), 1));
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));

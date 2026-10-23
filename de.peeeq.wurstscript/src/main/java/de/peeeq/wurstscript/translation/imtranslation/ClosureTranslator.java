@@ -252,7 +252,18 @@ public class ClosureTranslator {
     }
 
     private String makeClassName(ImClassType superClass) {
-        return superClass.getClassDef().getName() + makeNameSuffix();
+        String name = superClass.getClassDef().getName() + makeNameSuffix();
+        if (tr.getRunArgs().isLuaHotReload()) {
+            // A local/global binding anchors this source closure independently of sibling translation order.
+            // Include outer bindings too, so identically named locals in different enclosing closures stay apart.
+            for (Element scope = e.getParent(); scope != null; scope = scope.getParent()) {
+                if (scope instanceof GlobalOrLocalVarDef variable) {
+                    String binding = variable.getName();
+                    name += "_bound" + binding.length() + "_" + binding;
+                }
+            }
+        }
+        return name;
     }
 
     private String makeNameSuffix() {

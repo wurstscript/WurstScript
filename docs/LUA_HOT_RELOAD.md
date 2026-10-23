@@ -61,9 +61,12 @@ The payload compares the running script's manifest with the edited one:
   the map determines whether that removed initializer actually ran before the map warns.
 - Any other changed bootstrap statement (class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
-- The closures of one interface method in one function share an identity and are told apart by their order, so
-  adding or removing one of them is rejected: the new closure would take an old one's name, and objects of the old
-  one would run its body.
+- Interface/class closures bound to source variables include those variable names in their class identities in
+  hot-reload builds. Adding or reordering distinct named siblings keeps existing closures' identities and captured
+  values; their methods can be replaced while old objects remain alive. Nested closures include outer variable
+  bindings too. Removing or renaming a closure still requires a restart when its old class-table bindings survive.
+  Anonymous siblings without distinct variable anchors share an identity and are told apart by their order, so
+  adding or removing one is rejected: the new closure would take an old one's name.
 - All package initialization follows the order the map starts packages: after their dependencies. At each package,
   a new package's whole init runs once; an existing package only initializes its added globals. This includes packages
   an earlier payload added, so their later globals are ready before dependent packages initialize. If a new init fails, the
