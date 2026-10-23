@@ -64,6 +64,8 @@ The payload compares the running script's manifest with the edited one:
   the change, with a warning that applying it needs a restart.
   For packages added by payloads, the map records the init code it ran and prints the restart warning when a later
   payload changes it; resending unchanged code gives no warning.
+  Init comparisons preserve statement order and multiplicity, so removing one repeated call or reordering existing
+  initialization work also warns.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
   and kept, so what is stored in it stays.
 

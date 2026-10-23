@@ -411,11 +411,13 @@ public final class LuaHotReload {
                 keptValues.add(initializer + " (removed initializer)");
             }
         }
-        Set<String> currentStatementKeys = new HashSet<>();
-        current.statements().forEach(s -> currentStatementKeys.add(runKey(s)));
-        for (Statement s : baseline.statements()) {
-            if (s.scope().equals("init") && !s.kind().equals("global") && !currentStatementKeys.contains(runKey(s))) {
-                changedInits.add("removed " + firstLine(s.text()));
+        Set<String> commonInitializers = new HashSet<>(baselineInitializers.keySet());
+        commonInitializers.retainAll(currentInitializers.keySet());
+        Map<String, List<String>> oldInitCode = initCode(baseline, commonInitializers);
+        Map<String, List<String>> newInitCode = initCode(current, commonInitializers);
+        for (Map.Entry<String, List<String>> init : oldInitCode.entrySet()) {
+            if (!init.getValue().equals(newInitCode.getOrDefault(init.getKey(), List.of()))) {
+                changedInits.add(init.getKey());
             }
         }
         Set<String> knownNames = bindingMap(baseline.bindings()).keySet();
@@ -445,12 +447,13 @@ public final class LuaHotReload {
                 if (scope.equals("init")) {
                     // A package init ran when the map started. Of what changed in one, only the initial value of a global
                     // the running script does not have can run now; the map keeps the values of the globals it has.
-                    if (!s.kind().equals("global")) {
-                        changedInits.add(firstLine(s.text()));
-                    } else if (knownNames.contains(s.key())) {
-                        keptValues.add(s.key());
-                    } else {
-                        packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                    // Ordinary code is compared as a sequence above and never rerun.
+                    if (s.kind().equals("global")) {
+                        if (knownNames.contains(s.key())) {
+                            keptValues.add(s.key());
+                        } else {
+                            packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                        }
                     }
                     continue;
                 }
@@ -467,8 +470,8 @@ public final class LuaHotReload {
             }
         }
         if (!changedInits.isEmpty()) {
-            warnings.add("Changed package init code ran when the map started and does not run again (" + changedInits.size()
-                + " statements, the first: " + changedInits.get(0) + "): restart the map to apply it.");
+            warnings.add("Changed package init code ran when the map started and does not run again ("
+                + String.join(", ", changedInits) + "): restart the map to apply it.");
         }
         if (!keptValues.isEmpty()) {
             warnings.add("Changed initial values (" + String.join(", ", keptValues) + ") do not apply: the running map keeps"
@@ -603,6 +606,24 @@ public final class LuaHotReload {
         for (Statement s : manifest.statements()) {
             if (s.scope().equals("init") && s.kind().equals("global")) {
                 result.put(s.key(), runKey(s));
+            }
+        }
+        return result;
+    }
+
+    /** Init code is a sequence. Existing initializer units retain their positions without comparing their bodies,
+     * whose changed values have their own warning; added and removed units are handled separately. */
+    private static Map<String, List<String>> initCode(Manifest manifest, Set<String> commonInitializers) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (Function f : manifest.functions().values()) {
+            if (f.kind() == Kind.PACKAGE_INIT) {
+                result.put(f.name(), new ArrayList<>());
+            }
+        }
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("init") && (!s.kind().equals("global") || commonInitializers.contains(s.key()))) {
+                result.computeIfAbsent(s.owner(), k -> new ArrayList<>())
+                    .add(s.kind().equals("global") ? "initializer:" + s.key() : "code:" + s.revision());
             }
         }
         return result;

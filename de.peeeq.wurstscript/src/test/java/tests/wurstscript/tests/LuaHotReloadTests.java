@@ -284,6 +284,53 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
     }
 
+    @DataProvider
+    public Object[][] initSequenceCases() {
+        return new Object[][] {
+            {"bump()\nbump()", "bump()", true},
+            {"bump()", "bump()\nbump()", true},
+            {"bump()\nlower()", "lower()\nbump()", true},
+            {"bump()", "bump()", false},
+        };
+    }
+
+    @Test(dataProvider = "initSequenceCases")
+    public void packageInitDiagnosticsCompareSequences(String before, String after, boolean changed) throws Exception {
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(withInitSequence(before)), manifest(withInitSequence(after)),
+            LuaHotReload.History.NONE, 1);
+        assertEquals(payload.warnings().toString(), changed, payload.warnings().stream().anyMatch(w -> w.contains("package init")));
+    }
+
+    @Test
+    public void reorderedExistingGlobalInitializersWarnOfARestart() throws Exception {
+        String[] baseline = mainWithExtra("bump()");
+        for (int i = 0; i < baseline.length; i++) {
+            if (baseline[i].equals("int extra = bump()")) {
+                baseline[i] += "\nint another = bump()";
+            } else if (baseline[i].equals("    return extra")) {
+                baseline[i] += " + another";
+            }
+        }
+        String[] edited = baseline.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].startsWith("int extra = bump()")) {
+                edited[i] = "int another = bump()\nint extra = bump()";
+            }
+        }
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(baseline), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
+    }
+
+    private static String[] withInitSequence(String statements) {
+        String[] lines = mainWithExtra("bump()");
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].equals("    bump()")) {
+                lines[i] = "    " + statements.replace("\n", "\n    ");
+            }
+        }
+        return concat(lines, new String[] {"function lower() returns int", "    made--", "    return made"});
+    }
+
     @Test
     public void removedEarlierPackageInitWarnsInTheMap() throws Exception {
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
