@@ -48,6 +48,8 @@ public final class LuaHotReload {
     /** The order in which source initializer units first completed in this map, not the editor's delivery order. */
     private static final String INITIALIZER_POSITIONS = "__wurst_hotreload_initPositions";
     private static final String INITIALIZER_COUNT = "__wurst_hotreload_initCount";
+    /** Initializer units first introduced after their target globals already had live values. */
+    private static final String KEPT_INITIALIZERS = "__wurst_hotreload_keptInitializers";
     /**
      * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
      * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
@@ -95,9 +97,11 @@ public final class LuaHotReload {
      * identifies the assignment or complete source initializer;
      * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
      * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
-     * complete definition for an initializer call, otherwise the statement text.
+     * complete definition for an initializer call, otherwise the statement text. {@code targets} identifies all
+     * retained storage written by a source initializer, including tuple leaves and generic specializations.
      */
-    public record Statement(String scope, String key, String text, String kind, String owner, String revision) {
+    public record Statement(String scope, String key, String text, String kind, String owner, String revision,
+                            List<String> targets) {
     }
 
     /**
@@ -176,17 +180,26 @@ public final class LuaHotReload {
             globals.add(tr.luaVar.getFor(global));
         }
         Map<LuaFunction, ImVar> initializers = new IdentityHashMap<>();
+        Map<LuaFunction, List<String>> initializerTargets = new IdentityHashMap<>();
         for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
             ImVar global = tr.imTr.luaGlobalInitializers.get(entry.getValue());
             if (global != null) {
                 initializers.put(entry.getKey(), global);
+                List<String> targets = new ArrayList<>();
+                for (ImVar component : tr.imTr.loweredGlobalStorage(global)) {
+                    targets.add(tr.luaVar.getFor(component).getName());
+                }
+                initializerTargets.put(entry.getKey(), List.copyOf(targets));
             }
         }
         for (ImFunction init : packageInits) {
             LuaFunction owner = tr.luaFunc.getFor(init);
             for (LuaStatement statement : owner.getBody()) {
                 if (statement instanceof LuaExprFunctionCall call && initializers.containsKey(call.getFunc())) {
-                    String position = INITIALIZER_POSITIONS + "[" + luaString(runKey("init", owner.getName(), call.getFunc().getName())) + "]";
+                    String key = luaString(runKey("init", owner.getName(), call.getFunc().getName()));
+                    String position = INITIALIZER_POSITIONS + "[" + key + "]";
+                    // This guard also applies when a newly introduced package-init function calls the unit itself.
+                    call.getFunc().getBody().add(0, LuaAst.LuaLiteral("if " + KEPT_INITIALIZERS + "[" + key + "] then return end"));
                     // Before the manifest is printed: every definition, including one a payload replaces, records
                     // completion here. A failing initializer never reaches it; a skipped delivery records nothing.
                     call.getFunc().getBody().add(LuaAst.LuaLiteral("if not " + position + " then\n"
@@ -204,7 +217,7 @@ public final class LuaHotReload {
                 if (f == bootstrap || f == globalInit) {
                     String scope = f == bootstrap ? "boot" : "globals";
                     for (LuaStatement s : f.getBody()) {
-                        statements.add(statement(scope, "", s, globals, initializers));
+                        statements.add(statement(scope, "", s, globals, initializerTargets));
                     }
                     continue;
                 }
@@ -216,7 +229,8 @@ public final class LuaHotReload {
                 String id = im == null ? "generated:" + f.getName() : functionId(im);
                 ImVar initialized = initializers.get(f);
                 if (initialized != null) {
-                    id += ":initializes:" + semanticId(initialized, initialized.getName()) + ":" + typeKey(initialized.getType());
+                    id += ":initializes:" + semanticId(initialized, initialized.getName()) + ":" + typeKey(initialized.getType())
+                        + ":storage:" + initializerTargets.get(f);
                 }
                 if (im != null) {
                     bindings.add(f.getName() + "=" + id);
@@ -225,7 +239,7 @@ public final class LuaHotReload {
                     initNames.put(im, f.getName());
                     // The initial values of a package's globals are given here: a new global's must run.
                     for (LuaStatement s : f.getBody()) {
-                        statements.add(statement("init", f.getName(), s, globals, initializers));
+                        statements.add(statement("init", f.getName(), s, globals, initializerTargets));
                     }
                 }
                 StringBuilder definition = new StringBuilder();
@@ -233,7 +247,7 @@ public final class LuaHotReload {
                 functions.put(f.getName(), new Function(f.getName(), id, definition.toString(),
                     List.copyOf(slots.getOrDefault(f, List.of())), List.copyOf(captures.getOrDefault(f, List.of())), kind));
             } else {
-                statements.add(statement("top", "", statement, globals, initializers));
+                statements.add(statement("top", "", statement, globals, initializerTargets));
             }
         }
 
@@ -256,7 +270,7 @@ public final class LuaHotReload {
             parts.add(f.definition());
         }
         for (Statement s : statements) {
-            parts.add(s.scope() + " " + s.text());
+            parts.add(s.scope() + " " + s.text() + " " + s.targets());
         }
         String abi = fingerprint(compilerVersion, parts, bindings);
         appendRuntime(tr, model, abi);
@@ -272,9 +286,10 @@ public final class LuaHotReload {
     }
 
     private static Statement statement(String scope, String owner, LuaStatement s, Set<LuaVariable> globals,
-                                       Map<LuaFunction, ImVar> initializers) {
+                                       Map<LuaFunction, List<String>> initializerTargets) {
         StringBuilder text = new StringBuilder();
         String revision = null;
+        List<String> targets = List.of();
         String key;
         String kind = "other";
         if (s instanceof LuaVariable v) {
@@ -300,7 +315,7 @@ public final class LuaHotReload {
             } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
                 kind = "global";
             }
-        } else if (s instanceof LuaExprFunctionCall call && initializers.containsKey(call.getFunc())) {
+        } else if (s instanceof LuaExprFunctionCall call && initializerTargets.containsKey(call.getFunc())) {
             // This is the complete source initializer, not an arbitrary assignment in a package's init block.
             key = call.getFunc().getName();
             kind = "global";
@@ -308,11 +323,12 @@ public final class LuaHotReload {
             StringBuilder definition = new StringBuilder();
             call.getFunc().print(definition, 0);
             revision = definition.toString();
+            targets = initializerTargets.get(call.getFunc());
         } else {
             s.print(text, 0);
             key = text.toString();
         }
-        return new Statement(scope, key, text.toString(), kind, owner, revision == null ? text.toString() : revision);
+        return new Statement(scope, key, text.toString(), kind, owner, revision == null ? text.toString() : revision, targets);
     }
 
     /** The payload which takes a map running {@code baseline} to {@code current}, which earlier payloads did not reach. */
@@ -453,11 +469,20 @@ public final class LuaHotReload {
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
+                if (scope.equals("init") && s.kind().equals("global") && old != null && !old.targets().equals(s.targets())) {
+                    reasons.add("the storage initialized by " + initializerLabel(s) + " changed from " + old.targets()
+                        + " to " + s.targets() + "; restart the map");
+                    continue;
+                }
                 if (scope.equals("init") && newInits.contains(s.owner())) {
                     // The init of a new package runs as a whole, below, and records its initial values as run. One added
                     // to it after it ran runs on its own, after it.
-                    if (s.kind().equals("global") && !knownNames.contains(s.key())) {
-                        packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                    if (s.kind().equals("global")) {
+                        if (initializedBefore(s, knownNames)) {
+                            keptValues.add(initializerLabel(s));
+                        } else {
+                            packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                        }
                     }
                     continue;
                 }
@@ -466,8 +491,8 @@ public final class LuaHotReload {
                     // the running script does not have can run now; the map keeps the values of the globals it has.
                     // Ordinary code is compared as a sequence above and never rerun.
                     if (s.kind().equals("global")) {
-                        if (knownNames.contains(s.key())) {
-                            keptValues.add(s.key());
+                        if (initializedBefore(s, knownNames)) {
+                            keptValues.add(initializerLabel(s));
                         } else {
                             packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
                         }
@@ -529,6 +554,20 @@ public final class LuaHotReload {
                         + describe(s.scope()) + " " + firstLine(s.key()) + ": restart the map")).append(", 0) end\n");
             }
         }
+        // Before recording this payload's declarations: a newly added initializer must not overwrite a global
+        // which already existed, including one an earlier payload introduced without an initializer. An initializer
+        // already installed but not reached after a failure remains retryable instead.
+        for (Statement s : current.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global") && !s.targets().isEmpty() && !knownNames.contains(s.key())) {
+                List<String> existing = new ArrayList<>();
+                for (String target : s.targets()) {
+                    existing.add(knownNames.contains(target) ? "true" : BINDINGS_TABLE + "[" + luaString(target) + "]");
+                }
+                sb.append("if not ").append(BINDINGS_TABLE).append("[").append(luaString(s.key())).append("] and (")
+                    .append(String.join(" or ", existing)).append(") then\n")
+                    .append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] = true\nend\n");
+            }
+        }
         // Functions first: a new declaration may hold one (a metatable's __index). Then the declarations, which the
         // slots of a new class need, then the slots of what changed.
         for (String name : defined) {
@@ -569,8 +608,9 @@ public final class LuaHotReload {
                 sb.append(marker).append(" = \"").append(initCode).append("\"\n");
                 for (Statement s : current.statements()) {
                     if (s.owner().equals(init) && s.kind().equals("global")) {
+                        sb.append("if not ").append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] then\n");
                         sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.revision()))
-                            .append("\"\n");
+                            .append("\"\nend\n");
                     }
                 }
                 sb.append("elseif ").append(marker).append(" ~= \"").append(initCode).append("\" then\n")
@@ -689,7 +729,14 @@ public final class LuaHotReload {
         }
         String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
         String text = "\"" + identityHash(s.revision()) + "\"";
-        sb.append("if not ").append(marker).append(" then\n").append(s.text()).append("\n")
+        if (s.scope().equals("init") && s.kind().equals("global")) {
+            sb.append("if ").append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] then\n")
+                .append("BJDebugMsg(").append(luaString("Wurst hot reload: " + initializerLabel(s)
+                    + " keeps its value; restart the map to apply its new initial value")).append(")\nelseif not ");
+        } else {
+            sb.append("if not ");
+        }
+        sb.append(marker).append(" then\n").append(s.text()).append("\n")
             .append(marker).append(" = ").append(text).append("\n");
         if (keepsValue(s)) {
             sb.append("elseif ").append(marker).append(" ~= ").append(text).append(" then\n")
@@ -697,6 +744,14 @@ public final class LuaHotReload {
                 .append(" keeps its value; restart the map to apply its new initial value\")\n");
         }
         sb.append("end\n");
+    }
+
+    private static boolean initializedBefore(Statement s, Set<String> knownNames) {
+        return knownNames.contains(s.key()) || s.targets().stream().anyMatch(knownNames::contains);
+    }
+
+    private static String initializerLabel(Statement s) {
+        return s.targets().isEmpty() ? s.key() : String.join(", ", s.targets());
     }
 
     /**
@@ -907,6 +962,7 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(BINDINGS_TABLE + " = {}"));
         model.add(LuaAst.LuaLiteral(INITIALIZER_POSITIONS + " = {}"));
         model.add(LuaAst.LuaLiteral(INITIALIZER_COUNT + " = 0"));
+        model.add(LuaAst.LuaLiteral(KEPT_INITIALIZERS + " = {}"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",

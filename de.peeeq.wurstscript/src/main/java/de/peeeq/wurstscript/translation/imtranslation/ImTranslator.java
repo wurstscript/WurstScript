@@ -2954,6 +2954,29 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return getVarsForTuple(v).allValuesStream().toList();
     }
 
+    /** The retained storage of a source global, using recorded specialization and tuple-lowering relations. */
+    public List<ImVar> loweredGlobalStorage(ImVar source) {
+        Set<ImVar> roots = Collections.newSetFromMap(new IdentityHashMap<>());
+        roots.add(source);
+        ImVar original = canonical(source);
+        for (Element copy : specialisations.keySet()) {
+            if (copy instanceof ImVar variable && canonical(variable) == original) {
+                roots.add(variable);
+            }
+        }
+        Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImVar root : roots) {
+            VarsForTupleResult tuple = varsForTupleVar.get(root);
+            if (tuple == null) {
+                storage.add(root);
+            } else {
+                tuple.allValuesStream().forEach(storage::add);
+            }
+        }
+        // Identity maps above are membership sets only; output follows the program's deterministic declaration order.
+        return imProg.getGlobals().stream().filter(storage::contains).toList();
+    }
+
     VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {
         if (!TypesHelper.typeContainsTuples(v.getType())
             && TypesHelper.typeContainsTuples(concreteStorageType)) {

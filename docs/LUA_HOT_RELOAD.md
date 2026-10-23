@@ -39,6 +39,12 @@ the manifest records that function's definition as the call's revision. A payloa
 never extracts a final assignment from the flattened code or confuses an assignment in an init block with a source
 global initializer. This adds an initialization-time call only in opt-in development builds.
 
+Each source initializer also records the globals it writes after tuple lowering and generic specialization.
+Adding an initializer to an existing global preserves its live value, including globals an earlier payload added
+without an initializer. A runtime marker preserves that decision across later cumulative payloads and whole-package
+initialization. Changing the storage covered by an existing initializer requires a restart: replaying the complete
+unit would also overwrite its existing values.
+
 The payload compares the running script's manifest with the edited one:
 
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a
