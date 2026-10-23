@@ -66,6 +66,9 @@ The payload compares the running script's manifest with the edited one:
   payload changes it; resending unchanged code gives no warning.
   Init comparisons preserve statement order and multiplicity, so removing one repeated call or reordering existing
   initialization work also warns.
+  Each initializer unit also records its first successful completion position in the map. Payloads compare their
+  requested initializer order against those positions, covering globals added by earlier payloads without assuming
+  that delivered files ran. A map which missed an earlier payload records only the order it actually executes.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
   and kept, so what is stored in it stays.
 

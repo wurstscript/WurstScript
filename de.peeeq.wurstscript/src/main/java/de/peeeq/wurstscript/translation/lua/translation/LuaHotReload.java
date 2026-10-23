@@ -45,6 +45,9 @@ public final class LuaHotReload {
     public static final String RAN_TABLE = "__wurst_hotreload_ran";
     /** Semantic declaration identities actually installed by payloads, including their source-level types. */
     public static final String BINDINGS_TABLE = "__wurst_hotreload_bindings";
+    /** The order in which source initializer units first completed in this map, not the editor's delivery order. */
+    private static final String INITIALIZER_POSITIONS = "__wurst_hotreload_initPositions";
+    private static final String INITIALIZER_COUNT = "__wurst_hotreload_initCount";
     /**
      * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
      * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
@@ -177,6 +180,19 @@ public final class LuaHotReload {
             ImVar global = tr.imTr.luaGlobalInitializers.get(entry.getValue());
             if (global != null) {
                 initializers.put(entry.getKey(), global);
+            }
+        }
+        for (ImFunction init : packageInits) {
+            LuaFunction owner = tr.luaFunc.getFor(init);
+            for (LuaStatement statement : owner.getBody()) {
+                if (statement instanceof LuaExprFunctionCall call && initializers.containsKey(call.getFunc())) {
+                    String position = INITIALIZER_POSITIONS + "[" + luaString(runKey("init", owner.getName(), call.getFunc().getName())) + "]";
+                    // Before the manifest is printed: every definition, including one a payload replaces, records
+                    // completion here. A failing initializer never reaches it; a skipped delivery records nothing.
+                    call.getFunc().getBody().add(LuaAst.LuaLiteral("if not " + position + " then\n"
+                        + INITIALIZER_COUNT + " = " + INITIALIZER_COUNT + " + 1\n"
+                        + position + " = " + INITIALIZER_COUNT + "\nend"));
+                }
             }
         }
 
@@ -581,6 +597,23 @@ public final class LuaHotReload {
                         + " already ran; restart the map to apply its removal")).append(")\nend\n");
             }
         }
+        Map<String, List<String>> initializerKeysByOwner = new LinkedHashMap<>();
+        for (Statement s : current.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global")) {
+                initializerKeysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(luaString(runKey(s)));
+            }
+        }
+        List<String> initializerOrder = new ArrayList<>();
+        for (String init : current.initOrder()) {
+            initializerOrder.addAll(initializerKeysByOwner.getOrDefault(init, List.of()));
+        }
+        if (initializerOrder.size() > 1) {
+            sb.append("local previous = 0\nfor _, key in ipairs({").append(String.join(", ", initializerOrder)).append("}) do\n")
+                .append("local position = ").append(INITIALIZER_POSITIONS).append("[key]\nif position then\n")
+                .append("if position < previous then\nBJDebugMsg(")
+                .append(luaString("Wurst hot reload: global initializer order changed; the map keeps the order its initializers ran in; restart the map to apply the new order"))
+                .append(")\nbreak\nend\nprevious = position\nend\nend\n");
+        }
         sb.append("end\n");
         Map<String, String> captured = new LinkedHashMap<>();
         Map<String, List<String>> slots = new LinkedHashMap<>();
@@ -681,7 +714,11 @@ public final class LuaHotReload {
 
     /** The key under which the map records that a statement ran: where it is and what it assigns, not its text. */
     static String runKey(Statement s) {
-        return identityHash(s.scope() + "\n" + s.owner() + "\n" + s.key());
+        return runKey(s.scope(), s.owner(), s.key());
+    }
+
+    private static String runKey(String scope, String owner, String key) {
+        return identityHash(scope + "\n" + owner + "\n" + key);
     }
 
     private static String describe(String scope) {
@@ -867,6 +904,8 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_nextFile = 1"));
         model.add(LuaAst.LuaLiteral(RAN_TABLE + " = {}"));
         model.add(LuaAst.LuaLiteral(BINDINGS_TABLE + " = {}"));
+        model.add(LuaAst.LuaLiteral(INITIALIZER_POSITIONS + " = {}"));
+        model.add(LuaAst.LuaLiteral(INITIALIZER_COUNT + " = 0"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",

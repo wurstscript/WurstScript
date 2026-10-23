@@ -321,6 +321,39 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
     }
 
+    /** Ordering warnings follow the map's completed work, including payload-added units and missed deliveries. */
+    @Test
+    public void mapRemembersOrderOfPayloadAddedInitializers() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_mapRemembersOrderOfPayloadAddedInitializers.lua";
+        String[] added = mainWithExtra("bump()");
+        for (int i = 0; i < added.length; i++) {
+            if (added[i].equals("int extra = bump()")) {
+                added[i] += "\nint another = bump()";
+            } else if (added[i].equals("    return extra")) {
+                added[i] += " + another";
+            }
+        }
+        String[] reordered = added.clone();
+        for (int i = 0; i < reordered.length; i++) {
+            if (reordered[i].startsWith("int extra = bump()")) {
+                reordered[i] = "int another = bump()\nint extra = bump()";
+            }
+        }
+        var baseline = manifest(MAIN_PACKAGE);
+        var first = manifest(added);
+        var second = manifest(reordered);
+        String p1 = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source();
+        String p2 = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2).source();
+        String[] globals = {globalName(first, "made"), globalName(first, "extra"), globalName(first, "another")};
+        String applied = applyInLua(script, List.of(p1, p2), true, globals);
+        assertEquals(applied, 1, occurrences(applied, "global initializer order changed"));
+        assertEquals(applied, 2, occurrences(applied, "true 3 2 3 nil"));
+        String missed = applyInLua(script, List.of(p2), true, globals);
+        assertFalse(missed, missed.contains("global initializer order changed"));
+        assertEquals(missed, "true 3 3 2 nil", missed);
+    }
+
     private static String[] withInitSequence(String statements) {
         String[] lines = mainWithExtra("bump()");
         for (int i = 0; i < lines.length; i++) {
