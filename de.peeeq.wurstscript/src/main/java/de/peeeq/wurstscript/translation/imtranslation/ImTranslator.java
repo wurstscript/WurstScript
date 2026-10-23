@@ -181,6 +181,9 @@ public class ImTranslator implements SpecialisationLookup {
      */
     public final Map<ImFunction, String> luaInitFunctions = new Object2ObjectLinkedOpenHashMap<>();
 
+    /** Complete source global initializers, kept as functions in hot-reload builds before flattening splits them. */
+    public final Map<ImFunction, ImVar> luaGlobalInitializers = new LinkedHashMap<>();
+
     private final Map<TranslatedToImFunction, ImVar> thisVarMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final Set<WPackage> translatedPackages = new ObjectLinkedOpenHashSet<>();
@@ -1544,6 +1547,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             f = globalInitFunc;
         }
         de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
+        if (runArgs.isLuaHotReload() && packageOrGlobal instanceof WPackage) {
+            // A reload must run the whole initializer, including its temporaries and control flow, exactly once.
+            // Preserve that boundary here, where the source initializer still exists, rather than reconstructing it
+            // from the flattened assignments in the Lua backend.
+            ImFunction initializer = ImFunction(v.getTrace(), "init_global_" + v.getName(), ImTypeVars(), ImVars(),
+                ImVoid(), ImVars(), ImStmts(), flags());
+            addFunction(initializer);
+            luaGlobalInitializers.put(initializer, v);
+            f.getBody().add(ImFunctionCall(trace, initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
+            f = initializer;
+        }
         if (initialExpr instanceof Expr expr) {
             ImExpr translated = expr.imTranslateExpr(this, f);
             ImSet imSet = ImSet(trace, ImVarAccess(v), translated);

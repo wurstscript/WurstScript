@@ -43,6 +43,8 @@ public final class LuaHotReload {
      * The map keeps it, not the editor: a payload is delivered as a file, and only the map knows how far it ran.
      */
     public static final String RAN_TABLE = "__wurst_hotreload_ran";
+    /** Semantic declaration identities actually installed by payloads, including their source-level types. */
+    public static final String BINDINGS_TABLE = "__wurst_hotreload_bindings";
     /**
      * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
      * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
@@ -86,11 +88,13 @@ public final class LuaHotReload {
 
     /**
      * A statement of the script outside the functions: {@code scope} is {@code top} (a top-level declaration),
-     * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key} is what it assigns;
+     * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key}
+     * identifies the assignment or complete source initializer;
      * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
-     * {@code other}; {@code owner} is the package init it is part of, or empty.
+     * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
+     * complete definition for an initializer call, otherwise the statement text.
      */
-    public record Statement(String scope, String key, String text, String kind, String owner) {
+    public record Statement(String scope, String key, String text, String kind, String owner, String revision) {
     }
 
     /**
@@ -155,6 +159,13 @@ public final class LuaHotReload {
         for (ImVar global : tr.prog.getGlobals()) {
             globals.add(tr.luaVar.getFor(global));
         }
+        Map<LuaFunction, ImVar> initializers = new IdentityHashMap<>();
+        for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
+            ImVar global = tr.imTr.luaGlobalInitializers.get(entry.getValue());
+            if (global != null) {
+                initializers.put(entry.getKey(), global);
+            }
+        }
 
         List<Statement> statements = new ArrayList<>();
         Map<String, Function> functions = new LinkedHashMap<>();
@@ -164,7 +175,7 @@ public final class LuaHotReload {
                 if (f == bootstrap || f == globalInit) {
                     String scope = f == bootstrap ? "boot" : "globals";
                     for (LuaStatement s : f.getBody()) {
-                        statements.add(statement(scope, "", s, globals));
+                        statements.add(statement(scope, "", s, globals, initializers));
                     }
                     continue;
                 }
@@ -174,6 +185,10 @@ public final class LuaHotReload {
                     : entries.contains(im) ? Kind.ENTRY
                     : Kind.PROGRAM;
                 String id = im == null ? "generated:" + f.getName() : functionId(im);
+                ImVar initialized = initializers.get(f);
+                if (initialized != null) {
+                    id += ":initializes:" + semanticId(initialized, initialized.getName()) + ":" + typeKey(initialized.getType());
+                }
                 if (im != null) {
                     bindings.add(f.getName() + "=" + id);
                 }
@@ -181,7 +196,7 @@ public final class LuaHotReload {
                     initNames.put(im, f.getName());
                     // The initial values of a package's globals are given here: a new global's must run.
                     for (LuaStatement s : f.getBody()) {
-                        statements.add(statement("init", f.getName(), s, globals));
+                        statements.add(statement("init", f.getName(), s, globals, initializers));
                     }
                 }
                 StringBuilder definition = new StringBuilder();
@@ -189,7 +204,7 @@ public final class LuaHotReload {
                 functions.put(f.getName(), new Function(f.getName(), id, definition.toString(),
                     List.copyOf(slots.getOrDefault(f, List.of())), List.copyOf(captures.getOrDefault(f, List.of())), kind));
             } else {
-                statements.add(statement("top", "", statement, globals));
+                statements.add(statement("top", "", statement, globals, initializers));
             }
         }
 
@@ -227,8 +242,10 @@ public final class LuaHotReload {
             List.copyOf(bindings), List.copyOf(initOrder));
     }
 
-    private static Statement statement(String scope, String owner, LuaStatement s, Set<LuaVariable> globals) {
+    private static Statement statement(String scope, String owner, LuaStatement s, Set<LuaVariable> globals,
+                                       Map<LuaFunction, ImVar> initializers) {
         StringBuilder text = new StringBuilder();
+        String revision = null;
         String key;
         String kind = "other";
         if (s instanceof LuaVariable v) {
@@ -251,14 +268,22 @@ public final class LuaHotReload {
             s.print(text, 0);
             if (a.getLeft() instanceof LuaExprFieldAccess && a.getRight() instanceof LuaExprFuncRef) {
                 kind = "slot";
-            } else if (a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
+            } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
                 kind = "global";
             }
+        } else if (s instanceof LuaExprFunctionCall call && initializers.containsKey(call.getFunc())) {
+            // This is the complete source initializer, not an arbitrary assignment in a package's init block.
+            key = call.getFunc().getName();
+            kind = "global";
+            s.print(text, 0);
+            StringBuilder definition = new StringBuilder();
+            call.getFunc().print(definition, 0);
+            revision = definition.toString();
         } else {
             s.print(text, 0);
             key = text.toString();
         }
-        return new Statement(scope, key, text.toString(), kind, owner);
+        return new Statement(scope, key, text.toString(), kind, owner, revision == null ? text.toString() : revision);
     }
 
     /** The payload which takes a map running {@code baseline} to {@code current}, which earlier payloads did not reach. */
@@ -349,11 +374,11 @@ public final class LuaHotReload {
             for (Statement s : baseline.statements()) {
                 if (s.scope().equals(scope)) {
                     oldByKey.put(s.key(), s);
-                    oldTexts.add(s.text());
+                    oldTexts.add(s.revision());
                 }
             }
             for (Statement s : current.statements()) {
-                if (!s.scope().equals(scope) || oldTexts.contains(s.text())) {
+                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())) {
                     continue;
                 }
                 Statement old = oldByKey.get(s.key());
@@ -414,12 +439,21 @@ public final class LuaHotReload {
         sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", defined)).append("\n");
         // The running script's fingerprint: the payload applies to that script, whatever the edit made of the rest.
         sb.append("return \"").append(baseline.abi()).append("\", ").append(version).append(", function()\n");
+        Map<String, String> newBindings = new LinkedHashMap<>(bindingMap(current.bindings()));
+        newBindings.keySet().removeAll(oldBindings.keySet());
+        for (Map.Entry<String, String> binding : newBindings.entrySet()) {
+            String installed = BINDINGS_TABLE + "[" + luaString(binding.getKey()) + "]";
+            sb.append("if ").append(installed).append(" and ").append(installed).append(" ~= ")
+                .append(luaString(binding.getValue())).append(" then error(")
+                .append(luaString("an earlier payload installed another declaration or type for " + binding.getKey()
+                    + ": restart the map")).append(", 0) end\n");
+        }
         // Before anything changes: a declaration or class data an earlier payload installed which this edit changes
         // cannot be kept (a field store of another type), and the running script has no way to replace it.
         for (Statement s : once) {
             if (!keepsValue(s) && !s.text().startsWith("local ")) {
                 String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
-                sb.append("if ").append(marker).append(" and ").append(marker).append(" ~= \"").append(identityHash(s.text()))
+                sb.append("if ").append(marker).append(" and ").append(marker).append(" ~= \"").append(identityHash(s.revision()))
                     .append("\" then error(").append(luaString("an earlier payload installed another version of the "
                         + describe(s.scope()) + " " + firstLine(s.key()) + ": restart the map")).append(", 0) end\n");
             }
@@ -428,9 +462,11 @@ public final class LuaHotReload {
         // slots of a new class need, then the slots of what changed.
         for (String name : defined) {
             sb.append(current.functions().get(name).definition()).append("\n");
+            appendBinding(sb, name, newBindings);
         }
         for (Statement s : declarations) {
             appendOnce(sb, s);
+            appendBinding(sb, s.key(), newBindings);
         }
         for (String name : defined) {
             for (String slot : current.functions().get(name).slots()) {
@@ -444,6 +480,7 @@ public final class LuaHotReload {
             } else {
                 appendOnce(sb, s);
             }
+            appendBinding(sb, s.key(), newBindings);
         }
         // All package work shares main's dependency order. A new package may depend on a new global in an existing
         // package, and an existing package's new global may depend on a new package (including an earlier payload's).
@@ -461,7 +498,7 @@ public final class LuaHotReload {
                 sb.append(marker).append(" = \"").append(initCode).append("\"\n");
                 for (Statement s : current.statements()) {
                     if (s.owner().equals(init) && s.kind().equals("global")) {
-                        sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.text()))
+                        sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.revision()))
                             .append("\"\n");
                     }
                 }
@@ -492,6 +529,14 @@ public final class LuaHotReload {
         return identityHash(f.definition());
     }
 
+    private static void appendBinding(StringBuilder sb, String name, Map<String, String> bindings) {
+        String identity = bindings.get(name);
+        if (identity != null) {
+            sb.append(BINDINGS_TABLE).append("[").append(luaString(name)).append("] = ")
+                .append(luaString(identity)).append("\n");
+        }
+    }
+
     /**
      * A statement which must run once in the map: it runs unless the map recorded it, and is recorded after it ran, so
      * one a failed payload did not reach runs with the next. The record is kept under what the statement assigns, with
@@ -504,7 +549,7 @@ public final class LuaHotReload {
             return;
         }
         String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
-        String text = "\"" + identityHash(s.text()) + "\"";
+        String text = "\"" + identityHash(s.revision()) + "\"";
         sb.append("if not ").append(marker).append(" then\n").append(s.text()).append("\n")
             .append(marker).append(" = ").append(text).append("\n");
         if (keepsValue(s)) {
@@ -716,6 +761,7 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(VERSION_GLOBAL + " = 0"));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_nextFile = 1"));
         model.add(LuaAst.LuaLiteral(RAN_TABLE + " = {}"));
+        model.add(LuaAst.LuaLiteral(BINDINGS_TABLE + " = {}"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",

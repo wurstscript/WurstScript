@@ -494,6 +494,68 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 2 2 nil", lines[1]);
     }
 
+    /** A new global's initializer is one unit, including flattened locals, control flow, and side effects. */
+    @Test
+    public void addedGlobalKeepsItsCompleteInitializer() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_addedGlobalKeepsItsCompleteInitializer.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(mainWithExtra("begin\n    var value = bump()\n"
+            + "    if value > 0\n        value += bump()\n    return value\nend"));
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 2).source()),
+            globalName(added, "made"), globalName(added, "extra"));
+        assertEquals(output, "true 3 5 nil\ntrue 3 5 nil", output.replace("\r\n", "\n"));
+    }
+
+    /** Array and tuple initializers retain all stores and evaluate each element once. */
+    @Test
+    public void addedArrayAndTupleInitializersRunAsUnits() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_addedArrayAndTupleInitializersRunAsUnits.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(concat(MAIN_PACKAGE, new String[] {
+            "tuple Pair(int a, int b)", "int array xs = [bump(), bump()]", "Pair pair = Pair(bump(), bump())",
+            "function total() returns int", "    return xs[0] + xs[1] + pair.a + pair.b", "init", "    total()",
+        }));
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 2).source()),
+            globalName(added, "made"), luaName(added, "total") + "()");
+        assertEquals(output, "true 5 14 nil\ntrue 5 14 nil", output.replace("\r\n", "\n"));
+    }
+
+    @DataProvider
+    public Object[][] referenceStorageCases() {
+        return new Object[][] {{true}, {false}};
+    }
+
+    /** Equal Lua storage text does not make different source-level field or global types compatible. */
+    @Test(dataProvider = "referenceStorageCases")
+    public void earlierPayloadsReferenceFieldTypeChangeIsRefused(boolean field) throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_earlierPayloadsReferenceFieldTypeChangeIsRefused.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        String declaration = field ? "    A held" : "A held";
+        String[] added = concat(MAIN_PACKAGE, new String[] {"class A", "class B", field ? "class Holder" : "", declaration,
+            "function touch()", field ? "    let h = new Holder()" : "", "    made += " + (field ? "h.held" : "held") + " castTo int",
+            "init", "    touch()"});
+        String[] edited = added.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].equals(declaration)) {
+                edited[i] = declaration.replace("A held", "B held");
+            }
+        }
+        LuaHotReload.Manifest first = manifest(added);
+        LuaHotReload.Manifest second = manifest(edited);
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2).source()), globalName(first, "made"));
+        assertTrue(output, output.split("\\R")[0].startsWith("true "));
+        assertTrue(output, output.split("\\R")[1].startsWith("false ") && output.contains("restart the map"));
+    }
+
     /** A function an earlier payload stored as a value keeps that payload's body, so a later change to it is rejected. */
     @Test
     public void changeOfAFunctionAnEarlierPayloadStoredIsRejected() throws Exception {
@@ -623,6 +685,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
     private static String globalName(LuaHotReload.Manifest m, String source) {
         return m.bindings().stream().map(b -> b.substring(0, b.indexOf('=')))
+            .filter(n -> !m.functions().containsKey(n))
             .filter(n -> n.matches("(\\w+_)?" + Pattern.quote(source) + "_[0-9a-f]{12}")).findFirst()
             .orElseThrow(() -> new AssertionError(source + " in " + m.bindings()));
     }
@@ -767,7 +830,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue("a new global's initial value runs: " + payload.source(), payload.source().contains("= 40"));
 
         // The map records it once it ran, so a later payload does not run it again.
-        assertTrue(payload.source(), Pattern.compile("if not " + LuaHotReload.RAN_TABLE + "\\[\"[0-9a-f]{12}\"\\] then\\n\\w+ = 40\\n")
+        assertTrue(payload.source(), Pattern.compile("if not " + LuaHotReload.RAN_TABLE + "\\[\"[0-9a-f]{12}\"\\] then\\ninit_global_\\w+\\(\\)\\n")
             .matcher(payload.source()).find());
     }
 

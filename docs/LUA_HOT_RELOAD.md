@@ -31,8 +31,15 @@ running one only where the program changed: an addition or removal renames nothi
 
 The manifest of a build lists its script in the parts a payload applies one by one: every function's definition,
 every top-level declaration (field stores, class tables, native fallbacks), and the statements of the bootstrap (type
-defaults, class-table slots, class data), of the global initialisers and of each package init (initial values). The
-payload compares the running script's manifest with the edited one:
+defaults, class-table slots, class data), of the global initialisers and of each package init (initial values).
+
+In a hot-reload build, source global initializers become separate functions before IM flattening. Each call in a
+package init denotes the complete initializer, including its locals, control flow, array stores and tuple components;
+the manifest records that function's definition as the call's revision. A payload guards the call as one unit. It
+never extracts a final assignment from the flattened code or confuses an assignment in an init block with a source
+global initializer. This adds an initialization-time call only in opt-in development builds.
+
+The payload compares the running script's manifest with the edited one:
 
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a
   value anywhere else keeps the body it was taken from, so a change to it is rejected.
@@ -66,6 +73,10 @@ writes a file and cannot tell how far a payload got, so the map decides: a state
 runs with the next one, and none runs twice. A global a payload added keeps its value when a later edit changes its
 initial value, as the map's own globals do, and the map says so. A declaration a payload installed (a class table, a
 field store) which a later edit changes cannot be kept: the map refuses that payload before it changes anything. A
+separate runtime record (`__wurst_hotreload_bindings`) preserves the semantic identities and types of declarations
+each payload actually installed. These are checked before mutation as well: equal Lua text does not make a field
+which held one class compatible with a field which now holds another. The record is updated as each declaration is
+installed, so a failure partway through a payload still protects the declarations it reached. A
 function stored as a value keeps the body it had
 then: the session records that definition, and a later change to it is rejected. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
 

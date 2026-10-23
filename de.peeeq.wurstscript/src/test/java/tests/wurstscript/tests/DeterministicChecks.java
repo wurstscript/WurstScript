@@ -29,6 +29,23 @@ import static org.testng.Assert.assertTrue;
  */
 public class DeterministicChecks extends WurstScriptTest {
 
+    /** Initializer functions and their manifest revisions use source identities, independent of unit order. */
+    @Test
+    public void hotReloadInitializerUnitsAreDeterministic() {
+        CU dependency = compilationUnit("Values.wurst", "package Values", "public int value = 3");
+        CU program = compilationUnit("Initializer.wurst", "package Initializer", "import Values",
+            "native observe(int value)", "tuple Pair(int a, int b)",
+            "Pair pair = Pair(value, value + 1)",
+            "int total = begin", "    var result = pair.a", "    if value > 0", "        result += pair.b",
+            "    return result", "end", "init", "    observe(total)");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload");
+        var first = compileLuaHotReloadManifest(false, args, dependency, program);
+        var reversed = compileLuaHotReloadManifest(false, args, program, dependency);
+        var repeated = compileLuaHotReloadManifest(false, args, dependency, program);
+        assertEquals(reversed, first);
+        assertEquals(repeated, first);
+    }
+
     @Test
     public void branchNullFactsIgnoreCompilationUnitOrder() throws IOException {
         CU program = compilationUnit("NullFacts.wurst",
