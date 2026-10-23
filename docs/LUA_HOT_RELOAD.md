@@ -44,8 +44,9 @@ payload compares the running script's manifest with the edited one:
 - The closures of one interface method in one function share an identity and are told apart by their order, so
   adding or removing one of them is rejected: the new closure would take an old one's name, and objects of the old
   one would run its body.
-- The init of a new package runs once, after the rest, with the initial values of its globals, and new packages start
-  in the order the map starts packages: after the packages they depend on. If it fails, the
+- All package initialization follows the order the map starts packages: after their dependencies. At each package,
+  a new package's whole init runs once; an existing package only initializes its added globals. This includes packages
+  an earlier payload added, so their later globals are ready before dependent packages initialize. If a new init fails, the
   install fails with that reason and the next payload runs it again. Other changed package
   init code, and a change to `main` or `config`, ran when the map started and does not run again: the payload carries
   the change, with a warning that applying it needs a restart.

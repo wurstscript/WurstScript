@@ -303,7 +303,7 @@ public final class LuaHotReload {
 
         List<String> defined = new ArrayList<>();
         List<String> changedInits = new ArrayList<>();
-        List<String> newInits = new ArrayList<>();
+        Set<String> newInits = new LinkedHashSet<>();
         List<String> keptValues = new ArrayList<>();
         List<String> changedEntries = new ArrayList<>();
         for (Function f : current.functions().values()) {
@@ -341,7 +341,7 @@ public final class LuaHotReload {
 
         List<Statement> declarations = new ArrayList<>();
         List<Statement> initialisations = new ArrayList<>();
-        List<Statement> newPackageValues = new ArrayList<>();
+        Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
         Set<String> knownNames = bindingMap(baseline.bindings()).keySet();
         for (String scope : List.of("top", "boot", "globals", "init")) {
             Map<String, Statement> oldByKey = new LinkedHashMap<>();
@@ -362,7 +362,7 @@ public final class LuaHotReload {
                     // The init of a new package runs as a whole, below, and records its initial values as run. One added
                     // to it after it ran runs on its own, after it.
                     if (s.kind().equals("global") && !knownNames.contains(s.key())) {
-                        newPackageValues.add(s);
+                        packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
                     }
                     continue;
                 }
@@ -374,7 +374,7 @@ public final class LuaHotReload {
                     } else if (knownNames.contains(s.key())) {
                         keptValues.add(s.key());
                     } else {
-                        initialisations.add(s);
+                        packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
                     }
                     continue;
                 }
@@ -402,15 +402,13 @@ public final class LuaHotReload {
             throw new Rejected(reasons);
         }
 
-        // New packages start in the order main starts packages: after the packages they depend on.
-        newInits.sort(Comparator.comparingInt(current.initOrder()::indexOf));
         List<Statement> once = new ArrayList<>(declarations);
         for (Statement s : initialisations) {
             if (!s.kind().equals("slot")) {
                 once.add(s);
             }
         }
-        once.addAll(newPackageValues);
+        packageValues.values().forEach(once::addAll);
 
         StringBuilder sb = new StringBuilder();
         sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", defined)).append("\n");
@@ -447,25 +445,30 @@ public final class LuaHotReload {
                 appendOnce(sb, s);
             }
         }
-        for (String init : newInits) {
-            // A new package: its init runs once, as at the start of a map, and reports its error as a map's init does.
-            // One which fails fails the install, so the map says so, and is not recorded: the next payload runs it again.
-            String marker = RAN_TABLE + "[\"init:" + init + "\"]";
-            sb.append("if not ").append(marker).append(" then\n");
-            sb.append("if not xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end) then\n");
-            sb.append("error(\"the init of a new package (").append(init).append(") failed; the next payload runs it again\", 0)\n");
-            sb.append("end\n");
-            sb.append(marker).append(" = true\n");
-            for (Statement s : current.statements()) {
-                if (s.owner().equals(init) && s.kind().equals("global")) {
-                    sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.text()))
-                        .append("\"\n");
+        // All package work shares main's dependency order. A new package may depend on a new global in an existing
+        // package, and an existing package's new global may depend on a new package (including an earlier payload's).
+        for (String init : current.initOrder()) {
+            if (newInits.contains(init)) {
+                // A failed init fails the install and is not recorded: the next payload runs it again.
+                String marker = RAN_TABLE + "[\"init:" + init + "\"]";
+                sb.append("if not ").append(marker).append(" then\n");
+                sb.append("if not xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end) then\n");
+                sb.append("error(\"the init of a new package (").append(init).append(") failed; the next payload runs it again\", 0)\n");
+                sb.append("end\n");
+                sb.append(marker).append(" = true\n");
+                for (Statement s : current.statements()) {
+                    if (s.owner().equals(init) && s.kind().equals("global")) {
+                        sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.text()))
+                            .append("\"\n");
+                    }
                 }
+                sb.append("end\n");
             }
-            sb.append("end\n");
-        }
-        for (Statement s : newPackageValues) {
-            appendOnce(sb, s);
+            // If the whole init just ran, its globals are marked already. Otherwise only the values it has not yet
+            // initialised run here, before any dependent package's work.
+            for (Statement s : packageValues.getOrDefault(init, List.of())) {
+                appendOnce(sb, s);
+            }
         }
         sb.append("end\n");
         Map<String, String> captured = new LinkedHashMap<>();

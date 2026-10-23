@@ -4,6 +4,7 @@ import de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
 import java.io.IOException;
 import java.util.List;
@@ -537,6 +538,52 @@ public class LuaHotReloadTests extends WurstScriptTest {
         List<String> payloads = List.of(LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1).source());
         String output = applyInLua(script, payloads, globalName(edited, "made"));
         assertEquals(output, "true 11 nil", output.split("\\R")[0]);
+    }
+
+    @DataProvider
+    public Object[][] packageInitializationCases() {
+        return new Object[][] {{false, false}, {false, true}, {true, false}, {true, true}};
+    }
+
+    /** Whole new packages and added globals share dependency order, including packages added by an earlier payload. */
+    @Test(dataProvider = "packageInitializationCases")
+    public void allPackageInitializationUsesDependencyOrder(boolean existingAlpha, boolean existingZulu) throws Exception {
+        String[] main = concat(MAIN_PACKAGE, new String[] {"endpackage"});
+        String[] alpha = {"package Alpha", "import Main", "init", "    made += 1", "endpackage"};
+        String[] zulu = {"package Zulu", "import Main", "init", "    made += 1", "endpackage"};
+        String[] base = concat(main, concat(existingAlpha ? alpha : new String[0], existingZulu ? zulu : new String[0]));
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_allPackageInitializationUsesDependencyOrder.lua";
+        LuaHotReload.Manifest baseline = manifest(base);
+        String[] edited = concat(main, concat(new String[] {
+            "package Alpha", "import Main", "import Zulu", "public int doubled = extra * 2",
+            "public function readDoubled() returns int", "    return doubled",
+            "init", "    made += readDoubled()", "endpackage",
+        }, new String[] {
+            "package Zulu", "import Main", "public int extra = 5",
+            "init", "    made += extra", "endpackage",
+        }));
+        LuaHotReload.Manifest first = manifest(edited);
+        String[] later = edited.clone();
+        for (int i = 0; i < later.length; i++) {
+            if (later[i].equals("public int doubled = extra * 2")) {
+                later[i] += "\npublic int tripled = extra * 3";
+            } else if (later[i].equals("    return doubled")) {
+                later[i] += " + tripled";
+            } else if (later[i].equals("public int extra = 5")) {
+                later[i] = "public int extra = 6";
+            }
+        }
+        LuaHotReload.Manifest second = manifest(later);
+        LuaHotReload.Payload p1 = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1);
+        LuaHotReload.Payload p2 = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2);
+        String output = applyInLua(script, List.of(p1.source(), p2.source(),
+            LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 3).source()),
+            globalName(second, "doubled"), globalName(second, "extra"), globalName(second, "tripled"));
+        String[] lines = output.split("\\R");
+        assertEquals(output, "true 10 5 nil nil", lines[0]);
+        assertEquals(output, "true 10 5 15 nil", lines[1]);
+        assertEquals("repeated payload keeps every value: " + output, lines[1], lines[2]);
     }
 
     /** {@code m} with function {@code source} stored as a value, its definition extended by {@code edit}. */
