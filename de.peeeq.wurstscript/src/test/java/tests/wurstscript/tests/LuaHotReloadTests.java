@@ -211,6 +211,107 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("removed") && rejected.getMessage().contains("stored"));
     }
 
+    @Test
+    public void removedMethodIsRejectedUnlessItsSlotIsRebound() throws Exception {
+        LuaHotReload.Function method = new LuaHotReload.Function("f", "Test:f()void", "function f() end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest baseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", method),
+            List.of(), List.of(), List.of());
+        LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", java.util.Map.of(), List.of(), List.of(), List.of());
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("C.slot"));
+        LuaHotReload.Function replacement = new LuaHotReload.Function("g", "Test:g()void", "function g() end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest rebound = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("g", replacement),
+            List.of(), List.of(), List.of());
+        LuaHotReload.payload(baseline, rebound, LuaHotReload.History.NONE, 2);
+    }
+
+    @Test
+    public void sessionRemembersSlotsOfAnEarlierPayload() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadSlots");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadSlotDelivery");
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(concat(MAIN_PACKAGE, new String[] {
+            "interface Value", "    function get() returns int", "class Holder implements Value",
+            "    override function get() returns int", "        return 3",
+            "function read(Value value) returns int", "    return value.get()",
+            "init", "    made += read(new Holder())",
+        }));
+        LuaHotReloadSession.start(build, baseline);
+        LuaHotReloadSession.send(build, delivery, added);
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, baseline));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("slot"));
+    }
+
+    @Test
+    public void removedGlobalInitializerWarnsOfKeptValue() throws Exception {
+        String[] initialized = mainWithExtra("bump()");
+        String[] removed = withoutExtraInitializer(initialized);
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(initialized), manifest(removed), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("extra") && w.contains("Restart")));
+    }
+
+    @Test
+    public void removedInitializerOfAnEarlierPayloadWarnsInTheMap() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_removedInitializerOfAnEarlierPayloadWarnsInTheMap.lua";
+        var build = java.nio.file.Files.createTempDirectory("hotReloadInitializers");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadInitializerDelivery");
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        String[] initialized = mainWithExtra("bump()");
+        LuaHotReload.Manifest added = manifest(initialized);
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, added).payload();
+        var second = LuaHotReloadSession.send(build, delivery, manifest(withoutExtraInitializer(initialized))).payload();
+        String output = applyInLua(script, List.of(first.source(), second.source()), true, globalName(added, "extra"));
+        assertTrue(output, output.contains("removed initializer") && output.contains("restart the map"));
+        assertEquals(output, 2, occurrences(output, "true 2 nil"));
+    }
+
+    @Test
+    public void removedPackageInitStatementWarnsOfARestart() throws Exception {
+        String[] baseline = mainWithExtra("bump()");
+        String[] edited = baseline.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].equals("    bump()")) {
+                edited[i] = "";
+            }
+        }
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(baseline), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
+    }
+
+    @Test
+    public void removedEarlierPackageInitWarnsInTheMap() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_removedEarlierPackageInitWarnsInTheMap.lua";
+        var build = java.nio.file.Files.createTempDirectory("hotReloadPackageRemoval");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadPackageRemovalDelivery");
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n"),
+            new CU("Added", "package Added\nimport Main\ninit\n    bump()\n"));
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, added).payload();
+        var second = LuaHotReloadSession.send(build, delivery, baseline).payload();
+        String output = applyInLua(script, List.of(first.source(), second.source()), true, globalName(baseline, "made"));
+        assertTrue(output, output.contains("removed package init") && output.contains("restart the map"));
+        assertEquals(output, 2, occurrences(output, "true 2 nil"));
+    }
+
+    private static String[] withoutExtraInitializer(String[] initialized) {
+        String[] removed = initialized.clone();
+        for (int i = 0; i < removed.length; i++) {
+            if (removed[i].startsWith("int extra =")) {
+                removed[i] = "int extra";
+            }
+        }
+        return removed;
+    }
+
     /**
      * A hot-reload build names each declaration from its identity, so declarations added in front of others, even ones
      * of the same names in another package, rename nothing that the running script has.

@@ -108,18 +108,31 @@ public final class LuaHotReload {
     /**
      * What earlier payloads sent to the running map: the functions they defined, and the functions they stored as
      * values, each with the hash of the definition it had then ({@link #definitionHash}).
+     * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
+     * names to their run-once keys, whose presence in the map confirms whether they ran.
      */
-    public record History(Set<String> reloaded, Map<String, String> captured) {
+    public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                          Map<String, String> initializers, Set<String> packageInits) {
+        public History(Set<String> reloaded, Map<String, String> captured) {
+            this(reloaded, captured, Map.of(), Map.of(), Set.of());
+        }
+
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers) {
+            this(reloaded, captured, slots, initializers, Set.of());
+        }
+
         public static final History NONE = new History(Set.of(), Map.of());
     }
 
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
      * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
-     * hashes.
+     * hashes. {@code slots} and {@code initializers} carry the installation metadata subsequent payloads need.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
-                          Map<String, String> captured) {
+                          Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
+                          Set<String> packageInits) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -328,12 +341,21 @@ public final class LuaHotReload {
 
         Set<String> removed = new TreeSet<>(baseline.functions().keySet());
         removed.addAll(history.captured().keySet());
+        removed.addAll(history.slots().keySet());
         removed.removeAll(current.functions().keySet());
+        Set<String> reboundSlots = new HashSet<>();
+        current.functions().values().forEach(f -> reboundSlots.addAll(f.slots()));
         for (String name : removed) {
             Function old = baseline.functions().get(name);
             List<String> stored = new ArrayList<>(old == null ? List.of() : old.captures());
             if (history.captured().containsKey(name)) {
                 stored.add("by an earlier payload");
+            }
+            Set<String> retainedSlots = new LinkedHashSet<>(old == null ? List.of() : old.slots());
+            retainedSlots.addAll(history.slots().getOrDefault(name, List.of()));
+            retainedSlots.removeAll(reboundSlots);
+            for (String slot : retainedSlots) {
+                stored.add("in class-table slot " + slot);
             }
             if (!stored.isEmpty()) {
                 reasons.add("function " + name + " was removed but is stored as a value ("
@@ -382,6 +404,20 @@ public final class LuaHotReload {
         List<Statement> declarations = new ArrayList<>();
         List<Statement> initialisations = new ArrayList<>();
         Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
+        Map<String, String> currentInitializers = initializers(current);
+        Map<String, String> baselineInitializers = initializers(baseline);
+        for (String initializer : baselineInitializers.keySet()) {
+            if (!currentInitializers.containsKey(initializer)) {
+                keptValues.add(initializer + " (removed initializer)");
+            }
+        }
+        Set<String> currentStatementKeys = new HashSet<>();
+        current.statements().forEach(s -> currentStatementKeys.add(runKey(s)));
+        for (Statement s : baseline.statements()) {
+            if (s.scope().equals("init") && !s.kind().equals("global") && !currentStatementKeys.contains(runKey(s))) {
+                changedInits.add("removed " + firstLine(s.text()));
+            }
+        }
         Set<String> knownNames = bindingMap(baseline.bindings()).keySet();
         for (String scope : List.of("top", "boot", "globals", "init")) {
             Map<String, Statement> oldByKey = new LinkedHashMap<>();
@@ -528,15 +564,48 @@ public final class LuaHotReload {
                 appendOnce(sb, s);
             }
         }
+        for (String initializer : new TreeSet<>(history.initializers().keySet())) {
+            if (!currentInitializers.containsKey(initializer) && !baselineInitializers.containsKey(initializer)) {
+                sb.append("if ").append(RAN_TABLE).append("[").append(luaString(history.initializers().get(initializer))).append("] then\n")
+                    .append("BJDebugMsg(").append(luaString("Wurst hot reload: removed initializer " + initializer
+                        + " keeps its value; restart the map to apply the removal")).append(")\nend\n");
+            }
+        }
+        for (String init : new TreeSet<>(history.packageInits())) {
+            if (!baseline.functions().containsKey(init) && !current.functions().containsKey(init)) {
+                sb.append("if ").append(RAN_TABLE).append("[").append(luaString("init:" + init)).append("] then\n")
+                    .append("BJDebugMsg(").append(luaString("Wurst hot reload: removed package init " + init
+                        + " already ran; restart the map to apply its removal")).append(")\nend\n");
+            }
+        }
         sb.append("end\n");
         Map<String, String> captured = new LinkedHashMap<>();
+        Map<String, List<String>> slots = new LinkedHashMap<>();
+        Set<String> packageInits = new LinkedHashSet<>();
         for (Function f : current.functions().values()) {
             if (!f.captures().isEmpty()) {
                 captured.put(f.name(), definitionHash(f));
             }
+            if (!f.slots().isEmpty()) {
+                slots.put(f.name(), f.slots());
+            }
+            if (f.kind() == Kind.PACKAGE_INIT) {
+                packageInits.add(f.name());
+            }
         }
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
-            Collections.unmodifiableMap(captured));
+            Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
+            Collections.unmodifiableSet(packageInits));
+    }
+
+    private static Map<String, String> initializers(Manifest manifest) {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global")) {
+                result.put(s.key(), runKey(s));
+            }
+        }
+        return result;
     }
 
     /** What tells a function's definitions apart, for {@link History#captured}. */

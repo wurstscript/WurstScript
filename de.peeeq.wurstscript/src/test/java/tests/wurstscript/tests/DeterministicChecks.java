@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -28,6 +29,22 @@ import static org.testng.Assert.assertTrue;
  * These tests are supposed to check, whether the compiler is determinisitic
  */
 public class DeterministicChecks extends WurstScriptTest {
+
+    @Test
+    public void hotReloadRemovalWarningsIgnoreHistoryMapOrder() throws Exception {
+        Map<String, String> forward = new java.util.LinkedHashMap<>();
+        forward.put("alpha", "markerA");
+        forward.put("zulu", "markerZ");
+        Map<String, String> reverse = new java.util.LinkedHashMap<>();
+        reverse.put("zulu", "markerZ");
+        reverse.put("alpha", "markerA");
+        LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", Map.of(), List.of(), List.of(), List.of());
+        var first = LuaHotReload.payload(empty, empty, new LuaHotReload.History(java.util.Set.of(), Map.of(), Map.of(), forward,
+            new java.util.LinkedHashSet<>(List.of("alphaInit", "zuluInit"))), 1);
+        var reordered = LuaHotReload.payload(empty, empty, new LuaHotReload.History(java.util.Set.of(), Map.of(), Map.of(), reverse,
+            new java.util.LinkedHashSet<>(List.of("zuluInit", "alphaInit"))), 1);
+        assertEquals(reordered.source(), first.source());
+    }
 
     /** Initializer functions and their manifest revisions use source identities, independent of unit order. */
     @Test

@@ -44,9 +44,13 @@ The payload compares the running script's manifest with the edited one:
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a
   value anywhere else keeps the body it was taken from, so a change to or removal of it is rejected. This includes
   callback adapters already registered by the baseline or an earlier payload.
+  A removed method is also rejected if an existing class-table slot can still bind it; rebinding that slot to a
+  current implementation is safe. The session preserves slot bindings from earlier payloads for this check.
 - A new top-level declaration runs (a new class table, a new field store); a changed one is rejected.
 - A new bootstrap or initialiser statement runs; a changed slot binding runs; the initial value of a new global runs.
 - A changed initial value of a global the map has is skipped with a warning: the map keeps the value it has.
+  Removing the initializer has the same warning. For a global added by an earlier payload, its run-once marker in
+  the map determines whether that removed initializer actually ran before the map warns.
 - Any other changed bootstrap statement (class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
 - The closures of one interface method in one function share an identity and are told apart by their order, so
