@@ -799,6 +799,39 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void closureOwnerDistinguishesSameNamedNestedParameterTypes() throws Exception {
+        var baseline = manifest(nestedParameterClosure(false));
+        var edited = manifest(nestedParameterClosure(true));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("old body") || rejected.getMessage().contains("now means"));
+    }
+
+    private static String[] nestedParameterClosure(boolean edited) {
+        String type = edited ? "B.N" : "A.N";
+        return new String[] {"package Test", "interface Op", "    function apply(int v) returns int",
+            "class A", "    static class N", "        int value\n    static function create() returns N\n        return new N()",
+            "class B", "    static class N", "        int value\n    static function create() returns N\n        return new N()",
+            "A.N a", "B.N b", "Op saved", "function source() returns " + type, edited ? "    return b" : "    return a",
+            "function make(" + type + " item) returns Op", "    Op action = (int v) -> item.value + v" + (edited ? " + 100" : ""),
+            "    return action", "function read() returns int", "    return saved.apply(1)", "init",
+            "    a = A.create()", "    b = B.create()", "    a.value = 3", "    b.value = 4",
+            "    saved = make(source())", "    read()"};
+    }
+
+    @Test
+    public void nestedClassFieldTypeChangesRequireARestart() throws Exception {
+        String[] base = nestedParameterClosure(false);
+        base[0] += "\nclass Holder\n    A.N held\nfunction useHolder(Holder h) returns int\n    return h.held.value";
+        base[base.length - 1] += "\n    let h = new Holder()\n    h.held = a\n    useHolder(h)\n    destroy h";
+        String[] edited = base.clone();
+        edited[0] = base[0].replace("A.N held", "B.N held");
+        edited[edited.length - 1] = base[base.length - 1].replace("h.held = a", "h.held = b");
+        expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1));
+    }
+
+    @Test
     public void unanchoredSiblingClosureAdditionStillRequiresARestart() throws Exception {
         String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",

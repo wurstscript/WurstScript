@@ -679,11 +679,38 @@ public final class LuaDispatchPreparation {
      */
     private static final char OWNERS = '';
 
-    /** A structural type key which also distinguishes equal class names declared by different packages. */
+    /** A structural type key including packages and enclosing source scopes, before nested classes are lowered. */
     public static String qualifiedTypeKey(ImType type) {
         StringBuilder result = new StringBuilder(typeKey(type)).append(OWNERS);
         appendOwners(type, result);
+        type.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImClassType t) {
+                super.visit(t);
+                appendSourceScopes(t.getClassDef().getTrace(), result);
+            }
+
+            @Override
+            public void visit(ImTypeVarRef t) {
+                super.visit(t);
+                Element owner = t.getTypeVariable().getParent() instanceof ImTypeVars vars ? vars.getParent() : null;
+                if (owner instanceof de.peeeq.wurstscript.jassIm.ElementWithTrace traced) {
+                    appendSourceScopes(traced.getTrace(), result);
+                }
+            }
+        });
         return result.toString();
+    }
+
+    private static void appendSourceScopes(de.peeeq.wurstscript.ast.Element trace, StringBuilder result) {
+        result.append('[');
+        for (de.peeeq.wurstscript.ast.Element scope = trace; scope != null; scope = scope.getParent()) {
+            if (scope instanceof de.peeeq.wurstscript.ast.NamedScope named) {
+                String segment = named.getName();
+                result.append(segment.length()).append(':').append(segment);
+            }
+        }
+        result.append(']');
     }
 
     /**

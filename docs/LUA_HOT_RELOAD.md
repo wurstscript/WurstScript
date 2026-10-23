@@ -65,7 +65,7 @@ The payload compares the running script's manifest with the edited one:
   hot-reload builds. Adding or reordering distinct named siblings keeps existing closures' identities and captured
   values; their methods can be replaced while old objects remain alive. Nested closures include outer variable
   bindings too. The source owner's scope and structural signature distinguish equal binding names in overloaded
-  functions, including the packages of parameter types. Removing or renaming a closure still requires a restart
+  functions, including packages and enclosing scopes of nested parameter types. Removing or renaming a closure still requires a restart
   when its old class-table bindings survive.
   Siblings still sharing an identity (anonymous closures or equal binding names within one callable) are told apart
   by their order. Adding or removing one, changing their bodies or swapping them requires a restart: the map cannot
