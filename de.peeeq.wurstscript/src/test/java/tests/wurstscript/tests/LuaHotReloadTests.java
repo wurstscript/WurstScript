@@ -779,6 +779,26 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void reorderedOverloadsKeepTheirNamedClosuresAndCaptures() {
+        test().testLua(true).executeProg().luaHotReload(overloadedClosureProgram(true)).lines(overloadedClosureProgram(false));
+    }
+
+    private static String[] overloadedClosureProgram(boolean edited) {
+        String first = "function make(int seed) returns Op\n    Op action = (int v) -> seed + v"
+            + (edited ? " + 100" : "") + "\n    return action";
+        String second = "function make(string text, int seed) returns Op\n    Op action = (int v) -> seed * 10 + v"
+            + (edited ? " + 200" : "") + "\n    return action";
+        return new String[] {"package Test", "native hotReload()", "native testSuccess()", "native testFail(string msg)",
+            "interface Op", "    function apply(int v) returns int", edited ? second : first, edited ? first : second,
+            "init", "    let a = make(3)", "    let b = make(\"old\", 4)",
+            "    if a.apply(1) != 4 or b.apply(1) != 41", "        testFail(\"original overload closures failed\")",
+            "    hotReload()", "    if a.apply(1) != 104 or b.apply(1) != 241",
+            "        testFail(\"overloaded closure identities swapped\")", "    let c = make(5)", "    let d = make(\"new\", 6)",
+            "    if c.apply(1) != 106 or d.apply(1) != 261", "        testFail(\"new overloaded closures failed\")",
+            "    destroy a", "    destroy b", "    destroy c", "    destroy d", "    testSuccess()"};
+    }
+
+    @Test
     public void unanchoredSiblingClosureAdditionStillRequiresARestart() throws Exception {
         String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
@@ -789,6 +809,38 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(manifest(base), manifest(edited), Set.of(), 1));
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+    }
+
+    @Test
+    public void ambiguousSameOwnerClosureBindingsCannotChangeOrSwap() throws Exception {
+        String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
+            "function make(bool first, int seed) returns Op", "    if first",
+            "        Op action = (int v) -> seed + v", "        return action", "    else",
+            "        Op action = (int v) -> seed * 10 + v", "        return action",
+            "init", "    let a = make(true, 3)", "    let b = make(false, 4)",
+            "    a.apply(1)", "    b.apply(1)", "    destroy a", "    destroy b"};
+        base[0] += "\npublic int result\npublic function readResult() returns int\n    return result";
+        base[14] = "    result = a.apply(1) + b.apply(1)";
+        base[16] += "\n    readResult()";
+        String[] edited = base.clone();
+        edited[5] = base[8];
+        edited[8] = base[5];
+        var before = manifest(base);
+        var after = manifest(edited);
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("ambiguous closure identity"));
+
+        var empty = manifest(MAIN_PACKAGE);
+        var first = LuaHotReload.payload(empty, before, LuaHotReload.History.NONE, 1);
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_ambiguousSameOwnerClosureBindingsCannotChangeOrSwap.lua";
+        assertEquals("true 45 nil", applyInLua(script, List.of(first.source()), globalName(before, "result")));
+        var history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured());
+        LuaHotReload.Rejected later = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(empty, after, history, 2));
+        assertTrue(later.getMessage(), later.getMessage().contains("keeps the old body"));
+        LuaHotReload.payload(before, before, LuaHotReload.History.NONE, 1);
     }
 
     private static final String[] MAIN_PACKAGE = {

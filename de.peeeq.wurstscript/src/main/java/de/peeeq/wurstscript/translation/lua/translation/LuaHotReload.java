@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
@@ -174,6 +175,21 @@ public final class LuaHotReload {
         Map<LuaFunction, List<String>> slots = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> captures = new IdentityHashMap<>();
         collectFunctionValues(model, slots, captures);
+        Map<String, List<LuaFunction>> closureIdentities = new LinkedHashMap<>();
+        for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
+            if (entry.getValue().getTrace() instanceof ExprClosure) {
+                closureIdentities.computeIfAbsent(functionId(entry.getValue()), ignored -> new ArrayList<>()).add(entry.getKey());
+            }
+        }
+        for (List<LuaFunction> siblings : closureIdentities.values()) {
+            if (siblings.size() > 1) {
+                // Numbering cannot tell which live object belongs to which source closure after a reorder. Freeze
+                // these definitions through the same baseline/history protection as other stored function values.
+                for (LuaFunction sibling : siblings) {
+                    captures.computeIfAbsent(sibling, ignored -> new ArrayList<>()).add("with an ambiguous closure identity");
+                }
+            }
+        }
         // Only an assignment to one of these gives a global its value; one to a local of a function body does not.
         Set<LuaVariable> globals = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImVar global : tr.prog.getGlobals()) {
@@ -365,7 +381,7 @@ public final class LuaHotReload {
         for (String id : identities) {
             int before = oldCounts.getOrDefault(id, 0);
             int after = newCounts.getOrDefault(id, 0);
-            if (before != after && Math.max(before, after) > 1) {
+            if (before > 0 && before != after && Math.max(before, after) > 1) {
                 reasons.add("declarations which share the identity " + id + " (closures of one interface method in one function)"
                     + " were added or removed; they are told apart by their order, so restart the map");
             }

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.hash.Hashing;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -13,6 +14,7 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -260,10 +262,35 @@ public class ClosureTranslator {
                 if (scope instanceof GlobalOrLocalVarDef variable) {
                     String binding = variable.getName();
                     name += "_bound" + binding.length() + "_" + binding;
+                } else if (scope instanceof TranslatedToImFunction callable && !(scope instanceof ExprClosure)) {
+                    // Resolve the actual source owner; an enclosing closure's generated implementation is not its
+                    // owner identity. Parameter types distinguish overloads, including same-named imported classes.
+                    name += "_owner" + hotReloadOwnerIdentity(callable);
                 }
             }
         }
         return name;
+    }
+
+    private String hotReloadOwnerIdentity(TranslatedToImFunction callable) {
+        StringBuilder identity = new StringBuilder(callable instanceof ConstructorDef ? "constructor"
+            : callable instanceof OnDestroyDef ? "destructor" : callable instanceof ExtensionFuncDef ? "extension" : "function");
+        for (Element scope = callable; scope != null; scope = scope.getParent()) {
+            if (scope instanceof NamedScope named) {
+                String segment = named.getName();
+                identity.append(segment.length()).append(':').append(segment);
+            }
+        }
+        ImFunction owner = tr.getFuncFor(callable);
+        identity.append('<').append(owner.getTypeVariables().size()).append('>')
+            .append(owner.hasFlag(FunctionFlagEnum.IS_VARARG) ? "vararg" : "fixed");
+        for (ImVar parameter : owner.getParameters()) {
+            String type = LuaDispatchPreparation.qualifiedTypeKey(parameter.getType());
+            identity.append(type.length()).append(':').append(type);
+        }
+        String result = LuaDispatchPreparation.qualifiedTypeKey(owner.getReturnType());
+        identity.append("returns:").append(result.length()).append(':').append(result);
+        return Hashing.sha256().hashString(identity, StandardCharsets.UTF_8).toString();
     }
 
     private String makeNameSuffix() {

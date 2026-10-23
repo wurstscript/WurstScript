@@ -679,6 +679,13 @@ public final class LuaDispatchPreparation {
      */
     private static final char OWNERS = '';
 
+    /** A structural type key which also distinguishes equal class names declared by different packages. */
+    public static String qualifiedTypeKey(ImType type) {
+        StringBuilder result = new StringBuilder(typeKey(type)).append(OWNERS);
+        appendOwners(type, result);
+        return result.toString();
+    }
+
     /**
      * The packages of the classes and of the owners of the type variables {@code type} names, in order. Two packages may
      * each declare a class of the same name, and {@link #typeKey} names a class by its name only: without these, the
