@@ -491,6 +491,42 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "        testFail(\"generic static values were reinitialized\")", "    destroy ints", "    destroy strings", "    testSuccess()"};
     }
 
+    @Test
+    public void newlyInitializedGenericStorageCannotMixOldAndNewSpecializations() throws Exception {
+        var uninitialized = manifest(genericStorageProgram(false, false));
+        var initialized = manifest(genericStorageProgram(true, true));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(uninitialized, initialized, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("spans old and new storage"));
+
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_newlyInitializedGenericStorageCannotMixOldAndNewSpecializations.lua";
+        var baseline = manifest(MAIN_PACKAGE);
+        String first = LuaHotReload.payload(baseline, uninitialized, LuaHotReload.History.NONE, 1).source();
+        String second = LuaHotReload.payload(baseline, initialized, LuaHotReload.History.NONE, 2).source();
+        String value = globalName(uninitialized, "Store_value_integer_");
+        String initializedCount = globalName(initialized, "initialized");
+        String newStorage = globalName(initialized, "Store_value_real_");
+        String output = applyInLua(script, List.of(first, second), value, initializedCount, newStorage);
+        assertTrue(output, output.startsWith("true 42 0 nil nil"));
+        assertTrue(output, output.contains("false 42 0 nil") && output.contains("spans old and new storage"));
+        String skipped = applyInLua(script, List.of(second), initializedCount);
+        assertEquals(skipped, "true 2 nil", skipped);
+    }
+
+    private static String[] genericStorageProgram(boolean initialized, boolean secondSpecialization) {
+        String[] declarations = java.util.Arrays.copyOf(genericStaticProgram(initialized), 14);
+        String[] init = {"init", "    let ints = new Store<int>()", "    ints.put(42)",
+            "    if ints.read() != 42", "        testFail(\"value changed\")", "    destroy ints"};
+        if (secondSpecialization) {
+            // A real specialization supplies a second physical store while sharing the same source initializer.
+            init = concat(init, new String[] {"    let reals = new Store<real>()", "    reals.put(3.5)",
+                "    if reals.read() != 3.5", "        testFail(\"value changed\")", "    destroy reals"});
+        }
+        return concat(concat(declarations, init), new String[] {
+            "    if initialized < 0", "        testFail(\"initializer count changed\")"});
+    }
+
     private static String[] withInitSequence(String statements) {
         String[] lines = mainWithExtra("bump()");
         for (int i = 0; i < lines.length; i++) {

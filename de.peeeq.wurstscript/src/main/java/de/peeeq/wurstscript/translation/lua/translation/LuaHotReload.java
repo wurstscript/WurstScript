@@ -469,6 +469,13 @@ public final class LuaHotReload {
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
+                if (scope.equals("init") && s.kind().equals("global")) {
+                    long existing = s.targets().stream().filter(knownNames::contains).count();
+                    if (existing > 0 && existing < s.targets().size()) {
+                        reasons.add("the initializer of " + initializerLabel(s)
+                            + " spans old and new storage; restart the map");
+                    }
+                }
                 if (scope.equals("init") && s.kind().equals("global") && old != null && !old.targets().equals(s.targets())) {
                     reasons.add("the storage initialized by " + initializerLabel(s) + " changed from " + old.targets()
                         + " to " + s.targets() + "; restart the map");
@@ -552,6 +559,19 @@ public final class LuaHotReload {
                 sb.append("if ").append(marker).append(" and ").append(marker).append(" ~= \"").append(identityHash(s.revision()))
                     .append("\" then error(").append(luaString("an earlier payload installed another version of the "
                         + describe(s.scope()) + " " + firstLine(s.key()) + ": restart the map")).append(", 0) end\n");
+            }
+        }
+        // An indivisible source unit cannot initialize only its newly added specialization while retaining the old
+        // ones. Check actual runtime bindings too: delivery history does not say which declarations were installed.
+        for (Statement s : current.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global") && s.targets().size() > 1) {
+                List<String> existing = s.targets().stream()
+                    .map(target -> knownNames.contains(target) ? "true" : BINDINGS_TABLE + "[" + luaString(target) + "]")
+                    .toList();
+                sb.append("if (").append(String.join(" or ", existing)).append(") and not (")
+                    .append(String.join(" and ", existing)).append(") then error(")
+                    .append(luaString("the initializer of " + initializerLabel(s)
+                        + " spans old and new storage; restart the map")).append(", 0) end\n");
             }
         }
         // Before recording this payload's declarations: a newly added initializer must not overwrite a global
@@ -747,7 +767,7 @@ public final class LuaHotReload {
     }
 
     private static boolean initializedBefore(Statement s, Set<String> knownNames) {
-        return knownNames.contains(s.key()) || s.targets().stream().anyMatch(knownNames::contains);
+        return knownNames.contains(s.key()) || !s.targets().isEmpty() && s.targets().stream().allMatch(knownNames::contains);
     }
 
     private static String initializerLabel(Statement s) {

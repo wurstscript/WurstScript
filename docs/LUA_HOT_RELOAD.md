@@ -43,7 +43,8 @@ Each source initializer also records the globals it writes after tuple lowering 
 Adding an initializer to an existing global preserves its live value, including globals an earlier payload added
 without an initializer. A runtime marker preserves that decision across later cumulative payloads and whole-package
 initialization. Changing the storage covered by an existing initializer requires a restart: replaying the complete
-unit would also overwrite its existing values.
+unit would also overwrite its existing values. A new initializer spanning both old and new storage is rejected
+for the same reason, using both baseline identities and declarations actually installed by earlier payloads.
 
 The payload compares the running script's manifest with the edited one:
 
