@@ -355,16 +355,16 @@ public final class LuaHotReload {
             }
         }
 
-        Set<String> removed = new TreeSet<>(baseline.functions().keySet());
-        removed.addAll(history.captured().keySet());
-        removed.addAll(history.slots().keySet());
-        removed.removeAll(current.functions().keySet());
+        Set<String> previousFunctions = new TreeSet<>(baseline.functions().keySet());
+        previousFunctions.addAll(history.captured().keySet());
+        previousFunctions.addAll(history.slots().keySet());
         Set<String> reboundSlots = new HashSet<>();
         current.functions().values().forEach(f -> reboundSlots.addAll(f.slots()));
-        for (String name : removed) {
+        for (String name : previousFunctions) {
             Function old = baseline.functions().get(name);
-            List<String> stored = new ArrayList<>(old == null ? List.of() : old.captures());
-            if (history.captured().containsKey(name)) {
+            boolean removed = !current.functions().containsKey(name);
+            List<String> stored = new ArrayList<>(!removed || old == null ? List.of() : old.captures());
+            if (removed && history.captured().containsKey(name)) {
                 stored.add("by an earlier payload");
             }
             Set<String> retainedSlots = new LinkedHashSet<>(old == null ? List.of() : old.slots());
@@ -374,7 +374,8 @@ public final class LuaHotReload {
                 stored.add("in class-table slot " + slot);
             }
             if (!stored.isEmpty()) {
-                reasons.add("function " + name + " was removed but is stored as a value ("
+                reasons.add("function " + name + (removed ? " was removed but is stored as a value ("
+                    : " lost bindings which may remain stored (")
                     + String.join(", ", new LinkedHashSet<>(stored)) + "), which keeps the old body");
             }
         }

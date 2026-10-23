@@ -228,6 +228,38 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.payload(baseline, rebound, LuaHotReload.History.NONE, 2);
     }
 
+    @DataProvider
+    public Object[][] survivingSlotCases() {
+        return new Object[][] {{false, false}, {true, false}, {false, true}, {true, true}};
+    }
+
+    /** A slot may outlive its relationship even while the function itself remains in the edited program. */
+    @Test(dataProvider = "survivingSlotCases")
+    public void survivingFunctionCannotAbandonOldSlots(boolean fromHistory, boolean rebound) throws Exception {
+        LuaHotReload.Function old = new LuaHotReload.Function("f", "Test:f()int", "function f() return 1 end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Function edited = new LuaHotReload.Function("f", "Test:f()int", "function f() return 2 end",
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
+        var before = new LuaHotReload.Manifest("abi", "v", fromHistory ? java.util.Map.of() : java.util.Map.of("f", old),
+            List.of(), List.of(), List.of());
+        var functions = new java.util.LinkedHashMap<String, LuaHotReload.Function>();
+        functions.put("f", edited);
+        if (rebound) {
+            functions.put("g", new LuaHotReload.Function("g", "Test:g()int", "function g() return 3 end",
+                List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM));
+        }
+        var current = new LuaHotReload.Manifest("abi", "v", functions, List.of(), List.of(), List.of());
+        var history = fromHistory ? new LuaHotReload.History(Set.of("f"), java.util.Map.of(),
+            java.util.Map.of("f", List.of("C.slot")), java.util.Map.of(), Set.of()) : LuaHotReload.History.NONE;
+        if (rebound) {
+            LuaHotReload.payload(before, current, history, 2);
+        } else {
+            LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+                () -> LuaHotReload.payload(before, current, history, 2));
+            assertTrue(rejected.getMessage(), rejected.getMessage().contains("C.slot"));
+        }
+    }
+
     @Test
     public void sessionRemembersSlotsOfAnEarlierPayload() throws Exception {
         var build = java.nio.file.Files.createTempDirectory("hotReloadSlots");
