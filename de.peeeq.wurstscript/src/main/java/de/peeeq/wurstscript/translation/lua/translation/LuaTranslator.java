@@ -268,7 +268,7 @@ public class LuaTranslator {
         @Override
         public LuaVariable initFor(ImVar field) {
             LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", LuaHotReload.variableId(field)),
-                LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+                hotReload ? hotReloadFieldStore(field) : LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
             localizableStorageTables.add(storage);
             return storage;
         }
@@ -601,14 +601,15 @@ public class LuaTranslator {
 
         if (hotReload) {
             startHotReloadPoll();
-            Set<ImFunction> runOnce = Collections.newSetFromMap(new IdentityHashMap<>());
-            runOnce.addAll(imTr.luaInitFunctions.keySet());
-            for (ImFunction f : new ImFunction[] {imTr.getMainFunc(), imTr.getConfFunc(), imTr.getGlobalInitFunc()}) {
+            // In the order main initialises them: a package after the packages it depends on.
+            List<ImFunction> packageInits = new ArrayList<>(imTr.luaInitFunctions.keySet());
+            Set<ImFunction> entries = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImFunction f : new ImFunction[] {imTr.getMainFunc(), imTr.getConfFunc()}) {
                 if (f != null) {
-                    runOnce.add(f);
+                    entries.add(f);
                 }
             }
-            hotReloadManifest = LuaHotReload.install(this, hotReloadFunctions, runOnce, CompileTimeInfo.version);
+            hotReloadManifest = LuaHotReload.install(this, hotReloadFunctions, packageInits, entries, CompileTimeInfo.version);
         }
         return luaModel;
     }
@@ -631,6 +632,31 @@ public class LuaTranslator {
         for (ImFunction f : prog.getFunctions()) {
             luaFunc.getFor(f);
         }
+    }
+
+    /** The function which initialises the runtime state before main and config, null when there is nothing to do. */
+    @Nullable LuaFunction bootstrapFunction() {
+        return bootstrapFunction;
+    }
+
+    /**
+     * A field store of a hot-reload build, which answers the field's default for an object it has no entry for: an
+     * object made before a payload added the field never ran the constructor which writes it.
+     */
+    private LuaExpr hotReloadFieldStore(ImVar field) {
+        LuaExpr fieldDefault = defaultValue(field.getType());
+        if (fieldDefault instanceof LuaExprNull) {
+            return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
+        }
+        StringBuilder value = new StringBuilder();
+        fieldDefault.print(value, 0);
+        if (fieldDefault instanceof LuaExprIntVal || fieldDefault instanceof LuaExprRealVal
+            || fieldDefault instanceof LuaExprBoolVal || fieldDefault instanceof LuaExprStringVal) {
+            return LuaAst.LuaLiteral("setmetatable({}, {__index = function() return " + value + " end})");
+        }
+        // An array or a tuple is changed in place: the object keeps the one it was given first.
+        return LuaAst.LuaLiteral("setmetatable({}, {__index = function(t, k) local v = " + value
+            + " t[k] = v return v end})");
     }
 
     /** What a {@code -luaHotReload} build emitted, null in any other build. */

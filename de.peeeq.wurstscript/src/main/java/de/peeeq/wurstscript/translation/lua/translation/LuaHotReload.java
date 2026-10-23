@@ -11,20 +11,24 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
- * Opt-in replacement of function bodies in a running Lua map ({@code -luaHotReload}, docs/LUA_HOT_RELOAD.md).
+ * Opt-in replacement of code in a running Lua map ({@code -luaHotReload}, docs/LUA_HOT_RELOAD.md).
  *
- * <p>The script of a hot-reload build is cut in two: the bodies of the functions translated from the program, and the
- * skeleton, which is everything else (globals, field stores, class tables, the bootstrap, generated helpers, and each
- * function's name and parameters). The running map keeps its skeleton and its state; a payload replaces bodies. So a
- * payload is only valid for a script whose skeleton is the skeleton it was compiled against: the ABI fingerprint is a
- * hash of the skeleton, of the source identity of each emitted name, and of the compiler version. The payload of an
- * edit is the definition of every function whose printed text differs, so a change which reaches other bodies (a
- * folded fact, a removed call) ships those bodies too, and an edit which changes anything outside the bodies is
- * rejected, never patched.
- *
- * <p>A function value stored in a class table by the bootstrap is rebound with the function. A callback adapter
- * calls its target by name and needs nothing. A function value stored anywhere else would keep the old body, so such
- * a function is not reloadable.
+ * <p>A hot-reload build names every declaration from its identity, so the script of an edited program differs from
+ * the running one only where the program changed. The manifest of a build lists that script in parts a payload can
+ * apply one by one: every function's definition, every top-level declaration (globals, field stores, class tables,
+ * native fallbacks), and the statements of the bootstrap and of the global initialisers (defaults, class-table slots,
+ * class data, initial values). The payload of an edit compares the running script's manifest with the edited one:
+ * <ul>
+ *   <li>a new or changed function is defined, and its class-table slots are bound again;</li>
+ *   <li>a new top-level declaration runs; a changed one is rejected;</li>
+ *   <li>a new initialisation statement runs, and so does a changed slot binding; a changed initial value of a global
+ *   which exists is skipped with a warning, since the map keeps its value; any other changed one is rejected;</li>
+ *   <li>the init of a new package runs once; a changed init of a package which ran warns that it needs a restart.</li>
+ * </ul>
+ * Payloads are cumulative from the start of the map. The map records each statement a payload ran
+ * ({@link #RAN_TABLE}), only once it ran, so a later payload runs what an earlier one did not reach and nothing twice.
+ * A function stored as a value anywhere but a class table keeps the body it was taken from, so a change to one is
+ * rejected.
  */
 public final class LuaHotReload {
 
@@ -34,6 +38,18 @@ public final class LuaHotReload {
     public static final String POLL_FUNCTION = "__wurst_hotreload_poll";
     /** Answers what became of the last payload the poll read, for a map's own diagnostics. */
     public static final String STATUS_FUNCTION = "__wurst_hotreload_status";
+    /**
+     * The map's record of the statements payloads ran, by {@link #runKey}, and of the new package inits which succeeded.
+     * The map keeps it, not the editor: a payload is delivered as a file, and only the map knows how far it ran.
+     */
+    public static final String RAN_TABLE = "__wurst_hotreload_ran";
+    /** Semantic declaration identities actually installed by payloads, including their source-level types. */
+    public static final String BINDINGS_TABLE = "__wurst_hotreload_bindings";
+    /** The order in which source initializer units first completed in this map, not the editor's delivery order. */
+    private static final String INITIALIZER_POSITIONS = "__wurst_hotreload_initPositions";
+    private static final String INITIALIZER_COUNT = "__wurst_hotreload_initCount";
+    /** Initializer units first introduced after their target globals already had live values. */
+    private static final String KEPT_INITIALIZERS = "__wurst_hotreload_keptInitializers";
     /**
      * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
      * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
@@ -55,29 +71,75 @@ public final class LuaHotReload {
      */
     public static final String PAYLOAD_MARKER = "wurst-hot-reload-payload:";
 
+    /** What a function is to a payload. */
+    public enum Kind {
+        /** Translated from the program: called by name or through its class-table slots. */
+        PROGRAM,
+        /** A package init: it ran when the map started and does not run again. */
+        PACKAGE_INIT,
+        /** main or config: they ran when the map started; what they call is reloaded by its own parts. */
+        ENTRY,
+        /** Generated by the backend: allocators, dispatch stubs, callback adapters, helpers. */
+        HELPER
+    }
+
     private LuaHotReload() {
     }
 
-    /**
-     * A function whose body a payload can replace. One which {@code runsOnce} (main, config, the global initialisers, a
-     * package init) has already run when a payload arrives, so a new body of it changes nothing until a restart.
-     */
+    /** A function of the script: its definition, the class-table slots which bind it, and where it is stored as a value. */
     public record Function(String name, String semanticId, String definition, List<String> slots, List<String> captures,
-                           boolean runsOnce) {
+                           Kind kind) {
     }
 
     /**
-     * What a hot-reload build emitted: the ABI fingerprint written into the script, the reloadable functions by Lua
-     * name, and the skeleton, kept to explain a rejection.
+     * A statement of the script outside the functions: {@code scope} is {@code top} (a top-level declaration),
+     * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key}
+     * identifies the assignment or complete source initializer;
+     * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
+     * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
+     * complete definition for an initializer call, otherwise the statement text. {@code targets} identifies all
+     * retained storage written by a source initializer, including tuple leaves and generic specializations.
      */
-    public record Manifest(String abi, Map<String, Function> functions, List<String> skeleton, List<String> bindings) {
+    public record Statement(String scope, String key, String text, String kind, String owner, String revision,
+                            List<String> targets) {
     }
 
     /**
-     * A payload which rebinds {@code functions}, in Lua source which {@code load} compiles. {@code warnings} name what it
-     * carries but cannot apply: changed code which ran once when the map started.
+     * What a hot-reload build emitted: its fingerprint, which the script holds, and its parts; {@code initOrder} names
+     * the package inits in the order main calls them.
      */
-    public record Payload(int version, List<String> functions, String source, List<String> warnings) {
+    public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                           List<String> bindings, List<String> initOrder) {
+    }
+
+    /**
+     * What earlier payloads sent to the running map: the functions they defined, and the functions they stored as
+     * values, each with the hash of the definition it had then ({@link #definitionHash}).
+     * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
+     * names to their run-once keys, whose presence in the map confirms whether they ran.
+     */
+    public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                          Map<String, String> initializers, Set<String> packageInits) {
+        public History(Set<String> reloaded, Map<String, String> captured) {
+            this(reloaded, captured, Map.of(), Map.of(), Set.of());
+        }
+
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers) {
+            this(reloaded, captured, slots, initializers, Set.of());
+        }
+
+        public static final History NONE = new History(Set.of(), Map.of());
+    }
+
+    /**
+     * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
+     * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
+     * hashes. {@code slots} and {@code initializers} carry the installation metadata subsequent payloads need.
+     */
+    public record Payload(int version, List<String> functions, String source, List<String> warnings,
+                          Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
+                          Set<String> packageInits) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -95,29 +157,100 @@ public final class LuaHotReload {
     }
 
     /**
-     * Fingerprints the translated script, appends the runtime which applies payloads, and returns the manifest.
-     * Called once, on the final model; {@code reloadable} maps each function translated from the program to its IM
-     * function, in translation order.
+     * Lists the translated script in the parts a payload applies, fingerprints it, appends the runtime which applies
+     * payloads, and returns the manifest. Called once, on the final model; {@code reloadable} maps each function
+     * translated from the program to its IM function.
      */
-    static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, Set<ImFunction> runOnce,
-                            String compilerVersion) {
+    static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, List<ImFunction> packageInits,
+                            Set<ImFunction> entries, String compilerVersion) {
+        Set<ImFunction> inits = Collections.newSetFromMap(new IdentityHashMap<>());
+        inits.addAll(packageInits);
+        Map<ImFunction, String> initNames = new IdentityHashMap<>();
         LuaCompilationUnit model = tr.luaModel;
+        LuaFunction bootstrap = tr.bootstrapFunction();
+        ImFunction globalInitIm = tr.imTr.getGlobalInitFunc();
+        LuaFunction globalInit = globalInitIm == null ? null : tr.luaFunc.getFor(globalInitIm);
+
         Map<LuaFunction, List<String>> slots = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> captures = new IdentityHashMap<>();
-        collectFunctionValues(model, reloadable.keySet(), slots, captures);
-
-        List<String> skeleton = new ArrayList<>();
-        for (LuaStatement statement : model) {
-            if (statement instanceof LuaFunction f && reloadable.containsKey(f)) {
-                skeleton.add(header(f));
-            } else {
-                StringBuilder sb = new StringBuilder();
-                statement.print(sb, 0);
-                skeleton.add(sb.toString());
+        collectFunctionValues(model, slots, captures);
+        // Only an assignment to one of these gives a global its value; one to a local of a function body does not.
+        Set<LuaVariable> globals = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImVar global : tr.prog.getGlobals()) {
+            globals.add(tr.luaVar.getFor(global));
+        }
+        Map<LuaFunction, ImVar> initializers = new IdentityHashMap<>();
+        Map<LuaFunction, List<String>> initializerTargets = new IdentityHashMap<>();
+        for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
+            ImVar global = tr.imTr.luaGlobalInitializers.get(entry.getValue());
+            if (global != null) {
+                initializers.put(entry.getKey(), global);
+                List<String> targets = new ArrayList<>();
+                for (ImVar component : tr.imTr.loweredGlobalStorage(global)) {
+                    targets.add(tr.luaVar.getFor(component).getName());
+                }
+                initializerTargets.put(entry.getKey(), List.copyOf(targets));
+            }
+        }
+        for (ImFunction init : packageInits) {
+            LuaFunction owner = tr.luaFunc.getFor(init);
+            for (LuaStatement statement : owner.getBody()) {
+                if (statement instanceof LuaExprFunctionCall call && initializers.containsKey(call.getFunc())) {
+                    String key = luaString(runKey("init", owner.getName(), call.getFunc().getName()));
+                    String position = INITIALIZER_POSITIONS + "[" + key + "]";
+                    // This guard also applies when a newly introduced package-init function calls the unit itself.
+                    call.getFunc().getBody().add(0, LuaAst.LuaLiteral("if " + KEPT_INITIALIZERS + "[" + key + "] then return end"));
+                    // Before the manifest is printed: every definition, including one a payload replaces, records
+                    // completion here. A failing initializer never reaches it; a skipped delivery records nothing.
+                    call.getFunc().getBody().add(LuaAst.LuaLiteral("if not " + position + " then\n"
+                        + INITIALIZER_COUNT + " = " + INITIALIZER_COUNT + " + 1\n"
+                        + position + " = " + INITIALIZER_COUNT + "\nend"));
+                }
             }
         }
 
+        List<Statement> statements = new ArrayList<>();
+        Map<String, Function> functions = new LinkedHashMap<>();
         List<String> bindings = new ArrayList<>();
+        for (LuaStatement statement : model) {
+            if (statement instanceof LuaFunction f) {
+                if (f == bootstrap || f == globalInit) {
+                    String scope = f == bootstrap ? "boot" : "globals";
+                    for (LuaStatement s : f.getBody()) {
+                        statements.add(statement(scope, "", s, globals, initializerTargets));
+                    }
+                    continue;
+                }
+                ImFunction im = reloadable.get(f);
+                Kind kind = im == null ? Kind.HELPER
+                    : inits.contains(im) ? Kind.PACKAGE_INIT
+                    : entries.contains(im) ? Kind.ENTRY
+                    : Kind.PROGRAM;
+                String id = im == null ? "generated:" + f.getName() : functionId(im);
+                ImVar initialized = initializers.get(f);
+                if (initialized != null) {
+                    id += ":initializes:" + semanticId(initialized, initialized.getName()) + ":" + typeKey(initialized.getType())
+                        + ":storage:" + initializerTargets.get(f);
+                }
+                if (im != null) {
+                    bindings.add(f.getName() + "=" + id);
+                }
+                if (kind == Kind.PACKAGE_INIT) {
+                    initNames.put(im, f.getName());
+                    // The initial values of a package's globals are given here: a new global's must run.
+                    for (LuaStatement s : f.getBody()) {
+                        statements.add(statement("init", f.getName(), s, globals, initializerTargets));
+                    }
+                }
+                StringBuilder definition = new StringBuilder();
+                f.print(definition, 0);
+                functions.put(f.getName(), new Function(f.getName(), id, definition.toString(),
+                    List.copyOf(slots.getOrDefault(f, List.of())), List.copyOf(captures.getOrDefault(f, List.of())), kind));
+            } else {
+                statements.add(statement("top", "", statement, globals, initializerTargets));
+            }
+        }
+
         for (ImVar global : tr.prog.getGlobals()) {
             bindings.add(tr.luaVar.getFor(global).getName() + "=" + semanticId(global, global.getName())
                 + ":" + typeKey(global.getType()));
@@ -132,121 +265,562 @@ public final class LuaHotReload {
             }
         }
 
-        Map<String, Function> functions = new LinkedHashMap<>();
-        for (Map.Entry<LuaFunction, ImFunction> e : reloadable.entrySet()) {
-            LuaFunction lf = e.getKey();
-            String id = semanticId(e.getValue(), signature(e.getValue()));
-            bindings.add(lf.getName() + "=" + id);
-            StringBuilder definition = new StringBuilder();
-            lf.print(definition, 0);
-            functions.put(lf.getName(), new Function(lf.getName(), id, definition.toString(),
-                List.copyOf(slots.getOrDefault(lf, List.of())), List.copyOf(captures.getOrDefault(lf, List.of())),
-                runOnce.contains(e.getValue())));
+        List<String> parts = new ArrayList<>();
+        for (Function f : functions.values()) {
+            parts.add(f.definition());
         }
-
-        String abi = fingerprint(compilerVersion, skeleton, bindings);
+        for (Statement s : statements) {
+            parts.add(s.scope() + " " + s.text() + " " + s.targets());
+        }
+        String abi = fingerprint(compilerVersion, parts, bindings);
         appendRuntime(tr, model, abi);
-        return new Manifest(abi, Collections.unmodifiableMap(functions), List.copyOf(skeleton), List.copyOf(bindings));
+        List<String> initOrder = new ArrayList<>();
+        for (ImFunction init : packageInits) {
+            String name = initNames.get(init);
+            if (name != null) {
+                initOrder.add(name);
+            }
+        }
+        return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
+            List.copyOf(bindings), List.copyOf(initOrder));
     }
 
-    /**
-     * The payload which takes a map running {@code baseline} to {@code current}: every function whose definition
-     * differs from the baseline, and every function an earlier payload replaced, so that payloads are cumulative and
-     * an edit which is undone is undone in the map too.
-     */
+    private static Statement statement(String scope, String owner, LuaStatement s, Set<LuaVariable> globals,
+                                       Map<LuaFunction, List<String>> initializerTargets) {
+        StringBuilder text = new StringBuilder();
+        String revision = null;
+        List<String> targets = List.of();
+        String key;
+        String kind = "other";
+        if (s instanceof LuaVariable v) {
+            // At the top level a variable is a global; printed as an assignment it runs in the payload as one.
+            key = v.getName();
+            text.append(v.getName()).append(" = ");
+            if (v.getInitialValue() instanceof LuaExpr init) {
+                init.print(text, 0);
+            } else {
+                text.append("nil");
+            }
+            kind = scope.equals("top") ? "global" : "other";
+            if (!scope.equals("top")) {
+                text.insert(0, "local ");
+            }
+        } else if (s instanceof LuaAssignment a) {
+            StringBuilder left = new StringBuilder();
+            a.getLeft().print(left, 0);
+            key = left.toString();
+            s.print(text, 0);
+            if (a.getLeft() instanceof LuaExprFieldAccess && a.getRight() instanceof LuaExprFuncRef) {
+                kind = "slot";
+            } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
+                kind = "global";
+            }
+        } else if (s instanceof LuaExprFunctionCall call && initializerTargets.containsKey(call.getFunc())) {
+            // This is the complete source initializer, not an arbitrary assignment in a package's init block.
+            key = call.getFunc().getName();
+            kind = "global";
+            s.print(text, 0);
+            StringBuilder definition = new StringBuilder();
+            call.getFunc().print(definition, 0);
+            revision = definition.toString();
+            targets = initializerTargets.get(call.getFunc());
+        } else {
+            s.print(text, 0);
+            key = text.toString();
+        }
+        return new Statement(scope, key, text.toString(), kind, owner, revision == null ? text.toString() : revision, targets);
+    }
+
+    /** The payload which takes a map running {@code baseline} to {@code current}, which earlier payloads did not reach. */
     public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore, int version)
         throws Rejected {
-        return payload(baseline, current, reloadedBefore, Set.of(), version);
+        return payload(baseline, current, new History(reloadedBefore, Map.of()), version);
     }
 
     /**
-     * {@link #payload(Manifest, Manifest, Set, int)} for a map which earlier payloads reached: {@code capturedBefore} names
-     * the functions one of them stored as a value. A stored value keeps the body it was taken from even when the edit
-     * no longer stores it, so such a function, like one the baseline stores, is not reloadable.
+     * The payload which takes a map running {@code baseline}, which earlier payloads took as far as {@code history}
+     * says, to {@code current}. Payloads are cumulative: every function which differs from the baseline, or which an
+     * earlier payload defined, is defined again, so an edit which is undone is undone in the map too.
      */
-    public static Payload payload(Manifest baseline, Manifest current, Set<String> reloadedBefore,
-                                  Set<String> capturedBefore, int version) throws Rejected {
+    public static Payload payload(Manifest baseline, Manifest current, History history, int version) throws Rejected {
         List<String> reasons = new ArrayList<>();
-        if (!baseline.abi().equals(current.abi())) {
-            describeAbiChange(baseline, current, reasons);
+        List<String> warnings = new ArrayList<>();
+        if (!Objects.equals(baseline.compilerVersion(), current.compilerVersion())) {
+            reasons.add("the edit was compiled by another compiler (" + current.compilerVersion() + ") than the running script ("
+                + baseline.compilerVersion() + ")");
+            // A manifest of another compiler need not have the parts read below.
+            throw new Rejected(reasons);
         }
-        List<String> changed = new ArrayList<>();
-        List<String> runOnce = new ArrayList<>();
+        Map<String, String> oldBindings = bindingMap(baseline.bindings());
+        for (Map.Entry<String, String> b : bindingMap(current.bindings()).entrySet()) {
+            String before = oldBindings.get(b.getKey());
+            if (before != null && !before.equals(b.getValue())) {
+                reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
+            }
+        }
+        Map<String, Integer> oldCounts = identityCounts(baseline.bindings());
+        Map<String, Integer> newCounts = identityCounts(current.bindings());
+        Set<String> identities = new TreeSet<>(oldCounts.keySet());
+        identities.addAll(newCounts.keySet());
+        for (String id : identities) {
+            int before = oldCounts.getOrDefault(id, 0);
+            int after = newCounts.getOrDefault(id, 0);
+            if (before != after && Math.max(before, after) > 1) {
+                reasons.add("declarations which share the identity " + id + " (closures of one interface method in one function)"
+                    + " were added or removed; they are told apart by their order, so restart the map");
+            }
+        }
+
+        Set<String> previousFunctions = new TreeSet<>(baseline.functions().keySet());
+        previousFunctions.addAll(history.captured().keySet());
+        previousFunctions.addAll(history.slots().keySet());
+        Set<String> reboundSlots = new HashSet<>();
+        current.functions().values().forEach(f -> reboundSlots.addAll(f.slots()));
+        for (String name : previousFunctions) {
+            Function old = baseline.functions().get(name);
+            boolean removed = !current.functions().containsKey(name);
+            List<String> stored = new ArrayList<>(!removed || old == null ? List.of() : old.captures());
+            if (removed && history.captured().containsKey(name)) {
+                stored.add("by an earlier payload");
+            }
+            Set<String> retainedSlots = new LinkedHashSet<>(old == null ? List.of() : old.slots());
+            retainedSlots.addAll(history.slots().getOrDefault(name, List.of()));
+            retainedSlots.removeAll(reboundSlots);
+            for (String slot : retainedSlots) {
+                stored.add("in class-table slot " + slot);
+            }
+            if (!stored.isEmpty()) {
+                reasons.add("function " + name + (removed ? " was removed but is stored as a value ("
+                    : " lost bindings which may remain stored (")
+                    + String.join(", ", new LinkedHashSet<>(stored)) + "), which keeps the old body");
+            }
+        }
+
+        List<String> defined = new ArrayList<>();
+        List<String> changedInits = new ArrayList<>();
+        Set<String> newInits = new LinkedHashSet<>();
+        List<String> keptValues = new ArrayList<>();
+        List<String> changedEntries = new ArrayList<>();
         for (Function f : current.functions().values()) {
             Function old = baseline.functions().get(f.name());
-            if (old == null) {
-                continue; // a new function changes the skeleton, reported above
-            }
-            if (old.definition().equals(f.definition()) && !reloadedBefore.contains(f.name())) {
+            boolean changed = old == null || !old.definition().equals(f.definition());
+            if (!changed && !history.reloaded().contains(f.name())) {
                 continue;
             }
             List<String> stored = new ArrayList<>(f.captures());
-            stored.addAll(old.captures());
-            if (capturedBefore.contains(f.name())) {
+            if (old != null) {
+                stored.addAll(old.captures());
+            }
+            // A function stored by an earlier payload keeps the body it had then, which may not be the baseline's.
+            String capturedAs = history.captured().get(f.name());
+            boolean changedSinceStored = capturedAs != null && !capturedAs.equals(definitionHash(f));
+            if (changedSinceStored) {
                 stored.add("by an earlier payload");
             }
-            if (!stored.isEmpty()) {
+            if ((old != null && changed || changedSinceStored) && !stored.isEmpty()) {
                 reasons.add("function " + f.name() + " is stored as a value (" + String.join(", ", new LinkedHashSet<>(stored))
                     + "), which keeps the old body");
             }
-            changed.add(f.name());
-            if (f.runsOnce() && !old.definition().equals(f.definition())) {
-                runOnce.add(f.name());
+            defined.add(f.name());
+            if (f.kind() == Kind.PACKAGE_INIT && old == null) {
+                newInits.add(f.name());
             }
+            if (f.kind() == Kind.ENTRY && changed) {
+                changedEntries.add(f.name());
+            }
+        }
+        if (!changedEntries.isEmpty()) {
+            warnings.add("Changed " + String.join(", ", changedEntries) + " ran when the map started and does not run again"
+                + " (the payload starts new packages itself): restart the map to apply other changes to it.");
+        }
+
+        List<Statement> declarations = new ArrayList<>();
+        List<Statement> initialisations = new ArrayList<>();
+        Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
+        Map<String, String> currentInitializers = initializers(current);
+        Map<String, String> baselineInitializers = initializers(baseline);
+        for (String initializer : baselineInitializers.keySet()) {
+            if (!currentInitializers.containsKey(initializer)) {
+                keptValues.add(initializer + " (removed initializer)");
+            }
+        }
+        Set<String> commonInitializers = new HashSet<>(baselineInitializers.keySet());
+        commonInitializers.retainAll(currentInitializers.keySet());
+        Map<String, List<String>> oldInitCode = initCode(baseline, commonInitializers);
+        Map<String, List<String>> newInitCode = initCode(current, commonInitializers);
+        for (Map.Entry<String, List<String>> init : oldInitCode.entrySet()) {
+            if (!init.getValue().equals(newInitCode.getOrDefault(init.getKey(), List.of()))) {
+                changedInits.add(init.getKey());
+            }
+        }
+        Set<String> knownNames = bindingMap(baseline.bindings()).keySet();
+        for (String scope : List.of("top", "boot", "globals", "init")) {
+            Map<String, Statement> oldByKey = new LinkedHashMap<>();
+            Set<String> oldTexts = new HashSet<>();
+            for (Statement s : baseline.statements()) {
+                if (s.scope().equals(scope)) {
+                    oldByKey.put(s.key(), s);
+                    oldTexts.add(s.revision());
+                }
+            }
+            for (Statement s : current.statements()) {
+                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())) {
+                    continue;
+                }
+                Statement old = oldByKey.get(s.key());
+                boolean slot = s.kind().equals("slot");
+                if (scope.equals("init") && s.kind().equals("global")) {
+                    long existing = s.targets().stream().filter(knownNames::contains).count();
+                    if (existing > 0 && existing < s.targets().size()) {
+                        reasons.add("the initializer of " + initializerLabel(s)
+                            + " spans old and new storage; restart the map");
+                    }
+                }
+                if (scope.equals("init") && s.kind().equals("global") && old != null && !old.targets().equals(s.targets())) {
+                    reasons.add("the storage initialized by " + initializerLabel(s) + " changed from " + old.targets()
+                        + " to " + s.targets() + "; restart the map");
+                    continue;
+                }
+                if (scope.equals("init") && newInits.contains(s.owner())) {
+                    // The init of a new package runs as a whole, below, and records its initial values as run. One added
+                    // to it after it ran runs on its own, after it.
+                    if (s.kind().equals("global")) {
+                        if (initializedBefore(s, knownNames)) {
+                            keptValues.add(initializerLabel(s));
+                        } else {
+                            packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                        }
+                    }
+                    continue;
+                }
+                if (scope.equals("init")) {
+                    // A package init ran when the map started. Of what changed in one, only the initial value of a global
+                    // the running script does not have can run now; the map keeps the values of the globals it has.
+                    // Ordinary code is compared as a sequence above and never rerun.
+                    if (s.kind().equals("global")) {
+                        if (initializedBefore(s, knownNames)) {
+                            keptValues.add(initializerLabel(s));
+                        } else {
+                            packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                        }
+                    }
+                    continue;
+                }
+                if (old != null && !slot) {
+                    if (s.kind().equals("global") && !scope.equals("top")) {
+                        keptValues.add(s.key());
+                    } else {
+                        reasons.add("the running script's " + describe(scope) + " " + s.key() + " changed: was "
+                            + firstLine(old.text()) + ", now " + firstLine(s.text()));
+                    }
+                    continue;
+                }
+                (scope.equals("top") ? declarations : initialisations).add(s);
+            }
+        }
+        if (!changedInits.isEmpty()) {
+            warnings.add("Changed package init code ran when the map started and does not run again ("
+                + String.join(", ", changedInits) + "): restart the map to apply it.");
+        }
+        if (!keptValues.isEmpty()) {
+            warnings.add("Changed initial values (" + String.join(", ", keptValues) + ") do not apply: the running map keeps"
+                + " the values it has. Restart the map to apply them.");
         }
         if (!reasons.isEmpty()) {
             throw new Rejected(reasons);
         }
+
+        List<Statement> once = new ArrayList<>(declarations);
+        for (Statement s : initialisations) {
+            if (!s.kind().equals("slot")) {
+                once.add(s);
+            }
+        }
+        packageValues.values().forEach(once::addAll);
+
         StringBuilder sb = new StringBuilder();
-        sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", changed)).append("\n");
-        sb.append("return \"").append(current.abi()).append("\", ").append(version).append(", function()\n");
-        for (String name : changed) {
-            Function f = current.functions().get(name);
-            sb.append(f.definition()).append("\n");
-            for (String slot : f.slots()) {
+        sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", defined)).append("\n");
+        // The running script's fingerprint: the payload applies to that script, whatever the edit made of the rest.
+        sb.append("return \"").append(baseline.abi()).append("\", ").append(version).append(", function()\n");
+        Map<String, String> newBindings = new LinkedHashMap<>(bindingMap(current.bindings()));
+        newBindings.keySet().removeAll(oldBindings.keySet());
+        for (Map.Entry<String, String> binding : newBindings.entrySet()) {
+            String installed = BINDINGS_TABLE + "[" + luaString(binding.getKey()) + "]";
+            sb.append("if ").append(installed).append(" and ").append(installed).append(" ~= ")
+                .append(luaString(binding.getValue())).append(" then error(")
+                .append(luaString("an earlier payload installed another declaration or type for " + binding.getKey()
+                    + ": restart the map")).append(", 0) end\n");
+        }
+        // Before anything changes: a declaration or class data an earlier payload installed which this edit changes
+        // cannot be kept (a field store of another type), and the running script has no way to replace it.
+        for (Statement s : once) {
+            if (!keepsValue(s) && !s.text().startsWith("local ")) {
+                String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
+                sb.append("if ").append(marker).append(" and ").append(marker).append(" ~= \"").append(identityHash(s.revision()))
+                    .append("\" then error(").append(luaString("an earlier payload installed another version of the "
+                        + describe(s.scope()) + " " + firstLine(s.key()) + ": restart the map")).append(", 0) end\n");
+            }
+        }
+        // An indivisible source unit cannot initialize only its newly added specialization while retaining the old
+        // ones. Check actual runtime bindings too: delivery history does not say which declarations were installed.
+        for (Statement s : current.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global") && s.targets().size() > 1) {
+                List<String> existing = s.targets().stream()
+                    .map(target -> knownNames.contains(target) ? "true" : BINDINGS_TABLE + "[" + luaString(target) + "]")
+                    .toList();
+                sb.append("if (").append(String.join(" or ", existing)).append(") and not (")
+                    .append(String.join(" and ", existing)).append(") then error(")
+                    .append(luaString("the initializer of " + initializerLabel(s)
+                        + " spans old and new storage; restart the map")).append(", 0) end\n");
+            }
+        }
+        // Before recording this payload's declarations: a newly added initializer must not overwrite a global
+        // which already existed, including one an earlier payload introduced without an initializer. An initializer
+        // already installed but not reached after a failure remains retryable instead.
+        for (Statement s : current.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global") && !s.targets().isEmpty() && !knownNames.contains(s.key())) {
+                List<String> existing = new ArrayList<>();
+                for (String target : s.targets()) {
+                    existing.add(knownNames.contains(target) ? "true" : BINDINGS_TABLE + "[" + luaString(target) + "]");
+                }
+                sb.append("if not ").append(BINDINGS_TABLE).append("[").append(luaString(s.key())).append("] and (")
+                    .append(String.join(" or ", existing)).append(") then\n")
+                    .append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] = true\nend\n");
+            }
+        }
+        // Functions first: a new declaration may hold one (a metatable's __index). Then the declarations, which the
+        // slots of a new class need, then the slots of what changed.
+        for (String name : defined) {
+            sb.append(current.functions().get(name).definition()).append("\n");
+            appendBinding(sb, name, newBindings);
+        }
+        for (Statement s : declarations) {
+            appendOnce(sb, s);
+            appendBinding(sb, s.key(), newBindings);
+        }
+        for (String name : defined) {
+            for (String slot : current.functions().get(name).slots()) {
                 sb.append(slot).append(" = ").append(name).append("\n");
             }
         }
+        for (Statement s : initialisations) {
+            if (s.kind().equals("slot")) {
+                // Binding a slot again changes nothing, and one changed back must be bound again.
+                sb.append(s.text()).append("\n");
+            } else {
+                appendOnce(sb, s);
+            }
+            appendBinding(sb, s.key(), newBindings);
+        }
+        // All package work shares main's dependency order. A new package may depend on a new global in an existing
+        // package, and an existing package's new global may depend on a new package (including an earlier payload's).
+        for (String init : current.initOrder()) {
+            if (newInits.contains(init)) {
+                // A failed init fails the install and is not recorded: the next payload runs it again.
+                String marker = RAN_TABLE + "[\"init:" + init + "\"]";
+                // The map knows whether this package ran; the editor only knows which payload files it delivered.
+                // Keep its definition's hash so a later edit can diagnose the setup code it cannot run again.
+                String initCode = definitionHash(current.functions().get(init));
+                sb.append("if not ").append(marker).append(" then\n");
+                sb.append("if not xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end) then\n");
+                sb.append("error(\"the init of a new package (").append(init).append(") failed; the next payload runs it again\", 0)\n");
+                sb.append("end\n");
+                sb.append(marker).append(" = \"").append(initCode).append("\"\n");
+                for (Statement s : current.statements()) {
+                    if (s.owner().equals(init) && s.kind().equals("global")) {
+                        sb.append("if not ").append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] then\n");
+                        sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.revision()))
+                            .append("\"\nend\n");
+                    }
+                }
+                sb.append("elseif ").append(marker).append(" ~= \"").append(initCode).append("\" then\n")
+                    .append("BJDebugMsg(").append(luaString("Wurst hot reload: " + init
+                        + " already ran; restart the map to apply changed package init code"
+                        + " beyond the added globals initialized separately")).append(")\nend\n");
+            }
+            // If the whole init just ran, its globals are marked already. Otherwise only the values it has not yet
+            // initialised run here, before any dependent package's work.
+            for (Statement s : packageValues.getOrDefault(init, List.of())) {
+                appendOnce(sb, s);
+            }
+        }
+        for (String initializer : new TreeSet<>(history.initializers().keySet())) {
+            if (!currentInitializers.containsKey(initializer) && !baselineInitializers.containsKey(initializer)) {
+                sb.append("if ").append(RAN_TABLE).append("[").append(luaString(history.initializers().get(initializer))).append("] then\n")
+                    .append("BJDebugMsg(").append(luaString("Wurst hot reload: removed initializer " + initializer
+                        + " keeps its value; restart the map to apply the removal")).append(")\nend\n");
+            }
+        }
+        for (String init : new TreeSet<>(history.packageInits())) {
+            if (!baseline.functions().containsKey(init) && !current.functions().containsKey(init)) {
+                sb.append("if ").append(RAN_TABLE).append("[").append(luaString("init:" + init)).append("] then\n")
+                    .append("BJDebugMsg(").append(luaString("Wurst hot reload: removed package init " + init
+                        + " already ran; restart the map to apply its removal")).append(")\nend\n");
+            }
+        }
+        Map<String, List<String>> initializerKeysByOwner = new LinkedHashMap<>();
+        for (Statement s : current.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global")) {
+                initializerKeysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(luaString(runKey(s)));
+            }
+        }
+        List<String> initializerOrder = new ArrayList<>();
+        for (String init : current.initOrder()) {
+            initializerOrder.addAll(initializerKeysByOwner.getOrDefault(init, List.of()));
+        }
+        if (initializerOrder.size() > 1) {
+            sb.append("local previous = 0\nfor _, key in ipairs({").append(String.join(", ", initializerOrder)).append("}) do\n")
+                .append("local position = ").append(INITIALIZER_POSITIONS).append("[key]\nif position then\n")
+                .append("if position < previous then\nBJDebugMsg(")
+                .append(luaString("Wurst hot reload: global initializer order changed; the map keeps the order its initializers ran in; restart the map to apply the new order"))
+                .append(")\nbreak\nend\nprevious = position\nend\nend\n");
+        }
         sb.append("end\n");
-        List<String> warnings = runOnce.isEmpty() ? List.of() : List.of("Changed code which ran once when the map started ("
-            + String.join(", ", runOnce) + ") does not run again: restart the map to apply it.");
-        return new Payload(version, List.copyOf(changed), sb.toString(), warnings);
+        Map<String, String> captured = new LinkedHashMap<>();
+        Map<String, List<String>> slots = new LinkedHashMap<>();
+        Set<String> packageInits = new LinkedHashSet<>();
+        for (Function f : current.functions().values()) {
+            if (!f.captures().isEmpty()) {
+                captured.put(f.name(), definitionHash(f));
+            }
+            if (!f.slots().isEmpty()) {
+                slots.put(f.name(), f.slots());
+            }
+            if (f.kind() == Kind.PACKAGE_INIT) {
+                packageInits.add(f.name());
+            }
+        }
+        return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
+            Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
+            Collections.unmodifiableSet(packageInits));
     }
 
-    private static void describeAbiChange(Manifest baseline, Manifest current, List<String> reasons) {
-        Set<String> added = new TreeSet<>(current.functions().keySet());
-        added.removeAll(baseline.functions().keySet());
-        Set<String> removed = new TreeSet<>(baseline.functions().keySet());
-        removed.removeAll(current.functions().keySet());
-        if (!added.isEmpty()) {
-            reasons.add("functions the running script does not have: " + String.join(", ", added));
-        }
-        if (!removed.isEmpty()) {
-            reasons.add("functions the edit removes: " + String.join(", ", removed));
-        }
-        // An added or removed function shifts every binding after it, which says nothing more.
-        List<String> oldBindings = added.isEmpty() && removed.isEmpty() ? baseline.bindings() : List.of();
-        List<String> newBindings = current.bindings();
-        for (int i = 0; i < Math.min(oldBindings.size(), newBindings.size()); i++) {
-            if (!oldBindings.get(i).equals(newBindings.get(i))) {
-                reasons.add("a name now means something else: " + oldBindings.get(i) + " became " + newBindings.get(i));
-                break;
+    private static Map<String, String> initializers(Manifest manifest) {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global")) {
+                result.put(s.key(), runKey(s));
             }
         }
-        List<String> oldSkeleton = baseline.skeleton();
-        List<String> newSkeleton = current.skeleton();
-        for (int i = 0; i < Math.max(oldSkeleton.size(), newSkeleton.size()); i++) {
-            String before = i < oldSkeleton.size() ? oldSkeleton.get(i) : "(nothing)";
-            String after = i < newSkeleton.size() ? newSkeleton.get(i) : "(nothing)";
-            if (!before.equals(after)) {
-                reasons.add("the script outside the function bodies changed (globals, class tables or initialisation):\n"
-                    + "    was: " + firstLine(before) + "\n    now: " + firstLine(after));
-                break;
+        return result;
+    }
+
+    /** Init code is a sequence. Existing initializer units retain their positions without comparing their bodies,
+     * whose changed values have their own warning; added and removed units are handled separately. */
+    private static Map<String, List<String>> initCode(Manifest manifest, Set<String> commonInitializers) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (Function f : manifest.functions().values()) {
+            if (f.kind() == Kind.PACKAGE_INIT) {
+                result.put(f.name(), new ArrayList<>());
             }
         }
-        if (reasons.isEmpty()) {
-            reasons.add("the payload was compiled by a different compiler than the running script");
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("init") && (!s.kind().equals("global") || commonInitializers.contains(s.key()))) {
+                result.computeIfAbsent(s.owner(), k -> new ArrayList<>())
+                    .add(s.kind().equals("global") ? "initializer:" + s.key() : "code:" + s.revision());
+            }
         }
+        return result;
+    }
+
+    /** What tells a function's definitions apart, for {@link History#captured}. */
+    public static String definitionHash(Function f) {
+        return identityHash(f.definition());
+    }
+
+    private static void appendBinding(StringBuilder sb, String name, Map<String, String> bindings) {
+        String identity = bindings.get(name);
+        if (identity != null) {
+            sb.append(BINDINGS_TABLE).append("[").append(luaString(name)).append("] = ")
+                .append(luaString(identity)).append("\n");
+        }
+    }
+
+    /**
+     * A statement which must run once in the map: it runs unless the map recorded it, and is recorded after it ran, so
+     * one a failed payload did not reach runs with the next. The record is kept under what the statement assigns, with
+     * the hash of its text: a global whose initial value a later edit changes keeps its value, and the map says so. A
+     * local is a temporary of the statements after it and runs each time.
+     */
+    private static void appendOnce(StringBuilder sb, Statement s) {
+        if (s.text().startsWith("local ")) {
+            sb.append(s.text()).append("\n");
+            return;
+        }
+        String marker = RAN_TABLE + "[\"" + runKey(s) + "\"]";
+        String text = "\"" + identityHash(s.revision()) + "\"";
+        if (s.scope().equals("init") && s.kind().equals("global")) {
+            sb.append("if ").append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] then\n")
+                .append("BJDebugMsg(").append(luaString("Wurst hot reload: " + initializerLabel(s)
+                    + " keeps its value; restart the map to apply its new initial value")).append(")\nelseif not ");
+        } else {
+            sb.append("if not ");
+        }
+        sb.append(marker).append(" then\n").append(s.text()).append("\n")
+            .append(marker).append(" = ").append(text).append("\n");
+        if (keepsValue(s)) {
+            sb.append("elseif ").append(marker).append(" ~= ").append(text).append(" then\n")
+                .append("BJDebugMsg(\"Wurst hot reload: ").append(s.key())
+                .append(" keeps its value; restart the map to apply its new initial value\")\n");
+        }
+        sb.append("end\n");
+    }
+
+    private static boolean initializedBefore(Statement s, Set<String> knownNames) {
+        return knownNames.contains(s.key()) || !s.targets().isEmpty() && s.targets().stream().allMatch(knownNames::contains);
+    }
+
+    private static String initializerLabel(Statement s) {
+        return s.targets().isEmpty() ? s.key() : String.join(", ", s.targets());
+    }
+
+    /**
+     * Whether a later edit of {@code s} is skipped with a message rather than refused: the initial value of a global,
+     * which the map keeps as it keeps its own globals'. A top-level declaration (a class table, a field store) cannot be
+     * kept: code compiled for the new one would use the old.
+     */
+    private static boolean keepsValue(Statement s) {
+        return s.kind().equals("global") && !s.scope().equals("top");
+    }
+
+    /** {@code s} as a Lua string literal. */
+    private static String luaString(String s) {
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\"";
+    }
+
+    /** The key under which the map records that a statement ran: where it is and what it assigns, not its text. */
+    static String runKey(Statement s) {
+        return runKey(s.scope(), s.owner(), s.key());
+    }
+
+    private static String runKey(String scope, String owner, String key) {
+        return identityHash(scope + "\n" + owner + "\n" + key);
+    }
+
+    private static String describe(String scope) {
+        return switch (scope) {
+            case "top" -> "declaration";
+            case "boot" -> "class or runtime data";
+            default -> "initialisation";
+        };
+    }
+
+    /** How many names each identity has: more than one for the closures of one interface method in one function. */
+    private static Map<String, Integer> identityCounts(List<String> bindings) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String id : bindingMap(bindings).values()) {
+            counts.merge(id, 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    private static Map<String, String> bindingMap(List<String> bindings) {
+        Map<String, String> map = new LinkedHashMap<>();
+        for (String b : bindings) {
+            int eq = b.indexOf('=');
+            map.put(b.substring(0, eq), b.substring(eq + 1));
+        }
+        return map;
     }
 
     private static String firstLine(String s) {
@@ -255,20 +829,16 @@ public final class LuaHotReload {
     }
 
     /**
-     * Finds where a reloadable function is used as a value rather than called: a class-table binding the payload
-     * repeats ({@code slots}), or a store it cannot reach ({@code captures}). A callback adapter passes its target to
-     * xpcall by name each time it runs, so it reaches the new body without either.
+     * Finds where a function is used as a value rather than called: a class-table binding the payload repeats
+     * ({@code slots}), or a store it cannot reach ({@code captures}). A callback adapter passes its target to xpcall by
+     * name each time it runs, so it reaches the new body without either.
      */
-    private static void collectFunctionValues(LuaCompilationUnit model, Set<LuaFunction> reloadable,
-                                              Map<LuaFunction, List<String>> slots,
+    private static void collectFunctionValues(LuaCompilationUnit model, Map<LuaFunction, List<String>> slots,
                                               Map<LuaFunction, List<String>> captures) {
         for (LuaStatement statement : model) {
             String where = statement instanceof LuaFunction f ? f.getName() : "the main chunk";
             visitFuncRefs(statement, ref -> {
                 LuaFunction target = ref.getFunc();
-                if (!reloadable.contains(target)) {
-                    return;
-                }
                 de.peeeq.wurstscript.luaAst.Element parent = ref.getParent();
                 if (parent instanceof LuaAssignment a && a.getRight() == ref
                     && a.getLeft() instanceof LuaExprFieldAccess fa && fa.getReceiver() instanceof LuaExprVarAccess table) {
@@ -276,6 +846,8 @@ public final class LuaHotReload {
                 } else if (parent instanceof LuaExprlist args && args.indexOf(ref) == 0
                     && args.getParent() instanceof LuaExprFunctionCallByName call && call.getFuncName().equals("xpcall")) {
                     // resolved by name on every call
+                } else if (parent instanceof LuaIf condition && condition.getCond() == ref) {
+                    // a native fallback asks whether the runtime defines the native
                 } else {
                     captures.computeIfAbsent(target, t -> new ArrayList<>()).add("in " + where);
                 }
@@ -290,14 +862,6 @@ public final class LuaHotReload {
         for (int i = 0; i < e.size(); i++) {
             visitFuncRefs(e.get(i), action);
         }
-    }
-
-    private static String header(LuaFunction f) {
-        StringJoiner params = new StringJoiner(", ", "function " + f.getName() + "(", ")");
-        for (LuaVariable p : f.getParams()) {
-            params.add(p.getName());
-        }
-        return params.toString();
     }
 
     /**
@@ -383,11 +947,11 @@ public final class LuaHotReload {
         return t.toString();
     }
 
-    private static String fingerprint(String compilerVersion, List<String> skeleton, List<String> bindings) {
+    private static String fingerprint(String compilerVersion, List<String> parts, List<String> bindings) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(compilerVersion.getBytes(StandardCharsets.UTF_8));
-            for (List<String> part : List.of(skeleton, bindings)) {
+            for (List<String> part : List.of(parts, bindings)) {
                 for (String s : part) {
                     digest.update((byte) 0);
                     digest.update(s.getBytes(StandardCharsets.UTF_8));
@@ -414,6 +978,11 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(ABI_GLOBAL + " = \"" + abi + "\""));
         model.add(LuaAst.LuaLiteral(VERSION_GLOBAL + " = 0"));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_nextFile = 1"));
+        model.add(LuaAst.LuaLiteral(RAN_TABLE + " = {}"));
+        model.add(LuaAst.LuaLiteral(BINDINGS_TABLE + " = {}"));
+        model.add(LuaAst.LuaLiteral(INITIALIZER_POSITIONS + " = {}"));
+        model.add(LuaAst.LuaLiteral(INITIALIZER_COUNT + " = 0"));
+        model.add(LuaAst.LuaLiteral(KEPT_INITIALIZERS + " = {}"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",

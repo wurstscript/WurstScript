@@ -4,6 +4,7 @@ import de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
 import java.io.IOException;
 import java.util.List;
@@ -88,7 +89,6 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void payloadCarriesTheChangedFunctionsAndTheirSlots() throws Exception {
         LuaHotReload.Manifest baseline = manifest(program("x + 1", "side * side", INIT));
         LuaHotReload.Manifest edited = manifest(program("x + 10", "side * side", INIT));
-        assertEquals(baseline.abi(), edited.abi());
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline, edited, Set.of(), 1);
         assertEquals(List.of("score"), sourceNames(payload.functions()));
         assertTrue(payload.source(), payload.source().contains("(x + 10)"));
@@ -168,18 +168,401 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void functionStoredAsAValueByTheRunningMapIsNotReloadable() {
         LuaHotReload.Function stored = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
-            List.of(), List.of("in g"), false);
+            List.of(), List.of("in g"), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Function edited = new LuaHotReload.Function("f", "Test:f()void", "function f() return 2 end",
-            List.of(), List.of(), false);
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Function plain = new LuaHotReload.Function("f", "Test:f()void", "function f() return 1 end",
-            List.of(), List.of(), false);
-        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", java.util.Map.of("f", edited), List.of(), List.of());
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest current = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", edited), List.of(), List.of(),
+            List.of());
         LuaHotReload.Rejected byBaseline = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(
-            new LuaHotReload.Manifest("abi", java.util.Map.of("f", stored), List.of(), List.of()), current, Set.of(), 1));
+            new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored), List.of(), List.of(), List.of()), current, Set.of(), 1));
         assertTrue(byBaseline.getMessage(), byBaseline.getMessage().contains("in g"));
-        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", java.util.Map.of("f", plain), List.of(), List.of());
+        LuaHotReload.Manifest plainBaseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", plain), List.of(), List.of(),
+            List.of());
         expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(plainBaseline, current, Set.of(), Set.of("f"), 2));
+            () -> LuaHotReload.payload(plainBaseline, current,
+                new LuaHotReload.History(Set.of(), java.util.Map.of("f", LuaHotReload.definitionHash(plain))), 2));
+    }
+
+    /** Removing a callback cannot leave an already-registered adapter silently running its old body. */
+    @Test
+    public void removedStoredFunctionIsRejectedFromBaselineAndHistory() {
+        LuaHotReload.Function stored = new LuaHotReload.Function("f", "Test:f()void", "function f() end",
+            List.of(), List.of("in register"), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", java.util.Map.of(), List.of(), List.of(), List.of());
+        LuaHotReload.Manifest baseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored),
+            List.of(), List.of(), List.of());
+        LuaHotReload.Rejected original = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1));
+        assertTrue(original.getMessage(), original.getMessage().contains("removed") && original.getMessage().contains("register"));
+        LuaHotReload.Rejected added = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(empty, empty,
+            new LuaHotReload.History(Set.of("f"), java.util.Map.of("f", LuaHotReload.definitionHash(stored))), 2));
+        assertTrue(added.getMessage(), added.getMessage().contains("earlier payload"));
+    }
+
+    @Test
+    public void removedCallbackAdapterIsRejected() {
+        String[] callback = concat(MAIN_PACKAGE, new String[] {"native register(code callback)",
+            "function callback()", "    bump()", "function setup()", "    register(function callback)",
+            "init", "    setup()"});
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(manifest(callback), manifest(MAIN_PACKAGE), LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("removed") && rejected.getMessage().contains("stored"));
+    }
+
+    @Test
+    public void removedMethodIsRejectedUnlessItsSlotIsRebound() throws Exception {
+        LuaHotReload.Function method = new LuaHotReload.Function("f", "Test:f()void", "function f() end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest baseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", method),
+            List.of(), List.of(), List.of());
+        LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", java.util.Map.of(), List.of(), List.of(), List.of());
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("C.slot"));
+        LuaHotReload.Function replacement = new LuaHotReload.Function("g", "Test:g()void", "function g() end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Manifest rebound = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("g", replacement),
+            List.of(), List.of(), List.of());
+        LuaHotReload.payload(baseline, rebound, LuaHotReload.History.NONE, 2);
+    }
+
+    @DataProvider
+    public Object[][] survivingSlotCases() {
+        return new Object[][] {{false, false}, {true, false}, {false, true}, {true, true}};
+    }
+
+    /** A slot may outlive its relationship even while the function itself remains in the edited program. */
+    @Test(dataProvider = "survivingSlotCases")
+    public void survivingFunctionCannotAbandonOldSlots(boolean fromHistory, boolean rebound) throws Exception {
+        LuaHotReload.Function old = new LuaHotReload.Function("f", "Test:f()int", "function f() return 1 end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Function edited = new LuaHotReload.Function("f", "Test:f()int", "function f() return 2 end",
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
+        var before = new LuaHotReload.Manifest("abi", "v", fromHistory ? java.util.Map.of() : java.util.Map.of("f", old),
+            List.of(), List.of(), List.of());
+        var functions = new java.util.LinkedHashMap<String, LuaHotReload.Function>();
+        functions.put("f", edited);
+        if (rebound) {
+            functions.put("g", new LuaHotReload.Function("g", "Test:g()int", "function g() return 3 end",
+                List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM));
+        }
+        var current = new LuaHotReload.Manifest("abi", "v", functions, List.of(), List.of(), List.of());
+        var history = fromHistory ? new LuaHotReload.History(Set.of("f"), java.util.Map.of(),
+            java.util.Map.of("f", List.of("C.slot")), java.util.Map.of(), Set.of()) : LuaHotReload.History.NONE;
+        if (rebound) {
+            LuaHotReload.payload(before, current, history, 2);
+        } else {
+            LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+                () -> LuaHotReload.payload(before, current, history, 2));
+            assertTrue(rejected.getMessage(), rejected.getMessage().contains("C.slot"));
+        }
+    }
+
+    @Test
+    public void sessionRemembersSlotsOfAnEarlierPayload() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadSlots");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadSlotDelivery");
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(concat(MAIN_PACKAGE, new String[] {
+            "interface Value", "    function get() returns int", "class Holder implements Value",
+            "    override function get() returns int", "        return 3",
+            "function read(Value value) returns int", "    return value.get()",
+            "init", "    made += read(new Holder())",
+        }));
+        LuaHotReloadSession.start(build, baseline);
+        LuaHotReloadSession.send(build, delivery, added);
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, baseline));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("slot"));
+    }
+
+    @Test
+    public void removedGlobalInitializerWarnsOfKeptValue() throws Exception {
+        String[] initialized = mainWithExtra("bump()");
+        String[] removed = withoutExtraInitializer(initialized);
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(initialized), manifest(removed), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("extra") && w.contains("Restart")));
+    }
+
+    @Test
+    public void removedInitializerOfAnEarlierPayloadWarnsInTheMap() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_removedInitializerOfAnEarlierPayloadWarnsInTheMap.lua";
+        var build = java.nio.file.Files.createTempDirectory("hotReloadInitializers");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadInitializerDelivery");
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        String[] initialized = mainWithExtra("bump()");
+        LuaHotReload.Manifest added = manifest(initialized);
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, added).payload();
+        var second = LuaHotReloadSession.send(build, delivery, manifest(withoutExtraInitializer(initialized))).payload();
+        String output = applyInLua(script, List.of(first.source(), second.source()), true, globalName(added, "extra"));
+        assertTrue(output, output.contains("removed initializer") && output.contains("restart the map"));
+        assertEquals(output, 2, occurrences(output, "true 2 nil"));
+    }
+
+    @Test
+    public void removedPackageInitStatementWarnsOfARestart() throws Exception {
+        String[] baseline = mainWithExtra("bump()");
+        String[] edited = baseline.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].equals("    bump()")) {
+                edited[i] = "";
+            }
+        }
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(baseline), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
+    }
+
+    @DataProvider
+    public Object[][] initSequenceCases() {
+        return new Object[][] {
+            {"bump()\nbump()", "bump()", true},
+            {"bump()", "bump()\nbump()", true},
+            {"bump()\nlower()", "lower()\nbump()", true},
+            {"bump()", "bump()", false},
+        };
+    }
+
+    @Test(dataProvider = "initSequenceCases")
+    public void packageInitDiagnosticsCompareSequences(String before, String after, boolean changed) throws Exception {
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(withInitSequence(before)), manifest(withInitSequence(after)),
+            LuaHotReload.History.NONE, 1);
+        assertEquals(payload.warnings().toString(), changed, payload.warnings().stream().anyMatch(w -> w.contains("package init")));
+    }
+
+    @Test
+    public void reorderedExistingGlobalInitializersWarnOfARestart() throws Exception {
+        String[] baseline = mainWithExtra("bump()");
+        for (int i = 0; i < baseline.length; i++) {
+            if (baseline[i].equals("int extra = bump()")) {
+                baseline[i] += "\nint another = bump()";
+            } else if (baseline[i].equals("    return extra")) {
+                baseline[i] += " + another";
+            }
+        }
+        String[] edited = baseline.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].startsWith("int extra = bump()")) {
+                edited[i] = "int another = bump()\nint extra = bump()";
+            }
+        }
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(baseline), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
+    }
+
+    /** Ordering warnings follow the map's completed work, including payload-added units and missed deliveries. */
+    @Test
+    public void mapRemembersOrderOfPayloadAddedInitializers() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_mapRemembersOrderOfPayloadAddedInitializers.lua";
+        String[] added = mainWithExtra("bump()");
+        for (int i = 0; i < added.length; i++) {
+            if (added[i].equals("int extra = bump()")) {
+                added[i] += "\nint another = bump()";
+            } else if (added[i].equals("    return extra")) {
+                added[i] += " + another";
+            }
+        }
+        String[] reordered = added.clone();
+        for (int i = 0; i < reordered.length; i++) {
+            if (reordered[i].startsWith("int extra = bump()")) {
+                reordered[i] = "int another = bump()\nint extra = bump()";
+            }
+        }
+        var baseline = manifest(MAIN_PACKAGE);
+        var first = manifest(added);
+        var second = manifest(reordered);
+        String p1 = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source();
+        String p2 = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2).source();
+        String[] globals = {globalName(first, "made"), globalName(first, "extra"), globalName(first, "another")};
+        String applied = applyInLua(script, List.of(p1, p2), true, globals);
+        assertEquals(applied, 1, occurrences(applied, "global initializer order changed"));
+        assertEquals(applied, 2, occurrences(applied, "true 3 2 3 nil"));
+        String missed = applyInLua(script, List.of(p2), true, globals);
+        assertFalse(missed, missed.contains("global initializer order changed"));
+        assertEquals(missed, "true 3 3 2 nil", missed);
+    }
+
+    @DataProvider
+    public Object[][] uninitializedGlobalCases() {
+        return new Object[][] {
+            {"int extra", "int extra = bump()", "extra = 42", "extra"},
+            {"int array xs", "int array xs = [bump(), bump()]", "xs[0] = 42", "xs[0] + xs[1]"},
+            {"Pair extra", "Pair extra = Pair(bump(), bump())", "extra = Pair(40, 2)", "extra.a + extra.b"},
+        };
+    }
+
+    @Test(dataProvider = "uninitializedGlobalCases")
+    public void existingUninitializedGlobalsKeepTheirValues(String declaration, String initialized, String store, String read) throws Exception {
+        String[] prefix = java.util.Arrays.copyOf(MAIN_PACKAGE, 5);
+        String[] base = concat(prefix, new String[] {"tuple Pair(int a, int b)", declaration,
+            "function readExtra() returns int", "    return " + read, "init", "    bump()", "    " + store, "    readExtra()"});
+        String[] edited = base.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].equals(declaration)) {
+                edited[i] = initialized;
+            }
+        }
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_existingUninitializedGlobalsKeepTheirValues.lua";
+        var current = manifest(edited);
+        var payload = LuaHotReload.payload(manifest(base), current, LuaHotReload.History.NONE, 1);
+        String output = applyInLua(script, List.of(payload.source()), globalName(current, "made"), luaName(current, "readExtra") + "()");
+        assertEquals(output, "true 1 42 nil", output);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("keeps") || w.contains("kept") || w.contains("keeps the values")));
+    }
+
+    @Test
+    public void packageWithoutAnInitKeepsItsExistingGlobal() throws Exception {
+        String[] base = {"package Main", "public int extra", "public function readExtra() returns int", "    return extra"};
+        String[] edited = base.clone();
+        edited[1] = "public int extra = 7";
+        // A separate entry unit keeps Main's global live without giving Main its own package init.
+        String entry = "endpackage\npackage Entry\nimport Main\ninit\n    extra = 42\n    readExtra()\nendpackage";
+        base = concat(base, new String[] {entry});
+        edited = concat(edited, new String[] {entry});
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_packageWithoutAnInitKeepsItsExistingGlobal.lua";
+        var current = manifest(edited);
+        var payload = LuaHotReload.payload(manifest(base), current, LuaHotReload.History.NONE, 1);
+        String output = applyInLua(script, List.of(payload.source()), globalName(current, "extra"));
+        assertEquals(output, "true 42 nil", output);
+    }
+
+    @Test
+    public void earlierPayloadsUninitializedGlobalKeepsItsValue() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_earlierPayloadsUninitializedGlobalKeepsItsValue.lua";
+        CU main = new CU("Main", String.join("\n", MAIN_PACKAGE).replace("package Main", "package Main\nimport Store")
+            + "\ninit\n    getExtra()\n");
+        CU uninitialized = new CU("Store", "package Store\npublic int extra\npublic function getExtra() returns int\n    return extra\n");
+        CU initialized = new CU("Store", "package Store\npublic int extra = 7\npublic function getExtra() returns int\n    return extra\n");
+        var baseline = manifest(MAIN_PACKAGE);
+        var first = compileLuaHotReloadManifest(false, HOT_RELOAD, main, uninitialized);
+        var second = compileLuaHotReloadManifest(false, HOT_RELOAD, main, initialized);
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2).source()), true, globalName(first, "extra"));
+        assertEquals(output, 2, occurrences(output, "true 0 nil"));
+        assertTrue(output, output.contains("keeps its value"));
+    }
+
+    @Test
+    public void genericStaticWithoutAnInitializerKeepsItsValues() {
+        String[] base = genericStaticProgram(false);
+        test().testLua(true).executeProg().luaHotReload(genericStaticProgram(true)).lines(base);
+    }
+
+    @Test
+    public void changedGenericInitializerStorageRequiresARestart() throws Exception {
+        String[] first = concat(java.util.Arrays.copyOf(genericStaticProgram(true), 14), new String[] {
+            "init", "    let ints = new Store<int>()", "    let strings = new Store<string>()",
+            "    ints.put(42)", "    strings.put(\"saved\")",
+            "    if ints.read() != 42 or strings.read() != \"saved\"", "        testFail(\"values changed\")",
+            "    destroy ints", "    destroy strings"});
+        String[] second = first.clone();
+        second[second.length - 1] += "\n    let reals = new Store<real>()\n    reals.put(3.5)\n"
+            + "    if reals.read() != 3.5\n        testFail(\"value changed\")\n    destroy reals";
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(manifest(first), manifest(second), LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("storage"));
+
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_changedGenericInitializerStorageRequiresARestart.lua";
+        var baseline = manifest(MAIN_PACKAGE);
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, manifest(first), LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, manifest(second), LuaHotReload.History.NONE, 2).source()));
+        assertTrue(output, output.startsWith("true"));
+        assertTrue(output, output.contains("another declaration or type"));
+    }
+
+    private static String[] genericStaticProgram(boolean initialized) {
+        return new String[] {"package Test", "native hotReload()", "native testSuccess()", "native testFail(string msg)",
+            "int initialized = 0", "function initialize<T:>() returns T", "    initialized++", "    return null",
+            "class Store<T:>", initialized ? "    static T value = initialize<T>()" : "    static T value",
+            "    function put(T v)", "        value = v", "    function read() returns T", "        return value",
+            "init", "    let ints = new Store<int>()", "    let strings = new Store<string>()",
+            "    ints.put(42)", "    strings.put(\"saved\")", "    hotReload()",
+            "    if initialized != 0 or ints.read() != 42 or strings.read() != \"saved\"",
+            "        testFail(\"generic static values were reinitialized\")", "    destroy ints", "    destroy strings", "    testSuccess()"};
+    }
+
+    @Test
+    public void newlyInitializedGenericStorageCannotMixOldAndNewSpecializations() throws Exception {
+        var uninitialized = manifest(genericStorageProgram(false, false));
+        var initialized = manifest(genericStorageProgram(true, true));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(uninitialized, initialized, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("spans old and new storage"));
+
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_newlyInitializedGenericStorageCannotMixOldAndNewSpecializations.lua";
+        var baseline = manifest(MAIN_PACKAGE);
+        String first = LuaHotReload.payload(baseline, uninitialized, LuaHotReload.History.NONE, 1).source();
+        String second = LuaHotReload.payload(baseline, initialized, LuaHotReload.History.NONE, 2).source();
+        String value = globalName(uninitialized, "Store_value_integer_");
+        String initializedCount = globalName(initialized, "initialized");
+        String newStorage = globalName(initialized, "Store_value_real_");
+        String output = applyInLua(script, List.of(first, second), value, initializedCount, newStorage);
+        assertTrue(output, output.startsWith("true 42 0 nil nil"));
+        assertTrue(output, output.contains("false 42 0 nil") && output.contains("spans old and new storage"));
+        String skipped = applyInLua(script, List.of(second), initializedCount);
+        assertEquals(skipped, "true 2 nil", skipped);
+    }
+
+    private static String[] genericStorageProgram(boolean initialized, boolean secondSpecialization) {
+        String[] declarations = java.util.Arrays.copyOf(genericStaticProgram(initialized), 14);
+        String[] init = {"init", "    let ints = new Store<int>()", "    ints.put(42)",
+            "    if ints.read() != 42", "        testFail(\"value changed\")", "    destroy ints"};
+        if (secondSpecialization) {
+            // A real specialization supplies a second physical store while sharing the same source initializer.
+            init = concat(init, new String[] {"    let reals = new Store<real>()", "    reals.put(3.5)",
+                "    if reals.read() != 3.5", "        testFail(\"value changed\")", "    destroy reals"});
+        }
+        return concat(concat(declarations, init), new String[] {
+            "    if initialized < 0", "        testFail(\"initializer count changed\")"});
+    }
+
+    private static String[] withInitSequence(String statements) {
+        String[] lines = mainWithExtra("bump()");
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].equals("    bump()")) {
+                lines[i] = "    " + statements.replace("\n", "\n    ");
+            }
+        }
+        return concat(lines, new String[] {"function lower() returns int", "    made--", "    return made"});
+    }
+
+    @Test
+    public void removedEarlierPackageInitWarnsInTheMap() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_removedEarlierPackageInitWarnsInTheMap.lua";
+        var build = java.nio.file.Files.createTempDirectory("hotReloadPackageRemoval");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadPackageRemovalDelivery");
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n"),
+            new CU("Added", "package Added\nimport Main\ninit\n    bump()\n"));
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, added).payload();
+        var second = LuaHotReloadSession.send(build, delivery, baseline).payload();
+        String output = applyInLua(script, List.of(first.source(), second.source()), true, globalName(baseline, "made"));
+        assertTrue(output, output.contains("removed package init") && output.contains("restart the map"));
+        assertEquals(output, 2, occurrences(output, "true 2 nil"));
+    }
+
+    private static String[] withoutExtraInitializer(String[] initialized) {
+        String[] removed = initialized.clone();
+        for (int i = 0; i < removed.length; i++) {
+            if (removed[i].startsWith("int extra =")) {
+                removed[i] = "int extra";
+            }
+        }
+        return removed;
     }
 
     /**
@@ -317,25 +700,518 @@ public class LuaHotReloadTests extends WurstScriptTest {
         expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(baseline, changed, Set.of(), 1));
     }
 
-    /** An edit outside the bodies changes the script the map is running, which a payload cannot reach. */
+    /**
+     * The closures of one interface method in one function share an identity and are told apart by their order. A
+     * closure added before another would give the old one's name to the new one, so the edit is rejected.
+     */
     @Test
-    public void structuralEditIsRejected() {
-        LuaHotReload.Manifest baseline = manifest(program("x + 1", "side * side", INIT));
-        String[] withGlobalLines = program("x + 1 + extra", "side * side", INIT);
-        withGlobalLines[4] = "int calls = 0\nint extra = 4";
-        LuaHotReload.Manifest withGlobal = manifest(withGlobalLines);
-        assertFalse(baseline.abi().equals(withGlobal.abi()));
+    public void closureAddedBesideAnotherOfTheSameMethodIsRejected() {
+        String[] base = {
+            "package Test",
+            "interface Op",
+            "    function apply(int v) returns int",
+            "function run() returns int",
+            "    Op a = (int v) -> v + 1",
+            "    Op b = (int v) -> v + 2",
+            "    return a.apply(1) + b.apply(1)",
+            "init",
+            "    run()",
+        };
+        String[] edited = {
+            "package Test",
+            "interface Op",
+            "    function apply(int v) returns int",
+            "function run() returns int",
+            "    Op z = (int v) -> v + 3",
+            "    Op a = (int v) -> v + 1",
+            "    Op b = (int v) -> v + 2",
+            "    return z.apply(1) + a.apply(1) + b.apply(1)",
+            "init",
+            "    run()",
+        };
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, withGlobal, Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("outside the function bodies"));
+            () -> LuaHotReload.payload(manifest(base), manifest(edited), Set.of(), 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+    }
 
-        LuaHotReload.Manifest withFunction = manifest(program("helper(x)", "side * side",
-            concat(new String[] {"function helper(int x) returns int", "    return x"}, INIT)));
-        rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, withFunction, Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("functions the running script does not have: helper_"));
-        assertFalse("a new function shifts the names after it, which is not reported apart:\n" + rejected.getMessage(),
-            rejected.getMessage().contains("a name now means something else"));
+    private static final String[] MAIN_PACKAGE = {
+        "package Main",
+        "public int made = 0",
+        "public function bump() returns int",
+        "    made++",
+        "    return made",
+        "init",
+        "    bump()",
+    };
+
+    private static CU addedPackage(boolean failing) {
+        return addedPackage(failing, 0);
+    }
+
+    private static CU addedPackage(boolean failing, int increment) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Added", "import Main",
+            "native I2S(int i) returns string", "int first = bump()", "init", "    made += first + " + increment));
+        if (failing) {
+            lines.addAll(List.of("    if made < 100", "        I2S(1 div 0)"));
+        }
+        lines.add("");
+        return new CU("Added", String.join("\n", lines));
+    }
+
+    /**
+     * A new package whose init fails fails the install, and the map records nothing of it: the next payload runs the
+     * init again. Once it ran, neither it nor its globals' initial values run again, whatever the editor sent.
+     */
+    @Test
+    public void newPackageInitRunsOnceAndAgainAfterAFailure() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_newPackageInitRunsOnceAndAgainAfterAFailure.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        CU main = new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n");
+        LuaHotReload.Manifest failing = compileLuaHotReloadManifest(false, HOT_RELOAD, main, addedPackage(true));
+        LuaHotReload.Manifest fixed = compileLuaHotReloadManifest(false, HOT_RELOAD, main, addedPackage(false));
+        List<String> payloads = List.of(
+            LuaHotReload.payload(baseline, failing, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, fixed, LuaHotReload.History.NONE, 2).source(),
+            LuaHotReload.payload(baseline, fixed, LuaHotReload.History.NONE, 3).source());
+        String output = applyInLua(script, payloads, globalName(fixed, "made"), globalName(fixed, "first"));
+        String[] lines = output.split("\\R");
+        // made: 1 from Main's init; the failing init bumps to 2, adds 2 and fails; the fixed one runs again: 5, plus 5.
+        assertTrue(output, lines[0].startsWith("false 4 2 ") && lines[0].contains("the init of a new package"));
+        assertEquals(output, "true 10 5 nil", lines[1]);
+        assertEquals("nothing runs twice: " + output, "true 10 5 nil", lines[2]);
+    }
+
+    /**
+     * Runs {@code script}'s main, then applies each payload directly, printing for each whether it applied, the values
+     * of {@code globals} and the reason it did not.
+     */
+    private String applyInLua(String script, List<String> payloads, String... globals) throws Exception {
+        return applyInLua(script, payloads, false, globals);
+    }
+
+    private String applyInLua(String script, List<String> payloads, boolean messages, String... globals) throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadApply");
+        for (int i = 0; i < payloads.size(); i++) {
+            java.nio.file.Files.writeString(dir.resolve("p" + (i + 1) + ".lua"), payloads.get(i));
+        }
+        StringBuilder values = new StringBuilder();
+        for (String g : globals) {
+            values.append(" .. ' ' .. tostring(").append(g).append(")");
+        }
+        String runtime = "src/test/resources/luaruntime/";
+        String driver = String.join("\n",
+            "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
+            "dofile('" + script + "')",
+            "BJDebugMsg = " + (messages ? "print" : "function() end"),
+            "main()",
+            "for i = 1, " + payloads.size() + " do",
+            "  local f = io.open('" + dir.toString().replace('\\', '/') + "/p' .. i .. '.lua', 'rb')",
+            "  local source = f:read('a') f:close()",
+            "  local ok, err = " + LuaHotReload.APPLY_FUNCTION + "(source)",
+            "  print(tostring(ok)" + values + " .. ' ' .. tostring(err))",
+            "end");
+        java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_applyDriver.lua");
+        java.nio.file.Files.writeString(driverFile.toPath(), driver);
+        Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
+        String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+        assertEquals(output, 0, p.waitFor());
+        return output;
+    }
+
+    /** The map warns about a changed init it already ran, even when the package was absent from the baseline. */
+    @Test
+    public void changedInitOfAnEarlierPayloadsPackageWarnsOfARestart() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_changedInitOfAnEarlierPayloadsPackageWarnsOfARestart.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        CU main = new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n");
+        LuaHotReload.Manifest first = compileLuaHotReloadManifest(false, HOT_RELOAD, main, addedPackage(false));
+        LuaHotReload.Manifest edited = compileLuaHotReloadManifest(false, HOT_RELOAD, main, addedPackage(false, 10));
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 2).source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 3).source()), true, globalName(first, "made"));
+        assertEquals(output, 1, occurrences(output, "restart the map to apply changed package init code"));
+        assertEquals("the init runs only once: " + output, 3, occurrences(output, "true 4 nil"));
+    }
+
+    private static String[] mainWithExtra(String initialValue) {
+        // MAIN_PACKAGE with a global, and a function which reads it and which its init calls, so neither is removed.
+        return new String[] {
+            "package Main",
+            "public int made = 0",
+            "public function bump() returns int",
+            "    made++",
+            "    return made",
+            "int extra = " + initialValue,
+            "public function readExtra() returns int",
+            "    return extra",
+            "init",
+            "    bump()",
+            "    readExtra()",
+        };
+    }
+
+    /**
+     * A global which a payload added keeps the value the map gave it when a later edit changes its initial value, as a
+     * global of the started map does: the map records the global, not the text which initialised it.
+     */
+    @Test
+    public void changedInitialValueOfAnAddedGlobalDoesNotRunAgain() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_changedInitialValueOfAnAddedGlobalDoesNotRunAgain.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(mainWithExtra("bump()"));
+        LuaHotReload.Manifest changed = manifest(mainWithExtra("bump() + 100"));
+        List<String> payloads = List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, changed, LuaHotReload.History.NONE, 2).source());
+        String output = applyInLua(script, payloads, globalName(changed, "made"), globalName(changed, "extra"));
+        String[] lines = output.split("\\R");
+        // made: 1 from the init; the first payload bumps it to 2 for extra; the second runs nothing again.
+        assertEquals(output, "true 2 2 nil", lines[0]);
+        assertEquals(output, "true 2 2 nil", lines[1]);
+    }
+
+    /** A new global's initializer is one unit, including flattened locals, control flow, and side effects. */
+    @Test
+    public void addedGlobalKeepsItsCompleteInitializer() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_addedGlobalKeepsItsCompleteInitializer.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(mainWithExtra("begin\n    var value = bump()\n"
+            + "    if value > 0\n        value += bump()\n    return value\nend"));
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 2).source()),
+            globalName(added, "made"), globalName(added, "extra"));
+        assertEquals(output, "true 3 5 nil\ntrue 3 5 nil", output.replace("\r\n", "\n"));
+    }
+
+    /** Array and tuple initializers retain all stores and evaluate each element once. */
+    @Test
+    public void addedArrayAndTupleInitializersRunAsUnits() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_addedArrayAndTupleInitializersRunAsUnits.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(concat(MAIN_PACKAGE, new String[] {
+            "tuple Pair(int a, int b)", "int array xs = [bump(), bump()]", "Pair pair = Pair(bump(), bump())",
+            "function total() returns int", "    return xs[0] + xs[1] + pair.a + pair.b", "init", "    total()",
+        }));
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 2).source()),
+            globalName(added, "made"), luaName(added, "total") + "()");
+        assertEquals(output, "true 5 14 nil\ntrue 5 14 nil", output.replace("\r\n", "\n"));
+    }
+
+    @DataProvider
+    public Object[][] referenceStorageCases() {
+        return new Object[][] {{true}, {false}};
+    }
+
+    /** Equal Lua storage text does not make different source-level field or global types compatible. */
+    @Test(dataProvider = "referenceStorageCases")
+    public void earlierPayloadsReferenceFieldTypeChangeIsRefused(boolean field) throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_earlierPayloadsReferenceFieldTypeChangeIsRefused.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        String declaration = field ? "    A held" : "A held";
+        String[] added = concat(MAIN_PACKAGE, new String[] {"class A", "class B", field ? "class Holder" : "", declaration,
+            "function touch()", field ? "    let h = new Holder()" : "", "    made += " + (field ? "h.held" : "held") + " castTo int",
+            "init", "    touch()"});
+        String[] edited = added.clone();
+        for (int i = 0; i < edited.length; i++) {
+            if (edited[i].equals(declaration)) {
+                edited[i] = declaration.replace("A held", "B held");
+            }
+        }
+        LuaHotReload.Manifest first = manifest(added);
+        LuaHotReload.Manifest second = manifest(edited);
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2).source()), globalName(first, "made"));
+        assertTrue(output, output.split("\\R")[0].startsWith("true "));
+        assertTrue(output, output.split("\\R")[1].startsWith("false ") && output.contains("restart the map"));
+    }
+
+    /** A function an earlier payload stored as a value keeps that payload's body, so a later change to it is rejected. */
+    @Test
+    public void changeOfAFunctionAnEarlierPayloadStoredIsRejected() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = withCaptured(manifest(mainWithExtra("bump()")), "readExtra", "");
+        LuaHotReload.Payload first = LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1);
+        assertEquals(first.captured().toString(), 1, first.captured().size());
+        LuaHotReload.History history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured());
+        // Unchanged, it is sent again; changed, it is rejected.
+        LuaHotReload.payload(baseline, added, history, 2);
+        LuaHotReload.Manifest changed = withCaptured(manifest(mainWithExtra("bump()")), "readExtra", "\n-- edited");
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, changed, history, 3));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("by an earlier payload"));
+    }
+
+    private static String[] mainWithHolder(String fieldType) {
+        return new String[] {
+            "package Main",
+            "public int made = 0",
+            "public function bump() returns int",
+            "    made++",
+            "    return made",
+            "class Holder",
+            "    " + fieldType + " v",
+            "function useHolder()",
+            "    let h = new Holder()",
+            "    h.v = 1",
+            "    if h.v != 0",
+            "        made++",
+            "    destroy h",
+            "init",
+            "    bump()",
+            "    useHolder()",
+        };
+    }
+
+    /**
+     * A declaration an earlier payload installed which a later edit changes (a field store of another type) cannot be
+     * kept: the map refuses the payload before it changes anything.
+     */
+    @Test
+    public void declarationChangedAfterAPayloadInstalledItIsRefused() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_declarationChangedAfterAPayloadInstalledItIsRefused.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        List<String> payloads = List.of(
+            LuaHotReload.payload(baseline, manifest(mainWithHolder("int")), LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, manifest(mainWithHolder("real")), LuaHotReload.History.NONE, 2).source());
+        String output = applyInLua(script, payloads, globalName(baseline, "made"));
+        String[] lines = output.split("\\R");
+        assertTrue(output, lines[0].startsWith("true "));
+        assertTrue(output, lines[1].startsWith("false ") && lines[1].contains("restart the map"));
+    }
+
+    /** Packages one payload adds are initialised in the order the map would initialise them: a dependency first. */
+    @Test
+    public void newPackagesInitialiseInDependencyOrder() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_newPackagesInitialiseInDependencyOrder.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        CU main = new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n");
+        CU alpha = new CU("Alpha", String.join("\n", "package Alpha", "import Main", "import Zulu",
+            "int doubled = zulu * 2", "init", "    made += doubled", ""));
+        CU zulu = new CU("Zulu", String.join("\n", "package Zulu", "public int zulu = 5", "init", "    zulu += 0", ""));
+        LuaHotReload.Manifest edited = compileLuaHotReloadManifest(false, HOT_RELOAD, main, alpha, zulu);
+        List<String> payloads = List.of(LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1).source());
+        String output = applyInLua(script, payloads, globalName(edited, "made"));
+        assertEquals(output, "true 11 nil", output.split("\\R")[0]);
+    }
+
+    @DataProvider
+    public Object[][] packageInitializationCases() {
+        return new Object[][] {{false, false}, {false, true}, {true, false}, {true, true}};
+    }
+
+    /** Whole new packages and added globals share dependency order, including packages added by an earlier payload. */
+    @Test(dataProvider = "packageInitializationCases")
+    public void allPackageInitializationUsesDependencyOrder(boolean existingAlpha, boolean existingZulu) throws Exception {
+        String[] main = concat(MAIN_PACKAGE, new String[] {"endpackage"});
+        String[] alpha = {"package Alpha", "import Main", "init", "    made += 1", "endpackage"};
+        String[] zulu = {"package Zulu", "import Main", "init", "    made += 1", "endpackage"};
+        String[] base = concat(main, concat(existingAlpha ? alpha : new String[0], existingZulu ? zulu : new String[0]));
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_allPackageInitializationUsesDependencyOrder.lua";
+        LuaHotReload.Manifest baseline = manifest(base);
+        String[] edited = concat(main, concat(new String[] {
+            "package Alpha", "import Main", "import Zulu", "public int doubled = extra * 2",
+            "public function readDoubled() returns int", "    return doubled",
+            "init", "    made += readDoubled()", "endpackage",
+        }, new String[] {
+            "package Zulu", "import Main", "public int extra = 5",
+            "init", "    made += extra", "endpackage",
+        }));
+        LuaHotReload.Manifest first = manifest(edited);
+        String[] later = edited.clone();
+        for (int i = 0; i < later.length; i++) {
+            if (later[i].equals("public int doubled = extra * 2")) {
+                later[i] += "\npublic int tripled = extra * 3";
+            } else if (later[i].equals("    return doubled")) {
+                later[i] += " + tripled";
+            } else if (later[i].equals("public int extra = 5")) {
+                later[i] = "public int extra = 6";
+            }
+        }
+        LuaHotReload.Manifest second = manifest(later);
+        LuaHotReload.Payload p1 = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1);
+        LuaHotReload.Payload p2 = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2);
+        String output = applyInLua(script, List.of(p1.source(), p2.source(),
+            LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 3).source()),
+            globalName(second, "doubled"), globalName(second, "extra"), globalName(second, "tripled"));
+        String[] lines = output.split("\\R");
+        assertEquals(output, "true 10 5 nil nil", lines[0]);
+        assertEquals(output, "true 10 5 15 nil", lines[1]);
+        assertEquals("repeated payload keeps every value: " + output, lines[1], lines[2]);
+    }
+
+    /** {@code m} with function {@code source} stored as a value, its definition extended by {@code edit}. */
+    private static LuaHotReload.Manifest withCaptured(LuaHotReload.Manifest m, String source, String edit) {
+        java.util.Map<String, LuaHotReload.Function> functions = new java.util.LinkedHashMap<>(m.functions());
+        String name = luaName(m, source);
+        LuaHotReload.Function f = functions.get(name);
+        functions.put(name, new LuaHotReload.Function(name, f.semanticId(), f.definition() + edit, f.slots(),
+            List.of("in a test"), f.kind()));
+        return new LuaHotReload.Manifest(m.abi(), m.compilerVersion(), functions, m.statements(), m.bindings(), m.initOrder());
+    }
+
+    private static String globalName(LuaHotReload.Manifest m, String source) {
+        return m.bindings().stream().map(b -> b.substring(0, b.indexOf('=')))
+            .filter(n -> !m.functions().containsKey(n))
+            .filter(n -> n.matches("(\\w+_)?" + Pattern.quote(source) + "_[0-9a-f]{12}")).findFirst()
+            .orElseThrow(() -> new AssertionError(source + " in " + m.bindings()));
+    }
+
+    private static int occurrences(String text, String part) {
+        int n = 0;
+        for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + 1)) {
+            n++;
+        }
+        return n;
+    }
+
+    private static String[] mutableFieldProgram(boolean edited) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "class Box",
+            "    int a",
+            edited ? "    int array[2] xs" : "",
+            "function poke(Box b) returns int",
+            edited ? "    b.xs[1] = 5" : "",
+            edited ? "    return b.xs[1]" : "    return b.a",
+            "init",
+            "    let b = new Box()",
+            "    poke(b)",
+            "    hotReload()",
+            "    if poke(b) != 5",
+            "        testFail(\"an array field added to an object made before does not keep its value\")",
+            "    testSuccess()",
+        };
+    }
+
+    /** An array field added while an object exists gets an array of its own, which keeps what is stored in it. */
+    @Test
+    public void addedArrayFieldOfAnOldObjectKeepsItsValues() {
+        test().testLua(true).executeProg().luaHotReload(mutableFieldProgram(true)).lines(mutableFieldProgram(false));
+    }
+
+    /** {@code main} ran when the map started: a change to it ships with a warning that it needs a restart. */
+    @Test
+    public void changedEntryWarnsOfARestart() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(mutableFieldProgram(false));
+        LuaHotReload.Manifest current = new LuaHotReload.Manifest(baseline.abi(), baseline.compilerVersion(),
+            withChangedEntry(baseline.functions()), baseline.statements(), baseline.bindings(), baseline.initOrder());
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("restart")));
+    }
+
+    private static java.util.Map<String, LuaHotReload.Function> withChangedEntry(java.util.Map<String, LuaHotReload.Function> functions) {
+        java.util.Map<String, LuaHotReload.Function> changed = new java.util.LinkedHashMap<>(functions);
+        LuaHotReload.Function main = functions.values().stream().filter(f -> f.kind() == LuaHotReload.Kind.ENTRY).findFirst()
+            .orElseThrow();
+        changed.put(main.name(), new LuaHotReload.Function(main.name(), main.semanticId(), main.definition() + "\n-- edited",
+            main.slots(), main.captures(), main.kind()));
+        return changed;
+    }
+
+    /** A session saved by an older compiler has no statements: the payload is rejected with the reason, not a crash. */
+    @Test
+    public void manifestOfAnOlderCompilerIsRejected() {
+        LuaHotReload.Manifest current = manifest(mutableFieldProgram(false));
+        LuaHotReload.Manifest legacy = new LuaHotReload.Manifest(current.abi(), null, current.functions(), null, current.bindings(),
+            null);
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("another compiler"));
+    }
+
+    private static String[] structuralProgram(boolean edited) {
+        List<String> lines = new java.util.ArrayList<>(List.of(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "native I2S(int i) returns string",
+            "interface Op",
+            "    function apply(int v) returns int",
+            edited ? "int counter = 6" : "int counter = 5"));
+        if (edited) {
+            // A new global, class and function above the existing declarations: they must move nothing.
+            lines.addAll(List.of("int extra = 40", "class Fresh", "    function value() returns int",
+                "        return 100", "function helper() returns int", "    return extra"));
+        }
+        lines.addAll(List.of("class Box", "    int a"));
+        if (edited) {
+            lines.add("    int bonus = 3");
+        }
+        lines.addAll(List.of(
+            "    construct(int a)",
+            "        this.a = a",
+            "    function get() returns int",
+            edited ? "        return a + bonus" : "        return a",
+            edited ? "function compute(int x, int y) returns int" : "function compute(int x) returns int",
+            edited ? "    return x * y + helper()" : "    return x + 1",
+            "function run() returns int"));
+        if (edited) {
+            lines.addAll(List.of("    let f = new Fresh()", "    Op op = (int v) -> v + 2",
+                "    return compute(2, 3) + f.value() + op.apply(1) + counter"));
+        } else {
+            lines.add("    return compute(1) + counter - 5");
+        }
+        lines.addAll(List.of(
+            "init",
+            "    let b = new Box(7)",
+            "    if run() != 2 or b.get() != 7",
+            "        testFail(\"the original program did not run\")",
+            "    hotReload()",
+            // compute(2, 3) 6 + extra 40 + Fresh 100 + the lambda 3 + counter 5: the running map keeps its counter.
+            "    if run() != 154",
+            "        testFail(\"after the reload run() is \" + I2S(run()))",
+            "    if b.get() != 7",
+            "        testFail(\"an object made before has the new field's default\")",
+            "    if new Box(1).get() != 4",
+            "        testFail(\"a new object runs the new constructor\")",
+            "    testSuccess()"));
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * One payload adds a function, changes a signature, adds a global, a class field, a class and a lambda, and changes a
+     * global's initial value: the map runs the new program, keeps its counter and its object, and new objects get the
+     * new field.
+     */
+    @Test
+    public void structuralEditsReload() {
+        test().testLua(true).executeProg()
+            .luaHotReload(structuralProgram(true))
+            .lines(structuralProgram(false));
+    }
+
+    @Test
+    public void structuralPayloadRunsWhatIsNewAndWarnsOfKeptValues() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(structuralProgram(false));
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(structuralProgram(true)), LuaHotReload.History.NONE, 1);
+        List<String> names = sourceNames(payload.functions());
+        assertTrue(names.toString(), names.contains("helper") && names.contains("compute") && names.contains("run"));
+        assertTrue(payload.source(), payload.source().contains("Fresh_"));
+        assertEquals(payload.warnings().toString(), 1, payload.warnings().size());
+        assertTrue(payload.warnings().get(0), payload.warnings().get(0).contains("counter"));
+        assertTrue("a new global's initial value runs: " + payload.source(), payload.source().contains("= 40"));
+
+        // The map records it once it ran, so a later payload does not run it again.
+        assertTrue(payload.source(), Pattern.compile("if not " + LuaHotReload.RAN_TABLE + "\\[\"[0-9a-f]{12}\"\\] then\\ninit_global_\\w+\\(\\)\\n")
+            .matcher(payload.source()).find());
     }
 
     @Test
@@ -414,7 +1290,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         RunArgs library = HOT_RELOAD.with("-lib", StdLib.getLib(), "-runcompiletimefunctions");
         LuaHotReload.Manifest plainBase = libraryManifest(library, base);
         assertTrue("no function the standard library stores as a value",
-            plainBase.functions().values().stream().allMatch(f -> f.captures().isEmpty()));
+            plainBase.functions().values().stream().allMatch(f -> f.kind() != LuaHotReload.Kind.PROGRAM || f.captures().isEmpty()));
         assertTrue(LuaHotReload.payload(plainBase, libraryManifest(library, moved), Set.of(), 1).functions().isEmpty());
 
         RunArgs traced = library.with("-stacktraces");

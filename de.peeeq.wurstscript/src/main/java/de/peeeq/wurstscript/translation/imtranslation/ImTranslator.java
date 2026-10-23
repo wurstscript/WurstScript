@@ -181,6 +181,9 @@ public class ImTranslator implements SpecialisationLookup {
      */
     public final Map<ImFunction, String> luaInitFunctions = new Object2ObjectLinkedOpenHashMap<>();
 
+    /** Complete source global initializers, kept as functions in hot-reload builds before flattening splits them. */
+    public final Map<ImFunction, ImVar> luaGlobalInitializers = new LinkedHashMap<>();
+
     private final Map<TranslatedToImFunction, ImVar> thisVarMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final Set<WPackage> translatedPackages = new ObjectLinkedOpenHashSet<>();
@@ -1544,6 +1547,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             f = globalInitFunc;
         }
         de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
+        if (runArgs.isLuaHotReload() && packageOrGlobal instanceof WPackage) {
+            // A reload must run the whole initializer, including its temporaries and control flow, exactly once.
+            // Preserve that boundary here, where the source initializer still exists, rather than reconstructing it
+            // from the flattened assignments in the Lua backend.
+            ImFunction initializer = ImFunction(v.getTrace(), "init_global_" + v.getName(), ImTypeVars(), ImVars(),
+                ImVoid(), ImVars(), ImStmts(), flags());
+            addFunction(initializer);
+            luaGlobalInitializers.put(initializer, v);
+            f.getBody().add(ImFunctionCall(trace, initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
+            f = initializer;
+        }
         if (initialExpr instanceof Expr expr) {
             ImExpr translated = expr.imTranslateExpr(this, f);
             ImSet imSet = ImSet(trace, ImVarAccess(v), translated);
@@ -2938,6 +2952,29 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     /** Scalar leaves assigned for one source-level tuple variable, in source order. */
     public List<ImVar> getTupleScalarVars(ImVar v) {
         return getVarsForTuple(v).allValuesStream().toList();
+    }
+
+    /** The retained storage of a source global, using recorded specialization and tuple-lowering relations. */
+    public List<ImVar> loweredGlobalStorage(ImVar source) {
+        Set<ImVar> roots = Collections.newSetFromMap(new IdentityHashMap<>());
+        roots.add(source);
+        ImVar original = canonical(source);
+        for (Element copy : specialisations.keySet()) {
+            if (copy instanceof ImVar variable && canonical(variable) == original) {
+                roots.add(variable);
+            }
+        }
+        Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImVar root : roots) {
+            VarsForTupleResult tuple = varsForTupleVar.get(root);
+            if (tuple == null) {
+                storage.add(root);
+            } else {
+                tuple.allValuesStream().forEach(storage::add);
+            }
+        }
+        // Identity maps above are membership sets only; output follows the program's deterministic declaration order.
+        return imProg.getGlobals().stream().filter(storage::contains).toList();
     }
 
     VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {

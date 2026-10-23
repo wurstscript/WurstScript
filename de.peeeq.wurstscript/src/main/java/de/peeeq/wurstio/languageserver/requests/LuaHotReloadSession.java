@@ -9,9 +9,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -35,8 +37,11 @@ public final class LuaHotReloadSession {
         LuaHotReload.Manifest baseline;
         int version;
         List<String> reloaded = new ArrayList<>();
-        /** The functions a version the map ran stored as a value. */
-        List<String> captured = new ArrayList<>();
+        /** The functions a version the map ran stored as a value, with the hash of the definition stored. */
+        Map<String, String> capturedDefinitions = new LinkedHashMap<>();
+        Map<String, List<String>> slots = new LinkedHashMap<>();
+        Map<String, String> initializers = new LinkedHashMap<>();
+        List<String> packageInits = new ArrayList<>();
     }
 
     /**
@@ -107,7 +112,10 @@ public final class LuaHotReloadSession {
     private static final class Pending {
         int version;
         List<String> functions = new ArrayList<>();
-        List<String> captured = new ArrayList<>();
+        Map<String, String> capturedDefinitions = new LinkedHashMap<>();
+        Map<String, List<String>> slots = new LinkedHashMap<>();
+        Map<String, String> initializers = new LinkedHashMap<>();
+        List<String> packageInits = new ArrayList<>();
     }
 
     /** A payload and the file it was written to. */
@@ -127,16 +135,16 @@ public final class LuaHotReloadSession {
         }
         State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
         recoverPending(buildDir, customMapData, state);
-        LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current,
-            new LinkedHashSet<>(state.reloaded), new LinkedHashSet<>(state.captured), state.version + 1);
+        LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current, new LuaHotReload.History(
+            new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
+            orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits))), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
-        for (LuaHotReload.Function f : current.functions().values()) {
-            if (!f.captures().isEmpty()) {
-                pending.captured.add(f.name());
-            }
-        }
+        pending.capturedDefinitions = new LinkedHashMap<>(payload.captured());
+        pending.slots = new LinkedHashMap<>(payload.slots());
+        pending.initializers = new LinkedHashMap<>(payload.initializers());
+        pending.packageInits = new ArrayList<>(payload.packageInits());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -168,10 +176,34 @@ public final class LuaHotReloadSession {
         Set<String> reloaded = new LinkedHashSet<>(state.reloaded);
         reloaded.addAll(sent.functions);
         state.reloaded = new ArrayList<>(reloaded);
-        Set<String> captured = new LinkedHashSet<>(state.captured == null ? List.of() : state.captured);
-        captured.addAll(sent.captured == null ? List.of() : sent.captured);
-        state.captured = new ArrayList<>(captured);
+        // The first definition stored is the one the stored value keeps.
+        Map<String, String> captured = new LinkedHashMap<>(orEmpty(state.capturedDefinitions));
+        orEmpty(sent.capturedDefinitions).forEach(captured::putIfAbsent);
+        state.capturedDefinitions = captured;
+        Map<String, List<String>> slots = new LinkedHashMap<>(orEmpty(state.slots));
+        for (Map.Entry<String, List<String>> entry : orEmpty(sent.slots).entrySet()) {
+            Set<String> bindings = new LinkedHashSet<>(slots.getOrDefault(entry.getKey(), List.of()));
+            bindings.addAll(entry.getValue());
+            slots.put(entry.getKey(), List.copyOf(bindings));
+        }
+        state.slots = slots;
+        Map<String, String> initializers = new LinkedHashMap<>(orEmpty(state.initializers));
+        orEmpty(sent.initializers).forEach(initializers::putIfAbsent);
+        state.initializers = initializers;
+        Set<String> packageInits = new LinkedHashSet<>(orEmpty(state.packageInits));
+        packageInits.addAll(orEmpty(sent.packageInits));
+        state.packageInits = new ArrayList<>(packageInits);
         state.version = sent.version;
+    }
+
+    /** A list Gson left null because an older session file did not have it. */
+    private static List<String> orEmpty(List<String> list) {
+        return list == null ? List.of() : list;
+    }
+
+    /** A map Gson left null because an older session file did not have it. */
+    private static <V> Map<String, V> orEmpty(Map<String, V> map) {
+        return map == null ? Map.of() : map;
     }
 
     private static Path pendingFile(Path buildDir) {
