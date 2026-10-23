@@ -451,18 +451,24 @@ public final class LuaHotReload {
             if (newInits.contains(init)) {
                 // A failed init fails the install and is not recorded: the next payload runs it again.
                 String marker = RAN_TABLE + "[\"init:" + init + "\"]";
+                // The map knows whether this package ran; the editor only knows which payload files it delivered.
+                // Keep its definition's hash so a later edit can diagnose the setup code it cannot run again.
+                String initCode = definitionHash(current.functions().get(init));
                 sb.append("if not ").append(marker).append(" then\n");
                 sb.append("if not xpcall(").append(init).append(", __wurst_init_error or function(e) BJDebugMsg(tostring(e)) end) then\n");
                 sb.append("error(\"the init of a new package (").append(init).append(") failed; the next payload runs it again\", 0)\n");
                 sb.append("end\n");
-                sb.append(marker).append(" = true\n");
+                sb.append(marker).append(" = \"").append(initCode).append("\"\n");
                 for (Statement s : current.statements()) {
                     if (s.owner().equals(init) && s.kind().equals("global")) {
                         sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.text()))
                             .append("\"\n");
                     }
                 }
-                sb.append("end\n");
+                sb.append("elseif ").append(marker).append(" ~= \"").append(initCode).append("\" then\n")
+                    .append("BJDebugMsg(").append(luaString("Wurst hot reload: " + init
+                        + " already ran; restart the map to apply changed package init code"
+                        + " beyond the added globals initialized separately")).append(")\nend\n");
             }
             // If the whole init just ran, its globals are marked already. Otherwise only the values it has not yet
             // initialised run here, before any dependent package's work.

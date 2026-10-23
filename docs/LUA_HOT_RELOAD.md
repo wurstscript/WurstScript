@@ -50,6 +50,8 @@ payload compares the running script's manifest with the edited one:
   install fails with that reason and the next payload runs it again. Other changed package
   init code, and a change to `main` or `config`, ran when the map started and does not run again: the payload carries
   the change, with a warning that applying it needs a restart.
+  For packages added by payloads, the map records the init code it ran and prints the restart warning when a later
+  payload changes it; resending unchanged code gives no warning.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
   and kept, so what is stored in it stays.
 

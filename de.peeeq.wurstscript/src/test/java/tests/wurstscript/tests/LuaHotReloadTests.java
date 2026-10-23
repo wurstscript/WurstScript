@@ -365,8 +365,12 @@ public class LuaHotReloadTests extends WurstScriptTest {
     };
 
     private static CU addedPackage(boolean failing) {
+        return addedPackage(failing, 0);
+    }
+
+    private static CU addedPackage(boolean failing, int increment) {
         List<String> lines = new java.util.ArrayList<>(List.of("package Added", "import Main",
-            "native I2S(int i) returns string", "int first = bump()", "init", "    made += first"));
+            "native I2S(int i) returns string", "int first = bump()", "init", "    made += first + " + increment));
         if (failing) {
             lines.addAll(List.of("    if made < 100", "        I2S(1 div 0)"));
         }
@@ -403,6 +407,10 @@ public class LuaHotReloadTests extends WurstScriptTest {
      * of {@code globals} and the reason it did not.
      */
     private String applyInLua(String script, List<String> payloads, String... globals) throws Exception {
+        return applyInLua(script, payloads, false, globals);
+    }
+
+    private String applyInLua(String script, List<String> payloads, boolean messages, String... globals) throws Exception {
         java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadApply");
         for (int i = 0; i < payloads.size(); i++) {
             java.nio.file.Files.writeString(dir.resolve("p" + (i + 1) + ".lua"), payloads.get(i));
@@ -415,7 +423,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String driver = String.join("\n",
             "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
             "dofile('" + script + "')",
-            "BJDebugMsg = function() end",
+            "BJDebugMsg = " + (messages ? "print" : "function() end"),
             "main()",
             "for i = 1, " + payloads.size() + " do",
             "  local f = io.open('" + dir.toString().replace('\\', '/') + "/p' .. i .. '.lua', 'rb')",
@@ -429,6 +437,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
         assertEquals(output, 0, p.waitFor());
         return output;
+    }
+
+    /** The map warns about a changed init it already ran, even when the package was absent from the baseline. */
+    @Test
+    public void changedInitOfAnEarlierPayloadsPackageWarnsOfARestart() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_changedInitOfAnEarlierPayloadsPackageWarnsOfARestart.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        CU main = new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n");
+        LuaHotReload.Manifest first = compileLuaHotReloadManifest(false, HOT_RELOAD, main, addedPackage(false));
+        LuaHotReload.Manifest edited = compileLuaHotReloadManifest(false, HOT_RELOAD, main, addedPackage(false, 10));
+        String output = applyInLua(script, List.of(
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 2).source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 3).source()), true, globalName(first, "made"));
+        assertEquals(output, 1, occurrences(output, "restart the map to apply changed package init code"));
+        assertEquals("the init runs only once: " + output, 3, occurrences(output, "true 4 nil"));
     }
 
     private static String[] mainWithExtra(String initialValue) {
