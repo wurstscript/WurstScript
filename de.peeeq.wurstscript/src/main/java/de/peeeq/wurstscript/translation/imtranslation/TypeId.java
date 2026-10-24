@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
@@ -18,15 +19,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 public class TypeId {
 
-    // sort classes by package, name, and source coordinate to get deterministic order
+    // sort classes by package, name, and source coordinate to get deterministic order; the line and column compare as
+    // numbers, so a class on line 12 comes after one on line 9
     private static final Comparator<ImClass> class_comparator =
             Comparator.comparing(TypeId::packageName)
                     .thenComparing(ImClass::getName)
-                    .thenComparing(TypeId::sourceKey);
+                    .thenComparing(TypeId::sourceFile)
+                    .thenComparingInt(c -> sourcePosition(c, WPos::getLine))
+                    .thenComparingInt(c -> sourcePosition(c, WPos::getStartColumn));
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         return calculate(prog.getClasses(), TypeId::superClassDefs);
@@ -94,17 +99,24 @@ public class TypeId {
         return "global";
     }
 
-    private static String sourceKey(ImClass ic) {
+    private static @Nullable WPos source(ImClass ic) {
         Element c = ic.attrTrace();
-        if (c != null) {
-            de.peeeq.wurstscript.parser.WPos pos = c.attrSource();
-            if (pos != null) {
-                String file = pos.getFile();
-                String simpleFile = file != null ? new java.io.File(file).getName() : "";
-                return simpleFile + ":" + pos.getLine() + ":" + pos.getStartColumn();
-            }
+        return c == null ? null : c.attrSource();
+    }
+
+    private static String sourceFile(ImClass ic) {
+        WPos pos = source(ic);
+        if (pos == null) {
+            return "";
         }
-        return "";
+        String file = pos.getFile();
+        return file != null ? new java.io.File(file).getName() : "";
+    }
+
+    /** A coordinate of the class's source position, or -1 for a class without one, which comes first. */
+    private static int sourcePosition(ImClass ic, ToIntFunction<WPos> coordinate) {
+        WPos pos = source(ic);
+        return pos == null ? -1 : coordinate.applyAsInt(pos);
     }
 
     private static void assignIds(AtomicInteger count, Map<ImClass, Integer> result,

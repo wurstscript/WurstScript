@@ -63,6 +63,7 @@ public final class LuaHotReloadSession {
         List<String> variables = new ArrayList<>();
         /** Every shape sent of each closure told apart by its order. */
         Map<String, List<String>> groupShapes = new LinkedHashMap<>();
+        Set<String> reboundSlots = new LinkedHashSet<>();
     }
 
     /**
@@ -233,6 +234,7 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         List<String> variables = new ArrayList<>();
         Map<String, String> groupShapes = new LinkedHashMap<>();
+        Set<String> reboundSlots = new LinkedHashSet<>();
     }
 
     /** A payload and the file it was written to. */
@@ -271,7 +273,8 @@ public final class LuaHotReloadSession {
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline(buildDir, state), current, new LuaHotReload.History(
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
-            new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes)), state.version + 1);
+            new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
+            state.reboundSlots == null ? Set.of() : state.reboundSlots), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -281,6 +284,7 @@ public final class LuaHotReloadSession {
         pending.packageInits = new ArrayList<>(payload.packageInits());
         pending.variables = new ArrayList<>(payload.variables());
         pending.groupShapes = new LinkedHashMap<>(payload.groupShapes());
+        pending.reboundSlots = new LinkedHashSet<>(payload.reboundSlots());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -340,6 +344,9 @@ public final class LuaHotReloadSession {
             groupShapes.put(entry.getKey(), List.copyOf(shapes));
         }
         state.groupShapes = groupShapes;
+        Set<String> reboundSlots = new LinkedHashSet<>(state.reboundSlots == null ? Set.of() : state.reboundSlots);
+        reboundSlots.addAll(sent.reboundSlots == null ? Set.of() : sent.reboundSlots);
+        state.reboundSlots = reboundSlots;
         state.version = sent.version;
     }
 
