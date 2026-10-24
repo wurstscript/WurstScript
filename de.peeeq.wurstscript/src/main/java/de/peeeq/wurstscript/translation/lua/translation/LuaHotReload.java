@@ -1430,7 +1430,15 @@ public final class LuaHotReload {
                         right.add(j);
                     }
                 }
-                // Copies of one source: any of them is as good as another.
+                // With no count change, body edits keep their places. Matching a surviving copy first would swap
+                // [A, A] -> [B, A], giving the edit to the second callback's existing objects and captures.
+                if (left.size() == right.size()) {
+                    for (int k = 0; k < left.size(); k++) {
+                        pairs[right.get(k)] = left.get(k);
+                    }
+                    continue;
+                }
+                // Copies of one source: match unchanged ones while finding additions or removals.
                 for (Iterator<Integer> it = left.iterator(); it.hasNext(); ) {
                     int i = it.next();
                     for (Iterator<Integer> jt = right.iterator(); jt.hasNext(); ) {
@@ -1447,12 +1455,6 @@ public final class LuaHotReload {
                     continue;
                 } else if (right.isEmpty()) {
                     removed.addAll(left);
-                } else if (left.size() == right.size()) {
-                    // Edited bodies keep their places. A simultaneous insertion cannot be distinguished from an
-                    // append, even after the last unchanged closure, so different counts must be refused.
-                    for (int k = 0; k < left.size(); k++) {
-                        pairs[right.get(k)] = left.get(k);
-                    }
                 } else {
                     return null;
                 }
