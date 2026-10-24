@@ -253,6 +253,12 @@ public final class LuaHotReload {
         LuaFunction bootstrap = tr.bootstrapFunction();
         ImFunction globalInitIm = tr.imTr.getGlobalInitFunc();
         LuaFunction globalInit = globalInitIm == null ? null : tr.luaFunc.getFor(globalInitIm);
+        Set<LuaFunction> compiletimeFunctions = Collections.newSetFromMap(new IdentityHashMap<>());
+        ImFunction compiletimeRoot = tr.imTr.compiletimeStateFunction();
+        if (compiletimeRoot != null) {
+            compiletimeFunctions.add(tr.luaFunc.getFor(compiletimeRoot));
+            tr.imTr.compiletimeStateParts().forEach(f -> compiletimeFunctions.add(tr.luaFunc.getFor(f)));
+        }
 
         Map<LuaFunction, List<String>> slots = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> captures = new IdentityHashMap<>();
@@ -303,6 +309,9 @@ public final class LuaHotReload {
         List<String> bindings = new ArrayList<>();
         for (LuaStatement statement : model) {
             if (statement instanceof LuaFunction f) {
+                if (compiletimeFunctions.contains(f)) {
+                    continue;
+                }
                 if (f == bootstrap || f == globalInit) {
                     String scope = f == bootstrap ? "boot" : "globals";
                     for (LuaStatement s : f.getBody()) {
@@ -342,8 +351,22 @@ public final class LuaHotReload {
             }
         }
 
+        if (compiletimeRoot != null) {
+            Set<LuaVariable> objects = Collections.newSetFromMap(new IdentityHashMap<>());
+            tr.imTr.compiletimeGlobals().forEach(v -> objects.add(tr.luaVar.getFor(v)));
+            Set<LuaFunction> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+            collectCompiletimeStatements(tr, tr.luaFunc.getFor(compiletimeRoot), compiletimeFunctions, objects,
+                visited, new HashMap<>(), statements);
+            // Some split parts can be dropped as empty/dead; every part still emitted must be reached by the root.
+            for (LuaStatement s : model) {
+                if (s instanceof LuaFunction f && compiletimeFunctions.contains(f) && !visited.contains(f)) {
+                    throw new IllegalStateException("Unreached compile-time state function " + f.getName());
+                }
+            }
+        }
+
         for (ImVar global : tr.prog.getGlobals()) {
-            bindings.add(tr.luaVar.getFor(global).getName() + "=" + semanticId(global, global.getName())
+            bindings.add(tr.luaVar.getFor(global).getName() + "=" + variableId(tr.imTr, global)
                 + ":" + typeKey(global.getType()));
         }
         for (ImClass c : tr.prog.getClasses()) {
@@ -402,6 +425,94 @@ public final class LuaHotReload {
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
             List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables),
             List.copyOf(hooks));
+    }
+
+    /** Expand the startup replay in execution order, retaining the object each statement initializes. */
+    private static void collectCompiletimeStatements(LuaTranslator tr, LuaFunction function, Set<LuaFunction> parts,
+            Set<LuaVariable> objects, Set<LuaFunction> visited, Map<String, Integer> ordinals, List<Statement> out) {
+        if (!visited.add(function)) {
+            throw new IllegalStateException("Repeated compile-time state function " + function.getName());
+        }
+        for (LuaStatement s : function.getBody()) {
+            if (s instanceof LuaExprFunctionCall call && parts.contains(call.getFunc())) {
+                collectCompiletimeStatements(tr, call.getFunc(), parts, objects, visited, ordinals, out);
+                continue;
+            }
+            LuaVariable owner = compiletimeOwner(s, objects);
+            // Allocator-id replay and stack instrumentation belong only to map startup, never a payload.
+            if (owner == null) {
+                continue;
+            }
+            String name = owner.getName();
+            StringBuilder text = new StringBuilder();
+            s.print(text, 0);
+            out.add(new Statement("compiletime", name + ":" + ordinals.merge(name, 1, Integer::sum), text.toString(),
+                "global", name, withoutPositions(tr, s), List.of(name)));
+        }
+    }
+
+    private static LuaVariable compiletimeOwner(de.peeeq.wurstscript.luaAst.Element e, Set<LuaVariable> objects) {
+        if (e instanceof LuaExprVarAccess access && objects.contains(access.getVar())) {
+            return access.getVar();
+        }
+        for (int i = 0; i < e.size(); i++) {
+            LuaVariable found = compiletimeOwner(e.get(i), objects);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, List<Statement>> compiletimeState(Manifest manifest) {
+        Map<String, List<Statement>> result = new LinkedHashMap<>();
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("compiletime")) {
+                result.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+            }
+        }
+        return result;
+    }
+
+    private static String compiletimeRevision(List<Statement> statements) {
+        return identityHash(String.join("\n", statements.stream().map(Statement::revision).toList()));
+    }
+
+    /**
+     * New objects replay once, before source initializers read them. Keep the original interleaving: all allocations
+     * precede field writes, including cycles. Per-statement markers allow retry after a failed write; the owner marker
+     * freezes the complete snapshot once installed, so a later edit cannot partially overwrite runtime mutations.
+     */
+    private static void appendCompiletimeState(StringBuilder sb, Manifest baseline, Manifest current) {
+        Map<String, List<Statement>> owners = compiletimeState(current);
+        owners.keySet().removeAll(compiletimeState(baseline).keySet());
+        if (owners.isEmpty()) {
+            return;
+        }
+        sb.append("local compiletimeNew = {}\n");
+        for (Map.Entry<String, List<Statement>> owner : owners.entrySet()) {
+            String key = luaString("compiletime:" + owner.getKey());
+            String marker = RAN_TABLE + "[" + key + "]";
+            sb.append("compiletimeNew[").append(key).append("] = not ").append(marker).append("\n")
+                .append("if ").append(marker).append(" and ").append(marker).append(" ~= ")
+                .append(luaString(compiletimeRevision(owner.getValue()))).append(" then\n")
+                .append(WARN_FUNCTION).append("(").append(luaString("Wurst hot reload: " + owner.getKey()
+                    + " keeps its value; restart the map to apply changed compile-time state")).append(")\nend\n");
+        }
+        for (Statement s : current.statements()) {
+            List<Statement> group = s.scope().equals("compiletime") ? owners.get(s.owner()) : null;
+            if (group == null) {
+                continue;
+            }
+            String key = luaString("compiletime:" + s.owner());
+            sb.append("if compiletimeNew[").append(key).append("] then\n");
+            appendOnce(sb, s);
+            if (s == group.getLast()) {
+                sb.append(RAN_TABLE).append("[").append(key).append("] = ")
+                    .append(luaString(compiletimeRevision(group))).append("\n");
+            }
+            sb.append("end\n");
+        }
     }
 
     /**
@@ -750,6 +861,13 @@ public final class LuaHotReload {
             warnings.add("Changed package init code ran when the map started and does not run again ("
                 + String.join(", ", changedInits) + "): restart the map to apply it.");
         }
+        Map<String, List<Statement>> oldCompiletime = compiletimeState(baseline);
+        for (Map.Entry<String, List<Statement>> owner : compiletimeState(current).entrySet()) {
+            List<Statement> old = oldCompiletime.get(owner.getKey());
+            if (old != null && !compiletimeRevision(old).equals(compiletimeRevision(owner.getValue()))) {
+                keptValues.add(owner.getKey() + " (compile-time state)");
+            }
+        }
         if (!keptValues.isEmpty()) {
             warnings.add("Changed initial values (" + String.join(", ", keptValues) + ") do not apply: the running map keeps"
                 + " the values it has. Restart the map to apply them.");
@@ -842,6 +960,7 @@ public final class LuaHotReload {
             }
             appendBinding(sb, s.key(), newBindings);
         }
+        appendCompiletimeState(sb, baseline, current);
         // All package work shares main's dependency order. A new package may depend on a new global in an existing
         // package, and an existing package's new global may depend on a new package (including an earlier payload's).
         for (String init : current.initOrder()) {
