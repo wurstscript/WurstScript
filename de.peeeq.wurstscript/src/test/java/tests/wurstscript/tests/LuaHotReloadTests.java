@@ -1250,6 +1250,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(inserted.source(), inserted.source().contains("__wurst_hotreload_lineages"));
     }
 
+    @Test
+    public void editingOneOfIdenticalCallbacksKeepsTheirCapturedValues() {
+        String[] base = {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int", "function keep(Op op) returns Op", "    return op",
+            "Op first", "Op second", "function makeAll(int initial)", "    var seed = initial", "    first = keep(() -> seed)",
+            "    seed += 10", "    second = keep(() -> seed)", "init", "    makeAll(5)",
+            "    if first.apply() != 5 or second.apply() != 15", "        testFail(\"original captures\")",
+            "    hotReload()", "    if first.apply() != 105 or second.apply() != 15",
+            "        testFail(\"identical callbacks exchanged their histories\")", "    testSuccess()"};
+        String[] edited = base.clone();
+        edited[12] = "    first = keep(() -> seed + 100)";
+        test().testLua(true).executeProg().luaHotReload(edited).lines(base);
+    }
+
     private static String[] orderedCallbacks(String second, String... more) {
         String[] lines = {
             "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
