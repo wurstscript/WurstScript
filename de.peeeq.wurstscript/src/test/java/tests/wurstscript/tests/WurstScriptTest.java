@@ -805,6 +805,15 @@ public class WurstScriptTest {
 
     /** Compiles {@code units} to Lua with {@code runArgs}, which include {@code -luaHotReload}, and returns the manifest. */
     LuaHotReload.Manifest compileLuaHotReloadManifest(boolean withStdLib, RunArgs runArgs, CU... units) {
+        return compileLuaHotReload(withStdLib, runArgs, units).manifest();
+    }
+
+    /** A hot-reload build: the script a map runs and its manifest. */
+    record LuaHotReloadBuild(String script, LuaHotReload.Manifest manifest) {
+    }
+
+    /** Compiles {@code units} to Lua with {@code runArgs}, which include {@code -luaHotReload}: the script and its manifest. */
+    LuaHotReloadBuild compileLuaHotReload(boolean withStdLib, RunArgs runArgs, CU... units) {
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         compiler.getErrorHandler().enableUnitTestMode();
@@ -815,8 +824,9 @@ public class WurstScriptTest {
         }
         compiler.translateProgToIm(model);
         compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
-        compiler.transformProgToLua();
-        return compiler.getLuaTranslator().hotReloadManifest();
+        StringBuilder script = new StringBuilder();
+        compiler.transformProgToLua().print(script, 0);
+        return new LuaHotReloadBuild(script.toString(), compiler.getLuaTranslator().hotReloadManifest());
     }
 
     private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model,
