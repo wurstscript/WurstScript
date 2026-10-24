@@ -1196,13 +1196,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void payloadWarningsAreOneNote() {
         LuaHotReload.Payload none = new LuaHotReload.Payload(3, List.of(), "", List.of(), java.util.Map.of(), java.util.Map.of(),
-            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals(null, LuaHotReloadSession.warningNote(none));
         LuaHotReload.Payload one = new LuaHotReload.Payload(3, List.of(), "", List.of("a"), java.util.Map.of(), java.util.Map.of(),
-            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals("a", LuaHotReloadSession.warningNote(one));
         LuaHotReload.Payload two = new LuaHotReload.Payload(3, List.of(), "", List.of("a", "b"), java.util.Map.of(),
-            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals("Hot reload payload 3 applies with 2 notes:\na\nb", LuaHotReloadSession.warningNote(two));
     }
 
@@ -3104,6 +3104,111 @@ public class LuaHotReloadTests extends WurstScriptTest {
                 "wurst hot reload probe: \"quoted\" back\\slash //! marker\nsecond line"),
             java.nio.file.Files.readString(java.nio.file.Paths.get("../docs/profiling/lua-opportunities/hot-reload-probe.pld"))
                 .replace("\r\n", "\n"));
+    }
+
+    /**
+     * Closures on lines 9 and 12 move to 10 and 13: nothing moved. Ordered by their positions as text ("L12" before "L9"),
+     * the two swapped names and the map refused the edit.
+     */
+    @Test
+    public void closuresKeepTheirPlacesWhenTheLinesAboveShift() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(shiftedCallbacks(false));
+        LuaHotReload.Manifest shifted = manifest(shiftedCallbacks(true));
+        assertEquals(baseline.functions().keySet(), shifted.functions().keySet());
+        LuaHotReload.payload(baseline, shifted, Set.of(), 1);
+    }
+
+    /** Declarations of one name are ordered by their positions as numbers, line before column. */
+    @Test
+    public void sortKeysComparePositionsAsNumbers() {
+        List<de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey> keys = new java.util.ArrayList<>(List.of(
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 101, 5),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 12, 10),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 12, 9),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 98, 1),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", -1, -1),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("e", 1000, 1)));
+        java.util.Collections.sort(keys);
+        assertEquals(List.of("e@1000:1", "f@-1:-1", "f@12:9", "f@12:10", "f@98:1", "f@101:5"),
+            keys.stream().map(k -> k.name() + "@" + k.line() + ":" + k.column()).toList());
+    }
+
+    private static String[] shiftedCallbacks(boolean lineAbove) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "interface Op", "    function apply() returns int",
+            "Op first = null", "Op second = null", "function keep(Op op) returns Op", "    return op",
+            "function makeAll()", "    first = keep(() -> 1)", "", "", "    second = keep(() -> 2)",
+            "init", "    makeAll()", "    first.apply()", "    second.apply()"));
+        if (lineAbove) {
+            lines.add(1, "// one line more");
+        }
+        return lines.toArray(new String[0]);
+    }
+
+    /** A class which implements another interface reloads: its table of supertypes is assigned again. */
+    @Test
+    public void aClassWhichImplementsAnotherInterfaceReloads() throws Exception {
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(implementing("Visitor")),
+            manifest(implementing("Predicate")), Set.of(), 1);
+        assertTrue(payload.source(), Pattern.compile("Doubler\\w*\\.__wurst_supertypes = \\(\\{[^\\n]*Predicate")
+            .matcher(payload.source()).find());
+    }
+
+    private static String[] implementing(String iface) {
+        return new String[] {"package Test", "interface Visitor", "    function visit(int x) returns int",
+            "interface Predicate", "    function visit(int x) returns int", "abstract class Base",
+            "class Doubler extends Base implements " + iface, "    function visit(int x) returns int", "        return 2 * x",
+            "function useVisitor(Visitor v) returns int", "    return v.visit(1)",
+            "function usePredicate(Predicate p) returns int", "    return p.visit(1)",
+            "function check(Base b) returns boolean", "    return b instanceof Doubler",
+            "init", "    let d = new Doubler()", "    check(d)", "    useVisitor(null)", "    usePredicate(null)"};
+    }
+
+    /** An object made before the reload is an instance of the interface its class implements now, and no longer of the old. */
+    @Test
+    public void instanceofFollowsTheInterfacesAClassImplementsAfterTheReload() {
+        test().testLua(true).executeProg().luaHotReload(implementingAndChecking("Predicate"))
+            .lines(implementingAndChecking("Visitor"));
+    }
+
+    @Test
+    public void undoingAnInterfaceChangeRestoresTheRunningObjectsSupertypes() throws Exception {
+        String[] original = interfaceUndoProgram("Visitor");
+        String[] changed = interfaceUndoProgram("Predicate");
+        var baseline = manifest(original);
+        var build = java.nio.file.Files.createTempDirectory("hotReloadInterfaceUndo");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadInterfaceUndoDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, manifest(changed)).payload();
+        var second = LuaHotReloadSession.send(build, delivery, baseline).payload();
+        test().testLua(true).luaHotReload(original).lines(original);
+        String script = "test-output/lua/LuaHotReloadTests_undoingAnInterfaceChangeRestoresTheRunningObjectsSupertypes.lua";
+        String probe = luaName(baseline, "isVisitor") + "()";
+        assertEquals("true false nil\ntrue true nil", applyInLua(script,
+            List.of(first.source(), second.source()), probe).replace("\r\n", "\n"));
+        assertEquals("true true nil", applyInLua(script, List.of(second.source()), probe));
+    }
+
+    private static String[] interfaceUndoProgram(String iface) {
+        return new String[] {"package Test", "interface Thing", "interface Visitor extends Thing",
+            "    function visit() returns int", "interface Predicate extends Thing", "    function visit() returns int",
+            "class Doubler implements " + iface, "    function visit() returns int", "        return 2",
+            "Thing saved", "function isVisitor() returns boolean", "    return saved instanceof Visitor",
+            "function probePredicate(Predicate p) returns int", "    return p.visit()", "init", "    saved = new Doubler()",
+            "    isVisitor()", "    probePredicate(null)"};
+    }
+
+    private static String[] implementingAndChecking(String iface) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Thing", "interface Visitor extends Thing", "    function visit(int x) returns int",
+            "interface Predicate extends Thing", "    function visit(int x) returns int", "abstract class Base implements Thing",
+            "class Doubler extends Base implements " + iface, "    function visit(int x) returns int", "        return 2 * x",
+            "function isVisitor(Thing t) returns boolean", "    return t instanceof Visitor",
+            "function isPredicate(Thing t) returns boolean", "    return t instanceof Predicate",
+            "init", "    Thing d = new Doubler()",
+            "    if not isVisitor(d) or isPredicate(d)", "        testFail(\"the original supertypes\")",
+            "    hotReload()",
+            "    if isVisitor(d) or not isPredicate(d)", "        testFail(\"the supertypes after the reload\")",
+            "    testSuccess()"};
     }
 
     private LuaHotReload.Manifest libraryManifest(RunArgs args, String[] lines) {
