@@ -19,7 +19,9 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.WorkDoneProgressBegin;
 import org.eclipse.lsp4j.WorkDoneProgressReport;
 import org.eclipse.lsp4j.WorkDoneProgressEnd;
+import org.eclipse.lsp4j.jsonrpc.RemoteEndpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.testng.annotations.Test;
 
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import static org.testng.Assert.*;
 
@@ -117,16 +120,35 @@ public class BuildDiagnosticsTests {
         request.handleException(client, error, editor);
         assertTrue(editor.isCompletedExceptionally());
         assertEquals(messages.size(), 1, "the editor must receive only one failure notification");
+        assertEquals(responseErrorOf(editor).getMessage(), "Build failed",
+            "the editor must receive the failure's text, not lsp4j's \"Internal error.\"");
 
         CompletableFuture<Object> warningFailure = new CompletableFuture<>();
         request.handleException(client, new RequestFailedException(MessageType.Warning, "On-disk compilation failed"), warningFailure);
         assertTrue(warningFailure.isCompletedExceptionally(), "a warning-level failure must not report a successful build");
         assertEquals(messages.size(), 1, "the editor owns the failure notification");
+        assertEquals(responseErrorOf(warningFailure).getMessage(), "On-disk compilation failed");
+
+        String refusal = "The edit cannot be hot reloaded, rebuild and restart the map:\n  function f: its parameters changed";
+        CompletableFuture<Object> refusedReload = new CompletableFuture<>();
+        request.handleException(client, new RequestFailedException(MessageType.Warning, refusal), refusedReload);
+        assertEquals(responseErrorOf(refusedReload).getMessage(), refusal, "every reason of a refused hot reload reaches the editor");
+        assertEquals(messages.size(), 1);
 
         CompletableFuture<Object> cancelled = new CompletableFuture<>();
         request.handleException(client, new RequestFailedException(MessageType.Info, "Run canceled."), cancelled);
         assertFalse(cancelled.isCompletedExceptionally());
         assertEquals(messages.get(1).getType(), MessageType.Info);
+    }
+
+    /** The error lsp4j sends the client for a request which completed with the future's failure. */
+    private static ResponseError responseErrorOf(CompletableFuture<Object> future) {
+        try {
+            future.join();
+        } catch (CompletionException e) {
+            return RemoteEndpoint.DEFAULT_EXCEPTION_HANDLER.apply(e.getCause());
+        }
+        throw new AssertionError("the request did not fail");
     }
 
     @Test

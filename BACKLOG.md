@@ -218,6 +218,18 @@ Notes; finished-work narrative does not.
   Not yet measured: how often a real project's edits are rejected, and its payload sizes and reload
   times. Later stages are in the design note: a library reload hook, and multiplayer only through a
   synchronised channel.
+- **Lua hot reload: a reload translates the whole program.** Proposal, measured on 24 Oct 2026 in the language
+  server on Castle Fight (`wurst.hotreload` after a body edit, a constant edit and a declaration edit, four of each):
+  a warm request took 14 to 30 s on a loaded machine, the first after a command-line start about 47 s (it checks the
+  model again once the configured map script replaces the project's). After the session files stopped being
+  rewritten (the 75 MB baseline manifest saved on every reload, and `manifest.json` written by each reload), the
+  request's CPU samples were: translation to Lua 56 % (the generics elimination's whole-program demand analysis
+  13 %, garbage removal 7 %, `LuaTranslator.translate` 16 %, the hot-reload manifest of every function 5 %), the
+  model check and translation to IM 16 %, reconciling the edit 8 %, the payload diff 6 %. Every part but the
+  reconcile is the whole program again, while a body edit changes one function. A cheaper reload needs IM and Lua
+  translation per changed unit with whole-program facts kept between reloads (the generic demand graph, the
+  reachable set, slot bindings); the output must stay byte-identical to a fresh compilation, which an oracle like
+  `IncrementalModelOracleTests` would check. Not started: it is a redesign of the translation pipeline.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

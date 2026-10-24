@@ -1,13 +1,18 @@
 package de.peeeq.wurstio;
 
 import de.peeeq.wurstscript.CompileTimeInfo;
+import de.peeeq.wurstscript.RunArgs;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class MainTests {
@@ -22,6 +27,23 @@ public class MainTests {
     public void versionPrintsCompilerVersion() {
         String output = captureStdout(() -> Main.main(new String[]{"-version"}));
         assertEquals(output.trim(), CompileTimeInfo.version);
+    }
+
+    @Test
+    public void hotReloadBuildTakesTheRunArgumentsNotTheBuildOnlyOnes() throws Exception {
+        Path project = Files.createTempDirectory("wurst-hot-reload-build-args");
+        Files.writeString(project.resolve("wurst.build"), "projectName: HotReloadArgs\n");
+        // What the compiler writes into a new project's wurst_run.args.
+        Files.writeString(project.resolve("wurst_run.args"), "-stacktraces\n+opt\n+inline\n+localOptimizations\n");
+
+        List<String> hotReload = Main.workspaceCompileArgs(project.toString(), new RunArgs("-build", "-luaHotReload"));
+        assertTrue(hotReload.contains("-stacktraces"));
+        assertFalse(hotReload.contains("-opt"), "-luaHotReload refuses -opt, so a hot reload build cannot take it");
+        assertFalse(hotReload.contains("-inline"));
+        assertFalse(hotReload.contains("-localOptimizations"));
+
+        List<String> release = Main.workspaceCompileArgs(project.toString(), new RunArgs("-build"));
+        assertTrue(release.containsAll(List.of("-stacktraces", "-opt", "-inline", "-localOptimizations")));
     }
 
     private String captureStdout(Runnable action) {
