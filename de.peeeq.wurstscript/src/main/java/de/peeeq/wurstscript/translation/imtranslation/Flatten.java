@@ -25,65 +25,16 @@ public class Flatten {
     // Threshold for parallel execution (only if USE_PARALLEL_EXECUTION is true)
     public static int PARALLEL_THRESHOLD = 10000;
 
-    // Cached temporary variable names
-    private static final String[] TEMP_VAR_NAMES;
-    private static final String[] AND_LEFT_VAR_NAMES;
-    private static final String[] TUPLE_TEMP_VAR_NAMES;
-
-    static {
-        TEMP_VAR_NAMES = new String[200];
-        for (int i = 0; i < TEMP_VAR_NAMES.length; i++) {
-            TEMP_VAR_NAMES[i] = "temp" + i;
-        }
-
-        AND_LEFT_VAR_NAMES = new String[50];
-        for (int i = 0; i < AND_LEFT_VAR_NAMES.length; i++) {
-            AND_LEFT_VAR_NAMES[i] = "andLeft" + i;
-        }
-
-        TUPLE_TEMP_VAR_NAMES = new String[50];
-        for (int i = 0; i < TUPLE_TEMP_VAR_NAMES.length; i++) {
-            TUPLE_TEMP_VAR_NAMES[i] = "tuple_temp" + i;
-        }
-    }
-
-    private static final ThreadLocal<Integer> tempVarCounter = ThreadLocal.withInitial(() -> 0);
-    private static final ThreadLocal<Integer> andLeftVarCounter = ThreadLocal.withInitial(() -> 0);
-    private static final ThreadLocal<Integer> tupleTempVarCounter = ThreadLocal.withInitial(() -> 0);
-
-    /**
-     * Starts temporary names from zero again for a new compilation.
-     * <p>
-     * The counters are per thread and were never reset, so the name a temporary got depended on how
-     * many programs had been compiled before it on that thread; the same source emitted {@code
-     * temp0} alone and {@code temp70} after other work, which is why generated Jass could not be
-     * compared across runs. They still run on through one compilation, because flattening happens
-     * again after each optimisation and restarting mid-compilation would name two locals of one
-     * function alike.
+    /*
+     * The names of the temporaries the flatten makes. They are the same in every function, as other locals the
+     * translation makes are ("temp", "receiver", "cond_result"), and each backend tells apart the locals of one
+     * function which share a name (ImToJassTranslator.getUniqueLocalName, LuaTranslator.localName). A number counted
+     * across the program made the name depend on every function flattened before, so a temporary added to one
+     * function renamed the temporaries of the functions after it, and a hot-reload payload carried them all.
      */
-    public static void resetTempVarCounters() {
-        tempVarCounter.set(0);
-        andLeftVarCounter.set(0);
-        tupleTempVarCounter.set(0);
-    }
-
-    private static String getTempVarName() {
-        int count = tempVarCounter.get();
-        tempVarCounter.set(count + 1);
-        return TEMP_VAR_NAMES[count % TEMP_VAR_NAMES.length];
-    }
-
-    private static String getAndLeftVarName() {
-        int count = andLeftVarCounter.get();
-        andLeftVarCounter.set(count + 1);
-        return AND_LEFT_VAR_NAMES[count % AND_LEFT_VAR_NAMES.length];
-    }
-
-    private static String getTupleTempVarName() {
-        int count = tupleTempVarCounter.get();
-        tupleTempVarCounter.set(count + 1);
-        return TUPLE_TEMP_VAR_NAMES[count % TUPLE_TEMP_VAR_NAMES.length];
-    }
+    private static final String TEMP_VAR_NAME = "temp";
+    private static final String AND_LEFT_VAR_NAME = "andLeft";
+    private static final String TUPLE_TEMP_VAR_NAME = "tuple_temp";
 
     /**
      * A type class dispatch behaves like a call: only its arguments need flattening. The dispatch
@@ -279,7 +230,7 @@ public class Flatten {
             de.peeeq.wurstscript.ast.Element trace = expr.attrTrace();
             Result res = expr.flatten(t, f);
             result.addAll(res.stmts);
-            ImVar tempVar = JassIm.ImVar(trace, type, getTempVarName(), false);
+            ImVar tempVar = JassIm.ImVar(trace, type, TEMP_VAR_NAME, false);
             f.getLocals().add(tempVar);
             result.add(ImSet(trace, ImVarAccess(tempVar), res.expr));
         } else if (e instanceof ImOperatorCall oc &&
@@ -400,7 +351,7 @@ public class Flatten {
                 } else {
                     ArrayList<ImStmt> stmts = new ArrayList<>(left.stmts.size() + 1);
                     stmts.addAll(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), getAndLeftVarName(), false);
+                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), AND_LEFT_VAR_NAME, false);
                     f.getLocals().add(tempVar);
                     ImStmts thenBlock = JassIm.ImStmts();
                     // if left is true then check right
@@ -421,7 +372,7 @@ public class Flatten {
                 } else {
                     ArrayList<ImStmt> stmts = new ArrayList<>(left.stmts.size() + 1);
                     stmts.addAll(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), getAndLeftVarName(), false);
+                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), AND_LEFT_VAR_NAME, false);
                     f.getLocals().add(tempVar);
                     // if left is true then result is true
                     ImStmts thenBlock = JassIm.ImStmts(ImSet(trace, ImVarAccess(tempVar), JassIm.ImBoolVal(true)));
@@ -492,7 +443,7 @@ public class Flatten {
         } else {
             // in the unlikely event that this is not an l-value (e.g. foo().x)
             // we create a temporary variable and store the result there
-            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTupleTempVarName(), false);
+            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), TUPLE_TEMP_VAR_NAME, false);
             f.getLocals().add(v);
             stmts = new ArrayList<>(r.stmts);
             stmts.add(JassIm.ImSet(e.attrTrace(), ImVarAccess(v), r.expr));
@@ -639,7 +590,7 @@ public class Flatten {
             if (i >= withStmts || r.expr.attrPurity() instanceof Pure) {
                 newExprs.add(r.expr);
             } else {
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTempVarName(), false);
+                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), TEMP_VAR_NAME, false);
                 f.getLocals().add(tempVar);
                 stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));
@@ -673,7 +624,7 @@ public class Flatten {
             if (i >= withStmts || r.expr.attrPurity() instanceof Pure) {
                 newExprs.add(r.getExpr());
             } else {
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTempVarName(), false);
+                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), TEMP_VAR_NAME, false);
                 f.getLocals().add(tempVar);
                 stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));

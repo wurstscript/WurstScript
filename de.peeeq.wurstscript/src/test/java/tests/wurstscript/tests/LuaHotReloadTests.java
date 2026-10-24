@@ -676,6 +676,48 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals("only the edited function's text changes", List.of("score"), sourceNames(changed));
     }
 
+    /**
+     * The flatten names its temporaries within their function: a temporary added to one function must not renumber
+     * those of the functions flattened after it, which would change their text and ship them in every payload.
+     */
+    @Test
+    public void addedTemporaryLeavesOtherFunctionsAlone() {
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("addedTemporaryLeavesOtherFunctionsAlone", String.join("\n", temporaries("x + 1")) + "\n"));
+        // The nested call is evaluated into a temporary, because the conditional after it has statements.
+        LuaHotReload.Manifest after = compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("addedTemporaryLeavesOtherFunctionsAlone",
+                String.join("\n", temporaries("add(add(x, 1), x > 0 ? 1 : 2)")) + "\n"));
+        String second = before.functions().get(luaName(before, "second")).definition();
+        assertTrue("the other function has temporaries of both kinds: " + second,
+            second.contains("andLeft") && second.contains("temp"));
+        List<String> changed = new java.util.ArrayList<>();
+        for (LuaHotReload.Function f : before.functions().values()) {
+            LuaHotReload.Function now = after.functions().get(f.name());
+            if (now != null && !now.definition().equals(f.definition())) {
+                changed.add(f.name());
+            }
+        }
+        assertEquals("only the edited function's text changes", List.of("first"), sourceNames(changed));
+    }
+
+    private static String[] temporaries(String firstBody) {
+        return new String[] {
+            "package Test",
+            "function add(int a, int b) returns int",
+            "    return a + b",
+            "function first(int x) returns int",
+            "    return " + firstBody,
+            "function second(int x) returns int",
+            "    if x > 0 and add(add(x, 1), x > 1 ? 1 : 2) > 2",
+            "        return 1",
+            "    return 0",
+            "init",
+            "    first(1)",
+            "    second(2)",
+        };
+    }
+
     /** Overloads of a method are separate declarations: each dispatch stub is named from its own signature. */
     @Test
     public void overloadedMethodsHaveTheirOwnNames() throws IOException {
