@@ -313,15 +313,22 @@ public class ClosureTranslator {
      * The scopes and calls which enclose the closure, innermost first. With {@code collapseRepeats},
      * a name which directly follows an equal one is left out, so a closure passed to a call inside
      * a closure passed to the same call is named after that call once rather than once per level.
+     * <p>
+     * A method call whose receiver holds the closure is not named: it comes later in a call chain such as
+     * {@code new Wave().modifier(x -> x + 1).hp(100)}, so adding or removing it must not rename the closure (which a
+     * Lua hot reload would take for another closure), and a long chain must not lengthen the name.
      */
     private String makeNameSuffix(boolean collapseRepeats) {
         StringBuilder sb = new StringBuilder();
         String previous = null;
+        Element child = null;
         Element elem = this.e;
         while (elem != null) {
             String name = null;
             if (elem instanceof NamedScope) {
                 name = ((NamedScope) elem).getName();
+            } else if (elem instanceof ExprMemberMethod call && call.getLeft() == child) {
+                // entered through the receiver: a later call of the chain
             } else if (elem instanceof AstElementWithFuncName) {
                 name = ((AstElementWithFuncName) elem).getFuncNameId().getName();
             }
@@ -332,6 +339,7 @@ public class ClosureTranslator {
                 }
                 previous = name;
             }
+            child = elem;
             elem = elem.getParent();
         }
         return sb.toString();
