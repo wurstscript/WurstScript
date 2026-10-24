@@ -97,7 +97,9 @@ The payload compares the running script's manifest with the edited one:
   now means another declaration or a type, such as a field which holds another class.
 - Interface/class closures bound to source variables include those variable names in their class identities in
   hot-reload builds. Adding or reordering distinct named siblings keeps existing closures' identities and captured
-  values; their methods can be replaced while old objects remain alive. Nested closures include outer variable
+  values; their methods can be replaced while old objects remain alive. A closure passed to a builder call keeps its
+  identity when later calls in that chain are added or removed; two closures passed to the same chain method remain
+  separate by their source order. Nested closures include outer variable
   bindings too. The source owner's scope and structural signature distinguish equal binding names in overloaded
   functions, including packages and enclosing scopes of nested parameter types. A closure in a package's `init` block
   is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure applies
