@@ -227,6 +227,12 @@ Notes; finished-work narrative does not.
     added by an edit is nil after the reload, one inserted above another takes its value, both accepted silently);
     a closure's identity including later calls of its method chain (`ClosureTranslator.makeNameSuffix`); removing
     every closure of an order group refused although nothing is left to confuse.
+  - The randomised differential test (its own draft branch) found two defects it fixes, and two it leaves: an
+    anonymous closure inserted before others of its order group while their bodies also change is accepted and
+    runs the wrong body (check it against the order-group branch before merging either), and a closure which
+    starts capturing a variable reads its default without a warning. On the order-group branch Castle Fight
+    accepts 27 of 30; of the 3 left, one is a new-generics specialisation whose field stores take another one's
+    names, which no branch addresses.
   - Not started: the command-line session has only `start` and `send`, so `grill run --hot` replaces the running
     map's session before it launches, and a failed launch has already deleted its payloads (the language server
     stages, launches, then activates or restores). The first reload after a command-line start checks the whole
