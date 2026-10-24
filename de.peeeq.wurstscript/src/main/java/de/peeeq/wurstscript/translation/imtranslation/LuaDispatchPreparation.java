@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVars;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
 import java.util.ArrayList;
@@ -132,7 +133,14 @@ public final class LuaDispatchPreparation {
             group.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
             // The name is about to become a Lua table key. Sanitising before uniquing means two
             // names that only differed in characters Lua has no place for still get one slot each.
-            String name = uniqueName(LuaIdentifiers.toIdentifier(group.get(0).getName()), usedNames);
+            String base = LuaIdentifiers.toIdentifier(group.get(0).getName());
+            // Numbered in the order of the groups, a group added before others of its name (an interface with a
+            // `run` sorting before another's) renames their slots, which the objects a running map has were bound
+            // to. A hot-reload build names a group after its key instead, as it names declarations.
+            if (tr.getRunArgs().isLuaHotReload()) {
+                base = base + "_" + LuaHotReload.identityHash(group.get(0).getLuaDispatchGroupKey());
+            }
+            String name = uniqueName(base, usedNames);
             // The group is named after one member, whose name is that member's own class and then
             // the method, so stripping the class here is the one place the boundary is known rather
             // than guessed at. Every member shares the segment, including members of other classes
