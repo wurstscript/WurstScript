@@ -48,6 +48,14 @@ initialization. Changing the storage covered by an existing initializer requires
 unit would also overwrite its existing values. A new initializer spanning both old and new storage is rejected
 for the same reason, using both baseline identities and declarations actually installed by earlier payloads.
 
+A hot-reload build therefore keeps the storage of every global declared in the source, whether anything reads it or
+not (`ImTranslator.isHotReloadSourceGlobal`, a root in the garbage removal, the tree shaker and the Lua garbage
+removal; not the globals of common.j, blizzard.j or generic classes). Otherwise a constant nothing reads, or a
+variable only updated from itself, loses its storage while its initializer stays, and the unit's storage changes
+between `[]` and `[x]` when an edit starts or stops reading it: in a replay of a real map's history that was one of the
+two largest causes of refused payloads. Kept, a global an edit starts to read has the value its initializer gave it
+when the map started (`startingToReadAGlobalKeepsItsStorage`). A build without the flag still removes them.
+
 The payload compares the running script's manifest with the edited one:
 
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a

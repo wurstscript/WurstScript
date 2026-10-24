@@ -402,6 +402,11 @@ function ForGroup(g, callback)
     end
 end
 
+-- The stdlib's Framehandle initializes globals from the game's frames at init; a hot-reload build keeps every
+-- global of the source, read or not, so those initializers run. Plain records, not a model of the game's frames.
+function BlzGetOriginFrame(frameType, index) return { originFrame = frameType, index = index } end
+function BlzGetFrameByName(name, index) return { name = name, index = index } end
+
 -- Units and destructables keep what they were created with; nothing in a test moves them. Plain
 -- records, not a model of the game's units.
 local unitsCreated = 0
