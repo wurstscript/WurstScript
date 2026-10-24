@@ -5,6 +5,7 @@ import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.datastructures.TransitiveClosure;
+import de.peeeq.wurstscript.HotReloadHooks;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
@@ -401,6 +402,24 @@ public class ImTranslator implements SpecialisationLookup {
         result.addAll(luaKeyedStubs.values());
         result.addAll(jassAdvanceObjectIdsFuncs.keySet());
         return result;
+    }
+
+    /**
+     * In a {@code -luaHotReload} build, the functions annotated {@code @onHotReload}: each payload calls them, so they are
+     * entry points as preserved functions are, even when no Wurst code calls them. Empty in any other build.
+     */
+    public List<ImFunction> hotReloadHooks() {
+        if (!runArgs.isLuaHotReload()) {
+            return List.of();
+        }
+        List<ImFunction> hooks = new ArrayList<>();
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(imProg)) {
+            // The function made for the annotated declaration, not another with its trace (a stack-trace bridge).
+            if (HotReloadHooks.isHook(f.getTrace()) && functionMap.get(f.getTrace()) == f) {
+                hooks.add(f);
+            }
+        }
+        return hooks;
     }
 
     /**
@@ -2224,6 +2243,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             if (NamePreservation.isPreserved(function)) {
                 calculateCallRelations(function, includeUsedVariables);
             }
+        }
+        for (ImFunction hook : hotReloadHooks()) {
+            calculateCallRelations(hook, includeUsedVariables);
         }
 
         // Mark externally visible globals as read so they survive garbage collection.

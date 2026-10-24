@@ -1,7 +1,7 @@
 # Lua body hot reload (prototype)
 
 Status: implemented behind `-luaHotReload`. The whole path (a payload compiled by the editor, written as a preload
-file, picked up by the running map and installed) was measured on the 3.0.1.24371 client in a test map, last with nine
+file, picked up by the running map and installed) was measured on the 3.0.1.24371 client in a test map, last with ten
 payloads in one game across every kind of edit; see "Measured in the game", where the editor side was also driven
 through the language server as VS Code drives it (22 Oct).
 Background: [LUA_RUNTIME_OPPORTUNITIES.md](LUA_RUNTIME_OPPORTUNITIES.md), "Lua hot reload".
@@ -70,11 +70,17 @@ The payload compares the running script's manifest with the edited one:
   bindings too. The source owner's scope and structural signature distinguish equal binding names in overloaded
   functions, including packages and enclosing scopes of nested parameter types. A closure in a package's `init` block
   is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure still requires a restart
-  when its old class-table bindings survive.
-  Siblings still sharing an identity (anonymous closures or equal binding names within one callable) are told apart
-  by their order. Adding or removing one, changing their bodies or swapping them requires a restart: the map cannot
-  match the existing objects to their new definitions. Their protected definitions are recorded in session history
-  as well, so a group introduced by an earlier payload receives the same protection.
+  when its old class-table bindings survive. Identities name the classes a nested class is declared in, so two inner
+  classes of one name in one package (`A.N`, `B.N`) are two.
+  Siblings still sharing an identity (anonymous closures, such as several `doAfter` callbacks in one function, or equal
+  binding names within one callable) are told apart by their order, which matches an object to the closure it was made
+  from. Editing their bodies keeps that order, and so does adding one after them: both reload. A closure whose source
+  (`Function.closureSource`, the closure as written) is now what another one of the group had, which that one lost,
+  moved, and an object made from the closure at its old place would run the other one's body: the map refuses that,
+  and removing one, with a restart. A copy of a body another one keeps, appended or edited in, moves nothing. What the
+  map runs of each is the baseline's source or one an earlier payload sent; the editor does not know which payloads
+  the map installed, so it keeps every one sent (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures
+  are in such groups.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not
@@ -93,7 +99,11 @@ The payload compares the running script's manifest with the edited one:
   start or in which payload. Payloads compare their requested initializer order against those positions, among the
   units which first ran together, covering globals added by earlier payloads without assuming that delivered files ran.
   A global a payload adds runs after every one the map has, wherever it is in the source; that is no reordering. A map
-  which missed an earlier payload records only the order it actually executes.
+  which missed an earlier payload records only the order it actually executes. The started map ran its initializers
+  in the baseline's order, so a payload lists them only when the edit puts two of them in another order; otherwise it
+  lists those payloads added. Likewise it checks storage for a mix of old and new only for a unit with storage the
+  started map lacks. Listing every initializer made a payload of Castle Fight 403,624 bytes with nothing changed, past
+  the 200,000 characters the delivery was measured with; it is now 93 bytes.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
   and kept, so what is stored in it stays.
 
@@ -145,7 +155,7 @@ with the warning, and so does every constant computed from one, rather than the 
 computed from the old.
 
 Copies taken at startup do not follow: a unit's life set from a constant in `init`, or a timer started with a constant
-period. That needs the reload hook (see "Next stages"). Measured on the 3.0.1.24371 client: phases 7 and 9 of the
+period: a reload hook takes them again (see "Reload hooks"). Measured on the 3.0.1.24371 client: phases 7 and 9 of the
 in-game suite (see "Measured in the game"); the unit tests run it with and without `-stacktraces`
 (`tunedConstantsReachTheRunningMap`).
 
@@ -221,10 +231,38 @@ wrong place to replace bodies:
   Rebinding it is the whole mechanism, at zero cost to a call. Routing calls through signal objects would add an
   object read and dependency tracking to every call. That is the compiler-introduced call overhead AGENTS.md §7
   forbids, and it would make the development build behave and perform unlike the release build.
-- What a reactive library could add is the part this prototype leaves out: re-running setup code after a reload,
-  such as UI layout or derived values. A library-level hook (a reload counter as a signal, or an `onHotReload`
-  callback which the poll fires after an install) would let a map opt into that. It belongs in the library and
-  needs no compiler support beyond the poll calling it. It is a follow-up, not part of this prototype.
+- What a reactive library could add is re-running setup code after a reload, such as UI layout or derived values.
+  The reload hooks below give a map that without a library runtime.
+
+### Reload hooks
+
+A package `init` ran when the map started and does not run again, so setup it did (UI frames, registered events, a
+timer's period, values copied from constants) stays as it was. A function annotated `@onHotReload` (declared in the
+standard library's `Annotations`) lets a map run such setup again:
+
+```wurst
+function setupUi()
+	...
+
+init
+	setupUi()
+
+@onHotReload function reloadUi()
+	destroyUi()
+	setupUi()
+```
+
+Each payload calls every hook once it installed everything else (functions, declarations, the inits of new packages,
+constants), in the order the map initialises their packages, each package's in the order it declares them. A hook
+runs with the code the payload has, including a hook the payload adds, and nothing calls a hook when the map starts.
+One which fails does not stop the others or undo the payload: what it raised is printed and in the payload's status. A
+hook takes no parameters and is static and not generic (`HotReloadHooks`, checked by the validator). The script runs
+each one (`__wurst_hotreload_runHook`): with `-stacktraces` it passes the position every function takes, so a stack
+trace taken in a hook names the reload, and puts the stack's depth back after it, which a failing hook would leave
+raised. Hooks are the functions made for the annotated declarations, so a function reference's bridge to one does not
+run it a second time. In a `-luaHotReload`
+build the hooks are entry points, as preserved functions are; in any other build the annotation does nothing, so a hook
+nothing else calls is not emitted.
 
 ### Release output
 
@@ -310,6 +348,17 @@ told apart by their order, so any edit above them was refused (`movedLinesDoNotF
 global added to a package which starts before another made every later payload print "global initializer order
 changed" (`addedGlobalBeforeALaterPackageIsNoReorder`).
 
+### 24 Oct 2026: ten payloads, with a reload hook
+
+The same suite, run as above with a tenth phase and a reload hook. 51 checks, all passed:
+
+| Phase | Edit | In the game |
+| --- | --- | --- |
+| 10 | of three callbacks of one interface made in one function, told apart by their order, the second's body edited and a third appended | the second, made when the map started, returns its new 20; the first keeps its 1; the appended one returns 3 |
+| every phase | an `@onHotReload` function counts the payloads and copies a constant into a variable, as setup in an `init` does | it ran after each of the nine payloads which applied and not at the start; after phase 7 the copy holds the tuned 250; phase 10 edited the hook, and that payload ran the new body (108: eight times 1, then 100) |
+
+Every payload which applied printed nothing else, so no hook failed.
+
 Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); a real project's
 edits; the editor's part since 22 Oct (the suite builds from the command line); multiplayer, which is refused.
 
@@ -349,9 +398,26 @@ declares no main-chunk local (master declares 11), and has 10,927 reloadable fun
 value. The build took about as long (27 s, against 24 to 29 s). No edit was reloaded on this map: that needs the
 editor loop in the game.
 
+## Edits of a real project
+
+Castle Fight's last 30 commits which change Wurst code, each built with `-lua -luaHotReload` and its payload made
+against the commit before it (24 Oct 2026, with the order groups, hooks and payload checks above): 8 are accepted, 22
+refused. A commit is a whole pull request, so this overstates what one edit meets, but it ranks the causes. Commits
+each cause refuses, and in how many it is the only one:
+
+| Cause | Refuses | Only cause |
+| --- | --- | --- |
+| a constant array literal changes length, which is part of its type (`string[74]` to `string[75]`) | 14 | 4 |
+| a constant starts or stops being read: the dead-code removal drops unread storage, so its initializer's storage changes between `[]` and `[x]` | 7 | 2 |
+| a closure removed, which a class-table slot may still hold | 7 | 0 |
+| a closure inserted before others told apart by their order | 6 | 2 |
+| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation | 5 | 0 |
+
+Without the first two, 17 of the 30 would be accepted. The accepted payloads also carry far more than the edit: one of
+5 changed files shipped 621 functions (2,033,445 bytes), 550 of which differ only in the names of the flatten's
+temporaries (`temp159` to `temp162`), which are numbered across the program.
+
 ## Next stages
 
-1. A reload hook for libraries (see "Why not a reactive emission"), so a map can re-run setup code after a payload.
-2. Edits of real projects: an offline survey of a public map's history, building each commit's payload against the
-   one before, to count what is rejected and why.
-3. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.
+1. The causes above, most first, and temporaries named within their function.
+2. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.

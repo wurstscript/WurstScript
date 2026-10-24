@@ -176,10 +176,13 @@ public class RemoveGarbage {
     private static Used collectUsed(ImProg prog, ImTranslator translator,
                                     Set<ImSet> ignoredInitializers) {
         Used used = new Used(translator, ignoredInitializers);
-        visitRootFunctions(prog.getFunctions(), used);
+        // A hot-reload build's reload hooks are entry points: each payload calls them.
+        Set<ImFunction> hooks = Collections.newSetFromMap(new IdentityHashMap<>());
+        hooks.addAll(translator.hotReloadHooks());
+        visitRootFunctions(prog.getFunctions(), used, hooks);
         List<ImClass> classes = prog.getClasses();
         for (int i = 0; i < classes.size(); i++) {
-            visitRootFunctions(classes.get(i).getFunctions(), used);
+            visitRootFunctions(classes.get(i).getFunctions(), used, hooks);
         }
         if (used.observesTypeIdNumbering) {
             // Type ids number the classes the program keeps. Jass numbers every class, used or not, so that is
@@ -191,12 +194,13 @@ public class RemoveGarbage {
         return used;
     }
 
-    private static void visitRootFunctions(List<ImFunction> functions, Used used) {
+    private static void visitRootFunctions(List<ImFunction> functions, Used used, Set<ImFunction> hooks) {
         for (int i = 0; i < functions.size(); i++) {
             ImFunction f = functions.get(i);
             if (f.getName().equals("main")
                 || f.getName().equals("config")
-                || NamePreservation.isPreserved(f)) {
+                || NamePreservation.isPreserved(f)
+                || hooks.contains(f)) {
                 visitFunction(f, used);
             }
         }
