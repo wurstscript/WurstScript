@@ -26,9 +26,9 @@ import java.util.*;
  * <ul>
  *   <li>a new or changed function is defined, and its class-table slots are bound again;</li>
  *   <li>a new top-level declaration runs; a changed one is rejected;</li>
- *   <li>a new initialisation statement runs, and so does a changed slot binding; a changed initial value of a constant
- *   which only computes its value runs again, and so do the constants computed from it ({@link Constant}); a changed
- *   initial value of any other global which exists is skipped with a warning, since the map keeps its value; any other
+ *   <li>a new initialisation statement runs, and so does a changed slot binding or table of a class's supertypes; a
+ *   changed initial value of a constant which only computes its value runs again, and so do the constants computed
+ *   from it ({@link Constant}); a changed initial value of any other global which exists is skipped with a warning, since the map keeps its value; any other
  *   changed one is rejected;</li>
  *   <li>the init of a new package runs once; a changed init of a package which ran warns that it needs a restart.</li>
  * </ul>
@@ -136,7 +136,7 @@ public final class LuaHotReload {
      * A statement of the script outside the functions: {@code scope} is {@code top} (a top-level declaration),
      * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key}
      * identifies the assignment or complete source initializer;
-     * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
+     * {@code kind} is {@code slot} (a function bound in a table, or a class's table of supertypes), {@code global} (a value given to a global) or
      * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
      * complete definition for an initializer call, otherwise the statement text. {@code targets} identifies all
      * retained storage written by a source initializer, including tuple leaves and generic specializations.
@@ -456,7 +456,10 @@ public final class LuaHotReload {
             key = left.toString();
             s.print(text, 0);
             revision = withoutPositions(tr, s);
-            if (a.getLeft() instanceof LuaExprFieldAccess && a.getRight() instanceof LuaExprFuncRef) {
+            if (a.getLeft() instanceof LuaExprFieldAccess field && (a.getRight() instanceof LuaExprFuncRef
+                || field.getFieldName().equals(ExprTranslation.WURST_SUPERTYPES))) {
+                // A class's supertypes are read only by instanceof, when it runs, so a changed table is assigned again
+                // as a slot is bound again: objects made before then answer for the class as it is now.
                 kind = "slot";
             } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
                 kind = "global";
