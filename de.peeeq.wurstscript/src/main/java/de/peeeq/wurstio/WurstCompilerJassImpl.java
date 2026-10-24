@@ -708,9 +708,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     /** Translate a compilation view without removing units from the checked editor model. */
     public @Nullable ImProg translateProgToIm(WurstModel root, Collection<CompilationUnit> compilationUnits) {
         beginPhase(1, "to intermediate lang");
-        // Names of generated temporaries are counted from here, so that the same source compiles
-        // to the same script whatever was compiled before it in this process.
-        Flatten.resetTempVarCounters();
         // translate wurst to intermediate lang:
         imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs, compilationUnits);
         imProg = getImTranslator().translateProg();
