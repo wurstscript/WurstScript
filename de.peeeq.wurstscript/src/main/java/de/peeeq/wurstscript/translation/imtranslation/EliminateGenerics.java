@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
@@ -2922,6 +2923,17 @@ public class EliminateGenerics {
                 };
 
                 List<ImSet> specializedInitsForMap = new ArrayList<>(originalInits.size());
+                // A hot-reload build keeps each source initializer as a unit of its own; each specialisation's
+                // storage gets a unit of its own too, so a payload can initialise a new one alone. Units compute all of
+                // one specialisation's initial values before the next, where the program computes each value for every
+                // specialisation in turn: with several values of which one has an effect (an array literal of calls)
+                // the order shows, and the specialisations stay in the source unit.
+                boolean orderUnobservable = originalInits.size() <= 1
+                    || originalInits.stream().noneMatch(set -> SideEffectAnalyzer.quickcheckHasSideeffects(set.getRight()));
+                ImFunction sourceUnit = orderUnobservable && parentStmts != null
+                    && parentStmts.getParent() instanceof ImFunction unit
+                    && translator.luaGlobalInitializers.get(unit) == originalGlobal ? unit : null;
+                List<ImSet> unitInits = new ArrayList<>(originalInits.size());
 
                 // Create specialized init sets and schedule: insert each right after its corresponding original init set
                 for (ImSet origSet : originalInits) {
@@ -2935,7 +2947,9 @@ public class EliminateGenerics {
                     // Append after earlier specializations of this initializer. Each invocation of
                     // createSpecializedGlobals has its own insertion batch; always inserting after
                     // origSet would therefore reverse specialization discovery/initializer order.
-                    if (parentStmts != null) {
+                    if (sourceUnit != null) {
+                        unitInits.add(specSet);
+                    } else if (parentStmts != null) {
                         ImStmt insertionPoint = specializedInitializerTails.getOrDefault(origSet, origSet);
                         IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
                             insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
@@ -2945,6 +2959,9 @@ public class EliminateGenerics {
 
                     // keep prog.getGlobalInits consistent, but do NOT reuse the tree-attached node elsewhere
                     specializedInitsForMap.add((ImSet) specSet.copy());
+                }
+                if (sourceUnit != null) {
+                    translator.addSpecializedGlobalInitializer(sourceUnit, specializedGlobal, unitInits);
                 }
 
                 prog.getGlobalInits().put(specializedGlobal, specializedInitsForMap);

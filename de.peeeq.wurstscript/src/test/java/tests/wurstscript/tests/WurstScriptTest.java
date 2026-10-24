@@ -885,6 +885,9 @@ public class WurstScriptTest {
                     // over: Preloader runs the Lua section of the file, which leaves the payload in an ability tooltip.
                     // Defined before the script, which then does not define fallbacks for these natives.
                     // As measured in the game: a tooltip starts as the ability's own text, and setting "" leaves it.
+                    // A single-player game: player 0 is the one user playing. The poll counts them itself, as
+                    // blizzard.j does for bj_isSinglePlayer, which a map whose main skips InitBlizzard never sets.
+                    chunk.append(LuaHotReloadTestPlayers.SINGLE_PLAYER);
                     chunk.append("local tooltips = {};"
                         + "BlzSetAbilityTooltip = function(id, s, level) if s ~= '' then tooltips[id .. ':' .. level] = s end end;"
                         + "BlzGetAbilityTooltip = function(id, level) return tooltips[id .. ':' .. level] or 'Attribute Bonus' end;"
@@ -892,7 +895,7 @@ public class WurstScriptTest {
                         .append(payloadFile.getPath().replace('\\', '/'))
                         .append("', 'rb')) local text = f:read('a') f:close()"
                             + " assert(load(text:match('//!beginusercode%s(.-)//!endusercode')))() end;"
-                            + "hotReload = function() bj_isSinglePlayer = true " + LuaHotReload.POLL_FUNCTION + "()"
+                            + "hotReload = function() " + LuaHotReload.POLL_FUNCTION + "()"
                             + " if " + LuaHotReload.VERSION_GLOBAL + " ~= 1 then testFail('the payload was not applied') end end;");
                 }
                 chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");

@@ -522,8 +522,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
         test().testLua(true).executeProg().luaHotReload(genericStaticProgram(true)).lines(base);
     }
 
+    /**
+     * A new specialisation of a generic static in a package an earlier payload added: its storage is a unit of its own,
+     * so it is initialised alone and the specialisations the earlier payload installed keep their values. (One unit
+     * used to initialise every specialisation, so this needed a restart.)
+     */
     @Test
-    public void changedGenericInitializerStorageRequiresARestart() throws Exception {
+    public void newGenericSpecializationInAnEarlierPayloadsPackage() throws Exception {
         String[] first = concat(java.util.Arrays.copyOf(genericStaticProgram(true), 14), new String[] {
             "init", "    let ints = new Store<int>()", "    let strings = new Store<string>()",
             "    ints.put(42)", "    strings.put(\"saved\")",
@@ -532,18 +537,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String[] second = first.clone();
         second[second.length - 1] += "\n    let reals = new Store<real>()\n    reals.put(3.5)\n"
             + "    if reals.read() != 3.5\n        testFail(\"value changed\")\n    destroy reals";
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(manifest(first), manifest(second), LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("storage"));
+        LuaHotReload.payload(manifest(first), manifest(second), LuaHotReload.History.NONE, 1);
 
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
-        String script = "test-output/lua/LuaHotReloadTests_changedGenericInitializerStorageRequiresARestart.lua";
+        String script = "test-output/lua/LuaHotReloadTests_newGenericSpecializationInAnEarlierPayloadsPackage.lua";
         var baseline = manifest(MAIN_PACKAGE);
+        var edited = manifest(second);
         String output = applyInLua(script, List.of(
             LuaHotReload.payload(baseline, manifest(first), LuaHotReload.History.NONE, 1).source(),
-            LuaHotReload.payload(baseline, manifest(second), LuaHotReload.History.NONE, 2).source()));
-        assertTrue(output, output.startsWith("true"));
-        assertTrue(output, output.contains("another declaration or type"));
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 2).source()), true,
+            globalName(edited, "Store_value_integer_"), globalName(edited, "Store_value_string_"),
+            globalName(edited, "Store_value_real_"));
+        // The erased initialize<real>() answers nil on Lua, as it does in a restarted map.
+        assertEquals(output, 2, occurrences(output, "true 42 saved nil nil"));
+        assertFalse(output, output.contains("false"));
     }
 
     private static String[] genericStaticProgram(boolean initialized) {
@@ -557,27 +564,107 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "        testFail(\"generic static values were reinitialized\")", "    destroy ints", "    destroy strings", "    testSuccess()"};
     }
 
+    /**
+     * An initializer added to a generic static, in the edit which also adds a specialisation: the specialisation the map
+     * has keeps its value (with the warning a global gets whose initializer was added), and only the new one is
+     * initialised. Each specialisation is a unit of its own, so no unit spans old and new storage; when one unit
+     * initialised both, this was refused.
+     */
     @Test
-    public void newlyInitializedGenericStorageCannotMixOldAndNewSpecializations() throws Exception {
+    public void newlyInitializedGenericStorageInitializesOnlyTheNewSpecialization() throws Exception {
         var uninitialized = manifest(genericStorageProgram(false, false));
         var initialized = manifest(genericStorageProgram(true, true));
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(uninitialized, initialized, LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("spans old and new storage"));
-
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
-        String script = "test-output/lua/LuaHotReloadTests_newlyInitializedGenericStorageCannotMixOldAndNewSpecializations.lua";
+        String script = "test-output/lua/LuaHotReloadTests_newlyInitializedGenericStorageInitializesOnlyTheNewSpecialization.lua";
         var baseline = manifest(MAIN_PACKAGE);
         String first = LuaHotReload.payload(baseline, uninitialized, LuaHotReload.History.NONE, 1).source();
         String second = LuaHotReload.payload(baseline, initialized, LuaHotReload.History.NONE, 2).source();
         String value = globalName(uninitialized, "Store_value_integer_");
         String initializedCount = globalName(initialized, "initialized");
         String newStorage = globalName(initialized, "Store_value_real_");
-        String output = applyInLua(script, List.of(first, second), value, initializedCount, newStorage);
+        String output = applyInLua(script, List.of(first, second), true, value, initializedCount, newStorage);
+        // The erased initialize<real>() answers nil on Lua; the count shows it ran once, for the new specialisation.
         assertTrue(output, output.startsWith("true 42 0 nil nil"));
-        assertTrue(output, output.contains("false 42 0 nil") && output.contains("spans old and new storage"));
+        assertTrue(output, output.endsWith("true 42 1 nil nil"));
+        assertTrue(output, output.contains("keeps its value"));
         String skipped = applyInLua(script, List.of(second), initializedCount);
         assertEquals(skipped, "true 2 nil", skipped);
+        var direct = LuaHotReload.payload(uninitialized, initialized, LuaHotReload.History.NONE, 1);
+        assertTrue(direct.warnings().toString(), direct.warnings().stream().anyMatch(w -> w.contains(value)));
+    }
+
+    /**
+     * A first use of a generic class with another type argument initialises only the new specialisation's static, as a
+     * restarted map would: each specialisation is an initializer unit of its own (on Jass each is a copy with its own
+     * initializer). The specialisation the map has keeps its value, and the initializer runs once, for the new one.
+     */
+    @Test
+    public void newSpecializationOfAGenericStaticIsInitializedAlone() throws Exception {
+        String[] base = specializationProgram(false);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_newSpecializationOfAGenericStaticIsInitializedAlone.lua";
+        var baseline = manifest(base);
+        var current = manifest(specializationProgram(true));
+        var payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        String counter = globalName(current, "counter");
+        String ints = globalName(baseline, "Store_made_integer_");
+        String reals = globalName(current, "Store_made_real_");
+        assertEquals(ints, globalName(current, "Store_made_integer_"));
+        String output = applyInLua(script, List.of(payload.source()), true, counter, ints, reals);
+        // The map started with counter 1 and the int store's 1, bumped to 101; the payload runs count() once more.
+        assertTrue(output, output.endsWith("true 2 101 2 nil"));
+        assertFalse(output, output.contains("keeps") || output.contains("restart"));
+    }
+
+    /**
+     * Each element of an array initializer of a generic static is computed for every specialisation before the next
+     * element, as in a build without -luaHotReload; units of their own would compute all of one specialisation first.
+     * So an initializer with an effect stays one unit, and its counter reads the same in a hot-reload build.
+     */
+    @Test
+    public void effectfulGenericArrayInitializerKeepsItsOrder() {
+        String[] program = {
+            "package Test", "native testSuccess()", "native testFail(string msg)",
+            "int counter = 0", "function count() returns int", "    counter++", "    return counter",
+            "class Store<T:>", "    static int array values = [count(), count()]",
+            "    function first() returns int", "        return values[0]",
+            "    function second() returns int", "        return values[1]",
+            "init", "    let a = new Store<int>()", "    let b = new Store<real>()",
+            // Interleaved, the specialisations' first elements are 1 and 2, their second 3 and 4.
+            "    if a.first() - b.first() != 1 and b.first() - a.first() != 1",
+            "        testFail(\"first elements not computed one after the other\")",
+            "    if a.second() - b.second() != 1 and b.second() - a.second() != 1",
+            "        testFail(\"second elements not computed one after the other\")",
+            "    destroy a", "    destroy b", "    testSuccess()"};
+        test().testLua(true).executeProg().luaHotReload(program).lines(program);
+    }
+
+    /** The removed specialisation's storage stays, unused; the other keeps its value and nothing runs again. */
+    @Test
+    public void removedSpecializationOfAGenericStaticKeepsTheOthers() throws Exception {
+        String[] base = specializationProgram(true);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedSpecializationOfAGenericStaticKeepsTheOthers.lua";
+        var baseline = manifest(base);
+        var current = manifest(specializationProgram(false));
+        var payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        String output = applyInLua(script, List.of(payload.source()), true, globalName(current, "counter"),
+            globalName(current, "Store_made_integer_"), globalName(baseline, "Store_made_real_"));
+        assertTrue(output, output.endsWith("true 2 101 2 nil"));
+    }
+
+    private static String[] specializationProgram(boolean reals) {
+        String[] program = {"package Test", "native testFail(string msg)",
+            "int counter = 0", "function count() returns int", "    counter++", "    return counter",
+            "class Store<T:>", "    static int made = count()", "    function bump()", "        made += 100",
+            "    function read() returns int", "        return made",
+            "init", "    let ints = new Store<int>()", "    ints.bump()",
+            "    if ints.read() < 100", "        testFail(\"not bumped\")", "    destroy ints"};
+        if (reals) {
+            program = concat(program, new String[] {"    let reals = new Store<real>()",
+                "    if reals.read() <= 0", "        testFail(\"not initialized\")", "    destroy reals"});
+        }
+        return program;
     }
 
     private static String[] genericStorageProgram(boolean initialized, boolean secondSpecialization) {
@@ -1272,6 +1359,65 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 5 14 nil\ntrue 5 14 nil", output.replace("\r\n", "\n"));
     }
 
+    private static String[] unreadGlobals(String bumpResult) {
+        // A constant nothing reads, a variable only updated from itself and one never initialized, until an edit reads
+        // them in bump.
+        return new String[] {
+            "package Main",
+            "public int made = 0",
+            "int reloads = 0",
+            "int unset",
+            "class BuildingIds",
+            "    static constant templeOfStorm = 42",
+            "public function bump() returns int",
+            "    made++",
+            "    reloads += 1",
+            "    return " + bumpResult,
+            "init",
+            "    bump()",
+        };
+    }
+
+    /**
+     * A hot-reload build keeps the storage of every global of the source, read or not, so starting to read one changes
+     * no initializer's storage: the payload applies, and the global has the value the map gave it at the start.
+     */
+    @Test
+    public void startingToReadAGlobalKeepsItsStorage() throws Exception {
+        String[] unread = unreadGlobals("made");
+        test().testLua(true).luaHotReload(unread).lines(unread);
+        String script = "test-output/lua/LuaHotReloadTests_startingToReadAGlobalKeepsItsStorage.lua";
+        LuaHotReload.Manifest baseline = manifest(unread);
+        LuaHotReload.Manifest reading = manifest(unreadGlobals("made + BuildingIds.templeOfStorm + reloads + unset"));
+        String output = applyInLua(script, List.of(LuaHotReload.payload(baseline, reading, LuaHotReload.History.NONE, 1).source()),
+            globalName(reading, "templeOfStorm"), globalName(reading, "reloads"), luaName(reading, "bump") + "()");
+        // The init bumped once: reloads is 1; the call above bumps again, made 2 + 42 + reloads 2.
+        assertEquals(output, "true 42 1 46 nil", output.replace("\r\n", "\n"));
+    }
+
+    /** Without the flag the globals nothing reads are removed, as before. */
+    @Test
+    public void unreadGlobalsAreRemovedWithoutTheFlag() throws Exception {
+        test().testLua(true).lines(unreadGlobals("made"));
+        String lua = java.nio.file.Files.readString(
+            java.nio.file.Path.of("test-output/lua/LuaHotReloadTests_unreadGlobalsAreRemovedWithoutTheFlag.lua"));
+        assertTrue(lua, lua.contains("made"));
+        for (String global : List.of("templeOfStorm", "reloads", "unset")) {
+            assertFalse(lua, lua.contains(global));
+        }
+    }
+
+    /** The reverse edit: a global nothing reads any more keeps its storage too. */
+    @Test
+    public void stoppingToReadAGlobalKeepsItsStorage() throws Exception {
+        LuaHotReload.Manifest reading = manifest(unreadGlobals("made + BuildingIds.templeOfStorm + reloads + unset"));
+        LuaHotReload.Manifest unread = manifest(unreadGlobals("made"));
+        LuaHotReload.payload(reading, unread, LuaHotReload.History.NONE, 1);
+        for (String global : List.of("templeOfStorm", "reloads", "unset")) {
+            assertEquals(globalName(unread, global), globalName(reading, global));
+        }
+    }
+
     @DataProvider
     public Object[][] referenceStorageCases() {
         return new Object[][] {{true}, {false}};
@@ -1606,12 +1752,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "function rangeTwice() returns real",
             "    return RANGE * 2",
             "constant real FAR = rangeTwice()",
-            // Not re-run: a new object would leak the old one, a variable holds the map's state, and an array would keep
-            // the entries an edit drops.
-            "constant Box BOX = new Box(" + (edited ? "2" : "1") + ")",
+            // An array literal nothing else writes runs again, and so does a constant computed from its elements.
             "constant int array LEVELS = " + (edited ? "[3, 4]" : "[1, 2]"),
-            // Code may assign an element of a constant array: what is computed from one keeps its value too.
             "constant int FIRST_LEVEL = LEVELS[0] + " + (edited ? "2" : "1"),
+            // Not re-run: a new object would leak the old one, and a variable holds the map's state.
+            "constant Box BOX = new Box(" + (edited ? "2" : "1") + ")",
             "int counter = " + (edited ? "6" : "5"),
             "constant int FROM_COUNTER = counter + " + (edited ? "2" : "1"),
             "class Tower",
@@ -1633,8 +1778,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "    check(FAR == 500., \"FAR \" + R2S(FAR))",
             "    check(Tower.REACH == 7, \"REACH \" + I2S(Tower.REACH))",
             "    check(BOX.v == 1, \"a constant holding a new object was made again\")",
-            "    check(LEVELS[0] == 1 and LEVELS[1] == 2, \"an array constant was initialised again\")",
-            "    check(FIRST_LEVEL == 2, \"a constant computed from an array element was computed again\")",
+            "    check(LEVELS[0] == 3 and LEVELS[1] == 4, \"LEVELS \" + I2S(LEVELS[0]) + \" \" + I2S(LEVELS[1]))",
+            "    check(FIRST_LEVEL == 5, \"FIRST_LEVEL \" + I2S(FIRST_LEVEL))",
             "    check(counter == 5 and FROM_COUNTER == 6, \"a variable, or a constant computed from one, lost its value\")",
             "    testSuccess()",
             "endpackage",
@@ -1669,11 +1814,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String warnings = payload.warnings().toString();
         String source = payload.source();
         for (String tuned : List.of("Test_config_DAMAGE", "Test_DOUBLE", "Test_RANGE", "Test_NAME", "Test_SPAN", "Test_LABEL",
-            "Test_SCALED", "Test_FAR", "Tower_REACH")) {
+            "Test_SCALED", "Test_FAR", "Tower_REACH", "Test_LEVELS", "Test_FIRST_LEVEL")) {
             assertFalse(tuned + " is run again, not kept: " + warnings, warnings.contains(tuned));
             assertTrue(tuned + " runs again:\n" + source, source.contains(initializerCall(baseline, tuned)));
         }
-        for (String kept : List.of("Test_BOX", "Test_LEVELS", "Test_FIRST_LEVEL", "Test_counter", "Test_FROM_COUNTER")) {
+        for (String kept : List.of("Test_BOX", "Test_counter", "Test_FROM_COUNTER")) {
             assertTrue(kept + " keeps its value: " + warnings, warnings.contains(globalName(baseline, kept)));
             assertFalse(kept + " does not run again:\n" + source, source.contains(initializerCall(baseline, kept)));
         }
@@ -1684,6 +1829,142 @@ public class LuaHotReloadTests extends WurstScriptTest {
         }
         assertTrue("an unchanged program runs nothing again",
             LuaHotReload.payload(baseline, baseline, LuaHotReload.History.NONE, 1).source().indexOf("init_global_") < 0);
+    }
+
+    /**
+     * A configuration table written as an array literal: {@code NAMES} has the type {@code string[n]}, whose length an
+     * edit which adds or removes an entry changes.
+     */
+    private static String[] arrayLiterals(String names, String levels) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "native I2S(int i) returns string",
+            "constant NAMES = [" + names + "]",
+            "constant int array LEVELS = [" + levels + "]",
+            "constant FIRST = NAMES[0] + \"!\"",
+            "function name(int i) returns string",
+            "    return NAMES[i]",
+            "function level(int i) returns int",
+            "    return LEVELS[i]",
+            "function check(boolean ok, string what)",
+            "    if not ok",
+            "        testFail(what)",
+            "init",
+            "    check(name(0) == \"a\" and name(1) == \"b\" and name(2) == \"\" and level(2) == 3 and FIRST == \"a!\","
+                + " \"the original values\")",
+            "    hotReload()",
+            "    check(name(0) == \"z\" and name(1) == \"b\" and name(2) == \"c\" and name(3) == \"\","
+                + " \"NAMES \" + name(0) + name(1) + name(2) + name(3))",
+            "    check(level(0) == 1 and level(1) == 2 and level(2) == 0,"
+                + " \"LEVELS \" + I2S(level(0)) + I2S(level(1)) + I2S(level(2)))",
+            "    check(FIRST == \"z!\", \"FIRST \" + FIRST)",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * An edit of a constant array literal reaches the running map, whether it adds an entry (NAMES gains "c"), changes
+     * one (NAMES[0] becomes "z") or drops one (LEVELS loses 3, which then reads the default, as in a restarted map), and
+     * a constant computed from an element follows.
+     */
+    @Test(dataProvider = "stacktraceCases")
+    public void editedArrayLiteralsReachTheRunningMap(boolean stacktraces) {
+        TestConfig config = test().testLua(true);
+        if (stacktraces) {
+            config = config.stacktraces();
+        }
+        config.executeProg().luaHotReload(arrayLiterals("\"z\", \"b\", \"c\"", "1, 2"))
+            .lines(arrayLiterals("\"a\", \"b\"", "1, 2, 3"));
+    }
+
+    private static String[] namesProgram(String names) {
+        return new String[] {
+            "package Main",
+            "public constant NAMES = [" + names + "]",
+            "public function name(int i) returns string",
+            "    return NAMES[i]",
+            "init",
+            "    name(0)",
+        };
+    }
+
+    /**
+     * Each payload leaves exactly the entries of its version: the map records how many entries it wrote last and clears
+     * the ones past the new length, through grown, shrunk and changed versions, and a map which missed payloads ends
+     * at the same entries.
+     */
+    @Test
+    public void arrayConstantHoldsTheEntriesOfEachPayload() throws Exception {
+        String[] base = namesProgram("\"a\", \"b\"");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_arrayConstantHoldsTheEntriesOfEachPayload.lua";
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadArrays");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(buildDir, baseline);
+        List<String> payloads = new java.util.ArrayList<>();
+        for (String[] edit : List.of(namesProgram("\"a\", \"b\", \"c\", \"d\""), namesProgram("\"x\""),
+            namesProgram("\"x\", \"y\""), namesProgram("\"x\", \"y\""))) {
+            LuaHotReloadSession.Sent sent = LuaHotReloadSession.send(buildDir, customMapData, manifest(edit));
+            assertTrue(sent.payload().warnings().toString(), sent.payload().warnings().isEmpty());
+            payloads.add(sent.payload().source());
+        }
+        String names = globalName(baseline, "NAMES");
+        String[] entries = {names + "[0]", names + "[1]", names + "[2]", names + "[3]"};
+        String output = applyInLua(script, payloads, entries).replace("\r\n", "\n");
+        assertEquals(output, "true a b c d nil\ntrue x    nil\ntrue x y   nil\ntrue x y   nil", output);
+        // A map which read only the second and the last payload.
+        String skipped = applyInLua(script, List.of(payloads.get(1), payloads.get(3)), entries).replace("\r\n", "\n");
+        assertEquals(skipped, "true x    nil\ntrue x y   nil", skipped);
+    }
+
+    /** The length of an array literal is not part of its identity, but the type of its entries is. */
+    @Test
+    public void arrayLiteralEntryTypeChangeIsRefused() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(namesProgram("\"a\", \"b\""));
+        LuaHotReload.payload(baseline, manifest(namesProgram("\"a\", \"b\", \"c\"")), LuaHotReload.History.NONE, 1);
+        LuaHotReload.Manifest numbers = manifest("package Main", "public constant NAMES = [1, 2]",
+            "public function name(int i) returns int", "    return NAMES[i]", "init", "    name(0)");
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, numbers, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains(globalName(baseline, "NAMES") + " now means"));
+    }
+
+    private static String[] writtenArray(boolean edited) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "constant int array LEVELS = " + (edited ? "[3, 4]" : "[1, 2]"),
+            "constant int TOTAL = LEVELS[0] + LEVELS[1] + " + (edited ? "1" : "0"),
+            "function raise()",
+            "    LEVELS[1] = 9",
+            "init",
+            "    raise()",
+            "    hotReload()",
+            "    if LEVELS[0] != 1 or LEVELS[1] != 9 or TOTAL != 3",
+            "        testFail(\"an array constant code wrote was initialised again\")",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * Code may assign an element of a constant array: the map may hold entries its initializer never gave it, so it keeps
+     * its value, with the warning, and so does a constant computed from it.
+     */
+    @Test
+    public void arrayConstantCodeWritesKeepsItsValue() throws Exception {
+        test().testLua(true).executeProg().luaHotReload(writtenArray(true)).lines(writtenArray(false));
+        LuaHotReload.Manifest baseline = manifest(writtenArray(false));
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(writtenArray(true)), LuaHotReload.History.NONE, 1);
+        for (String kept : List.of("Test_LEVELS", "Test_TOTAL")) {
+            assertTrue(kept + " keeps its value: " + payload.warnings(), payload.warnings().toString().contains(globalName(baseline, kept)));
+            assertFalse(kept + " does not run again:\n" + payload.source(), payload.source().contains(initializerCall(baseline, kept)));
+        }
     }
 
     /**
@@ -2389,6 +2670,40 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     /**
+     * Hot reload is for a single-player game: with more users playing the poll reads no payload file, says so once, and
+     * the status tells why. It counts the users itself, as blizzard.j does for bj_isSinglePlayer, which a map whose main
+     * skips InitBlizzard never sets: such a map read no payload, and said nothing.
+     */
+    @Test
+    public void pollIsOffInAGameOfMoreThanOneUser() throws Exception {
+        String[] base = program("x + 1", "side * side", INIT);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_pollIsOffInAGameOfMoreThanOneUser.lua";
+        String runtime = "src/test/resources/luaruntime/";
+        String driver = String.join("\n",
+            "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
+            "dofile('" + script + "')",
+            "__wurst_init_bootstrap()",
+            LuaHotReloadTestPlayers.users(2),
+            "local requested = 0",
+            "BJDebugMsg = function(text) print(text) end",
+            "Preloader = function(path) requested = requested + 1 end",
+            LuaHotReload.POLL_FUNCTION + "() " + LuaHotReload.POLL_FUNCTION + "()",
+            "print(requested)",
+            "print(" + LuaHotReload.STATUS_FUNCTION + "())");
+        java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_multiplayerPollDriver.lua");
+        java.nio.file.Files.writeString(driverFile.toPath(), driver);
+        Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
+        String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+        assertEquals(output, 0, p.waitFor());
+        String[] lines = output.split("\\R");
+        assertEquals(output, 3, lines.length);
+        assertTrue(output, lines[0].contains("hot reload is off") && lines[0].contains("2 users"));
+        assertEquals(output, "0", lines[1]);
+        assertTrue(output, lines[2].contains("hot reload is off") && lines[2].contains("2 users"));
+    }
+
+    /**
      * The game reads a preload file once, so payload n comes in file n and the poll reads each file once, in order. A
      * file whose payload is rejected is not read again, and the next payload still applies.
      */
@@ -2412,7 +2727,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
             "dofile('" + script + "')",
             "__wurst_init_bootstrap()",
-            "bj_isSinglePlayer = true",
+            LuaHotReloadTestPlayers.SINGLE_PLAYER,
             "local tooltips, requested = {}, {}",
             // As measured in the game: a tooltip starts as the ability's own text, and setting "" leaves it.
             "BlzSetAbilityTooltip = function(id, s, level) if s ~= '' then tooltips[level] = s end end",

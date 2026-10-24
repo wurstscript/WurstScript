@@ -41,12 +41,33 @@ the manifest records that function's definition as the call's revision. A payloa
 never extracts a final assignment from the flattened code or confuses an assignment in an init block with a source
 global initializer. This adds an initialization-time call only in opt-in development builds.
 
+A static of a new-generic class is storage of its own per specialisation (`ArrayList_nextFreeIndex⟪string⟫`), and so
+is its initializer: generic elimination copies the initial value into a unit of its own for each specialisation
+(`init_global_ArrayList_nextFreeIndex⟪string⟫`), called right after the source unit and the specialisations found
+before it (`ImTranslator.addSpecializedGlobalInitializer`). The values are computed as they were in one unit, once per
+specialisation and in the same order, as on Jass, where each specialisation is a copy with its own initializer. So a
+first `ArrayList<SomeNewType>` adds a unit which initialises only the new storage, and the specialisations the map has
+keep their values; removing the last use of one removes its unit and its storage, and the others keep theirs
+(`newSpecializationOfAGenericStaticIsInitializedAlone`, `removedSpecializationOfAGenericStaticKeepsTheOthers`). One
+unit used to initialise every specialisation, so each of these edits changed its storage and needed a restart. An
+initializer of several values of which one has an effect (an array literal of calls) stays one unit: the program
+computes each value for every specialisation in turn, and units would compute all of one first, which a counter shows
+(`effectfulGenericArrayInitializerKeepsItsOrder`); a new type argument of such a static still needs a restart.
+
 Each source initializer also records the globals it writes after tuple lowering and generic specialization.
 Adding an initializer to an existing global preserves its live value, including globals an earlier payload added
 without an initializer. A runtime marker preserves that decision across later cumulative payloads and whole-package
 initialization. Changing the storage covered by an existing initializer requires a restart: replaying the complete
 unit would also overwrite its existing values. A new initializer spanning both old and new storage is rejected
 for the same reason, using both baseline identities and declarations actually installed by earlier payloads.
+
+A hot-reload build therefore keeps the storage of every global declared in the source, whether anything reads it or
+not (`ImTranslator.isHotReloadSourceGlobal`, a root in the garbage removal, the tree shaker and the Lua garbage
+removal; not the globals of common.j, blizzard.j or generic classes). Otherwise a constant nothing reads, or a
+variable only updated from itself, loses its storage while its initializer stays, and the unit's storage changes
+between `[]` and `[x]` when an edit starts or stops reading it: in a replay of a real map's history that was one of the
+two largest causes of refused payloads. Kept, a global an edit starts to read has the value its initializer gave it
+when the map started (`startingToReadAGlobalKeepsItsStorage`). A build without the flag still removes them.
 
 The payload compares the running script's manifest with the edited one:
 
@@ -131,17 +152,31 @@ A changed initial value of a constant (`constant` or `let`, including a `@config
 does every constant computed from it, in the order the map initialises them. Nothing but its initializer writes a
 constant, so it gets the value a restarted map would give it. `ConstantInitializers` decides which initializers may
 run again: those which only compute their value. Such an initializer reads its own locals, constants initialised before
-it and the game's constants; it writes only its own global; it calls only natives whose result depends on their
+it, elements of constant arrays initialised before it and the game's constants; it writes only its own global (the
+entries of its own array literal); it calls only natives whose result depends on their
 arguments alone (not getters of game state such as `GetPlayerTeam`), the backend's operator intrinsics and functions
 which follow the same rules. The stack-trace bookkeeping does not count. Every other global
 keeps its value, with the warning:
 
 - a variable, which holds the map's state;
 - a constant which allocates an object or calls a native with effects: running it again would leak what it made;
-- an array constant: running it again would keep the entries an edit drops;
+- an array constant which code other than its initializer writes (Wurst allows assigning an element of a constant
+  array): the manifest lists its storage with the variables, so it keeps its value, and so does every constant which
+  reads one of its elements;
+- an array constant whose initializer does not write one dimension at constant indices, which an array literal does;
 - a constant which reads a variable, or a constant initialised after it (from a package an `initlater` import
-  initialises later), which held its default when the map started;
-- a constant which reads an element of an array: code may assign an element of a constant array.
+  initialises later), which held its default when the map started.
+
+An array literal is tuned like any other constant: an edit which adds, removes or changes entries runs its initializer
+again, and the constants computed from its elements follow. Its length is not part of its identity (the type
+`string[74]` of a literal with 74 entries is `string[]` there, since a Lua array is a table of any length), while the
+type of its entries is: a literal of strings which becomes one of integers is refused. Running the initializer again
+writes the new entries into the table the map has, which every function, and any local alias of the table a function
+holds while it runs, already reaches. The entries past the new length must read the array's default again, as in a
+restarted map: the manifest records how many entries each array literal writes (`Constant.length`), the map records
+how many the run it made last wrote (`__wurst_hotreload_constantLengths`, or else the baseline's), and the payload
+clears the indices between the two, by index, without iterating the table
+(`editedArrayLiteralsReachTheRunningMap`, `arrayConstantHoldsTheEntriesOfEachPayload`).
 
 The manifest lists the initializer of each constant, whether it is pure, which constants it reads and which functions
 of the program it calls. A payload runs one again when its definition changed, a function it calls changed, or a
@@ -199,8 +234,11 @@ java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSe
 `start` takes the map of the last build as the running one and deletes the payload files of an earlier session; `send`
 writes the next cumulative payload for the last build, or exits with 1 and the reasons.
 
-Game side (measured, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. The poll sets
-the tooltip of ability `Aamk` to a space, calls `Preloader` on the next payload file, and reads the tooltip back. The
+Game side (measured, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. A payload reaches
+one player's game, so the poll does nothing unless exactly one user is playing. It counts them itself, as blizzard.j's
+`InitBlizzardGlobals` does for `bj_isSinglePlayer`: a map whose `main` skips `InitBlizzard` (Castle Fight's does) never
+sets that global, and read no payload while saying nothing. In any other game it prints once that hot reload is off,
+and the status says why. Otherwise the poll sets the tooltip of ability `Aamk` to a space, calls `Preloader` on the next payload file, and reads the tooltip back. The
 file's Lua section (between `//!beginusercode` and `//!endusercode`) puts `wurst-hot-reload-payload:` and the payload
 in that tooltip, in chunks of 1,000 characters. Text with that marker moves the poll on to the next file and goes to
 `__wurst_hotreload_apply`; `__wurst_hotreload_status()` answers what became of it (applied, followed by anything it
@@ -411,7 +449,7 @@ each cause refuses, and in how many it is the only one:
 | a constant starts or stops being read: the dead-code removal drops unread storage, so its initializer's storage changes between `[]` and `[x]` | 7 | 2 |
 | a closure removed, which a class-table slot may still hold | 7 | 0 |
 | a closure inserted before others told apart by their order | 6 | 2 |
-| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation | 5 | 0 |
+| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation (since fixed: each specialisation is a unit of its own, see "The script in parts") | 5 | 0 |
 
 Without the first two, 17 of the 30 would be accepted. The accepted payloads also carry far more than the edit: one of
 5 changed files shipped 621 functions (2,033,445 bytes), 550 of which differ only in the names of the flatten's

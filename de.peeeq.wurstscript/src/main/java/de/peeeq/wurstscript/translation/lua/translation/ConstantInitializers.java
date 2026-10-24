@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.SideEffectFreeNatives;
 import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -16,13 +17,19 @@ import java.util.function.Function;
  * other constants initialised before it and the game's constants, writes only its own global, and calls only natives
  * whose result depends on their arguments alone, the backend's operator intrinsics and functions which follow the same
  * rules. The stack-trace bookkeeping,
- * which every call pushes and pops, does not count. An initializer which allocates, calls an impure native, writes
- * array storage or reads an element of an array (code may assign one of a constant array) is reported as not pure: the
- * map keeps its value.
+ * which every call pushes and pops, does not count. An initializer which allocates or calls an impure native is
+ * reported as not pure: the map keeps its value.
+ *
+ * <p>An array constant (an array literal) is pure when it writes its own one-dimensional storage at constant indices
+ * only; its {@link LuaHotReload.Constant#length} is then the number of entries it writes, which a payload clears past
+ * when an edit drops some. Code may also assign an element of a constant array: storage written outside its
+ * initializer ({@link #writtenElsewhere}) is listed with the variables, so it keeps its value, and so does every constant
+ * which reads one of its elements.
  */
 final class ConstantInitializers {
 
     private final ImTranslator imTr;
+    private final ImTranslator.GlobalStorage storage;
     /** Each piece of retained global storage, and the source initializer which writes it. */
     private final Map<ImVar, ImFunction> owners = new IdentityHashMap<>();
     private final Map<ImFunction, Integer> positions = new IdentityHashMap<>();
@@ -56,6 +63,7 @@ final class ConstantInitializers {
 
     private ConstantInitializers(ImTranslator imTr, List<ImFunction> order) {
         this.imTr = imTr;
+        this.storage = imTr.globalStorage();
         for (ImFunction f : Arrays.asList(imTr.luaRawFloorDivIntFunc, imTr.luaRawFmodIntFunc, imTr.luaRawFloorModIntFunc,
             imTr.luaRawConcatFunc, imTr.luaRawOrEmptyFunc, imTr.luaRawR2IFunc, imTr.luaRawToNumberIntFunc,
             imTr.luaRawToNumberRealFunc, imTr.luaRawToIntegerFunc, imTr.luaRawToStringFunc)) {
@@ -65,8 +73,8 @@ final class ConstantInitializers {
         }
         for (ImFunction initializer : order) {
             positions.put(initializer, positions.size());
-            for (ImVar storage : imTr.loweredGlobalStorage(imTr.luaGlobalInitializers.get(initializer))) {
-                owners.put(storage, initializer);
+            for (ImVar stored : storage.of(imTr.luaGlobalInitializers.get(initializer))) {
+                owners.put(stored, initializer);
             }
         }
     }
@@ -91,10 +99,84 @@ final class ConstantInitializers {
                     calls.add(luaName.apply(call));
                 }
                 result.put(luaName.apply(initializer), new LuaHotReload.Constant(summary.pure(), List.copyOf(reads),
-                    List.copyOf(calls)));
+                    List.copyOf(calls), analysis.length(initializer)));
             }
         }
         return result;
+    }
+
+    /**
+     * The array storage of the constants among {@code order} which code other than their initializer writes: code may
+     * assign an element of a constant array, so such storage holds the map's state like a variable.
+     */
+    static Set<ImVar> writtenElsewhere(ImTranslator imTr, ImProg prog, List<ImFunction> order) {
+        ConstantInitializers analysis = new ConstantInitializers(imTr, order);
+        Set<ImVar> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        prog.accept(new ImProg.DefaultVisitor() {
+            @Override
+            public void visit(ImSet set) {
+                super.visit(set);
+                for (ImVar written : analysis.writtenArrays(set.getLeft())) {
+                    ImFunction owner = analysis.owners.get(written);
+                    if (owner != null && analysis.isConstant(owner) && set.getNearestFunc() != owner) {
+                        result.add(written);
+                    }
+                }
+            }
+        });
+        return result;
+    }
+
+    /** The arrays whose elements an assignment to {@code left} writes. */
+    private List<ImVar> writtenArrays(ImExpr left) {
+        if (left instanceof ImVarArrayAccess aa) {
+            return List.of(aa.getVar());
+        } else if (left instanceof ImVarAccess va && isArray(va.getVar())) {
+            return List.of(va.getVar());
+        } else if (left instanceof ImTupleSelection selection) {
+            return writtenArrays(selection.getTupleExpr());
+        } else if (left instanceof ImStatementExpr se) {
+            return writtenArrays(se.getExpr());
+        } else if (left instanceof ImTupleExpr tuple) {
+            List<ImVar> result = new ArrayList<>();
+            for (ImExpr e : tuple.getExprs()) {
+                result.addAll(writtenArrays(e));
+            }
+            return result;
+        }
+        return List.of();
+    }
+
+    private static boolean isArray(ImVar v) {
+        return v.getType() instanceof ImArrayType || v.getType() instanceof ImArrayTypeMulti;
+    }
+
+    /**
+     * How many entries the initializer of an array constant writes: one past the largest index, when it writes its
+     * one-dimensional storage at constant indices only. Null for any other initializer.
+     */
+    private @Nullable Integer length(ImFunction initializer) {
+        Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
+        storage.addAll(this.storage.of(imTr.luaGlobalInitializers.get(initializer)));
+        if (storage.stream().noneMatch(ConstantInitializers::isArray)) {
+            return null;
+        }
+        int[] length = {0};
+        boolean[] constantIndices = {true};
+        initializer.getBody().accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImSet set) {
+                super.visit(set);
+                if (set.getLeft() instanceof ImVarArrayAccess aa && storage.contains(aa.getVar())) {
+                    if (aa.getIndexes().size() == 1 && aa.getIndexes().get(0) instanceof ImIntVal index && index.getValI() >= 0) {
+                        length[0] = Math.max(length[0], index.getValI() + 1);
+                    } else {
+                        constantIndices[0] = false;
+                    }
+                }
+            }
+        });
+        return constantIndices[0] ? length[0] : null;
     }
 
     private boolean isConstant(ImFunction initializer) {
@@ -103,12 +185,16 @@ final class ConstantInitializers {
 
     private Summary initializer(ImFunction initializer) {
         Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImVar v : imTr.loweredGlobalStorage(imTr.luaGlobalInitializers.get(initializer))) {
-            if (v.getType() instanceof ImArrayType || v.getType() instanceof ImArrayTypeMulti) {
-                // Running an array initializer again would keep the entries the edit no longer stores.
+        for (ImVar v : this.storage.of(imTr.luaGlobalInitializers.get(initializer))) {
+            if (v.getType() instanceof ImArrayTypeMulti multi && multi.getArraySize().size() > 1) {
+                // A payload clears the entries an edit drops by their index, which needs one dimension.
                 return Summary.IMPURE;
             }
             storage.add(v);
+        }
+        if (storage.stream().anyMatch(ConstantInitializers::isArray) && length(initializer) == null) {
+            // Only entries at constant indices can be cleared when an edit drops them.
+            return Summary.IMPURE;
         }
         Body body = new Body(initializer, storage);
         if (!body.statements(initializer.getBody())) {
@@ -187,7 +273,9 @@ final class ConstantInitializers {
                 return locals.contains(va.getVar()) || storage.contains(va.getVar())
                     || imTr.stackTraceStorage.contains(va.getVar());
             } else if (left instanceof ImVarArrayAccess aa) {
-                return imTr.stackTraceStorage.contains(aa.getVar()) && exprs(aa.getIndexes());
+                // An entry of its own array literal ({@link #length} checked the indices are constants).
+                return (imTr.stackTraceStorage.contains(aa.getVar()) || storage.contains(aa.getVar()))
+                    && exprs(aa.getIndexes());
             }
             return false;
         }
@@ -226,8 +314,10 @@ final class ConstantInitializers {
             } else if (e instanceof ImVarAccess va) {
                 return read(va.getVar());
             } else if (e instanceof ImVarArrayAccess aa) {
-                // Code may assign an element of a constant array, so only the stack-trace bookkeeping is read here.
-                return imTr.stackTraceStorage.contains(aa.getVar()) && exprs(aa.getIndexes());
+                // An element of a constant array is read like a constant. Code may assign one: such storage is listed
+                // with the variables (writtenElsewhere), so what reads it keeps its value.
+                return (imTr.stackTraceStorage.contains(aa.getVar()) || owners.containsKey(aa.getVar()) && read(aa.getVar()))
+                    && exprs(aa.getIndexes());
             } else if (e instanceof ImFunctionCall call) {
                 return call(call);
             } else if (e instanceof ImCast cast) {

@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.nio.charset.StandardCharsets;
@@ -73,6 +74,11 @@ public final class LuaHotReload {
      * editor, knows which payload reached it.
      */
     private static final String CONSTANT_VALUES = "__wurst_hotreload_constants";
+    /**
+     * For each array constant a payload ran ({@link #CONSTANT_VALUES}), how many entries that run wrote: the next run
+     * which writes fewer clears the rest, so they read the array's default as in a restarted map.
+     */
+    private static final String CONSTANT_LENGTHS = "__wurst_hotreload_constantLengths";
     /**
      * The files payloads are delivered in, relative to the game's CustomMapData folder: payload n in
      * {@code Wurst\hotreload-<n>.pld}. Each payload needs a file of its own, because the game reads a file once:
@@ -143,8 +149,11 @@ public final class LuaHotReload {
      * ({@link ConstantInitializers}): running it again then gives the value a restarted map would have, since nothing
      * else writes a constant. {@code reads} names the initializers of the constants it reads, which run before it, and
      * {@code calls} the functions of the program it calls, directly or through others: an edit of one changes its value.
+     * {@code length} is the number of entries the initializer of an array constant writes, at indices 0 to length - 1,
+     * when those are constants, and null for any other constant: a payload which runs it again clears the entries past
+     * it which the map's last run wrote.
      */
-    public record Constant(boolean pure, List<String> reads, List<String> calls) {
+    public record Constant(boolean pure, List<String> reads, List<String> calls, Integer length) {
     }
 
     /**
@@ -247,12 +256,13 @@ public final class LuaHotReload {
         }
         Map<LuaFunction, ImVar> initializers = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> initializerTargets = new IdentityHashMap<>();
+        ImTranslator.GlobalStorage storage = tr.imTr.globalStorage();
         for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
             ImVar global = tr.imTr.luaGlobalInitializers.get(entry.getValue());
             if (global != null) {
                 initializers.put(entry.getKey(), global);
                 List<String> targets = new ArrayList<>();
-                for (ImVar component : tr.imTr.loweredGlobalStorage(global)) {
+                for (ImVar component : storage.of(global)) {
                     targets.add(tr.luaVar.getFor(component).getName());
                 }
                 initializerTargets.put(entry.getKey(), List.copyOf(targets));
@@ -355,9 +365,11 @@ public final class LuaHotReload {
         }
         Map<String, Constant> constants = ConstantInitializers.analyse(tr.imTr, initializerOrder,
             f -> tr.luaFunc.getFor(f).getName());
+        // Code may assign an element of a constant array: such storage holds the map's state as a variable does.
+        Set<ImVar> writtenArrays = ConstantInitializers.writtenElsewhere(tr.imTr, tr.prog, initializerOrder);
         List<String> variables = new ArrayList<>();
         for (ImVar global : tr.prog.getGlobals()) {
-            if (global.getTrace() instanceof GlobalVarDef g && !g.attrIsConstant()) {
+            if (global.getTrace() instanceof GlobalVarDef g && !g.attrIsConstant() || writtenArrays.contains(global)) {
                 variables.add(tr.luaVar.getFor(global).getName());
             }
         }
@@ -817,7 +829,7 @@ public final class LuaHotReload {
                         sb.append("if not ").append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] then\n");
                         sb.append(RAN_TABLE).append("[\"").append(runKey(s)).append("\"] = \"").append(identityHash(s.revision()))
                             .append("\"\n");
-                        appendConstantValue(sb, s, constants.currentRevision(s.key()));
+                        appendConstantValue(sb, s, constants.currentRevision(s.key()), constants.length(s.key()));
                         sb.append("end\n");
                     }
                 }
@@ -831,10 +843,11 @@ public final class LuaHotReload {
             List<Statement> values = packageValues.getOrDefault(init, List.of());
             for (Statement s : unitsByOwner.getOrDefault(init, List.of())) {
                 if (values.contains(s)) {
-                    appendOnce(sb, s, constants.currentRevision(s.key()));
+                    appendOnce(sb, s, constants.currentRevision(s.key()), constants.length(s.key()));
                 }
                 if (refreshed.contains(s.key())) {
-                    appendRefresh(sb, s, constants.currentRevision(s.key()), constants.baselineRevision(s.key()));
+                    appendRefresh(sb, s, constants.currentRevision(s.key()), constants.baselineRevision(s.key()),
+                        constants.length(s.key()), constants.baselineLength(s.key()));
                 }
             }
         }
@@ -977,15 +990,15 @@ public final class LuaHotReload {
      * local is a temporary of the statements after it and runs each time.
      */
     private static void appendOnce(StringBuilder sb, Statement s) {
-        appendOnce(sb, s, null);
+        appendOnce(sb, s, null, null);
     }
 
     /**
      * {@link #appendOnce} for the initial value of a global, where {@code constantRevision} is the
      * {@link #effectiveRevision} of a constant which runs again when it changes ({@link #appendRefresh}), and null for
-     * any other global, which keeps its value.
+     * any other global, which keeps its value; {@code length} is the number of entries of an array constant.
      */
-    private static void appendOnce(StringBuilder sb, Statement s, String constantRevision) {
+    private static void appendOnce(StringBuilder sb, Statement s, String constantRevision, Integer length) {
         if (s.text().startsWith("local ")) {
             sb.append(s.text()).append("\n");
             return;
@@ -1001,7 +1014,7 @@ public final class LuaHotReload {
         }
         sb.append(marker).append(" then\n").append(s.text()).append("\n")
             .append(marker).append(" = ").append(text).append("\n");
-        appendConstantValue(sb, s, constantRevision);
+        appendConstantValue(sb, s, constantRevision, length);
         if (keepsValue(s) && constantRevision == null) {
             sb.append("elseif ").append(marker).append(" ~= ").append(text).append(" then\n")
                 .append(WARN_FUNCTION + "(\"Wurst hot reload: ").append(initializerLabel(s))
@@ -1010,10 +1023,16 @@ public final class LuaHotReload {
         sb.append("end\n");
     }
 
-    /** Records in the map which revision of a constant's initializer ran; nothing for any other global (null). */
-    private static void appendConstantValue(StringBuilder sb, Statement s, String constantRevision) {
+    /**
+     * Records in the map which revision of a constant's initializer ran, and how many entries it wrote when it is an
+     * array constant ({@code length}); nothing for any other global (null).
+     */
+    private static void appendConstantValue(StringBuilder sb, Statement s, String constantRevision, Integer length) {
         if (constantRevision != null) {
             sb.append(CONSTANT_VALUES).append("[\"").append(runKey(s)).append("\"] = \"").append(constantRevision).append("\"\n");
+            if (length != null) {
+                sb.append(CONSTANT_LENGTHS).append("[\"").append(runKey(s)).append("\"] = ").append(length).append("\n");
+            }
         }
     }
 
@@ -1021,8 +1040,13 @@ public final class LuaHotReload {
      * Runs the initializer of a constant again, unless the revision the map ran last is {@code revision}: the map's own
      * record, or else {@code baselineRevision}, which ran when the map started. One a payload added ({@code
      * baselineRevision} null) runs again only once it ran ({@link #appendOnce}).
+     *
+     * <p>An array constant writes {@code length} entries; the run the map made last wrote the number it recorded, or
+     * else {@code baselineLength}. The entries past the new length are cleared, so they read the array's default as in
+     * a restarted map. They are cleared in place, by index: the table stays the one every function reaches.
      */
-    private static void appendRefresh(StringBuilder sb, Statement s, String revision, String baselineRevision) {
+    private static void appendRefresh(StringBuilder sb, Statement s, String revision, String baselineRevision,
+                                      Integer length, Integer baselineLength) {
         String value = CONSTANT_VALUES + "[\"" + runKey(s) + "\"]";
         sb.append("if ");
         if (baselineRevision == null) {
@@ -1030,8 +1054,18 @@ public final class LuaHotReload {
         } else {
             sb.append("(").append(value).append(" or \"").append(baselineRevision).append("\")");
         }
-        sb.append(" ~= \"").append(revision).append("\" then\n").append(s.text()).append("\n")
-            .append(value).append(" = \"").append(revision).append("\"\nend\n");
+        sb.append(" ~= \"").append(revision).append("\" then\n").append(s.text()).append("\n");
+        if (length != null) {
+            String written = CONSTANT_LENGTHS + "[\"" + runKey(s) + "\"]";
+            sb.append("for i = ").append(length).append(", (").append(written).append(" or ")
+                .append(baselineRevision == null ? 0 : Objects.requireNonNull(baselineLength).intValue()).append(") - 1 do\n");
+            for (String target : s.targets()) {
+                sb.append(target).append("[i] = nil\n");
+            }
+            sb.append("end\n");
+        }
+        appendConstantValue(sb, s, revision, length);
+        sb.append("end\n");
     }
 
     /** The source initializers of each package init, in the order it runs them. */
@@ -1114,10 +1148,26 @@ public final class LuaHotReload {
             return result;
         }
 
-        /** A pure constant whose storage, and that of every constant it reads, only its initializer ever wrote. */
+        /**
+         * A pure constant whose storage, and that of every constant it reads, only its initializer ever wrote. An array
+         * constant also needs to know how many entries the map's first run wrote, to clear those an edit drops.
+         */
         boolean refreshable(String key) {
             Constant c = current.get(key);
-            return c != null && c.pure() && reliable(key);
+            return c != null && c.pure() && reliable(key)
+                && (c.length() == null || !baselineUnits.containsKey(key) || baselineLength(key) != null);
+        }
+
+        /** How many entries the current initializer of an array constant writes; null for any other constant. */
+        Integer length(String key) {
+            Constant c = current.get(key);
+            return c == null ? null : c.length();
+        }
+
+        /** How many entries the initializer of an array constant wrote when the map started. */
+        Integer baselineLength(String key) {
+            Constant c = baseline.get(key);
+            return c == null ? null : c.length();
         }
 
         List<String> calls(String key) {
@@ -1376,7 +1426,9 @@ public final class LuaHotReload {
         } else if (t instanceof ImArrayType a) {
             return typeKey(a.getEntryType()) + "[]";
         } else if (t instanceof ImArrayTypeMulti a) {
-            return typeKey(a.getEntryType()) + a.getArraySize();
+            // The dimensions, not their sizes: a Lua array is a table of any length, so an array literal which gains
+            // an entry (string[74] to string[75]) holds the same kind of value.
+            return typeKey(a.getEntryType()) + "[" + ",".repeat(Math.max(0, a.getArraySize().size() - 1)) + "]";
         } else if (t instanceof ImTupleType tuple) {
             StringJoiner types = new StringJoiner(",", "(", ")");
             for (ImType component : tuple.getTypes()) {
@@ -1426,6 +1478,7 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(CURRENT_BATCH + " = 0"));
         model.add(LuaAst.LuaLiteral(KEPT_INITIALIZERS + " = {}"));
         model.add(LuaAst.LuaLiteral(CONSTANT_VALUES + " = {}"));
+        model.add(LuaAst.LuaLiteral(CONSTANT_LENGTHS + " = {}"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",
@@ -1477,9 +1530,30 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(String.join("\n", runHook)));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_lastStatus = \"no payload read\""));
         model.add(LuaAst.LuaLiteral("function " + STATUS_FUNCTION + "() return __wurst_hotreload_lastStatus end"));
+        // A payload reaches one player's game only, so hot reload is for a single-player game. The users playing are
+        // counted as blizzard.j's InitBlizzardGlobals counts them for bj_isSinglePlayer, which a map whose main skips
+        // InitBlizzard never sets: such a map read no payload and said nothing.
+        model.add(LuaAst.LuaLiteral(String.join("\n",
+            "function __wurst_hotreload_singlePlayer()",
+            "    if __wurst_hotreload_users == nil then",
+            "        local users = 0",
+            "        for i = 0, GetBJMaxPlayers() - 1 do",
+            "            local p = Player(i)",
+            "            if GetPlayerController(p) == MAP_CONTROL_USER and GetPlayerSlotState(p) == PLAYER_SLOT_STATE_PLAYING then",
+            "                users = users + 1",
+            "            end",
+            "        end",
+            "        __wurst_hotreload_users = users",
+            "        if users ~= 1 then",
+            "            __wurst_hotreload_lastStatus = \"hot reload is off: it needs a single-player game, and this one has \" .. users .. \" users\"",
+            "            BJDebugMsg(\"Wurst \" .. __wurst_hotreload_lastStatus)",
+            "        end",
+            "    end",
+            "    return __wurst_hotreload_users == 1",
+            "end")));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + POLL_FUNCTION + "()",
-            "    if not bj_isSinglePlayer then return end",
+            "    if not __wurst_hotreload_singlePlayer() then return end",
             "    local channel = FourCC(\"" + CHANNEL_ABILITY + "\")",
             // The map may show this ability: its tooltip is put back after each poll.
             "    local shown = BlzGetAbilityTooltip(channel, 0)",

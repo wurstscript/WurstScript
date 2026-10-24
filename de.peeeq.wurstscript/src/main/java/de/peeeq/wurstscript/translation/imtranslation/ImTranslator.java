@@ -185,6 +185,12 @@ public class ImTranslator implements SpecialisationLookup {
     /** Complete source global initializers, kept as functions in hot-reload builds before flattening splits them. */
     public final Map<ImFunction, ImVar> luaGlobalInitializers = new LinkedHashMap<>();
 
+    /** The call of each initializer in {@link #luaGlobalInitializers}, or of the last unit added after it. */
+    private final Map<ImFunction, ImFunctionCall> luaGlobalInitializerTails = new IdentityHashMap<>();
+
+    /** The specialisations of generic statics which {@link #addSpecializedGlobalInitializer} gave a unit of their own. */
+    private final Set<ImVar> specializationsWithOwnUnit = Collections.newSetFromMap(new IdentityHashMap<>());
+
     /** The stack and depth which -stacktraces instrumentation pushes and pops around every call; empty without it. */
     public final Set<ImVar> stackTraceStorage = Collections.newSetFromMap(new IdentityHashMap<>());
 
@@ -420,6 +426,23 @@ public class ImTranslator implements SpecialisationLookup {
             }
         }
         return hooks;
+    }
+
+    /**
+     * Whether {@code global} is a global of the source which a {@code -luaHotReload} build keeps whether anything reads
+     * it or not. Its initializer is a unit of the manifest which records the storage it writes; dropping the storage
+     * of a global nothing reads would change that unit whenever an edit starts or stops reading the global, and a
+     * payload refuses that. Kept, a global an edit starts to read has the value the map gave it at the start. The
+     * globals of common.j and blizzard.j and those of generic classes, which the generics specialise, are not
+     * included. False in any other build.
+     */
+    public boolean isHotReloadSourceGlobal(ImVar global) {
+        return runArgs.isLuaHotReload()
+            && !global.getIsBJ()
+            && global.getTrace() instanceof GlobalVarDef
+            && isGlobalOf(global)
+            && genericStaticOwnerOf(global) == null
+            && specialisationOf(global) == null;
     }
 
     /**
@@ -1577,7 +1600,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(initializer);
             luaGlobalInitializers.put(initializer, v);
-            f.getBody().add(ImFunctionCall(trace, initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
+            ImFunctionCall call = ImFunctionCall(trace, initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL);
+            f.getBody().add(call);
+            luaGlobalInitializerTails.put(initializer, call);
             f = initializer;
         }
         if (initialExpr instanceof Expr expr) {
@@ -1605,6 +1630,52 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             // add list of init-values to translatedExprs
             imProg.getGlobalInits().put(v, imSets);
         }
+    }
+
+    /**
+     * In a hot-reload build, gives a specialisation of a generic static an initializer unit of its own, holding
+     * {@code initialValues}. It is called right after {@code source}, the unit of the static it was copied from, and
+     * after the specialisations which got theirs before it, so the initial values are computed in the order one unit
+     * computed them. Each specialisation is storage of its own, so a payload can initialise a new one alone and keep the
+     * values of the others; the unit is made here, where the specialised storage is, and not found again in the Lua
+     * backend. Locals of {@code source} the initial values use become locals of the new unit.
+     */
+    public void addSpecializedGlobalInitializer(ImFunction source, ImVar specialized, List<ImSet> initialValues) {
+        ImFunctionCall tail = luaGlobalInitializerTails.get(source);
+        if (tail == null || !(tail.getParent() instanceof ImStmts calls)) {
+            throw new CompileError(specialized,
+                "The initializer of " + specialized.getName() + " has no call of its source initializer to follow.");
+        }
+        ImFunction initializer = ImFunction(specialized.getTrace(), "init_global_" + specialized.getName(), ImTypeVars(),
+            ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+        addFunction(initializer);
+        luaGlobalInitializers.put(initializer, specialized);
+        specializationsWithOwnUnit.add(specialized);
+        Map<ImVar, ImVar> locals = new IdentityHashMap<>();
+        for (ImSet initialValue : initialValues) {
+            initializer.getBody().add(initialValue);
+            initialValue.accept(new ImHelper.VarReplaceVisitor() {
+                @Override
+                ImVar getReplaceVar(ImVar v) {
+                    if (v.getParent() != source.getLocals()) {
+                        return null;
+                    }
+                    return locals.computeIfAbsent(v, original -> {
+                        ImVar copy = original.copy();
+                        initializer.getLocals().add(copy);
+                        return copy;
+                    });
+                }
+            });
+        }
+        ImFunctionCall call = ImFunctionCall(tail.getTrace(), initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL);
+        for (int i = 0; i < calls.size(); i++) {
+            if (calls.get(i) == tail) {
+                calls.add(i + 1, call);
+                break;
+            }
+        }
+        luaGlobalInitializerTails.put(source, call);
     }
 
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
@@ -2248,9 +2319,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             calculateCallRelations(hook, includeUsedVariables);
         }
 
-        // Mark externally visible globals as read so they survive garbage collection.
+        // Mark externally visible globals as read so they survive garbage collection, and in a hot-reload build every
+        // global of the source.
         for (ImVar global : imProg.getGlobals()) {
-            if (NamePreservation.isPreserved(global)) readVariables.add(global);
+            if (NamePreservation.isPreserved(global) || isHotReloadSourceGlobal(global)) readVariables.add(global);
         }
 
         // The game initialises common.j and blizzard.j globals itself, so their initialisers are in no
@@ -2452,7 +2524,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         }
         List<ImVar> unread = new ArrayList<>();
         for (ImVar v : candidates) {
-            if (isGlobalOf(v) && NamePreservation.isPreserved(v)) {
+            if ((isGlobalOf(v) && NamePreservation.isPreserved(v)) || isHotReloadSourceGlobal(v)) {
                 continue;
             }
             if (v.getIsBJ()) {
@@ -2979,27 +3051,68 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return getVarsForTuple(v).allValuesStream().toList();
     }
 
-    /** The retained storage of a source global, using recorded specialization and tuple-lowering relations. */
-    public List<ImVar> loweredGlobalStorage(ImVar source) {
-        Set<ImVar> roots = Collections.newSetFromMap(new IdentityHashMap<>());
-        roots.add(source);
-        ImVar original = canonical(source);
-        for (Element copy : specialisations.keySet()) {
-            if (copy instanceof ImVar variable && canonical(variable) == original) {
-                roots.add(variable);
+    /**
+     * The retained storage of globals, using recorded specialization and tuple-lowering relations, indexed once for a
+     * pass which asks for the storage of many: looking each one up through every specialisation and every global made
+     * the hot-reload manifest of a large map quadratic.
+     */
+    public GlobalStorage globalStorage() {
+        return new GlobalStorage();
+    }
+
+    /** A snapshot of the program's globals and specialisations: valid while neither changes. */
+    public final class GlobalStorage {
+        private final Map<ImVar, List<ImVar>> copies = new IdentityHashMap<>();
+        private final Map<ImVar, Integer> positions = new IdentityHashMap<>();
+
+        private GlobalStorage() {
+            for (Element copy : specialisations.keySet()) {
+                if (copy instanceof ImVar variable) {
+                    ImVar original = canonical(variable);
+                    if (original != variable) {
+                        copies.computeIfAbsent(original, k -> new ArrayList<>()).add(variable);
+                    }
+                }
+            }
+            List<ImVar> globals = imProg.getGlobals();
+            for (int i = 0; i < globals.size(); i++) {
+                positions.putIfAbsent(globals.get(i), i);
             }
         }
-        Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImVar root : roots) {
-            VarsForTupleResult tuple = varsForTupleVar.get(root);
-            if (tuple == null) {
-                storage.add(root);
-            } else {
-                tuple.allValuesStream().forEach(storage::add);
+
+        /**
+         * The storage of {@code source}, in the program's declaration order: with the specialisations of a source global
+         * which have no initializer unit of their own.
+         */
+        public List<ImVar> of(ImVar source) {
+            List<ImVar> roots = new ArrayList<>();
+            roots.add(source);
+            if (canonical(source) == source) {
+                for (ImVar variable : copies.getOrDefault(source, List.of())) {
+                    if (!specializationsWithOwnUnit.contains(variable)) {
+                        roots.add(variable);
+                    }
+                }
             }
+            Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImVar root : roots) {
+                VarsForTupleResult tuple = varsForTupleVar.get(root);
+                if (tuple == null) {
+                    storage.add(root);
+                } else {
+                    tuple.allValuesStream().forEach(storage::add);
+                }
+            }
+            // The identity sets are membership only; the order is the program's declaration order.
+            List<ImVar> result = new ArrayList<>();
+            for (ImVar v : storage) {
+                if (positions.containsKey(v)) {
+                    result.add(v);
+                }
+            }
+            result.sort(Comparator.comparingInt(positions::get));
+            return result;
         }
-        // Identity maps above are membership sets only; output follows the program's deterministic declaration order.
-        return imProg.getGlobals().stream().filter(storage::contains).toList();
     }
 
     VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {

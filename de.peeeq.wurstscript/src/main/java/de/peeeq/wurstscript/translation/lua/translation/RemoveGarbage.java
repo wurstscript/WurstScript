@@ -180,6 +180,13 @@ public class RemoveGarbage {
         Set<ImFunction> hooks = Collections.newSetFromMap(new IdentityHashMap<>());
         hooks.addAll(translator.hotReloadHooks());
         visitRootFunctions(prog.getFunctions(), used, hooks);
+        // It keeps every global of the source too, read or not (ImTranslator.isHotReloadSourceGlobal).
+        List<ImVar> globals = prog.getGlobals();
+        for (int i = 0; i < globals.size(); i++) {
+            if (translator.isHotReloadSourceGlobal(globals.get(i))) {
+                used.addVar(globals.get(i));
+            }
+        }
         List<ImClass> classes = prog.getClasses();
         for (int i = 0; i < classes.size(); i++) {
             visitRootFunctions(classes.get(i).getFunctions(), used, hooks);
