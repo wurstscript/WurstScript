@@ -153,10 +153,6 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     stats.warned++;
                     write(dir, "edit" + k + "_warnings.txt", String.join("\n", step.payload.warnings()) + "\n");
                 }
-                if (edit.mustWarn && step.payload.warnings().isEmpty()) {
-                    report.add("edit " + k + " " + edit.ops + " applies without the warning it needs"
-                        + reproduction(dir, k));
-                }
             } catch (LuaHotReload.Rejected rejected) {
                 write(dir, "edit" + k + "_rejected.txt", rejected.getMessage() + "\n");
                 if (edit.mustRefuse) {
@@ -213,6 +209,11 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     report.add("the payload of edit " + step.k + " " + step.edit.ops + " did not install: " + result
                         + reproduction(dir, step.k));
                     break;
+                }
+                // The editor warns of what it knows; the map of what depends on the payloads it installed.
+                if (step.edit.mustWarn && step.payload.warnings().isEmpty() && !apply.contains("#msg ")) {
+                    report.add("edit " + step.k + " " + step.edit.ops + " applies without the warning it needs"
+                        + reproduction(dir, step.k));
                 }
                 String hooks = apply.lines().filter(l -> !l.startsWith("#")).reduce("", (a, b) -> a + b + "\n");
                 compare(report, step, dir, "the reload hooks", sections(step.fresh).getOrDefault("hooks", ""), hooks);
