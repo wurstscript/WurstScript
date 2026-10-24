@@ -98,6 +98,26 @@ public class MapModelReuseTests {
         }
     }
 
+    /**
+     * A Lua hot reload compiles a payload, not a map: the manifest of the last build, which the command line's session
+     * takes as the map it starts, stays that build's. A large map's manifest is tens of megabytes.
+     */
+    @Test
+    public void luaHotReloadLeavesTheManifestOfTheLastBuild() throws Exception {
+        Project project = project();
+        File manifest = new File(project.root, "_build/luaHotReload/manifest.json");
+        compile(new RunProbe(project.root, List.of("-lua", "-luaHotReload")), project, new WurstGuiCliImpl());
+        String built = Files.readString(manifest.toPath());
+
+        String edited = source(17);
+        Files.writeString(project.source.toPath(), edited);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), edited));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        String reloaded = compile(new RunProbe(project.root, List.of("-lua", "-hotreload")), project, new WurstGuiCliImpl());
+        assertTrue(reloaded.contains("17"), "the reload compiles the edit");
+        assertTrue(Files.readString(manifest.toPath()).equals(built), "the reload left the manifest of the build");
+    }
+
     @Test
     public void runProbeDoesNotDiscoverAnInstalledGame() throws Exception {
         Project project = project();

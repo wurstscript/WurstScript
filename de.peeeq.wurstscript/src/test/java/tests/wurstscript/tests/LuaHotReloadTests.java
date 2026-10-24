@@ -2800,6 +2800,58 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     /**
+     * The baseline is the manifest of the map which was started, which no reload changes; a large map's is tens of
+     * megabytes. A session writes it once, in a file named by its content, and a reload saves only what it sent. Starting
+     * another map replaces it, and a launch which is undone leaves the running map's.
+     */
+    @Test
+    public void aReloadDoesNotRewriteTheBaseline() throws Exception {
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadBaseline");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        java.nio.file.Path folder = buildDir.resolve("luaHotReload");
+        java.nio.file.Path state = folder.resolve("session.json");
+        LuaHotReload.Manifest baseline = manifest(program("x + 1", "side * side", INIT));
+        LuaHotReloadSession.start(buildDir, baseline);
+        java.nio.file.Path baselineFile = onlyBaselineFile(folder);
+        assertTrue(java.nio.file.Files.readString(baselineFile).contains(baseline.abi()));
+        byte[] written = java.nio.file.Files.readAllBytes(baselineFile);
+        java.nio.file.attribute.FileTime writtenAt = java.nio.file.Files.getLastModifiedTime(baselineFile);
+
+        LuaHotReload.Manifest firstEdit = manifest(program("x + 10", "side * side", INIT));
+        LuaHotReloadSession.Sent first = LuaHotReloadSession.send(buildDir, customMapData, firstEdit);
+        assertEquals(LuaHotReload.payload(baseline, firstEdit, Set.of(), 1).source(), first.payload().source());
+        LuaHotReloadSession.send(buildDir, customMapData, manifest(program("x + 1", "side * side * 10", INIT)));
+        assertFalse("the session saves what was sent, not the baseline",
+            java.nio.file.Files.readString(state).contains(baseline.abi()));
+        assertEquals(writtenAt, java.nio.file.Files.getLastModifiedTime(baselineFile));
+        assertTrue(java.util.Arrays.equals(written, java.nio.file.Files.readAllBytes(baselineFile)));
+
+        // A launch which fails keeps the running map's baseline and drops the other.
+        LuaHotReloadSession.stage(buildDir, manifest(program("x + 2", "side * side", INIT)));
+        LuaHotReloadSession.unstage(buildDir);
+        assertEquals(baselineFile, onlyBaselineFile(folder));
+        assertEquals(3, LuaHotReloadSession.send(buildDir, customMapData, firstEdit).payload().version());
+
+        // Another map replaces it: its payloads are made against its own manifest.
+        LuaHotReload.Manifest other = manifest(program("x + 2", "side * side", INIT));
+        LuaHotReloadSession.start(buildDir, other);
+        assertFalse(baselineFile.equals(onlyBaselineFile(folder)));
+        LuaHotReloadSession.Sent afterRestart = LuaHotReloadSession.send(buildDir, customMapData, firstEdit);
+        assertEquals(LuaHotReload.payload(other, firstEdit, Set.of(), 1).source(), afterRestart.payload().source());
+    }
+
+    /** The file of the session's baseline: the only one in the session's folder besides its state. */
+    private static java.nio.file.Path onlyBaselineFile(java.nio.file.Path folder) throws IOException {
+        try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(folder)) {
+            List<java.nio.file.Path> others = files
+                .filter(f -> !f.getFileName().toString().equals("session.json"))
+                .toList();
+            assertEquals(others.toString(), 1, others.size());
+            return others.get(0);
+        }
+    }
+
+    /**
      * A session without the editor: starting it with the map of a build deletes an earlier session's payloads, and each
      * later build sends the next cumulative payload.
      */
