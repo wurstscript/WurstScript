@@ -64,7 +64,8 @@ public final class LuaHotReloadSession {
         /** Every shape sent of each closure told apart by its order, by lineage. */
         Map<String, List<String>> groupShapes = new LinkedHashMap<>();
         /** How the last payload sent matched the closures of its program. */
-        List<LuaHotReload.GroupMember> groupLayout = new ArrayList<>();
+        // Null means no layout was recorded (a new or older session); an empty list records removal of all closures.
+        List<LuaHotReload.GroupMember> groupLayout;
         /** Where each closure a payload added kept its tables when it began. */
         Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
         /** The order groups whose names a payload gave other tables. */
@@ -239,7 +240,7 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         List<String> variables = new ArrayList<>();
         Map<String, String> groupShapes = new LinkedHashMap<>();
-        List<LuaHotReload.GroupMember> groupLayout = new ArrayList<>();
+        List<LuaHotReload.GroupMember> groupLayout;
         Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
         List<String> permutedGroups = new ArrayList<>();
     }
@@ -281,7 +282,7 @@ public final class LuaHotReloadSession {
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
             new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
-            state.groupLayout == null ? List.of() : state.groupLayout, orEmpty(state.lineageOrigins),
+            state.groupLayout, orEmpty(state.lineageOrigins),
             new LinkedHashSet<>(orEmpty(state.permutedGroups))), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
@@ -355,7 +356,7 @@ public final class LuaHotReloadSession {
         }
         state.groupShapes = groupShapes;
         // The next payload matches its closures with those of this one.
-        state.groupLayout = sent.groupLayout == null ? new ArrayList<>() : new ArrayList<>(sent.groupLayout);
+        state.groupLayout = sent.groupLayout == null ? null : new ArrayList<>(sent.groupLayout);
         Map<String, Map<String, String>> origins = new LinkedHashMap<>(orEmpty(state.lineageOrigins));
         orEmpty(sent.lineageOrigins).forEach(origins::putIfAbsent);
         state.lineageOrigins = origins;

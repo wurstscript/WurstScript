@@ -206,7 +206,8 @@ public final class LuaHotReload {
      * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}), by its
      * lineage: which of them the map runs depends on which payloads it installed, which the editor does not know.
      * {@code groupLayout} is how the last payload matched the closures of its program ({@link GroupMember}), which the
-     * next one matches its own against; {@code lineageOrigins} names the tables of each closure a payload added where
+     * next one matches its own against; null means no layout was recorded, while empty means all closures were removed.
+     * {@code lineageOrigins} names the tables of each closure a payload added where
      * that payload's program kept them ({@link Closure#tables}), empty for a role whose table it had to make anew;
      * {@code permutedGroups} names the groups whose tables a payload gave to other closures.
      */
@@ -217,7 +218,7 @@ public final class LuaHotReload {
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, List.of(), Map.of(), Set.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured) {
@@ -1097,7 +1098,7 @@ public final class LuaHotReload {
 
             // What the last payload sent, or else the started map: the closures to match, by group, in order.
             Map<String, List<GroupMember>> before = new TreeMap<>();
-            if (!lastLayout.isEmpty()) {
+            if (history.groupLayout() != null) {
                 for (GroupMember m : lastLayout) {
                     before.computeIfAbsent(m.group(), k -> new ArrayList<>()).add(m);
                 }
@@ -1117,6 +1118,7 @@ public final class LuaHotReload {
             }
             // Lineages already taken: a new closure takes its own name as its lineage when it is free.
             Set<String> taken = new HashSet<>(baseClosures.keySet());
+            taken.addAll(knownOrigins.keySet());
             before.values().forEach(ms -> ms.forEach(m -> taken.add(m.lineage())));
             // Tables a closure the map has began with: a new closure whose name holds one of them makes its own.
             Set<String> occupied = new HashSet<>();

@@ -1476,6 +1476,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReloadSession.send(build, delivery, manifest(registered("1", "2")));
     }
 
+    @Test
+    public void anEmptyRecordedCallbackLayoutDoesNotMeanTheBaselineLayout() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadEmptyLayout");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadEmptyLayoutDelivery");
+        LuaHotReloadSession.start(build, manifest(registered("1", "2")));
+        LuaHotReloadSession.send(build, delivery, manifest(registered()));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, manifest(registered("5", "2"))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("an earlier edit removed it"));
+        // Bringing the original closures back remains safe.
+        LuaHotReloadSession.send(build, delivery, manifest(registered("1", "2")));
+    }
+
+    @Test
+    public void aCallbackRemovedAfterItWasAddedKeepsItsLineageReserved() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadReservedLineage");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadReservedLineageDelivery");
+        LuaHotReloadSession.start(build, manifest(registered("1")));
+        LuaHotReloadSession.send(build, delivery, manifest(registered("1", "2")));
+        LuaHotReloadSession.send(build, delivery, manifest(registered("1")));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, manifest(registered("1", "5"))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("an earlier edit removed it"));
+        LuaHotReloadSession.send(build, delivery, manifest(registered("1", "2")));
+    }
+
     /**
      * The build of an edit is a function of its source alone: the payload, made for the running map, carries how its
      * closures continue the map's, and the same session gives the same payload.
