@@ -456,13 +456,15 @@ public final class LuaHotReload {
                 continue;
             }
             LuaVariable owner = compiletimeOwner(s, objects);
-            // Allocator-id replay and stack instrumentation belong only to map startup, never a payload.
+            StringBuilder text = new StringBuilder();
+            s.print(text, 0);
+            // Startup-only allocator state still distinguishes baselines, but must never execute in a payload.
             if (owner == null) {
+                out.add(new Statement("compiletime", "startup:" + ordinals.merge("", 1, Integer::sum),
+                    text.toString(), "startup", "", withoutPositions(tr, s), List.of()));
                 continue;
             }
             String name = owner.getName();
-            StringBuilder text = new StringBuilder();
-            s.print(text, 0);
             out.add(new Statement("compiletime", name + ":" + ordinals.merge(name, 1, Integer::sum), text.toString(),
                 "global", name, withoutPositions(tr, s), List.of(name)));
         }
@@ -484,7 +486,7 @@ public final class LuaHotReload {
     private static Map<String, List<Statement>> compiletimeState(Manifest manifest) {
         Map<String, List<Statement>> result = new LinkedHashMap<>();
         for (Statement s : manifest.statements()) {
-            if (s.scope().equals("compiletime")) {
+            if (s.scope().equals("compiletime") && s.kind().equals("global")) {
                 result.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
             }
         }

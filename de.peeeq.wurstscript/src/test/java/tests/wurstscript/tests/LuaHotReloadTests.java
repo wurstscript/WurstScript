@@ -3205,8 +3205,10 @@ public class LuaHotReloadTests extends WurstScriptTest {
         CU source = new CU("Test", String.join("\n", objectGraph(true)) + "\n");
         var ordinary = compileLuaHotReloadManifest(false, args, source);
         var split = compileLuaHotReloadManifest(false, args.with("-functionSplitLimit", "1"), source);
-        assertEquals(ordinary.statements().stream().filter(s -> s.scope().equals("compiletime")).toList(),
-            split.statements().stream().filter(s -> s.scope().equals("compiletime")).toList());
+        assertEquals(ordinary.statements().stream()
+                .filter(s -> s.scope().equals("compiletime") && s.kind().equals("global")).toList(),
+            split.statements().stream()
+                .filter(s -> s.scope().equals("compiletime") && s.kind().equals("global")).toList());
     }
 
     private static String[] hashtableObjects(boolean added) {
@@ -3320,6 +3322,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(java.util.Map.of(), before.compiletimeGroups());
         assertEquals(java.util.Map.of(), after.compiletimeGroups());
         LuaHotReload.payload(before, after, Set.of(), 1);
+    }
+
+    @Test
+    public void startupAllocatorStateStillContributesToTheBaselineFingerprint() {
+        assertFalse(compiletimeManifest(allocatorSnapshot(false)).abi()
+            .equals(compiletimeManifest(allocatorSnapshot(true)).abi()));
+    }
+
+    private static String[] allocatorSnapshot(boolean discarded) {
+        return new String[] {"package Test", "class Thing", "    int value", "    construct(int v)", "        value = v",
+            "function compiletime(Thing t) returns Thing", "    return t", "function make() returns Thing",
+            discarded ? "    let unused = new Thing(0)" : "", "    return new Thing(1)",
+            "constant a = compiletime(make())", "function objectId() returns int", "    return a castTo int",
+            "init", "    objectId()"};
     }
 
     private static String[] removedThing(boolean present) {
