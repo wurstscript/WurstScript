@@ -75,9 +75,9 @@ The payload compares the running script's manifest with the edited one:
   Siblings still sharing an identity (anonymous closures, such as several `doAfter` callbacks in one function, or equal
   binding names within one callable) are told apart by their order, which matches an object to the closure it was made
   from. Editing their bodies keeps that order, and so does adding one after them: both reload. A closure whose source
-  (`Function.closureSource`, the closure as written) is now what another one of the group had moved, and an object made
-  from the closure at its old place would run the other one's body: the map refuses that, and removing one, with a
-  restart. What the map runs of each is the baseline's source or the one an earlier payload sent last
+  (`Function.closureSource`, the closure as written) is now what another one of the group had, which that one lost,
+  moved, and an object made from the closure at its old place would run the other one's body: the map refuses that,
+  and removing one, with a restart. A copy of a body another one keeps, appended or edited in, moves nothing. What the map runs of each is the baseline's source or the one an earlier payload sent last
   (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a

@@ -501,8 +501,9 @@ public final class LuaHotReload {
             }
         }
         // The map matches an object to the closure it was made from by that closure's place among those of its identity.
-        // An edit of a body keeps the places; a closure which now has the body another one had has moved, and objects
-        // made from the closure at its old place would run the other one's body.
+        // An edit of a body keeps the places; a closure which now has the body another one had, which that one lost,
+        // has moved, and objects made from the closure at its old place would run the other one's body. A copy of a
+        // body another one keeps moved nothing.
         Map<String, Set<String>> groups = orderGroups(baseline, current);
         Map<String, String> groupShapes = new TreeMap<>();
         for (Map.Entry<String, Set<String>> group : groups.entrySet()) {
@@ -513,12 +514,13 @@ public final class LuaHotReload {
                 }
                 String source = sourceOf(now);
                 groupShapes.put(name, source);
-                Set<String> known = knownShapes(name, baseline, history);
-                if (!known.isEmpty() && known.equals(Set.of(source))) {
+                if (knownShapes(name, baseline, history).contains(source)) {
                     continue;
                 }
                 for (String other : group.getValue()) {
-                    if (!other.equals(name) && knownShapes(other, baseline, history).contains(source)) {
+                    Function otherNow = current.functions().get(other);
+                    if (!other.equals(name) && knownShapes(other, baseline, history).contains(source)
+                        && (otherNow == null || !sourceOf(otherNow).equals(source))) {
                         reasons.add("closures which share the identity " + group.getKey() + " are told apart by their order,"
                             + " and " + name + " now has the body " + other + " had: they moved; restart the map");
                         break;

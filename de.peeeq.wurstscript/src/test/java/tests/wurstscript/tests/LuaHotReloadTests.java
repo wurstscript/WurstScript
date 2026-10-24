@@ -921,6 +921,30 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
     }
 
+    private static String[] consumers(String closures) {
+        return new String[] {"package Test", "interface Op", "    function apply(int v) returns int",
+            "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
+            "function run() returns int", "    return " + closures, "init", "    run()"};
+    }
+
+    /**
+     * A body has moved only if the closure which had it lost it: a copy of a callback appended after the others, or one
+     * edited into a copy of another, keeps every place and reloads. One inserted before identical callbacks moves them,
+     * and the map refuses that.
+     */
+    @Test
+    public void copiedCallbacksAreNoMove() throws Exception {
+        String one = "consume((int v) -> v + 1)";
+        String two = "consume((int v) -> v + 2)";
+        LuaHotReload.Manifest base = manifest(consumers(one + " + " + two));
+        LuaHotReload.payload(base, manifest(consumers(one + " + " + two + " + " + one)), Set.of(), 1);
+        LuaHotReload.Manifest copies = manifest(consumers(one + " + " + one));
+        LuaHotReload.payload(base, copies, Set.of(), 1);
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(copies,
+            manifest(consumers("consume((int v) -> v + 9) + " + one + " + " + one)), Set.of(), 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+    }
+
     private static String[] orderedCallbacks(String second, String... more) {
         String[] lines = {
             "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
