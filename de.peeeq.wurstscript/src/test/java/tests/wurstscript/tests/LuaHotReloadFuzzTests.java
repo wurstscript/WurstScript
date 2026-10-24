@@ -1194,8 +1194,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     p.closures.add(at, new Clo(slot, bound, expr(closureScope(p), 3)));
                     ops.add((at == p.closures.size() - 1 ? "appended" : "inserted") + (bound ? " bound" : "")
                         + " closure " + slot);
-                    // Closures told apart by their order: one inserted before others moves them, which may be refused.
-                    if (at < p.closures.size() - 1 && !bound) {
+                    // Mixed body edits and additions within one anonymous order group may be ambiguous, even when
+                    // the generator intended an append: the compiler cannot distinguish it from an insertion.
+                    if (!bound) {
                         mayRefuse = true;
                     }
                 } else if (k < 90) {

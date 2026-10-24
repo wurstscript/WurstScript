@@ -61,10 +61,19 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         /** The initializers of globals a version the map ran declared as variables, which code may have written. */
         List<String> variables = new ArrayList<>();
-        /** Every shape sent of each closure told apart by its order. */
+        /** Every shape sent of each closure told apart by its order, by lineage. */
         Map<String, List<String>> groupShapes = new LinkedHashMap<>();
+        /** How the last payload sent matched the closures of its program. */
+        // Null means no layout was recorded (a new or older session); an empty list records removal of all closures.
+        List<LuaHotReload.GroupMember> groupLayout;
+        /** Where each closure a payload added kept its tables when it began. */
+        Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
+        /** The order groups whose names a payload gave other tables. */
+        List<String> permutedGroups = new ArrayList<>();
         Set<String> reboundSlots = new LinkedHashSet<>();
         Map<String, Integer> compiletimeGroups = new LinkedHashMap<>();
+        Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
+        Map<String, Set<String>> tableReaders = new LinkedHashMap<>();
     }
 
     /**
@@ -235,8 +244,13 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         List<String> variables = new ArrayList<>();
         Map<String, String> groupShapes = new LinkedHashMap<>();
+        List<LuaHotReload.GroupMember> groupLayout;
+        Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
+        List<String> permutedGroups = new ArrayList<>();
         Set<String> reboundSlots = new LinkedHashSet<>();
         Map<String, Integer> compiletimeGroups = new LinkedHashMap<>();
+        Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
+        Map<String, Set<String>> tableReaders = new LinkedHashMap<>();
     }
 
     /** A payload and the file it was written to. */
@@ -276,7 +290,9 @@ public final class LuaHotReloadSession {
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
             new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
-            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.compiletimeGroups)), state.version + 1);
+            state.groupLayout, orEmpty(state.lineageOrigins),
+            new LinkedHashSet<>(orEmpty(state.permutedGroups)),
+            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes), orEmpty(state.tableReaders), orEmpty(state.compiletimeGroups)), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -286,8 +302,13 @@ public final class LuaHotReloadSession {
         pending.packageInits = new ArrayList<>(payload.packageInits());
         pending.variables = new ArrayList<>(payload.variables());
         pending.groupShapes = new LinkedHashMap<>(payload.groupShapes());
+        pending.groupLayout = new ArrayList<>(payload.groupLayout());
+        pending.lineageOrigins = new LinkedHashMap<>(payload.lineageOrigins());
+        pending.permutedGroups = new ArrayList<>(payload.permutedGroups());
         pending.reboundSlots = new LinkedHashSet<>(payload.reboundSlots());
         pending.compiletimeGroups = new LinkedHashMap<>(payload.compiletimeGroups());
+        pending.lineageTypes = new LinkedHashMap<>(payload.lineageTypes());
+        pending.tableReaders = new LinkedHashMap<>(payload.tableReaders());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -347,12 +368,34 @@ public final class LuaHotReloadSession {
             groupShapes.put(entry.getKey(), List.copyOf(shapes));
         }
         state.groupShapes = groupShapes;
+        // The next payload matches its closures with those of this one.
+        state.groupLayout = sent.groupLayout == null ? null : new ArrayList<>(sent.groupLayout);
+        Map<String, Map<String, String>> origins = new LinkedHashMap<>(orEmpty(state.lineageOrigins));
+        orEmpty(sent.lineageOrigins).forEach(origins::putIfAbsent);
+        state.lineageOrigins = origins;
+        Set<String> permuted = new LinkedHashSet<>(orEmpty(state.permutedGroups));
+        permuted.addAll(orEmpty(sent.permutedGroups));
+        state.permutedGroups = new ArrayList<>(permuted);
         Set<String> reboundSlots = new LinkedHashSet<>(state.reboundSlots == null ? Set.of() : state.reboundSlots);
         reboundSlots.addAll(sent.reboundSlots == null ? Set.of() : sent.reboundSlots);
         state.reboundSlots = reboundSlots;
         Map<String, Integer> compiletimeGroups = new LinkedHashMap<>(orEmpty(state.compiletimeGroups));
         orEmpty(sent.compiletimeGroups).forEach(compiletimeGroups::putIfAbsent);
         state.compiletimeGroups = compiletimeGroups;
+        Map<String, Map<String, String>> types = new LinkedHashMap<>(orEmpty(state.lineageTypes));
+        orEmpty(sent.lineageTypes).forEach((lineage, fields) -> {
+            Map<String, String> combined = new LinkedHashMap<>(types.getOrDefault(lineage, Map.of()));
+            fields.forEach(combined::putIfAbsent);
+            types.put(lineage, combined);
+        });
+        state.lineageTypes = types;
+        Map<String, Set<String>> readers = new LinkedHashMap<>(orEmpty(state.tableReaders));
+        orEmpty(sent.tableReaders).forEach((name, lineages) -> {
+            Set<String> combined = new java.util.TreeSet<>(readers.getOrDefault(name, Set.of()));
+            combined.addAll(lineages);
+            readers.put(name, combined);
+        });
+        state.tableReaders = readers;
         state.version = sent.version;
     }
 

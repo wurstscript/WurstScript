@@ -97,7 +97,8 @@ The payload compares the running script's manifest with the edited one:
   their fields or tuple components. Adding a binding creates its snapshot before new source initializers run; existing
   snapshots retain runtime mutations. A changed snapshot warns that a restart is needed. Nested objects and cycles
   retain their references, and cumulative payloads do not replay snapshots already installed. Startup allocator-ID
-  bookkeeping and the large split startup replay functions are never shipped as reloadable functions.
+  bookkeeping contributes to the baseline fingerprint but never executes in a payload; the large split startup
+  replay functions are never shipped as reloadable functions.
   Expressions without distinct bindings (or multiple expressions in the same binding) still form an order group;
   changing its count requires a restart, including groups introduced by earlier payloads. Pure compile-time values
   which materialize no objects or handles do not need that restriction.
@@ -123,15 +124,35 @@ The payload compares the running script's manifest with the edited one:
   to them lost its binding and was refused (`addedInterfaceWithAMethodOfTheSameNameKeepsTheOthersSlots`,
   `addedImplementationSortingFirstKeepsTheSlot`). Builds without `-luaHotReload` name groups as before.
   Siblings still sharing an identity (anonymous closures, such as several `doAfter` callbacks in one function, or equal
-  binding names within one callable) are told apart by their order, which compares source lines and columns as
-  numbers, so crossing line 10 or 100 changes no identity. This matches an object to the closure it was made
-  from. Editing their bodies keeps that order, and so does adding one after them: both reload. A closure whose source
-  (`Function.closureSource`, the closure as written) is now what another one of the group had, which that one lost,
-  moved, and an object made from the closure at its old place would run the other one's body: the map refuses that,
-  and removing one, with a restart. A copy of a body another one keeps, appended or edited in, moves nothing. What the
-  map runs of each is the baseline's source or one an earlier payload sent; the editor does not know which payloads
-  the map installed, so it keeps every one sent (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures
-  are in such groups.
+  binding names within one callable) form an order group: the build names them by their position, so the build stays a
+  function of the source alone. Source lines and columns compare as numbers. Editing their bodies keeps the positions, and so does adding one after them: both
+  reload. A closure inserted before others gives each of them the next one's name; the payload carries the rest
+  (`LuaHotReload.Lineages`). An object holds its class table itself (`__wurst_objectClass[id]`, read by every dispatch)
+  and its captured values sit in field stores keyed by its id, so the payload matches the edit's closures with those
+  the map has, each closure's lineage, and gives each name of the group the class table and stores of the closure it
+  now names, before it binds the slots and writes the class data of each table again. Every object made before keeps
+  the closure it was made from and its values; an allocation reads the name, so one made after gets the closure the
+  edit has. The map keeps the tables by lineage (`__wurst_hotreload_lineages`), taken from the names each closure began
+  with (the started map's, or those of the payload which added it, `History.lineageOrigins`) before any name is given
+  another table, so a payload applies whichever earlier ones the map installed.
+  The match is by source (`Function.closureSource`, the closure as written), against what the last payload sent
+  (`History.groupLayout`) or the started map: a source only one closure has on either side is that closure, wherever it
+  is now (so swapped closures keep their bodies); one whose source is new takes the place of one which lost its source
+  between the same unchanged ones, as an edited body; any other is new. Within any gap, including after the last
+  unchanged closure, an insertion and an edit cannot be told apart from two edits and an append, so that payload is
+  refused: made one at a time, each applies, and an edit after an insertion reaches the objects made before either
+  (`editAfterAnInsertionReachesObjectsMadeBeforeEither`). A closure whose source is now one another lineage had and lost
+  moved, and the map may run either: refused, as is removing one while the others' names change (its old body reads its
+  captured values by its old names). Removing the last ones of a group, or all of them, moves no other and applies with
+  the warning of a removed function (`removedCallbacksApplyUnlessOthersTakeTheirNames`); a closure added later in the
+  names of a removed one is refused unless it is that one back as it was and no other removed callback still reads
+  those names. Other declarations which share an identity
+  (none of a closure) are still refused when some of them are removed and others remain. What the map runs of each is the baseline's source or one an earlier payload sent;
+  the editor does not know which payloads the map installed, so it keeps every one sent (`History.groupShapes`, by
+  lineage). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
+  The session also keeps every lineage whose emitted body may still read each table name. Original names alone are
+  insufficient after a permutation: removing a group and restoring its original layout must not overwrite names
+  used by a removed inserted callback. Each remap checks these historical readers, even when restoring original names.
   A closure's captured variables are fields of its class, and their storage, and its binding, is named after that
   class, whose name follows the order (`LuaHotReload.captureOwner`). They used to be numbered among the captures of one
   name, so a closure which started to capture `s` took a later sibling's storage of `s`, whose objects then read 0, and
@@ -437,6 +458,10 @@ The same suite, run as above with a tenth phase and a reload hook. 51 checks, al
 
 Every payload which applied printed nothing else, so no hook failed.
 
+The later closure-lineage safety check now refuses phase 10's combined body edit and append: without another
+unchanged callback after it, that source is indistinguishable from an insertion followed by body edits. Send those
+as two payloads. The table records the historical in-game result, before that check.
+
 ### 24 Oct 2026: fourteen payloads, and Castle Fight
 
 The same suite with four more phases, on the compiler with #1553 to #1556. 68 checks, all passed:
@@ -515,14 +540,20 @@ but it ranks what a real project's edits meet. Accepted, as the changes landed:
 | constants first read, array literals, generic specialisations (#1553) | 19 |
 | dispatch slots and closure owners named by what they name (#1555) | 21 |
 | removed closures, classes and callbacks apply with a warning | 23 |
+| closures of an order group matched by lineage; a whole group removed applies | 27 |
 
 The causes in order of the commits they refused: an array literal changing length (14 commits, fixed: its length is
 no part of its identity), a constant starting or stopping being read (7, fixed: a hot-reload build keeps every global's
 storage), a closure, class or callback removed (7, now a warning), slots renamed by an added interface or
-implementation (the lost bindings of 5, fixed), and a generic class's new type argument (5, fixed). Of the 7 still
-refused, 6 insert a closure before others told apart by their order (the only cause in 3: a new `doAfter` or event
-listener registered above the others in one function), and 1 changes a global's type (`boolean` to
-`Signal<boolean>`), which needs a restart.
+implementation (the lost bindings of 5, fixed), and a generic class's new type argument (5, fixed). The 7 refused with
+#1556 were taken as closures inserted before others; matched by lineage (the last row, measured on the same 31 builds),
+they are: 2 real insertions (an event listener added above four others; three spell closures added above another,
+in a commit which also removes a whole group), both applied now; 2 closures whose lines crossed 99 to 100, which reorders
+a group because classes are ordered by their source position as text (`ImTranslator.getSortKey`), both applied now and, once that order
+is numeric, no move at all; 1 group which loses a closure and changes another between the same unchanged ones
+(ambiguous, refused); 1 change of a global's type (`boolean` to `Signal<boolean>`), which needs a restart; and 1 field
+store of a new-generic specialisation renamed when another specialisation of the class was added
+(`ArrayList_specialized_TickCandidates` taking the store names of `..._UnitStat`), which is not a closure at all.
 
 The accepted payloads are 19 KB to 1 MB: Castle Fight's generated object data is one function each of 131 to 167 KB
 (`registerUnitObjectMetadata`, `registerUnitStats`), so an edit of a tooltip or a stat carries the whole function. The
@@ -532,6 +563,6 @@ temporaries.
 
 ## Next stages
 
-1. Closures inserted before others told apart by their order: a proposal in BACKLOG.md ("Lua hot reload: closures
-   inserted among others told apart by their order").
+1. A closure inserted before others of its order group reloads (not yet measured in the game). What an order group
+   still refuses is in BACKLOG.md ("Lua hot reload: what an order group still refuses").
 2. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.
