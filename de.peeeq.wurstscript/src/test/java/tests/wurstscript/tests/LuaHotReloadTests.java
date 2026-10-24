@@ -1665,12 +1665,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "function rangeTwice() returns real",
             "    return RANGE * 2",
             "constant real FAR = rangeTwice()",
-            // Not re-run: a new object would leak the old one, a variable holds the map's state, and an array would keep
-            // the entries an edit drops.
-            "constant Box BOX = new Box(" + (edited ? "2" : "1") + ")",
+            // An array literal nothing else writes runs again, and so does a constant computed from its elements.
             "constant int array LEVELS = " + (edited ? "[3, 4]" : "[1, 2]"),
-            // Code may assign an element of a constant array: what is computed from one keeps its value too.
             "constant int FIRST_LEVEL = LEVELS[0] + " + (edited ? "2" : "1"),
+            // Not re-run: a new object would leak the old one, and a variable holds the map's state.
+            "constant Box BOX = new Box(" + (edited ? "2" : "1") + ")",
             "int counter = " + (edited ? "6" : "5"),
             "constant int FROM_COUNTER = counter + " + (edited ? "2" : "1"),
             "class Tower",
@@ -1692,8 +1691,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "    check(FAR == 500., \"FAR \" + R2S(FAR))",
             "    check(Tower.REACH == 7, \"REACH \" + I2S(Tower.REACH))",
             "    check(BOX.v == 1, \"a constant holding a new object was made again\")",
-            "    check(LEVELS[0] == 1 and LEVELS[1] == 2, \"an array constant was initialised again\")",
-            "    check(FIRST_LEVEL == 2, \"a constant computed from an array element was computed again\")",
+            "    check(LEVELS[0] == 3 and LEVELS[1] == 4, \"LEVELS \" + I2S(LEVELS[0]) + \" \" + I2S(LEVELS[1]))",
+            "    check(FIRST_LEVEL == 5, \"FIRST_LEVEL \" + I2S(FIRST_LEVEL))",
             "    check(counter == 5 and FROM_COUNTER == 6, \"a variable, or a constant computed from one, lost its value\")",
             "    testSuccess()",
             "endpackage",
@@ -1728,11 +1727,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String warnings = payload.warnings().toString();
         String source = payload.source();
         for (String tuned : List.of("Test_config_DAMAGE", "Test_DOUBLE", "Test_RANGE", "Test_NAME", "Test_SPAN", "Test_LABEL",
-            "Test_SCALED", "Test_FAR", "Tower_REACH")) {
+            "Test_SCALED", "Test_FAR", "Tower_REACH", "Test_LEVELS", "Test_FIRST_LEVEL")) {
             assertFalse(tuned + " is run again, not kept: " + warnings, warnings.contains(tuned));
             assertTrue(tuned + " runs again:\n" + source, source.contains(initializerCall(baseline, tuned)));
         }
-        for (String kept : List.of("Test_BOX", "Test_LEVELS", "Test_FIRST_LEVEL", "Test_counter", "Test_FROM_COUNTER")) {
+        for (String kept : List.of("Test_BOX", "Test_counter", "Test_FROM_COUNTER")) {
             assertTrue(kept + " keeps its value: " + warnings, warnings.contains(globalName(baseline, kept)));
             assertFalse(kept + " does not run again:\n" + source, source.contains(initializerCall(baseline, kept)));
         }
@@ -1743,6 +1742,142 @@ public class LuaHotReloadTests extends WurstScriptTest {
         }
         assertTrue("an unchanged program runs nothing again",
             LuaHotReload.payload(baseline, baseline, LuaHotReload.History.NONE, 1).source().indexOf("init_global_") < 0);
+    }
+
+    /**
+     * A configuration table written as an array literal: {@code NAMES} has the type {@code string[n]}, whose length an
+     * edit which adds or removes an entry changes.
+     */
+    private static String[] arrayLiterals(String names, String levels) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "native I2S(int i) returns string",
+            "constant NAMES = [" + names + "]",
+            "constant int array LEVELS = [" + levels + "]",
+            "constant FIRST = NAMES[0] + \"!\"",
+            "function name(int i) returns string",
+            "    return NAMES[i]",
+            "function level(int i) returns int",
+            "    return LEVELS[i]",
+            "function check(boolean ok, string what)",
+            "    if not ok",
+            "        testFail(what)",
+            "init",
+            "    check(name(0) == \"a\" and name(1) == \"b\" and name(2) == \"\" and level(2) == 3 and FIRST == \"a!\","
+                + " \"the original values\")",
+            "    hotReload()",
+            "    check(name(0) == \"z\" and name(1) == \"b\" and name(2) == \"c\" and name(3) == \"\","
+                + " \"NAMES \" + name(0) + name(1) + name(2) + name(3))",
+            "    check(level(0) == 1 and level(1) == 2 and level(2) == 0,"
+                + " \"LEVELS \" + I2S(level(0)) + I2S(level(1)) + I2S(level(2)))",
+            "    check(FIRST == \"z!\", \"FIRST \" + FIRST)",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * An edit of a constant array literal reaches the running map, whether it adds an entry (NAMES gains "c"), changes
+     * one (NAMES[0] becomes "z") or drops one (LEVELS loses 3, which then reads the default, as in a restarted map), and
+     * a constant computed from an element follows.
+     */
+    @Test(dataProvider = "stacktraceCases")
+    public void editedArrayLiteralsReachTheRunningMap(boolean stacktraces) {
+        TestConfig config = test().testLua(true);
+        if (stacktraces) {
+            config = config.stacktraces();
+        }
+        config.executeProg().luaHotReload(arrayLiterals("\"z\", \"b\", \"c\"", "1, 2"))
+            .lines(arrayLiterals("\"a\", \"b\"", "1, 2, 3"));
+    }
+
+    private static String[] namesProgram(String names) {
+        return new String[] {
+            "package Main",
+            "public constant NAMES = [" + names + "]",
+            "public function name(int i) returns string",
+            "    return NAMES[i]",
+            "init",
+            "    name(0)",
+        };
+    }
+
+    /**
+     * Each payload leaves exactly the entries of its version: the map records how many entries it wrote last and clears
+     * the ones past the new length, through grown, shrunk and changed versions, and a map which missed payloads ends
+     * at the same entries.
+     */
+    @Test
+    public void arrayConstantHoldsTheEntriesOfEachPayload() throws Exception {
+        String[] base = namesProgram("\"a\", \"b\"");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_arrayConstantHoldsTheEntriesOfEachPayload.lua";
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadArrays");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(buildDir, baseline);
+        List<String> payloads = new java.util.ArrayList<>();
+        for (String[] edit : List.of(namesProgram("\"a\", \"b\", \"c\", \"d\""), namesProgram("\"x\""),
+            namesProgram("\"x\", \"y\""), namesProgram("\"x\", \"y\""))) {
+            LuaHotReloadSession.Sent sent = LuaHotReloadSession.send(buildDir, customMapData, manifest(edit));
+            assertTrue(sent.payload().warnings().toString(), sent.payload().warnings().isEmpty());
+            payloads.add(sent.payload().source());
+        }
+        String names = globalName(baseline, "NAMES");
+        String[] entries = {names + "[0]", names + "[1]", names + "[2]", names + "[3]"};
+        String output = applyInLua(script, payloads, entries).replace("\r\n", "\n");
+        assertEquals(output, "true a b c d nil\ntrue x    nil\ntrue x y   nil\ntrue x y   nil", output);
+        // A map which read only the second and the last payload.
+        String skipped = applyInLua(script, List.of(payloads.get(1), payloads.get(3)), entries).replace("\r\n", "\n");
+        assertEquals(skipped, "true x    nil\ntrue x y   nil", skipped);
+    }
+
+    /** The length of an array literal is not part of its identity, but the type of its entries is. */
+    @Test
+    public void arrayLiteralEntryTypeChangeIsRefused() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(namesProgram("\"a\", \"b\""));
+        LuaHotReload.payload(baseline, manifest(namesProgram("\"a\", \"b\", \"c\"")), LuaHotReload.History.NONE, 1);
+        LuaHotReload.Manifest numbers = manifest("package Main", "public constant NAMES = [1, 2]",
+            "public function name(int i) returns int", "    return NAMES[i]", "init", "    name(0)");
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, numbers, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains(globalName(baseline, "NAMES") + " now means"));
+    }
+
+    private static String[] writtenArray(boolean edited) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "constant int array LEVELS = " + (edited ? "[3, 4]" : "[1, 2]"),
+            "constant int TOTAL = LEVELS[0] + LEVELS[1] + " + (edited ? "1" : "0"),
+            "function raise()",
+            "    LEVELS[1] = 9",
+            "init",
+            "    raise()",
+            "    hotReload()",
+            "    if LEVELS[0] != 1 or LEVELS[1] != 9 or TOTAL != 3",
+            "        testFail(\"an array constant code wrote was initialised again\")",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * Code may assign an element of a constant array: the map may hold entries its initializer never gave it, so it keeps
+     * its value, with the warning, and so does a constant computed from it.
+     */
+    @Test
+    public void arrayConstantCodeWritesKeepsItsValue() throws Exception {
+        test().testLua(true).executeProg().luaHotReload(writtenArray(true)).lines(writtenArray(false));
+        LuaHotReload.Manifest baseline = manifest(writtenArray(false));
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(writtenArray(true)), LuaHotReload.History.NONE, 1);
+        for (String kept : List.of("Test_LEVELS", "Test_TOTAL")) {
+            assertTrue(kept + " keeps its value: " + payload.warnings(), payload.warnings().toString().contains(globalName(baseline, kept)));
+            assertFalse(kept + " does not run again:\n" + payload.source(), payload.source().contains(initializerCall(baseline, kept)));
+        }
     }
 
     /**

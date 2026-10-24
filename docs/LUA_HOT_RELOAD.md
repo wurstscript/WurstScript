@@ -139,17 +139,31 @@ A changed initial value of a constant (`constant` or `let`, including a `@config
 does every constant computed from it, in the order the map initialises them. Nothing but its initializer writes a
 constant, so it gets the value a restarted map would give it. `ConstantInitializers` decides which initializers may
 run again: those which only compute their value. Such an initializer reads its own locals, constants initialised before
-it and the game's constants; it writes only its own global; it calls only natives whose result depends on their
+it, elements of constant arrays initialised before it and the game's constants; it writes only its own global (the
+entries of its own array literal); it calls only natives whose result depends on their
 arguments alone (not getters of game state such as `GetPlayerTeam`), the backend's operator intrinsics and functions
 which follow the same rules. The stack-trace bookkeeping does not count. Every other global
 keeps its value, with the warning:
 
 - a variable, which holds the map's state;
 - a constant which allocates an object or calls a native with effects: running it again would leak what it made;
-- an array constant: running it again would keep the entries an edit drops;
+- an array constant which code other than its initializer writes (Wurst allows assigning an element of a constant
+  array): the manifest lists its storage with the variables, so it keeps its value, and so does every constant which
+  reads one of its elements;
+- an array constant whose initializer does not write one dimension at constant indices, which an array literal does;
 - a constant which reads a variable, or a constant initialised after it (from a package an `initlater` import
-  initialises later), which held its default when the map started;
-- a constant which reads an element of an array: code may assign an element of a constant array.
+  initialises later), which held its default when the map started.
+
+An array literal is tuned like any other constant: an edit which adds, removes or changes entries runs its initializer
+again, and the constants computed from its elements follow. Its length is not part of its identity (the type
+`string[74]` of a literal with 74 entries is `string[]` there, since a Lua array is a table of any length), while the
+type of its entries is: a literal of strings which becomes one of integers is refused. Running the initializer again
+writes the new entries into the table the map has, which every function, and any local alias of the table a function
+holds while it runs, already reaches. The entries past the new length must read the array's default again, as in a
+restarted map: the manifest records how many entries each array literal writes (`Constant.length`), the map records
+how many the run it made last wrote (`__wurst_hotreload_constantLengths`, or else the baseline's), and the payload
+clears the indices between the two, by index, without iterating the table
+(`editedArrayLiteralsReachTheRunningMap`, `arrayConstantHoldsTheEntriesOfEachPayload`).
 
 The manifest lists the initializer of each constant, whether it is pure, which constants it reads and which functions
 of the program it calls. A payload runs one again when its definition changed, a function it calls changed, or a
@@ -421,7 +435,9 @@ each cause refuses, and in how many it is the only one:
 | a closure inserted before others told apart by their order | 6 | 2 |
 | a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation | 5 | 0 |
 
-Without the first two, 17 of the 30 would be accepted. The accepted payloads also carry far more than the edit: one of
+Without the first two, 17 of the 30 would be accepted. The first no longer refuses: an array literal's length is no
+longer part of its identity, and an edited literal runs again (see "Constants"); the history has not been replayed
+since. The accepted payloads also carry far more than the edit: one of
 5 changed files shipped 621 functions (2,033,445 bytes), 550 of which differ only in the names of the flatten's
 temporaries (`temp159` to `temp162`), which are numbered across the program.
 
