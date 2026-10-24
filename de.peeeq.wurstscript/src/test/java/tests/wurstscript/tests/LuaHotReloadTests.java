@@ -1651,6 +1651,73 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 50 0 nil", output);
     }
 
+    private static String[] variableBecomingConstant(boolean constant) {
+        return new String[] {
+            "package Main",
+            constant ? "public constant int DAMAGE = 7" : "public int DAMAGE = 5",
+            "public constant int DOUBLE = DAMAGE * 2",
+            "public function total() returns int",
+            "    return DAMAGE + DOUBLE",
+            "init",
+            constant ? "    total()" : "    DAMAGE = 50",
+            constant ? "" : "    total()",
+        };
+    }
+
+    /**
+     * A variable which an edit makes a constant may hold a value code wrote: it keeps that value, with the warning, and
+     * so does what is computed from it, rather than the map mixing the new value with values computed from the old.
+     */
+    @Test
+    public void variableBecomingAConstantKeepsItsValue() throws Exception {
+        String[] base = variableBecomingConstant(false);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_variableBecomingAConstantKeepsItsValue.lua";
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(variableBecomingConstant(true)),
+            LuaHotReload.History.NONE, 1);
+        String damage = globalName(baseline, "DAMAGE");
+        assertTrue(payload.warnings().toString(), payload.warnings().toString().contains(damage));
+        String output = applyInLua(script, List.of(payload.source()), damage, globalName(baseline, "DOUBLE"));
+        assertEquals(output, "true 50 10 nil", output);
+    }
+
+    private static String[] constantFromAFunction(String amount) {
+        return new String[] {
+            "package Main",
+            "function amount() returns int",
+            "    return " + amount,
+            "public constant int DAMAGE = amount()",
+            "public constant int DOUBLE = DAMAGE * 2",
+            "public function total() returns int",
+            "    return DAMAGE + DOUBLE",
+            "init",
+            "    total()",
+        };
+    }
+
+    /**
+     * A constant computed by a pure function follows an edit of that function, and so do the constants computed from it;
+     * undone, the edit puts the values back.
+     */
+    @Test
+    public void constantFollowsAnEditOfThePureFunctionItCalls() throws Exception {
+        String[] base = constantFromAFunction("5");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_constantFollowsAnEditOfThePureFunctionItCalls.lua";
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadConstants");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(buildDir, baseline);
+        List<String> payloads = new java.util.ArrayList<>();
+        for (String[] edit : List.of(constantFromAFunction("7"), base)) {
+            payloads.add(LuaHotReloadSession.send(buildDir, customMapData, manifest(edit)).payload().source());
+        }
+        String output = applyInLua(script, payloads, globalName(baseline, "DAMAGE"), globalName(baseline, "DOUBLE"))
+            .replace("\r\n", "\n");
+        assertEquals(output, "true 7 14 nil\ntrue 5 10 nil", output);
+    }
+
     private static CU writerPackage() {
         return new CU("Writer", "package Writer\nimport Main\ninit\n    DAMAGE = 50\n");
     }

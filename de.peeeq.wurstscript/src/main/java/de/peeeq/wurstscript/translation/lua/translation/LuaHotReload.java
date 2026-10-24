@@ -135,9 +135,10 @@ public final class LuaHotReload {
     /**
      * The source initializer of a constant global. It is {@code pure} when it only computes the value
      * ({@link ConstantInitializers}): running it again then gives the value a restarted map would have, since nothing
-     * else writes a constant. {@code reads} names the initializers of the constants it reads, which run before it.
+     * else writes a constant. {@code reads} names the initializers of the constants it reads, which run before it, and
+     * {@code calls} the functions of the program it calls, directly or through others: an edit of one changes its value.
      */
-    public record Constant(boolean pure, List<String> reads) {
+    public record Constant(boolean pure, List<String> reads, List<String> calls) {
     }
 
     /**
@@ -577,6 +578,7 @@ public final class LuaHotReload {
                 // One a payload added runs again only after it ran once, as an added global (appendOnce).
                 boolean runs = baselineInitializers.containsKey(s.key()) || !initializedBefore(s, knownNames);
                 if (runs && constants.refreshable(s.key()) && (definedNames.contains(s.key())
+                    || constants.calls(s.key()).stream().anyMatch(definedNames::contains)
                     || constants.reads(s.key()).stream().anyMatch(refreshed::contains))) {
                     refreshed.add(s.key());
                 }
@@ -956,11 +958,11 @@ public final class LuaHotReload {
     }
 
     /**
-     * What the map ran of a constant: its initializer's definition, with what the map ran of each pure constant it
-     * reads, since those give it its value. A constant runs again when this changes.
+     * What the map ran of a constant: its initializer's definition, with the functions it calls and what the map ran of
+     * each pure constant it reads, since those give it its value. A constant runs again when this changes.
      */
-    private static String effectiveRevision(Map<String, Statement> units, Map<String, Constant> constants, String key,
-                                            Map<String, String> known) {
+    private static String effectiveRevision(Manifest manifest, Map<String, Statement> units, Map<String, Constant> constants,
+                                            String key, Map<String, String> known) {
         String revision = known.get(key);
         if (revision != null) {
             return revision;
@@ -968,10 +970,15 @@ public final class LuaHotReload {
         StringBuilder text = new StringBuilder(units.get(key).revision());
         Constant constant = constants.get(key);
         if (constant != null && constant.pure()) {
+            // The functions it calls compute its value as much as its own definition does.
+            for (String call : Objects.requireNonNullElse(constant.calls(), List.<String>of())) {
+                Function f = manifest.functions().get(call);
+                text.append('\n').append(call).append(' ').append(f == null ? "" : f.shape());
+            }
             for (String read : constant.reads()) {
                 Constant c = constants.get(read);
                 if (c != null && c.pure() && units.containsKey(read)) {
-                    text.append('\n').append(effectiveRevision(units, constants, read, known));
+                    text.append('\n').append(effectiveRevision(manifest, units, constants, read, known));
                 }
             }
         }
@@ -987,6 +994,8 @@ public final class LuaHotReload {
      * it keep their values.
      */
     private static final class Constants {
+        private final Manifest baselineManifest;
+        private final Manifest currentManifest;
         private final Map<String, Constant> current;
         private final Map<String, Constant> baseline;
         private final Map<String, Statement> currentUnits = new HashMap<>();
@@ -998,6 +1007,8 @@ public final class LuaHotReload {
         private final Map<String, String> baselineRevisions = new HashMap<>();
 
         Constants(Manifest baseline, Manifest current, History history) {
+            this.baselineManifest = baseline;
+            this.currentManifest = current;
             this.current = Objects.requireNonNullElse(current.constants(), Map.of());
             this.baseline = Objects.requireNonNullElse(baseline.constants(), Map.of());
             initializerUnits(current).values().forEach(units -> units.forEach(s -> currentUnits.put(s.key(), s)));
@@ -1015,9 +1026,15 @@ public final class LuaHotReload {
             return result;
         }
 
+        /** A pure constant whose storage, and that of every constant it reads, only its initializer ever wrote. */
         boolean refreshable(String key) {
             Constant c = current.get(key);
-            return c != null && c.pure() && c.reads().stream().allMatch(this::reliable);
+            return c != null && c.pure() && reliable(key);
+        }
+
+        List<String> calls(String key) {
+            Constant c = current.get(key);
+            return c == null ? List.of() : Objects.requireNonNullElse(c.calls(), List.of());
         }
 
         List<String> reads(String key) {
@@ -1039,12 +1056,13 @@ public final class LuaHotReload {
 
         /** The revision of a constant which runs again when it changes; null for any other global. */
         String currentRevision(String key) {
-            return refreshable(key) ? effectiveRevision(currentUnits, current, key, currentRevisions) : null;
+            return refreshable(key) ? effectiveRevision(currentManifest, currentUnits, current, key, currentRevisions) : null;
         }
 
         /** The revision of the initializer the map ran when it started; null for one a payload added. */
         String baselineRevision(String key) {
-            return baselineUnits.containsKey(key) ? effectiveRevision(baselineUnits, baseline, key, baselineRevisions) : null;
+            return baselineUnits.containsKey(key)
+                ? effectiveRevision(baselineManifest, baselineUnits, baseline, key, baselineRevisions) : null;
         }
     }
 

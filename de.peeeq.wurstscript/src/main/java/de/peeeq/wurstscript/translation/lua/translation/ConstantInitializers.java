@@ -30,9 +30,12 @@ final class ConstantInitializers {
     /** The compiler's own natives which the backend prints as an operator or a conversion: they only compute. */
     private final Set<ImFunction> luaOperators = Collections.newSetFromMap(new IdentityHashMap<>());
 
-    /** Whether a function only computes its result, and the initializers of the constants it reads. */
-    private record Summary(boolean pure, Set<ImFunction> reads) {
-        static final Summary IMPURE = new Summary(false, Set.of());
+    /**
+     * Whether a function only computes its result, the initializers of the constants it reads, and the functions of the
+     * program it calls, directly or through others.
+     */
+    private record Summary(boolean pure, Set<ImFunction> reads, Set<ImFunction> calls) {
+        static final Summary IMPURE = new Summary(false, Set.of(), Set.of());
     }
 
     private ConstantInitializers(ImTranslator imTr, List<ImFunction> order) {
@@ -67,7 +70,12 @@ final class ConstantInitializers {
                 for (ImFunction read : summary.reads()) {
                     reads.add(luaName.apply(read));
                 }
-                result.put(luaName.apply(initializer), new LuaHotReload.Constant(summary.pure(), List.copyOf(reads)));
+                List<String> calls = new ArrayList<>();
+                for (ImFunction call : summary.calls()) {
+                    calls.add(luaName.apply(call));
+                }
+                result.put(luaName.apply(initializer), new LuaHotReload.Constant(summary.pure(), List.copyOf(reads),
+                    List.copyOf(calls)));
             }
         }
         return result;
@@ -100,7 +108,7 @@ final class ConstantInitializers {
             reads.add(read);
         }
         reads.sort(Comparator.comparingInt(positions::get));
-        return new Summary(true, new LinkedHashSet<>(reads));
+        return new Summary(true, new LinkedHashSet<>(reads), body.calls);
     }
 
     private Summary function(ImFunction f) {
@@ -113,7 +121,7 @@ final class ConstantInitializers {
             return Summary.IMPURE;
         }
         Body body = new Body(f, Set.of());
-        Summary result = body.statements(f.getBody()) ? new Summary(true, body.reads) : Summary.IMPURE;
+        Summary result = body.statements(f.getBody()) ? new Summary(true, body.reads, body.calls) : Summary.IMPURE;
         inProgress.remove(f);
         summaries.put(f, result);
         return result;
@@ -124,6 +132,7 @@ final class ConstantInitializers {
         private final Set<ImVar> locals = Collections.newSetFromMap(new IdentityHashMap<>());
         private final Set<ImVar> storage;
         final Set<ImFunction> reads = new LinkedHashSet<>();
+        final Set<ImFunction> calls = new LinkedHashSet<>();
 
         Body(ImFunction f, Set<ImVar> storage) {
             locals.addAll(f.getLocals());
@@ -230,6 +239,8 @@ final class ConstantInitializers {
             }
             Summary summary = function(f);
             reads.addAll(summary.reads());
+            calls.add(f);
+            calls.addAll(summary.calls());
             return summary.pure();
         }
     }

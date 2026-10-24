@@ -132,14 +132,16 @@ keeps its value, with the warning:
   initialises later), which held its default when the map started;
 - a constant which reads an element of an array: code may assign an element of a constant array.
 
-The manifest lists the initializer of each constant, whether it is pure and which constants it reads. A payload runs
-one again when its definition changed or a constant it reads runs again. The map records the revision each one last ran
-(`__wurst_hotreload_constants`): its definition together with the revisions of the constants it reads. So an undone
-edit runs the original initializer again, a map which missed a payload still ends at the current values, and a
-constant a payload added runs again when a later edit changes it. A constant which the baseline or an earlier payload
-declared as a variable, with an initial value or without, may hold a value code wrote; the manifest lists the storage
-of every variable, the session records those of earlier payloads (`History.variables`), and a constant
-computed from one keeps its value, with the warning, rather than being computed from that value.
+The manifest lists the initializer of each constant, whether it is pure, which constants it reads and which functions
+of the program it calls. A payload runs one again when its definition changed, a function it calls changed, or a
+constant it reads runs again. The map records the revision each one last ran (`__wurst_hotreload_constants`): its
+definition together with the functions it calls and the revisions of the constants it reads. So an undone edit runs
+the original initializer again, a map which missed a payload still ends at the current values, and a constant a
+payload added runs again when a later edit changes it. A constant which the baseline or an earlier payload declared as
+a variable, with an initial value or without, may hold a value code wrote; the manifest lists the storage of every
+variable, the session records those of earlier payloads (`History.variables`), and such a constant keeps its value,
+with the warning, and so does every constant computed from one, rather than the map mixing new values with ones
+computed from the old.
 
 Copies taken at startup do not follow: a unit's life set from a constant in `init`, or a timer started with a constant
 period. That needs the reload hook (see "Next stages"). Measured on the 3.0.1.24371 client: phases 7 and 9 of the
