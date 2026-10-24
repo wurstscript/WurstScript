@@ -188,6 +188,9 @@ public class ImTranslator implements SpecialisationLookup {
     /** The call of each initializer in {@link #luaGlobalInitializers}, or of the last unit added after it. */
     private final Map<ImFunction, ImFunctionCall> luaGlobalInitializerTails = new IdentityHashMap<>();
 
+    /** The specialisations of generic statics which {@link #addSpecializedGlobalInitializer} gave a unit of their own. */
+    private final Set<ImVar> specializationsWithOwnUnit = Collections.newSetFromMap(new IdentityHashMap<>());
+
     /** The stack and depth which -stacktraces instrumentation pushes and pops around every call; empty without it. */
     public final Set<ImVar> stackTraceStorage = Collections.newSetFromMap(new IdentityHashMap<>());
 
@@ -1647,6 +1650,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
         addFunction(initializer);
         luaGlobalInitializers.put(initializer, specialized);
+        specializationsWithOwnUnit.add(specialized);
         Map<ImVar, ImVar> locals = new IdentityHashMap<>();
         for (ImSet initialValue : initialValues) {
             initializer.getBody().add(initialValue);
@@ -3055,10 +3059,8 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         Set<ImVar> roots = Collections.newSetFromMap(new IdentityHashMap<>());
         roots.add(source);
         if (canonical(source) == source) {
-            Set<ImVar> ownUnits = Collections.newSetFromMap(new IdentityHashMap<>());
-            ownUnits.addAll(luaGlobalInitializers.values());
             for (Element copy : specialisations.keySet()) {
-                if (copy instanceof ImVar variable && canonical(variable) == source && !ownUnits.contains(variable)) {
+                if (copy instanceof ImVar variable && canonical(variable) == source && !specializationsWithOwnUnit.contains(variable)) {
                     roots.add(variable);
                 }
             }
