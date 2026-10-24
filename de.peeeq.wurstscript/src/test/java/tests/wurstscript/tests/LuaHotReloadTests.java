@@ -1378,7 +1378,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
     /**
      * Callbacks registered one statement after another. Classes are ordered by their source position as text
-     * ({@code TypeId}), so line 10 would come before line 9: the callbacks stay on the first nine lines, where that order is
+     * ({@code ImTranslator.getSortKey}), so line 10 would come before line 9: the callbacks stay on the first nine lines, where that order is
      * the order of the statements.
      */
     private static String[] registered(String... bodies) {
@@ -1414,6 +1414,40 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(twoInserted.getMessage(), twoInserted.getMessage().contains("cannot be told apart"));
         LuaHotReload.Payload swapped = LuaHotReload.payload(base, manifest(registered("2", "1", "3")), Set.of(), 1);
         assertTrue(swapped.source(), swapped.source().contains("__wurst_hotreload_lineages"));
+    }
+
+    /**
+     * Removing every closure of a group leaves nothing to confuse, and removing the last ones moves no other: what the
+     * map made from the removed ones keeps its old body, with a warning. Removing one before others gives them its name,
+     * and its old body would read their captured values: refused.
+     */
+    @Test
+    public void removedCallbacksApplyUnlessOthersTakeTheirNames() throws Exception {
+        LuaHotReload.Payload all = LuaHotReload.payload(manifest(consumers("consume((int v) -> v + 1) + consume((int v) -> v + 2)")),
+            manifest(consumers("0")), Set.of(), 1);
+        assertFalse(all.warnings().isEmpty());
+        LuaHotReload.Manifest base = manifest(registered("1", "2", "3"));
+        LuaHotReload.Payload last = LuaHotReload.payload(base, manifest(registered("1", "2")), Set.of(), 1);
+        assertTrue(last.warnings().toString(), last.warnings().stream().anyMatch(w -> w.contains("was removed")));
+        LuaHotReload.Rejected first = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(base, manifest(registered("2", "3")), Set.of(), 1));
+        assertTrue(first.getMessage(), first.getMessage().contains("was removed while the others' names changed"));
+    }
+
+    /**
+     * A callback added where an earlier payload removed one takes its names, which what the map made from the removed one
+     * still reads its captured values by: refused, while one added where none was removed applies.
+     */
+    @Test
+    public void callbackAddedInTheNamesOfARemovedOneIsRefused() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadReadded");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadReaddedDelivery");
+        LuaHotReloadSession.start(build, manifest(registered("1", "2")));
+        LuaHotReloadSession.send(build, delivery, manifest(registered("1")));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, manifest(registered("1", "5"))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("an earlier edit removed it"));
+        LuaHotReloadSession.send(build, delivery, manifest(registered("1", "2")));
     }
 
     /**

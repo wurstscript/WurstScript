@@ -607,17 +607,29 @@ public final class LuaHotReload {
                 reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
             }
         }
+        // Declarations which share an identity are numbered in order. One added after the others keeps their order; a
+        // move is found by its body below. Some removed while others remain gives the remaining ones the names of others,
+        // and what was made from them would reach those; all of them removed leaves nothing to confuse. The closures, their
+        // class tables and the stores of their captured values are matched by the Lineages below instead.
+        Set<String> closureNames = new HashSet<>();
+        for (Manifest m : List.of(baseline, current)) {
+            Objects.requireNonNullElse(m.closures(), Map.<String, Closure>of()).forEach((name, c) -> {
+                closureNames.add(name);
+                closureNames.addAll(c.tables().values());
+            });
+        }
         Map<String, Integer> oldCounts = identityCounts(baseline.bindings());
         Map<String, Integer> newCounts = identityCounts(current.bindings());
+        Map<String, Set<String>> oldNames = new HashMap<>();
+        bindingMap(baseline.bindings()).forEach((name, id) -> oldNames.computeIfAbsent(id, k -> new HashSet<>()).add(name));
         Set<String> identities = new TreeSet<>(oldCounts.keySet());
         identities.addAll(newCounts.keySet());
         for (String id : identities) {
             int before = oldCounts.getOrDefault(id, 0);
             int after = newCounts.getOrDefault(id, 0);
-            // One added after the others keeps their order; a move is found by its body below.
-            if (after < before && before > 1) {
-                reasons.add("declarations which share the identity " + id + " (closures of one interface method in one function)"
-                    + " were removed; they are told apart by their order, so restart the map");
+            if (after < before && after > 0 && !closureNames.containsAll(oldNames.getOrDefault(id, Set.of()))) {
+                reasons.add(before + " declarations share the identity " + id + " and are told apart by their order, and "
+                    + (before - after) + " of them were removed while others remain: restart the map");
             }
         }
         // Closures: each one of the edit continues a closure of the running map, its lineage, whose objects keep their
@@ -1114,6 +1126,13 @@ public final class LuaHotReload {
                 origins.put(c.getKey(), c.getValue().tables());
             }
             origins.putAll(knownOrigins);
+            // Which closure began with each table, and the tables new closures take which another one began with.
+            Map<String, String> beganWith = new HashMap<>();
+            origins.forEach((lineage, tables) -> tables.values().forEach(t -> beganWith.putIfAbsent(t, lineage)));
+            Map<String, String> reclaimed = new TreeMap<>();
+            // The closures the map may still make objects of: those the last payload sent, or the started map's.
+            Set<String> live = new HashSet<>();
+            before.values().forEach(ms -> ms.forEach(m -> live.add(m.lineage())));
 
             Set<String> groupIds = new TreeSet<>(before.keySet());
             groupIds.addAll(now.keySet());
@@ -1133,8 +1152,13 @@ public final class LuaHotReload {
                 for (int i = 0; i < n.size(); i++) {
                     Function f = n.get(i);
                     String lineage;
+                    String removed = beganWith.get(curClosures.get(f.name()).tables().get("class"));
                     if (match.pairs()[i] >= 0) {
                         lineage = p.get(match.pairs()[i]).lineage();
+                    } else if (removed != null && !live.contains(removed) && known(removed, baseline, knownShapes).contains(sourceOf(f))) {
+                        // A closure an earlier edit removed is back where it was, as it was.
+                        lineage = removed;
+                        live.add(removed);
                     } else {
                         lineage = taken.add(f.name()) ? f.name() : f.name() + "@" + version;
                         taken.add(lineage);
@@ -1143,6 +1167,8 @@ public final class LuaHotReload {
                             for (Map.Entry<String, String> table : curClosures.get(f.name()).tables().entrySet()) {
                                 if (occupied.add(table.getValue())) {
                                     origin.put(table.getKey(), table.getValue());
+                                } else {
+                                    reclaimed.put(table.getValue(), f.name());
                                 }
                             }
                             origins.put(lineage, Collections.unmodifiableMap(origin));
@@ -1177,7 +1203,7 @@ public final class LuaHotReload {
                 // had: only while no other closure of its group takes them is that the warning of a removed function.
                 for (int removed : match.removed()) {
                     GroupMember m = p.get(removed);
-                    if (moves) {
+                    if (moves && !members.isEmpty()) {
                         reasons.add("closures which share the identity " + group + " are told apart by their order, and "
                             + m.name() + " was removed while the others' names changed: restart the map");
                     }
@@ -1200,6 +1226,25 @@ public final class LuaHotReload {
                             break;
                         }
                     }
+                }
+            }
+            refuseNamesOfRemovedClosures(reclaimed, beganWith, before, reasons);
+        }
+
+        /**
+         * A closure removed by an earlier edit keeps its tables and its last body, which reads its captured values by the
+         * names it had. A new closure which takes those names would give that body the new closure's values.
+         */
+        private void refuseNamesOfRemovedClosures(Map<String, String> reclaimed, Map<String, String> beganWith,
+                                                  Map<String, List<GroupMember>> before, List<String> reasons) {
+            Set<String> live = new HashSet<>(lineageOf.values());
+            before.values().forEach(ms -> ms.forEach(m -> live.add(m.lineage())));
+            for (Map.Entry<String, String> table : reclaimed.entrySet()) {
+                String owner = beganWith.get(table.getKey());
+                if (owner != null && !live.contains(owner)) {
+                    reasons.add("closure " + table.getValue() + " takes " + table.getKey() + ", which closure " + owner
+                        + " had before an earlier edit removed it, and what the map made from that one still reads it:"
+                        + " restart the map");
                 }
             }
         }

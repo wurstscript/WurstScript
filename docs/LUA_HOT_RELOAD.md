@@ -131,7 +131,10 @@ The payload compares the running script's manifest with the edited one:
   two edits and an append, so that payload is refused: made one at a time, each applies, and an edit after an insertion reaches the objects made before either
   (`editAfterAnInsertionReachesObjectsMadeBeforeEither`). A closure whose source is now one another lineage had and lost
   moved, and the map may run either: refused, as is removing one while the others' names change (its old body reads its
-  captured values by its old names). What the map runs of each is the baseline's source or one an earlier payload sent;
+  captured values by its old names). Removing the last ones of a group, or all of them, moves no other and applies with
+  the warning of a removed function (`removedCallbacksApplyUnlessOthersTakeTheirNames`); a closure added later in the
+  names of a removed one is refused unless it is that one back as it was. Other declarations which share an identity
+  (none of a closure) are still refused when some of them are removed and others remain. What the map runs of each is the baseline's source or one an earlier payload sent;
   the editor does not know which payloads the map installed, so it keeps every one sent (`History.groupShapes`, by
   lineage). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
@@ -500,14 +503,20 @@ but it ranks what a real project's edits meet. Accepted, as the changes landed:
 | constants first read, array literals, generic specialisations (#1553) | 19 |
 | dispatch slots and closure owners named by what they name (#1555) | 21 |
 | removed closures, classes and callbacks apply with a warning | 23 |
+| closures of an order group matched by lineage; a whole group removed applies | 27 |
 
 The causes in order of the commits they refused: an array literal changing length (14 commits, fixed: its length is
 no part of its identity), a constant starting or stopping being read (7, fixed: a hot-reload build keeps every global's
 storage), a closure, class or callback removed (7, now a warning), slots renamed by an added interface or
-implementation (the lost bindings of 5, fixed), and a generic class's new type argument (5, fixed). Of the 7 still
-refused, 6 insert a closure before others told apart by their order (the only cause in 3: a new `doAfter` or event
-listener registered above the others in one function), and 1 changes a global's type (`boolean` to
-`Signal<boolean>`), which needs a restart.
+implementation (the lost bindings of 5, fixed), and a generic class's new type argument (5, fixed). The 7 refused with
+#1556 were taken as closures inserted before others; matched by lineage (the last row, measured on the same 31 builds),
+they are: 2 real insertions (an event listener added above four others; three spell closures added above another,
+in a commit which also removes a whole group), both applied now; 2 closures whose lines crossed 99 to 100, which reorders
+a group because classes are ordered by their source position as text (`ImTranslator.getSortKey`), both applied now and, once that order
+is numeric, no move at all; 1 group which loses a closure and changes another between the same unchanged ones
+(ambiguous, refused); 1 change of a global's type (`boolean` to `Signal<boolean>`), which needs a restart; and 1 field
+store of a new-generic specialisation renamed when another specialisation of the class was added
+(`ArrayList_specialized_TickCandidates` taking the store names of `..._UnitStat`), which is not a closure at all.
 
 The accepted payloads are 19 KB to 1 MB: Castle Fight's generated object data is one function each of 131 to 167 KB
 (`registerUnitObjectMetadata`, `registerUnitStats`), so an edit of a tooltip or a stat carries the whole function. The
@@ -517,6 +526,6 @@ temporaries.
 
 ## Next stages
 
-1. Closures inserted before others told apart by their order: a proposal in BACKLOG.md ("Lua hot reload: closures
-   inserted among others told apart by their order").
+1. A closure inserted before others of its order group reloads (not yet measured in the game). What an order group
+   still refuses is in BACKLOG.md ("Lua hot reload: what an order group still refuses").
 2. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.

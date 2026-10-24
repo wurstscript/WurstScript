@@ -241,17 +241,16 @@ Notes; finished-work narrative does not.
   change; the handle-keyed `FastKeyedMap` work is separate. Do not start the old-container migration
   autonomously.
 
-- **Lua hot reload: closures inserted among others told apart by their order.** Closures of one interface
-  method in one function with no binding (several `doAfter` or event-listener callbacks) are named by their
-  position, so editing one's body reaches the objects made from it before. Inserting one before the others
-  renames every one after it, and the payload refuses that as a move: in Castle Fight's last 30 commits it
-  is 6 of the 7 still refused, the only cause in 3 (`docs/LUA_HOT_RELOAD.md`, "Edits of a real project").
-  Naming them by their source instead keeps an insertion's others, but an edited body would then be a new
-  closure, and objects made before (a running timer's callback) would keep the old body, which is the case
-  hot reload is most for. Keeping names across an insertion means the build takes them from the running
-  session's manifest (match closures by source, keep matched names, give new ones fresh ones), so the output
-  of a hot-reload build would depend on the session, not only the source, against the determinism rule in
-  AGENTS.md. Decide the trade-off before starting; until then such an edit needs a restart.
+- **Lua hot reload: what an order group still refuses.** A closure inserted before others of its order group
+  reloads: the payload gives each name the tables of the closure it continues (`LuaHotReload.Lineages`,
+  `docs/LUA_HOT_RELOAD.md`). Still refused, each needing a restart: an insertion and an edit before the same
+  unchanged closure in one payload (ambiguous; made one at a time they apply), and removing a closure while the
+  others' names change, which includes undoing an insertion (the removed closure's old body reads its captured
+  values by names other closures now hold), which includes a group which loses a closure and changes another
+  between the same unchanged ones. A closure added where an earlier payload removed one is refused unless it is
+  that one back as it was. Separately, the field stores of a new-generics specialisation share an identity with
+  those of the class's other specialisations, so adding one can rename the others' stores (a Castle Fight commit
+  adding `ArrayList<TickCandidates>` beside `ArrayList<UnitStat>`); that needs a restart too.
 
 ## Notes
 
