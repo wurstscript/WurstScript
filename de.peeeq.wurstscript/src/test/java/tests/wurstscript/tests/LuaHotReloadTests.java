@@ -218,6 +218,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
             && w.endsWith("restart the map to drop it.")));
     }
 
+    /**
+     * A callback adapter gives xpcall its error handler by name on every call, as it gives its target, so a change to
+     * the handler reloads: here the edit leaves ErrorHandling's error unreachable, and the handler, which called it,
+     * prints instead.
+     */
+    @Test
+    public void callbackErrorHandlerReloads() throws Exception {
+        CU errorHandling = new CU("ErrorHandling", String.join("\n", "package ErrorHandling",
+            "public function error(string msg)", "    skip", ""));
+        String[] base = {"package Main", "import ErrorHandling", "native register(code callback)",
+            "function callback()", "    skip", "function check(int x)", "    if x < 0", "        error(\"negative\")",
+            "init", "    register(function callback)", "    check(1)", ""};
+        String[] edited = {"package Main", "import ErrorHandling", "native register(code callback)",
+            "function callback()", "    skip", "init", "    register(function callback)", ""};
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, HOT_RELOAD, errorHandling,
+            new CU("callbackErrorHandlerReloads", String.join("\n", base)));
+        LuaHotReload.Manifest after = compileLuaHotReloadManifest(false, HOT_RELOAD, errorHandling,
+            new CU("callbackErrorHandlerReloads", String.join("\n", edited)));
+        String handler = before.functions().keySet().stream().filter(n -> n.startsWith("__wurst_callback_error"))
+            .findFirst().orElseThrow();
+        assertFalse("the edit changes the handler", before.functions().get(handler).definition()
+            .equals(after.functions().get(handler).definition()));
+        LuaHotReload.Payload payload = LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.functions().toString(), payload.functions().contains(handler));
+    }
+
     @Test
     public void removedMethodWarnsUnlessItsSlotIsRebound() throws Exception {
         LuaHotReload.Function method = new LuaHotReload.Function("f", "Test:f()void", "function f() end",

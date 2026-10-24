@@ -132,7 +132,7 @@ public class Main {
                 List<String> mergedArgs = new ArrayList<>(asList(args));
                 if (workspaceroot != null) {
                     WLogger.info("workspaceroot: " + workspaceroot);
-                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot), runArgs.isBuild());
+                    List<String> argsList = workspaceCompileArgs(workspaceroot, runArgs);
                     WLogger.info("workspaceroot: " + (argsList == null));
                     mergedArgs.addAll(argsList);
                     compileArgs = new RunArgs(mergedArgs);
@@ -217,6 +217,15 @@ public class Main {
                 }
             }
         }
+    }
+
+    /**
+     * The arguments of the workspace's wurst_run.args which this command line adds to its own. A hot reload build is
+     * a development build of the map a hot run starts, so it takes the run arguments: the build-only lines turn on
+     * the optimisations which -luaHotReload refuses, and a new project's file has them.
+     */
+    static List<String> workspaceCompileArgs(String workspaceroot, RunArgs runArgs) {
+        return getCompileArgs(WFile.create(workspaceroot), runArgs.isBuild() && !runArgs.isLuaHotReload());
     }
 
     private static void printCompactMessages(WurstGui gui) {
