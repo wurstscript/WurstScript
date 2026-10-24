@@ -1718,6 +1718,35 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 7 14 nil\ntrue 5 10 nil", output);
     }
 
+    private static String[] constantsFromNatives(String added) {
+        return new String[] {
+            "type player extends handle",
+            "package Main",
+            "@extern native Player(int i) returns player",
+            "@extern native GetPlayerId(player p) returns int",
+            "@extern native GetPlayerTeam(player p) returns int",
+            // A getter of game state: a payload could see a team code changed since the start.
+            "public constant int TEAM = GetPlayerTeam(Player(0)) + " + added,
+            // A function of its arguments alone.
+            "public constant int SLOT = GetPlayerId(Player(3)) + " + added,
+            "public function total() returns int",
+            "    return TEAM + SLOT",
+            "init",
+            "    total()",
+        };
+    }
+
+    /** Only natives whose result depends on their arguments alone let a constant run again, not getters of game state. */
+    @Test
+    public void constantFromAGetterOfGameStateKeepsItsValue() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(constantsFromNatives("1"));
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(constantsFromNatives("2")),
+            LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().toString().contains(globalName(baseline, "TEAM")));
+        assertFalse(payload.source(), payload.source().contains(initializerCall(baseline, "Main_TEAM")));
+        assertTrue(payload.source(), payload.source().contains(initializerCall(baseline, "Main_SLOT")));
+    }
+
     private static CU writerPackage() {
         return new CU("Writer", "package Writer\nimport Main\ninit\n    DAMAGE = 50\n");
     }

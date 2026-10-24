@@ -121,8 +121,9 @@ A changed initial value of a constant (`constant` or `let`, including a `@config
 does every constant computed from it, in the order the map initialises them. Nothing but its initializer writes a
 constant, so it gets the value a restarted map would give it. `ConstantInitializers` decides which initializers may
 run again: those which only compute their value. Such an initializer reads its own locals, constants initialised before
-it and the game's constants; it writes only its own global; it calls only pure natives, the backend's operator
-intrinsics and functions which follow the same rules. The stack-trace bookkeeping does not count. Every other global
+it and the game's constants; it writes only its own global; it calls only natives whose result depends on their
+arguments alone (not getters of game state such as `GetPlayerTeam`), the backend's operator intrinsics and functions
+which follow the same rules. The stack-trace bookkeeping does not count. Every other global
 keeps its value, with the warning:
 
 - a variable, which holds the map's state;

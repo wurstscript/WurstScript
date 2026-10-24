@@ -13,8 +13,9 @@ import java.util.function.Function;
  * Which source initializers of constant globals a hot-reload payload may run again (docs/LUA_HOT_RELOAD.md,
  * "Constants"). Nothing but its initializer writes a constant, so running the edited initializer gives the value a
  * restarted map would have, provided the initializer does nothing but compute that value: it reads only its own locals,
- * other constants initialised before it and the game's constants, writes only its own global, and calls only pure
- * natives, the backend's operator intrinsics and functions which follow the same rules. The stack-trace bookkeeping,
+ * other constants initialised before it and the game's constants, writes only its own global, and calls only natives
+ * whose result depends on their arguments alone, the backend's operator intrinsics and functions which follow the same
+ * rules. The stack-trace bookkeeping,
  * which every call pushes and pops, does not count. An initializer which allocates, calls an impure native, writes
  * array storage or reads an element of an array (code may assign one of a constant array) is reported as not pure: the
  * map keeps its value.
@@ -29,6 +30,21 @@ final class ConstantInitializers {
     private final Set<ImFunction> inProgress = Collections.newSetFromMap(new IdentityHashMap<>());
     /** The compiler's own natives which the backend prints as an operator or a conversion: they only compute. */
     private final Set<ImFunction> luaOperators = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    /**
+     * The natives whose result depends on their arguments alone, with the conversions to the game's constant handles.
+     * {@link SideEffectFreeNatives#isFunctionPure} also has getters of game state (GetPlayerTeam, GetWorldBounds,
+     * GetUnitDefaultMoveSpeed ...), which a payload could find changed since the map started.
+     */
+    private static final Set<String> ARGUMENT_FUNCTIONS = Set.of(
+        "Sin", "Cos", "Tan", "Asin", "Acos", "Atan", "Atan2", "SquareRoot", "Pow", "Deg2Rad", "Rad2Deg",
+        "I2R", "R2I", "I2S", "R2S", "R2SW", "S2I", "S2R", "StringCase", "StringLength", "SubString", "StringHash",
+        "And", "Or", "Not", "BlzBitOr", "BlzBitAnd", "BlzBitXor",
+        "Player", "GetPlayerId", "OrderId", "OrderId2String", "AbilityId", "AbilityId2String");
+
+    private static boolean isArgumentFunction(String name) {
+        return ARGUMENT_FUNCTIONS.contains(name) || name.startsWith("Convert") && SideEffectFreeNatives.isFunctionPure(name);
+    }
 
     /**
      * Whether a function only computes its result, the initializers of the constants it reads, and the functions of the
@@ -235,7 +251,7 @@ final class ConstantInitializers {
                 return true;
             }
             if (f.isNative() || f.isBj() || f.isExtern()) {
-                return SideEffectFreeNatives.isFunctionPure(f.getName());
+                return isArgumentFunction(f.getName());
             }
             Summary summary = function(f);
             reads.addAll(summary.reads());
