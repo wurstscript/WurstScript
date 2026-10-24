@@ -1073,6 +1073,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
     }
 
+    /**
+     * A group is named after its roots, the methods none of its others override: a class added which implements an
+     * interface and sorts before it (`AaaImpl` before `Zeta`) leaves the interface's slot as it was.
+     */
+    @Test
+    public void addedImplementationSortingFirstKeepsTheSlot() throws Exception {
+        String[] base = {"package Test", "interface Zeta", "    function run() returns int",
+            "function callZ(Zeta z) returns int", "    return z.run()",
+            "function combine() returns int", "    return callZ(() -> 1) + callZ(() -> 2)", "init", "    combine()"};
+        String[] edited = base.clone();
+        edited[6] = "    return callZ(() -> 1) + callZ(() -> 2) + callZ(new AaaImpl())";
+        edited = concat(edited, new String[] {"class AaaImpl implements Zeta", "    function run() returns int",
+            "        return 3"});
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
     private static String[] consumers(String closures) {
         return new String[] {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
