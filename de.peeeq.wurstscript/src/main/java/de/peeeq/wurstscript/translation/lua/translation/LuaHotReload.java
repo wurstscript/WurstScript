@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
@@ -141,13 +142,15 @@ public final class LuaHotReload {
 
     /**
      * What a hot-reload build emitted: its fingerprint, which the script holds, and its parts; {@code initOrder} names
-     * the package inits in the order main calls them, and {@code constants} the initializers of constant globals.
+     * the package inits in the order main calls them, {@code constants} the initializers of constant globals, and
+     * {@code variables} the storage of the globals the program declares as variables, initialised or not.
      */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
-                           List<String> bindings, List<String> initOrder, Map<String, Constant> constants) {
+                           List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                           List<String> variables) {
         public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                         List<String> bindings, List<String> initOrder) {
-            this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of());
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of(), List.of());
         }
     }
 
@@ -156,7 +159,7 @@ public final class LuaHotReload {
      * values, each with the hash of the definition it had then ({@link #definitionHash}).
      * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
      * names to their run-once keys, whose presence in the map confirms whether they ran. {@code variables} names the
-     * initializers whose globals one of those versions declared as variables, which code may then have written.
+     * storage of globals one of those versions declared as variables, which code may then have written.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables) {
@@ -349,8 +352,14 @@ public final class LuaHotReload {
         }
         Map<String, Constant> constants = ConstantInitializers.analyse(tr.imTr, initializerOrder,
             f -> tr.luaFunc.getFor(f).getName());
+        List<String> variables = new ArrayList<>();
+        for (ImVar global : tr.prog.getGlobals()) {
+            if (global.getTrace() instanceof GlobalVarDef g && !g.attrIsConstant()) {
+                variables.add(tr.luaVar.getFor(global).getName());
+            }
+        }
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
-            List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants));
+            List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables));
     }
 
     /**
@@ -983,6 +992,7 @@ public final class LuaHotReload {
         private final Map<String, Statement> currentUnits = new HashMap<>();
         private final Map<String, Statement> baselineUnits = new HashMap<>();
         private final Set<String> variables = new HashSet<>();
+        private final List<String> currentVariables;
         private final Map<String, Boolean> reliable = new HashMap<>();
         private final Map<String, String> currentRevisions = new HashMap<>();
         private final Map<String, String> baselineRevisions = new HashMap<>();
@@ -992,22 +1002,16 @@ public final class LuaHotReload {
             this.baseline = Objects.requireNonNullElse(baseline.constants(), Map.of());
             initializerUnits(current).values().forEach(units -> units.forEach(s -> currentUnits.put(s.key(), s)));
             initializerUnits(baseline).values().forEach(units -> units.forEach(s -> baselineUnits.put(s.key(), s)));
+            // A variable need not have an initializer, so variables are told by their storage.
             variables.addAll(history.variables());
-            for (String key : baselineUnits.keySet()) {
-                if (!this.baseline.containsKey(key)) {
-                    variables.add(key);
-                }
-            }
+            variables.addAll(Objects.requireNonNullElse(baseline.variables(), List.of()));
+            currentVariables = Objects.requireNonNullElse(current.variables(), List.of());
         }
 
-        /** The initializers of globals this version declares as variables, which the map did not know as such. */
+        /** The storage of globals this version declares as variables, which the map did not know as such. */
         Set<String> newVariables() {
-            Set<String> result = new TreeSet<>();
-            for (String key : currentUnits.keySet()) {
-                if (!current.containsKey(key) && !variables.contains(key)) {
-                    result.add(key);
-                }
-            }
+            Set<String> result = new TreeSet<>(currentVariables);
+            result.removeAll(variables);
             return result;
         }
 
@@ -1025,7 +1029,9 @@ public final class LuaHotReload {
             Boolean known = reliable.get(key);
             if (known == null) {
                 Constant c = current.get(key);
-                known = c != null && !variables.contains(key) && c.reads().stream().allMatch(this::reliable);
+                Statement unit = currentUnits.get(key);
+                known = c != null && unit != null && unit.targets().stream().noneMatch(variables::contains)
+                    && c.reads().stream().allMatch(this::reliable);
                 reliable.put(key, known);
             }
             return known;

@@ -1428,6 +1428,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
             // the entries an edit drops.
             "constant Box BOX = new Box(" + (edited ? "2" : "1") + ")",
             "constant int array LEVELS = " + (edited ? "[3, 4]" : "[1, 2]"),
+            // Code may assign an element of a constant array: what is computed from one keeps its value too.
+            "constant int FIRST_LEVEL = LEVELS[0] + " + (edited ? "2" : "1"),
             "int counter = " + (edited ? "6" : "5"),
             "constant int FROM_COUNTER = counter + " + (edited ? "2" : "1"),
             "class Tower",
@@ -1450,6 +1452,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "    check(Tower.REACH == 7, \"REACH \" + I2S(Tower.REACH))",
             "    check(BOX.v == 1, \"a constant holding a new object was made again\")",
             "    check(LEVELS[0] == 1 and LEVELS[1] == 2, \"an array constant was initialised again\")",
+            "    check(FIRST_LEVEL == 2, \"a constant computed from an array element was computed again\")",
             "    check(counter == 5 and FROM_COUNTER == 6, \"a variable, or a constant computed from one, lost its value\")",
             "    testSuccess()",
             "endpackage",
@@ -1488,7 +1491,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
             assertFalse(tuned + " is run again, not kept: " + warnings, warnings.contains(tuned));
             assertTrue(tuned + " runs again:\n" + source, source.contains(initializerCall(baseline, tuned)));
         }
-        for (String kept : List.of("Test_BOX", "Test_LEVELS", "Test_counter", "Test_FROM_COUNTER")) {
+        for (String kept : List.of("Test_BOX", "Test_LEVELS", "Test_FIRST_LEVEL", "Test_counter", "Test_FROM_COUNTER")) {
             assertTrue(kept + " keeps its value: " + warnings, warnings.contains(globalName(baseline, kept)));
             assertFalse(kept + " does not run again:\n" + source, source.contains(initializerCall(baseline, kept)));
         }
@@ -1614,6 +1617,38 @@ public class LuaHotReloadTests extends WurstScriptTest {
         return new CU("Bonus", String.join("\n", "package Bonus", "import Main", "public constant int BONUS = " + bonus,
             "constant int TWICE = BONUS * 2", "public function bonus() returns int", "    return TWICE", "init",
             "    bonus()", ""));
+    }
+
+    private static String[] uninitializedVariable(boolean constant) {
+        return new String[] {
+            "package Main",
+            constant ? "public constant int DAMAGE = 5" : "public int DAMAGE",
+            "public constant int DOUBLE = DAMAGE * " + (constant ? "3" : "2"),
+            "public function total() returns int",
+            "    return DAMAGE + DOUBLE",
+            "init",
+            constant ? "    total()" : "    DAMAGE = 50",
+            constant ? "" : "    total()",
+        };
+    }
+
+    /**
+     * A variable need not have an initializer: one which the map's baseline declared without one, and which code wrote,
+     * is still a former variable when an edit makes it a constant, so a constant computed from it keeps its value.
+     */
+    @Test
+    public void constantComputedFromAFormerUninitializedVariableKeepsItsValue() throws Exception {
+        String[] base = uninitializedVariable(false);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_constantComputedFromAFormerUninitializedVariableKeepsItsValue.lua";
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(uninitializedVariable(true)),
+            LuaHotReload.History.NONE, 1);
+        String doubled = globalName(baseline, "DOUBLE");
+        assertTrue(payload.warnings().toString(), payload.warnings().toString().contains(doubled));
+        // DOUBLE was computed from DAMAGE's default before init gave it 50; neither changes.
+        String output = applyInLua(script, List.of(payload.source()), globalName(baseline, "DAMAGE"), doubled);
+        assertEquals(output, "true 50 0 nil", output);
     }
 
     private static CU writerPackage() {

@@ -15,8 +15,9 @@ import java.util.function.Function;
  * restarted map would have, provided the initializer does nothing but compute that value: it reads only its own locals,
  * other constants initialised before it and the game's constants, writes only its own global, and calls only pure
  * natives, the backend's operator intrinsics and functions which follow the same rules. The stack-trace bookkeeping,
- * which every call pushes and pops, does not count. An initializer which allocates, calls an impure native or writes
- * array storage is reported as not pure: the map keeps its value.
+ * which every call pushes and pops, does not count. An initializer which allocates, calls an impure native, writes
+ * array storage or reads an element of an array (code may assign one of a constant array) is reported as not pure: the
+ * map keeps its value.
  */
 final class ConstantInitializers {
 
@@ -200,7 +201,8 @@ final class ConstantInitializers {
             } else if (e instanceof ImVarAccess va) {
                 return read(va.getVar());
             } else if (e instanceof ImVarArrayAccess aa) {
-                return read(aa.getVar()) && exprs(aa.getIndexes());
+                // Code may assign an element of a constant array, so only the stack-trace bookkeeping is read here.
+                return imTr.stackTraceStorage.contains(aa.getVar()) && exprs(aa.getIndexes());
             } else if (e instanceof ImFunctionCall call) {
                 return call(call);
             } else if (e instanceof ImCast cast) {
