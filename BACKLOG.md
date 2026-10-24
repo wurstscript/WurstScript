@@ -214,10 +214,29 @@ Notes; finished-work narrative does not.
   map: new and changed functions, globals, fields, classes, lambdas and packages, measured on the
   3.0.1.24371 client in a test map over five payloads ([docs/LUA_HOT_RELOAD.md](docs/LUA_HOT_RELOAD.md)).
   Tuned constants take their new values too. Every kind of edit, constants included, was run again in the game on
-  24 Oct, nine payloads in one game, driven from the compiler's command line.
-  Not yet measured: how often a real project's edits are rejected, and its payload sizes and reload
-  times. Later stages are in the design note: a library reload hook, and multiplayer only through a
-  synchronised channel.
+  24 Oct, fourteen payloads in one game, from the compiler's command line and through the language server as the
+  editor drives it. Real edits, replayed offline from a project's history: Castle Fight accepts 23 of its last 30
+  commits, a second large map 20 of 36. A warm reload in the editor takes 14 to 30 s on Castle Fight (item below).
+  Multiplayer only through a synchronised channel is a later stage in the design note.
+- **Lua hot reload: open work after 24 Oct 2026.** Found while making hot reload ready for daily use; each needs a
+  failing test first.
+  - Replaying the second large map found five defects, each started on its own draft branch: closures ordered by
+    source positions compared as text (`ImTranslator.getSortKey`, "L101" before "L98", renumbers closures an edit
+    moves across line 10, 100 or 1000, and caused one of Castle Fight's refusals); a changed `__wurst_supertypes`
+    refused although only the instanceof polyfill reads it; compile-time objects named by their order (an object
+    added by an edit is nil after the reload, one inserted above another takes its value, both accepted silently);
+    a closure's identity including later calls of its method chain (`ClosureTranslator.makeNameSuffix`); removing
+    every closure of an order group refused although nothing is left to confuse.
+  - Not started: the command-line session has only `start` and `send`, so `grill run --hot` replaces the running
+    map's session before it launches, and a failed launch has already deleted its payloads (the language server
+    stages, launches, then activates or restores). The first reload after a command-line start checks the whole
+    model again (about 47 s on Castle Fight). `-luaHotReload` written into `wurst_run.args` is combined with the
+    build-only `+` lines of a release build and refused. The initialiser-order check of a payload lists every key
+    (about 370 KB with 23,000 keys on a large map), and generated object-data functions ship whole. Old-generics
+    `run_wrapper` functions form order groups too. An order group which shrinks but keeps some closures stays
+    refused: which survivor is which is ambiguous.
+  - Not measured in the game: the changes of #1558 to #1561 (the in-game suite last ran on #1556), and the launch of
+    `grill run --hot` with a payload picked up.
 - **Lua hot reload: a reload translates the whole program.** Proposal, measured on 24 Oct 2026 in the language
   server on Castle Fight (`wurst.hotreload` after a body edit, a constant edit and a declaration edit, four of each):
   a warm request took 14 to 30 s on a loaded machine, the first after a command-line start about 47 s (it checks the
