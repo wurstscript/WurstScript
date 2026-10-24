@@ -41,6 +41,16 @@ the manifest records that function's definition as the call's revision. A payloa
 never extracts a final assignment from the flattened code or confuses an assignment in an init block with a source
 global initializer. This adds an initialization-time call only in opt-in development builds.
 
+A static of a new-generic class is storage of its own per specialisation (`ArrayList_nextFreeIndex⟪string⟫`), and so
+is its initializer: generic elimination copies the initial value into a unit of its own for each specialisation
+(`init_global_ArrayList_nextFreeIndex⟪string⟫`), called right after the source unit and the specialisations found
+before it (`ImTranslator.addSpecializedGlobalInitializer`). The values are computed as they were in one unit, once per
+specialisation and in the same order, as on Jass, where each specialisation is a copy with its own initializer. So a
+first `ArrayList<SomeNewType>` adds a unit which initialises only the new storage, and the specialisations the map has
+keep their values; removing the last use of one removes its unit and its storage, and the others keep theirs
+(`newSpecializationOfAGenericStaticIsInitializedAlone`, `removedSpecializationOfAGenericStaticKeepsTheOthers`). One
+unit used to initialise every specialisation, so each of these edits changed its storage and needed a restart.
+
 Each source initializer also records the globals it writes after tuple lowering and generic specialization.
 Adding an initializer to an existing global preserves its live value, including globals an earlier payload added
 without an initializer. A runtime marker preserves that decision across later cumulative payloads and whole-package
@@ -409,9 +419,10 @@ each cause refuses, and in how many it is the only one:
 | a constant starts or stops being read: the dead-code removal drops unread storage, so its initializer's storage changes between `[]` and `[x]` | 7 | 2 |
 | a closure removed, which a class-table slot may still hold | 7 | 0 |
 | a closure inserted before others told apart by their order | 6 | 2 |
-| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation | 5 | 0 |
+| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation (since fixed: each specialisation is a unit of its own, see "The script in parts") | 5 | 0 |
 
-Without the first two, 17 of the 30 would be accepted. The accepted payloads also carry far more than the edit: one of
+Without the first two, 17 of the 30 would be accepted. The counts are from before the last cause was fixed; it was
+never the only cause, so fixing it alone accepts no further commit. The accepted payloads also carry far more than the edit: one of
 5 changed files shipped 621 functions (2,033,445 bytes), 550 of which differ only in the names of the flatten's
 temporaries (`temp159` to `temp162`), which are numbered across the program.
 

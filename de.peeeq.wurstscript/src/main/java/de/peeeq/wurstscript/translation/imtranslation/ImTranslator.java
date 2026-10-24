@@ -185,6 +185,9 @@ public class ImTranslator implements SpecialisationLookup {
     /** Complete source global initializers, kept as functions in hot-reload builds before flattening splits them. */
     public final Map<ImFunction, ImVar> luaGlobalInitializers = new LinkedHashMap<>();
 
+    /** The call of each initializer in {@link #luaGlobalInitializers}, or of the last unit added after it. */
+    private final Map<ImFunction, ImFunctionCall> luaGlobalInitializerTails = new IdentityHashMap<>();
+
     /** The stack and depth which -stacktraces instrumentation pushes and pops around every call; empty without it. */
     public final Set<ImVar> stackTraceStorage = Collections.newSetFromMap(new IdentityHashMap<>());
 
@@ -1577,7 +1580,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(initializer);
             luaGlobalInitializers.put(initializer, v);
-            f.getBody().add(ImFunctionCall(trace, initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
+            ImFunctionCall call = ImFunctionCall(trace, initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL);
+            f.getBody().add(call);
+            luaGlobalInitializerTails.put(initializer, call);
             f = initializer;
         }
         if (initialExpr instanceof Expr expr) {
@@ -1605,6 +1610,51 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             // add list of init-values to translatedExprs
             imProg.getGlobalInits().put(v, imSets);
         }
+    }
+
+    /**
+     * In a hot-reload build, gives a specialisation of a generic static an initializer unit of its own, holding
+     * {@code initialValues}. It is called right after {@code source}, the unit of the static it was copied from, and
+     * after the specialisations which got theirs before it, so the initial values are computed in the order one unit
+     * computed them. Each specialisation is storage of its own, so a payload can initialise a new one alone and keep the
+     * values of the others; the unit is made here, where the specialised storage is, and not found again in the Lua
+     * backend. Locals of {@code source} the initial values use become locals of the new unit.
+     */
+    public void addSpecializedGlobalInitializer(ImFunction source, ImVar specialized, List<ImSet> initialValues) {
+        ImFunctionCall tail = luaGlobalInitializerTails.get(source);
+        if (tail == null || !(tail.getParent() instanceof ImStmts calls)) {
+            throw new CompileError(specialized,
+                "The initializer of " + specialized.getName() + " has no call of its source initializer to follow.");
+        }
+        ImFunction initializer = ImFunction(specialized.getTrace(), "init_global_" + specialized.getName(), ImTypeVars(),
+            ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+        addFunction(initializer);
+        luaGlobalInitializers.put(initializer, specialized);
+        Map<ImVar, ImVar> locals = new IdentityHashMap<>();
+        for (ImSet initialValue : initialValues) {
+            initializer.getBody().add(initialValue);
+            initialValue.accept(new ImHelper.VarReplaceVisitor() {
+                @Override
+                ImVar getReplaceVar(ImVar v) {
+                    if (v.getParent() != source.getLocals()) {
+                        return null;
+                    }
+                    return locals.computeIfAbsent(v, original -> {
+                        ImVar copy = original.copy();
+                        initializer.getLocals().add(copy);
+                        return copy;
+                    });
+                }
+            });
+        }
+        ImFunctionCall call = ImFunctionCall(tail.getTrace(), initializer, ImTypeArguments(), ImExprs(), false, CallType.NORMAL);
+        for (int i = 0; i < calls.size(); i++) {
+            if (calls.get(i) == tail) {
+                calls.add(i + 1, call);
+                break;
+            }
+        }
+        luaGlobalInitializerTails.put(source, call);
     }
 
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
@@ -2979,14 +3029,20 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return getVarsForTuple(v).allValuesStream().toList();
     }
 
-    /** The retained storage of a source global, using recorded specialization and tuple-lowering relations. */
+    /**
+     * The retained storage of a global, using recorded specialization and tuple-lowering relations: with the
+     * specialisations of a source global which have no initializer unit of their own.
+     */
     public List<ImVar> loweredGlobalStorage(ImVar source) {
         Set<ImVar> roots = Collections.newSetFromMap(new IdentityHashMap<>());
         roots.add(source);
-        ImVar original = canonical(source);
-        for (Element copy : specialisations.keySet()) {
-            if (copy instanceof ImVar variable && canonical(variable) == original) {
-                roots.add(variable);
+        if (canonical(source) == source) {
+            Set<ImVar> ownUnits = Collections.newSetFromMap(new IdentityHashMap<>());
+            ownUnits.addAll(luaGlobalInitializers.values());
+            for (Element copy : specialisations.keySet()) {
+                if (copy instanceof ImVar variable && canonical(variable) == source && !ownUnits.contains(variable)) {
+                    roots.add(variable);
+                }
             }
         }
         Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());

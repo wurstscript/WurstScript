@@ -522,8 +522,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
         test().testLua(true).executeProg().luaHotReload(genericStaticProgram(true)).lines(base);
     }
 
+    /**
+     * A new specialisation of a generic static in a package an earlier payload added: its storage is a unit of its own,
+     * so it is initialised alone and the specialisations the earlier payload installed keep their values. (One unit
+     * used to initialise every specialisation, so this needed a restart.)
+     */
     @Test
-    public void changedGenericInitializerStorageRequiresARestart() throws Exception {
+    public void newGenericSpecializationInAnEarlierPayloadsPackage() throws Exception {
         String[] first = concat(java.util.Arrays.copyOf(genericStaticProgram(true), 14), new String[] {
             "init", "    let ints = new Store<int>()", "    let strings = new Store<string>()",
             "    ints.put(42)", "    strings.put(\"saved\")",
@@ -532,18 +537,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String[] second = first.clone();
         second[second.length - 1] += "\n    let reals = new Store<real>()\n    reals.put(3.5)\n"
             + "    if reals.read() != 3.5\n        testFail(\"value changed\")\n    destroy reals";
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(manifest(first), manifest(second), LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("storage"));
+        LuaHotReload.payload(manifest(first), manifest(second), LuaHotReload.History.NONE, 1);
 
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
-        String script = "test-output/lua/LuaHotReloadTests_changedGenericInitializerStorageRequiresARestart.lua";
+        String script = "test-output/lua/LuaHotReloadTests_newGenericSpecializationInAnEarlierPayloadsPackage.lua";
         var baseline = manifest(MAIN_PACKAGE);
+        var edited = manifest(second);
         String output = applyInLua(script, List.of(
             LuaHotReload.payload(baseline, manifest(first), LuaHotReload.History.NONE, 1).source(),
-            LuaHotReload.payload(baseline, manifest(second), LuaHotReload.History.NONE, 2).source()));
-        assertTrue(output, output.startsWith("true"));
-        assertTrue(output, output.contains("another declaration or type"));
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 2).source()), true,
+            globalName(edited, "Store_value_integer_"), globalName(edited, "Store_value_string_"),
+            globalName(edited, "Store_value_real_"));
+        // The erased initialize<real>() answers nil on Lua, as it does in a restarted map.
+        assertEquals(output, 2, occurrences(output, "true 42 saved nil nil"));
+        assertFalse(output, output.contains("false"));
     }
 
     private static String[] genericStaticProgram(boolean initialized) {
@@ -557,27 +564,84 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "        testFail(\"generic static values were reinitialized\")", "    destroy ints", "    destroy strings", "    testSuccess()"};
     }
 
+    /**
+     * An initializer added to a generic static, in the edit which also adds a specialisation: the specialisation the map
+     * has keeps its value (with the warning a global gets whose initializer was added), and only the new one is
+     * initialised. Each specialisation is a unit of its own, so no unit spans old and new storage; when one unit
+     * initialised both, this was refused.
+     */
     @Test
-    public void newlyInitializedGenericStorageCannotMixOldAndNewSpecializations() throws Exception {
+    public void newlyInitializedGenericStorageInitializesOnlyTheNewSpecialization() throws Exception {
         var uninitialized = manifest(genericStorageProgram(false, false));
         var initialized = manifest(genericStorageProgram(true, true));
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(uninitialized, initialized, LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("spans old and new storage"));
-
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
-        String script = "test-output/lua/LuaHotReloadTests_newlyInitializedGenericStorageCannotMixOldAndNewSpecializations.lua";
+        String script = "test-output/lua/LuaHotReloadTests_newlyInitializedGenericStorageInitializesOnlyTheNewSpecialization.lua";
         var baseline = manifest(MAIN_PACKAGE);
         String first = LuaHotReload.payload(baseline, uninitialized, LuaHotReload.History.NONE, 1).source();
         String second = LuaHotReload.payload(baseline, initialized, LuaHotReload.History.NONE, 2).source();
         String value = globalName(uninitialized, "Store_value_integer_");
         String initializedCount = globalName(initialized, "initialized");
         String newStorage = globalName(initialized, "Store_value_real_");
-        String output = applyInLua(script, List.of(first, second), value, initializedCount, newStorage);
+        String output = applyInLua(script, List.of(first, second), true, value, initializedCount, newStorage);
+        // The erased initialize<real>() answers nil on Lua; the count shows it ran once, for the new specialisation.
         assertTrue(output, output.startsWith("true 42 0 nil nil"));
-        assertTrue(output, output.contains("false 42 0 nil") && output.contains("spans old and new storage"));
+        assertTrue(output, output.endsWith("true 42 1 nil nil"));
+        assertTrue(output, output.contains("keeps its value"));
         String skipped = applyInLua(script, List.of(second), initializedCount);
         assertEquals(skipped, "true 2 nil", skipped);
+        var direct = LuaHotReload.payload(uninitialized, initialized, LuaHotReload.History.NONE, 1);
+        assertTrue(direct.warnings().toString(), direct.warnings().stream().anyMatch(w -> w.contains(value)));
+    }
+
+    /**
+     * A first use of a generic class with another type argument initialises only the new specialisation's static, as a
+     * restarted map would: each specialisation is an initializer unit of its own (on Jass each is a copy with its own
+     * initializer). The specialisation the map has keeps its value, and the initializer runs once, for the new one.
+     */
+    @Test
+    public void newSpecializationOfAGenericStaticIsInitializedAlone() throws Exception {
+        String[] base = specializationProgram(false);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_newSpecializationOfAGenericStaticIsInitializedAlone.lua";
+        var baseline = manifest(base);
+        var current = manifest(specializationProgram(true));
+        var payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        String counter = globalName(current, "counter");
+        String ints = globalName(baseline, "Store_made_integer_");
+        String reals = globalName(current, "Store_made_real_");
+        assertEquals(ints, globalName(current, "Store_made_integer_"));
+        String output = applyInLua(script, List.of(payload.source()), true, counter, ints, reals);
+        // The map started with counter 1 and the int store's 1, bumped to 101; the payload runs count() once more.
+        assertTrue(output, output.endsWith("true 2 101 2 nil"));
+        assertFalse(output, output.contains("keeps") || output.contains("restart"));
+    }
+
+    /** The removed specialisation's storage stays, unused; the other keeps its value and nothing runs again. */
+    @Test
+    public void removedSpecializationOfAGenericStaticKeepsTheOthers() throws Exception {
+        String[] base = specializationProgram(true);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedSpecializationOfAGenericStaticKeepsTheOthers.lua";
+        var baseline = manifest(base);
+        var current = manifest(specializationProgram(false));
+        var payload = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        String output = applyInLua(script, List.of(payload.source()), true, globalName(current, "counter"),
+            globalName(current, "Store_made_integer_"), globalName(baseline, "Store_made_real_"));
+        assertTrue(output, output.endsWith("true 2 101 2 nil"));
+    }
+
+    private static String[] specializationProgram(boolean reals) {
+        String[] program = {"package Test", "native testFail(string msg)",
+            "int counter = 0", "function count() returns int", "    counter++", "    return counter",
+            "class Store<T:>", "    static int made = count()", "    function bump()", "        made += 100",
+            "    function read() returns int", "        return made",
+            "init", "    let ints = new Store<int>()", "    ints.bump()",
+            "    if ints.read() < 100", "        testFail(\"not bumped\")", "    destroy ints"};
+        if (reals) {
+            program = concat(program, new String[] {"    let reals = new Store<real>()",
+                "    if reals.read() <= 0", "        testFail(\"not initialized\")", "    destroy reals"});
+        }
+        return program;
     }
 
     private static String[] genericStorageProgram(boolean initialized, boolean secondSpecialization) {
