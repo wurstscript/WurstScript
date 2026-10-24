@@ -1163,6 +1163,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
     }
 
+    /**
+     * The editor shows a payload's warnings as one notification: an edit which removes a class warns once for each of its
+     * methods, which were as many notifications.
+     */
+    @Test
+    public void payloadWarningsAreOneNote() {
+        LuaHotReload.Payload none = new LuaHotReload.Payload(3, List.of(), "", List.of(), java.util.Map.of(), java.util.Map.of(),
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+        assertEquals(null, LuaHotReloadSession.warningNote(none));
+        LuaHotReload.Payload one = new LuaHotReload.Payload(3, List.of(), "", List.of("a"), java.util.Map.of(), java.util.Map.of(),
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+        assertEquals("a", LuaHotReloadSession.warningNote(one));
+        LuaHotReload.Payload two = new LuaHotReload.Payload(3, List.of(), "", List.of("a", "b"), java.util.Map.of(),
+            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+        assertEquals("Hot reload payload 3 applies with 2 notes:\na\nb", LuaHotReloadSession.warningNote(two));
+    }
+
     private static String[] consumers(String closures) {
         return new String[] {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",

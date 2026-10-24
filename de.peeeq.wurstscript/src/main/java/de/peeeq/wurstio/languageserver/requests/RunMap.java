@@ -451,8 +451,9 @@ public class RunMap extends MapRequest {
         }
         gui.sendProgress("Hot reload payload " + sent.payload().version() + " (" + String.join(", ", sent.payload().functions())
             + ") written to " + sent.file());
-        for (String warning : sent.payload().warnings()) {
-            gui.showInfoMessage(warning);
+        String note = LuaHotReloadSession.warningNote(sent.payload());
+        if (note != null) {
+            gui.showInfoMessage(note);
         }
     }
 
