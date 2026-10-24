@@ -44,8 +44,8 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         /** The initializers of globals a version the map ran declared as variables, which code may have written. */
         List<String> variables = new ArrayList<>();
-        /** The shape last sent of each closure told apart by its order. */
-        Map<String, String> groupShapes = new LinkedHashMap<>();
+        /** Every shape sent of each closure told apart by its order. */
+        Map<String, List<String>> groupShapes = new LinkedHashMap<>();
     }
 
     /**
@@ -236,9 +236,13 @@ public final class LuaHotReloadSession {
         Set<String> variables = new LinkedHashSet<>(orEmpty(state.variables));
         variables.addAll(orEmpty(sent.variables));
         state.variables = new ArrayList<>(variables);
-        // The last one sent is what the map runs, if it got it.
-        Map<String, String> groupShapes = new LinkedHashMap<>(orEmpty(state.groupShapes));
-        groupShapes.putAll(orEmpty(sent.groupShapes));
+        // The map runs one of the shapes sent, depending on which payloads it installed: keep them all.
+        Map<String, List<String>> groupShapes = new LinkedHashMap<>(orEmpty(state.groupShapes));
+        for (Map.Entry<String, String> entry : orEmpty(sent.groupShapes).entrySet()) {
+            Set<String> shapes = new LinkedHashSet<>(groupShapes.getOrDefault(entry.getKey(), List.of()));
+            shapes.add(entry.getValue());
+            groupShapes.put(entry.getKey(), List.copyOf(shapes));
+        }
         state.groupShapes = groupShapes;
         state.version = sent.version;
     }

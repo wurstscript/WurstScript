@@ -970,6 +970,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     /**
+     * The session cannot know which payload the map installed, so a closure told apart by its order keeps every body sent
+     * for it: after 3, 4 and then 5, 6 (which the map may have rejected), a swap to 4, 3 is still a move.
+     */
+    @Test
+    public void sessionRemembersEveryBodySentForCallbacksToldApartByOrder() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadShapes");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadShapeDelivery");
+        LuaHotReloadSession.start(build, manifest(consumers("consume((int v) -> v + 1) + consume((int v) -> v + 2)")));
+        LuaHotReloadSession.send(build, delivery, manifest(consumers("consume((int v) -> v + 3) + consume((int v) -> v + 4)")));
+        LuaHotReloadSession.send(build, delivery, manifest(consumers("consume((int v) -> v + 5) + consume((int v) -> v + 6)")));
+        LuaHotReload.Manifest swapped = manifest(consumers("consume((int v) -> v + 4) + consume((int v) -> v + 3)"));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, swapped));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+    }
+
+    /**
      * A body has moved only if the closure which had it lost it: a copy of a callback appended after the others, or one
      * edited into a copy of another, keeps every place and reloads. One inserted before identical callbacks moves them,
      * and the map refuses that.
@@ -1054,7 +1071,9 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String script = "test-output/lua/LuaHotReloadTests_ambiguousSameOwnerClosureBindingsCannotChangeOrSwap.lua";
         assertEquals("true 45 nil", applyInLua(script, List.of(first.source()), globalName(before, "result")));
         var history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured(), first.slots(),
-            first.initializers(), first.packageInits(), first.variables(), first.groupShapes());
+            first.initializers(), first.packageInits(), first.variables(),
+            first.groupShapes().entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey,
+                e -> List.of(e.getValue()))));
         LuaHotReload.Rejected later = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(empty, after, history, 2));
         assertTrue(later.getMessage(), later.getMessage().contains("told apart by their order"));

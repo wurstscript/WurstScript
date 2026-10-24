@@ -77,8 +77,10 @@ The payload compares the running script's manifest with the edited one:
   from. Editing their bodies keeps that order, and so does adding one after them: both reload. A closure whose source
   (`Function.closureSource`, the closure as written) is now what another one of the group had, which that one lost,
   moved, and an object made from the closure at its old place would run the other one's body: the map refuses that,
-  and removing one, with a restart. A copy of a body another one keeps, appended or edited in, moves nothing. What the map runs of each is the baseline's source or the one an earlier payload sent last
-  (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
+  and removing one, with a restart. A copy of a body another one keeps, appended or edited in, moves nothing. What the
+  map runs of each is the baseline's source or one an earlier payload sent; the editor does not know which payloads
+  the map installed, so it keeps every one sent (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures
+  are in such groups.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not

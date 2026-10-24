@@ -168,11 +168,12 @@ public final class LuaHotReload {
      * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
      * names to their run-once keys, whose presence in the map confirms whether they ran. {@code variables} names the
      * storage of globals one of those versions declared as variables, which code may then have written.
-     * {@code groupShapes} holds the shape last sent of each closure told apart by its order ({@link #orderGroups}).
+     * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}): which of
+     * them the map runs depends on which payloads it installed, which the editor does not know.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
-                          Map<String, String> groupShapes) {
+                          Map<String, List<String>> groupShapes) {
         public History(Set<String> reloaded, Map<String, String> captured) {
             this(reloaded, captured, Map.of(), Map.of(), Set.of());
         }
@@ -1214,17 +1215,14 @@ public final class LuaHotReload {
         return f.closureSource() != null ? f.closureSource() : f.shape();
     }
 
-    /** The sources the map may run for a function: the baseline's, and the one an earlier payload sent last. */
+    /** The sources the map may run for a function: the baseline's, and every one an earlier payload sent. */
     private static Set<String> knownShapes(String name, Manifest baseline, History history) {
         Set<String> shapes = new HashSet<>();
         Function old = baseline.functions().get(name);
         if (old != null) {
             shapes.add(sourceOf(old));
         }
-        String sent = Objects.requireNonNullElse(history.groupShapes(), Map.<String, String>of()).get(name);
-        if (sent != null) {
-            shapes.add(sent);
-        }
+        shapes.addAll(Objects.requireNonNullElse(history.groupShapes(), Map.<String, List<String>>of()).getOrDefault(name, List.of()));
         return shapes;
     }
 
