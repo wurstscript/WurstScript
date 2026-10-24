@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.assertTrue;
 
 
 /**
@@ -61,6 +62,24 @@ public class DeterministicChecks extends WurstScriptTest {
         var repeated = compileLuaHotReloadManifest(false, args, dependency, program);
         assertEquals(reversed, first);
         assertEquals(repeated, first);
+    }
+
+    /** The constants a payload may run again, and what each reads, do not depend on unit order. */
+    @Test
+    public void hotReloadConstantsAreDeterministic() {
+        CU dependency = compilationUnit("Values.wurst", "package Values", "public constant int base = 3",
+            "public constant int scaled = base * 2", "public function twice(int x) returns int", "    return x * 2");
+        CU program = compilationUnit("Constants.wurst", "package Constants", "import Values", "native observe(int value)",
+            "constant int total = scaled + base", "constant int doubled = twice(total)", "int counter = total",
+            "init", "    observe(doubled + counter)");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload");
+        var first = compileLuaHotReloadManifest(false, args, dependency, program);
+        var reversed = compileLuaHotReloadManifest(false, args, program, dependency);
+        assertEquals(List.copyOf(reversed.constants().entrySet()), List.copyOf(first.constants().entrySet()));
+        assertEquals(reversed, first);
+        assertEquals(compileLuaHotReloadManifest(false, args, dependency, program), first);
+        assertEquals(first.constants().size(), 4, first.constants().toString());
+        assertTrue(first.constants().values().stream().allMatch(LuaHotReload.Constant::pure), first.constants().toString());
     }
 
     @Test

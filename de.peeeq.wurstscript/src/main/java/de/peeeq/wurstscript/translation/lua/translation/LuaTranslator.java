@@ -432,6 +432,15 @@ public class LuaTranslator {
     /** In a hot-reload build, the functions translated from the program, whose bodies a payload can replace. */
     private final Map<LuaFunction, ImFunction> hotReloadFunctions = new LinkedHashMap<>();
     private LuaHotReload.@Nullable Manifest hotReloadManifest;
+    /**
+     * In a hot-reload build, the source positions calls pass for -stacktraces: a line moved by an edit changes them, which
+     * a payload ships but does not count as a change of the code (LuaHotReload.Function#shape).
+     */
+    final Set<LuaExprStringVal> stackPositions = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    boolean isHotReload() {
+        return hotReload;
+    }
 
     public LuaTranslator(ImProg prog, ImTranslator imTr) {
         this.prog = prog;

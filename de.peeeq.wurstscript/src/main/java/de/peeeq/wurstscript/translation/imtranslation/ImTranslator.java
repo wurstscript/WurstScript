@@ -184,6 +184,9 @@ public class ImTranslator implements SpecialisationLookup {
     /** Complete source global initializers, kept as functions in hot-reload builds before flattening splits them. */
     public final Map<ImFunction, ImVar> luaGlobalInitializers = new LinkedHashMap<>();
 
+    /** The stack and depth which -stacktraces instrumentation pushes and pops around every call; empty without it. */
+    public final Set<ImVar> stackTraceStorage = Collections.newSetFromMap(new IdentityHashMap<>());
+
     private final Map<TranslatedToImFunction, ImVar> thisVarMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final Set<WPackage> translatedPackages = new ObjectLinkedOpenHashSet<>();

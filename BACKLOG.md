@@ -213,6 +213,8 @@ Notes; finished-work narrative does not.
 - **Use the Lua hot reload on a real map.** Hot run of a Lua project applies each save to the running
   map: new and changed functions, globals, fields, classes, lambdas and packages, measured on the
   3.0.1.24371 client in a test map over five payloads ([docs/LUA_HOT_RELOAD.md](docs/LUA_HOT_RELOAD.md)).
+  Tuned constants take their new values too. Every kind of edit, constants included, was run again in the game on
+  24 Oct, nine payloads in one game, driven from the compiler's command line.
   Not yet measured: how often a real project's edits are rejected, and its payload sizes and reload
   times. Later stages are in the design note: a library reload hook, and multiplayer only through a
   synchronised channel.

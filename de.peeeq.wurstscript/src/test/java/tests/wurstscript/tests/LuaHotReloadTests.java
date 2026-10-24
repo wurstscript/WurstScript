@@ -386,6 +386,28 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(missed, "true 3 3 2 nil", missed);
     }
 
+    private static String[] mainAndLater(boolean extra) {
+        String[] main = extra ? mainWithExtra("bump()") : MAIN_PACKAGE;
+        return concat(concat(main, new String[] {"endpackage"}), new String[] {
+            "package Later", "import Main", "int late = bump()", "init", "    bump()", "endpackage"});
+    }
+
+    /**
+     * A global added to a package which the map initialised before another runs when the payload comes, after the
+     * other package's globals: that is no change of their order, and the map warns of none.
+     */
+    @Test
+    public void addedGlobalBeforeALaterPackageIsNoReorder() throws Exception {
+        test().testLua(true).luaHotReload(mainAndLater(false)).lines(mainAndLater(false));
+        String script = "test-output/lua/LuaHotReloadTests_addedGlobalBeforeALaterPackageIsNoReorder.lua";
+        LuaHotReload.Manifest baseline = manifest(mainAndLater(false));
+        LuaHotReload.Manifest added = manifest(mainAndLater(true));
+        String applied = applyInLua(script, List.of(LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 2).source()), true, globalName(added, "extra"));
+        assertFalse(applied, applied.contains("global initializer order changed"));
+        assertEquals(applied, 2, occurrences(applied, "true 4 nil"));
+    }
+
     @DataProvider
     public Object[][] uninitializedGlobalCases() {
         return new Object[][] {
@@ -1016,6 +1038,26 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 2 2 nil", lines[1]);
     }
 
+    /**
+     * What a payload prints it cannot apply is kept for the status of that payload (__wurst_hotreload_status), so a map
+     * can tell which of its payloads warned: here a later edit of an added global's initial value.
+     */
+    @Test
+    public void warningsAreKeptForTheStatus() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_warningsAreKeptForTheStatus.lua";
+        LuaHotReload.Manifest baseline = manifest(MAIN_PACKAGE);
+        LuaHotReload.Manifest added = manifest(mainWithExtra("bump()"));
+        List<String> payloads = List.of(
+            LuaHotReload.payload(baseline, added, LuaHotReload.History.NONE, 1).source(),
+            LuaHotReload.payload(baseline, manifest(mainWithExtra("bump() + 100")), LuaHotReload.History.NONE, 2).source());
+        String output = applyInLua(script, payloads, "'[' .. table.concat(" + LuaHotReload.WARNINGS + ", '|') .. ']'");
+        String[] lines = output.split("\\R");
+        assertEquals(output, "true [] nil", lines[0]);
+        assertTrue(output, lines[1].startsWith("true [") && lines[1].contains(globalName(added, "extra") + " keeps its value")
+            && !lines[1].contains("Wurst hot reload: "));
+    }
+
     /** A new global's initializer is one unit, including flattened locals, control flow, and side effects. */
     @Test
     public void addedGlobalKeepsItsCompleteInitializer() throws Exception {
@@ -1356,6 +1398,346 @@ public class LuaHotReloadTests extends WurstScriptTest {
             .matcher(payload.source()).find());
     }
 
+    private static String[] tunedProgram(boolean edited) {
+        return new String[] {
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native hotReload()",
+            "native I2S(int i) returns string",
+            "native R2S(real r) returns string",
+            "tuple pair(int a, int b)",
+            "class Box",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "function triple(int x) returns int",
+            "    return x * 3",
+            "@configurable constant int DAMAGE = 1",
+            // Unchanged text: computed from DAMAGE, so it follows it.
+            "constant int DOUBLE = DAMAGE * 2",
+            "constant real RANGE = " + (edited ? "250." : "100."),
+            "let NAME = " + (edited ? "\"new\"" : "\"old\""),
+            "constant pair SPAN = " + (edited ? "pair(3, 4)" : "pair(1, 2)"),
+            "constant string LABEL = NAME + I2S(DAMAGE)",
+            "constant int SCALED = triple(DAMAGE) div 2",
+            "function rangeTwice() returns real",
+            "    return RANGE * 2",
+            "constant real FAR = rangeTwice()",
+            // Not re-run: a new object would leak the old one, a variable holds the map's state, and an array would keep
+            // the entries an edit drops.
+            "constant Box BOX = new Box(" + (edited ? "2" : "1") + ")",
+            "constant int array LEVELS = " + (edited ? "[3, 4]" : "[1, 2]"),
+            "int counter = " + (edited ? "6" : "5"),
+            "constant int FROM_COUNTER = counter + " + (edited ? "2" : "1"),
+            "class Tower",
+            "    static constant int REACH = " + (edited ? "7" : "5"),
+            "function check(boolean ok, string what)",
+            "    if not ok",
+            "        testFail(what)",
+            "init",
+            "    check(DOUBLE == 10 and RANGE == 100. and NAME == \"old\" and SPAN.b == 2 and LABEL == \"old5\""
+                + " and SCALED == 7 and FAR == 200. and BOX.v == 1 and LEVELS[1] == 2 and Tower.REACH == 5, \"the original values\")",
+            "    hotReload()",
+            "    check(DAMAGE == 7, \"DAMAGE \" + I2S(DAMAGE))",
+            "    check(DOUBLE == 14, \"DOUBLE \" + I2S(DOUBLE))",
+            "    check(RANGE == 250., \"RANGE \" + R2S(RANGE))",
+            "    check(NAME == \"new\", \"NAME \" + NAME)",
+            "    check(SPAN.a == 3 and SPAN.b == 4, \"SPAN \" + I2S(SPAN.a) + \" \" + I2S(SPAN.b))",
+            "    check(LABEL == \"new7\", \"LABEL \" + LABEL)",
+            "    check(SCALED == 10, \"SCALED \" + I2S(SCALED))",
+            "    check(FAR == 500., \"FAR \" + R2S(FAR))",
+            "    check(Tower.REACH == 7, \"REACH \" + I2S(Tower.REACH))",
+            "    check(BOX.v == 1, \"a constant holding a new object was made again\")",
+            "    check(LEVELS[0] == 1 and LEVELS[1] == 2, \"an array constant was initialised again\")",
+            "    check(counter == 5 and FROM_COUNTER == 6, \"a variable, or a constant computed from one, lost its value\")",
+            "    testSuccess()",
+            "endpackage",
+            "package Test_config",
+            "@config constant int DAMAGE = " + (edited ? "7" : "5"),
+            "endpackage",
+        };
+    }
+
+    /**
+     * Tuning a constant reaches the running map: the changed initial value of a constant runs again when nothing else
+     * could have written it and it has no effect beyond its value, and so do the constants computed from it.
+     */
+    @Test(dataProvider = "stacktraceCases")
+    public void tunedConstantsReachTheRunningMap(boolean stacktraces) {
+        TestConfig config = test().testLua(true);
+        if (stacktraces) {
+            config = config.stacktraces();
+        }
+        config.executeProg().luaHotReload(tunedProgram(true)).lines(tunedProgram(false));
+    }
+
+    @DataProvider
+    public Object[][] stacktraceCases() {
+        return new Object[][] {{false}, {true}};
+    }
+
+    @Test
+    public void tunedConstantPayloadRunsDependentsAndWarnsOfTheRest() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(tunedProgram(false));
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, manifest(tunedProgram(true)), LuaHotReload.History.NONE, 1);
+        String warnings = payload.warnings().toString();
+        String source = payload.source();
+        for (String tuned : List.of("Test_config_DAMAGE", "Test_DOUBLE", "Test_RANGE", "Test_NAME", "Test_SPAN", "Test_LABEL",
+            "Test_SCALED", "Test_FAR", "Tower_REACH")) {
+            assertFalse(tuned + " is run again, not kept: " + warnings, warnings.contains(tuned));
+            assertTrue(tuned + " runs again:\n" + source, source.contains(initializerCall(baseline, tuned)));
+        }
+        for (String kept : List.of("Test_BOX", "Test_LEVELS", "Test_counter", "Test_FROM_COUNTER")) {
+            assertTrue(kept + " keeps its value: " + warnings, warnings.contains(globalName(baseline, kept)));
+            assertFalse(kept + " does not run again:\n" + source, source.contains(initializerCall(baseline, kept)));
+        }
+        // The unchanged initializers computed from DAMAGE run after its changed one.
+        int damage = source.indexOf(initializerCall(baseline, "Test_config_DAMAGE"));
+        for (String dependent : List.of("Test_DOUBLE", "Test_LABEL", "Test_SCALED")) {
+            assertTrue(source, source.indexOf(initializerCall(baseline, dependent)) > damage);
+        }
+        assertTrue("an unchanged program runs nothing again",
+            LuaHotReload.payload(baseline, baseline, LuaHotReload.History.NONE, 1).source().indexOf("init_global_") < 0);
+    }
+
+    /**
+     * The call of the initializer of the global {@code qualified} (with its package or class prefix) which a payload
+     * makes when it runs it again.
+     */
+    private static String initializerCall(LuaHotReload.Manifest m, String qualified) {
+        return "\n" + initializerName(m, qualified) + "()\n";
+    }
+
+    private static String initializerName(LuaHotReload.Manifest m, String qualified) {
+        return m.functions().keySet().stream()
+            .filter(n -> n.matches("init_global_" + Pattern.quote(qualified) + "_[0-9a-f]{12}"))
+            .findFirst().orElseThrow(() -> new AssertionError("no initializer of " + qualified));
+    }
+
+    private static LuaHotReload.Manifest earlyAndLate(WurstScriptTest test, String early) {
+        return test.compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("Main", String.join("\n", "package Main", "import initlater Later", "public constant int EARLY = " + early,
+                "public function total() returns int", "    return EARLY + LATE", "init", "    total()", "")),
+            new CU("Later", String.join("\n", "package Later", "import Main", "public constant int LATE = 3", "")));
+    }
+
+    /**
+     * A constant which reads one initialised after it (here from a package initialised later) read that one's default
+     * when the map started, so running it again would give it another value than a restart: it keeps its value, with a
+     * warning.
+     */
+    @Test
+    public void constantReadingALaterConstantKeepsItsValue() throws Exception {
+        LuaHotReload.Manifest baseline = earlyAndLate(this, "LATE + 1");
+        assertFalse(baseline.constants().toString(), baseline.constants().get(initializerName(baseline, "Main_EARLY")).pure());
+        assertTrue(baseline.constants().toString(), baseline.constants().get(initializerName(baseline, "Later_LATE")).pure());
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, earlyAndLate(this, "LATE + 2"), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().toString().contains(globalName(baseline, "EARLY")));
+        assertFalse(payload.source(), payload.source().contains(initializerCall(baseline, "Main_EARLY")));
+    }
+
+    private static String[] tunedMain(String damage, String doubled) {
+        return new String[] {
+            "package Main",
+            "public constant int DAMAGE = " + damage,
+            "public constant int DOUBLE = " + doubled,
+            "public function total() returns int",
+            "    return DAMAGE + DOUBLE",
+            "init",
+            "    total()",
+        };
+    }
+
+    /**
+     * Payloads are cumulative, so an edit which is undone puts the map's value back, the next edit applies on top, and a
+     * map which missed a payload still ends at the current values.
+     */
+    @Test
+    public void undoneConstantEditPutsTheValueBack() throws Exception {
+        String[] base = tunedMain("5", "DAMAGE * 2");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_undoneConstantEditPutsTheValueBack.lua";
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadConstants");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(buildDir, baseline);
+        List<String> payloads = new java.util.ArrayList<>();
+        for (String[] edit : List.of(tunedMain("7", "DAMAGE * 2"), base, tunedMain("9", "DAMAGE * 3"),
+            tunedMain("9", "DAMAGE * 3"))) {
+            payloads.add(LuaHotReloadSession.send(buildDir, customMapData, manifest(edit)).payload().source());
+        }
+        String damage = globalName(baseline, "DAMAGE");
+        String doubled = globalName(baseline, "DOUBLE");
+        String output = applyInLua(script, payloads, damage, doubled).replace("\r\n", "\n");
+        assertEquals(output, "true 7 14 nil\ntrue 5 10 nil\ntrue 9 27 nil\ntrue 9 27 nil", output);
+        // A map which read only the last payload.
+        String skipped = applyInLua(script, payloads.subList(3, 4), damage, doubled);
+        assertEquals(skipped, "true 9 27 nil", skipped);
+    }
+
+    private static String[] tunedMainWithExtra(String extra) {
+        // EXTRA is declared, and so initialised, before DOUBLE, which reads it.
+        String[] lines = tunedMain("5", "DAMAGE * 2 + EXTRA");
+        return concat(concat(java.util.Arrays.copyOf(lines, 2), new String[] {"public constant int EXTRA = " + extra}),
+            java.util.Arrays.copyOfRange(lines, 2, lines.length));
+    }
+
+    /**
+     * A constant which a payload added runs once as a new global, and again when a later edit changes it, and so does a
+     * constant of a package a payload added.
+     */
+    @Test
+    public void addedConstantsFollowLaterEdits() throws Exception {
+        String[] base = tunedMain("5", "DAMAGE * 2");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_addedConstantsFollowLaterEdits.lua";
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadConstants");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(buildDir, baseline);
+        CU main = new CU("addedConstantsFollowLaterEdits", String.join("\n", tunedMainWithExtra("3")) + "\n");
+        List<LuaHotReload.Manifest> edits = List.of(
+            compileLuaHotReloadManifest(false, HOT_RELOAD, main, bonusPackage("2")),
+            compileLuaHotReloadManifest(false, HOT_RELOAD,
+                new CU(main.name, String.join("\n", tunedMainWithExtra("4")) + "\n"), bonusPackage("7")));
+        List<String> payloads = new java.util.ArrayList<>();
+        for (LuaHotReload.Manifest edit : edits) {
+            payloads.add(LuaHotReloadSession.send(buildDir, customMapData, edit).payload().source());
+        }
+        String output = applyInLua(script, payloads, globalName(baseline, "DOUBLE"), globalName(edits.get(0), "EXTRA"),
+            globalName(edits.get(0), "BONUS"), globalName(edits.get(0), "TWICE")).replace("\r\n", "\n");
+        assertEquals(output, "true 13 3 2 4 nil\ntrue 14 4 7 14 nil", output);
+    }
+
+    private static CU bonusPackage(String bonus) {
+        return new CU("Bonus", String.join("\n", "package Bonus", "import Main", "public constant int BONUS = " + bonus,
+            "constant int TWICE = BONUS * 2", "public function bonus() returns int", "    return TWICE", "init",
+            "    bonus()", ""));
+    }
+
+    private static CU writerPackage() {
+        return new CU("Writer", "package Writer\nimport Main\ninit\n    DAMAGE = 50\n");
+    }
+
+    /**
+     * A constant which an earlier payload made a variable may hold a value its initializer never gave it: a constant
+     * computed from it keeps its value, with a warning, rather than being computed from that value.
+     */
+    @Test
+    public void constantComputedFromAFormerVariableKeepsItsValue() throws Exception {
+        String[] base = tunedMain("5", "DAMAGE * 2");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_constantComputedFromAFormerVariableKeepsItsValue.lua";
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadConstants");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(buildDir, baseline);
+        String[] variable = base.clone();
+        variable[1] = "public int DAMAGE = 5";
+        CU main = new CU("constantComputedFromAFormerVariableKeepsItsValue", String.join("\n", variable) + "\n");
+        LuaHotReloadSession.Sent written = LuaHotReloadSession.send(buildDir, customMapData,
+            compileLuaHotReloadManifest(false, HOT_RELOAD, main, writerPackage()));
+        LuaHotReloadSession.Sent tuned = LuaHotReloadSession.send(buildDir, customMapData, manifest(tunedMain("5", "DAMAGE * 3")));
+        String doubled = globalName(baseline, "DOUBLE");
+        assertTrue(tuned.payload().warnings().toString(), tuned.payload().warnings().toString().contains(doubled));
+        String output = applyInLua(script, List.of(written.payload().source(), tuned.payload().source()),
+            globalName(baseline, "DAMAGE"), doubled).replace("\r\n", "\n");
+        assertEquals(output, "true 50 10 nil\ntrue 50 10 nil", output);
+    }
+
+    private static String[] initClosures(String bound) {
+        return new String[] {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int",
+            "function run(Op op) returns int", "    return op.apply()",
+            "Op kept",
+            "init",
+            // Bound to a variable, and passed as an argument as the standard library's Preloader does.
+            "    kept = () -> " + bound,
+            "    Op local = () -> 4",
+            "    if run(() -> 5) + local.apply() != 9 or kept.apply() != 3",
+            "        testFail(\"the closures of init did not run\")",
+            "    hotReload()",
+            "    if kept.apply() != 30",
+            "        testFail(\"a closure made in init does not run its new body\")",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * A closure in a package's init block, whose owner is the package's init function rather than a function of its
+     * own: a hot-reload build names it like any other, and its body is replaced.
+     */
+    @Test
+    public void closuresInAnInitBlockAreNamedAndReloaded() {
+        test().testLua(true).executeProg().luaHotReload(initClosures("30")).lines(initClosures("3"));
+    }
+
+    private static String[] constructorClosures(String body) {
+        return new String[] {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int",
+            "class Counter",
+            "    int n = 2",
+            "    Op op",
+            "    construct(int start)",
+            "        n = start",
+            "        op = () -> " + body,
+            "    construct()",
+            "        op = () -> n * 100",
+            "init",
+            "    let c = new Counter(5)",
+            "    if c.op.apply() != 6 or new Counter().op.apply() != 200",
+            "        testFail(\"the closures of the constructors did not run\")",
+            "    hotReload()",
+            "    if c.op.apply() != 15",
+            "        testFail(\"a closure made in a constructor does not run its new body\")",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * A closure in a constructor, which captures the object: its owner is the constructor's function, which a
+     * hot-reload build names it after, and its body is replaced.
+     */
+    @Test
+    public void closuresInAConstructorAreNamedAndReloaded() {
+        test().testLua(true).executeProg().luaHotReload(constructorClosures("n + 10")).lines(constructorClosures("n + 1"));
+    }
+
+    private LuaHotReload.Manifest siblingCallbacks(boolean lineAbove, String secondBody) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "interface Op", "    function apply() returns int",
+            "function run(Op op) returns int", "    return op.apply()"));
+        if (lineAbove) {
+            lines.add("// a line which moves everything below it");
+        }
+        // Closures of one interface method in one function, told apart by their order alone.
+        lines.addAll(List.of("function both() returns int", "    return run(() -> run(() -> 1) + 1) + run(() -> " + secondBody + ")",
+            "init", "    both()"));
+        return compileLuaHotReloadManifest(false, HOT_RELOAD.with("-stacktraces"),
+            new CU("siblingCallbacks", String.join("\n", lines) + "\n"));
+    }
+
+    /**
+     * With -stacktraces a call passes its source position, so an edit which only moves lines changes the bodies below
+     * it. Closures told apart by their order alone must keep their bodies, but a moved line is no change of a body:
+     * the payload ships the new positions and is not refused. Changing such a body still is.
+     */
+    @Test
+    public void movedLinesDoNotFreezeClosuresToldApartByOrder() throws Exception {
+        LuaHotReload.Manifest baseline = siblingCallbacks(false, "2");
+        LuaHotReload.Payload moved = LuaHotReload.payload(baseline, siblingCallbacks(true, "2"), LuaHotReload.History.NONE, 1);
+        assertEquals("the closure which makes a call ships with its new position: " + moved.functions(), 1,
+            moved.functions().stream().filter(f -> f.startsWith("Op_")).count());
+        LuaHotReload.Payload again = LuaHotReload.payload(baseline, siblingCallbacks(true, "2"),
+            new LuaHotReload.History(Set.copyOf(moved.functions()), moved.captured()), 2);
+        assertTrue(again.source(), again.warnings().isEmpty());
+        LuaHotReload.Rejected edited = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, siblingCallbacks(true, "3"), LuaHotReload.History.NONE, 1));
+        assertTrue(edited.getMessage(), edited.getMessage().contains("ambiguous closure identity"));
+    }
+
     @Test
     public void hotReloadBuildKeepsItsStateInGlobals() throws IOException {
         test().testLua(true).luaHotReload(program("x + 1", "side * side", INIT))
@@ -1506,6 +1888,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReloadSession.discardDeliveries(customMapData);
         assertFalse(java.nio.file.Files.exists(customMapData.resolve("Wurst").resolve("hotreload-set-aside")));
         assertTrue(java.nio.file.Files.exists(other));
+    }
+
+    /**
+     * A session without the editor: starting it with the map of a build deletes an earlier session's payloads, and each
+     * later build sends the next cumulative payload.
+     */
+    @Test
+    public void sessionIsDrivenFromTheCommandLine() throws Exception {
+        java.nio.file.Path buildDir = java.nio.file.Files.createTempDirectory("luaHotReloadCli");
+        java.nio.file.Path customMapData = buildDir.resolve("CustomMapData");
+        java.nio.file.Path first = customMapData.resolve("Wurst").resolve("hotreload-1.pld");
+        java.nio.file.Files.createDirectories(first.getParent());
+        java.nio.file.Files.writeString(first, "a payload of an earlier session");
+        String[] start = {"start", buildDir.toString(), customMapData.toString()};
+        String[] send = {"send", buildDir.toString(), customMapData.toString()};
+
+        LuaHotReloadSession.writeManifest(buildDir, manifest(program("x + 1", "side * side", INIT)));
+        LuaHotReloadSession.main(start);
+        assertFalse("an earlier session's payload is gone", java.nio.file.Files.exists(first));
+        LuaHotReloadSession.writeManifest(buildDir, manifest(program("x + 10", "side * side", INIT)));
+        LuaHotReloadSession.main(send);
+        assertTrue(java.nio.file.Files.readString(first).contains("(x + 10)"));
+        LuaHotReloadSession.writeManifest(buildDir, manifest(program("x + 1", "side * side * 10", INIT)));
+        LuaHotReloadSession.main(send);
+        String second = java.nio.file.Files.readString(first.resolveSibling("hotreload-2.pld"));
+        assertTrue("cumulative: score, back at its original body, comes again", second.contains("(x + 1)") && second.contains(", 2, function()"));
     }
 
     /**

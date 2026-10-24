@@ -42,16 +42,49 @@ public final class LuaHotReloadSession {
         Map<String, List<String>> slots = new LinkedHashMap<>();
         Map<String, String> initializers = new LinkedHashMap<>();
         List<String> packageInits = new ArrayList<>();
+        /** The initializers of globals a version the map ran declared as variables, which code may have written. */
+        List<String> variables = new ArrayList<>();
     }
 
     /**
-     * Builds the payload which takes a script with the first manifest to the program of the second and writes it as
-     * a preload file: {@code <baseline manifest.json> <current manifest.json> <output .pld>}. Each build with
-     * {@code -luaHotReload} leaves its manifest in {@code _build/luaHotReload/manifest.json}.
+     * A session without the editor, for a map built with {@code -build ... -luaHotReload}, which leaves its manifest in
+     * {@code <build dir>/luaHotReload/manifest.json}:
+     * <ul>
+     *   <li>{@code start <build dir> <CustomMapData>}: the map of the last build is the one which runs; the payload files
+     *   of an earlier session are deleted;</li>
+     *   <li>{@code send <build dir> <CustomMapData>}: writes the next payload, which takes the running map to the program
+     *   of the last build, where the map polls for it;</li>
+     *   <li>{@code <baseline manifest.json> <current manifest.json> <output .pld>}: the first payload a map running the
+     *   first manifest would get for the second, written as a preload file.</li>
+     * </ul>
+     * A payload the edit cannot carry exits with 1 and prints the reasons.
      */
     public static void main(String[] args) throws IOException {
+        if (args.length == 3 && (args[0].equals("start") || args[0].equals("send"))) {
+            Path buildDir = Path.of(args[1]);
+            Path customMapData = Path.of(args[2]);
+            LuaHotReload.Manifest manifest = readManifest(buildDir.resolve(SESSION_FOLDER).resolve("manifest.json"));
+            if (args[0].equals("start")) {
+                setAsideDeliveries(customMapData);
+                discardDeliveries(customMapData);
+                start(buildDir, manifest);
+                System.out.println("session started");
+                return;
+            }
+            try {
+                Sent sent = send(buildDir, customMapData, manifest);
+                System.out.println("payload " + sent.payload().version() + " (" + String.join(", ", sent.payload().functions())
+                    + ") written to " + sent.file());
+                sent.payload().warnings().forEach(w -> System.out.println("warning: " + w));
+            } catch (LuaHotReload.Rejected e) {
+                System.out.println(e.getMessage());
+                System.exit(1);
+            }
+            return;
+        }
         if (args.length != 3) {
-            System.err.println("usage: <baseline manifest.json> <current manifest.json> <output .pld>");
+            System.err.println("usage: start <build dir> <CustomMapData> | send <build dir> <CustomMapData>"
+                + " | <baseline manifest.json> <current manifest.json> <output .pld>");
             System.exit(2);
         }
         LuaHotReload.Manifest baseline = readManifest(Path.of(args[0]));
@@ -116,6 +149,7 @@ public final class LuaHotReloadSession {
         Map<String, List<String>> slots = new LinkedHashMap<>();
         Map<String, String> initializers = new LinkedHashMap<>();
         List<String> packageInits = new ArrayList<>();
+        List<String> variables = new ArrayList<>();
     }
 
     /** A payload and the file it was written to. */
@@ -137,7 +171,8 @@ public final class LuaHotReloadSession {
         recoverPending(buildDir, customMapData, state);
         LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current, new LuaHotReload.History(
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
-            orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits))), state.version + 1);
+            orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
+            new LinkedHashSet<>(orEmpty(state.variables))), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -145,6 +180,7 @@ public final class LuaHotReloadSession {
         pending.slots = new LinkedHashMap<>(payload.slots());
         pending.initializers = new LinkedHashMap<>(payload.initializers());
         pending.packageInits = new ArrayList<>(payload.packageInits());
+        pending.variables = new ArrayList<>(payload.variables());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -193,6 +229,9 @@ public final class LuaHotReloadSession {
         Set<String> packageInits = new LinkedHashSet<>(orEmpty(state.packageInits));
         packageInits.addAll(orEmpty(sent.packageInits));
         state.packageInits = new ArrayList<>(packageInits);
+        Set<String> variables = new LinkedHashSet<>(orEmpty(state.variables));
+        variables.addAll(orEmpty(sent.variables));
+        state.variables = new ArrayList<>(variables);
         state.version = sent.version;
     }
 
