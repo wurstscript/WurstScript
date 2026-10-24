@@ -267,7 +267,11 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar field) {
-            LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", LuaHotReload.variableId(field)),
+            String identity = LuaHotReload.variableId(field);
+            if (hotReload && field.getParent() != null && field.getParent().getParent() instanceof ImClass owner) {
+                identity += LuaHotReload.captureOwner(LuaTranslator.this, owner);
+            }
+            LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", identity),
                 hotReload ? hotReloadFieldStore(field) : LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
             localizableStorageTables.add(storage);
             return storage;
@@ -446,7 +450,22 @@ public class LuaTranslator {
         this.prog = prog;
         this.imTr = imTr;
         this.hotReload = imTr.getRunArgs().isLuaHotReload();
+        if (hotReload) {
+            Map<String, Integer> counts = new HashMap<>();
+            for (ImClass c : prog.getClasses()) {
+                if (c.getTrace() instanceof ExprClosure) {
+                    closureOrdinals.put(c, counts.merge(LuaHotReload.classId(c), 1, Integer::sum) - 1);
+                }
+            }
+        }
         luaModel = LuaAst.LuaCompilationUnit();
+    }
+
+    /** Occurrences within one source closure identity, before Lua naming can introduce collisions or suffixes. */
+    private final Map<ImClass, Integer> closureOrdinals = new IdentityHashMap<>();
+
+    int closureOrdinal(ImClass c) {
+        return Objects.requireNonNull(closureOrdinals.get(c), "closure is not in the translated program");
     }
 
     /**
@@ -542,6 +561,12 @@ public class LuaTranslator {
             translateGlobal(v);
         }
 
+        if (hotReload) {
+            // In the order of the classes, before the field storage named after them.
+            for (ImClass c : prog.getClasses()) {
+                luaClassVar.getFor(c);
+            }
+        }
         Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImClass c : prog.getClasses()) {
             for (ImVar field : c.getFields()) {

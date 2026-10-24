@@ -375,7 +375,7 @@ public final class LuaHotReload {
                 // With its type: objects which exist keep the values of the old one, which two class types
                 // with the same nil default and storage would not reveal.
                 bindings.add(tr.fieldStorage(field).getName() + "=" + semanticId(field, c.getName() + "." + field.getName())
-                    + ":" + typeKey(field.getType()));
+                    + captureOwner(tr, c) + ":" + typeKey(field.getType()));
             }
         }
 
@@ -1534,6 +1534,15 @@ public final class LuaHotReload {
 
     static String classId(ImClass c) {
         return semanticId(c, c.getName());
+    }
+
+    /**
+     * What tells the captures of closures of one identity apart, which closures told apart by their order share: the
+     * source identity and occurrence of the closure's class, which follow that order. A capture's storage is named after it, so a closure which
+     * starts or stops capturing a variable renames no sibling's storage. Empty for any other class.
+     */
+    static String captureOwner(LuaTranslator tr, ImClass c) {
+        return c.getTrace() instanceof ExprClosure ? "@closure:" + classId(c) + "#" + tr.closureOrdinal(c) : "";
     }
 
     /** The identity of a method: with its implementation's signature, which tells overloads apart. */
