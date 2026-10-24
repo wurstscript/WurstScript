@@ -238,7 +238,8 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
 2. `wurst.hotreload` sends `-hotreload`. For a Lua project, `RunMap` compiles the project, builds the next cumulative
    payload against the saved baseline and writes payload n to `CustomMapData\Wurst\hotreload-<n>.pld`
    (`customMapDataPath` in the configuration overrides the folder). A hot run deletes the files of earlier sessions. JHCR stays the path for Jass maps. A rejected edit fails the request
-   with the reasons. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
+   with the reasons as its error message; the VS Code extension shows the first line and writes the rest to its
+   output. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
 
 Without the editor, a map built with `-build ... -luaHotReload` (with run arguments: `-luaHotReload` refuses `-inline`
 and `-opt`) starts a session and takes payloads from the compiler's command line, which is how the in-game test drives
@@ -435,8 +436,15 @@ all of it the build, which #1553 made three times faster. The run found that a m
 `InitBlizzard`, as Castle Fight's does, read no payload and said nothing (fixed in #1553); for that run the test set
 `bj_isSinglePlayer` itself.
 
-Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); the editor's part
-since 22 Oct (the suite builds from the command line); multiplayer, which is refused.
+The fourteen phases then ran with the editor side driven through the language server, as on 22 Oct: all 68 checks
+passed. A `wurst.hotreload` request took 4.0 to 14.2 s (the first the longest), where the command line's build took 17
+to 21 s per phase, and the map applied each payload 5 to 17 s after asking for it. Without the game, the thirteen
+payloads the two paths made were byte-identical, and both refused the field-type edit of phase 5 with the same
+reasons. That refusal reached the editor as "Internal error.", its reasons only in the stack trace the error carried;
+a map command's failure now carries its own text (`BuildDiagnosticsTests`).
+
+Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); multiplayer, which
+is refused.
 
 ## Probe for other clients
 
