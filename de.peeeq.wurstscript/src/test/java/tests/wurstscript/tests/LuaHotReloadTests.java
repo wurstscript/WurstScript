@@ -3188,6 +3188,27 @@ public class LuaHotReloadTests extends WurstScriptTest {
         config.executeProg().luaHotReload(hashtableObjects(true)).lines(hashtableObjects(false));
     }
 
+    @Test(dataProvider = "stacktraceCases")
+    public void removingACompiletimeHashtablePreservesTheOtherTables(boolean traced) {
+        TestConfig config = test().testLua(true).runCompiletimeFunctions(true);
+        if (traced) config = config.stacktraces();
+        String[] before = java.util.Arrays.stream(hashtableObjects(true))
+            .map(line -> line.replace("total() != 17", "total() != 10")).toArray(String[]::new);
+        String[] after = java.util.Arrays.stream(hashtableObjects(false))
+            .map(line -> line.replace("total() != 17", "total() != 10")).toArray(String[]::new);
+        config.executeProg().luaHotReload(after).lines(before);
+    }
+
+    @Test
+    public void splitCompiletimeReplayRetainsItsStatementOrder() {
+        RunArgs args = HOT_RELOAD.with("-runcompiletimefunctions", "-stacktraces");
+        CU source = new CU("Test", String.join("\n", objectGraph(true)) + "\n");
+        var ordinary = compileLuaHotReloadManifest(false, args, source);
+        var split = compileLuaHotReloadManifest(false, args.with("-functionSplitLimit", "1"), source);
+        assertEquals(ordinary.statements().stream().filter(s -> s.scope().equals("compiletime")).toList(),
+            split.statements().stream().filter(s -> s.scope().equals("compiletime")).toList());
+    }
+
     private static String[] hashtableObjects(boolean added) {
         return new String[] {"type agent extends handle", "type hashtable extends agent", "package Test",
             "native testSuccess()", "native testFail(string msg)", "native hotReload()",
@@ -3258,6 +3279,47 @@ public class LuaHotReloadTests extends WurstScriptTest {
             added ? "    return a.value * 10 + z.value" : "    return a.value * 10", "init", "    total()",
             "    hotReload()", "    if total() != 15", "        testFail(\"local compile-time bindings shifted\")",
             "    testSuccess()"};
+    }
+
+    @Test
+    public void addingAnUnboundCompiletimeExpressionCannotRenumberExistingObjects() throws Exception {
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(compiletimeManifest(unboundCompiletimeObjects(false)),
+                compiletimeManifest(unboundCompiletimeObjects(true)), Set.of(), 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("compile-time expressions"));
+    }
+
+    @Test
+    public void anEarlierPayloadsUnboundCompiletimeObjectsAlsoKeepTheirOrderGroup() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadCompiletimeGroups");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadCompiletimeGroupsDelivery");
+        LuaHotReloadSession.start(build, manifest(MAIN_PACKAGE));
+        LuaHotReloadSession.send(build, delivery, compiletimeManifest(unboundCompiletimeObjects(false)));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, compiletimeManifest(unboundCompiletimeObjects(true))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("compile-time expressions"));
+    }
+
+    private static String[] unboundCompiletimeObjects(boolean added) {
+        return new String[] {"package Test", "class Thing", "    int value", "    construct(int v)", "        value = v",
+            "function compiletime(Thing t) returns Thing", "    return t",
+            "function combine(Thing a, Thing b" + (added ? ", Thing c" : "") + ") returns int",
+            "    return a.value + b.value" + (added ? " + c.value" : ""), "function total() returns int",
+            "    return combine(" + (added ? "compiletime(new Thing(5)), " : "")
+                + "compiletime(new Thing(1)), compiletime(new Thing(2)))", "init", "    total()"};
+    }
+
+    @Test
+    public void pureCompiletimeExpressionsNeedNoObjectOrderGuard() throws Exception {
+        String[] base = {"package Test", "function compiletime(int v) returns int", "    return v",
+            "function total() returns int", "    return compiletime(1) + compiletime(2)", "init", "    total()"};
+        String[] edited = base.clone();
+        edited[4] = "    return compiletime(5) + compiletime(1) + compiletime(2)";
+        var before = compiletimeManifest(base);
+        var after = compiletimeManifest(edited);
+        assertEquals(java.util.Map.of(), before.compiletimeGroups());
+        assertEquals(java.util.Map.of(), after.compiletimeGroups());
+        LuaHotReload.payload(before, after, Set.of(), 1);
     }
 
     private static String[] removedThing(boolean present) {

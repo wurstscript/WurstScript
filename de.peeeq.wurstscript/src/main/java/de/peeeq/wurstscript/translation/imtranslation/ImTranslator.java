@@ -198,6 +198,15 @@ public class ImTranslator implements SpecialisationLookup {
     /** The function which makes the compile-time objects and hashtables when the map starts, and the parts split from it. */
     private @Nullable ImFunction compiletimeStateFunction;
     private List<ImFunction> compiletimeStateParts = List.of();
+    private Map<String, Integer> compiletimeExpressionCounts = Map.of();
+
+    public void setCompiletimeExpressionCounts(Map<String, Integer> counts) {
+        compiletimeExpressionCounts = Collections.unmodifiableMap(new TreeMap<>(counts));
+    }
+
+    public Map<String, Integer> compiletimeExpressionCounts() {
+        return compiletimeExpressionCounts;
+    }
 
     public void setCompiletimeGlobalIdentity(ImVar global, String identity) {
         compiletimeGlobalIdentities.put(global, identity);

@@ -165,7 +165,12 @@ public final class LuaHotReload {
      */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                            List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
-                           List<String> variables, List<String> hooks) {
+                           List<String> variables, List<String> hooks, Map<String, Integer> compiletimeGroups) {
+        public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                        List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                        List<String> variables, List<String> hooks) {
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, constants, variables, hooks, Map.of());
+        }
         public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                         List<String> bindings, List<String> initOrder) {
             this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of(), List.of(), List.of());
@@ -185,7 +190,12 @@ public final class LuaHotReload {
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
-                          Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+                          Map<String, List<String>> groupShapes, Set<String> reboundSlots, Map<String, Integer> compiletimeGroups) {
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
+                       Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, reboundSlots, Map.of());
+        }
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
@@ -222,7 +232,13 @@ public final class LuaHotReload {
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                           Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
-                          Set<String> reboundSlots) {
+                          Set<String> reboundSlots, Map<String, Integer> compiletimeGroups) {
+        public Payload(int version, List<String> functions, String source, List<String> warnings,
+                       Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
+                       Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes, Set<String> reboundSlots) {
+            this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
+                reboundSlots, Map.of());
+        }
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -386,6 +402,7 @@ public final class LuaHotReload {
         for (Statement s : statements) {
             parts.add(s.scope() + " " + s.text() + " " + s.targets());
         }
+        tr.imTr.compiletimeExpressionCounts().forEach((group, count) -> parts.add("compiletime expressions:" + group + "=" + count));
         String abi = fingerprint(compilerVersion, parts, bindings);
         appendRuntime(tr, model, abi);
         List<String> initOrder = new ArrayList<>();
@@ -424,7 +441,7 @@ public final class LuaHotReload {
         }
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
             List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables),
-            List.copyOf(hooks));
+            List.copyOf(hooks), tr.imTr.compiletimeExpressionCounts());
     }
 
     /** Expand the startup replay in execution order, retaining the object each statement initializes. */
@@ -612,6 +629,15 @@ public final class LuaHotReload {
     public static Payload payload(Manifest baseline, Manifest current, History history, int version) throws Rejected {
         List<String> reasons = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        Map<String, Integer> oldGroups = new TreeMap<>(Objects.requireNonNullElse(baseline.compiletimeGroups(), Map.of()));
+        Objects.requireNonNullElse(history.compiletimeGroups(), Map.<String, Integer>of()).forEach(oldGroups::putIfAbsent);
+        for (Map.Entry<String, Integer> group : Objects.requireNonNullElse(current.compiletimeGroups(), Map.<String, Integer>of()).entrySet()) {
+            Integer before = oldGroups.get(group.getKey());
+            if (before != null && !before.equals(group.getValue())) {
+                reasons.add("compile-time expressions sharing " + group.getKey() + " changed count from " + before + " to "
+                    + group.getValue() + "; their objects are told apart by order: restart the map");
+            }
+        }
         if (!Objects.equals(baseline.compilerVersion(), current.compilerVersion())) {
             reasons.add("the edit was compiled by another compiler (" + current.compilerVersion() + ") than the running script ("
                 + baseline.compilerVersion() + ")");
@@ -1056,7 +1082,8 @@ public final class LuaHotReload {
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
-            Collections.unmodifiableMap(groupShapes), Collections.unmodifiableSet(sentSlots));
+            Collections.unmodifiableMap(groupShapes), Collections.unmodifiableSet(sentSlots),
+            Objects.requireNonNullElse(current.compiletimeGroups(), Map.of()));
     }
 
     /** The run keys of the source initializers, as Lua strings, in the order the map runs them. */

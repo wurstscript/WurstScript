@@ -66,6 +66,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
      * ({@link #globalIdentity}): the function holding it and its place among that function's compiletime expressions.
      */
     private final Map<ImCompiletimeExpr, String> expressionPaths = new IdentityHashMap<>();
+    private final Map<ImCompiletimeExpr, String> expressionRoots = new IdentityHashMap<>();
+    private final Map<String, Integer> expressionCounts = new TreeMap<>();
+    private final Map<String, Integer> persistedExpressionCounts = new TreeMap<>();
     /** Where the value being materialised was found, for a global {@link #globalForObject} or {@link #globalForHandle} makes. */
     private String pendingPath = "";
     /**
@@ -158,6 +161,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
             long tWriteback = System.nanoTime();
             runDelayedActions();
+            translator.setCompiletimeExpressionCounts(persistedExpressionCounts);
             emitCompiletimeObjectAllocs();
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 insertCompiletimeScalarStateInitCalls();
@@ -382,8 +386,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 }
                 int ordinal = ordinals.merge(root, 1, Integer::sum) - 1;
                 expressionPaths.put(e, root + "#" + ordinal);
+                expressionRoots.put(e, root);
             }
         });
+        expressionCounts.putAll(ordinals);
     }
 
 
@@ -396,6 +402,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             globalState.pushStackframe(cte, cte.attrTrace().attrErrorPos());
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
+            if (hasMaterializedValue(value)) {
+                String root = expressionRoots.get(cte);
+                persistedExpressionCounts.put(root, expressionCounts.get(root));
+            }
             ImExpr newExpr = constantToExpr(cte.getTrace(), value, null, expressionPaths.get(cte));
             if(translator.isLuaTarget() && value.toString().equals("0")) {
                 // convert 0 to null/nil, if the value is 0 and not a numeric type
@@ -433,6 +443,18 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         } finally {
             compiletimeExprNanos += System.nanoTime() - t0;
         }
+    }
+
+    private static boolean hasMaterializedValue(ILconst value) {
+        if (value instanceof ILconstObject || value instanceof IlConstHandle) {
+            return true;
+        }
+        if (value instanceof ILconstTuple tuple) {
+            for (ILconst component : tuple.values()) {
+                if (hasMaterializedValue(component)) return true;
+            }
+        }
+        return false;
     }
 
 

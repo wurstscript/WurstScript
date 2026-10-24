@@ -98,6 +98,9 @@ The payload compares the running script's manifest with the edited one:
   snapshots retain runtime mutations. A changed snapshot warns that a restart is needed. Nested objects and cycles
   retain their references, and cumulative payloads do not replay snapshots already installed. Startup allocator-ID
   bookkeeping and the large split startup replay functions are never shipped as reloadable functions.
+  Expressions without distinct bindings (or multiple expressions in the same binding) still form an order group;
+  changing its count requires a restart, including groups introduced by earlier payloads. Pure compile-time values
+  which materialize no objects or handles do not need that restriction.
 - Any other changed bootstrap statement (other class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
 - Interface/class closures bound to source variables include those variable names in their class identities in
