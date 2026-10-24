@@ -3085,6 +3085,19 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void twoClosuresPassedToTheSameChainMethodKeepTheirBodies() {
+        test().testLua(true).executeProg().luaHotReload(repeatedChain(false, 2, 3))
+            .lines(repeatedChain(true, 1, 2));
+    }
+
+    private static String[] repeatedChain(boolean armor, int add, int factor) {
+        return java.util.Arrays.stream(chained(armor, add, factor))
+            .map(line -> line.replace("        modi = m", "        if modi == null\n            modi = m\n        else\n            bonus = m")
+                .replace(".bonus(x", ".modifier(x"))
+            .toArray(String[]::new);
+    }
+
+    @Test
     public void removingALaterCallOfAChainWarnsOfNoClosure() throws Exception {
         LuaHotReload.Payload removed = LuaHotReload.payload(manifest(chained(true, 1, 3)), manifest(chained(false, 1, 3)),
             Set.of(), 1);
