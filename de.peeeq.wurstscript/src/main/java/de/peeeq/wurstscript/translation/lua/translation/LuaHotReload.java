@@ -1528,9 +1528,30 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(String.join("\n", runHook)));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_lastStatus = \"no payload read\""));
         model.add(LuaAst.LuaLiteral("function " + STATUS_FUNCTION + "() return __wurst_hotreload_lastStatus end"));
+        // A payload reaches one player's game only, so hot reload is for a single-player game. The users playing are
+        // counted as blizzard.j's InitBlizzardGlobals counts them for bj_isSinglePlayer, which a map whose main skips
+        // InitBlizzard never sets: such a map read no payload and said nothing.
+        model.add(LuaAst.LuaLiteral(String.join("\n",
+            "function __wurst_hotreload_singlePlayer()",
+            "    if __wurst_hotreload_users == nil then",
+            "        local users = 0",
+            "        for i = 0, GetBJMaxPlayers() - 1 do",
+            "            local p = Player(i)",
+            "            if GetPlayerController(p) == MAP_CONTROL_USER and GetPlayerSlotState(p) == PLAYER_SLOT_STATE_PLAYING then",
+            "                users = users + 1",
+            "            end",
+            "        end",
+            "        __wurst_hotreload_users = users",
+            "        if users ~= 1 then",
+            "            __wurst_hotreload_lastStatus = \"hot reload is off: it needs a single-player game, and this one has \" .. users .. \" users\"",
+            "            BJDebugMsg(\"Wurst \" .. __wurst_hotreload_lastStatus)",
+            "        end",
+            "    end",
+            "    return __wurst_hotreload_users == 1",
+            "end")));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + POLL_FUNCTION + "()",
-            "    if not bj_isSinglePlayer then return end",
+            "    if not __wurst_hotreload_singlePlayer() then return end",
             "    local channel = FourCC(\"" + CHANNEL_ABILITY + "\")",
             // The map may show this ability: its tooltip is put back after each poll.
             "    local shown = BlzGetAbilityTooltip(channel, 0)",

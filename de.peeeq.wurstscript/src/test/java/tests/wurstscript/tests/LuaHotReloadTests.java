@@ -2647,6 +2647,40 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     /**
+     * Hot reload is for a single-player game: with more users playing the poll reads no payload file, says so once, and
+     * the status tells why. It counts the users itself, as blizzard.j does for bj_isSinglePlayer, which a map whose main
+     * skips InitBlizzard never sets: such a map read no payload, and said nothing.
+     */
+    @Test
+    public void pollIsOffInAGameOfMoreThanOneUser() throws Exception {
+        String[] base = program("x + 1", "side * side", INIT);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_pollIsOffInAGameOfMoreThanOneUser.lua";
+        String runtime = "src/test/resources/luaruntime/";
+        String driver = String.join("\n",
+            "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
+            "dofile('" + script + "')",
+            "__wurst_init_bootstrap()",
+            LuaHotReloadTestPlayers.users(2),
+            "local requested = 0",
+            "BJDebugMsg = function(text) print(text) end",
+            "Preloader = function(path) requested = requested + 1 end",
+            LuaHotReload.POLL_FUNCTION + "() " + LuaHotReload.POLL_FUNCTION + "()",
+            "print(requested)",
+            "print(" + LuaHotReload.STATUS_FUNCTION + "())");
+        java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_multiplayerPollDriver.lua");
+        java.nio.file.Files.writeString(driverFile.toPath(), driver);
+        Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
+        String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+        assertEquals(output, 0, p.waitFor());
+        String[] lines = output.split("\\R");
+        assertEquals(output, 3, lines.length);
+        assertTrue(output, lines[0].contains("hot reload is off") && lines[0].contains("2 users"));
+        assertEquals(output, "0", lines[1]);
+        assertTrue(output, lines[2].contains("hot reload is off") && lines[2].contains("2 users"));
+    }
+
+    /**
      * The game reads a preload file once, so payload n comes in file n and the poll reads each file once, in order. A
      * file whose payload is rejected is not read again, and the next payload still applies.
      */
@@ -2670,7 +2704,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "dofile('" + runtime + "wc3shim.lua') dofile('" + runtime + "common.j.lua') dofile('" + runtime + "blizzard.j.lua')",
             "dofile('" + script + "')",
             "__wurst_init_bootstrap()",
-            "bj_isSinglePlayer = true",
+            LuaHotReloadTestPlayers.SINGLE_PLAYER,
             "local tooltips, requested = {}, {}",
             // As measured in the game: a tooltip starts as the ability's own text, and setting "" leaves it.
             "BlzSetAbilityTooltip = function(id, s, level) if s ~= '' then tooltips[level] = s end end",

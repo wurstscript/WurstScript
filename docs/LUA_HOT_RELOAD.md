@@ -231,8 +231,11 @@ java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSe
 `start` takes the map of the last build as the running one and deletes the payload files of an earlier session; `send`
 writes the next cumulative payload for the last build, or exits with 1 and the reasons.
 
-Game side (measured, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. The poll sets
-the tooltip of ability `Aamk` to a space, calls `Preloader` on the next payload file, and reads the tooltip back. The
+Game side (measured, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. A payload reaches
+one player's game, so the poll does nothing unless exactly one user is playing. It counts them itself, as blizzard.j's
+`InitBlizzardGlobals` does for `bj_isSinglePlayer`: a map whose `main` skips `InitBlizzard` (Castle Fight's does) never
+sets that global, and read no payload while saying nothing. In any other game it prints once that hot reload is off,
+and the status says why. Otherwise the poll sets the tooltip of ability `Aamk` to a space, calls `Preloader` on the next payload file, and reads the tooltip back. The
 file's Lua section (between `//!beginusercode` and `//!endusercode`) puts `wurst-hot-reload-payload:` and the payload
 in that tooltip, in chunks of 1,000 characters. Text with that marker moves the poll on to the next file and goes to
 `__wurst_hotreload_apply`; `__wurst_hotreload_status()` answers what became of it (applied, followed by anything it
