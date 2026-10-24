@@ -322,6 +322,44 @@ public class DeterministicChecks extends WurstScriptTest {
         }
     }
 
+    /**
+     * A temporary added to one function renames none of another function's temporaries, so an edit changes the text of
+     * the edited function alone. The Lua side is {@code LuaHotReloadTests.addedTemporaryLeavesOtherFunctionsAlone}.
+     */
+    @Test
+    public void addedTemporaryRenamesNoOtherFunctionsTemporaries() throws IOException {
+        String before = jassFunction(compileTemporaries("x + 1"), "second");
+        assertTrue(before.contains("andLeft") && before.contains("temp"),
+            "the other function has temporaries of both kinds:\n" + before);
+        // The nested call is evaluated into a temporary, because the conditional after it has statements.
+        String after = jassFunction(compileTemporaries("add(add(x, 1), x > 0 ? 1 : 2)"), "second");
+        assertEquals(after, before, "a temporary added to first must not rename those of second");
+    }
+
+    private String compileTemporaries(String firstBody) throws IOException {
+        testNamed("addedTemporary").lines(
+            "package test",
+            "function add(int a, int b) returns int",
+            "    return a + b",
+            "function first(int x) returns int",
+            "    return " + firstBody,
+            "function second(int x) returns int",
+            "    if x > 0 and add(add(x, 1), x > 1 ? 1 : 2) > 2",
+            "        return 1",
+            "    return 0",
+            "init",
+            "    first(1)",
+            "    second(2)");
+        return Files.toString(new File("test-output/DeterministicChecks_addedTemporary_no_opts.j"), Charsets.UTF_8);
+    }
+
+    private static String jassFunction(String jass, String name) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("(?ms)^function \\w*" + name + "\\w* takes .*?^endfunction").matcher(jass);
+        assertTrue(m.find(), "no function " + name + " in\n" + jass);
+        return m.group();
+    }
+
     /** Nested calls in one expression are what makes the flattener allocate temporaries. */
     private void usesTemporaries() {
         testAssertOkLines(false,
