@@ -173,8 +173,11 @@ public abstract class MapRequest extends UserRequest<Object> {
             return;
         }
         if (workDoneToken != null && !(err instanceof RequestFailedException rfe && rfe.getMessageType() == MessageType.Info)) {
-            // The requesting editor owns the failure notification for this progress operation.
-            resFut.completeExceptionally(err);
+            // The requesting editor owns the failure notification for this progress operation. lsp4j answers any
+            // other exception with "Internal error.", so a failure the request reports carries its own text.
+            resFut.completeExceptionally(err instanceof RequestFailedException failure
+                ? new ResponseErrorException(new ResponseError(ResponseErrorCode.RequestFailed, failure.getMessage(), null))
+                : err);
         } else if (err instanceof RequestFailedException rfe) {
             languageClient.showMessage(new MessageParams(rfe.getMessageType(), rfe.getMessage()));
             resFut.complete(new Object());
