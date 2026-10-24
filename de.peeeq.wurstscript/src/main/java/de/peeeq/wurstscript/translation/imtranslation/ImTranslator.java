@@ -1035,11 +1035,29 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
 
+    /**
+     * What {@link #sortList} orders by: the scope and signature, then the source position, compared as numbers (as
+     * text, a closure on line 12 came before one on line 9, and inserting a line above them swapped their names).
+     * An element without a position comes before those with one.
+     */
+    public record SortKey(String name, int line, int column) implements Comparable<SortKey> {
+        public static final int NO_POSITION = -1;
+
+        private static final Comparator<SortKey> ORDER = Comparator.comparing(SortKey::name)
+            .thenComparingInt(SortKey::line)
+            .thenComparingInt(SortKey::column);
+
+        @Override
+        public int compareTo(SortKey o) {
+            return ORDER.compare(this, o);
+        }
+    }
+
     private static class ElementWithKey<T> implements Comparable<ElementWithKey<T>> {
         final T element;
-        final String key;
+        final SortKey key;
 
-        ElementWithKey(T element, String key) {
+        ElementWithKey(T element, SortKey key) {
             this.element = element;
             this.key = key;
         }
@@ -1069,7 +1087,7 @@ public class ImTranslator implements SpecialisationLookup {
         }
     }
 
-    private String getSortKey(Element c) {
+    private SortKey getSortKey(Element c) {
         StringBuilder sb = new StringBuilder();
         de.peeeq.wurstscript.ast.Element trace = c.attrTrace();
         String scope = getScopePrefix(trace);
@@ -1095,10 +1113,10 @@ public class ImTranslator implements SpecialisationLookup {
         if (trace != null) {
             de.peeeq.wurstscript.parser.WPos pos = trace.attrSource();
             if (pos != null) {
-                sb.append("@L").append(pos.getLine()).append("C").append(pos.getStartColumn());
+                return new SortKey(sb.toString(), pos.getLine(), pos.getStartColumn());
             }
         }
-        return sb.toString();
+        return new SortKey(sb.toString(), SortKey.NO_POSITION, SortKey.NO_POSITION);
     }
 
     private String getScopePrefix(de.peeeq.wurstscript.ast.Element e) {
