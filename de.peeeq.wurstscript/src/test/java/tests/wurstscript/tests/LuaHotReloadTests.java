@@ -1090,6 +1090,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
     }
 
+    /**
+     * A closure's owner is its function, named: two functions of one signature in one package (`makeKept()` and
+     * `makeOther()`, both `returns Value`) made their closures one group told apart by order, so a closure added to the
+     * first moved the second's and the edit was refused.
+     */
+    @Test
+    public void closuresOfTwoFunctionsOfOneSignatureAreTwoGroups() throws Exception {
+        String[] base = {"package Test", "interface Value", "    function get() returns int",
+            "function makeKept(boolean first) returns Value", "    return () -> 1",
+            "function makeOther(boolean first) returns Value", "    return () -> 2",
+            "init", "    makeKept(true).get()", "    makeOther(true).get()"};
+        String[] edited = base.clone();
+        edited[4] = "    if first\n        return () -> 1\n    return () -> 3";
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
     private static String[] consumers(String closures) {
         return new String[] {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",

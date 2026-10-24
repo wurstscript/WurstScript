@@ -276,6 +276,11 @@ public class ClosureTranslator {
         StringBuilder identity = new StringBuilder(callable instanceof ConstructorDef ? "constructor"
             : callable instanceof OnDestroyDef ? "destructor" : callable instanceof ExtensionFuncDef ? "extension"
             : callable instanceof InitBlock ? "init" : "function");
+        // The function's own name: a function is no named scope, so without it two functions of one signature in one
+        // package or class gave their closures one identity, told apart by their order across both functions.
+        if (callable instanceof FunctionDefinition function) {
+            identity.append("named").append(function.getName().length()).append(':').append(function.getName());
+        }
         for (Element scope = callable; scope != null; scope = scope.getParent()) {
             if (scope instanceof NamedScope named) {
                 String segment = named.getName();
