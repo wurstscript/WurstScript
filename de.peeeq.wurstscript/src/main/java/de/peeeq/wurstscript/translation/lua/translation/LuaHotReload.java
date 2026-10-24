@@ -49,6 +49,8 @@ public final class LuaHotReload {
     public static final String STATUS_FUNCTION = "__wurst_hotreload_status";
     /** Prints what a payload carries but cannot apply, and keeps it for the status of the payload. */
     private static final String WARN_FUNCTION = "__wurst_hotreload_warn";
+    /** Runs a reload hook for a payload: reports a failure, and leaves the -stacktraces stack as it found it. */
+    private static final String HOOK_FUNCTION = "__wurst_hotreload_runHook";
     public static final String WARNINGS = "__wurst_hotreload_warnings";
     /**
      * The map's record of the statements payloads ran, by {@link #runKey}, and of the new package inits which succeeded.
@@ -867,13 +869,9 @@ public final class LuaHotReload {
                 .append(")\nbreak\nend\nprevious[batch] = position\nend\nend\n");
         }
         // Last, with everything installed: the reload hooks, with the bodies this payload has. One which fails does not
-        // stop the others; what it raised is in the status. A hook takes no parameters but, with -stacktraces, the
-        // position of its call, as every function does; without, Lua drops the argument.
+        // stop the others; what it raised is in the status.
         for (String hook : Objects.requireNonNullElse(current.hooks(), List.<String>of())) {
-            sb.append("do\nlocal hookOk, hookErr = pcall(").append(hook).append(", \"when a hot reload ran its reload hooks\")\n")
-                .append("if not hookOk then\n")
-                .append(WARN_FUNCTION).append("(").append(luaString("Wurst hot reload: the reload hook " + hook + " failed: "))
-                .append(" .. tostring(hookErr))\nend\nend\n");
+            sb.append(HOOK_FUNCTION).append("(").append(hook).append(", ").append(luaString(hook)).append(")\n");
         }
         sb.append("end\n");
         Map<String, String> captured = new LinkedHashMap<>();
@@ -1459,6 +1457,26 @@ public final class LuaHotReload {
             "    if text:sub(1, #prefix) == prefix then text = text:sub(#prefix + 1) end",
             "    " + WARNINGS + "[#" + WARNINGS + " + 1] = text",
             "end")));
+        // A hook takes no parameters but, with -stacktraces, the position of its call, as every function does; without,
+        // Lua drops the argument. The frames a failing hook pushed are never popped, so the depth is put back after it.
+        String depth = null;
+        for (ImVar v : tr.imTr.stackTraceStorage) {
+            if (!(v.getType() instanceof ImArrayType)) {
+                depth = tr.luaVar.getFor(v).getName();
+            }
+        }
+        List<String> runHook = new ArrayList<>(List.of("function " + HOOK_FUNCTION + "(hook, name)"));
+        if (depth != null) {
+            runHook.add("    local depth = " + depth);
+        }
+        runHook.add("    local ok, err = pcall(hook, \"when a hot reload ran its reload hooks\")");
+        if (depth != null) {
+            runHook.add("    " + depth + " = depth");
+        }
+        runHook.add("    if not ok then " + WARN_FUNCTION
+            + "(\"Wurst hot reload: the reload hook \" .. name .. \" failed: \" .. tostring(err)) end");
+        runHook.add("end");
+        model.add(LuaAst.LuaLiteral(String.join("\n", runHook)));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_lastStatus = \"no payload read\""));
         model.add(LuaAst.LuaLiteral("function " + STATUS_FUNCTION + "() return __wurst_hotreload_lastStatus end"));
         model.add(LuaAst.LuaLiteral(String.join("\n",

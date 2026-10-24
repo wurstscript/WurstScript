@@ -414,7 +414,8 @@ public class ImTranslator implements SpecialisationLookup {
         }
         List<ImFunction> hooks = new ArrayList<>();
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(imProg)) {
-            if (HotReloadHooks.isHook(f.getTrace())) {
+            // The function made for the annotated declaration, not another with its trace (a stack-trace bridge).
+            if (HotReloadHooks.isHook(f.getTrace()) && functionMap.get(f.getTrace()) == f) {
                 hooks.add(f);
             }
         }

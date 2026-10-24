@@ -254,8 +254,11 @@ Each payload calls every hook once it installed everything else (functions, decl
 constants), in the order the map initialises their packages, each package's in the order it declares them. A hook
 runs with the code the payload has, including a hook the payload adds, and nothing calls a hook when the map starts.
 One which fails does not stop the others or undo the payload: what it raised is printed and in the payload's status. A
-hook takes no parameters and is static (`HotReloadHooks`, checked by the validator); with `-stacktraces` the payload
-passes it the position every function takes, so a stack trace taken in a hook names the reload. In a `-luaHotReload`
+hook takes no parameters and is static and not generic (`HotReloadHooks`, checked by the validator). The script runs
+each one (`__wurst_hotreload_runHook`): with `-stacktraces` it passes the position every function takes, so a stack
+trace taken in a hook names the reload, and puts the stack's depth back after it, which a failing hook would leave
+raised. Hooks are the functions made for the annotated declarations, so a function reference's bridge to one does not
+run it a second time. In a `-luaHotReload`
 build the hooks are entry points, as preserved functions are; in any other build the annotation does nothing, so a hook
 nothing else calls is not emitted.
 

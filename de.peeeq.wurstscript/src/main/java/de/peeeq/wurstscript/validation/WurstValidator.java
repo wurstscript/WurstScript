@@ -3627,6 +3627,9 @@ public class WurstValidator {
                         } else if (f.attrIsDynamicClassMember()) {
                             f.addError("Functions annotated '@onHotReload' must be static.\n"
                                 + "Note: A Lua hot reload calls them, with nothing, once it installed a payload.");
+                        } else if (HotReloadHooks.isGeneric(f)) {
+                            f.addError("Functions annotated '@onHotReload' may not be generic.\n"
+                                + "Note: A Lua hot reload calls them, with nothing, once it installed a payload.");
                         }
                     }
                 }

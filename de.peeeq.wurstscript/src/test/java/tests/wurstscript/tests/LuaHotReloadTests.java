@@ -2070,6 +2070,61 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(output, output.contains("Stacktrace:\n   when a hot reload ran its reload hooks"));
     }
 
+    /** Applies a payload adding {@code hookLines} to MAIN_PACKAGE in a map built with -stacktraces; prints the globals. */
+    private String tracedHookPayload(String name, String[] hookLines, String... globals) throws Exception {
+        RunArgs traced = HOT_RELOAD.with("-stacktraces");
+        String[] base = MAIN_PACKAGE;
+        String[] hooked = concat(MAIN_PACKAGE, hookLines);
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, traced, new CU(name, String.join("\n", base) + "\n"));
+        LuaHotReload.Manifest added = compileLuaHotReloadManifest(false, traced, new CU(name, String.join("\n", hooked) + "\n"));
+        String[] names = java.util.Arrays.stream(globals).map(g -> globalName(added, g)).toArray(String[]::new);
+        return applyInLua("test-output/lua/LuaHotReloadTests_" + name + ".lua",
+            List.of(LuaHotReload.payload(before, added, LuaHotReload.History.NONE, 1).source()), names).replace("\r\n", "\n");
+    }
+
+    /**
+     * With -stacktraces a function reference gets a bridge with the trace of the function it calls; a hook which is
+     * also a function reference still runs once per payload.
+     */
+    @Test
+    public void reloadHookUsedAsAFunctionReferenceRunsOnce() throws Exception {
+        String name = "reloadHookUsedAsAFunctionReferenceRunsOnce";
+        test().testLua(true).stacktraces().luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String output = tracedHookPayload(name, new String[] {
+            "@annotation function onHotReload()", "public int reloads = 0", "code saved = function counted",
+            "public function savedCode() returns code", "    return saved",
+            "public function readReloads() returns int", "    return reloads",
+            "@onHotReload function counted()", "    reloads += 1", "init", "    savedCode()", "    readReloads()"}, "reloads");
+        assertTrue(output, output.startsWith("true 1 "));
+    }
+
+    /**
+     * A hook which fails left its frames on the stack the -stacktraces build keeps, so the next hook's traces showed
+     * them: the depth is put back after each hook.
+     */
+    @Test
+    public void failingReloadHookLeavesNoFramesBehind() throws Exception {
+        String name = "failingReloadHookLeavesNoFramesBehind";
+        test().testLua(true).stacktraces().luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String output = tracedHookPayload(name, new String[] {
+            "@annotation function onHotReload()", "native I2S(int i) returns string", "public string trace = \"\"",
+            "function getStackTraceString() returns string", "    return \"\"",
+            "function explode()", "    I2S(1 div 0)",
+            "@onHotReload function broken()", "    explode()",
+            "@onHotReload function traced()", "    trace += getStackTraceString()"}, "trace");
+        assertTrue(output, output.startsWith("true "));
+        assertTrue(output, output.contains("Stacktrace:\n   when a hot reload ran its reload hooks"));
+        assertFalse(output, output.contains("explode"));
+    }
+
+    /** A hook is called with nothing, so it has no type arguments either. */
+    @Test
+    public void reloadHookIsNotGeneric() {
+        testAssertErrorsLines(false, "Functions annotated '@onHotReload' may not be generic",
+            "package Test", "@annotation function onHotReload()", "class A<T:>", "    @onHotReload static function reloaded()",
+            "        skip");
+    }
+
     /** Outside a -luaHotReload build the annotation does nothing: a hook nothing calls is not even emitted. */
     @Test
     public void reloadHookIsNotEmittedOutsideHotReloadBuilds() throws IOException {
