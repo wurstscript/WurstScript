@@ -3052,30 +3052,67 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     /**
-     * The retained storage of a global, using recorded specialization and tuple-lowering relations: with the
-     * specialisations of a source global which have no initializer unit of their own.
+     * The retained storage of globals, using recorded specialization and tuple-lowering relations, indexed once for a
+     * pass which asks for the storage of many: looking each one up through every specialisation and every global made
+     * the hot-reload manifest of a large map quadratic.
      */
-    public List<ImVar> loweredGlobalStorage(ImVar source) {
-        Set<ImVar> roots = Collections.newSetFromMap(new IdentityHashMap<>());
-        roots.add(source);
-        if (canonical(source) == source) {
+    public GlobalStorage globalStorage() {
+        return new GlobalStorage();
+    }
+
+    /** A snapshot of the program's globals and specialisations: valid while neither changes. */
+    public final class GlobalStorage {
+        private final Map<ImVar, List<ImVar>> copies = new IdentityHashMap<>();
+        private final Map<ImVar, Integer> positions = new IdentityHashMap<>();
+
+        private GlobalStorage() {
             for (Element copy : specialisations.keySet()) {
-                if (copy instanceof ImVar variable && canonical(variable) == source && !specializationsWithOwnUnit.contains(variable)) {
-                    roots.add(variable);
+                if (copy instanceof ImVar variable) {
+                    ImVar original = canonical(variable);
+                    if (original != variable) {
+                        copies.computeIfAbsent(original, k -> new ArrayList<>()).add(variable);
+                    }
                 }
             }
-        }
-        Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImVar root : roots) {
-            VarsForTupleResult tuple = varsForTupleVar.get(root);
-            if (tuple == null) {
-                storage.add(root);
-            } else {
-                tuple.allValuesStream().forEach(storage::add);
+            List<ImVar> globals = imProg.getGlobals();
+            for (int i = 0; i < globals.size(); i++) {
+                positions.putIfAbsent(globals.get(i), i);
             }
         }
-        // Identity maps above are membership sets only; output follows the program's deterministic declaration order.
-        return imProg.getGlobals().stream().filter(storage::contains).toList();
+
+        /**
+         * The storage of {@code source}, in the program's declaration order: with the specialisations of a source global
+         * which have no initializer unit of their own.
+         */
+        public List<ImVar> of(ImVar source) {
+            List<ImVar> roots = new ArrayList<>();
+            roots.add(source);
+            if (canonical(source) == source) {
+                for (ImVar variable : copies.getOrDefault(source, List.of())) {
+                    if (!specializationsWithOwnUnit.contains(variable)) {
+                        roots.add(variable);
+                    }
+                }
+            }
+            Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImVar root : roots) {
+                VarsForTupleResult tuple = varsForTupleVar.get(root);
+                if (tuple == null) {
+                    storage.add(root);
+                } else {
+                    tuple.allValuesStream().forEach(storage::add);
+                }
+            }
+            // The identity sets are membership only; the order is the program's declaration order.
+            List<ImVar> result = new ArrayList<>();
+            for (ImVar v : storage) {
+                if (positions.containsKey(v)) {
+                    result.add(v);
+                }
+            }
+            result.sort(Comparator.comparingInt(positions::get));
+            return result;
+        }
     }
 
     VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {

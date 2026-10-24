@@ -29,6 +29,7 @@ import java.util.function.Function;
 final class ConstantInitializers {
 
     private final ImTranslator imTr;
+    private final ImTranslator.GlobalStorage storage;
     /** Each piece of retained global storage, and the source initializer which writes it. */
     private final Map<ImVar, ImFunction> owners = new IdentityHashMap<>();
     private final Map<ImFunction, Integer> positions = new IdentityHashMap<>();
@@ -62,6 +63,7 @@ final class ConstantInitializers {
 
     private ConstantInitializers(ImTranslator imTr, List<ImFunction> order) {
         this.imTr = imTr;
+        this.storage = imTr.globalStorage();
         for (ImFunction f : Arrays.asList(imTr.luaRawFloorDivIntFunc, imTr.luaRawFmodIntFunc, imTr.luaRawFloorModIntFunc,
             imTr.luaRawConcatFunc, imTr.luaRawOrEmptyFunc, imTr.luaRawR2IFunc, imTr.luaRawToNumberIntFunc,
             imTr.luaRawToNumberRealFunc, imTr.luaRawToIntegerFunc, imTr.luaRawToStringFunc)) {
@@ -71,8 +73,8 @@ final class ConstantInitializers {
         }
         for (ImFunction initializer : order) {
             positions.put(initializer, positions.size());
-            for (ImVar storage : imTr.loweredGlobalStorage(imTr.luaGlobalInitializers.get(initializer))) {
-                owners.put(storage, initializer);
+            for (ImVar stored : storage.of(imTr.luaGlobalInitializers.get(initializer))) {
+                owners.put(stored, initializer);
             }
         }
     }
@@ -155,7 +157,7 @@ final class ConstantInitializers {
      */
     private @Nullable Integer length(ImFunction initializer) {
         Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
-        storage.addAll(imTr.loweredGlobalStorage(imTr.luaGlobalInitializers.get(initializer)));
+        storage.addAll(this.storage.of(imTr.luaGlobalInitializers.get(initializer)));
         if (storage.stream().noneMatch(ConstantInitializers::isArray)) {
             return null;
         }
@@ -183,7 +185,7 @@ final class ConstantInitializers {
 
     private Summary initializer(ImFunction initializer) {
         Set<ImVar> storage = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImVar v : imTr.loweredGlobalStorage(imTr.luaGlobalInitializers.get(initializer))) {
+        for (ImVar v : this.storage.of(imTr.luaGlobalInitializers.get(initializer))) {
             if (v.getType() instanceof ImArrayTypeMulti multi && multi.getArraySize().size() > 1) {
                 // A payload clears the entries an edit drops by their index, which needs one dimension.
                 return Summary.IMPURE;

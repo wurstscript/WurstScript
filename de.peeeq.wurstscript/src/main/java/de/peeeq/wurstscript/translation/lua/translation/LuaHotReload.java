@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.nio.charset.StandardCharsets;
@@ -255,12 +256,13 @@ public final class LuaHotReload {
         }
         Map<LuaFunction, ImVar> initializers = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> initializerTargets = new IdentityHashMap<>();
+        ImTranslator.GlobalStorage storage = tr.imTr.globalStorage();
         for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
             ImVar global = tr.imTr.luaGlobalInitializers.get(entry.getValue());
             if (global != null) {
                 initializers.put(entry.getKey(), global);
                 List<String> targets = new ArrayList<>();
-                for (ImVar component : tr.imTr.loweredGlobalStorage(global)) {
+                for (ImVar component : storage.of(global)) {
                     targets.add(tr.luaVar.getFor(component).getName());
                 }
                 initializerTargets.put(entry.getKey(), List.copyOf(targets));
