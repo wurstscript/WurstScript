@@ -214,10 +214,34 @@ Notes; finished-work narrative does not.
   map: new and changed functions, globals, fields, classes, lambdas and packages, measured on the
   3.0.1.24371 client in a test map over five payloads ([docs/LUA_HOT_RELOAD.md](docs/LUA_HOT_RELOAD.md)).
   Tuned constants take their new values too. Every kind of edit, constants included, was run again in the game on
-  24 Oct, nine payloads in one game, driven from the compiler's command line.
-  Not yet measured: how often a real project's edits are rejected, and its payload sizes and reload
-  times. Later stages are in the design note: a library reload hook, and multiplayer only through a
-  synchronised channel.
+  24 Oct, fourteen payloads in one game, from the compiler's command line and through the language server as the
+  editor drives it. Real edits, replayed offline from a project's history: Castle Fight accepts 23 of its last 30
+  commits, a second large map 20 of 36. A warm reload in the editor takes 14 to 30 s on Castle Fight (item below).
+  Multiplayer only through a synchronised channel is a later stage in the design note.
+- **Lua hot reload: remaining daily-use work.** Each correctness change needs a failing test first.
+  - A closure which starts capturing a variable gives existing objects that capture's typed default without a
+    warning. Decide whether to warn that reconstructing those objects requires a restart. An anonymous order group
+    cannot distinguish simultaneous additions/removals and body edits between the same unchanged anchors; make
+    those edits in separate payloads. A removed closure may still have live objects, so reusing table names its old
+    bodies read is refused even after intermediate payloads remove the whole group. Do not weaken that guard.
+    Replay the real-map histories again to measure acceptance after the closure fixes; the recorded 27/30 Castle
+    Fight result was from an intermediate branch, not the final implementation.
+  - A recorded Castle Fight refusal involved a new-generics specialisation whose field stores took another
+    specialisation's names. Minimize that source into a regression and fix the identity where it is assigned.
+    Old-generics `run_wrapper` functions form order groups too; investigate their source ownership before trying
+    to accept ambiguous edits. Materialized compile-time expressions without distinct bindings also retain an
+    order-group count; changing that count requires a restart. Shared object graphs use the first binding that
+    reaches them, so changing that root needs investigation before promising stable identity.
+  - The command-line session has only `start` and `send`, so `grill run --hot` replaces the running map's session
+    before it launches, and a failed launch has already deleted its payloads. Add staged activation/restoration in
+    the owning CLI integration, matching the language server's launch lifecycle. The first reload after a command-line
+    start checks the whole model again (about 47 s on Castle Fight). `-luaHotReload` in `wurst_run.args` is combined
+    with the build-only `+` lines of a release build and refused. The initializer-order check lists every key
+    (about 370 KB with 23,000 keys on a large map), and generated object-data functions ship whole. Measure smaller
+    representations without discarding the order check or splitting effectful initialization incorrectly.
+  - Run the in-game suite again: it last ran on #1556, before #1558 through #1566, including closure lineage remaps
+    and compile-time snapshot replay. Also exercise `grill run --hot` launching a map and picking up a payload.
+    Stock Lua and CI do not verify Warcraft's preload channel or numeric runtime.
 - **Lua hot reload: a reload translates the whole program.** Proposal, measured on 24 Oct 2026 in the language
   server on Castle Fight (`wurst.hotreload` after a body edit, a constant edit and a declaration edit, four of each):
   a warm request took 14 to 30 s on a loaded machine, the first after a command-line start about 47 s (it checks the
@@ -288,8 +312,11 @@ Notes; finished-work narrative does not.
   payload (made by the session, as the editor makes it) into the running base program in the test Lua, and compares
   what it prints with fresh runs of the edited program. CI runs 10 programs of 3 edits; before changing `LuaHotReload`
   or how a hot-reload build names its declarations, run a campaign (`WURST_FUZZ_PROGRAMS=500`, a fresh
-  `WURST_FUZZ_SEED`, `-PtestTimeoutMillis=3600000`; about 2 s a program) and plant a bug to see it caught. A failing
-  seed leaves its sources, scripts and payloads in `test-output/fuzz-hotreload/<seed>`.
+  `WURST_FUZZ_SEED`, `-PtestTimeoutMillis=3600000`; timing depends on the host) and plant a bug to see it caught. A failing
+  seed leaves its sources, scripts and payloads in `test-output/fuzz-hotreload/<seed>`. Set
+  `WURST_FUZZ_INSERT_ANONYMOUS=1` to cover insertions before anonymous siblings too; expected ambiguity refusals
+  are counted separately. Warning-oracle edits must actually change the value, and retained-state comparisons
+  must account for objects which survive removal; a fresh run alone cannot establish their semantics.
 
 - **Making the grammars SLL-clean is not worth it.** The SLL-first parse (`AntlrTokenPipeline`) parses a file again
   with the full LL prediction when SLL does not accept it, which also happens to a few valid files (`blizzard.j`,
