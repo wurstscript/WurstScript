@@ -276,6 +276,8 @@ The target is selected by the project `wurst.build` `scriptMode` field. `wc3Patc
 
 Lua has no practical Jass operation limit; do not add `execute()` as a workaround. Use timers only for actual asynchronous delay. Jass has an operation limit per thread; `execute()` starts a new thread and heavy work may need chunking across ticks.
 
+A Lua map started with hot run (`-luaHotReload`) takes edits while it runs: function and closure bodies, new declarations and packages, and tuned constants. A package `init` does not run again, so put setup which a reload should redo (UI layout, registered events, values copied from constants) in a function, call it from `init`, and annotate a static function without parameters `@onHotReload` which undoes and redoes it. Each payload calls the hooks, with the code it has, once it installed everything else; in any other build the annotation does nothing. Details: the compiler's `docs/LUA_HOT_RELOAD.md`.
+
 ## Compiletime
 
 Compiletime functions run while building the map and can generate object-editor data or constants:

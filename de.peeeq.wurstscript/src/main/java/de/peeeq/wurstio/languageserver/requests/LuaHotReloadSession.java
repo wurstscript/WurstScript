@@ -44,6 +44,8 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         /** The initializers of globals a version the map ran declared as variables, which code may have written. */
         List<String> variables = new ArrayList<>();
+        /** The shape last sent of each closure told apart by its order. */
+        Map<String, String> groupShapes = new LinkedHashMap<>();
     }
 
     /**
@@ -150,6 +152,7 @@ public final class LuaHotReloadSession {
         Map<String, String> initializers = new LinkedHashMap<>();
         List<String> packageInits = new ArrayList<>();
         List<String> variables = new ArrayList<>();
+        Map<String, String> groupShapes = new LinkedHashMap<>();
     }
 
     /** A payload and the file it was written to. */
@@ -172,7 +175,7 @@ public final class LuaHotReloadSession {
         LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current, new LuaHotReload.History(
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
-            new LinkedHashSet<>(orEmpty(state.variables))), state.version + 1);
+            new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes)), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -181,6 +184,7 @@ public final class LuaHotReloadSession {
         pending.initializers = new LinkedHashMap<>(payload.initializers());
         pending.packageInits = new ArrayList<>(payload.packageInits());
         pending.variables = new ArrayList<>(payload.variables());
+        pending.groupShapes = new LinkedHashMap<>(payload.groupShapes());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -232,6 +236,10 @@ public final class LuaHotReloadSession {
         Set<String> variables = new LinkedHashSet<>(orEmpty(state.variables));
         variables.addAll(orEmpty(sent.variables));
         state.variables = new ArrayList<>(variables);
+        // The last one sent is what the map runs, if it got it.
+        Map<String, String> groupShapes = new LinkedHashMap<>(orEmpty(state.groupShapes));
+        groupShapes.putAll(orEmpty(sent.groupShapes));
+        state.groupShapes = groupShapes;
         state.version = sent.version;
     }
 

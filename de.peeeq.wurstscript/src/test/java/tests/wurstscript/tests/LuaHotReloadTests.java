@@ -353,6 +353,50 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("package init")));
     }
 
+    /** mainWithExtra with a second global after extra, or before it. */
+    private static String[] extraAndAnother(boolean swapped) {
+        String[] lines = mainWithExtra("bump()");
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].equals("int extra = bump()")) {
+                lines[i] = swapped ? "int another = bump()\nint extra = bump()" : "int extra = bump()\nint another = bump()";
+            } else if (lines[i].equals("    return extra")) {
+                lines[i] += " + another";
+            }
+        }
+        return lines;
+    }
+
+    /** Initializers which an edit swaps ran in the old order when the map started: the map warns that it keeps it. */
+    @Test
+    public void swappedInitializersOfTheStartedMapWarnInTheMap() throws Exception {
+        test().testLua(true).luaHotReload(extraAndAnother(false)).lines(extraAndAnother(false));
+        String script = "test-output/lua/LuaHotReloadTests_swappedInitializersOfTheStartedMapWarnInTheMap.lua";
+        String applied = applyInLua(script, List.of(LuaHotReload.payload(manifest(extraAndAnother(false)),
+            manifest(extraAndAnother(true)), LuaHotReload.History.NONE, 1).source()), true);
+        assertEquals(applied, 1, occurrences(applied, "global initializer order changed"));
+    }
+
+    private static String[] tupleProgram(String value) {
+        return concat(MAIN_PACKAGE, new String[] {
+            "tuple Pair(int a, int b)", "int array xs = [bump(), bump()]", "Pair pair = Pair(bump(), bump())",
+            "function total() returns int", "    return xs[0] + xs[1] + pair.a + pair.b + " + value, "init", "    total()"});
+    }
+
+    /**
+     * A payload checks what an edit can have changed, not the whole program: an unchanged program's payload, and one for
+     * an edited body, carry no check of the order of the initializers the map ran when it started, nor of storage which
+     * existed then. On a large map those checks were most of every payload.
+     */
+    @Test
+    public void payloadChecksNoUnchangedInitializers() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(tupleProgram("1"));
+        for (LuaHotReload.Manifest current : List.of(baseline, manifest(tupleProgram("2")))) {
+            String source = LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1).source();
+            assertFalse(source, source.contains("global initializer order changed"));
+            assertFalse(source, source.contains("spans old and new storage"));
+        }
+    }
+
     /** Ordering warnings follow the map's completed work, including payload-added units and missed deliveries. */
     @Test
     public void mapRemembersOrderOfPayloadAddedInitializers() throws Exception {
@@ -849,21 +893,72 @@ public class LuaHotReloadTests extends WurstScriptTest {
         String[] edited = base.clone();
         edited[0] = base[0].replace("A.N held", "B.N held");
         edited[edited.length - 1] = base[base.length - 1].replace("h.held = a", "h.held = b");
-        expectThrows(LuaHotReload.Rejected.class,
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1));
+        // Two inner classes N in one package are told apart by the classes they are declared in.
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("Holder.Holder_held:Test:B.N")
+            && rejected.getMessage().contains("instead of Test:Holder.Holder_held:Test:A.N"));
     }
 
+    /**
+     * Closures told apart by their order alone (callbacks of one interface in one function) are matched by that order:
+     * one added after them reloads; one added before them would move the others, and the map refuses that.
+     */
     @Test
-    public void unanchoredSiblingClosureAdditionStillRequiresARestart() throws Exception {
+    public void siblingClosureAppendedReloadsAndOneInsertedBeforeIsRefused() throws Exception {
         String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
             "function run() returns int", "    return consume((int v) -> v + 1) + consume((int v) -> v + 2)",
             "init", "    run()"};
-        String[] edited = base.clone();
-        edited[8] += " + consume((int v) -> v + 3)";
+        String[] appended = base.clone();
+        appended[8] += " + consume((int v) -> v + 3)";
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(appended), Set.of(), 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+        String[] inserted = base.clone();
+        inserted[8] = "    return consume((int v) -> v + 9) + consume((int v) -> v + 1) + consume((int v) -> v + 2)";
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(manifest(base), manifest(edited), Set.of(), 1));
+            () -> LuaHotReload.payload(manifest(base), manifest(inserted), Set.of(), 1));
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+    }
+
+    private static String[] orderedCallbacks(String second, String... more) {
+        String[] lines = {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int",
+            "function keep(Op op) returns Op", "    return op",
+            "Op first", "Op second", "Op third",
+            // Two callbacks of one interface in one function, told apart by their order alone.
+            "function makeAll()", "    first = keep(() -> 1)", "    second = keep(() -> " + second + ")",
+        };
+        return concat(concat(lines, more), new String[] {
+            "init",
+            "    makeAll()",
+            "    if first.apply() != 1 or second.apply() != 2",
+            "        testFail(\"the original callbacks did not run\")",
+            "    hotReload()",
+            "    if first.apply() != 1",
+            "        testFail(\"the callback before the edited one changed\")",
+            "    if second.apply() != 20",
+            "        testFail(\"the edited callback, made before the reload, runs its old body\")",
+            "    makeAll()",
+            "    if second.apply() != 20",
+            "        testFail(\"a callback made after the reload runs the old body\")",
+            "    testSuccess()",
+        });
+    }
+
+    /** Editing one of several callbacks told apart by their order reloads it: objects made before run the new body. */
+    @Test
+    public void editedCallbackAmongSiblingsReloads() {
+        test().testLua(true).executeProg().luaHotReload(orderedCallbacks("20")).lines(orderedCallbacks("2"));
+    }
+
+    /** A callback added after its siblings reloads too, and those made before keep their bodies. */
+    @Test
+    public void callbackAppendedAfterItsSiblingsReloads() {
+        test().testLua(true).executeProg()
+            .luaHotReload(orderedCallbacks("20", "    third = keep(() -> 3)"))
+            .lines(orderedCallbacks("2"));
     }
 
     @Test
@@ -884,17 +979,19 @@ public class LuaHotReloadTests extends WurstScriptTest {
         var after = manifest(edited);
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("ambiguous closure identity"));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
 
+        // A group an earlier payload introduced is protected by what that payload sent.
         var empty = manifest(MAIN_PACKAGE);
         var first = LuaHotReload.payload(empty, before, LuaHotReload.History.NONE, 1);
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
         String script = "test-output/lua/LuaHotReloadTests_ambiguousSameOwnerClosureBindingsCannotChangeOrSwap.lua";
         assertEquals("true 45 nil", applyInLua(script, List.of(first.source()), globalName(before, "result")));
-        var history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured());
+        var history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured(), first.slots(),
+            first.initializers(), first.packageInits(), first.variables(), first.groupShapes());
         LuaHotReload.Rejected later = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(empty, after, history, 2));
-        assertTrue(later.getMessage(), later.getMessage().contains("keeps the old body"));
+        assertTrue(later.getMessage(), later.getMessage().contains("told apart by their order"));
         LuaHotReload.payload(before, before, LuaHotReload.History.NONE, 1);
     }
 
@@ -1852,8 +1949,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
     /**
      * With -stacktraces a call passes its source position, so an edit which only moves lines changes the bodies below
-     * it. Closures told apart by their order alone must keep their bodies, but a moved line is no change of a body:
-     * the payload ships the new positions and is not refused. Changing such a body still is.
+     * it. A moved line is no change of a body of closures told apart by their order: the payload ships the new
+     * positions, and an edited body as well.
      */
     @Test
     public void movedLinesDoNotFreezeClosuresToldApartByOrder() throws Exception {
@@ -1864,9 +1961,113 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.Payload again = LuaHotReload.payload(baseline, siblingCallbacks(true, "2"),
             new LuaHotReload.History(Set.copyOf(moved.functions()), moved.captured()), 2);
         assertTrue(again.source(), again.warnings().isEmpty());
-        LuaHotReload.Rejected edited = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, siblingCallbacks(true, "3"), LuaHotReload.History.NONE, 1));
-        assertTrue(edited.getMessage(), edited.getMessage().contains("ambiguous closure identity"));
+        LuaHotReload.Payload edited = LuaHotReload.payload(baseline, siblingCallbacks(true, "3"), LuaHotReload.History.NONE, 1);
+        assertTrue("an edited body ships too: " + edited.functions(),
+            edited.functions().stream().filter(f -> f.startsWith("Op_")).count() == 2);
+    }
+
+    private static String[] reloadHook(String value, String... hookLines) {
+        String[] head = {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "@annotation function onHotReload()",
+            "int reloads = 0", "int setup = 0",
+            "function setupValue() returns int", "    return " + value,
+        };
+        return concat(concat(head, hookLines), new String[] {
+            "init",
+            "    setup = setupValue()",
+            "    if setup != 1 or reloads != 0",
+            "        testFail(\"a reload hook ran when the map started\")",
+            "    hotReload()",
+            "    if reloads != 1",
+            "        testFail(\"the reload hook did not run once\")",
+            "    if setup != 2",
+            "        testFail(\"the reload hook did not run the setup code the payload has\")",
+            "    testSuccess()",
+        });
+    }
+
+    private static final String[] HOOK = {"@onHotReload function reloaded()", "    reloads += 1", "    setup = setupValue()"};
+
+    /**
+     * A function annotated @onHotReload runs once each payload installed everything else, with the code the payload has,
+     * so a map can run its setup code again; nothing calls it when the map starts.
+     */
+    @Test
+    public void reloadHookRunsTheSetupCodeThePayloadHas() {
+        test().testLua(true).executeProg().luaHotReload(reloadHook("2", HOOK)).lines(reloadHook("1", HOOK));
+    }
+
+    /** A hook which an edit adds runs with the payload which adds it. */
+    @Test
+    public void reloadHookAddedByAnEditRuns() {
+        test().testLua(true).executeProg().luaHotReload(reloadHook("2", HOOK)).lines(reloadHook("1"));
+    }
+
+    /** A hook which fails does not stop the others or the payload; what it raised is in the payload's status. */
+    @Test
+    public void failingReloadHookIsReportedAndTheOthersRun() throws Exception {
+        String[] base = MAIN_PACKAGE;
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_failingReloadHookIsReportedAndTheOthersRun.lua";
+        String[] hooked = concat(MAIN_PACKAGE, new String[] {
+            "@annotation function onHotReload()",
+            "native I2S(int i) returns string",
+            "@onHotReload function first()", "    made += 10",
+            "@onHotReload function broken()", "    I2S(1 div 0)",
+            "@onHotReload function last()", "    made += 100"});
+        LuaHotReload.Manifest added = manifest(hooked);
+        String output = applyInLua(script, List.of(LuaHotReload.payload(manifest(base), added, LuaHotReload.History.NONE, 1).source()),
+            globalName(added, "made"), "table.concat(" + LuaHotReload.WARNINGS + ", '|')");
+        assertTrue(output, output.startsWith("true 111 "));
+        assertTrue(output, output.contains("the reload hook " + luaName(added, "broken") + " failed"));
+    }
+
+    /**
+     * With -stacktraces every function takes the position of its call, a hook too: the payload passes one, so a stack
+     * trace taken in a hook names the reload instead of an empty frame.
+     */
+    @Test
+    public void reloadHookFrameNamesTheReloadInStackTraces() throws Exception {
+        RunArgs traced = HOT_RELOAD.with("-stacktraces");
+        String name = "reloadHookFrameNamesTheReloadInStackTraces";
+        String[] base = MAIN_PACKAGE;
+        test().testLua(true).stacktraces().luaHotReload(base).lines(base);
+        String[] hooked = concat(MAIN_PACKAGE, new String[] {
+            "@annotation function onHotReload()", "public string trace = \"\"",
+            "function getStackTraceString() returns string", "    return \"\"",
+            "@onHotReload function traced()", "    trace += getStackTraceString()"});
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, traced, new CU(name, String.join("\n", base) + "\n"));
+        LuaHotReload.Manifest added = compileLuaHotReloadManifest(false, traced, new CU(name, String.join("\n", hooked) + "\n"));
+        String output = applyInLua("test-output/lua/LuaHotReloadTests_" + name + ".lua",
+            List.of(LuaHotReload.payload(before, added, LuaHotReload.History.NONE, 1).source()), globalName(added, "trace"))
+            .replace("\r\n", "\n");
+        assertTrue(output, output.startsWith("true "));
+        assertTrue(output, output.contains("Stacktrace:\n   when a hot reload ran its reload hooks"));
+    }
+
+    /** Outside a -luaHotReload build the annotation does nothing: a hook nothing calls is not even emitted. */
+    @Test
+    public void reloadHookIsNotEmittedOutsideHotReloadBuilds() throws IOException {
+        String[] program = concat(MAIN_PACKAGE, new String[] {
+            "@annotation function onHotReload()", "@onHotReload function reloadedHookOnly()", "    made += 1"});
+        test().testLua(true).lines(program);
+        String compiled = compiledLua("reloadHookIsNotEmittedOutsideHotReloadBuilds");
+        assertFalse(compiled, compiled.contains("reloadedHookOnly"));
+    }
+
+    @Test
+    public void reloadHookTakesNoParameters() {
+        testAssertErrorsLines(false, "Functions annotated '@onHotReload' may not take parameters",
+            "package Test", "@annotation function onHotReload()", "@onHotReload function reloaded(int version)",
+            "    skip");
+    }
+
+    @Test
+    public void reloadHookIsStatic() {
+        testAssertErrorsLines(false, "Functions annotated '@onHotReload' must be static",
+            "package Test", "@annotation function onHotReload()", "class A", "    @onHotReload function reloaded()",
+            "        skip");
     }
 
     @Test

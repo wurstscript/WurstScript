@@ -3,9 +3,11 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -109,13 +111,15 @@ public final class LuaHotReload {
      * A function of the script: its definition, the class-table slots which bind it, and where it is stored as a value.
      * {@code shape} is a hash of the definition with the source positions of its calls (-stacktraces) blanked: an edit
      * which only moves lines changes the definition, which a payload ships, but not the code, which is what a function
-     * whose body must not change ({@code captures}) is compared by.
+     * whose body must not change ({@code captures}) is compared by. {@code closureSource} is a hash of a closure's source
+     * as written, null for any other function: the closures told apart by their order are compared by it, since each
+     * one's Lua names its own class.
      */
     public record Function(String name, String semanticId, String definition, List<String> slots, List<String> captures,
-                           Kind kind, String shape) {
+                           Kind kind, String shape, String closureSource) {
         public Function(String name, String semanticId, String definition, List<String> slots, List<String> captures,
                         Kind kind) {
-            this(name, semanticId, definition, slots, captures, kind, identityHash(definition));
+            this(name, semanticId, definition, slots, captures, kind, identityHash(definition), null);
         }
     }
 
@@ -143,15 +147,16 @@ public final class LuaHotReload {
 
     /**
      * What a hot-reload build emitted: its fingerprint, which the script holds, and its parts; {@code initOrder} names
-     * the package inits in the order main calls them, {@code constants} the initializers of constant globals, and
-     * {@code variables} the storage of the globals the program declares as variables, initialised or not.
+     * the package inits in the order main calls them, {@code constants} the initializers of constant globals,
+     * {@code variables} the storage of the globals the program declares as variables, initialised or not, and
+     * {@code hooks} the functions annotated {@code @onHotReload}, in the order a payload calls them.
      */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                            List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
-                           List<String> variables) {
+                           List<String> variables, List<String> hooks) {
         public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                         List<String> bindings, List<String> initOrder) {
-            this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of(), List.of());
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of(), List.of(), List.of());
         }
     }
 
@@ -161,9 +166,11 @@ public final class LuaHotReload {
      * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
      * names to their run-once keys, whose presence in the map confirms whether they ran. {@code variables} names the
      * storage of globals one of those versions declared as variables, which code may then have written.
+     * {@code groupShapes} holds the shape last sent of each closure told apart by its order ({@link #orderGroups}).
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
-                          Map<String, String> initializers, Set<String> packageInits, Set<String> variables) {
+                          Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
+                          Map<String, String> groupShapes) {
         public History(Set<String> reloaded, Map<String, String> captured) {
             this(reloaded, captured, Map.of(), Map.of(), Set.of());
         }
@@ -178,18 +185,23 @@ public final class LuaHotReload {
             this(reloaded, captured, slots, initializers, packageInits, Set.of());
         }
 
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers, Set<String> packageInits, Set<String> variables) {
+            this(reloaded, captured, slots, initializers, packageInits, variables, Map.of());
+        }
+
         public static final History NONE = new History(Set.of(), Map.of());
     }
 
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
      * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
-     * hashes. {@code slots}, {@code initializers} and {@code variables} carry the installation metadata subsequent
-     * payloads need.
+     * hashes. {@code slots}, {@code initializers}, {@code variables} and {@code groupShapes} carry the installation
+     * metadata subsequent payloads need.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
-                          Set<String> packageInits, Set<String> variables) {
+                          Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -224,21 +236,7 @@ public final class LuaHotReload {
         Map<LuaFunction, List<String>> slots = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> captures = new IdentityHashMap<>();
         collectFunctionValues(model, slots, captures);
-        Map<String, List<LuaFunction>> closureIdentities = new LinkedHashMap<>();
-        for (Map.Entry<LuaFunction, ImFunction> entry : reloadable.entrySet()) {
-            if (entry.getValue().getTrace() instanceof ExprClosure) {
-                closureIdentities.computeIfAbsent(functionId(entry.getValue()), ignored -> new ArrayList<>()).add(entry.getKey());
-            }
-        }
-        for (List<LuaFunction> siblings : closureIdentities.values()) {
-            if (siblings.size() > 1) {
-                // Numbering cannot tell which live object belongs to which source closure after a reorder. Freeze
-                // these definitions through the same baseline/history protection as other stored function values.
-                for (LuaFunction sibling : siblings) {
-                    captures.computeIfAbsent(sibling, ignored -> new ArrayList<>()).add("with an ambiguous closure identity");
-                }
-            }
-        }
+        // Closures which share an identity are told apart by their order; payload() refuses an edit which moves them.
         // Only an assignment to one of these gives a global its value; one to a local of a function body does not.
         Set<LuaVariable> globals = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImVar global : tr.prog.getGlobals()) {
@@ -315,7 +313,8 @@ public final class LuaHotReload {
                 f.print(definition, 0);
                 functions.put(f.getName(), new Function(f.getName(), id, definition.toString(),
                     List.copyOf(slots.getOrDefault(f, List.of())), List.copyOf(captures.getOrDefault(f, List.of())), kind,
-                    identityHash(withoutPositions(tr, f))));
+                    identityHash(withoutPositions(tr, f)),
+                    im != null && im.getTrace() instanceof ExprClosure closure ? identityHash(Utils.prettyPrint(closure)) : null));
             } else {
                 statements.add(statement(tr, "top", "", statement, globals, initializerTargets));
             }
@@ -359,8 +358,26 @@ public final class LuaHotReload {
                 variables.add(tr.luaVar.getFor(global).getName());
             }
         }
+        // The hooks run in the order the map initialises their packages, each package's in the order it declares them.
+        Map<WPackage, Integer> packageOrder = new HashMap<>();
+        for (ImFunction init : packageInits) {
+            if (init.getTrace() instanceof WPackage wp) {
+                packageOrder.putIfAbsent(wp, packageOrder.size());
+            }
+        }
+        List<ImFunction> hookFunctions = new ArrayList<>(tr.imTr.hotReloadHooks());
+        hookFunctions.sort(Comparator
+            .comparingInt((ImFunction f) -> f.getTrace().attrNearestPackage() instanceof WPackage wp
+                ? packageOrder.getOrDefault(wp, Integer.MAX_VALUE) : Integer.MAX_VALUE)
+            .thenComparing(f -> f.getTrace().attrNearestPackage() instanceof WPackage wp ? wp.getName() : "")
+            .thenComparingInt(f -> f.getTrace().attrSource().getLeftPos()));
+        List<String> hooks = new ArrayList<>();
+        for (ImFunction hook : hookFunctions) {
+            hooks.add(tr.luaFunc.getFor(hook).getName());
+        }
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
-            List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables));
+            List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables),
+            List.copyOf(hooks));
     }
 
     /**
@@ -477,9 +494,36 @@ public final class LuaHotReload {
         for (String id : identities) {
             int before = oldCounts.getOrDefault(id, 0);
             int after = newCounts.getOrDefault(id, 0);
-            if (before > 0 && before != after && Math.max(before, after) > 1) {
+            // One added after the others keeps their order; a move is found by its body below.
+            if (after < before && before > 1) {
                 reasons.add("declarations which share the identity " + id + " (closures of one interface method in one function)"
-                    + " were added or removed; they are told apart by their order, so restart the map");
+                    + " were removed; they are told apart by their order, so restart the map");
+            }
+        }
+        // The map matches an object to the closure it was made from by that closure's place among those of its identity.
+        // An edit of a body keeps the places; a closure which now has the body another one had has moved, and objects
+        // made from the closure at its old place would run the other one's body.
+        Map<String, Set<String>> groups = orderGroups(baseline, current);
+        Map<String, String> groupShapes = new TreeMap<>();
+        for (Map.Entry<String, Set<String>> group : groups.entrySet()) {
+            for (String name : group.getValue()) {
+                Function now = current.functions().get(name);
+                if (now == null) {
+                    continue;
+                }
+                String source = sourceOf(now);
+                groupShapes.put(name, source);
+                Set<String> known = knownShapes(name, baseline, history);
+                if (!known.isEmpty() && known.equals(Set.of(source))) {
+                    continue;
+                }
+                for (String other : group.getValue()) {
+                    if (!other.equals(name) && knownShapes(other, baseline, history).contains(source)) {
+                        reasons.add("closures which share the identity " + group.getKey() + " are told apart by their order,"
+                            + " and " + name + " now has the body " + other + " had: they moved; restart the map");
+                        break;
+                    }
+                }
             }
         }
 
@@ -698,8 +742,10 @@ public final class LuaHotReload {
         }
         // An indivisible source unit cannot initialize only its newly added specialization while retaining the old
         // ones. Check actual runtime bindings too: delivery history does not say which declarations were installed.
+        // Storage the started map has is all old, so a unit with no other has nothing to check.
         for (Statement s : current.statements()) {
-            if (s.scope().equals("init") && s.kind().equals("global") && s.targets().size() > 1) {
+            if (s.scope().equals("init") && s.kind().equals("global") && s.targets().size() > 1
+                && !knownNames.containsAll(s.targets())) {
                 List<String> existing = s.targets().stream()
                     .map(target -> knownNames.contains(target) ? "true" : BINDINGS_TABLE + "[" + luaString(target) + "]")
                     .toList();
@@ -801,15 +847,12 @@ public final class LuaHotReload {
                         + " already ran; restart the map to apply its removal")).append(")\nend\n");
             }
         }
-        Map<String, List<String>> initializerKeysByOwner = new LinkedHashMap<>();
-        for (Statement s : current.statements()) {
-            if (s.scope().equals("init") && s.kind().equals("global")) {
-                initializerKeysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(luaString(runKey(s)));
-            }
-        }
-        List<String> initializerOrder = new ArrayList<>();
-        for (String init : current.initOrder()) {
-            initializerOrder.addAll(initializerKeysByOwner.getOrDefault(init, List.of()));
+        List<String> initializerOrder = initializerOrder(current);
+        List<String> startOrder = initializerOrder(baseline);
+        if (!swapsAny(startOrder, initializerOrder)) {
+            // The started map ran its initializers in the baseline's order, and this one keeps it: only those payloads
+            // added can have run in another. Listing every initializer made most of each payload of a large map.
+            initializerOrder.removeAll(new HashSet<>(startOrder));
         }
         if (initializerOrder.size() > 1) {
             // Only initializers which first ran together (when the map started, or in one payload) have an order to keep:
@@ -820,6 +863,15 @@ public final class LuaHotReload {
                 .append("if previous[batch] and position < previous[batch] then\n").append(WARN_FUNCTION).append("(")
                 .append(luaString("Wurst hot reload: global initializer order changed; the map keeps the order its initializers ran in; restart the map to apply the new order"))
                 .append(")\nbreak\nend\nprevious[batch] = position\nend\nend\n");
+        }
+        // Last, with everything installed: the reload hooks, with the bodies this payload has. One which fails does not
+        // stop the others; what it raised is in the status. A hook takes no parameters but, with -stacktraces, the
+        // position of its call, as every function does; without, Lua drops the argument.
+        for (String hook : Objects.requireNonNullElse(current.hooks(), List.<String>of())) {
+            sb.append("do\nlocal hookOk, hookErr = pcall(").append(hook).append(", \"when a hot reload ran its reload hooks\")\n")
+                .append("if not hookOk then\n")
+                .append(WARN_FUNCTION).append("(").append(luaString("Wurst hot reload: the reload hook " + hook + " failed: "))
+                .append(" .. tostring(hookErr))\nend\nend\n");
         }
         sb.append("end\n");
         Map<String, String> captured = new LinkedHashMap<>();
@@ -838,7 +890,42 @@ public final class LuaHotReload {
         }
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
-            Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()));
+            Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
+            Collections.unmodifiableMap(groupShapes));
+    }
+
+    /** The run keys of the source initializers, as Lua strings, in the order the map runs them. */
+    private static List<String> initializerOrder(Manifest manifest) {
+        Map<String, List<String>> keysByOwner = new LinkedHashMap<>();
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("init") && s.kind().equals("global")) {
+                keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(luaString(runKey(s)));
+            }
+        }
+        List<String> order = new ArrayList<>();
+        for (String init : manifest.initOrder()) {
+            order.addAll(keysByOwner.getOrDefault(init, List.of()));
+        }
+        return order;
+    }
+
+    /** Whether {@code now} puts two of the keys {@code before} has in another order. */
+    private static boolean swapsAny(List<String> before, List<String> now) {
+        Map<String, Integer> positions = new HashMap<>();
+        for (String key : before) {
+            positions.putIfAbsent(key, positions.size());
+        }
+        int last = -1;
+        for (String key : now) {
+            Integer position = positions.get(key);
+            if (position != null) {
+                if (position < last) {
+                    return true;
+                }
+                last = position;
+            }
+        }
+        return false;
     }
 
     private static Map<String, String> initializers(Manifest manifest) {
@@ -1105,6 +1192,42 @@ public final class LuaHotReload {
         };
     }
 
+    /**
+     * The functions which share an identity, by that identity, in either manifest: the closures of one interface method
+     * in one function, which are told apart by their order alone.
+     */
+    private static Map<String, Set<String>> orderGroups(Manifest baseline, Manifest current) {
+        Map<String, Set<String>> groups = new TreeMap<>();
+        for (Manifest m : List.of(baseline, current)) {
+            for (Map.Entry<String, String> b : bindingMap(m.bindings()).entrySet()) {
+                if (m.functions().containsKey(b.getKey())) {
+                    groups.computeIfAbsent(b.getValue(), k -> new TreeSet<>()).add(b.getKey());
+                }
+            }
+        }
+        groups.values().removeIf(names -> names.size() < 2);
+        return groups;
+    }
+
+    /** What a function of an order group is compared by: its closure's source, or else its shape. */
+    private static String sourceOf(Function f) {
+        return f.closureSource() != null ? f.closureSource() : f.shape();
+    }
+
+    /** The sources the map may run for a function: the baseline's, and the one an earlier payload sent last. */
+    private static Set<String> knownShapes(String name, Manifest baseline, History history) {
+        Set<String> shapes = new HashSet<>();
+        Function old = baseline.functions().get(name);
+        if (old != null) {
+            shapes.add(sourceOf(old));
+        }
+        String sent = Objects.requireNonNullElse(history.groupShapes(), Map.<String, String>of()).get(name);
+        if (sent != null) {
+            shapes.add(sent);
+        }
+        return shapes;
+    }
+
     /** How many names each identity has: more than one for the closures of one interface method in one function. */
     private static Map<String, Integer> identityCounts(List<String> bindings) {
         Map<String, Integer> counts = new LinkedHashMap<>();
@@ -1170,8 +1293,27 @@ public final class LuaHotReload {
      * apart.
      */
     private static String semanticId(ElementWithTrace element, String name) {
-        PackageOrGlobal p = element.attrTrace().attrNearestPackage();
-        return (p instanceof WPackage wp ? wp.getName() : "global") + ":" + name;
+        de.peeeq.wurstscript.ast.Element trace = element.attrTrace();
+        PackageOrGlobal p = trace.attrNearestPackage();
+        return (p instanceof WPackage wp ? wp.getName() : "global") + ":" + enclosingStructures(trace) + name;
+    }
+
+    /**
+     * The classes (and modules) a nested one is declared in, outermost first: "A." for a member of A's inner class N, or
+     * for N itself. Two inner classes of one name in one package are otherwise one identity, with one field type.
+     */
+    private static String enclosingStructures(de.peeeq.wurstscript.ast.Element trace) {
+        StringBuilder path = new StringBuilder();
+        de.peeeq.wurstscript.ast.Element inner = trace instanceof StructureDef s ? s : trace.attrNearestStructureDef();
+        while (inner != null && inner.getParent() != null) {
+            StructureDef outer = inner.getParent().attrNearestStructureDef();
+            if (outer == null) {
+                break;
+            }
+            path.insert(0, outer.getName() + ".");
+            inner = outer;
+        }
+        return path.toString();
     }
 
     /** The identity of a function: its package, IM name and signature. */

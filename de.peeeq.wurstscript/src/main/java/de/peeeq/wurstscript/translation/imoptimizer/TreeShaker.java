@@ -140,6 +140,9 @@ public final class TreeShaker {
         for (ImFunction pinned : trans.pinnedFunctions()) {
             reachability.add(pinned);
         }
+        for (ImFunction hook : trans.hotReloadHooks()) {
+            reachability.add(hook);
+        }
         for (ImFunction root : extraRoots) {
             reachability.add(root);
         }

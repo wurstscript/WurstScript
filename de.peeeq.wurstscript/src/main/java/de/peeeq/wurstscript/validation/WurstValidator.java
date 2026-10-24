@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.CompilerIntrinsics;
+import de.peeeq.wurstscript.HotReloadHooks;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -3617,6 +3618,15 @@ public class WurstValidator {
                         } else if (f.attrIsDynamicClassMember()) {
                             f.addError("Functions annotated '@compiletime' must be static.\n"
                                 + "Note: The annotation marks functions to be executed by wurst at compiletime.");
+                        }
+                    }
+                    if (HotReloadHooks.isHook(f)) {
+                        if (f.getParameters().size() > 0) {
+                            f.addError("Functions annotated '@onHotReload' may not take parameters.\n"
+                                + "Note: A Lua hot reload calls them, with nothing, once it installed a payload.");
+                        } else if (f.attrIsDynamicClassMember()) {
+                            f.addError("Functions annotated '@onHotReload' must be static.\n"
+                                + "Note: A Lua hot reload calls them, with nothing, once it installed a payload.");
                         }
                     }
                 }
