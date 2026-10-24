@@ -278,7 +278,8 @@ public abstract class MapRequest extends UserRequest<Object> {
                         + stored + " of them stored as values (not reloadable)");
                 }
                 File buildDir = getBuildDir();
-                if (luaHotReloadManifest != null) {
+                // A hot reload builds a payload, not a map: the manifest stays that of the last map built.
+                if (luaHotReloadManifest != null && !runArgs.isHotReload()) {
                     LuaHotReloadSession.writeManifest(buildDir.toPath(), luaHotReloadManifest);
                 }
                 File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);

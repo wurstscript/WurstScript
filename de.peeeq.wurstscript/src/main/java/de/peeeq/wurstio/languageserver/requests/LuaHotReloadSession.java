@@ -5,16 +5,21 @@ import com.google.gson.GsonBuilder;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * The editor side of the Lua hot reload (docs/LUA_HOT_RELOAD.md). Running a map built with {@code -luaHotReload}
@@ -25,6 +30,7 @@ import java.util.Set;
 public final class LuaHotReloadSession {
 
     static final String SESSION_FOLDER = "luaHotReload";
+    private static final String BASELINE_PREFIX = "baseline-";
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
     /** The longest string one line of the preload file passes to the map. */
     public static final int PRELOAD_CHUNK = 1000;
@@ -32,9 +38,20 @@ public final class LuaHotReloadSession {
     private LuaHotReloadSession() {
     }
 
+    /**
+     * The manifest last read from a baseline file. A baseline file is named by its content and never rewritten, so the
+     * manifest read from it once stands for it: the reloads of a session in the language server parse it only once.
+     */
+    private static SoftReference<Map.Entry<Path, LuaHotReload.Manifest>> lastBaseline = new SoftReference<>(null);
+
     /** What the session remembers between reloads: the started map's manifest and what was sent to it. */
     private static final class State {
-        LuaHotReload.Manifest baseline;
+        /**
+         * The file in the session's folder which holds the manifest of the started map, named by its content
+         * ({@link LuaHotReloadSession#baselineFile(String)}). A large map's manifest is tens of megabytes, and no reload changes it, so the state
+         * which each reload saves only names it.
+         */
+        String baselineFile;
         int version;
         List<String> reloaded = new ArrayList<>();
         /** The functions a version the map ran stored as a value, with the hash of the definition stored. */
@@ -124,8 +141,13 @@ public final class LuaHotReloadSession {
      * rename, once the map is launched; {@link #unstage} drops it.
      */
     public static void stage(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
+        String json = GSON.toJson(manifest);
+        Path baseline = buildDir.resolve(SESSION_FOLDER).resolve(baselineFile(json));
+        if (!Files.exists(baseline)) {
+            writeAtomically(baseline, json);
+        }
         State state = new State();
-        state.baseline = manifest;
+        state.baselineFile = baseline.getFileName().toString();
         writeAtomically(stagedFile(buildDir), GSON.toJson(state));
     }
 
@@ -133,10 +155,68 @@ public final class LuaHotReloadSession {
         Files.move(stagedFile(buildDir), stateFile(buildDir), java.nio.file.StandardCopyOption.ATOMIC_MOVE,
             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         Files.deleteIfExists(pendingFile(buildDir));
+        deleteOtherBaselines(buildDir);
     }
 
     public static void unstage(Path buildDir) throws IOException {
         Files.deleteIfExists(stagedFile(buildDir));
+        deleteOtherBaselines(buildDir);
+    }
+
+    /** The name of the file which holds a baseline manifest of this JSON text: its SHA-256. */
+    private static String baselineFile(String json) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(json.getBytes(StandardCharsets.UTF_8));
+            return BASELINE_PREFIX + HexFormat.of().formatHex(hash) + ".json";
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Deletes the baseline files which neither the current nor a staged session names. */
+    private static void deleteOtherBaselines(Path buildDir) throws IOException {
+        Set<String> used = new LinkedHashSet<>();
+        for (Path stateFile : List.of(stateFile(buildDir), stagedFile(buildDir))) {
+            if (Files.exists(stateFile)) {
+                State state = GSON.fromJson(Files.readString(stateFile, StandardCharsets.UTF_8), State.class);
+                if (state.baselineFile != null) {
+                    used.add(state.baselineFile);
+                }
+            }
+        }
+        Path folder = buildDir.resolve(SESSION_FOLDER);
+        if (!Files.isDirectory(folder)) {
+            return;
+        }
+        try (Stream<Path> files = Files.list(folder)) {
+            for (Path file : files.toList()) {
+                String name = file.getFileName().toString();
+                if (name.startsWith(BASELINE_PREFIX) && name.endsWith(".json") && !used.contains(name)) {
+                    Files.delete(file);
+                }
+            }
+        }
+    }
+
+    /** The started map's manifest, which the session's state names. */
+    private static LuaHotReload.Manifest baseline(Path buildDir, State state) throws IOException, LuaHotReload.Rejected {
+        Path file = state.baselineFile == null ? null : buildDir.resolve(SESSION_FOLDER).resolve(state.baselineFile);
+        if (file == null || !Files.exists(file)) {
+            throw new LuaHotReload.Rejected(List.of("the manifest of the map started with hot run is missing:"
+                + " start the map with hot run again"));
+        }
+        Path key = file.toAbsolutePath().normalize();
+        synchronized (LuaHotReloadSession.class) {
+            Map.Entry<Path, LuaHotReload.Manifest> last = lastBaseline.get();
+            if (last != null && last.getKey().equals(key)) {
+                return last.getValue();
+            }
+        }
+        LuaHotReload.Manifest manifest = readManifest(file);
+        synchronized (LuaHotReloadSession.class) {
+            lastBaseline = new SoftReference<>(Map.entry(key, manifest));
+        }
+        return manifest;
     }
 
     private static Path stagedFile(Path buildDir) {
@@ -188,7 +268,7 @@ public final class LuaHotReloadSession {
         }
         State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
         recoverPending(buildDir, customMapData, state);
-        LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current, new LuaHotReload.History(
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline(buildDir, state), current, new LuaHotReload.History(
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
             new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes)), state.version + 1);

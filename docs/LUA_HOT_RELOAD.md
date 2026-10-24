@@ -234,7 +234,9 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
 
 1. Start the map with hot run (`wurst.hotstartmap`, which sends `-hotstart`). On a Lua project that is a
    `-luaHotReload` build (`RunArgs.isLuaHotReload`); an ordinary run with `-luaHotReload` in `wurst_run.args` does the
-   same. The run saves the manifest of the started script in `_build/luaHotReload/session.json`.
+   same. The run saves the manifest of the started script in `_build/luaHotReload/baseline-<SHA-256>.json`, named by
+   its content and written once, and the state of the session, which names it, in `session.json`. A large map's
+   manifest is tens of megabytes, so a reload saves only the state; the language server reads the manifest once.
 2. `wurst.hotreload` sends `-hotreload`. For a Lua project, `RunMap` compiles the project, builds the next cumulative
    payload against the saved baseline and writes payload n to `CustomMapData\Wurst\hotreload-<n>.pld`
    (`customMapDataPath` in the configuration overrides the folder). A hot run deletes the files of earlier sessions. JHCR stays the path for Jass maps. A rejected edit fails the request
@@ -251,7 +253,8 @@ java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSe
 ```
 
 `start` takes the map of the last build as the running one and deletes the payload files of an earlier session; `send`
-writes the next cumulative payload for the last build, or exits with 1 and the reasons.
+writes the next cumulative payload for the last build, or exits with 1 and the reasons. Both read the manifest a build
+leaves in `_build/luaHotReload/manifest.json`; the editor's hot reload builds no map and leaves it as it was.
 
 Game side (measured, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. A payload reaches
 one player's game, so the poll does nothing unless exactly one user is playing. It counts them itself, as blizzard.j's
