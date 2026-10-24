@@ -1413,11 +1413,11 @@ public final class LuaHotReload {
 
     /**
      * What tells the captures of closures of one identity apart, which closures told apart by their order share: the
-     * name of the closure's class, which follows that order. A capture's storage is named after it, so a closure which
+     * source identity and occurrence of the closure's class, which follow that order. A capture's storage is named after it, so a closure which
      * starts or stops capturing a variable renames no sibling's storage. Empty for any other class.
      */
     static String captureOwner(LuaTranslator tr, ImClass c) {
-        return c.getTrace() instanceof ExprClosure ? "@" + tr.luaClassVar.getFor(c).getName() : "";
+        return c.getTrace() instanceof ExprClosure ? "@closure:" + classId(c) + "#" + tr.closureOrdinal(c) : "";
     }
 
     /** The identity of a method: with its implementation's signature, which tells overloads apart. */

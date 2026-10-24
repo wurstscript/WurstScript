@@ -450,7 +450,22 @@ public class LuaTranslator {
         this.prog = prog;
         this.imTr = imTr;
         this.hotReload = imTr.getRunArgs().isLuaHotReload();
+        if (hotReload) {
+            Map<String, Integer> counts = new HashMap<>();
+            for (ImClass c : prog.getClasses()) {
+                if (c.getTrace() instanceof ExprClosure) {
+                    closureOrdinals.put(c, counts.merge(LuaHotReload.classId(c), 1, Integer::sum) - 1);
+                }
+            }
+        }
         luaModel = LuaAst.LuaCompilationUnit();
+    }
+
+    /** Occurrences within one source closure identity, before Lua naming can introduce collisions or suffixes. */
+    private final Map<ImClass, Integer> closureOrdinals = new IdentityHashMap<>();
+
+    int closureOrdinal(ImClass c) {
+        return Objects.requireNonNull(closureOrdinals.get(c), "closure is not in the translated program");
     }
 
     /**
