@@ -3622,6 +3622,53 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "init", "    objectId()"};
     }
 
+    @Test
+    public void addedCompiletimeSnapshotsWithIntegerReferencesRequireRestart() {
+        var baseline = compiletimeManifest(integerReferenceSnapshot(false));
+        var current = compiletimeManifest(integerReferenceSnapshot(true));
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("integer-encoded references"));
+    }
+
+    @Test
+    public void existingCompiletimeIntegerReferencesAllowBodyEdits() throws Exception {
+        String[] source = integerReferenceSnapshot(true);
+        var baseline = compiletimeManifest(source);
+        String[] edited = source.clone();
+        for (int i = 0; i < edited.length; i++) {
+            edited[i] = edited[i].replace("return snapshot.storedId", "return snapshot.storedId + 1");
+        }
+        assertFalse(LuaHotReload.payload(baseline, compiletimeManifest(edited), LuaHotReload.History.NONE, 1)
+            .functions().isEmpty());
+    }
+
+    @Test
+    public void addedCompiletimeHashtableWithHandleIdKeysRequiresRestart() {
+        String[] source = hashtableObjects(false);
+        String[] edited = hashtableObjects(true);
+        for (String[] lines : List.of(source, edited)) {
+            for (int i = 0; i < lines.length; i++) {
+                lines[i] = lines[i].replace("function compiletime(hashtable h) returns hashtable",
+                        "@extern native GetHandleId(agent a) returns int\nfunction compiletime(hashtable h) returns hashtable")
+                    .replace("SaveInteger(h, 1, 2, v)", "SaveInteger(h, GetHandleId(h), 2, v)");
+            }
+        }
+        var baseline = compiletimeManifest(source);
+        var current = compiletimeManifest(edited);
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("integer-encoded references"));
+    }
+
+    private static String[] integerReferenceSnapshot(boolean added) {
+        return new String[] {"package Test", "class Node", "    int storedId",
+            "function compiletime(Node n) returns Node", "    return n", "function make() returns Node",
+            "    let n = new Node()", "    n.storedId = n castTo int", "    return n",
+            added ? "constant snapshot = compiletime(make())" : "", "function read() returns int",
+            added ? "    return snapshot.storedId" : "    return 0", "init", "    read()"};
+    }
+
     private static String[] removedThing(boolean present) {
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
             "class Thing", "    int value", "    construct(int value)", "        this.value = value",

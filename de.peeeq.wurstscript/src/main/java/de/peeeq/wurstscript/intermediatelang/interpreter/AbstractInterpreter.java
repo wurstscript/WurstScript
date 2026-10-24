@@ -25,4 +25,8 @@ public interface AbstractInterpreter {
     /** Records that the program read a type id; see {@code ProgramState.noteTypeIdsRead}. */
     default void noteTypeIdsRead() {
     }
+
+    /** Records an integer identity read by a compile-time evaluation, when the interpreter tracks it. */
+    default void noteObjectIdsRead() {
+    }
 }

@@ -102,6 +102,10 @@ The payload compares the running script's manifest with the edited one:
   Expressions without distinct bindings (or multiple expressions in the same binding) still form an order group;
   changing its count requires a restart, including groups introduced by earlier payloads. Pure compile-time values
   which materialize no objects or handles do not need that restriction.
+  If compile-time evaluation reads an object or non-enum handle's integer identity, adding snapshots requires a
+  restart: integer fields and container keys may retain those IDs, while the live allocator gives replayed objects
+  different ones. This conservative guard applies to the evaluation as a whole; existing snapshots and ordinary
+  body edits remain supported.
 - Any other changed bootstrap statement (other class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
 - Interface/class closures bound to source variables include those variable names in their class identities in

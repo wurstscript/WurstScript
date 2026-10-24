@@ -165,7 +165,15 @@ public final class LuaHotReload {
      */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                            List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
-                           List<String> variables, List<String> hooks, Map<String, Closure> closures, Map<String, Integer> compiletimeGroups) {
+                           List<String> variables, List<String> hooks, Map<String, Closure> closures,
+                           Map<String, Integer> compiletimeGroups, boolean compiletimeIntegerReferences) {
+        public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                        List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                        List<String> variables, List<String> hooks, Map<String, Closure> closures,
+                        Map<String, Integer> compiletimeGroups) {
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, constants, variables, hooks,
+                closures, compiletimeGroups, false);
+        }
         public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                         List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
                         List<String> variables, List<String> hooks, Map<String, Closure> closures) {
@@ -449,6 +457,7 @@ public final class LuaHotReload {
             parts.add(s.scope() + " " + s.text() + " " + s.targets());
         }
         tr.imTr.compiletimeExpressionCounts().forEach((group, count) -> parts.add("compiletime expressions:" + group + "=" + count));
+        parts.add("compiletime integer references:" + tr.imTr.compiletimeIntegerReferences());
         String abi = fingerprint(compilerVersion, parts, bindings);
         appendRuntime(tr, model, abi);
         List<String> initOrder = new ArrayList<>();
@@ -487,7 +496,8 @@ public final class LuaHotReload {
         }
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
             List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables),
-            List.copyOf(hooks), closures(tr, reloadable, bootstrap), tr.imTr.compiletimeExpressionCounts());
+            List.copyOf(hooks), closures(tr, reloadable, bootstrap), tr.imTr.compiletimeExpressionCounts(),
+            tr.imTr.compiletimeIntegerReferences());
     }
 
     /** Expand the startup replay in execution order, retaining the object each statement initializes. */
@@ -739,6 +749,14 @@ public final class LuaHotReload {
     public static Payload payload(Manifest baseline, Manifest current, History history, int version) throws Rejected {
         List<String> reasons = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        if (current.compiletimeIntegerReferences()) {
+            Set<String> newSnapshots = new TreeSet<>(compiletimeState(current).keySet());
+            newSnapshots.removeAll(compiletimeState(baseline).keySet());
+            if (!newSnapshots.isEmpty()) {
+                reasons.add("compile-time evaluation read integer-encoded references; new snapshots " + newSnapshots
+                    + " cannot preserve those identities with the live allocator: restart the map");
+            }
+        }
         Map<String, Integer> oldGroups = new TreeMap<>(Objects.requireNonNullElse(baseline.compiletimeGroups(), Map.of()));
         Objects.requireNonNullElse(history.compiletimeGroups(), Map.<String, Integer>of()).forEach(oldGroups::putIfAbsent);
         for (Map.Entry<String, Integer> group : Objects.requireNonNullElse(current.compiletimeGroups(), Map.<String, Integer>of()).entrySet()) {

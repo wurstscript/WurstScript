@@ -162,6 +162,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             long tWriteback = System.nanoTime();
             runDelayedActions();
             translator.setCompiletimeExpressionCounts(persistedExpressionCounts);
+            translator.setCompiletimeIntegerReferences(globalState.objectIdsRead());
             emitCompiletimeObjectAllocs();
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 insertCompiletimeScalarStateInitCalls();

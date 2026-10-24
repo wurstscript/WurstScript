@@ -39,6 +39,16 @@ public class ProgramState extends State implements AutoCloseable {
     private boolean oneObjectIdSpace;
     /** Whether the program read a type id; see {@link #noteTypeIdsRead}. */
     private boolean typeIdsRead;
+    /** Compile-time integers may retain object/handle identities which a live allocator cannot reproduce. */
+    private boolean objectIdsRead;
+
+    public void noteObjectIdsRead() {
+        objectIdsRead = true;
+    }
+
+    public boolean objectIdsRead() {
+        return objectIdsRead;
+    }
     /** Where the program first read the type id of each new-generic class; see {@link #noteTypeIdRead}. */
     private final Map<ImClass, Element> genericTypeIdReads = new LinkedHashMap<>();
     /** The live objects and the most alive at once of each allocation group, by its key; only looked up. */

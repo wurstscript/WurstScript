@@ -199,6 +199,15 @@ public class ImTranslator implements SpecialisationLookup {
     private @Nullable ImFunction compiletimeStateFunction;
     private List<ImFunction> compiletimeStateParts = List.of();
     private Map<String, Integer> compiletimeExpressionCounts = Map.of();
+    private boolean compiletimeIntegerReferences;
+
+    public void setCompiletimeIntegerReferences(boolean read) {
+        compiletimeIntegerReferences = read;
+    }
+
+    public boolean compiletimeIntegerReferences() {
+        return compiletimeIntegerReferences;
+    }
 
     public void setCompiletimeExpressionCounts(Map<String, Integer> counts) {
         compiletimeExpressionCounts = Collections.unmodifiableMap(new TreeMap<>(counts));
@@ -461,7 +470,7 @@ public class ImTranslator implements SpecialisationLookup {
             luaRawOrEmptyFunc, luaRawR2IFunc, luaRawToNumberIntFunc, luaRawToNumberRealFunc, luaRawToIntegerFunc,
             luaRawToStringFunc, luaResumeObjectIdsFunc, jassSetObjectIdMaxFunc, jassClearObjectFreeListFunc,
             luaIntDivFunc, luaModIntFunc, luaModRealFunc,
-            debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc}) {
+            debugPrintFunction, errorFunc, genericNewMarker, globalInitFunc, compiletimeStateFunction}) {
             if (f != null) {
                 result.add(f);
             }

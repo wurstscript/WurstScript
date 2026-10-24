@@ -520,9 +520,11 @@ public class EvaluateExpr {
 
         if (TypesHelper.isIntType(targetType)) {
             if (res instanceof ILconstObject iLconstObject) {
+                globalState.noteObjectIdsRead();
                 return ILconstInt.create(iLconstObject.getObjectId());
             }
             if (res instanceof IlConstHandle ilConstHandle) {
+                globalState.noteObjectIdsRead();
                 int id = globalState.getHandleMap().size() + 1;
                 globalState.getHandleMap().put(id, ilConstHandle);
                 return ILconstInt.create(id);
