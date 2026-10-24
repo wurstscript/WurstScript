@@ -659,6 +659,22 @@ public final class LuaHotReload {
                 }
             }
         }
+        // A slot an earlier payload bound to another function than the edit binds it to: the running script's own binding
+        // of it, which an edit restores (an override removed again), must run again too.
+        Map<String, String> slotBinders = new HashMap<>();
+        for (Function f : current.functions().values()) {
+            for (String slot : f.slots()) {
+                slotBinders.put(slot, f.name());
+            }
+        }
+        Set<String> rebindSlots = new HashSet<>();
+        for (Map.Entry<String, List<String>> bound : history.slots().entrySet()) {
+            for (String slot : bound.getValue()) {
+                if (!bound.getKey().equals(slotBinders.get(slot))) {
+                    rebindSlots.add(slot);
+                }
+            }
+        }
         for (String scope : List.of("top", "boot", "globals", "init")) {
             Map<String, Statement> oldByKey = new LinkedHashMap<>();
             Set<String> oldTexts = new HashSet<>();
@@ -669,7 +685,8 @@ public final class LuaHotReload {
                 }
             }
             for (Statement s : current.statements()) {
-                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())) {
+                if (!s.scope().equals(scope)
+                    || oldTexts.contains(s.revision()) && !(s.kind().equals("slot") && rebindSlots.contains(s.key()))) {
                     continue;
                 }
                 Statement old = oldByKey.get(s.key());

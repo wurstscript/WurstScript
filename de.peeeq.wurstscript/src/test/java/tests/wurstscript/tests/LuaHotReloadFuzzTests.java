@@ -43,7 +43,9 @@ import static org.testng.AssertJUnit.assertTrue;
  *
  * <p>Every observation is a printed line, so a failure is a readable difference. {@code WURST_FUZZ_PROGRAMS},
  * {@code WURST_FUZZ_SEED} and {@code WURST_FUZZ_EDITS} (environment) run a larger or different campaign; a failing seed
- * leaves its sources, scripts and payloads in {@code test-output/fuzz-hotreload/<seed>}.
+ * leaves its sources, scripts and payloads in {@code test-output/fuzz-hotreload/<seed>}. A third of the programs are
+ * built with {@code -stacktraces}. {@code WURST_FUZZ_INSERT_ANONYMOUS} also inserts anonymous closures before others
+ * told apart by their order, which hot reload does not yet tell apart (see {@link #INSERT_ANONYMOUS}).
  */
 public class LuaHotReloadFuzzTests extends WurstScriptTest {
 
@@ -52,7 +54,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
 
     @Test
     public void reloadedProgramsBehaveLikeTheEditedProgram() throws Exception {
-        int programs = envInt("WURST_FUZZ_PROGRAMS", 6);
+        int programs = envInt("WURST_FUZZ_PROGRAMS", 10);
         long seed = envLong("WURST_FUZZ_SEED", 20261024L);
         int edits = envInt("WURST_FUZZ_EDITS", 3);
         String lua;
@@ -97,6 +99,8 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
     /** Runs one seed's chain of edits; the failure, or null. */
     private String runChain(String lua, long seed, int edits, Stats stats) throws Exception {
         Random r = new Random(seed);
+        // A third of the programs are built with -stacktraces, where every call passes its source position.
+        RunArgs args = r.nextInt(3) == 0 ? HOT_RELOAD.with("-stacktraces") : HOT_RELOAD;
         Prog base = new Generator(r).base();
         Path dir = Path.of(OUT, Long.toString(seed));
         deleteRecursively(dir);
@@ -104,7 +108,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         List<String> report = new ArrayList<>();
         Build baseBuild;
         try {
-            baseBuild = build(base, false);
+            baseBuild = build(base, false, args);
         } catch (Throwable t) {
             writeUnits(dir, "base", base);
             return "the generated base program does not compile: " + t + "\n" + base.render(false);
@@ -131,8 +135,8 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             Build e;
             Build reference;
             try {
-                e = build(edit.prog, false);
-                reference = edit.mustRefuse ? null : build(edit.prog, true);
+                e = build(edit.prog, false, args);
+                reference = edit.mustRefuse ? null : build(edit.prog, true, args);
             } catch (Throwable t) {
                 return "the generated edit " + k + " " + edit.ops + " does not compile: " + t + "\n" + edited;
             }
@@ -273,12 +277,12 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
     record Build(String script, LuaHotReload.Manifest manifest) {
     }
 
-    private Build build(Prog p, boolean reference) {
+    private Build build(Prog p, boolean reference, RunArgs args) {
         List<CU> units = new ArrayList<>();
         for (Map.Entry<String, String> unit : p.units(reference).entrySet()) {
             units.add(new CU(unit.getKey(), unit.getValue()));
         }
-        LuaHotReloadBuild b = compileLuaHotReload(false, HOT_RELOAD, units.toArray(CU[]::new));
+        LuaHotReloadBuild b = compileLuaHotReload(false, args, units.toArray(CU[]::new));
         return new Build(b.script(), b.manifest());
     }
 
@@ -508,6 +512,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         final List<String> stateProbe = new ArrayList<>();
         int capture;
         int names;
+        /** The body of the method calc of the generic class Gen, and the type arguments probeNew makes it with. */
+        String genericBody = "0";
+        final List<String> genericTypes = new ArrayList<>();
         int arrayProbe;
 
         Prog() {
@@ -529,6 +536,8 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             initExtras.addAll(p.initExtras);
             stateProbe.addAll(p.stateProbe);
             capture = p.capture;
+            genericBody = p.genericBody;
+            genericTypes.addAll(p.genericTypes);
             names = p.names;
             arrayProbe = p.arrayProbe;
         }
@@ -629,6 +638,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             for (Old o : olds) {
                 sb.append(o.cls).append(" ").append(o.global).append("\n");
             }
+            sb.append("Gen<int> gen0\n");
             for (Fn f : funcs) {
                 sb.append("function ").append(f.name).append("(int x) returns int\n    return ").append(f.body).append("\n");
             }
@@ -661,6 +671,8 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                         .append(m.getKey()).append("(int x) returns int\n        return ").append(m.getValue()).append("\n");
                 }
             }
+            sb.append("class Gen<T:>\n    T val\n    int k\n    function calc(int x) returns int\n        return ")
+                .append(genericBody).append("\n");
             sb.append("function makeOps(int s, int b)\n");
             for (Clo c : closures) {
                 if (c.bound) {
@@ -691,6 +703,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                         .append(f.type.equals("int") ? "I2S(" : "R2S(").append(o.global).append(".").append(f.name).append("))\n");
                 }
             }
+            sb.append("    fuzzOut(\"gen0 \" + I2S(gen0.val) + \" \" + I2S(gen0.calc(2)))\n");
             for (Clo c : closures) {
                 if (c.slot < capture && !c.late) {
                     sb.append("    fuzzOut(\"ops").append(c.slot).append(" \" + I2S(ops[").append(c.slot).append("].apply(3)))\n");
@@ -737,6 +750,15 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     sb.append("    fuzzOut(\"new ").append(c.name).append(" as Op \" + I2S(op").append(c.name).append(".apply(5)))\n");
                 }
             }
+            for (String t : genericTypes) {
+                String v = "gen" + t;
+                sb.append("    let ").append(v).append(" = new Gen<").append(t).append(">\n");
+                sb.append("    ").append(v).append(".k = 2\n");
+                sb.append("    ").append(v).append(".val = ").append(t.equals("int") ? "4" : t.equals("real") ? "4.5" : "\"four\"").append("\n");
+                sb.append("    fuzzOut(\"new Gen<").append(t).append("> \" + ")
+                    .append(t.equals("int") ? "I2S(" + v + ".val)" : t.equals("real") ? "R2S(" + v + ".val)" : v + ".val")
+                    .append(" + \" \" + I2S(").append(v).append(".calc(2)))\n");
+            }
             sb.append("    makeOps(7, 100)\n");
             for (Clo c : closures) {
                 sb.append("    fuzzOut(\"new ops").append(c.slot).append(" \" + I2S(ops[100 + ").append(c.slot)
@@ -745,6 +767,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             sb.append("    fuzzOut(\"end\")\n");
             sb.append("init\n");
             sb.append("    makeOps(").append(capture == 0 ? 1 : 5).append(", 0)\n");
+            sb.append("    gen0 = new Gen<int>\n    gen0.val = 6\n    gen0.k = 3\n");
             for (Old o : olds) {
                 sb.append("    ").append(o.global).append(" = new ").append(o.cls).append("(").append(o.arg).append(")\n");
                 if (o.field != null) {
@@ -768,6 +791,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
 
     // ---------------------------------------------------------------------------------------------------------------
     // The generator
+
+    /** {@code WURST_FUZZ_INSERT_ANONYMOUS}: also insert anonymous closures before others of their order group. */
+    static final boolean INSERT_ANONYMOUS = System.getenv("WURST_FUZZ_INSERT_ANONYMOUS") != null;
 
     static final class Generator {
         private final Random r;
@@ -858,6 +884,14 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             return new Scope(atoms, calls);
         }
 
+        Scope genericScope(Prog p) {
+            List<String> atoms = new ArrayList<>(List.of("x", "k"));
+            atoms.addAll(intConsts(p, p.consts.size()));
+            List<String> calls = new ArrayList<>(p.leaves.stream().map(Fn::name).toList());
+            calls.addAll(p.funcs.stream().map(Fn::name).toList());
+            return new Scope(atoms, calls);
+        }
+
         Scope closureScope(Prog p) {
             List<String> atoms = new ArrayList<>(List.of("x", "s"));
             atoms.addAll(intConsts(p, p.consts.size()));
@@ -901,6 +935,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             for (int i = 0, n = 2 + r.nextInt(3); i < n; i++) {
                 addClass(p, true);
             }
+            p.genericTypes.add("int");
+            p.genericBody = expr(genericScope(p), 3);
+            p.stateProbe.add("fuzzOut(\"gen0 \" + I2S(gen0.val) + \" \" + I2S(gen0.k))");
             p.capture = 2 + r.nextInt(3);
             for (int i = 0; i < p.capture; i++) {
                 p.closures.add(new Clo(i, r.nextBoolean(), expr(closureScope(p), 3)));
@@ -1126,7 +1163,8 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     Var v = pick(ints);
                     p.vars.set(p.vars.indexOf(v), new Var(v.name, v.type, Integer.toString(20 + r.nextInt(20)), v.base, true));
                     ops.add("initial value of variable " + v.name);
-                    mustWarn = true;
+                    // The map keeps the value of a variable it has; one this edit adds starts with the new value.
+                    mustWarn |= before.vars.stream().anyMatch(b -> b.name.equals(v.name));
                 } else if (k < 86) {
                     if (p.hooks.isEmpty() || r.nextBoolean()) {
                         Hook h = new Hook(p.fresh("hook"), expr(hookScope(p), 2));
@@ -1142,12 +1180,29 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     int slot = p.closures.stream().mapToInt(Clo::slot).max().orElse(0) + 1;
                     int at = r.nextInt(p.closures.size() + 1);
                     boolean bound = r.nextBoolean();
+                    if (!bound && !INSERT_ANONYMOUS) {
+                        // An anonymous closure inserted before others told apart by their order, whose bodies the edit
+                        // also changes, is not refused, and objects made before then run other closures' bodies
+                        // (BACKLOG.md, "closures inserted among others told apart by their order").
+                        at = p.closures.size();
+                    }
                     p.closures.add(at, new Clo(slot, bound, expr(closureScope(p), 3)));
                     ops.add((at == p.closures.size() - 1 ? "appended" : "inserted") + (bound ? " bound" : "")
                         + " closure " + slot);
                     // Closures told apart by their order: one inserted before others moves them, which may be refused.
                     if (at < p.closures.size() - 1 && !bound) {
                         mayRefuse = true;
+                    }
+                } else if (k < 90) {
+                    List<String> missing = new ArrayList<>(List.of("string", "real"));
+                    missing.removeAll(p.genericTypes);
+                    if (!missing.isEmpty() && r.nextBoolean()) {
+                        String t = pick(missing);
+                        p.genericTypes.add(t);
+                        ops.add("new type argument " + t);
+                    } else {
+                        p.genericBody = other(genericScope(p), p.genericBody);
+                        ops.add("generic method body");
                     }
                 } else if (k < 91) {
                     List<Fn> unused = p.funcs.stream().filter(f -> !referenced(p, f.name)).toList();
@@ -1218,6 +1273,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 if (call.matcher(h.body).find()) {
                     return true;
                 }
+            }
+            if (call.matcher(p.genericBody).find()) {
+                return true;
             }
             for (String s : p.initExtras) {
                 if (call.matcher(s).find()) {

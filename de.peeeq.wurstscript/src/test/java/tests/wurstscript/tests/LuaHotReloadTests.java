@@ -1443,6 +1443,41 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals("the init runs only once: " + output, 3, occurrences(output, "true 4 nil"));
     }
 
+    private static String[] overrideProgram(boolean override) {
+        String[] head = {
+            "package Test", "@annotation function onHotReload()",
+            "interface Op", "    function apply() returns int",
+            "class A implements Op", "    override function apply() returns int", "        return 1",
+            "class B extends A",
+        };
+        String[] tail = {
+            "int result = 0", "Op made",
+            "@onHotReload function reloaded()", "    result = made.apply()",
+            "init", "    made = new B()", "    result = made.apply()",
+        };
+        return concat(override ? concat(head, new String[] {"    override function apply() returns int", "        return 2"})
+            : head, tail);
+    }
+
+    /**
+     * An override which one payload added and the next removes: the class's slot must be bound again to the inherited
+     * body it had at the start, though that binding is the running script's own.
+     */
+    @Test
+    public void removedOverrideOfAnEarlierPayloadRebindsTheInheritedSlot() throws Exception {
+        String[] base = overrideProgram(false);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedOverrideOfAnEarlierPayloadRebindsTheInheritedSlot.lua";
+        var build = java.nio.file.Files.createTempDirectory("hotReloadOverride");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadOverrideDelivery");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(build, baseline);
+        String added = LuaHotReloadSession.send(build, delivery, manifest(overrideProgram(true))).payload().source();
+        String removed = LuaHotReloadSession.send(build, delivery, manifest(base)).payload().source();
+        assertEquals("true 2 nil\ntrue 1 nil",
+            applyInLua(script, List.of(added, removed), globalName(baseline, "result")).replace("\r\n", "\n"));
+    }
+
     private static String[] mainWithExtra(String initialValue) {
         // MAIN_PACKAGE with a global, and a function which reads it and which its init calls, so neither is removed.
         return new String[] {

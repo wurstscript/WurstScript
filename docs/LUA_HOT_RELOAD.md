@@ -120,6 +120,12 @@ The payload compares the running script's manifest with the edited one:
   map runs of each is the baseline's source or one an earlier payload sent; the editor does not know which payloads
   the map installed, so it keeps every one sent (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures
   are in such groups.
+  A closure's captured variables are fields of its class, and their storage, and its binding, is named after that
+  class, whose name follows the order (`LuaHotReload.captureOwner`). They used to be numbered among the captures of one
+  name, so a closure which started to capture `s` took a later sibling's storage of `s`, whose objects then read 0, and
+  one which stopped capturing was refused as a removed closure (`callbackWhichStartsCapturingLeavesItsSiblingsCaptures`,
+  `callbackWhichStopsCapturingIsABodyEdit`). A closure made before the reload holds no value of a variable it did not
+  capture then: like an object of a class which gains a field, it reads the default.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not
