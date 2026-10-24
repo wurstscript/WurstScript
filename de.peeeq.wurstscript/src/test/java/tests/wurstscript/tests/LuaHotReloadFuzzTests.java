@@ -1162,7 +1162,11 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 } else if (k < 83) {
                     List<Var> ints = p.vars.stream().filter(v -> v.type.equals("int") && !v.name.startsWith("spare")).toList();
                     Var v = pick(ints);
-                    p.vars.set(p.vars.indexOf(v), new Var(v.name, v.type, Integer.toString(20 + r.nextInt(20)), v.base, true));
+                    String initial;
+                    do {
+                        initial = Integer.toString(20 + r.nextInt(20));
+                    } while (initial.equals(v.init));
+                    p.vars.set(p.vars.indexOf(v), new Var(v.name, v.type, initial, v.base, true));
                     ops.add("initial value of variable " + v.name);
                     // The map keeps the value of a variable it has; one this edit adds starts with the new value.
                     mustWarn |= before.vars.stream().anyMatch(b -> b.name.equals(v.name));
@@ -1190,8 +1194,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     p.closures.add(at, new Clo(slot, bound, expr(closureScope(p), 3)));
                     ops.add((at == p.closures.size() - 1 ? "appended" : "inserted") + (bound ? " bound" : "")
                         + " closure " + slot);
-                    // Closures told apart by their order: one inserted before others moves them, which may be refused.
-                    if (at < p.closures.size() - 1 && !bound) {
+                    // Mixed body edits and additions within one anonymous order group may be ambiguous, even when
+                    // the generator intended an append: the compiler cannot distinguish it from an insertion.
+                    if (!bound) {
                         mayRefuse = true;
                     }
                 } else if (k < 90) {

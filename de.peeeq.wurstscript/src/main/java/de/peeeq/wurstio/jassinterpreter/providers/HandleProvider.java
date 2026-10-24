@@ -37,6 +37,7 @@ public class HandleProvider extends Provider {
         if (enumValue != null) {
             return ILconstInt.create(enumValue);
         }
+        interpreter.noteObjectIdsRead();
         return handleMap.computeIfAbsent(h, (_key) -> ILconstInt.create(handleCounter++));
     }
 

@@ -714,6 +714,11 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     }
 
     @Override
+    public void noteObjectIdsRead() {
+        globalState.noteObjectIdsRead();
+    }
+
+    @Override
     public int getInstanceCount(int val) {
         ImClass c = classOfTypeId(val);
         return c == null ? 0 : globalState.liveObjectsOfGroup(c);

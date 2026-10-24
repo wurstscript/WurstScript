@@ -165,11 +165,52 @@ public final class LuaHotReload {
      */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                            List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
-                           List<String> variables, List<String> hooks) {
+                           List<String> variables, List<String> hooks, Map<String, Closure> closures,
+                           Map<String, Integer> compiletimeGroups, boolean compiletimeIntegerReferences) {
+        public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                        List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                        List<String> variables, List<String> hooks, Map<String, Closure> closures,
+                        Map<String, Integer> compiletimeGroups) {
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, constants, variables, hooks,
+                closures, compiletimeGroups, false);
+        }
+        public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                        List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                        List<String> variables, List<String> hooks, Map<String, Closure> closures) {
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, constants, variables, hooks, closures, Map.of());
+        }
+
         public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                         List<String> bindings, List<String> initOrder) {
-            this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of(), List.of(), List.of());
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, Map.of(), List.of(), List.of(), Map.of(), Map.of());
         }
+
+        public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                        List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                        List<String> variables, List<String> hooks) {
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, constants, variables, hooks, Map.of(), Map.of());
+        }
+    }
+
+    /**
+     * Where the objects of a closure keep their state, by the closure's function: {@code tables} names, by role
+     * ({@code class}, or {@code field:} and the field), the class table an object holds and the stores of its captured
+     * values; {@code fresh} gives, by table name, the expression which makes an empty one; {@code classData} names the
+     * bootstrap statements which write the class table (its slots, supertypes, type id); {@code captureTypes} records
+     * source field types independently of the names a remap gives their stores. An object holds its class
+     * table itself (__wurst_objectClass), so a payload can give the names of the closures of an order group to other
+     * closures while each table, and so each object made before, stays with the closure it was made from.
+     */
+    public record Closure(Map<String, String> tables, Map<String, String> fresh, List<String> classData,
+                          Map<String, String> captureTypes) {
+    }
+
+    /**
+     * A closure of a payload's program as the payload matched it: its function's {@code name} in the program, its
+     * {@code group} (the identity it shares with the others of an order group), its {@code lineage} (which closure the map
+     * keeps state of for it: a closure of the started map by its name there, or one a payload added) and its source.
+     */
+    public record GroupMember(String group, String name, String lineage, String source) {
     }
 
     /**
@@ -178,19 +219,33 @@ public final class LuaHotReload {
      * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
      * names to their run-once keys, whose presence in the map confirms whether they ran. {@code variables} names the
      * storage of globals one of those versions declared as variables, which code may then have written.
-     * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}): which of
-     * them the map runs depends on which payloads it installed, which the editor does not know.
-     * {@code reboundSlots} holds the run keys of binding statements sent by earlier payloads, including supertype
-     * tables: an undo must restore the baseline's binding too.
+     * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}), by its
+     * lineage: which of them the map runs depends on which payloads it installed, which the editor does not know.
+     * {@code groupLayout} is how the last payload matched the closures of its program ({@link GroupMember}), which the
+     * next one matches its own against; null means no layout was recorded, while empty means all closures were removed.
+     * {@code lineageOrigins} names the tables of each closure a payload added where
+     * that payload's program kept them ({@link Closure#tables}), empty for a role whose table it had to make anew;
+     * {@code permutedGroups} names the groups whose tables a payload gave to other closures.
+     * {@code lineageTypes} preserves captured field types even when a later payload removes a capture or its closure.
+     * {@code tableReaders} retains the historical lineages whose emitted bodies may still read each table name.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
-                          Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+                          Map<String, List<String>> groupShapes, List<GroupMember> groupLayout,
+                          Map<String, Map<String, String>> lineageOrigins, Set<String> permutedGroups, Set<String> reboundSlots,
+                          Map<String, Map<String, String>> lineageTypes, Map<String, Set<String>> tableReaders, Map<String, Integer> compiletimeGroups) {
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, Set.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of());
         }
+
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
+                       Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of());
+        }
+
         public History(Set<String> reloaded, Map<String, String> captured) {
             this(reloaded, captured, Map.of(), Map.of(), Set.of());
         }
@@ -222,7 +277,22 @@ public final class LuaHotReload {
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                           Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
-                          Set<String> reboundSlots) {
+                          List<GroupMember> groupLayout, Map<String, Map<String, String>> lineageOrigins,
+                          Set<String> permutedGroups, Set<String> reboundSlots, Map<String, Map<String, String>> lineageTypes,
+                          Map<String, Set<String>> tableReaders, Map<String, Integer> compiletimeGroups) {
+        public Payload(int version, List<String> functions, String source, List<String> warnings,
+                       Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
+                       Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes, Set<String> reboundSlots) {
+            this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
+                List.of(), Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of());
+        }
+
+        public Payload(int version, List<String> functions, String source, List<String> warnings,
+                       Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
+                       Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
+            this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
+                List.of(), Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of());
+        }
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -253,6 +323,12 @@ public final class LuaHotReload {
         LuaFunction bootstrap = tr.bootstrapFunction();
         ImFunction globalInitIm = tr.imTr.getGlobalInitFunc();
         LuaFunction globalInit = globalInitIm == null ? null : tr.luaFunc.getFor(globalInitIm);
+        Set<LuaFunction> compiletimeFunctions = Collections.newSetFromMap(new IdentityHashMap<>());
+        ImFunction compiletimeRoot = tr.imTr.compiletimeStateFunction();
+        if (compiletimeRoot != null) {
+            compiletimeFunctions.add(tr.luaFunc.getFor(compiletimeRoot));
+            tr.imTr.compiletimeStateParts().forEach(f -> compiletimeFunctions.add(tr.luaFunc.getFor(f)));
+        }
 
         Map<LuaFunction, List<String>> slots = new IdentityHashMap<>();
         Map<LuaFunction, List<String>> captures = new IdentityHashMap<>();
@@ -303,6 +379,9 @@ public final class LuaHotReload {
         List<String> bindings = new ArrayList<>();
         for (LuaStatement statement : model) {
             if (statement instanceof LuaFunction f) {
+                if (compiletimeFunctions.contains(f)) {
+                    continue;
+                }
                 if (f == bootstrap || f == globalInit) {
                     String scope = f == bootstrap ? "boot" : "globals";
                     for (LuaStatement s : f.getBody()) {
@@ -342,8 +421,22 @@ public final class LuaHotReload {
             }
         }
 
+        if (compiletimeRoot != null) {
+            Set<LuaVariable> objects = Collections.newSetFromMap(new IdentityHashMap<>());
+            tr.imTr.compiletimeGlobals().forEach(v -> objects.add(tr.luaVar.getFor(v)));
+            Set<LuaFunction> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+            collectCompiletimeStatements(tr, tr.luaFunc.getFor(compiletimeRoot), compiletimeFunctions, objects,
+                visited, new HashMap<>(), statements);
+            // Some split parts can be dropped as empty/dead; every part still emitted must be reached by the root.
+            for (LuaStatement s : model) {
+                if (s instanceof LuaFunction f && compiletimeFunctions.contains(f) && !visited.contains(f)) {
+                    throw new IllegalStateException("Unreached compile-time state function " + f.getName());
+                }
+            }
+        }
+
         for (ImVar global : tr.prog.getGlobals()) {
-            bindings.add(tr.luaVar.getFor(global).getName() + "=" + semanticId(global, global.getName())
+            bindings.add(tr.luaVar.getFor(global).getName() + "=" + variableId(tr.imTr, global)
                 + ":" + typeKey(global.getType()));
         }
         for (ImClass c : tr.prog.getClasses()) {
@@ -363,6 +456,8 @@ public final class LuaHotReload {
         for (Statement s : statements) {
             parts.add(s.scope() + " " + s.text() + " " + s.targets());
         }
+        tr.imTr.compiletimeExpressionCounts().forEach((group, count) -> parts.add("compiletime expressions:" + group + "=" + count));
+        parts.add("compiletime integer references:" + tr.imTr.compiletimeIntegerReferences());
         String abi = fingerprint(compilerVersion, parts, bindings);
         appendRuntime(tr, model, abi);
         List<String> initOrder = new ArrayList<>();
@@ -401,7 +496,160 @@ public final class LuaHotReload {
         }
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
             List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables),
-            List.copyOf(hooks));
+            List.copyOf(hooks), closures(tr, reloadable, bootstrap), tr.imTr.compiletimeExpressionCounts(),
+            tr.imTr.compiletimeIntegerReferences());
+    }
+
+    /** Expand the startup replay in execution order, retaining the object each statement initializes. */
+    private static void collectCompiletimeStatements(LuaTranslator tr, LuaFunction function, Set<LuaFunction> parts,
+            Set<LuaVariable> objects, Set<LuaFunction> visited, Map<String, Integer> ordinals, List<Statement> out) {
+        if (!visited.add(function)) {
+            throw new IllegalStateException("Repeated compile-time state function " + function.getName());
+        }
+        for (LuaStatement s : function.getBody()) {
+            if (s instanceof LuaExprFunctionCall call && parts.contains(call.getFunc())) {
+                collectCompiletimeStatements(tr, call.getFunc(), parts, objects, visited, ordinals, out);
+                continue;
+            }
+            LuaVariable owner = compiletimeOwner(s, objects);
+            StringBuilder text = new StringBuilder();
+            s.print(text, 0);
+            // Startup-only allocator state still distinguishes baselines, but must never execute in a payload.
+            if (owner == null) {
+                out.add(new Statement("compiletime", "startup:" + ordinals.merge("", 1, Integer::sum),
+                    text.toString(), "startup", "", withoutPositions(tr, s), List.of()));
+                continue;
+            }
+            String name = owner.getName();
+            out.add(new Statement("compiletime", name + ":" + ordinals.merge(name, 1, Integer::sum), text.toString(),
+                "global", name, withoutPositions(tr, s), List.of(name)));
+        }
+    }
+
+    private static LuaVariable compiletimeOwner(de.peeeq.wurstscript.luaAst.Element e, Set<LuaVariable> objects) {
+        if (e instanceof LuaExprVarAccess access && objects.contains(access.getVar())) {
+            return access.getVar();
+        }
+        for (int i = 0; i < e.size(); i++) {
+            LuaVariable found = compiletimeOwner(e.get(i), objects);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, List<Statement>> compiletimeState(Manifest manifest) {
+        Map<String, List<Statement>> result = new LinkedHashMap<>();
+        for (Statement s : manifest.statements()) {
+            if (s.scope().equals("compiletime") && s.kind().equals("global")) {
+                result.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+            }
+        }
+        return result;
+    }
+
+    private static String compiletimeRevision(List<Statement> statements) {
+        return identityHash(String.join("\n", statements.stream().map(Statement::revision).toList()));
+    }
+
+    /**
+     * New objects replay once, before source initializers read them. Keep the original interleaving: all allocations
+     * precede field writes, including cycles. Per-statement markers allow retry after a failed write; the owner marker
+     * freezes the complete snapshot once installed, so a later edit cannot partially overwrite runtime mutations.
+     */
+    private static void appendCompiletimeState(StringBuilder sb, Manifest baseline, Manifest current) {
+        Map<String, List<Statement>> owners = compiletimeState(current);
+        owners.keySet().removeAll(compiletimeState(baseline).keySet());
+        if (owners.isEmpty()) {
+            return;
+        }
+        sb.append("local compiletimeNew = {}\n");
+        for (Map.Entry<String, List<Statement>> owner : owners.entrySet()) {
+            String key = luaString("compiletime:" + owner.getKey());
+            String marker = RAN_TABLE + "[" + key + "]";
+            sb.append("compiletimeNew[").append(key).append("] = not ").append(marker).append("\n")
+                .append("if ").append(marker).append(" and ").append(marker).append(" ~= ")
+                .append(luaString(compiletimeRevision(owner.getValue()))).append(" then\n")
+                .append(WARN_FUNCTION).append("(").append(luaString("Wurst hot reload: " + owner.getKey()
+                    + " keeps its value; restart the map to apply changed compile-time state")).append(")\nend\n");
+        }
+        for (Statement s : current.statements()) {
+            List<Statement> group = s.scope().equals("compiletime") ? owners.get(s.owner()) : null;
+            if (group == null) {
+                continue;
+            }
+            String key = luaString("compiletime:" + s.owner());
+            sb.append("if compiletimeNew[").append(key).append("] then\n");
+            appendOnce(sb, s);
+            if (s == group.getLast()) {
+                sb.append(RAN_TABLE).append("[").append(key).append("] = ")
+                    .append(luaString(compiletimeRevision(group))).append("\n");
+            }
+            sb.append("end\n");
+        }
+    }
+
+    /** The tables the objects of each closure keep their state in ({@link Closure}), by the closure's function. */
+    private static Map<String, Closure> closures(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable,
+                                                 LuaFunction bootstrap) {
+        Set<LuaVariable> declared = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (LuaStatement statement : tr.luaModel) {
+            if (statement instanceof LuaVariable v) {
+                declared.add(v);
+            }
+        }
+        Map<LuaVariable, Closure> byClassTable = new IdentityHashMap<>();
+        Map<String, Closure> closures = new TreeMap<>();
+        for (LuaStatement statement : tr.luaModel) {
+            if (!(statement instanceof LuaFunction f) || !(reloadable.get(f) instanceof ImFunction im)
+                || !(im.getTrace() instanceof ExprClosure) || !(im.getParent() != null
+                && im.getParent().getParent() instanceof ImClass c)) {
+                continue;
+            }
+            LuaVariable classTable = tr.luaClassVar.getFor(c);
+            if (!declared.contains(classTable)) {
+                continue;
+            }
+            Map<String, String> tables = new TreeMap<>();
+            Map<String, String> fresh = new TreeMap<>();
+            Map<String, String> captureTypes = new TreeMap<>();
+            tables.put("class", classTable.getName());
+            fresh.put(classTable.getName(), print(classTable.getInitialValue()));
+            for (ImVar field : c.getFields()) {
+                LuaVariable store = tr.fieldStorage(field);
+                if (declared.contains(store)) {
+                    tables.put("field:" + field.getName(), store.getName());
+                    captureTypes.put("field:" + field.getName(), typeKey(field.getType()));
+                    fresh.put(store.getName(), print(store.getInitialValue()));
+                }
+            }
+            Closure closure = new Closure(Collections.unmodifiableMap(tables), Collections.unmodifiableMap(fresh),
+                new ArrayList<>(), Collections.unmodifiableMap(captureTypes));
+            byClassTable.put(classTable, closure);
+            closures.put(f.getName(), closure);
+        }
+        if (bootstrap != null) {
+            for (LuaStatement s : bootstrap.getBody()) {
+                if (s instanceof LuaAssignment a && a.getLeft() instanceof LuaExprFieldAccess fa
+                    && fa.getReceiver() instanceof LuaExprVarAccess table && byClassTable.get(table.getVar()) instanceof Closure c) {
+                    // The key statement() gives it.
+                    c.classData().add(print(a.getLeft()));
+                }
+            }
+        }
+        closures.replaceAll((name, c) -> new Closure(c.tables(), c.fresh(), List.copyOf(c.classData()), c.captureTypes()));
+        return Collections.unmodifiableMap(closures);
+    }
+
+    /** An expression as the script has it; a declaration without an initial value is an empty table. */
+    private static String print(de.peeeq.wurstscript.luaAst.Element e) {
+        if (!(e instanceof LuaExpr expr)) {
+            return "({})";
+        }
+        StringBuilder text = new StringBuilder();
+        expr.print(text, 0);
+        return text.toString();
     }
 
     /**
@@ -501,6 +749,23 @@ public final class LuaHotReload {
     public static Payload payload(Manifest baseline, Manifest current, History history, int version) throws Rejected {
         List<String> reasons = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        if (current.compiletimeIntegerReferences()) {
+            Set<String> newSnapshots = new TreeSet<>(compiletimeState(current).keySet());
+            newSnapshots.removeAll(compiletimeState(baseline).keySet());
+            if (!newSnapshots.isEmpty()) {
+                reasons.add("compile-time evaluation read integer-encoded references; new snapshots " + newSnapshots
+                    + " cannot preserve those identities with the live allocator: restart the map");
+            }
+        }
+        Map<String, Integer> oldGroups = new TreeMap<>(Objects.requireNonNullElse(baseline.compiletimeGroups(), Map.of()));
+        Objects.requireNonNullElse(history.compiletimeGroups(), Map.<String, Integer>of()).forEach(oldGroups::putIfAbsent);
+        for (Map.Entry<String, Integer> group : Objects.requireNonNullElse(current.compiletimeGroups(), Map.<String, Integer>of()).entrySet()) {
+            Integer before = oldGroups.get(group.getKey());
+            if (before != null && !before.equals(group.getValue())) {
+                reasons.add("compile-time expressions sharing " + group.getKey() + " changed count from " + before + " to "
+                    + group.getValue() + "; their objects are told apart by order: restart the map");
+            }
+        }
         if (!Objects.equals(baseline.compilerVersion(), current.compilerVersion())) {
             reasons.add("the edit was compiled by another compiler (" + current.compilerVersion() + ") than the running script ("
                 + baseline.compilerVersion() + ")");
@@ -514,27 +779,45 @@ public final class LuaHotReload {
                 reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
             }
         }
+        // Declarations which share an identity are numbered in order. One added after the others keeps their order; a
+        // move is found by its body below. Some removed while others remain gives the remaining ones the names of others,
+        // and what was made from them would reach those; all of them removed leaves nothing to confuse. The closures, their
+        // class tables and the stores of their captured values are matched by the Lineages below instead.
+        Set<String> closureNames = new HashSet<>();
+        for (Manifest m : List.of(baseline, current)) {
+            Objects.requireNonNullElse(m.closures(), Map.<String, Closure>of()).forEach((name, c) -> {
+                closureNames.add(name);
+                closureNames.addAll(c.tables().values());
+            });
+        }
         Map<String, Integer> oldCounts = identityCounts(baseline.bindings());
         Map<String, Integer> newCounts = identityCounts(current.bindings());
+        Map<String, Set<String>> oldNames = new HashMap<>();
+        bindingMap(baseline.bindings()).forEach((name, id) -> oldNames.computeIfAbsent(id, k -> new HashSet<>()).add(name));
         Set<String> identities = new TreeSet<>(oldCounts.keySet());
         identities.addAll(newCounts.keySet());
         for (String id : identities) {
             int before = oldCounts.getOrDefault(id, 0);
             int after = newCounts.getOrDefault(id, 0);
-            // One added after the others keeps their order; a move is found by its body below.
-            if (after < before && before > 1) {
-                reasons.add("declarations which share the identity " + id + " (closures of one interface method in one function)"
-                    + " were removed; they are told apart by their order, so restart the map");
+            if (after < before && after > 0 && !closureNames.containsAll(oldNames.getOrDefault(id, Set.of()))) {
+                reasons.add(before + " declarations share the identity " + id + " and are told apart by their order, and "
+                    + (before - after) + " of them were removed while others remain: restart the map");
             }
         }
-        // The map matches an object to the closure it was made from by that closure's place among those of its identity.
-        // An edit of a body keeps the places; a closure which now has the body another one had, which that one lost,
-        // has moved, and objects made from the closure at its old place would run the other one's body. A copy of a
-        // body another one keeps moved nothing.
+        // Closures: each one of the edit continues a closure of the running map, its lineage, whose objects keep their
+        // class table and captured values, whatever name the edit gives it (Lineages).
+        Lineages lineages = new Lineages(baseline, current, history, version, reasons);
+        // Any other functions which share an identity are told apart by their place among those of it. An edit of a
+        // body keeps the places; one which now has the body another one had, which that one lost, has moved, and what
+        // was made from it at its old place would run the other one's body. A copy of a body another one keeps moved
+        // nothing.
         Map<String, Set<String>> groups = orderGroups(baseline, current);
-        Map<String, String> groupShapes = new TreeMap<>();
+        Map<String, String> groupShapes = new TreeMap<>(lineages.shapes);
         for (Map.Entry<String, Set<String>> group : groups.entrySet()) {
             for (String name : group.getValue()) {
+                if (lineages.isClosure(name)) {
+                    continue;
+                }
                 Function now = current.functions().get(name);
                 if (now == null) {
                     continue;
@@ -546,7 +829,7 @@ public final class LuaHotReload {
                 }
                 for (String other : group.getValue()) {
                     Function otherNow = current.functions().get(other);
-                    if (!other.equals(name) && knownShapes(other, baseline, history).contains(source)
+                    if (!other.equals(name) && !lineages.isClosure(other) && knownShapes(other, baseline, history).contains(source)
                         && (otherNow == null || !sourceOf(otherNow).equals(source))) {
                         reasons.add("closures which share the identity " + group.getKey() + " are told apart by their order,"
                             + " and " + name + " now has the body " + other + " had: they moved; restart the map");
@@ -750,6 +1033,13 @@ public final class LuaHotReload {
             warnings.add("Changed package init code ran when the map started and does not run again ("
                 + String.join(", ", changedInits) + "): restart the map to apply it.");
         }
+        Map<String, List<Statement>> oldCompiletime = compiletimeState(baseline);
+        for (Map.Entry<String, List<Statement>> owner : compiletimeState(current).entrySet()) {
+            List<Statement> old = oldCompiletime.get(owner.getKey());
+            if (old != null && !compiletimeRevision(old).equals(compiletimeRevision(owner.getValue()))) {
+                keptValues.add(owner.getKey() + " (compile-time state)");
+            }
+        }
         if (!keptValues.isEmpty()) {
             warnings.add("Changed initial values (" + String.join(", ", keptValues) + ") do not apply: the running map keeps"
                 + " the values it has. Restart the map to apply them.");
@@ -828,6 +1118,9 @@ public final class LuaHotReload {
             appendOnce(sb, s);
             appendBinding(sb, s.key(), newBindings);
         }
+        // After the declarations, which make the tables of new names, and before the slots are bound: the names of the
+        // closures of a group whose names moved now hold the tables of the closures the edit continues.
+        lineages.appendTables(sb, current);
         for (String name : defined) {
             for (String slot : current.functions().get(name).slots()) {
                 sb.append(slot).append(" = ").append(name).append("\n");
@@ -842,6 +1135,7 @@ public final class LuaHotReload {
             }
             appendBinding(sb, s.key(), newBindings);
         }
+        appendCompiletimeState(sb, baseline, current);
         // All package work shares main's dependency order. A new package may depend on a new global in an existing
         // package, and an existing package's new global may depend on a new package (including an earlier payload's).
         for (String init : current.initOrder()) {
@@ -937,7 +1231,392 @@ public final class LuaHotReload {
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
-            Collections.unmodifiableMap(groupShapes), Collections.unmodifiableSet(sentSlots));
+            Collections.unmodifiableMap(groupShapes), List.copyOf(lineages.layout),
+            Collections.unmodifiableMap(lineages.newOrigins), Collections.unmodifiableSet(lineages.permuted), Collections.unmodifiableSet(sentSlots),
+            Collections.unmodifiableMap(lineages.types), Collections.unmodifiableMap(lineages.readers),
+            Objects.requireNonNullElse(current.compiletimeGroups(), Map.of()));
+    }
+
+    /**
+     * Which closure of the running map each closure of the edited program continues: its lineage. Closures of one
+     * interface method in one function with no binding of their own share an identity, so their names are numbered in
+     * the order of the source (an order group), and one inserted before others gives each of them the name of the one
+     * before it. The build stays as it is, a function of the source alone; the payload, which is made for the running
+     * map anyway, carries the difference. Each object holds its class table, not the name of it, so the payload gives
+     * each name of the group the tables (class table, stores of captured values) of the closure it now names, and every
+     * object made before keeps running the closure it was made from, with the values it captured.
+     *
+     * <p>The edit's closures of a group are matched with those the last payload sent (or the started map's): those of a
+     * source which only one has on either side are the same closure, wherever they are; one whose source is new takes
+     * the place of one which lost its source between the same unchanged ones, as an edited body; and one which has no such
+     * place is a new closure. Closures both added and changed in one gap cannot be told apart (an insertion and an edit,
+     * or two edits and an append), including after the last unchanged one, and the edit is refused.
+     *
+     * <p>The map keeps the tables by lineage in {@code __wurst_hotreload_lineages}, taken from the names the closure had
+     * when it began (the started map's, or those of the payload which added it) before any name is given another table,
+     * so a payload applies to a map whatever earlier payloads it installed.
+     */
+    private static final class Lineages {
+        private static final String TABLE = "__wurst_hotreload_lineages";
+
+        /** The closure functions of either program. */
+        private final Set<String> closures = new HashSet<>();
+        /** The last source of each closure of an order group, by lineage. */
+        final Map<String, String> shapes = new TreeMap<>();
+        final List<GroupMember> layout = new ArrayList<>();
+        /** Where the closures this payload adds began. */
+        final Map<String, Map<String, String>> newOrigins = new TreeMap<>();
+        final Map<String, Map<String, String>> types = new TreeMap<>();
+        /** Every lineage whose emitted body may still read a table name, including removed, previously remapped ones. */
+        final Map<String, Set<String>> readers = new TreeMap<>();
+        /** The groups whose names hold other tables than those the started map gave them. */
+        final Set<String> permuted = new TreeSet<>();
+        private final Map<String, String> lineageOf = new HashMap<>();
+        private final Map<String, Map<String, String>> origins = new TreeMap<>();
+        private final Map<String, List<String>> membersByGroup = new TreeMap<>();
+
+        Lineages(Manifest baseline, Manifest current, History history, int version, List<String> reasons) {
+            Map<String, Closure> baseClosures = Objects.requireNonNullElse(baseline.closures(), Map.of());
+            Map<String, Closure> curClosures = Objects.requireNonNullElse(current.closures(), Map.of());
+            closures.addAll(baseClosures.keySet());
+            closures.addAll(curClosures.keySet());
+            Map<String, String> baseIds = bindingMap(baseline.bindings());
+            Map<String, String> curIds = bindingMap(current.bindings());
+            List<GroupMember> lastLayout = Objects.requireNonNullElse(history.groupLayout(), List.of());
+            Map<String, Map<String, String>> knownOrigins = Objects.requireNonNullElse(history.lineageOrigins(), Map.of());
+            Map<String, List<String>> knownShapes = Objects.requireNonNullElse(history.groupShapes(), Map.of());
+            if ((!knownOrigins.isEmpty() || !Objects.requireNonNullElse(history.permutedGroups(), Set.of()).isEmpty())
+                && Objects.requireNonNullElse(history.tableReaders(), Map.of()).isEmpty()) {
+                reasons.add("the session lacks historical closure table readers: restart the map");
+            }
+            Objects.requireNonNullElse(history.tableReaders(), Map.<String, Set<String>>of())
+                .forEach((name, lineages) -> readers.put(name, new TreeSet<>(lineages)));
+            baseClosures.forEach((lineage, closure) -> closure.tables().values().forEach(name ->
+                readers.computeIfAbsent(name, k -> new TreeSet<>()).add(lineage)));
+            if (!knownOrigins.isEmpty() && Objects.requireNonNullElse(history.lineageTypes(), Map.of()).isEmpty()) {
+                reasons.add("the session lacks the captured types of earlier closure lineages: restart the map");
+            }
+            baseClosures.forEach((name, closure) -> {
+                if (closure.captureTypes() == null && closure.tables().keySet().stream().anyMatch(k -> k.startsWith("field:"))) {
+                    reasons.add("the baseline lacks the captured types of closure " + name + ": restart the map");
+                }
+            });
+            Objects.requireNonNullElse(history.lineageTypes(), Map.<String, Map<String, String>>of())
+                .forEach((lineage, fields) -> types.put(lineage, new TreeMap<>(fields)));
+            baseClosures.forEach((lineage, closure) -> types.computeIfAbsent(lineage, k -> new TreeMap<>())
+                .putAll(Objects.requireNonNullElse(closure.captureTypes(), Map.of())));
+
+            // What the last payload sent, or else the started map: the closures to match, by group, in order.
+            Map<String, List<GroupMember>> before = new TreeMap<>();
+            if (history.groupLayout() != null) {
+                for (GroupMember m : lastLayout) {
+                    before.computeIfAbsent(m.group(), k -> new ArrayList<>()).add(m);
+                }
+            } else {
+                for (Function f : baseline.functions().values()) {
+                    if (baseClosures.containsKey(f.name())) {
+                        before.computeIfAbsent(baseIds.get(f.name()), k -> new ArrayList<>())
+                            .add(new GroupMember(baseIds.get(f.name()), f.name(), f.name(), sourceOf(f)));
+                    }
+                }
+            }
+            Map<String, List<Function>> now = new TreeMap<>();
+            for (Function f : current.functions().values()) {
+                if (curClosures.containsKey(f.name())) {
+                    now.computeIfAbsent(curIds.get(f.name()), k -> new ArrayList<>()).add(f);
+                }
+            }
+            // Lineages already taken: a new closure takes its own name as its lineage when it is free.
+            Set<String> taken = new HashSet<>(baseClosures.keySet());
+            taken.addAll(knownOrigins.keySet());
+            before.values().forEach(ms -> ms.forEach(m -> taken.add(m.lineage())));
+            // Tables a closure the map has began with: a new closure whose name holds one of them makes its own.
+            Set<String> occupied = new HashSet<>();
+            baseClosures.values().forEach(c -> occupied.addAll(c.tables().values()));
+            knownOrigins.values().forEach(o -> occupied.addAll(o.values()));
+            for (Map.Entry<String, Closure> c : baseClosures.entrySet()) {
+                origins.put(c.getKey(), c.getValue().tables());
+            }
+            origins.putAll(knownOrigins);
+            // Which closure began with each table, and the tables new closures take which another one began with.
+            Map<String, String> beganWith = new HashMap<>();
+            origins.forEach((lineage, tables) -> tables.values().forEach(t -> beganWith.putIfAbsent(t, lineage)));
+            // The closures the map may still make objects of: those the last payload sent, or the started map's.
+            Set<String> live = new HashSet<>();
+            before.values().forEach(ms -> ms.forEach(m -> live.add(m.lineage())));
+
+            Set<String> groupIds = new TreeSet<>(before.keySet());
+            groupIds.addAll(now.keySet());
+            for (String group : groupIds) {
+                List<GroupMember> p = before.getOrDefault(group, List.of());
+                List<Function> n = now.getOrDefault(group, List.of());
+                List<String> pSources = p.stream().map(GroupMember::source).toList();
+                List<String> nSources = n.stream().map(LuaHotReload::sourceOf).toList();
+                Match match = Match.of(pSources, nSources);
+                if (match == null) {
+                    reasons.add("closures which share the identity " + group + " are told apart by their order, and between"
+                        + " the same unchanged ones the edit both adds or removes some and changes others, which cannot be"
+                        + " told apart: make the edits one at a time, or restart the map");
+                    continue;
+                }
+                List<String> members = new ArrayList<>();
+                for (int i = 0; i < n.size(); i++) {
+                    Function f = n.get(i);
+                    String lineage;
+                    String removed = beganWith.get(curClosures.get(f.name()).tables().get("class"));
+                    if (match.pairs()[i] >= 0) {
+                        lineage = p.get(match.pairs()[i]).lineage();
+                    } else if (removed != null && !live.contains(removed) && known(removed, baseline, knownShapes).contains(sourceOf(f))) {
+                        // A closure an earlier edit removed is back where it was, as it was.
+                        lineage = removed;
+                        live.add(removed);
+                    } else {
+                        lineage = taken.add(f.name()) ? f.name() : f.name() + "@" + version;
+                        taken.add(lineage);
+                        if (!origins.containsKey(lineage)) {
+                            Map<String, String> origin = new TreeMap<>();
+                            for (Map.Entry<String, String> table : curClosures.get(f.name()).tables().entrySet()) {
+                                if (occupied.add(table.getValue())) {
+                                    origin.put(table.getKey(), table.getValue());
+                                }
+                            }
+                            origins.put(lineage, Collections.unmodifiableMap(origin));
+                            newOrigins.put(lineage, Collections.unmodifiableMap(origin));
+                        }
+                    }
+                    lineageOf.put(f.name(), lineage);
+                    for (String table : curClosures.get(f.name()).tables().values()) {
+                        readers.computeIfAbsent(table, k -> new TreeSet<>()).add(lineage);
+                    }
+                    Map<String, String> capturedTypes = types.computeIfAbsent(lineage, k -> new TreeMap<>());
+                    for (Map.Entry<String, String> field : curClosures.get(f.name()).captureTypes().entrySet()) {
+                        String previousType = capturedTypes.putIfAbsent(field.getKey(), field.getValue());
+                        if (previousType != null && !previousType.equals(field.getValue())) {
+                            reasons.add("closure " + f.name() + " captures " + field.getKey() + " as " + field.getValue()
+                                + ", which the closure it continues captured as " + previousType + "; restart the map");
+                        }
+                    }
+                    members.add(f.name());
+                    layout.add(new GroupMember(group, f.name(), lineage, sourceOf(f)));
+                    shapes.put(lineage, sourceOf(f));
+                }
+                membersByGroup.put(group, members);
+                boolean moves = Objects.requireNonNullElse(history.permutedGroups(), Set.<String>of()).contains(group);
+                for (String name : members) {
+                    Map<String, String> origin = origins.getOrDefault(lineageOf.get(name), Map.of());
+                    for (Map.Entry<String, String> table : curClosures.get(name).tables().entrySet()) {
+                        String began = origin.get(table.getKey());
+                        moves |= !table.getValue().equals(began);
+                    }
+                }
+                if (moves) {
+                    permuted.add(group);
+                }
+                // A removed closure keeps its tables and its last body, which reads its captured values by the names it
+                // had: only while no other closure of its group takes them is that the warning of a removed function.
+                for (int removed : match.removed()) {
+                    GroupMember m = p.get(removed);
+                    if (moves && !members.isEmpty()) {
+                        reasons.add("closures which share the identity " + group + " are told apart by their order, and "
+                            + m.name() + " was removed while the others' names changed: restart the map");
+                    }
+                }
+                // A closure which now has a source another one had, which that one lost, moved: the map may run either.
+                for (String name : members) {
+                    String lineage = lineageOf.get(name);
+                    String source = shapes.get(lineage);
+                    if (known(lineage, baseline, knownShapes).contains(source)) {
+                        continue;
+                    }
+                    Set<String> others = new TreeSet<>();
+                    p.forEach(m -> others.add(m.lineage()));
+                    members.forEach(m -> others.add(lineageOf.get(m)));
+                    for (String other : others) {
+                        boolean kept = members.stream().anyMatch(m -> lineageOf.get(m).equals(other) && source.equals(shapes.get(other)));
+                        if (!other.equals(lineage) && known(other, baseline, knownShapes).contains(source) && !kept) {
+                            reasons.add("closures which share the identity " + group + " are told apart by their order,"
+                                + " and " + name + " now has the body " + other + " had: they moved; restart the map");
+                            break;
+                        }
+                    }
+                }
+            }
+            refuseNamesOfRemovedClosures(curClosures, reasons);
+            types.replaceAll((lineage, fields) -> Collections.unmodifiableMap(new TreeMap<>(fields)));
+            readers.replaceAll((name, lineages) -> Collections.unmodifiableSet(new TreeSet<>(lineages)));
+        }
+
+        /**
+         * A closure removed by an earlier edit keeps its tables and its last body, which reads its captured values by the
+         * names it had. A new closure which takes those names would give that body the new closure's values.
+         */
+        private void refuseNamesOfRemovedClosures(Map<String, Closure> current, List<String> reasons) {
+            Set<String> live = new HashSet<>(lineageOf.values());
+            // appendTables assigns every current name in a permuted group, even when the destination happens to be
+            // its original name. An absent lineage may still execute any body a delivered payload gave its objects.
+            for (String group : permuted) {
+                for (String name : membersByGroup.getOrDefault(group, List.of())) {
+                    for (String table : current.get(name).tables().values()) {
+                        for (String reader : readers.getOrDefault(table, Set.of())) {
+                            if (!live.contains(reader)) {
+                                reasons.add("closure " + name + " takes " + table + ", which closure " + reader
+                                    + " had before an earlier edit removed it, and what the map made from that one still reads it:"
+                                    + " restart the map");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static Set<String> known(String lineage, Manifest baseline, Map<String, List<String>> history) {
+            Set<String> shapes = new HashSet<>(history.getOrDefault(lineage, List.of()));
+            Function old = baseline.functions().get(lineage);
+            if (old != null) {
+                shapes.add(sourceOf(old));
+            }
+            return shapes;
+        }
+
+        boolean isClosure(String name) {
+            return closures.contains(name);
+        }
+
+        /**
+         * Gives each name of a group whose names moved the tables of the closure it now names: every lineage takes its
+         * tables from the names it began with, unless the map took them before, then every name gets its lineage's,
+         * and the class data of each class table is written again (its slots bind the functions of its new name).
+         */
+        void appendTables(StringBuilder sb, Manifest current) {
+            if (permuted.isEmpty()) {
+                return;
+            }
+            Map<String, Closure> curClosures = current.closures();
+            Map<String, Statement> boot = new HashMap<>();
+            for (Statement s : current.statements()) {
+                if (s.scope().equals("boot")) {
+                    boot.put(s.key(), s);
+                }
+            }
+            sb.append("local lineages = ").append(TABLE).append("\nif not lineages then lineages = {} ").append(TABLE)
+                .append(" = lineages end\n");
+            for (String group : permuted) {
+                for (String name : membersByGroup.getOrDefault(group, List.of())) {
+                    String lineage = lineageOf.get(name);
+                    Map<String, String> origin = origins.getOrDefault(lineage, Map.of());
+                    Closure closure = curClosures.get(name);
+                    for (Map.Entry<String, String> table : closure.tables().entrySet()) {
+                        String key = "lineages[" + luaString(lineage + "\n" + table.getKey()) + "]";
+                        String began = origin.get(table.getKey());
+                        sb.append("if ").append(key).append(" == nil then ").append(key).append(" = ")
+                            .append(began == null ? "" : began + " or ").append(closure.fresh().get(table.getValue()))
+                            .append(" end\n");
+                    }
+                }
+            }
+            for (String group : permuted) {
+                for (String name : membersByGroup.getOrDefault(group, List.of())) {
+                    String lineage = lineageOf.get(name);
+                    for (Map.Entry<String, String> table : curClosures.get(name).tables().entrySet()) {
+                        sb.append(table.getValue()).append(" = lineages[")
+                            .append(luaString(lineage + "\n" + table.getKey())).append("]\n");
+                    }
+                }
+            }
+            for (String group : permuted) {
+                for (String name : membersByGroup.getOrDefault(group, List.of())) {
+                    for (String key : curClosures.get(name).classData()) {
+                        Statement s = boot.get(key);
+                        if (s != null) {
+                            sb.append(s.text()).append("\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * How the closures of a group in one program continue those of another, by their sources in order: {@code pairs}
+     * gives for each closure of the new program the index of the one it continues, or -1 for a new one; {@code removed}
+     * the indices of the old ones none continues.
+     */
+    record Match(int[] pairs, List<Integer> removed) {
+        /** The match, or null when closures both added (or removed) and changed between the same unchanged ones. */
+        static Match of(List<String> before, List<String> now) {
+            int[] pairs = new int[now.size()];
+            Arrays.fill(pairs, -1);
+            boolean[] taken = new boolean[before.size()];
+            Map<String, Integer> beforeCounts = new HashMap<>();
+            Map<String, Integer> nowCounts = new HashMap<>();
+            before.forEach(s -> beforeCounts.merge(s, 1, Integer::sum));
+            now.forEach(s -> nowCounts.merge(s, 1, Integer::sum));
+            // A source which only one closure has on either side: the same closure, wherever it is now.
+            List<int[]> anchors = new ArrayList<>();
+            for (int i = 0; i < before.size(); i++) {
+                String s = before.get(i);
+                if (beforeCounts.get(s) == 1 && nowCounts.getOrDefault(s, 0) == 1) {
+                    int j = now.indexOf(s);
+                    pairs[j] = i;
+                    taken[i] = true;
+                    anchors.add(new int[] {i, j});
+                }
+            }
+            boolean inOrder = true;
+            for (int k = 1; k < anchors.size(); k++) {
+                inOrder &= anchors.get(k)[1] > anchors.get(k - 1)[1];
+            }
+            List<Integer> removed = new ArrayList<>();
+            // The rest, between the same unchanged ones; when those moved past each other, all the rest at once.
+            int gaps = inOrder ? anchors.size() + 1 : 1;
+            for (int g = 0; g < gaps; g++) {
+                int fromBefore = !inOrder || g == 0 ? 0 : anchors.get(g - 1)[0] + 1;
+                int toBefore = !inOrder || g == anchors.size() ? before.size() : anchors.get(g)[0];
+                int fromNow = !inOrder || g == 0 ? 0 : anchors.get(g - 1)[1] + 1;
+                int toNow = !inOrder || g == anchors.size() ? now.size() : anchors.get(g)[1];
+                List<Integer> left = new ArrayList<>();
+                List<Integer> right = new ArrayList<>();
+                for (int i = fromBefore; i < toBefore; i++) {
+                    if (!taken[i]) {
+                        left.add(i);
+                    }
+                }
+                for (int j = fromNow; j < toNow; j++) {
+                    if (pairs[j] < 0) {
+                        right.add(j);
+                    }
+                }
+                // With no count change, body edits keep their places. Matching a surviving copy first would swap
+                // [A, A] -> [B, A], giving the edit to the second callback's existing objects and captures.
+                if (left.size() == right.size()) {
+                    for (int k = 0; k < left.size(); k++) {
+                        pairs[right.get(k)] = left.get(k);
+                    }
+                    continue;
+                }
+                // Copies of one source: match unchanged ones while finding additions or removals.
+                for (Iterator<Integer> it = left.iterator(); it.hasNext(); ) {
+                    int i = it.next();
+                    for (Iterator<Integer> jt = right.iterator(); jt.hasNext(); ) {
+                        int j = jt.next();
+                        if (before.get(i).equals(now.get(j))) {
+                            pairs[j] = i;
+                            it.remove();
+                            jt.remove();
+                            break;
+                        }
+                    }
+                }
+                if (left.isEmpty()) {
+                    continue;
+                } else if (right.isEmpty()) {
+                    removed.addAll(left);
+                } else {
+                    return null;
+                }
+            }
+            return new Match(pairs, List.copyOf(removed));
+        }
     }
 
     /** The run keys of the source initializers, as Lua strings, in the order the map runs them. */
@@ -1397,14 +2076,20 @@ public final class LuaHotReload {
     }
 
     /** The identity of a function: its package, IM name and signature. */
-    static String functionId(ImFunction f) {
+    public static String functionId(ImFunction f) {
         return semanticId(f, signature(f));
     }
 
     /** The identity of a global or a field (with its class), or of a class. */
-    static String variableId(ImVar v) {
+    public static String variableId(ImVar v) {
         de.peeeq.wurstscript.jassIm.Element owner = v.getParent() == null ? null : v.getParent().getParent();
         return semanticId(v, (owner instanceof ImClass c ? c.getName() + "." : "") + v.getName());
+    }
+
+    /** {@link #variableId}, or for a global holding a compile-time object or hashtable, what made it. */
+    static String variableId(ImTranslator imTr, ImVar v) {
+        String compiletime = imTr.compiletimeGlobalIdentity(v);
+        return compiletime != null ? compiletime : variableId(v);
     }
 
     static String classId(ImClass c) {
