@@ -26,9 +26,9 @@ import java.util.*;
  * <ul>
  *   <li>a new or changed function is defined, and its class-table slots are bound again;</li>
  *   <li>a new top-level declaration runs; a changed one is rejected;</li>
- *   <li>a new initialisation statement runs, and so does a changed slot binding; a changed initial value of a constant
- *   which only computes its value runs again, and so do the constants computed from it ({@link Constant}); a changed
- *   initial value of any other global which exists is skipped with a warning, since the map keeps its value; any other
+ *   <li>a new initialisation statement runs, and so does a changed slot binding or table of a class's supertypes; a
+ *   changed initial value of a constant which only computes its value runs again, and so do the constants computed
+ *   from it ({@link Constant}); a changed initial value of any other global which exists is skipped with a warning, since the map keeps its value; any other
  *   changed one is rejected;</li>
  *   <li>the init of a new package runs once; a changed init of a package which ran warns that it needs a restart.</li>
  * </ul>
@@ -136,7 +136,7 @@ public final class LuaHotReload {
      * A statement of the script outside the functions: {@code scope} is {@code top} (a top-level declaration),
      * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key}
      * identifies the assignment or complete source initializer;
-     * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
+     * {@code kind} is {@code slot} (a function bound in a table, or a class's table of supertypes), {@code global} (a value given to a global) or
      * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
      * complete definition for an initializer call, otherwise the statement text. {@code targets} identifies all
      * retained storage written by a source initializer, including tuple leaves and generic specializations.
@@ -182,11 +182,13 @@ public final class LuaHotReload {
      * Where the objects of a closure keep their state, by the closure's function: {@code tables} names, by role
      * ({@code class}, or {@code field:} and the field), the class table an object holds and the stores of its captured
      * values; {@code fresh} gives, by table name, the expression which makes an empty one; {@code classData} names the
-     * bootstrap statements which write the class table (its slots, supertypes, type id). An object holds its class
+     * bootstrap statements which write the class table (its slots, supertypes, type id); {@code captureTypes} records
+     * source field types independently of the names a remap gives their stores. An object holds its class
      * table itself (__wurst_objectClass), so a payload can give the names of the closures of an order group to other
      * closures while each table, and so each object made before, stays with the closure it was made from.
      */
-    public record Closure(Map<String, String> tables, Map<String, String> fresh, List<String> classData) {
+    public record Closure(Map<String, String> tables, Map<String, String> fresh, List<String> classData,
+                          Map<String, String> captureTypes) {
     }
 
     /**
@@ -210,15 +212,23 @@ public final class LuaHotReload {
      * {@code lineageOrigins} names the tables of each closure a payload added where
      * that payload's program kept them ({@link Closure#tables}), empty for a role whose table it had to make anew;
      * {@code permutedGroups} names the groups whose tables a payload gave to other closures.
+     * {@code lineageTypes} preserves captured field types even when a later payload removes a capture or its closure.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                           Map<String, List<String>> groupShapes, List<GroupMember> groupLayout,
-                          Map<String, Map<String, String>> lineageOrigins, Set<String> permutedGroups) {
+                          Map<String, Map<String, String>> lineageOrigins, Set<String> permutedGroups, Set<String> reboundSlots,
+                          Map<String, Map<String, String>> lineageTypes) {
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of());
+        }
+
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
+                       Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured) {
@@ -246,19 +256,26 @@ public final class LuaHotReload {
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
      * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
-     * hashes. {@code slots}, {@code initializers}, {@code variables} and {@code groupShapes} carry the installation
+     * hashes. {@code slots}, {@code initializers}, {@code variables}, {@code groupShapes} and {@code reboundSlots} carry the installation
      * metadata subsequent payloads need.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                           Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
                           List<GroupMember> groupLayout, Map<String, Map<String, String>> lineageOrigins,
-                          Set<String> permutedGroups) {
+                          Set<String> permutedGroups, Set<String> reboundSlots, Map<String, Map<String, String>> lineageTypes) {
+        public Payload(int version, List<String> functions, String source, List<String> warnings,
+                       Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
+                       Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes, Set<String> reboundSlots) {
+            this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
+                List.of(), Map.of(), Set.of(), reboundSlots, Map.of());
+        }
+
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of());
+                List.of(), Map.of(), Set.of(), Set.of(), Map.of());
         }
     }
 
@@ -389,7 +406,7 @@ public final class LuaHotReload {
                 // With its type: objects which exist keep the values of the old one, which two class types
                 // with the same nil default and storage would not reveal.
                 bindings.add(tr.fieldStorage(field).getName() + "=" + semanticId(field, c.getName() + "." + field.getName())
-                    + ":" + typeKey(field.getType()));
+                    + captureOwner(tr, c) + ":" + typeKey(field.getType()));
             }
         }
 
@@ -464,17 +481,19 @@ public final class LuaHotReload {
             }
             Map<String, String> tables = new TreeMap<>();
             Map<String, String> fresh = new TreeMap<>();
+            Map<String, String> captureTypes = new TreeMap<>();
             tables.put("class", classTable.getName());
             fresh.put(classTable.getName(), print(classTable.getInitialValue()));
             for (ImVar field : c.getFields()) {
                 LuaVariable store = tr.fieldStorage(field);
                 if (declared.contains(store)) {
                     tables.put("field:" + field.getName(), store.getName());
+                    captureTypes.put("field:" + field.getName(), typeKey(field.getType()));
                     fresh.put(store.getName(), print(store.getInitialValue()));
                 }
             }
             Closure closure = new Closure(Collections.unmodifiableMap(tables), Collections.unmodifiableMap(fresh),
-                new ArrayList<>());
+                new ArrayList<>(), Collections.unmodifiableMap(captureTypes));
             byClassTable.put(classTable, closure);
             closures.put(f.getName(), closure);
         }
@@ -487,7 +506,7 @@ public final class LuaHotReload {
                 }
             }
         }
-        closures.replaceAll((name, c) -> new Closure(c.tables(), c.fresh(), List.copyOf(c.classData())));
+        closures.replaceAll((name, c) -> new Closure(c.tables(), c.fresh(), List.copyOf(c.classData()), c.captureTypes()));
         return Collections.unmodifiableMap(closures);
     }
 
@@ -561,7 +580,10 @@ public final class LuaHotReload {
             key = left.toString();
             s.print(text, 0);
             revision = withoutPositions(tr, s);
-            if (a.getLeft() instanceof LuaExprFieldAccess && a.getRight() instanceof LuaExprFuncRef) {
+            if (a.getLeft() instanceof LuaExprFieldAccess field && (a.getRight() instanceof LuaExprFuncRef
+                || field.getFieldName().equals(ExprTranslation.WURST_SUPERTYPES))) {
+                // A class's supertypes are read only by instanceof, when it runs, so a changed table is assigned again
+                // as a slot is bound again: objects made before then answer for the class as it is now.
                 kind = "slot";
             } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
                 kind = "global";
@@ -748,6 +770,7 @@ public final class LuaHotReload {
 
         List<Statement> declarations = new ArrayList<>();
         List<Statement> initialisations = new ArrayList<>();
+        Set<String> sentSlots = new LinkedHashSet<>(history.reboundSlots());
         Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
         Map<String, String> currentInitializers = initializers(current);
         Map<String, String> baselineInitializers = initializers(baseline);
@@ -792,11 +815,17 @@ public final class LuaHotReload {
                 }
             }
             for (Statement s : current.statements()) {
-                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())) {
+                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())
+                    && !(s.kind().equals("slot") && sentSlots.contains(runKey(s)))) {
                     continue;
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
+                if (slot) {
+                    // Remember every binding sent, even when a later edit restores the baseline. A map may have
+                    // installed any earlier payload, so that baseline assignment must keep shipping too.
+                    sentSlots.add(runKey(s));
+                }
                 if (scope.equals("init") && s.kind().equals("global")) {
                     long existing = s.targets().stream().filter(knownNames::contains).count();
                     if (existing > 0 && existing < s.targets().size()) {
@@ -1046,7 +1075,8 @@ public final class LuaHotReload {
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
             Collections.unmodifiableMap(groupShapes), List.copyOf(lineages.layout),
-            Collections.unmodifiableMap(lineages.newOrigins), Collections.unmodifiableSet(lineages.permuted));
+            Collections.unmodifiableMap(lineages.newOrigins), Collections.unmodifiableSet(lineages.permuted), Collections.unmodifiableSet(sentSlots),
+            Collections.unmodifiableMap(lineages.types));
     }
 
     /**
@@ -1061,9 +1091,8 @@ public final class LuaHotReload {
      * <p>The edit's closures of a group are matched with those the last payload sent (or the started map's): those of a
      * source which only one has on either side are the same closure, wherever they are; one whose source is new takes
      * the place of one which lost its source between the same unchanged ones, as an edited body; and one which has no such
-     * place is a new closure (after the last unchanged one, those past the edited ones were appended, as before). Before
-     * an unchanged one, closures both added and changed cannot be told apart (an insertion and an edit, or two edits and
-     * an append), and the edit is refused.
+     * place is a new closure. Closures both added and changed in one gap cannot be told apart (an insertion and an edit,
+     * or two edits and an append), including after the last unchanged one, and the edit is refused.
      *
      * <p>The map keeps the tables by lineage in {@code __wurst_hotreload_lineages}, taken from the names the closure had
      * when it began (the started map's, or those of the payload which added it) before any name is given another table,
@@ -1079,6 +1108,7 @@ public final class LuaHotReload {
         final List<GroupMember> layout = new ArrayList<>();
         /** Where the closures this payload adds began. */
         final Map<String, Map<String, String>> newOrigins = new TreeMap<>();
+        final Map<String, Map<String, String>> types = new TreeMap<>();
         /** The groups whose names hold other tables than those the started map gave them. */
         final Set<String> permuted = new TreeSet<>();
         private final Map<String, String> lineageOf = new HashMap<>();
@@ -1095,6 +1125,18 @@ public final class LuaHotReload {
             List<GroupMember> lastLayout = Objects.requireNonNullElse(history.groupLayout(), List.of());
             Map<String, Map<String, String>> knownOrigins = Objects.requireNonNullElse(history.lineageOrigins(), Map.of());
             Map<String, List<String>> knownShapes = Objects.requireNonNullElse(history.groupShapes(), Map.of());
+            if (!knownOrigins.isEmpty() && Objects.requireNonNullElse(history.lineageTypes(), Map.of()).isEmpty()) {
+                reasons.add("the session lacks the captured types of earlier closure lineages: restart the map");
+            }
+            baseClosures.forEach((name, closure) -> {
+                if (closure.captureTypes() == null && closure.tables().keySet().stream().anyMatch(k -> k.startsWith("field:"))) {
+                    reasons.add("the baseline lacks the captured types of closure " + name + ": restart the map");
+                }
+            });
+            Objects.requireNonNullElse(history.lineageTypes(), Map.<String, Map<String, String>>of())
+                .forEach((lineage, fields) -> types.put(lineage, new TreeMap<>(fields)));
+            baseClosures.forEach((lineage, closure) -> types.computeIfAbsent(lineage, k -> new TreeMap<>())
+                .putAll(Objects.requireNonNullElse(closure.captureTypes(), Map.of())));
 
             // What the last payload sent, or else the started map: the closures to match, by group, in order.
             Map<String, List<GroupMember>> before = new TreeMap<>();
@@ -1178,6 +1220,14 @@ public final class LuaHotReload {
                         }
                     }
                     lineageOf.put(f.name(), lineage);
+                    Map<String, String> capturedTypes = types.computeIfAbsent(lineage, k -> new TreeMap<>());
+                    for (Map.Entry<String, String> field : curClosures.get(f.name()).captureTypes().entrySet()) {
+                        String previousType = capturedTypes.putIfAbsent(field.getKey(), field.getValue());
+                        if (previousType != null && !previousType.equals(field.getValue())) {
+                            reasons.add("closure " + f.name() + " captures " + field.getKey() + " as " + field.getValue()
+                                + ", which the closure it continues captured as " + previousType + "; restart the map");
+                        }
+                    }
                     members.add(f.name());
                     layout.add(new GroupMember(group, f.name(), lineage, sourceOf(f)));
                     shapes.put(lineage, sourceOf(f));
@@ -1189,13 +1239,6 @@ public final class LuaHotReload {
                     for (Map.Entry<String, String> table : curClosures.get(name).tables().entrySet()) {
                         String began = origin.get(table.getKey());
                         moves |= !table.getValue().equals(began);
-                        // A captured value keeps its type: the objects made before hold values of the type they had.
-                        if (began != null && !began.equals(table.getValue()) && table.getKey().startsWith("field:")
-                            && baseIds.containsKey(began) && !baseIds.get(began).equals(curIds.get(table.getValue()))) {
-                            reasons.add("closure " + name + " captures " + table.getKey().substring("field:".length())
-                                + " as " + curIds.get(table.getValue()) + ", which the closure it continues captured as "
-                                + baseIds.get(began) + "; restart the map");
-                        }
                     }
                 }
                 if (moves) {
@@ -1231,6 +1274,7 @@ public final class LuaHotReload {
                 }
             }
             refuseNamesOfRemovedClosures(reclaimed, beganWith, before, reasons);
+            types.replaceAll((lineage, fields) -> Collections.unmodifiableMap(new TreeMap<>(fields)));
         }
 
         /**
@@ -1385,8 +1429,9 @@ public final class LuaHotReload {
                     continue;
                 } else if (right.isEmpty()) {
                     removed.addAll(left);
-                } else if (left.size() == right.size() || g == gaps - 1 && left.size() < right.size()) {
-                    // Edited bodies keep their places; after the last unchanged one, the others were appended.
+                } else if (left.size() == right.size()) {
+                    // Edited bodies keep their places. A simultaneous insertion cannot be distinguished from an
+                    // append, even after the last unchanged closure, so different counts must be refused.
                     for (int k = 0; k < left.size(); k++) {
                         pairs[right.get(k)] = left.get(k);
                     }
@@ -1867,6 +1912,15 @@ public final class LuaHotReload {
 
     static String classId(ImClass c) {
         return semanticId(c, c.getName());
+    }
+
+    /**
+     * What tells the captures of closures of one identity apart, which closures told apart by their order share: the
+     * source identity and occurrence of the closure's class, which follow that order. A capture's storage is named after it, so a closure which
+     * starts or stops capturing a variable renames no sibling's storage. Empty for any other class.
+     */
+    static String captureOwner(LuaTranslator tr, ImClass c) {
+        return c.getTrace() instanceof ExprClosure ? "@closure:" + classId(c) + "#" + tr.closureOrdinal(c) : "";
     }
 
     /** The identity of a method: with its implementation's signature, which tells overloads apart. */

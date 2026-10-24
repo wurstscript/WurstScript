@@ -70,6 +70,8 @@ public final class LuaHotReloadSession {
         Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
         /** The order groups whose names a payload gave other tables. */
         List<String> permutedGroups = new ArrayList<>();
+        Set<String> reboundSlots = new LinkedHashSet<>();
+        Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
     }
 
     /**
@@ -243,6 +245,8 @@ public final class LuaHotReloadSession {
         List<LuaHotReload.GroupMember> groupLayout;
         Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
         List<String> permutedGroups = new ArrayList<>();
+        Set<String> reboundSlots = new LinkedHashSet<>();
+        Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
     }
 
     /** A payload and the file it was written to. */
@@ -283,7 +287,8 @@ public final class LuaHotReloadSession {
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
             new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
             state.groupLayout, orEmpty(state.lineageOrigins),
-            new LinkedHashSet<>(orEmpty(state.permutedGroups))), state.version + 1);
+            new LinkedHashSet<>(orEmpty(state.permutedGroups)),
+            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes)), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -296,6 +301,8 @@ public final class LuaHotReloadSession {
         pending.groupLayout = new ArrayList<>(payload.groupLayout());
         pending.lineageOrigins = new LinkedHashMap<>(payload.lineageOrigins());
         pending.permutedGroups = new ArrayList<>(payload.permutedGroups());
+        pending.reboundSlots = new LinkedHashSet<>(payload.reboundSlots());
+        pending.lineageTypes = new LinkedHashMap<>(payload.lineageTypes());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -363,6 +370,16 @@ public final class LuaHotReloadSession {
         Set<String> permuted = new LinkedHashSet<>(orEmpty(state.permutedGroups));
         permuted.addAll(orEmpty(sent.permutedGroups));
         state.permutedGroups = new ArrayList<>(permuted);
+        Set<String> reboundSlots = new LinkedHashSet<>(state.reboundSlots == null ? Set.of() : state.reboundSlots);
+        reboundSlots.addAll(sent.reboundSlots == null ? Set.of() : sent.reboundSlots);
+        state.reboundSlots = reboundSlots;
+        Map<String, Map<String, String>> types = new LinkedHashMap<>(orEmpty(state.lineageTypes));
+        orEmpty(sent.lineageTypes).forEach((lineage, fields) -> {
+            Map<String, String> combined = new LinkedHashMap<>(types.getOrDefault(lineage, Map.of()));
+            fields.forEach(combined::putIfAbsent);
+            types.put(lineage, combined);
+        });
+        state.lineageTypes = types;
         state.version = sent.version;
     }
 

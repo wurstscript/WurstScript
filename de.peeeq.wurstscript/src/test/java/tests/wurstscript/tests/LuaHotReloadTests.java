@@ -1199,13 +1199,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void payloadWarningsAreOneNote() {
         LuaHotReload.Payload none = new LuaHotReload.Payload(3, List.of(), "", List.of(), java.util.Map.of(), java.util.Map.of(),
-            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals(null, LuaHotReloadSession.warningNote(none));
         LuaHotReload.Payload one = new LuaHotReload.Payload(3, List.of(), "", List.of("a"), java.util.Map.of(), java.util.Map.of(),
-            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals("a", LuaHotReloadSession.warningNote(one));
         LuaHotReload.Payload two = new LuaHotReload.Payload(3, List.of(), "", List.of("a", "b"), java.util.Map.of(),
-            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals("Hot reload payload 3 applies with 2 notes:\na\nb", LuaHotReloadSession.warningNote(two));
     }
 
@@ -1285,9 +1285,48 @@ public class LuaHotReloadTests extends WurstScriptTest {
     /** A callback added after its siblings reloads too, and those made before keep their bodies. */
     @Test
     public void callbackAppendedAfterItsSiblingsReloads() {
+        String[] baseline = java.util.Arrays.stream(orderedCallbacks("20"))
+            .map(line -> line.replace("or second.apply() != 2", "or second.apply() != 20")).toArray(String[]::new);
+        String[] appended = java.util.Arrays.stream(orderedCallbacks("20", "    third = keep(() -> 3)"))
+            .map(line -> line.replace("or second.apply() != 2", "or second.apply() != 20")).toArray(String[]::new);
         test().testLua(true).executeProg()
-            .luaHotReload(orderedCallbacks("20", "    third = keep(() -> 3)"))
-            .lines(orderedCallbacks("2"));
+            .luaHotReload(appended).lines(baseline);
+    }
+
+    private static String[] capturingCallbacks(String first) {
+        return capturingCallbacks(first, 7);
+    }
+
+    private static String[] capturingCallbacks(String first, int firstAfter) {
+        return new String[] {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int",
+            "function keep(Op op) returns Op", "    return op",
+            "Op first", "Op second",
+            // Two callbacks told apart by their order; only the second captures s.
+            "function makeAll(int s)", "    first = keep(() -> " + first + ")", "    second = keep(() -> s * 10)",
+            "init",
+            "    makeAll(5)",
+            "    if second.apply() != 50",
+            "        testFail(\"the original callback did not run\")",
+            "    hotReload()",
+            "    if second.apply() != 50",
+            "        testFail(\"a callback made before the reload lost the value it captured\")",
+            "    makeAll(6)",
+            "    if first.apply() != " + firstAfter + " or second.apply() != 60",
+            "        testFail(\"the callbacks made after the reload\")",
+            "    testSuccess()",
+        };
+    }
+
+    @Test
+    public void callbackWhichStartsCapturingLeavesItsSiblingsCaptures() {
+        test().testLua(true).executeProg().luaHotReload(capturingCallbacks("s + 1")).lines(capturingCallbacks("1"));
+    }
+
+    @Test
+    public void callbackWhichStopsCapturingIsABodyEdit() {
+        test().testLua(true).executeProg().luaHotReload(capturingCallbacks("1", 1)).lines(capturingCallbacks("s", 1));
     }
 
     private static String[] insertedCallbacks(boolean inserted) {
@@ -1502,6 +1541,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReloadSession.send(build, delivery, manifest(registered("1", "2")));
     }
 
+    @Test
+    public void callbackCaptureTypesSurvivePayloadHistory() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadCaptureTypes");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadCaptureTypesDelivery");
+        LuaHotReloadSession.start(build, manifest(registered()));
+        LuaHotReloadSession.send(build, delivery, manifest(typedCallbacks(false, false)));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, manifest(typedCallbacks(true, true))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("captured as"));
+    }
+
+    @Test
+    public void insertionAndBodyEditsAfterTheLastAnchorAreRefused() throws Exception {
+        var baseline = manifest(registered("1", "2", "3"));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, manifest(registered("1", "9", "20", "30")), Set.of(), 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("cannot be told apart"));
+    }
+
+    private static String[] typedCallbacks(boolean inserted, boolean real) {
+        return new String[] {"package Test", "native R2I(real r) returns int", "interface Op", "    function apply() returns int",
+            "Op last", "function keep(Op op)", "    last = op", "function registerAll()",
+            real ? "    real s = 1." : "    int s = 1", inserted ? "    keep(() -> 9)" : "",
+            "    keep(() -> R2I(s + 0.))", "    keep(() -> R2I(s + 0.) + 2)", "init", "    registerAll()", "    last.apply()"};
+    }
+
     /**
      * The build of an edit is a function of its source alone: the payload, made for the running map, carries how its
      * closures continue the map's, and the same session gives the same payload.
@@ -1657,6 +1722,41 @@ public class LuaHotReloadTests extends WurstScriptTest {
             LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 3).source()), true, globalName(first, "made"));
         assertEquals(output, 1, occurrences(output, "restart the map to apply changed package init code"));
         assertEquals("the init runs only once: " + output, 3, occurrences(output, "true 4 nil"));
+    }
+
+    private static String[] overrideProgram(boolean override) {
+        String[] head = {
+            "package Test", "@annotation function onHotReload()",
+            "interface Op", "    function apply() returns int",
+            "class A implements Op", "    override function apply() returns int", "        return 1",
+            "class B extends A",
+        };
+        String[] tail = {
+            "int result = 0", "Op made",
+            "@onHotReload function reloaded()", "    result = made.apply()",
+            "init", "    made = new B()", "    result = made.apply()",
+        };
+        return concat(override ? concat(head, new String[] {"    override function apply() returns int", "        return 2"})
+            : head, tail);
+    }
+
+    /**
+     * An override which one payload added and the next removes: the class's slot must be bound again to the inherited
+     * body it had at the start, though that binding is the running script's own.
+     */
+    @Test
+    public void removedOverrideOfAnEarlierPayloadRebindsTheInheritedSlot() throws Exception {
+        String[] base = overrideProgram(false);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedOverrideOfAnEarlierPayloadRebindsTheInheritedSlot.lua";
+        var build = java.nio.file.Files.createTempDirectory("hotReloadOverride");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadOverrideDelivery");
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReloadSession.start(build, baseline);
+        String added = LuaHotReloadSession.send(build, delivery, manifest(overrideProgram(true))).payload().source();
+        String removed = LuaHotReloadSession.send(build, delivery, manifest(base)).payload().source();
+        assertEquals("true 2 nil\ntrue 1 nil",
+            applyInLua(script, List.of(added, removed), globalName(baseline, "result")).replace("\r\n", "\n"));
     }
 
     private static String[] mainWithExtra(String initialValue) {
@@ -3234,7 +3334,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         while (payload.length() < LuaHotReloadSession.PRELOAD_CHUNK - 1) {
             payload.append('x');
         }
-        payload.append("😀");
+        payload.append("ðŸ˜€");
         while (payload.length() < 2500) {
             payload.append("x = \"").append(payload.length()).append("\"\n");
         }
@@ -3259,6 +3359,111 @@ public class LuaHotReloadTests extends WurstScriptTest {
                 "wurst hot reload probe: \"quoted\" back\\slash //! marker\nsecond line"),
             java.nio.file.Files.readString(java.nio.file.Paths.get("../docs/profiling/lua-opportunities/hot-reload-probe.pld"))
                 .replace("\r\n", "\n"));
+    }
+
+    /**
+     * Closures on lines 9 and 12 move to 10 and 13: nothing moved. Ordered by their positions as text ("L12" before "L9"),
+     * the two swapped names and the map refused the edit.
+     */
+    @Test
+    public void closuresKeepTheirPlacesWhenTheLinesAboveShift() throws Exception {
+        LuaHotReload.Manifest baseline = manifest(shiftedCallbacks(false));
+        LuaHotReload.Manifest shifted = manifest(shiftedCallbacks(true));
+        assertEquals(baseline.functions().keySet(), shifted.functions().keySet());
+        LuaHotReload.payload(baseline, shifted, Set.of(), 1);
+    }
+
+    /** Declarations of one name are ordered by their positions as numbers, line before column. */
+    @Test
+    public void sortKeysComparePositionsAsNumbers() {
+        List<de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey> keys = new java.util.ArrayList<>(List.of(
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 101, 5),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 12, 10),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 12, 9),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", 98, 1),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("f", -1, -1),
+            new de.peeeq.wurstscript.translation.imtranslation.ImTranslator.SortKey("e", 1000, 1)));
+        java.util.Collections.sort(keys);
+        assertEquals(List.of("e@1000:1", "f@-1:-1", "f@12:9", "f@12:10", "f@98:1", "f@101:5"),
+            keys.stream().map(k -> k.name() + "@" + k.line() + ":" + k.column()).toList());
+    }
+
+    private static String[] shiftedCallbacks(boolean lineAbove) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "interface Op", "    function apply() returns int",
+            "Op first = null", "Op second = null", "function keep(Op op) returns Op", "    return op",
+            "function makeAll()", "    first = keep(() -> 1)", "", "", "    second = keep(() -> 2)",
+            "init", "    makeAll()", "    first.apply()", "    second.apply()"));
+        if (lineAbove) {
+            lines.add(1, "// one line more");
+        }
+        return lines.toArray(new String[0]);
+    }
+
+    /** A class which implements another interface reloads: its table of supertypes is assigned again. */
+    @Test
+    public void aClassWhichImplementsAnotherInterfaceReloads() throws Exception {
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(implementing("Visitor")),
+            manifest(implementing("Predicate")), Set.of(), 1);
+        assertTrue(payload.source(), Pattern.compile("Doubler\\w*\\.__wurst_supertypes = \\(\\{[^\\n]*Predicate")
+            .matcher(payload.source()).find());
+    }
+
+    private static String[] implementing(String iface) {
+        return new String[] {"package Test", "interface Visitor", "    function visit(int x) returns int",
+            "interface Predicate", "    function visit(int x) returns int", "abstract class Base",
+            "class Doubler extends Base implements " + iface, "    function visit(int x) returns int", "        return 2 * x",
+            "function useVisitor(Visitor v) returns int", "    return v.visit(1)",
+            "function usePredicate(Predicate p) returns int", "    return p.visit(1)",
+            "function check(Base b) returns boolean", "    return b instanceof Doubler",
+            "init", "    let d = new Doubler()", "    check(d)", "    useVisitor(null)", "    usePredicate(null)"};
+    }
+
+    /** An object made before the reload is an instance of the interface its class implements now, and no longer of the old. */
+    @Test
+    public void instanceofFollowsTheInterfacesAClassImplementsAfterTheReload() {
+        test().testLua(true).executeProg().luaHotReload(implementingAndChecking("Predicate"))
+            .lines(implementingAndChecking("Visitor"));
+    }
+
+    @Test
+    public void undoingAnInterfaceChangeRestoresTheRunningObjectsSupertypes() throws Exception {
+        String[] original = interfaceUndoProgram("Visitor");
+        String[] changed = interfaceUndoProgram("Predicate");
+        var baseline = manifest(original);
+        var build = java.nio.file.Files.createTempDirectory("hotReloadInterfaceUndo");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadInterfaceUndoDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, manifest(changed)).payload();
+        var second = LuaHotReloadSession.send(build, delivery, baseline).payload();
+        test().testLua(true).luaHotReload(original).lines(original);
+        String script = "test-output/lua/LuaHotReloadTests_undoingAnInterfaceChangeRestoresTheRunningObjectsSupertypes.lua";
+        String probe = luaName(baseline, "isVisitor") + "()";
+        assertEquals("true false nil\ntrue true nil", applyInLua(script,
+            List.of(first.source(), second.source()), probe).replace("\r\n", "\n"));
+        assertEquals("true true nil", applyInLua(script, List.of(second.source()), probe));
+    }
+
+    private static String[] interfaceUndoProgram(String iface) {
+        return new String[] {"package Test", "interface Thing", "interface Visitor extends Thing",
+            "    function visit() returns int", "interface Predicate extends Thing", "    function visit() returns int",
+            "class Doubler implements " + iface, "    function visit() returns int", "        return 2",
+            "Thing saved", "function isVisitor() returns boolean", "    return saved instanceof Visitor",
+            "function probePredicate(Predicate p) returns int", "    return p.visit()", "init", "    saved = new Doubler()",
+            "    isVisitor()", "    probePredicate(null)"};
+    }
+
+    private static String[] implementingAndChecking(String iface) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Thing", "interface Visitor extends Thing", "    function visit(int x) returns int",
+            "interface Predicate extends Thing", "    function visit(int x) returns int", "abstract class Base implements Thing",
+            "class Doubler extends Base implements " + iface, "    function visit(int x) returns int", "        return 2 * x",
+            "function isVisitor(Thing t) returns boolean", "    return t instanceof Visitor",
+            "function isPredicate(Thing t) returns boolean", "    return t instanceof Predicate",
+            "init", "    Thing d = new Doubler()",
+            "    if not isVisitor(d) or isPredicate(d)", "        testFail(\"the original supertypes\")",
+            "    hotReload()",
+            "    if isVisitor(d) or not isPredicate(d)", "        testFail(\"the supertypes after the reload\")",
+            "    testSuccess()"};
     }
 
     private LuaHotReload.Manifest libraryManifest(RunArgs args, String[] lines) {
@@ -3287,6 +3492,86 @@ public class LuaHotReloadTests extends WurstScriptTest {
     private LuaHotReload.Manifest manifest(String... lines) {
         String name = new Throwable().getStackTrace()[1].getMethodName();
         return compileLuaHotReloadManifest(false, HOT_RELOAD, new CU(name, String.join("\n", lines) + "\n"));
+    }
+
+    /**
+     * A closure passed to a call in a builder chain keeps its identity when a later call of the chain, whose receiver
+     * holds the closure, is removed: an object made before the reload gets the edited body.
+     */
+    @Test
+    public void aClosureKeepsItsIdentityWhenALaterCallInItsChainIsRemoved() {
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(false, 2, 3))
+            .lines(chained(true, 1, 3));
+    }
+
+    @Test
+    public void aClosureKeepsItsIdentityWhenALaterCallIsAddedToItsChain() {
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(true, 2, 3))
+            .lines(chained(false, 1, 3));
+    }
+
+    /** Two closures of one chain stay apart: the edit of one reaches only that one. */
+    @Test
+    public void twoClosuresOfOneChainStayDistinct() {
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(false, 2, 3))
+            .lines(chained(true, 2, 2));
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(false, 2, 3))
+            .lines(chained(true, 1, 3));
+    }
+
+    @Test
+    public void twoClosuresPassedToTheSameChainMethodKeepTheirBodies() {
+        test().testLua(true).executeProg().luaHotReload(repeatedChain(false, 2, 3))
+            .lines(repeatedChain(true, 1, 2));
+    }
+
+    private static String[] repeatedChain(boolean armor, int add, int factor) {
+        return java.util.Arrays.stream(chained(armor, add, factor))
+            .map(line -> line.replace("        modi = m", "        if modi == null\n            modi = m\n        else\n            bonus = m")
+                .replace(".bonus(x", ".modifier(x"))
+            .toArray(String[]::new);
+    }
+
+    @Test
+    public void removingALaterCallOfAChainWarnsOfNoClosure() throws Exception {
+        LuaHotReload.Payload removed = LuaHotReload.payload(manifest(chained(true, 1, 3)), manifest(chained(false, 1, 3)),
+            Set.of(), 1);
+        assertEquals("no closure was renamed: " + removed.warnings(), List.of(), removed.warnings());
+        LuaHotReload.Payload edited = LuaHotReload.payload(manifest(chained(true, 1, 3)), manifest(chained(false, 2, 3)),
+            Set.of(), 1);
+        assertEquals(List.of(), edited.warnings());
+        assertTrue("the edited closure ships:\n" + edited.source(), edited.source().contains("(x + 2)"));
+    }
+
+    /**
+     * A wave built by a chain with two closures; the init checks the bodies after the reload against those of the
+     * edited program, {@code x + 2} and {@code x * 3}, so it is the same text in both programs.
+     */
+    private static String[] chained(boolean armor, int add, int factor) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "native testSuccess()",
+            "native testFail(string msg)", "native hotReload()", "interface Modifier",
+            "    function modify(int x) returns int",
+            "class Wave", "    int hp = 0", "    int armor = 0", "    Modifier modi = null", "    Modifier bonus = null",
+            "    function hp(int v) returns Wave", "        hp = v", "        return this",
+            "    function armor(int v) returns Wave", "        armor = v", "        return this",
+            "    function modifier(Modifier m) returns Wave", "        modi = m", "        return this",
+            "    function bonus(Modifier m) returns Wave", "        bonus = m", "        return this",
+            "function build() returns Wave", "    return new Wave()", "        .modifier(x -> x + " + add + ")",
+            "        .hp(100)", "        .bonus(x -> x * " + factor + ")", "        .armor(5)",
+            "init", "    let w = build()", "    hotReload()",
+            "    if w.modi.modify(2) != 4",
+            "        testFail(\"the modifier made before the reload runs another body\")",
+            "    if w.bonus.modify(2) != 6",
+            "        testFail(\"the bonus made before the reload runs another body\")",
+            "    testSuccess()"));
+        if (!armor) {
+            lines.remove("        .armor(5)");
+        }
+        return lines.toArray(new String[0]);
     }
 
     private static String[] concat(String[] a, String[] b) {

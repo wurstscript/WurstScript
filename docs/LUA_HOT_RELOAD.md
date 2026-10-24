@@ -87,16 +87,19 @@ The payload compares the running script's manifest with the edited one:
   preserves slot bindings and stored functions from earlier payloads for these warnings, and for the rejection of a
   change to a function an earlier payload stored.
 - A new top-level declaration runs (a new class table, a new field store); a changed one is rejected.
-- A new bootstrap or initialiser statement runs; a changed slot binding runs; the initial value of a new global runs.
+- A new bootstrap or initialiser statement runs; a changed slot binding or class supertype table runs; the initial
+  value of a new global runs. Restoring an earlier interface list also updates objects the map already made.
 - A changed initial value of a constant which only computes its value runs again (see "Constants"). A changed initial
   value of any other global the map has is skipped with a warning: the map keeps the value it has.
   Removing the initializer has the same warning. For a global added by an earlier payload, its run-once marker in
   the map determines whether that removed initializer actually ran before the map warns.
-- Any other changed bootstrap statement (class data of a class which exists) is rejected, and so is a name which
+- Any other changed bootstrap statement (other class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
 - Interface/class closures bound to source variables include those variable names in their class identities in
   hot-reload builds. Adding or reordering distinct named siblings keeps existing closures' identities and captured
-  values; their methods can be replaced while old objects remain alive. Nested closures include outer variable
+  values; their methods can be replaced while old objects remain alive. A closure passed to a builder call keeps its
+  identity when later calls in that chain are added or removed; two closures passed to the same chain method remain
+  separate by their source order. Nested closures include outer variable
   bindings too. The source owner's scope and structural signature distinguish equal binding names in overloaded
   functions, including packages and enclosing scopes of nested parameter types. A closure in a package's `init` block
   is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure applies
@@ -113,7 +116,7 @@ The payload compares the running script's manifest with the edited one:
   `addedImplementationSortingFirstKeepsTheSlot`). Builds without `-luaHotReload` name groups as before.
   Siblings still sharing an identity (anonymous closures, such as several `doAfter` callbacks in one function, or equal
   binding names within one callable) form an order group: the build names them by their position, so the build stays a
-  function of the source alone. Editing their bodies keeps the positions, and so does adding one after them: both
+  function of the source alone. Source lines and columns compare as numbers. Editing their bodies keeps the positions, and so does adding one after them: both
   reload. A closure inserted before others gives each of them the next one's name; the payload carries the rest
   (`LuaHotReload.Lineages`). An object holds its class table itself (`__wurst_objectClass[id]`, read by every dispatch)
   and its captured values sit in field stores keyed by its id, so the payload matches the edit's closures with those
@@ -126,9 +129,9 @@ The payload compares the running script's manifest with the edited one:
   The match is by source (`Function.closureSource`, the closure as written), against what the last payload sent
   (`History.groupLayout`) or the started map: a source only one closure has on either side is that closure, wherever it
   is now (so swapped closures keep their bodies); one whose source is new takes the place of one which lost its source
-  between the same unchanged ones, as an edited body; any other is new (after the last unchanged one, those past the
-  edited ones were appended, as before). Before an unchanged closure, an insertion and an edit cannot be told apart from
-  two edits and an append, so that payload is refused: made one at a time, each applies, and an edit after an insertion reaches the objects made before either
+  between the same unchanged ones, as an edited body; any other is new. Within any gap, including after the last
+  unchanged closure, an insertion and an edit cannot be told apart from two edits and an append, so that payload is
+  refused: made one at a time, each applies, and an edit after an insertion reaches the objects made before either
   (`editAfterAnInsertionReachesObjectsMadeBeforeEither`). A closure whose source is now one another lineage had and lost
   moved, and the map may run either: refused, as is removing one while the others' names change (its old body reads its
   captured values by its old names). Removing the last ones of a group, or all of them, moves no other and applies with
@@ -137,6 +140,12 @@ The payload compares the running script's manifest with the edited one:
   (none of a closure) are still refused when some of them are removed and others remain. What the map runs of each is the baseline's source or one an earlier payload sent;
   the editor does not know which payloads the map installed, so it keeps every one sent (`History.groupShapes`, by
   lineage). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
+  A closure's captured variables are fields of its class, and their storage, and its binding, is named after that
+  class, whose name follows the order (`LuaHotReload.captureOwner`). They used to be numbered among the captures of one
+  name, so a closure which started to capture `s` took a later sibling's storage of `s`, whose objects then read 0, and
+  one which stopped capturing was refused as a removed closure (`callbackWhichStartsCapturingLeavesItsSiblingsCaptures`,
+  `callbackWhichStopsCapturingIsABodyEdit`). A closure made before the reload holds no value of a variable it did not
+  capture then: like an object of a class which gains a field, it reads the default.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not
@@ -435,6 +444,10 @@ The same suite, run as above with a tenth phase and a reload hook. 51 checks, al
 | every phase | an `@onHotReload` function counts the payloads and copies a constant into a variable, as setup in an `init` does | it ran after each of the nine payloads which applied and not at the start; after phase 7 the copy holds the tuned 250; phase 10 edited the hook, and that payload ran the new body (108: eight times 1, then 100) |
 
 Every payload which applied printed nothing else, so no hook failed.
+
+The later closure-lineage safety check now refuses phase 10's combined body edit and append: without another
+unchanged callback after it, that source is indistinguishable from an insertion followed by body edits. Send those
+as two payloads. The table records the historical in-game result, before that check.
 
 ### 24 Oct 2026: fourteen payloads, and Castle Fight
 
