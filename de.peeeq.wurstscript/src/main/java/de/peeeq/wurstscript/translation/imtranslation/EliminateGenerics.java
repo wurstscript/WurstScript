@@ -2922,6 +2922,11 @@ public class EliminateGenerics {
                 };
 
                 List<ImSet> specializedInitsForMap = new ArrayList<>(originalInits.size());
+                // A hot-reload build keeps each source initializer as a unit of its own; each specialisation's
+                // storage gets a unit of its own too, so a payload can initialise a new one alone.
+                ImFunction sourceUnit = parentStmts != null && parentStmts.getParent() instanceof ImFunction unit
+                    && translator.luaGlobalInitializers.get(unit) == originalGlobal ? unit : null;
+                List<ImSet> unitInits = new ArrayList<>(originalInits.size());
 
                 // Create specialized init sets and schedule: insert each right after its corresponding original init set
                 for (ImSet origSet : originalInits) {
@@ -2935,7 +2940,9 @@ public class EliminateGenerics {
                     // Append after earlier specializations of this initializer. Each invocation of
                     // createSpecializedGlobals has its own insertion batch; always inserting after
                     // origSet would therefore reverse specialization discovery/initializer order.
-                    if (parentStmts != null) {
+                    if (sourceUnit != null) {
+                        unitInits.add(specSet);
+                    } else if (parentStmts != null) {
                         ImStmt insertionPoint = specializedInitializerTails.getOrDefault(origSet, origSet);
                         IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
                             insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
@@ -2945,6 +2952,9 @@ public class EliminateGenerics {
 
                     // keep prog.getGlobalInits consistent, but do NOT reuse the tree-attached node elsewhere
                     specializedInitsForMap.add((ImSet) specSet.copy());
+                }
+                if (sourceUnit != null) {
+                    translator.addSpecializedGlobalInitializer(sourceUnit, specializedGlobal, unitInits);
                 }
 
                 prog.getGlobalInits().put(specializedGlobal, specializedInitsForMap);
