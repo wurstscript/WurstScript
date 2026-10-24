@@ -1090,7 +1090,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
      * one added after them reloads; one added before them would move the others, and the map refuses that.
      */
     @Test
-    public void siblingClosureAppendedReloadsAndOneInsertedBeforeIsRefused() throws Exception {
+    public void siblingClosureAppendedOrInsertedBeforeReloads() throws Exception {
         String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
             "function run() returns int", "    return consume((int v) -> v + 1) + consume((int v) -> v + 2)",
@@ -1099,11 +1099,14 @@ public class LuaHotReloadTests extends WurstScriptTest {
         appended[8] += " + consume((int v) -> v + 3)";
         LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(appended), Set.of(), 1);
         assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+        assertFalse("an appended closure moves no other's tables:\n" + payload.source(),
+            payload.source().contains("__wurst_hotreload_lineages"));
         String[] inserted = base.clone();
         inserted[8] = "    return consume((int v) -> v + 9) + consume((int v) -> v + 1) + consume((int v) -> v + 2)";
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(manifest(base), manifest(inserted), Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+        LuaHotReload.Payload insertion = LuaHotReload.payload(manifest(base), manifest(inserted), Set.of(), 1);
+        assertTrue(insertion.warnings().toString(), insertion.warnings().isEmpty());
+        assertTrue("the names of the others take their tables along:\n" + insertion.source(),
+            insertion.source().contains("__wurst_hotreload_lineages"));
     }
 
     /**
@@ -1205,8 +1208,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
 
     /**
      * A body has moved only if the closure which had it lost it: a copy of a callback appended after the others, or one
-     * edited into a copy of another, keeps every place and reloads. One inserted before identical callbacks moves them,
-     * and the map refuses that.
+     * edited into a copy of another, keeps every place and reloads. One inserted before identical callbacks takes the
+     * name of the first; the copies keep their tables, under the next names.
      */
     @Test
     public void copiedCallbacksAreNoMove() throws Exception {
@@ -1216,9 +1219,9 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.payload(base, manifest(consumers(one + " + " + two + " + " + one)), Set.of(), 1);
         LuaHotReload.Manifest copies = manifest(consumers(one + " + " + one));
         LuaHotReload.payload(base, copies, Set.of(), 1);
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(copies,
-            manifest(consumers("consume((int v) -> v + 9) + " + one + " + " + one)), Set.of(), 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+        LuaHotReload.Payload inserted = LuaHotReload.payload(copies,
+            manifest(consumers("consume((int v) -> v + 9) + " + one + " + " + one)), Set.of(), 1);
+        assertTrue(inserted.source(), inserted.source().contains("__wurst_hotreload_lineages"));
     }
 
     private static String[] orderedCallbacks(String second, String... more) {
@@ -1261,8 +1264,178 @@ public class LuaHotReloadTests extends WurstScriptTest {
             .lines(orderedCallbacks("2"));
     }
 
+    private static String[] insertedCallbacks(boolean inserted) {
+        return new String[] {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int",
+            "function keep(Op op) returns Op", "    return op",
+            "Op zero", "Op first", "Op second",
+            // Callbacks of one interface in one function, told apart by their order alone, which capture a value.
+            "function makeAll(int seed)",
+            inserted ? "    zero = keep(() -> seed * 100)" : "    zero = null",
+            "    first = keep(() -> seed + 1)",
+            "    second = keep(() -> seed * 10 + 2)",
+            "init",
+            "    makeAll(5)",
+            "    let a = first",
+            "    let b = second",
+            "    if a.apply() != 6 or b.apply() != 52",
+            "        testFail(\"the original callbacks did not run\")",
+            "    hotReload()",
+            "    if a.apply() != 6",
+            "        testFail(\"the first callback, made before the reload, runs another one's body or lost its value\")",
+            "    if b.apply() != 52",
+            "        testFail(\"the second callback, made before the reload, runs another one's body or lost its value\")",
+            "    makeAll(7)",
+            "    if zero.apply() != 700 or first.apply() != 8 or second.apply() != 72",
+            "        testFail(\"callbacks made after the reload run other bodies\")",
+            "    if a.apply() != 6 or b.apply() != 52",
+            "        testFail(\"callbacks made before the reload changed with those made after\")",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * A callback inserted before others of its interface in one function takes the first one's name, and each of the
+     * others the next one's: the objects made before keep the bodies and captured values of the callbacks they were made
+     * from, and those made after run the callbacks the edit has.
+     */
     @Test
-    public void ambiguousSameOwnerClosureBindingsCannotChangeOrSwap() throws Exception {
+    public void callbackInsertedBeforeItsSiblingsReloads() {
+        test().testLua(true).executeProg().luaHotReload(insertedCallbacks(true)).lines(insertedCallbacks(false));
+    }
+
+    private static String[] shiftedCallbacks(String zero, String first) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "native I2S(int i) returns string",
+            "interface Op", "    function apply() returns int",
+            "Op zero", "Op first", "Op second", "Op a", "Op b",
+            "function makeAll(int seed)"));
+        if (zero != null) {
+            lines.add("    zero = () -> " + zero);
+        }
+        lines.addAll(List.of(
+            "    first = () -> " + first,
+            "    second = () -> seed * 10 + 2",
+            "function show(Op op) returns string",
+            "    if op == null",
+            "        return \"-\"",
+            "    return I2S(op.apply())",
+            "function old() returns string",
+            "    return show(a) + \",\" + show(b)",
+            "function made() returns string",
+            "    return show(zero) + \",\" + show(first) + \",\" + show(second)",
+            "function remake() returns string",
+            "    makeAll(7)",
+            "    return made()",
+            // The driver calls the probes; a branch the map never takes keeps them in the script.
+            "boolean probing = false",
+            "init",
+            "    makeAll(5)",
+            "    a = first",
+            "    b = second",
+            "    if probing",
+            "        probing = old() == made() and remake() == \"\""));
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * A payload matches the closures of its edit with those the payload before it sent: after one which inserted a
+     * callback, one which edits a callback that moved reaches the objects made from it before either payload, and those
+     * made after the first. A map which missed the first payload gets the same from the second alone.
+     */
+    @Test
+    public void editAfterAnInsertionReachesObjectsMadeBeforeEither() throws Exception {
+        String[] base = shiftedCallbacks(null, "seed + 1");
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_editAfterAnInsertionReachesObjectsMadeBeforeEither.lua";
+        LuaHotReload.Manifest baseline = manifest(base);
+        LuaHotReload.Manifest inserted = manifest(shiftedCallbacks("seed * 100", "seed + 1"));
+        LuaHotReload.Manifest edited = manifest(shiftedCallbacks("seed * 100", "seed + 1000"));
+        var build = java.nio.file.Files.createTempDirectory("hotReloadInsertion");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadInsertionDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        String first = LuaHotReloadSession.send(build, delivery, inserted).payload().source();
+        String second = LuaHotReloadSession.send(build, delivery, edited).payload().source();
+        String[] probes = {luaName(edited, "old") + "()", luaName(edited, "made") + "()", luaName(edited, "remake") + "()"};
+        assertEquals(List.of("true 6,52 -,6,52 700,8,72 nil", "true 1005,52 700,1007,72 700,1007,72 nil"),
+            List.of(applyInLua(script, List.of(first, second), probes).split("\\R")));
+        assertEquals("true 1005,52 -,1005,52 700,1007,72 nil", applyInLua(script, List.of(second), probes));
+    }
+
+    /**
+     * Between the same unchanged callbacks, one inserted and another one edited cannot be told apart from two edited
+     * and one appended: the payload is refused, and either edit alone applies.
+     */
+    @Test
+    public void insertionAndEditBetweenTheSameCallbacksIsRefused() throws Exception {
+        LuaHotReload.Manifest base = manifest(registered("1", "2"));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(base, manifest(registered("9", "10", "2")), Set.of(), 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("cannot be told apart"));
+        LuaHotReload.payload(base, manifest(registered("9", "1", "2")), Set.of(), 1);
+        LuaHotReload.payload(base, manifest(registered("10", "2")), Set.of(), 1);
+    }
+
+    /**
+     * Callbacks registered one statement after another. Classes are ordered by their source position as text
+     * ({@code TypeId}), so line 10 would come before line 9: the callbacks stay on the first nine lines, where that order is
+     * the order of the statements.
+     */
+    private static String[] registered(String... bodies) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "function registerAll()"));
+        for (String body : bodies) {
+            lines.add("    keep(() -> " + body + ")");
+        }
+        lines.addAll(List.of("interface Op", "    function apply() returns int",
+            "Op last", "function keep(Op op)", "    last = op", "init", "    registerAll()", "    last.apply()"));
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * A callback removed while another one is inserted: in its place, the new one is an edit of it (its objects run the
+     * new body), as an edit of a body is; elsewhere, the others' names change and the removed one's old body would read
+     * another one's captured values, so the map refuses that, as it refuses two inserted in its place. Swapped callbacks
+     * keep their bodies.
+     */
+    @Test
+    public void callbackRemovedAndAnotherInserted() throws Exception {
+        LuaHotReload.Manifest base = manifest(registered("1", "2", "3"));
+        LuaHotReload.Payload replaced = LuaHotReload.payload(base, manifest(registered("9", "2", "3")), Set.of(), 1);
+        assertFalse(replaced.source(), replaced.source().contains("__wurst_hotreload_lineages"));
+        // Each continues the closure of its name: the new one the one it replaced.
+        assertEquals(base.functions().keySet().stream().filter(replaced.groupLayout().stream()
+            .map(LuaHotReload.GroupMember::name).toList()::contains).toList(),
+            replaced.groupLayout().stream().map(LuaHotReload.GroupMember::lineage).toList());
+        LuaHotReload.Rejected elsewhere = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(base, manifest(registered("9", "1", "3")), Set.of(), 1));
+        assertTrue(elsewhere.getMessage(), elsewhere.getMessage().contains("was removed"));
+        LuaHotReload.Rejected twoInserted = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(base, manifest(registered("9", "10", "2", "3")), Set.of(), 1));
+        assertTrue(twoInserted.getMessage(), twoInserted.getMessage().contains("cannot be told apart"));
+        LuaHotReload.Payload swapped = LuaHotReload.payload(base, manifest(registered("2", "1", "3")), Set.of(), 1);
+        assertTrue(swapped.source(), swapped.source().contains("__wurst_hotreload_lineages"));
+    }
+
+    /**
+     * The build of an edit is a function of its source alone: the payload, made for the running map, carries how its
+     * closures continue the map's, and the same session gives the same payload.
+     */
+    @Test
+    public void insertionLeavesTheBuildAlone() throws Exception {
+        LuaHotReload.Manifest base = manifest(insertedCallbacks(false));
+        LuaHotReload.Manifest inserted = manifest(insertedCallbacks(true));
+        LuaHotReload.Manifest again = manifest(insertedCallbacks(true));
+        assertEquals(inserted.abi(), again.abi());
+        assertEquals(inserted.functions(), again.functions());
+        assertTrue(inserted.functions().values().stream().noneMatch(f -> f.definition().contains("__wurst_hotreload_lineages")));
+        assertTrue(inserted.statements().stream().noneMatch(s -> s.text().contains("__wurst_hotreload_lineages")));
+        LuaHotReload.Payload payload = LuaHotReload.payload(base, inserted, LuaHotReload.History.NONE, 1);
+        assertEquals(payload, LuaHotReload.payload(base, again, LuaHotReload.History.NONE, 1));
+        assertTrue(payload.source(), payload.source().contains("__wurst_hotreload_lineages"));
+    }
+
+    @Test
+    public void sameOwnerClosureBindingsSwapByTheirSource() throws Exception {
         String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
             "function make(bool first, int seed) returns Op", "    if first",
             "        Op action = (int v) -> seed + v", "        return action", "    else",
@@ -1277,15 +1450,16 @@ public class LuaHotReloadTests extends WurstScriptTest {
         edited[8] = base[5];
         var before = manifest(base);
         var after = manifest(edited);
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
+        // Swapped, each keeps its source: the objects made from either keep its tables, under the other's names.
+        LuaHotReload.Payload swapped = LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1);
+        assertTrue(swapped.source(), swapped.source().contains("__wurst_hotreload_lineages"));
 
-        // A group an earlier payload introduced is protected by what that payload sent.
+        // A group an earlier payload introduced is protected by what that payload sent; a session which recorded no
+        // layout of its closures (an older one) matches them by name, as before.
         var empty = manifest(MAIN_PACKAGE);
         var first = LuaHotReload.payload(empty, before, LuaHotReload.History.NONE, 1);
         test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
-        String script = "test-output/lua/LuaHotReloadTests_ambiguousSameOwnerClosureBindingsCannotChangeOrSwap.lua";
+        String script = "test-output/lua/LuaHotReloadTests_sameOwnerClosureBindingsSwapByTheirSource.lua";
         assertEquals("true 45 nil", applyInLua(script, List.of(first.source()), globalName(before, "result")));
         var history = new LuaHotReload.History(Set.copyOf(first.functions()), first.captured(), first.slots(),
             first.initializers(), first.packageInits(), first.variables(),

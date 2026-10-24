@@ -112,14 +112,28 @@ The payload compares the running script's manifest with the edited one:
   to them lost its binding and was refused (`addedInterfaceWithAMethodOfTheSameNameKeepsTheOthersSlots`,
   `addedImplementationSortingFirstKeepsTheSlot`). Builds without `-luaHotReload` name groups as before.
   Siblings still sharing an identity (anonymous closures, such as several `doAfter` callbacks in one function, or equal
-  binding names within one callable) are told apart by their order, which matches an object to the closure it was made
-  from. Editing their bodies keeps that order, and so does adding one after them: both reload. A closure whose source
-  (`Function.closureSource`, the closure as written) is now what another one of the group had, which that one lost,
-  moved, and an object made from the closure at its old place would run the other one's body: the map refuses that,
-  and removing one, with a restart. A copy of a body another one keeps, appended or edited in, moves nothing. What the
-  map runs of each is the baseline's source or one an earlier payload sent; the editor does not know which payloads
-  the map installed, so it keeps every one sent (`History.groupShapes`). In Castle Fight, 1,050 of its 2,712 closures
-  are in such groups.
+  binding names within one callable) form an order group: the build names them by their position, so the build stays a
+  function of the source alone. Editing their bodies keeps the positions, and so does adding one after them: both
+  reload. A closure inserted before others gives each of them the next one's name; the payload carries the rest
+  (`LuaHotReload.Lineages`). An object holds its class table itself (`__wurst_objectClass[id]`, read by every dispatch)
+  and its captured values sit in field stores keyed by its id, so the payload matches the edit's closures with those
+  the map has, each closure's lineage, and gives each name of the group the class table and stores of the closure it
+  now names, before it binds the slots and writes the class data of each table again. Every object made before keeps
+  the closure it was made from and its values; an allocation reads the name, so one made after gets the closure the
+  edit has. The map keeps the tables by lineage (`__wurst_hotreload_lineages`), taken from the names each closure began
+  with (the started map's, or those of the payload which added it, `History.lineageOrigins`) before any name is given
+  another table, so a payload applies whichever earlier ones the map installed.
+  The match is by source (`Function.closureSource`, the closure as written), against what the last payload sent
+  (`History.groupLayout`) or the started map: a source only one closure has on either side is that closure, wherever it
+  is now (so swapped closures keep their bodies); one whose source is new takes the place of one which lost its source
+  between the same unchanged ones, as an edited body; any other is new (after the last unchanged one, those past the
+  edited ones were appended, as before). Before an unchanged closure, an insertion and an edit cannot be told apart from
+  two edits and an append, so that payload is refused: made one at a time, each applies, and an edit after an insertion reaches the objects made before either
+  (`editAfterAnInsertionReachesObjectsMadeBeforeEither`). A closure whose source is now one another lineage had and lost
+  moved, and the map may run either: refused, as is removing one while the others' names change (its old body reads its
+  captured values by its old names). What the map runs of each is the baseline's source or one an earlier payload sent;
+  the editor does not know which payloads the map installed, so it keeps every one sent (`History.groupShapes`, by
+  lineage). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not

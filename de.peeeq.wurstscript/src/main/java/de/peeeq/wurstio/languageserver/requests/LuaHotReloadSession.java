@@ -44,8 +44,14 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         /** The initializers of globals a version the map ran declared as variables, which code may have written. */
         List<String> variables = new ArrayList<>();
-        /** Every shape sent of each closure told apart by its order. */
+        /** Every shape sent of each closure told apart by its order, by lineage. */
         Map<String, List<String>> groupShapes = new LinkedHashMap<>();
+        /** How the last payload sent matched the closures of its program. */
+        List<LuaHotReload.GroupMember> groupLayout = new ArrayList<>();
+        /** Where each closure a payload added kept its tables when it began. */
+        Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
+        /** The order groups whose names a payload gave other tables. */
+        List<String> permutedGroups = new ArrayList<>();
     }
 
     /**
@@ -153,6 +159,9 @@ public final class LuaHotReloadSession {
         List<String> packageInits = new ArrayList<>();
         List<String> variables = new ArrayList<>();
         Map<String, String> groupShapes = new LinkedHashMap<>();
+        List<LuaHotReload.GroupMember> groupLayout = new ArrayList<>();
+        Map<String, Map<String, String>> lineageOrigins = new LinkedHashMap<>();
+        List<String> permutedGroups = new ArrayList<>();
     }
 
     /** A payload and the file it was written to. */
@@ -191,7 +200,9 @@ public final class LuaHotReloadSession {
         LuaHotReload.Payload payload = LuaHotReload.payload(state.baseline, current, new LuaHotReload.History(
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
             orEmpty(state.initializers), new LinkedHashSet<>(orEmpty(state.packageInits)),
-            new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes)), state.version + 1);
+            new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
+            state.groupLayout == null ? List.of() : state.groupLayout, orEmpty(state.lineageOrigins),
+            new LinkedHashSet<>(orEmpty(state.permutedGroups))), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -201,6 +212,9 @@ public final class LuaHotReloadSession {
         pending.packageInits = new ArrayList<>(payload.packageInits());
         pending.variables = new ArrayList<>(payload.variables());
         pending.groupShapes = new LinkedHashMap<>(payload.groupShapes());
+        pending.groupLayout = new ArrayList<>(payload.groupLayout());
+        pending.lineageOrigins = new LinkedHashMap<>(payload.lineageOrigins());
+        pending.permutedGroups = new ArrayList<>(payload.permutedGroups());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -260,6 +274,14 @@ public final class LuaHotReloadSession {
             groupShapes.put(entry.getKey(), List.copyOf(shapes));
         }
         state.groupShapes = groupShapes;
+        // The next payload matches its closures with those of this one.
+        state.groupLayout = sent.groupLayout == null ? new ArrayList<>() : new ArrayList<>(sent.groupLayout);
+        Map<String, Map<String, String>> origins = new LinkedHashMap<>(orEmpty(state.lineageOrigins));
+        orEmpty(sent.lineageOrigins).forEach(origins::putIfAbsent);
+        state.lineageOrigins = origins;
+        Set<String> permuted = new LinkedHashSet<>(orEmpty(state.permutedGroups));
+        permuted.addAll(orEmpty(sent.permutedGroups));
+        state.permutedGroups = new ArrayList<>(permuted);
         state.version = sent.version;
     }
 
