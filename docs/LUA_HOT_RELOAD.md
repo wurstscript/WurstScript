@@ -457,23 +457,32 @@ editor loop in the game.
 ## Edits of a real project
 
 Castle Fight's last 30 commits which change Wurst code, each built with `-lua -luaHotReload` and its payload made
-against the commit before it (24 Oct 2026, with the order groups, hooks and payload checks above): 8 are accepted, 22
-refused. A commit is a whole pull request, so this overstates what one edit meets, but it ranks the causes. Commits
-each cause refuses, and in how many it is the only one:
+against the commit before it (24 Oct 2026). A commit is a whole pull request, so this overstates what one edit meets,
+but it ranks what a real project's edits meet. Accepted, as the changes landed:
 
-| Cause | Refuses | Only cause |
-| --- | --- | --- |
-| a constant array literal changes length, which is part of its type (`string[74]` to `string[75]`) | 14 | 4 |
-| a constant starts or stops being read: the dead-code removal drops unread storage, so its initializer's storage changes between `[]` and `[x]` | 7 | 2 |
-| a closure removed, which a class-table slot may still hold (since accepted with a warning) | 7 | 0 |
-| a closure inserted before others told apart by their order | 6 | 2 |
-| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation (since fixed: each specialisation is a unit of its own, see "The script in parts") | 5 | 0 |
+| Compiler | Accepted |
+| --- | --- |
+| order groups, reload hooks, payload checks (#1551) | 8 |
+| constants first read, array literals, generic specialisations (#1553) | 19 |
+| dispatch slots and closure owners named by what they name (#1555) | 21 |
+| removed closures, classes and callbacks apply with a warning | 23 |
 
-Without the first two, 17 of the 30 would be accepted. The accepted payloads also carry far more than the edit: one of
-5 changed files shipped 621 functions (2,033,445 bytes), 550 of which differ only in the names of the flatten's
-temporaries (`temp159` to `temp162`), which are numbered across the program.
+The causes in order of the commits they refused: an array literal changing length (14 commits, fixed: its length is
+no part of its identity), a constant starting or stopping being read (7, fixed: a hot-reload build keeps every global's
+storage), a closure, class or callback removed (7, now a warning), slots renamed by an added interface or
+implementation (the lost bindings of 5, fixed), and a generic class's new type argument (5, fixed). Of the 7 still
+refused, 6 insert a closure before others told apart by their order (the only cause in 3: a new `doAfter` or event
+listener registered above the others in one function), and 1 changes a global's type (`boolean` to
+`Signal<boolean>`), which needs a restart.
+
+The accepted payloads are 19 KB to 1 MB: Castle Fight's generated object data is one function each of 131 to 167 KB
+(`registerUnitObjectMetadata`, `registerUnitStats`), so an edit of a tooltip or a stat carries the whole function. The
+game delivered and applied a payload of 1,374,082 bytes (the in-game suite's twelfth payload). Before the temporaries
+were named within their function (#1552), one edit of 5 files shipped 621 functions, 550 of them for renamed
+temporaries.
 
 ## Next stages
 
-1. The causes above, most first, and temporaries named within their function.
+1. Closures inserted before others told apart by their order: a proposal in BACKLOG.md ("Lua hot reload: closures
+   inserted among others told apart by their order").
 2. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.

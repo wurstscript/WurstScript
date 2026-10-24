@@ -241,6 +241,18 @@ Notes; finished-work narrative does not.
   change; the handle-keyed `FastKeyedMap` work is separate. Do not start the old-container migration
   autonomously.
 
+- **Lua hot reload: closures inserted among others told apart by their order.** Closures of one interface
+  method in one function with no binding (several `doAfter` or event-listener callbacks) are named by their
+  position, so editing one's body reaches the objects made from it before. Inserting one before the others
+  renames every one after it, and the payload refuses that as a move: in Castle Fight's last 30 commits it
+  is 6 of the 7 still refused, the only cause in 3 (`docs/LUA_HOT_RELOAD.md`, "Edits of a real project").
+  Naming them by their source instead keeps an insertion's others, but an edited body would then be a new
+  closure, and objects made before (a running timer's callback) would keep the old body, which is the case
+  hot reload is most for. Keeping names across an insertion means the build takes them from the running
+  session's manifest (match closures by source, keep matched names, give new ones fresh ones), so the output
+  of a hot-reload build would depend on the session, not only the source, against the determinism rule in
+  AGENTS.md. Decide the trade-off before starting; until then such an edit needs a restart.
+
 ## Notes
 
 - **Do not revisit early class-metadata pruning without new evidence.** Closed PR [#1457](https://github.com/wurstscript/WurstScript/pull/1457)
