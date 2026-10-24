@@ -267,7 +267,11 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar field) {
-            LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", LuaHotReload.variableId(field)),
+            String identity = LuaHotReload.variableId(field);
+            if (hotReload && field.getParent() != null && field.getParent().getParent() instanceof ImClass owner) {
+                identity += LuaHotReload.captureOwner(LuaTranslator.this, owner);
+            }
+            LuaVariable storage = LuaAst.LuaVariable(declarationName(field.getName() + "_storage", identity),
                 hotReload ? hotReloadFieldStore(field) : LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
             localizableStorageTables.add(storage);
             return storage;
@@ -542,6 +546,12 @@ public class LuaTranslator {
             translateGlobal(v);
         }
 
+        if (hotReload) {
+            // In the order of the classes, before the field storage named after them.
+            for (ImClass c : prog.getClasses()) {
+                luaClassVar.getFor(c);
+            }
+        }
         Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImClass c : prog.getClasses()) {
             for (ImVar field : c.getFields()) {

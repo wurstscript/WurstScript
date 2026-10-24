@@ -1261,6 +1261,50 @@ public class LuaHotReloadTests extends WurstScriptTest {
             .lines(orderedCallbacks("2"));
     }
 
+    private static String[] capturingCallbacks(String first) {
+        return capturingCallbacks(first, 7);
+    }
+
+    private static String[] capturingCallbacks(String first, int firstAfter) {
+        return new String[] {
+            "package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Op", "    function apply() returns int",
+            "function keep(Op op) returns Op", "    return op",
+            "Op first", "Op second",
+            // Two callbacks told apart by their order; only the second captures s.
+            "function makeAll(int s)", "    first = keep(() -> " + first + ")", "    second = keep(() -> s * 10)",
+            "init",
+            "    makeAll(5)",
+            "    if second.apply() != 50",
+            "        testFail(\"the original callback did not run\")",
+            "    hotReload()",
+            "    if second.apply() != 50",
+            "        testFail(\"a callback made before the reload lost the value it captured\")",
+            "    makeAll(6)",
+            "    if first.apply() != " + firstAfter + " or second.apply() != 60",
+            "        testFail(\"the callbacks made after the reload\")",
+            "    testSuccess()",
+        };
+    }
+
+    /**
+     * Captured values are fields of a closure's class, whose storage is named after the class: when the first of two
+     * callbacks told apart by their order starts capturing a variable of the same name, the second keeps its storage.
+     */
+    @Test
+    public void callbackWhichStartsCapturingLeavesItsSiblingsCaptures() {
+        test().testLua(true).executeProg().luaHotReload(capturingCallbacks("s + 1")).lines(capturingCallbacks("1"));
+    }
+
+    /**
+     * A callback told apart by its order which stops capturing a variable is a body edit: its sibling keeps the value it
+     * captured, under the storage named after its class.
+     */
+    @Test
+    public void callbackWhichStopsCapturingIsABodyEdit() {
+        test().testLua(true).executeProg().luaHotReload(capturingCallbacks("1", 1)).lines(capturingCallbacks("s", 1));
+    }
+
     @Test
     public void ambiguousSameOwnerClosureBindingsCannotChangeOrSwap() throws Exception {
         String[] base = {"package Test", "interface Op", "    function apply(int v) returns int",
