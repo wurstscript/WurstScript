@@ -309,6 +309,13 @@ Notes; finished-work narrative does not.
   (`WURST_FUZZ_PROGRAMS=3000`, a fresh `WURST_FUZZ_SEED`, `-PtestTimeoutMillis=3600000`) and plant a bug in the pass
   to see the campaign catch it.
 
+- **Fuzz a hot reload change.** `LuaHotReloadFuzzTests` makes random programs and chains of edits, installs each edit's
+  payload (made by the session, as the editor makes it) into the running base program in the test Lua, and compares
+  what it prints with fresh runs of the edited program. CI runs 10 programs of 3 edits; before changing `LuaHotReload`
+  or how a hot-reload build names its declarations, run a campaign (`WURST_FUZZ_PROGRAMS=500`, a fresh
+  `WURST_FUZZ_SEED`, `-PtestTimeoutMillis=3600000`; about 2 s a program) and plant a bug to see it caught. A failing
+  seed leaves its sources, scripts and payloads in `test-output/fuzz-hotreload/<seed>`.
+
 - **Making the grammars SLL-clean is not worth it.** The SLL-first parse (`AntlrTokenPipeline`) parses a file again
   with the full LL prediction when SLL does not accept it, which also happens to a few valid files (`blizzard.j`,
   the standard library's `util/Cinematic.wurst`). In an unoptimised build of a large map that second parse was 2 of

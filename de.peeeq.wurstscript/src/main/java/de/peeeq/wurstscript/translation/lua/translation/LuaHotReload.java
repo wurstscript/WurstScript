@@ -26,9 +26,9 @@ import java.util.*;
  * <ul>
  *   <li>a new or changed function is defined, and its class-table slots are bound again;</li>
  *   <li>a new top-level declaration runs; a changed one is rejected;</li>
- *   <li>a new initialisation statement runs, and so does a changed slot binding; a changed initial value of a constant
- *   which only computes its value runs again, and so do the constants computed from it ({@link Constant}); a changed
- *   initial value of any other global which exists is skipped with a warning, since the map keeps its value; any other
+ *   <li>a new initialisation statement runs, and so does a changed slot binding or table of a class's supertypes; a
+ *   changed initial value of a constant which only computes its value runs again, and so do the constants computed
+ *   from it ({@link Constant}); a changed initial value of any other global which exists is skipped with a warning, since the map keeps its value; any other
  *   changed one is rejected;</li>
  *   <li>the init of a new package runs once; a changed init of a package which ran warns that it needs a restart.</li>
  * </ul>
@@ -136,7 +136,7 @@ public final class LuaHotReload {
      * A statement of the script outside the functions: {@code scope} is {@code top} (a top-level declaration),
      * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key}
      * identifies the assignment or complete source initializer;
-     * {@code kind} is {@code slot} (a function bound in a table), {@code global} (a value given to a global) or
+     * {@code kind} is {@code slot} (a function bound in a table, or a class's table of supertypes), {@code global} (a value given to a global) or
      * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
      * complete definition for an initializer call, otherwise the statement text. {@code targets} identifies all
      * retained storage written by a source initializer, including tuple leaves and generic specializations.
@@ -180,10 +180,17 @@ public final class LuaHotReload {
      * storage of globals one of those versions declared as variables, which code may then have written.
      * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}): which of
      * them the map runs depends on which payloads it installed, which the editor does not know.
+     * {@code reboundSlots} holds the run keys of binding statements sent by earlier payloads, including supertype
+     * tables: an undo must restore the baseline's binding too.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
-                          Map<String, List<String>> groupShapes) {
+                          Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
+                       Map<String, List<String>> groupShapes) {
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, Set.of());
+        }
         public History(Set<String> reloaded, Map<String, String> captured) {
             this(reloaded, captured, Map.of(), Map.of(), Set.of());
         }
@@ -209,12 +216,13 @@ public final class LuaHotReload {
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
      * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
-     * hashes. {@code slots}, {@code initializers}, {@code variables} and {@code groupShapes} carry the installation
+     * hashes. {@code slots}, {@code initializers}, {@code variables}, {@code groupShapes} and {@code reboundSlots} carry the installation
      * metadata subsequent payloads need.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
-                          Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
+                          Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
+                          Set<String> reboundSlots) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -344,7 +352,7 @@ public final class LuaHotReload {
                 // With its type: objects which exist keep the values of the old one, which two class types
                 // with the same nil default and storage would not reveal.
                 bindings.add(tr.fieldStorage(field).getName() + "=" + semanticId(field, c.getName() + "." + field.getName())
-                    + ":" + typeKey(field.getType()));
+                    + captureOwner(tr, c) + ":" + typeKey(field.getType()));
             }
         }
 
@@ -456,7 +464,10 @@ public final class LuaHotReload {
             key = left.toString();
             s.print(text, 0);
             revision = withoutPositions(tr, s);
-            if (a.getLeft() instanceof LuaExprFieldAccess && a.getRight() instanceof LuaExprFuncRef) {
+            if (a.getLeft() instanceof LuaExprFieldAccess field && (a.getRight() instanceof LuaExprFuncRef
+                || field.getFieldName().equals(ExprTranslation.WURST_SUPERTYPES))) {
+                // A class's supertypes are read only by instanceof, when it runs, so a changed table is assigned again
+                // as a slot is bound again: objects made before then answer for the class as it is now.
                 kind = "slot";
             } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {
                 kind = "global";
@@ -625,6 +636,7 @@ public final class LuaHotReload {
 
         List<Statement> declarations = new ArrayList<>();
         List<Statement> initialisations = new ArrayList<>();
+        Set<String> sentSlots = new LinkedHashSet<>(history.reboundSlots());
         Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
         Map<String, String> currentInitializers = initializers(current);
         Map<String, String> baselineInitializers = initializers(baseline);
@@ -669,11 +681,17 @@ public final class LuaHotReload {
                 }
             }
             for (Statement s : current.statements()) {
-                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())) {
+                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())
+                    && !(s.kind().equals("slot") && sentSlots.contains(runKey(s)))) {
                     continue;
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
+                if (slot) {
+                    // Remember every binding sent, even when a later edit restores the baseline. A map may have
+                    // installed any earlier payload, so that baseline assignment must keep shipping too.
+                    sentSlots.add(runKey(s));
+                }
                 if (scope.equals("init") && s.kind().equals("global")) {
                     long existing = s.targets().stream().filter(knownNames::contains).count();
                     if (existing > 0 && existing < s.targets().size()) {
@@ -919,7 +937,7 @@ public final class LuaHotReload {
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
-            Collections.unmodifiableMap(groupShapes));
+            Collections.unmodifiableMap(groupShapes), Collections.unmodifiableSet(sentSlots));
     }
 
     /** The run keys of the source initializers, as Lua strings, in the order the map runs them. */
@@ -1391,6 +1409,15 @@ public final class LuaHotReload {
 
     static String classId(ImClass c) {
         return semanticId(c, c.getName());
+    }
+
+    /**
+     * What tells the captures of closures of one identity apart, which closures told apart by their order share: the
+     * source identity and occurrence of the closure's class, which follow that order. A capture's storage is named after it, so a closure which
+     * starts or stops capturing a variable renames no sibling's storage. Empty for any other class.
+     */
+    static String captureOwner(LuaTranslator tr, ImClass c) {
+        return c.getTrace() instanceof ExprClosure ? "@closure:" + classId(c) + "#" + tr.closureOrdinal(c) : "";
     }
 
     /** The identity of a method: with its implementation's signature, which tells overloads apart. */
