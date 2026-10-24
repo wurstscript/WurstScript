@@ -241,8 +241,8 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
    with the reasons as its error message; the VS Code extension shows the first line and writes the rest to its
    output. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
 
-Without the editor, a map built with `-build ... -luaHotReload` (with run arguments: `-luaHotReload` refuses `-inline`
-and `-opt`) starts a session and takes payloads from the compiler's command line, which is how the in-game test drives
+Without the editor, a map built with `-build ... -luaHotReload` (which takes the run arguments of `wurst_run.args`, not
+its build-only `+` lines: `-luaHotReload` refuses `-inline` and `-opt`) starts a session and takes payloads from the compiler's command line, which is how the in-game test drives
 it:
 
 ```
