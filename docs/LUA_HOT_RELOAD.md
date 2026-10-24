@@ -49,7 +49,10 @@ specialisation and in the same order, as on Jass, where each specialisation is a
 first `ArrayList<SomeNewType>` adds a unit which initialises only the new storage, and the specialisations the map has
 keep their values; removing the last use of one removes its unit and its storage, and the others keep theirs
 (`newSpecializationOfAGenericStaticIsInitializedAlone`, `removedSpecializationOfAGenericStaticKeepsTheOthers`). One
-unit used to initialise every specialisation, so each of these edits changed its storage and needed a restart.
+unit used to initialise every specialisation, so each of these edits changed its storage and needed a restart. An
+initializer of several values of which one has an effect (an array literal of calls) stays one unit: the program
+computes each value for every specialisation in turn, and units would compute all of one first, which a counter shows
+(`effectfulGenericArrayInitializerKeepsItsOrder`); a new type argument of such a static still needs a restart.
 
 Each source initializer also records the globals it writes after tuple lowering and generic specialization.
 Adding an initializer to an existing global preserves its live value, including globals an earlier payload added

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
@@ -2923,8 +2924,14 @@ public class EliminateGenerics {
 
                 List<ImSet> specializedInitsForMap = new ArrayList<>(originalInits.size());
                 // A hot-reload build keeps each source initializer as a unit of its own; each specialisation's
-                // storage gets a unit of its own too, so a payload can initialise a new one alone.
-                ImFunction sourceUnit = parentStmts != null && parentStmts.getParent() instanceof ImFunction unit
+                // storage gets a unit of its own too, so a payload can initialise a new one alone. Units compute all of
+                // one specialisation's initial values before the next, where the program computes each value for every
+                // specialisation in turn: with several values of which one has an effect (an array literal of calls)
+                // the order shows, and the specialisations stay in the source unit.
+                boolean orderUnobservable = originalInits.size() <= 1
+                    || originalInits.stream().noneMatch(set -> SideEffectAnalyzer.quickcheckHasSideeffects(set.getRight()));
+                ImFunction sourceUnit = orderUnobservable && parentStmts != null
+                    && parentStmts.getParent() instanceof ImFunction unit
                     && translator.luaGlobalInitializers.get(unit) == originalGlobal ? unit : null;
                 List<ImSet> unitInits = new ArrayList<>(originalInits.size());
 

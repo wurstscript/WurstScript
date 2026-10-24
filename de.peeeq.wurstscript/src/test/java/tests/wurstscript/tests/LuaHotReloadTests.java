@@ -616,6 +616,29 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertFalse(output, output.contains("keeps") || output.contains("restart"));
     }
 
+    /**
+     * Each element of an array initializer of a generic static is computed for every specialisation before the next
+     * element, as in a build without -luaHotReload; units of their own would compute all of one specialisation first.
+     * So an initializer with an effect stays one unit, and its counter reads the same in a hot-reload build.
+     */
+    @Test
+    public void effectfulGenericArrayInitializerKeepsItsOrder() {
+        String[] program = {
+            "package Test", "native testSuccess()", "native testFail(string msg)",
+            "int counter = 0", "function count() returns int", "    counter++", "    return counter",
+            "class Store<T:>", "    static int array values = [count(), count()]",
+            "    function first() returns int", "        return values[0]",
+            "    function second() returns int", "        return values[1]",
+            "init", "    let a = new Store<int>()", "    let b = new Store<real>()",
+            // Interleaved, the specialisations' first elements are 1 and 2, their second 3 and 4.
+            "    if a.first() - b.first() != 1 and b.first() - a.first() != 1",
+            "        testFail(\"first elements not computed one after the other\")",
+            "    if a.second() - b.second() != 1 and b.second() - a.second() != 1",
+            "        testFail(\"second elements not computed one after the other\")",
+            "    destroy a", "    destroy b", "    testSuccess()"};
+        test().testLua(true).executeProg().luaHotReload(program).lines(program);
+    }
+
     /** The removed specialisation's storage stays, unused; the other keeps its value and nothing runs again. */
     @Test
     public void removedSpecializationOfAGenericStaticKeepsTheOthers() throws Exception {
