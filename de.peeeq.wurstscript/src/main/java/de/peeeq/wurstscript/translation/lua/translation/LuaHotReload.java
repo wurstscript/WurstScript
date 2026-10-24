@@ -213,22 +213,23 @@ public final class LuaHotReload {
      * that payload's program kept them ({@link Closure#tables}), empty for a role whose table it had to make anew;
      * {@code permutedGroups} names the groups whose tables a payload gave to other closures.
      * {@code lineageTypes} preserves captured field types even when a later payload removes a capture or its closure.
+     * {@code tableReaders} retains the historical lineages whose emitted bodies may still read each table name.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                           Map<String, List<String>> groupShapes, List<GroupMember> groupLayout,
                           Map<String, Map<String, String>> lineageOrigins, Set<String> permutedGroups, Set<String> reboundSlots,
-                          Map<String, Map<String, String>> lineageTypes) {
+                          Map<String, Map<String, String>> lineageTypes, Map<String, Set<String>> tableReaders) {
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of(), Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of(), Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured) {
@@ -263,19 +264,20 @@ public final class LuaHotReload {
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                           Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
                           List<GroupMember> groupLayout, Map<String, Map<String, String>> lineageOrigins,
-                          Set<String> permutedGroups, Set<String> reboundSlots, Map<String, Map<String, String>> lineageTypes) {
+                          Set<String> permutedGroups, Set<String> reboundSlots, Map<String, Map<String, String>> lineageTypes,
+                          Map<String, Set<String>> tableReaders) {
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes, Set<String> reboundSlots) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of(), reboundSlots, Map.of());
+                List.of(), Map.of(), Set.of(), reboundSlots, Map.of(), Map.of());
         }
 
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of(), Set.of(), Map.of());
+                List.of(), Map.of(), Set.of(), Set.of(), Map.of(), Map.of());
         }
     }
 
@@ -1076,7 +1078,7 @@ public final class LuaHotReload {
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
             Collections.unmodifiableMap(groupShapes), List.copyOf(lineages.layout),
             Collections.unmodifiableMap(lineages.newOrigins), Collections.unmodifiableSet(lineages.permuted), Collections.unmodifiableSet(sentSlots),
-            Collections.unmodifiableMap(lineages.types));
+            Collections.unmodifiableMap(lineages.types), Collections.unmodifiableMap(lineages.readers));
     }
 
     /**
@@ -1109,6 +1111,8 @@ public final class LuaHotReload {
         /** Where the closures this payload adds began. */
         final Map<String, Map<String, String>> newOrigins = new TreeMap<>();
         final Map<String, Map<String, String>> types = new TreeMap<>();
+        /** Every lineage whose emitted body may still read a table name, including removed, previously remapped ones. */
+        final Map<String, Set<String>> readers = new TreeMap<>();
         /** The groups whose names hold other tables than those the started map gave them. */
         final Set<String> permuted = new TreeSet<>();
         private final Map<String, String> lineageOf = new HashMap<>();
@@ -1125,6 +1129,14 @@ public final class LuaHotReload {
             List<GroupMember> lastLayout = Objects.requireNonNullElse(history.groupLayout(), List.of());
             Map<String, Map<String, String>> knownOrigins = Objects.requireNonNullElse(history.lineageOrigins(), Map.of());
             Map<String, List<String>> knownShapes = Objects.requireNonNullElse(history.groupShapes(), Map.of());
+            if ((!knownOrigins.isEmpty() || !Objects.requireNonNullElse(history.permutedGroups(), Set.of()).isEmpty())
+                && Objects.requireNonNullElse(history.tableReaders(), Map.of()).isEmpty()) {
+                reasons.add("the session lacks historical closure table readers: restart the map");
+            }
+            Objects.requireNonNullElse(history.tableReaders(), Map.<String, Set<String>>of())
+                .forEach((name, lineages) -> readers.put(name, new TreeSet<>(lineages)));
+            baseClosures.forEach((lineage, closure) -> closure.tables().values().forEach(name ->
+                readers.computeIfAbsent(name, k -> new TreeSet<>()).add(lineage)));
             if (!knownOrigins.isEmpty() && Objects.requireNonNullElse(history.lineageTypes(), Map.of()).isEmpty()) {
                 reasons.add("the session lacks the captured types of earlier closure lineages: restart the map");
             }
@@ -1173,7 +1185,6 @@ public final class LuaHotReload {
             // Which closure began with each table, and the tables new closures take which another one began with.
             Map<String, String> beganWith = new HashMap<>();
             origins.forEach((lineage, tables) -> tables.values().forEach(t -> beganWith.putIfAbsent(t, lineage)));
-            Map<String, String> reclaimed = new TreeMap<>();
             // The closures the map may still make objects of: those the last payload sent, or the started map's.
             Set<String> live = new HashSet<>();
             before.values().forEach(ms -> ms.forEach(m -> live.add(m.lineage())));
@@ -1211,8 +1222,6 @@ public final class LuaHotReload {
                             for (Map.Entry<String, String> table : curClosures.get(f.name()).tables().entrySet()) {
                                 if (occupied.add(table.getValue())) {
                                     origin.put(table.getKey(), table.getValue());
-                                } else {
-                                    reclaimed.put(table.getValue(), f.name());
                                 }
                             }
                             origins.put(lineage, Collections.unmodifiableMap(origin));
@@ -1220,6 +1229,9 @@ public final class LuaHotReload {
                         }
                     }
                     lineageOf.put(f.name(), lineage);
+                    for (String table : curClosures.get(f.name()).tables().values()) {
+                        readers.computeIfAbsent(table, k -> new TreeSet<>()).add(lineage);
+                    }
                     Map<String, String> capturedTypes = types.computeIfAbsent(lineage, k -> new TreeMap<>());
                     for (Map.Entry<String, String> field : curClosures.get(f.name()).captureTypes().entrySet()) {
                         String previousType = capturedTypes.putIfAbsent(field.getKey(), field.getValue());
@@ -1239,11 +1251,6 @@ public final class LuaHotReload {
                     for (Map.Entry<String, String> table : curClosures.get(name).tables().entrySet()) {
                         String began = origin.get(table.getKey());
                         moves |= !table.getValue().equals(began);
-                        if (!table.getValue().equals(began)) {
-                            // A matched survivor can take a removed closure's names too. Every reassignment must
-                            // protect the old bodies that still read those globals, not only new-lineage allocation.
-                            reclaimed.put(table.getValue(), name);
-                        }
                     }
                 }
                 if (moves) {
@@ -1278,24 +1285,30 @@ public final class LuaHotReload {
                     }
                 }
             }
-            refuseNamesOfRemovedClosures(reclaimed, beganWith, before, reasons);
+            refuseNamesOfRemovedClosures(curClosures, reasons);
             types.replaceAll((lineage, fields) -> Collections.unmodifiableMap(new TreeMap<>(fields)));
+            readers.replaceAll((name, lineages) -> Collections.unmodifiableSet(new TreeSet<>(lineages)));
         }
 
         /**
          * A closure removed by an earlier edit keeps its tables and its last body, which reads its captured values by the
          * names it had. A new closure which takes those names would give that body the new closure's values.
          */
-        private void refuseNamesOfRemovedClosures(Map<String, String> reclaimed, Map<String, String> beganWith,
-                                                  Map<String, List<GroupMember>> before, List<String> reasons) {
+        private void refuseNamesOfRemovedClosures(Map<String, Closure> current, List<String> reasons) {
             Set<String> live = new HashSet<>(lineageOf.values());
-            before.values().forEach(ms -> ms.forEach(m -> live.add(m.lineage())));
-            for (Map.Entry<String, String> table : reclaimed.entrySet()) {
-                String owner = beganWith.get(table.getKey());
-                if (owner != null && !live.contains(owner)) {
-                    reasons.add("closure " + table.getValue() + " takes " + table.getKey() + ", which closure " + owner
-                        + " had before an earlier edit removed it, and what the map made from that one still reads it:"
-                        + " restart the map");
+            // appendTables assigns every current name in a permuted group, even when the destination happens to be
+            // its original name. An absent lineage may still execute any body a delivered payload gave its objects.
+            for (String group : permuted) {
+                for (String name : membersByGroup.getOrDefault(group, List.of())) {
+                    for (String table : current.get(name).tables().values()) {
+                        for (String reader : readers.getOrDefault(table, Set.of())) {
+                            if (!live.contains(reader)) {
+                                reasons.add("closure " + name + " takes " + table + ", which closure " + reader
+                                    + " had before an earlier edit removed it, and what the map made from that one still reads it:"
+                                    + " restart the map");
+                            }
+                        }
+                    }
                 }
             }
         }

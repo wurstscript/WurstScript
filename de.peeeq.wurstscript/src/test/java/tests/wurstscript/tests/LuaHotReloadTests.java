@@ -1575,6 +1575,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("an earlier edit removed it"));
     }
 
+    @Test
+    public void restoringAnOriginalLayoutCannotOverwriteARemovedInsertedCallbacksNames() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadHistoricalNames");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadHistoricalNamesDelivery");
+        LuaHotReloadSession.start(build, manifest(insertedCallbacks(false)));
+        LuaHotReloadSession.send(build, delivery, manifest(insertedCallbacks(true)));
+        String[] empty = java.util.Arrays.stream(insertedCallbacks(false))
+            .map(line -> line.contains(" = keep(") ? "" : line).toArray(String[]::new);
+        LuaHotReloadSession.send(build, delivery, manifest(empty));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, manifest(insertedCallbacks(false))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("an earlier edit removed it"));
+    }
+
     private static String[] typedCallbacks(boolean inserted, boolean real) {
         return new String[] {"package Test", "native R2I(real r) returns int", "interface Op", "    function apply() returns int",
             "Op last", "function keep(Op op)", "    last = op", "function registerAll()",

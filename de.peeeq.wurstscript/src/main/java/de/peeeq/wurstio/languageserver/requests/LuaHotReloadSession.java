@@ -72,6 +72,7 @@ public final class LuaHotReloadSession {
         List<String> permutedGroups = new ArrayList<>();
         Set<String> reboundSlots = new LinkedHashSet<>();
         Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
+        Map<String, Set<String>> tableReaders = new LinkedHashMap<>();
     }
 
     /**
@@ -247,6 +248,7 @@ public final class LuaHotReloadSession {
         List<String> permutedGroups = new ArrayList<>();
         Set<String> reboundSlots = new LinkedHashSet<>();
         Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
+        Map<String, Set<String>> tableReaders = new LinkedHashMap<>();
     }
 
     /** A payload and the file it was written to. */
@@ -288,7 +290,7 @@ public final class LuaHotReloadSession {
             new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
             state.groupLayout, orEmpty(state.lineageOrigins),
             new LinkedHashSet<>(orEmpty(state.permutedGroups)),
-            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes)), state.version + 1);
+            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes), orEmpty(state.tableReaders)), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -303,6 +305,7 @@ public final class LuaHotReloadSession {
         pending.permutedGroups = new ArrayList<>(payload.permutedGroups());
         pending.reboundSlots = new LinkedHashSet<>(payload.reboundSlots());
         pending.lineageTypes = new LinkedHashMap<>(payload.lineageTypes());
+        pending.tableReaders = new LinkedHashMap<>(payload.tableReaders());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
         Path delivered = deliver(customMapData, payload);
         record(state, pending);
@@ -380,6 +383,13 @@ public final class LuaHotReloadSession {
             types.put(lineage, combined);
         });
         state.lineageTypes = types;
+        Map<String, Set<String>> readers = new LinkedHashMap<>(orEmpty(state.tableReaders));
+        orEmpty(sent.tableReaders).forEach((name, lineages) -> {
+            Set<String> combined = new java.util.TreeSet<>(readers.getOrDefault(name, Set.of()));
+            combined.addAll(lineages);
+            readers.put(name, combined);
+        });
+        state.tableReaders = readers;
         state.version = sent.version;
     }
 

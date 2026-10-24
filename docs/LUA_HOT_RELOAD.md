@@ -136,10 +136,14 @@ The payload compares the running script's manifest with the edited one:
   moved, and the map may run either: refused, as is removing one while the others' names change (its old body reads its
   captured values by its old names). Removing the last ones of a group, or all of them, moves no other and applies with
   the warning of a removed function (`removedCallbacksApplyUnlessOthersTakeTheirNames`); a closure added later in the
-  names of a removed one is refused unless it is that one back as it was. Other declarations which share an identity
+  names of a removed one is refused unless it is that one back as it was and no other removed callback still reads
+  those names. Other declarations which share an identity
   (none of a closure) are still refused when some of them are removed and others remain. What the map runs of each is the baseline's source or one an earlier payload sent;
   the editor does not know which payloads the map installed, so it keeps every one sent (`History.groupShapes`, by
   lineage). In Castle Fight, 1,050 of its 2,712 closures are in such groups.
+  The session also keeps every lineage whose emitted body may still read each table name. Original names alone are
+  insufficient after a permutation: removing a group and restoring its original layout must not overwrite names
+  used by a removed inserted callback. Each remap checks these historical readers, even when restoring original names.
   A closure's captured variables are fields of its class, and their storage, and its binding, is named after that
   class, whose name follows the order (`LuaHotReload.captureOwner`). They used to be numbered among the captures of one
   name, so a closure which started to capture `s` took a later sibling's storage of `s`, whose objects then read 0, and
