@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.ClassManagementVars;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -58,6 +59,18 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private static final Object SHARED_LUA_ALLOCATOR = new Object();
     private final Map<String, Long> compiletimeFunctionNanos = new LinkedHashMap<>();
     private long compiletimeExprNanos = 0L;
+    /**
+     * What each compiletime expression computes, for the identity of the objects and hashtables its value holds
+     * ({@link #globalIdentity}): the function holding it and its place among that function's compiletime expressions.
+     */
+    private final Map<ImCompiletimeExpr, String> expressionPaths = new IdentityHashMap<>();
+    /** Where the value being materialised was found, for a global {@link #globalForObject} or {@link #globalForHandle} makes. */
+    private String pendingPath = "";
+    /**
+     * The state of a {@code @compiletime} global being replayed: that global, and which of its states (one per
+     * specialisation of a generic one), where the values the replay writes are found ({@link #globalIdentity}).
+     */
+    private String statePath = "";
 
     public ILInterpreter getInterpreter() {
         return interpreter;
@@ -222,7 +235,16 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private void partitionCompiletimeStateInitFunction() {
         if (compiletimeStateInitFunction != null) {
+            Set<ImFunction> before = Collections.newSetFromMap(new IdentityHashMap<>());
+            before.addAll(imProg.getFunctions());
             FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
+            List<ImFunction> parts = new ArrayList<>();
+            for (ImFunction f : imProg.getFunctions()) {
+                if (!before.contains(f)) {
+                    parts.add(f);
+                }
+            }
+            translator.setCompiletimeStateFunctions(compiletimeStateInitFunction, parts);
         }
         List<ImFunction> splitTargets = new ArrayList<>(scalarStateSplitTargets);
         splitTargets.addAll(arrayStateSplitTargets);
@@ -339,11 +361,15 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void collectCompiletimeExpressions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
+        Map<ImFunction, Integer> ordinals = new HashMap<>();
         imProg.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {
                 super.visit(e);
                 toExecute.add(Either.forLeft(e));
+                ImFunction holder = e.getNearestFunc();
+                int ordinal = ordinals.merge(holder, 1, Integer::sum) - 1;
+                expressionPaths.put(e, (holder == null ? "program" : LuaHotReload.functionId(holder)) + "#" + ordinal);
             }
         });
     }
@@ -358,7 +384,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             globalState.pushStackframe(cte, cte.attrTrace().attrErrorPos());
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
-            ImExpr newExpr = constantToExpr(cte.getTrace(), value);
+            ImExpr newExpr = constantToExpr(cte.getTrace(), value, null, expressionPaths.get(cte));
             if(translator.isLuaTarget() && value.toString().equals("0")) {
                 // convert 0 to null/nil, if the value is 0 and not a numeric type
                 ImExpr expr = cte.getExpr();
@@ -407,6 +433,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             ImVar res = JassIm.ImVar(imProg.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
             imProg.getGlobals().add(res);
             globalState.setValUntracked(res, obj);
+            String path = globalIdentity(res);
 
             registerCompiletimeObject(obj, res);
 
@@ -422,10 +449,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                         ILconst attrValue = entry2.getValue();
                         ImExprs indexesT = JassIm.ImExprs();
                         for (Integer i : indexes) {
-                            ImExpr imExpr = constantToExpr(trace, ILconstInt.create(i));
-                            indexesT.add(imExpr);
+                            indexesT.add(JassIm.ImIntVal(i));
                         }
-                        ImExpr value2 = constantToExpr(trace, attrValue);
+                        ImExpr value2 = constantToExpr(trace, attrValue, null,
+                            path + "." + LuaHotReload.variableId(var) + indexes);
                         if(translator.isLuaTarget() && value2.toString().equals("0")) {
                             ImType varType = var.getType();
                             if(varType instanceof ImArrayLikeType) {
@@ -458,6 +485,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
                 imProg.getGlobals().add(res);
                 globalState.setValUntracked(res, a);
+                globalIdentity(res);
 
                 init = constantToExprHashtable(trace, res, a, map);
                 addCompiletimeStateInitAlloc(trace, res, init);
@@ -469,8 +497,18 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         }
     };
 
-    private ImExpr constantToExpr(Element trace, ILconst value) {
-        return constantToExpr(trace, value, null);
+    /**
+     * The identity of a global which holds an object or hashtable a compile-time value holds: where the value was found
+     * ({@link #pendingPath}), from what it was computed for (a compiletime expression, a global's state) through the
+     * fields, indexes and tuple components which lead to it. A Lua hot-reload build names the global after it
+     * ({@link ImTranslator#compiletimeGlobalIdentity}), so adding, moving or removing another compile-time value
+     * renames none of the others: numbered in the order they were found, the running map's objects were given to other
+     * constants.
+     */
+    private String globalIdentity(ImVar global) {
+        String identity = "compiletime:" + pendingPath;
+        translator.setCompiletimeGlobalIdentity(global, identity);
+        return identity;
     }
 
     /**
@@ -504,7 +542,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         return plain.contains(".") ? plain : plain + ".";
     }
 
-    private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
+    /** {@code value} as an expression; {@code path} says where it was found ({@link #globalIdentity}). */
+    private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType, String path) {
         if (value instanceof ILconstBool iLconstBool) {
             return JassIm.ImBoolVal(iLconstBool.getVal());
         } else if (value instanceof ILconstInt iLconstInt) {
@@ -522,7 +561,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             for (ILconst e : iLconstTuple.values()) {
                 ImType elementType = tupleType != null && index < tupleType.getTypes().size()
                     ? tupleType.getTypes().get(index) : null;
-                ImExpr imExpr = constantToExpr(trace, e, elementType);
+                ImExpr imExpr = constantToExpr(trace, e, elementType, path + "/" + index);
                 list.add(imExpr);
                 index++;
             }
@@ -532,10 +571,12 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     )
             );
         } else if (value instanceof IlConstHandle h) {
+            pendingPath = path;
             ImVar hVar = globalForHandle.getFor(h);
             return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
             ILconstObject obj = globalState.toObject(value);
+            pendingPath = path;
             ImVar v = globalForObject.getFor(obj);
             return JassIm.ImVarAccess(v);
         }
@@ -917,7 +958,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
             StateReplayLocation replayLocation = findReplayTarget(var);
             ImFunction replayFunction = getCompiletimeScalarStateInitFunction(replayLocation);
+            int stateIndex = 0;
             for (ProgramState.ScalarState state : globalState.getScalarStates(var)) {
+                statePath = "state:" + LuaHotReload.variableId(var) + "#" + stateIndex++;
                 if (!isPersistableCompiletimeValue(state.getValue())) {
                     String message = "Unsupported compiletime scalar value for " + var.getName()
                         + ": " + state.getValue();
@@ -930,7 +973,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 }
                 if (!state.isGeneric()) {
                     replayFunction.getBody().add(JassIm.ImSet(var.getTrace(), JassIm.ImVarAccess(var),
-                        constantToExpr(var.getTrace(), state.getValue(), var.getType())));
+                        constantToExpr(var.getTrace(), state.getValue(), var.getType(), statePath)));
                 } else if (state.getTypeArguments().isEmpty()) {
                     throw new InterpreterException(var.getTrace(),
                         "Could not determine the generic specialization for compiletime scalar " + var.getName());
@@ -950,7 +993,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             StateReplayLocation replayLocation = findReplayTarget(var);
             ImFunction replayFunction = getCompiletimeArrayStateInitFunction(replayLocation);
             UnsupportedArrayEntries unsupportedEntries = new UnsupportedArrayEntries();
+            int stateIndex = 0;
             for (ProgramState.ArrayState state : globalState.getArrayStates(var)) {
+                statePath = "state:" + LuaHotReload.variableId(var) + "#" + stateIndex++;
                 if (!state.isGeneric()) {
                     emitCompiletimeArrayEntries(replayFunction, var, state.getValue(),
                         new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites,
@@ -1022,7 +1067,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             "initCompiletimeScalarState_" + genericScalarStateInitCounter++,
             JassIm.ImTypeVars(typeVars), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(),
             JassIm.ImStmts(JassIm.ImSet(var.getTrace(), JassIm.ImVarAccess(var),
-                constantToExpr(var.getTrace(), state.getValue(), var.getType()))), Collections.emptyList());
+                constantToExpr(var.getTrace(), state.getValue(), var.getType(), statePath))), Collections.emptyList());
         imProg.getFunctions().add(replay);
         scalarStateSplitTargets.add(replay);
         replayFunction.getBody().add(JassIm.ImFunctionCall(
@@ -1071,7 +1116,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 }
                 target.getBody().add(JassIm.ImSet(var.getTrace(),
                     JassIm.ImVarArrayAccess(var.getTrace(), var, indexExpressions),
-                    constantToExpr(var.getTrace(), entry.getValue(), entryType)));
+                    constantToExpr(var.getTrace(), entry.getValue(), entryType, statePath + nextIndexes)));
             } else {
                 String message = "Unsupported compiletime array entry at index " + entry.getIntKey()
                     + " (" + entry.getValue() + ")";

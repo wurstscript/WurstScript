@@ -1379,14 +1379,20 @@ public final class LuaHotReload {
     }
 
     /** The identity of a function: its package, IM name and signature. */
-    static String functionId(ImFunction f) {
+    public static String functionId(ImFunction f) {
         return semanticId(f, signature(f));
     }
 
     /** The identity of a global or a field (with its class), or of a class. */
-    static String variableId(ImVar v) {
+    public static String variableId(ImVar v) {
         de.peeeq.wurstscript.jassIm.Element owner = v.getParent() == null ? null : v.getParent().getParent();
         return semanticId(v, (owner instanceof ImClass c ? c.getName() + "." : "") + v.getName());
+    }
+
+    /** {@link #variableId}, or for a global holding a compile-time object or hashtable, what made it. */
+    static String variableId(ImTranslator imTr, ImVar v) {
+        String compiletime = imTr.compiletimeGlobalIdentity(v);
+        return compiletime != null ? compiletime : variableId(v);
     }
 
     static String classId(ImClass c) {

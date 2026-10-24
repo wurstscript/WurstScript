@@ -189,7 +189,7 @@ public class LuaTranslator {
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
-                name = a.isGlobal() ? declarationName(name, LuaHotReload.variableId(a)) : localName(ownerFunction(a), name);
+                name = a.isGlobal() ? declarationName(name, LuaHotReload.variableId(imTr, a)) : localName(ownerFunction(a), name);
             } else {
                 usedNames.add(name);
             }

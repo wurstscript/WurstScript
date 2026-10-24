@@ -3027,6 +3027,69 @@ public class LuaHotReloadTests extends WurstScriptTest {
                 .replace("\r\n", "\n"));
     }
 
+    /** A compile-time object an edit adds is made by the payload: the running map never made it. */
+    @Test
+    public void aCompiletimeObjectAddedByAnEditExistsAfterTheReload() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg().luaHotReload(things(true)).lines(things(false));
+    }
+
+    private static String[] things(boolean second) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Thing", "    int value", "    construct(int value)", "        this.value = value",
+            "function makeThing(int v) returns Thing", "    return new Thing(v)",
+            "function compiletime(Thing t) returns Thing", "    return t",
+            "constant a = compiletime(makeThing(1))", second ? "constant b = compiletime(makeThing(2))" : "constant c = 0",
+            "function total() returns int", second ? "    return a.value + b.value" : "    return a.value",
+            "init", "    let before = total()", "    hotReload()",
+            "    if before != 1 or total() != 3", "        testFail(\"the compiletime object added by the edit is missing\")",
+            "    testSuccess()"};
+    }
+
+    /**
+     * Compile-time objects were named by their order, so one inserted above another took that one's name, and the
+     * payload gave the new constant the running map's object of the other.
+     */
+    @Test
+    public void aCompiletimeObjectInsertedAboveAnotherDoesNotTakeItsObject() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(insertedThing(true)).lines(insertedThing(false));
+    }
+
+    private static String[] insertedThing(boolean inserted) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Thing", "    int value", "    construct(int value)", "        this.value = value",
+            "function makeThing(int v) returns Thing", "    return new Thing(v)",
+            "function compiletime(Thing t) returns Thing", "    return t",
+            inserted ? "constant z = compiletime(makeThing(5))" : "constant c = 0",
+            "constant a = compiletime(makeThing(1))",
+            "function total() returns int", inserted ? "    return a.value * 10 + z.value" : "    return a.value * 10",
+            "init", "    let before = total()", "    a.value = 2", "    hotReload()",
+            "    if before != 10 or total() != 25",
+            "        testFail(\"the compiletime objects are swapped\")",
+            "    testSuccess()"};
+    }
+
+    /** Removing a compile-time object keeps the others: the map's objects keep their names and their values. */
+    @Test
+    public void aCompiletimeObjectRemovedByAnEditLeavesTheOthers() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(removedThing(false)).lines(removedThing(true));
+    }
+
+    private static String[] removedThing(boolean present) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Thing", "    int value", "    construct(int value)", "        this.value = value",
+            "function makeThing(int v) returns Thing", "    return new Thing(v)",
+            "function compiletime(Thing t) returns Thing", "    return t",
+            present ? "constant z = compiletime(makeThing(5))" : "constant c = 0",
+            "constant a = compiletime(makeThing(1))",
+            "function total() returns int", present ? "    return a.value * 10 + z.value" : "    return a.value * 10",
+            "init", "    let before = total()", "    hotReload()",
+            "    if before != 15 or total() != 10",
+            "        testFail(\"the remaining compiletime object changed\")",
+            "    testSuccess()"};
+    }
+
     private LuaHotReload.Manifest libraryManifest(RunArgs args, String[] lines) {
         return compileLuaHotReloadManifest(true, args,
             new CU("movedLinesShipTheBodiesWhosePositionsChanged", String.join("\n", lines) + "\n"));

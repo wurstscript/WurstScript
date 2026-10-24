@@ -188,6 +188,44 @@ public class ImTranslator implements SpecialisationLookup {
     /** The call of each initializer in {@link #luaGlobalInitializers}, or of the last unit added after it. */
     private final Map<ImFunction, ImFunctionCall> luaGlobalInitializerTails = new IdentityHashMap<>();
 
+    /**
+     * The identity of each global holding an object or hashtable a compile-time value holds, in the order they were
+     * made: what the value was computed for and the way through it to the object (CompiletimeFunctionRunner). A Lua
+     * hot-reload build names such a global after it.
+     */
+    private final Map<ImVar, String> compiletimeGlobalIdentities = new LinkedHashMap<>();
+
+    /** The function which makes the compile-time objects and hashtables when the map starts, and the parts split from it. */
+    private @Nullable ImFunction compiletimeStateFunction;
+    private List<ImFunction> compiletimeStateParts = List.of();
+
+    public void setCompiletimeGlobalIdentity(ImVar global, String identity) {
+        compiletimeGlobalIdentities.put(global, identity);
+    }
+
+    /** The identity {@link #setCompiletimeGlobalIdentity} gave {@code global}, null for any other variable. */
+    public @Nullable String compiletimeGlobalIdentity(ImVar global) {
+        return compiletimeGlobalIdentities.get(global);
+    }
+
+    /** The globals holding compile-time objects and hashtables, in the order they were made. */
+    public Set<ImVar> compiletimeGlobals() {
+        return Collections.unmodifiableSet(compiletimeGlobalIdentities.keySet());
+    }
+
+    public void setCompiletimeStateFunctions(ImFunction root, List<ImFunction> parts) {
+        compiletimeStateFunction = root;
+        compiletimeStateParts = List.copyOf(parts);
+    }
+
+    public @Nullable ImFunction compiletimeStateFunction() {
+        return compiletimeStateFunction;
+    }
+
+    public List<ImFunction> compiletimeStateParts() {
+        return compiletimeStateParts;
+    }
+
     /** The specialisations of generic statics which {@link #addSpecializedGlobalInitializer} gave a unit of their own. */
     private final Set<ImVar> specializationsWithOwnUnit = Collections.newSetFromMap(new IdentityHashMap<>());
 
