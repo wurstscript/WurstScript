@@ -3055,6 +3055,73 @@ public class LuaHotReloadTests extends WurstScriptTest {
         return compileLuaHotReloadManifest(false, HOT_RELOAD, new CU(name, String.join("\n", lines) + "\n"));
     }
 
+    /**
+     * A closure passed to a call in a builder chain keeps its identity when a later call of the chain, whose receiver
+     * holds the closure, is removed: an object made before the reload gets the edited body.
+     */
+    @Test
+    public void aClosureKeepsItsIdentityWhenALaterCallInItsChainIsRemoved() {
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(false, 2, 3))
+            .lines(chained(true, 1, 3));
+    }
+
+    @Test
+    public void aClosureKeepsItsIdentityWhenALaterCallIsAddedToItsChain() {
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(true, 2, 3))
+            .lines(chained(false, 1, 3));
+    }
+
+    /** Two closures of one chain stay apart: the edit of one reaches only that one. */
+    @Test
+    public void twoClosuresOfOneChainStayDistinct() {
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(false, 2, 3))
+            .lines(chained(true, 2, 2));
+        test().testLua(true).executeProg()
+            .luaHotReload(chained(false, 2, 3))
+            .lines(chained(true, 1, 3));
+    }
+
+    @Test
+    public void removingALaterCallOfAChainWarnsOfNoClosure() throws Exception {
+        LuaHotReload.Payload removed = LuaHotReload.payload(manifest(chained(true, 1, 3)), manifest(chained(false, 1, 3)),
+            Set.of(), 1);
+        assertEquals("no closure was renamed: " + removed.warnings(), List.of(), removed.warnings());
+        LuaHotReload.Payload edited = LuaHotReload.payload(manifest(chained(true, 1, 3)), manifest(chained(false, 2, 3)),
+            Set.of(), 1);
+        assertEquals(List.of(), edited.warnings());
+        assertTrue("the edited closure ships:\n" + edited.source(), edited.source().contains("(x + 2)"));
+    }
+
+    /**
+     * A wave built by a chain with two closures; the init checks the bodies after the reload against those of the
+     * edited program, {@code x + 2} and {@code x * 3}, so it is the same text in both programs.
+     */
+    private static String[] chained(boolean armor, int add, int factor) {
+        List<String> lines = new java.util.ArrayList<>(List.of("package Test", "native testSuccess()",
+            "native testFail(string msg)", "native hotReload()", "interface Modifier",
+            "    function modify(int x) returns int",
+            "class Wave", "    int hp = 0", "    int armor = 0", "    Modifier modi = null", "    Modifier bonus = null",
+            "    function hp(int v) returns Wave", "        hp = v", "        return this",
+            "    function armor(int v) returns Wave", "        armor = v", "        return this",
+            "    function modifier(Modifier m) returns Wave", "        modi = m", "        return this",
+            "    function bonus(Modifier m) returns Wave", "        bonus = m", "        return this",
+            "function build() returns Wave", "    return new Wave()", "        .modifier(x -> x + " + add + ")",
+            "        .hp(100)", "        .bonus(x -> x * " + factor + ")", "        .armor(5)",
+            "init", "    let w = build()", "    hotReload()",
+            "    if w.modi.modify(2) != 4",
+            "        testFail(\"the modifier made before the reload runs another body\")",
+            "    if w.bonus.modify(2) != 6",
+            "        testFail(\"the bonus made before the reload runs another body\")",
+            "    testSuccess()"));
+        if (!armor) {
+            lines.remove("        .armor(5)");
+        }
+        return lines.toArray(new String[0]);
+    }
+
     private static String[] concat(String[] a, String[] b) {
         String[] result = new String[a.length + b.length];
         System.arraycopy(a, 0, result, 0, a.length);
