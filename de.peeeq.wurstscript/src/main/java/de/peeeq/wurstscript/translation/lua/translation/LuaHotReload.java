@@ -1332,8 +1332,8 @@ public final class LuaHotReload {
 
     /**
      * Finds where a function is used as a value rather than called: a class-table binding the payload repeats
-     * ({@code slots}), or a store it cannot reach ({@code captures}). A callback adapter passes its target to xpcall by
-     * name each time it runs, so it reaches the new body without either.
+     * ({@code slots}), or a store it cannot reach ({@code captures}). A callback adapter passes its target and its error
+     * handler to xpcall by name each time it runs, so it reaches their new bodies without either.
      */
     private static void collectFunctionValues(LuaCompilationUnit model, Map<LuaFunction, List<String>> slots,
                                               Map<LuaFunction, List<String>> captures) {
@@ -1345,9 +1345,9 @@ public final class LuaHotReload {
                 if (parent instanceof LuaAssignment a && a.getRight() == ref
                     && a.getLeft() instanceof LuaExprFieldAccess fa && fa.getReceiver() instanceof LuaExprVarAccess table) {
                     slots.computeIfAbsent(target, t -> new ArrayList<>()).add(table.getVar().getName() + "." + fa.getFieldName());
-                } else if (parent instanceof LuaExprlist args && args.indexOf(ref) == 0
+                } else if (parent instanceof LuaExprlist args && args.indexOf(ref) <= 1
                     && args.getParent() instanceof LuaExprFunctionCallByName call && call.getFuncName().equals("xpcall")) {
-                    // resolved by name on every call
+                    // the function and the message handler, resolved by name on every call
                 } else if (parent instanceof LuaIf condition && condition.getCond() == ref) {
                     // a native fallback asks whether the runtime defines the native
                 } else {
