@@ -64,6 +64,30 @@ public class DeterministicChecks extends WurstScriptTest {
     }
 
     @Test
+    public void hotReloadNamedClosureBindingsAreDeterministic() {
+        CU closures = compilationUnit("NamedClosures.wurst", "package NamedClosures", "interface Op",
+            "    function apply(int value) returns int", "public function run(int seed) returns int",
+            "    Op a = (int value) -> seed + value", "    Op b = (int value) -> seed * value",
+            "    let result = a.apply(2) + b.apply(3)", "    destroy a", "    destroy b", "    return result",
+            "public function run(string text, int seed) returns int", "    Op a = (int value) -> seed - value",
+            "    let result = a.apply(1)", "    destroy a", "    return result",
+            "public class A", "    public static class N", "        int value",
+            "    static function create() returns N", "        return new N()",
+            "public class B", "    public static class N", "        int value",
+            "    static function create() returns N", "        return new N()",
+            "public function run(A.N item) returns int", "    Op a = (int value) -> item.value + value",
+            "    let result = a.apply(2)", "    destroy a", "    return result",
+            "public function run(B.N item) returns int", "    Op a = (int value) -> item.value - value",
+            "    let result = a.apply(3)", "    destroy a", "    return result");
+        CU main = compilationUnit("Main.wurst", "package Main", "import NamedClosures", "init", "    run(4)", "    run(\"x\", 5)",
+            "    let a = A.create()", "    let b = B.create()", "    run(a)", "    run(b)", "    destroy a", "    destroy b");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload");
+        var first = compileLuaHotReloadManifest(false, args, closures, main);
+        assertEquals(compileLuaHotReloadManifest(false, args, main, closures), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, closures, main), first);
+    }
+
+    @Test
     public void branchNullFactsIgnoreCompilationUnitOrder() throws IOException {
         CU program = compilationUnit("NullFacts.wurst",
             "type unit extends handle",
