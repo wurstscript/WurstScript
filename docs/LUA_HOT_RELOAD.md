@@ -1,9 +1,9 @@
 # Lua body hot reload (prototype)
 
 Status: implemented behind `-luaHotReload`. The whole path (a payload compiled by the editor, written as a preload
-file, picked up by the running map and installed) was measured on the 3.0.1.24371 client in a test map, last with ten
-payloads in one game across every kind of edit; see "Measured in the game", where the editor side was also driven
-through the language server as VS Code drives it (22 Oct).
+file, picked up by the running map and installed) was measured on the 3.0.1.24371 client in a test map, last with
+fourteen payloads in one game across every kind of edit, and in Castle Fight with real edits; see "Measured in the
+game", where the editor side was also driven through the language server as VS Code drives it (22 Oct).
 Background: [LUA_RUNTIME_OPPORTUNITIES.md](LUA_RUNTIME_OPPORTUNITIES.md), "Lua hot reload".
 
 ## What it does
@@ -415,8 +415,28 @@ The same suite, run as above with a tenth phase and a reload hook. 51 checks, al
 
 Every payload which applied printed nothing else, so no hook failed.
 
-Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); a real project's
-edits; the editor's part since 22 Oct (the suite builds from the command line); multiplayer, which is refused.
+### 24 Oct 2026: fourteen payloads, and Castle Fight
+
+The same suite with four more phases, on the compiler with #1553 to #1556. 68 checks, all passed:
+
+| Phase | Edit | In the game |
+| --- | --- | --- |
+| 11 | a constant nothing read is read; an array literal grows and has an entry changed; a generic class with a static is used with a new type argument | the constant has the value the map gave it at the start (33); the list sums to 64; only the new specialisation's static was initialised (its counter 2), the `int` one kept its 101 |
+| 12 | one line of a function of about 1 MB, shaped like a large map's generated object data | the payload of 1,374,082 bytes applied; the map ran the new body 38 s after it asked, 32.9 s of which was the build |
+| 13 | an interface with a `run` whose class sorts before another's is added, and a closure is appended in a function which has another's signature | the closures made at the start still dispatch to their own bodies (31 + 32 through the slot, 41 and 42), and the new ones run (51 + 52) |
+| 14 | a function whose closure the map stored at the start is removed | the payload applies with the compiler's warning, and the stored closure keeps its old body (42) |
+
+Castle Fight itself, built with `-lua -luaHotReload -dev` (the compiler of #1551) and kept running by an in-game test
+of its own: four payloads made from real edits in one game, each applied 0.5 to 2.5 s after its file was written and
+printing nothing it could not apply. A function body (652 bytes); two tuned constants in gameplay packages (2,285
+bytes; the production function reading one returned the new 2.5); an added `@onHotReload` function (2,940 bytes; it
+ran once, and again with the next payload); the first edit undone. From asking to applying took 90 to 143 s, almost
+all of it the build, which #1553 made three times faster. The run found that a map whose `main` skips
+`InitBlizzard`, as Castle Fight's does, read no payload and said nothing (fixed in #1553); for that run the test set
+`bj_isSinglePlayer` itself.
+
+Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); the editor's part
+since 22 Oct (the suite builds from the command line); multiplayer, which is refused.
 
 ## Probe for other clients
 
