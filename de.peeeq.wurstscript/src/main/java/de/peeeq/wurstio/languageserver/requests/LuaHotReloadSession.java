@@ -160,6 +160,22 @@ public final class LuaHotReloadSession {
     }
 
     /**
+     * What the editor shows of a payload's warnings, as one message: an edit which removes a class warns once for each
+     * of its methods, which would be as many notifications. Null for a payload without warnings.
+     */
+    public static String warningNote(LuaHotReload.Payload payload) {
+        List<String> warnings = payload.warnings();
+        if (warnings.isEmpty()) {
+            return null;
+        }
+        if (warnings.size() == 1) {
+            return warnings.get(0);
+        }
+        return "Hot reload payload " + payload.version() + " applies with " + warnings.size() + " notes:\n"
+            + String.join("\n", warnings);
+    }
+
+    /**
      * Writes the next payload for the running map where its poll reads it, under the game's CustomMapData folder, and
      * only then records it as sent: a payload which could not be written leaves the session as it was, so the next
      * attempt takes the number the map is waiting for.

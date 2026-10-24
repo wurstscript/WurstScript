@@ -35,7 +35,8 @@ import java.util.*;
  * Payloads are cumulative from the start of the map. The map records each statement a payload ran
  * ({@link #RAN_TABLE}), only once it ran, so a later payload runs what an earlier one did not reach and nothing twice.
  * A function stored as a value anywhere but a class table keeps the body it was taken from, so a change to one is
- * rejected.
+ * rejected. One which is removed, or a class-table slot nothing binds any more, keeps its old body for what the map
+ * made before, which the new code cannot reach: that warns that a restart drops it.
  */
 public final class LuaHotReload {
 
@@ -544,6 +545,15 @@ public final class LuaHotReload {
             }
         }
 
+        // What a running version stores which no function of the edit binds any more: a removed function stored as a
+        // value (a registered callback, a closure object's class table), or a class-table slot nothing binds now. The
+        // map keeps such a value with its old body, and only what it made before reaches it: a slot no class binds is
+        // never dispatched by the new code, and a removed function is not called by it. So the payload applies, and
+        // says what keeps the old body until the map restarts, as it does for package init it cannot run again.
+        // A surviving function which abandons a slot is the same case: objects of a class which no longer binds that
+        // slot run the body it held, and nothing else does. Only a function whose body is redefined here can differ
+        // from what the slot holds, so one which stays as it was warns of nothing. Changing a function which remains
+        // stored as a value is another case, refused below: the new code still reaches that value.
         Set<String> previousFunctions = new TreeSet<>(baseline.functions().keySet());
         previousFunctions.addAll(history.captured().keySet());
         previousFunctions.addAll(history.slots().keySet());
@@ -551,7 +561,12 @@ public final class LuaHotReload {
         current.functions().values().forEach(f -> reboundSlots.addAll(f.slots()));
         for (String name : previousFunctions) {
             Function old = baseline.functions().get(name);
-            boolean removed = !current.functions().containsKey(name);
+            Function now = current.functions().get(name);
+            boolean removed = now == null;
+            if (!removed && old != null && old.definition().equals(now.definition()) && !history.reloaded().contains(name)) {
+                // Not redefined: every slot it left still holds this very body.
+                continue;
+            }
             List<String> stored = new ArrayList<>(!removed || old == null ? List.of() : old.captures());
             if (removed && history.captured().containsKey(name)) {
                 stored.add("by an earlier payload");
@@ -563,9 +578,8 @@ public final class LuaHotReload {
                 stored.add("in class-table slot " + slot);
             }
             if (!stored.isEmpty()) {
-                reasons.add("function " + name + (removed ? " was removed but is stored as a value ("
-                    : " lost bindings which may remain stored (")
-                    + String.join(", ", new LinkedHashSet<>(stored)) + "), which keeps the old body");
+                warnings.add("function " + name + (removed ? " was removed" : " changed") + ", but what the map made before"
+                    + " keeps its old body (" + String.join("; ", new LinkedHashSet<>(stored)) + "): restart the map to drop it.");
             }
         }
 

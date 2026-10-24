@@ -72,11 +72,20 @@ when the map started (`startingToReadAGlobalKeepsItsStorage`). A build without t
 The payload compares the running script's manifest with the edited one:
 
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a
-  value anywhere else keeps the body it was taken from, so a change to or removal of it is rejected. This includes
-  callback adapters already registered by the baseline or an earlier payload.
-  A removed method is also rejected if an existing class-table slot can still bind it; rebinding that slot to a
-  current implementation is safe. This check also covers removed slot relationships whose function survives as an
-  ordinary method. The session preserves slot bindings from earlier payloads for this check.
+  value anywhere else keeps the body it was taken from, so a change to it is rejected. This includes callback
+  adapters already registered by the baseline or an earlier payload.
+  Removed code is no reason to restart. A removed function which a running version stored as a value (a callback
+  adapter an engine registration holds), and a class-table slot no function of the edit binds any more (the slot of a
+  removed closure or class, or one a shared function such as a `destroy` callback no longer binds), keep their old
+  bodies for what the map made before: a timer's or listener's closure object, an engine-registered callback. The new
+  code cannot reach them, since it calls no removed function and dispatches through no slot nothing binds. The payload
+  applies, with a warning per function: `function X was removed, but what the map made before keeps its old body (in
+  class-table slot C.s): restart the map to drop it.` A function which survives but leaves a slot is the same case:
+  objects of a class which no longer binds that slot run the body the slot held, so a payload which changes such a
+  function says so (`function X changed, but ...`); one whose body stays as it was leaves the slot holding that very
+  body and warns of nothing. Rebinding the slot to a current implementation warns of nothing either. The session
+  preserves slot bindings and stored functions from earlier payloads for these warnings, and for the rejection of a
+  change to a function an earlier payload stored.
 - A new top-level declaration runs (a new class table, a new field store); a changed one is rejected.
 - A new bootstrap or initialiser statement runs; a changed slot binding runs; the initial value of a new global runs.
 - A changed initial value of a constant which only computes its value runs again (see "Constants"). A changed initial
@@ -90,11 +99,12 @@ The payload compares the running script's manifest with the edited one:
   values; their methods can be replaced while old objects remain alive. Nested closures include outer variable
   bindings too. The source owner's scope and structural signature distinguish equal binding names in overloaded
   functions, including packages and enclosing scopes of nested parameter types. A closure in a package's `init` block
-  is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure still requires a restart
-  when its old class-table bindings survive. Identities name the classes a nested class is declared in, so two inner
-  classes of one name in one package (`A.N`, `B.N`) are two, and a closure's owner is its function by name as well as
-  signature: two functions of one signature in one package used to give their closures one identity, told apart by
-  their order across both, so a closure added to one moved the other's (`closuresOfTwoFunctionsOfOneSignatureAreTwoGroups`).
+  is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure applies
+  with the warning above: objects made from it before keep its old body (`removedClosureKeepsRunningItsOldBodyInTheMap`).
+  Identities name the classes a nested class is declared in, so two inner classes of one name in one package (`A.N`,
+  `B.N`) are two, and a closure's owner is its function by name as well as signature: two functions of one signature in
+  one package used to give their closures one identity, told apart by their order across both, so a closure added to one
+  moved the other's (`closuresOfTwoFunctionsOfOneSignatureAreTwoGroups`).
   A dispatch slot (the class-table key a method call goes through) is named after its group's root, the method none of
   the group's others override (an interface's `run`), and that root's key (`LuaDispatchPreparation.rootOf`). Groups of one
   method name used to be numbered in the order of their classes' names (`run`, `run1`, ... `run13` in Castle Fight), so
@@ -209,7 +219,7 @@ in-game suite (see "Measured in the game"); the unit tests run it with and witho
 | Engine `load` and delivery | Measured on the 3.0.1.24371 client: the preload file's Lua section runs, the tooltip carries the payload, `load` compiles it in the map's environment and the bodies are replaced (see "Measured in the game"). |
 | Stable semantic ids | Release builds number generated names in translation order. A hot-reload build names each function, global, class, field, allocator and dispatch stub from its own identity instead: the source name and twelve hex digits of a hash of its package, IM name and signature (`score_` and the digits). Adding or removing a declaration therefore renames nothing else (`addedDeclarationsRenameNothing`, `addedDeclarationWithSimilarHashRenamesNothing`), and every function is named before any body is translated, so a new local cannot take a function's name (`newLocalNamedLikeALaterFunctionIsABodyEdit`). The fingerprint still binds each name to its identity and type. |
 | Explicit lexical storage bindings | A payload is a separate chunk and cannot see the main chunk's locals. A hot-reload build therefore declares no main-chunk local: the allocator state, deallocator, hashtable sentinels and the old-generics zero become globals (`LuaTranslator.declareChunkLocal`). Every binding a body reaches is a global of the script's environment, and the payload is compiled with that environment (`load(source, name, "t", _ENV)`). Function-level aliases of field stores are inside the bodies and are rebuilt with them. |
-| All slot aliases | `LuaHotReload.collectFunctionValues` finds every place a reloadable function is used as a value. A class-table binding `Class.slot = f` is repeated after the new definition (`Square.Circle_area = Square_Square_area` in the test), for every class which binds it. A callback adapter passes its target to `xpcall` by name on each call and needs nothing. Any other stored value would keep the old body, so a change to such a function is refused by name; it can still be reloaded while it does not change. Neither the test programs nor a program over `LinkedList` and `ClosureTimers` from the standard library has one. |
+| All slot aliases | `LuaHotReload.collectFunctionValues` finds every place a reloadable function is used as a value. A class-table binding `Class.slot = f` is repeated after the new definition (`Square.Circle_area = Square_Square_area` in the test), for every class which binds it. A callback adapter passes its target to `xpcall` by name on each call and needs nothing. Any other stored value would keep the old body, so a change to such a function is refused by name; it can still be reloaded while it does not change, and its removal applies with a warning. Neither the test programs nor a program over `LinkedList` and `ClosureTimers` from the standard library has one. |
 | ABI / version rejection | The map checks the fingerprint and that the payload's version is newer than the last applied one before it installs anything. A syntax error, a foreign script or a stale payload returns a reason and changes nothing. The poll also skips text it has already seen. |
 | Inlining dependencies | `-luaHotReload` refuses `-inline` and `-opt` with an explicit error. Inlining copies bodies into callers, which the text rule would still handle, but a helper inlined everywhere disappears from the skeleton, and `-opt` renames every declaration per build. `-localOptimizations` is allowed: its interprocedural facts only change body text. |
 | Saved callbacks | `ImFuncRef` is emitted as a callback adapter which calls its target by name, so triggers, timers and enumerations registered before a reload run the new body. A closure is an object whose class table binds its method, so its body is replaced like an override (`closureBodyIsReplacedWithTheStandardLibrary`). The closure's captured values are fields and keep their values. |
@@ -447,23 +457,32 @@ editor loop in the game.
 ## Edits of a real project
 
 Castle Fight's last 30 commits which change Wurst code, each built with `-lua -luaHotReload` and its payload made
-against the commit before it (24 Oct 2026, with the order groups, hooks and payload checks above): 8 are accepted, 22
-refused. A commit is a whole pull request, so this overstates what one edit meets, but it ranks the causes. Commits
-each cause refuses, and in how many it is the only one:
+against the commit before it (24 Oct 2026). A commit is a whole pull request, so this overstates what one edit meets,
+but it ranks what a real project's edits meet. Accepted, as the changes landed:
 
-| Cause | Refuses | Only cause |
-| --- | --- | --- |
-| a constant array literal changes length, which is part of its type (`string[74]` to `string[75]`) | 14 | 4 |
-| a constant starts or stops being read: the dead-code removal drops unread storage, so its initializer's storage changes between `[]` and `[x]` | 7 | 2 |
-| a closure removed, which a class-table slot may still hold | 7 | 0 |
-| a closure inserted before others told apart by their order | 6 | 2 |
-| a new or removed type argument of a generic class with statics, whose one initializer stores every specialisation (since fixed: each specialisation is a unit of its own, see "The script in parts") | 5 | 0 |
+| Compiler | Accepted |
+| --- | --- |
+| order groups, reload hooks, payload checks (#1551) | 8 |
+| constants first read, array literals, generic specialisations (#1553) | 19 |
+| dispatch slots and closure owners named by what they name (#1555) | 21 |
+| removed closures, classes and callbacks apply with a warning | 23 |
 
-Without the first two, 17 of the 30 would be accepted. The accepted payloads also carry far more than the edit: one of
-5 changed files shipped 621 functions (2,033,445 bytes), 550 of which differ only in the names of the flatten's
-temporaries (`temp159` to `temp162`), which are numbered across the program.
+The causes in order of the commits they refused: an array literal changing length (14 commits, fixed: its length is
+no part of its identity), a constant starting or stopping being read (7, fixed: a hot-reload build keeps every global's
+storage), a closure, class or callback removed (7, now a warning), slots renamed by an added interface or
+implementation (the lost bindings of 5, fixed), and a generic class's new type argument (5, fixed). Of the 7 still
+refused, 6 insert a closure before others told apart by their order (the only cause in 3: a new `doAfter` or event
+listener registered above the others in one function), and 1 changes a global's type (`boolean` to
+`Signal<boolean>`), which needs a restart.
+
+The accepted payloads are 19 KB to 1 MB: Castle Fight's generated object data is one function each of 131 to 167 KB
+(`registerUnitObjectMetadata`, `registerUnitStats`), so an edit of a tooltip or a stat carries the whole function. The
+game delivered and applied a payload of 1,374,082 bytes (the in-game suite's twelfth payload). Before the temporaries
+were named within their function (#1552), one edit of 5 files shipped 621 functions, 550 of them for renamed
+temporaries.
 
 ## Next stages
 
-1. The causes above, most first, and temporaries named within their function.
+1. Closures inserted before others told apart by their order: a proposal in BACKLOG.md ("Lua hot reload: closures
+   inserted among others told apart by their order").
 2. Multiplayer through a synchronised channel, only with measurements of its ordering guarantees.

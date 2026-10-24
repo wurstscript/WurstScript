@@ -185,47 +185,54 @@ public class LuaHotReloadTests extends WurstScriptTest {
                 new LuaHotReload.History(Set.of(), java.util.Map.of("f", LuaHotReload.definitionHash(plain))), 2));
     }
 
-    /** Removing a callback cannot leave an already-registered adapter silently running its old body. */
+    /**
+     * Removing a callback or a stored function leaves what the map registered before with its old body, which the new
+     * code cannot reach: the payload applies, and warns of it, whether the baseline stored it or an earlier payload did.
+     */
     @Test
-    public void removedStoredFunctionIsRejectedFromBaselineAndHistory() {
+    public void removedStoredFunctionWarnsFromBaselineAndHistory() throws Exception {
         LuaHotReload.Function stored = new LuaHotReload.Function("f", "Test:f()void", "function f() end",
             List.of(), List.of("in register"), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", java.util.Map.of(), List.of(), List.of(), List.of());
         LuaHotReload.Manifest baseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", stored),
             List.of(), List.of(), List.of());
-        LuaHotReload.Rejected original = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1));
-        assertTrue(original.getMessage(), original.getMessage().contains("removed") && original.getMessage().contains("register"));
-        LuaHotReload.Rejected added = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReload.payload(empty, empty,
-            new LuaHotReload.History(Set.of("f"), java.util.Map.of("f", LuaHotReload.definitionHash(stored))), 2));
-        assertTrue(added.getMessage(), added.getMessage().contains("earlier payload"));
+        LuaHotReload.Payload original = LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1);
+        assertEquals(List.of("function f was removed, but what the map made before keeps its old body (in register):"
+            + " restart the map to drop it."), original.warnings());
+        LuaHotReload.Payload added = LuaHotReload.payload(empty, empty,
+            new LuaHotReload.History(Set.of("f"), java.util.Map.of("f", LuaHotReload.definitionHash(stored))), 2);
+        assertEquals(List.of("function f was removed, but what the map made before keeps its old body (by an earlier payload):"
+            + " restart the map to drop it."), added.warnings());
     }
 
     @Test
-    public void removedCallbackAdapterIsRejected() {
+    public void removedCallbackAdapterWarns() throws Exception {
         String[] callback = concat(MAIN_PACKAGE, new String[] {"native register(code callback)",
             "function callback()", "    bump()", "function setup()", "    register(function callback)",
             "init", "    setup()"});
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(manifest(callback), manifest(MAIN_PACKAGE), LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("removed") && rejected.getMessage().contains("stored"));
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(callback), manifest(MAIN_PACKAGE), LuaHotReload.History.NONE, 1);
+        // The adapter registered when the map started stays registered, with its old body, which calls its target by name.
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w ->
+            w.startsWith("function __wurst_callback_callback_")
+            && w.contains(" was removed, but what the map made before keeps its old body (in setup_")
+            && w.endsWith("restart the map to drop it.")));
     }
 
     @Test
-    public void removedMethodIsRejectedUnlessItsSlotIsRebound() throws Exception {
+    public void removedMethodWarnsUnlessItsSlotIsRebound() throws Exception {
         LuaHotReload.Function method = new LuaHotReload.Function("f", "Test:f()void", "function f() end",
             List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Manifest baseline = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", method),
             List.of(), List.of(), List.of());
         LuaHotReload.Manifest empty = new LuaHotReload.Manifest("abi", "v", java.util.Map.of(), List.of(), List.of(), List.of());
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("C.slot"));
+        assertEquals(List.of("function f was removed, but what the map made before keeps its old body (in class-table slot"
+                + " C.slot): restart the map to drop it."),
+            LuaHotReload.payload(baseline, empty, LuaHotReload.History.NONE, 1).warnings());
         LuaHotReload.Function replacement = new LuaHotReload.Function("g", "Test:g()void", "function g() end",
             List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Manifest rebound = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("g", replacement),
             List.of(), List.of(), List.of());
-        LuaHotReload.payload(baseline, rebound, LuaHotReload.History.NONE, 2);
+        assertEquals(List.of(), LuaHotReload.payload(baseline, rebound, LuaHotReload.History.NONE, 2).warnings());
     }
 
     @DataProvider
@@ -233,9 +240,12 @@ public class LuaHotReloadTests extends WurstScriptTest {
         return new Object[][] {{false, false}, {true, false}, {false, true}, {true, true}};
     }
 
-    /** A slot may outlive its relationship even while the function itself remains in the edited program. */
+    /**
+     * A slot may outlive its relationship while the function itself remains in the edited program: objects of a class
+     * which no longer binds the slot keep the body it held, which the new code cannot reach, so a changed body warns.
+     */
     @Test(dataProvider = "survivingSlotCases")
-    public void survivingFunctionCannotAbandonOldSlots(boolean fromHistory, boolean rebound) throws Exception {
+    public void survivingFunctionWhichAbandonsOldSlotsWarns(boolean fromHistory, boolean rebound) throws Exception {
         LuaHotReload.Function old = new LuaHotReload.Function("f", "Test:f()int", "function f() return 1 end",
             List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
         LuaHotReload.Function edited = new LuaHotReload.Function("f", "Test:f()int", "function f() return 2 end",
@@ -251,15 +261,26 @@ public class LuaHotReloadTests extends WurstScriptTest {
         var current = new LuaHotReload.Manifest("abi", "v", functions, List.of(), List.of(), List.of());
         var history = fromHistory ? new LuaHotReload.History(Set.of("f"), java.util.Map.of(),
             java.util.Map.of("f", List.of("C.slot")), java.util.Map.of(), Set.of()) : LuaHotReload.History.NONE;
-        if (rebound) {
-            LuaHotReload.payload(before, current, history, 2);
-        } else {
-            LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-                () -> LuaHotReload.payload(before, current, history, 2));
-            assertTrue(rejected.getMessage(), rejected.getMessage().contains("C.slot"));
-        }
+        List<String> warnings = LuaHotReload.payload(before, current, history, 2).warnings();
+        assertEquals(rebound ? List.of() : List.of("function f changed, but what the map made before keeps its old body"
+            + " (in class-table slot C.slot): restart the map to drop it."), warnings);
     }
 
+    /** A function which abandons a slot but keeps its body leaves that slot holding the very body it has. */
+    @Test
+    public void unchangedFunctionWhichAbandonsASlotWarnsOfNothing() throws Exception {
+        LuaHotReload.Function old = new LuaHotReload.Function("f", "Test:f()int", "function f() return 1 end",
+            List.of("C.slot"), List.of(), LuaHotReload.Kind.PROGRAM);
+        LuaHotReload.Function unbound = new LuaHotReload.Function("f", "Test:f()int", "function f() return 1 end",
+            List.of(), List.of(), LuaHotReload.Kind.PROGRAM);
+        var before = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", old), List.of(), List.of(), List.of());
+        var current = new LuaHotReload.Manifest("abi", "v", java.util.Map.of("f", unbound), List.of(), List.of(), List.of());
+        LuaHotReload.Payload payload = LuaHotReload.payload(before, current, LuaHotReload.History.NONE, 1);
+        assertEquals(List.of(), payload.warnings());
+        assertEquals(List.of(), payload.functions());
+    }
+
+    /** The session keeps the slots an earlier payload bound, so the edit which drops them says what keeps them. */
     @Test
     public void sessionRemembersSlotsOfAnEarlierPayload() throws Exception {
         var build = java.nio.file.Files.createTempDirectory("hotReloadSlots");
@@ -273,9 +294,42 @@ public class LuaHotReloadTests extends WurstScriptTest {
         }));
         LuaHotReloadSession.start(build, baseline);
         LuaHotReloadSession.send(build, delivery, added);
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReloadSession.send(build, delivery, baseline));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("slot"));
+        List<String> warnings = LuaHotReloadSession.send(build, delivery, baseline).payload().warnings();
+        assertTrue(warnings.toString(), warnings.stream().anyMatch(w -> w.contains(" was removed, but what the map made before"
+            + " keeps its old body (in class-table slot Holder_")));
+    }
+
+    /**
+     * A closure kept in a global and removed from the source: the payload applies, the object made before runs its old
+     * body through its class table, and the closures which remain work.
+     */
+    @Test
+    public void removedClosureKeepsRunningItsOldBodyInTheMap() throws Exception {
+        String[] values = {
+            "public interface Value", "    function get() returns int",
+            "Value kept = null",
+            // Each bound to a variable of its own: closures of one signature are otherwise told apart by their order.
+            "public function makeOther() returns Value", "    Value other = () -> 1", "    return other",
+            "public function makeThird() returns Value", "    Value third = () -> 2", "    return third",
+            "public function callKept() returns int", "    return kept.get()",
+            "public function callOther() returns int", "    return makeOther().get()",
+        };
+        String[] base = concat(concat(MAIN_PACKAGE, values), new String[] {
+            "function makeKept() returns Value", "    Value seven = () -> 7", "    return seven",
+            "init", "    kept = makeKept()", "    made += callOther() + makeThird().get() + callKept()",
+        });
+        String[] edited = concat(concat(MAIN_PACKAGE, values), new String[] {
+            "init", "    kept = makeOther()", "    made += callOther() + makeThird().get() + callKept()",
+        });
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedClosureKeepsRunningItsOldBodyInTheMap.lua";
+        LuaHotReload.Manifest current = manifest(edited);
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), current, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains(" was removed, but what"
+            + " the map made before keeps its old body (in class-table slot ") && w.endsWith("restart the map to drop it.")));
+        String output = applyInLua(script, List.of(payload.source()), globalName(current, "made"),
+            luaName(current, "callKept") + "()", luaName(current, "callOther") + "()");
+        assertEquals(output, "true 11 7 1 nil", output);
     }
 
     @Test
@@ -997,9 +1051,11 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void closureOwnerDistinguishesSameNamedNestedParameterTypes() throws Exception {
         var baseline = manifest(nestedParameterClosure(false));
         var edited = manifest(nestedParameterClosure(true));
-        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
-            () -> LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1));
-        assertTrue(rejected.getMessage(), rejected.getMessage().contains("old body") || rejected.getMessage().contains("now means"));
+        // The closure of make(B.N) is another one than that of make(A.N), not an edit of it: the old one is removed, and
+        // the object made from it keeps its body (one identity for both would bind a name to another type instead).
+        LuaHotReload.Payload payload = LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains(" was removed, but what"
+            + " the map made before keeps its old body (in class-table slot ")));
     }
 
     private static String[] nestedParameterClosure(boolean edited) {
@@ -1105,6 +1161,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
         edited[4] = "    if first\n        return () -> 1\n    return () -> 3";
         LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1);
         assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
+    /**
+     * The editor shows a payload's warnings as one notification: an edit which removes a class warns once for each of its
+     * methods, which were as many notifications.
+     */
+    @Test
+    public void payloadWarningsAreOneNote() {
+        LuaHotReload.Payload none = new LuaHotReload.Payload(3, List.of(), "", List.of(), java.util.Map.of(), java.util.Map.of(),
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+        assertEquals(null, LuaHotReloadSession.warningNote(none));
+        LuaHotReload.Payload one = new LuaHotReload.Payload(3, List.of(), "", List.of("a"), java.util.Map.of(), java.util.Map.of(),
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+        assertEquals("a", LuaHotReloadSession.warningNote(one));
+        LuaHotReload.Payload two = new LuaHotReload.Payload(3, List.of(), "", List.of("a", "b"), java.util.Map.of(),
+            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+        assertEquals("Hot reload payload 3 applies with 2 notes:\na\nb", LuaHotReloadSession.warningNote(two));
     }
 
     private static String[] consumers(String closures) {
