@@ -180,10 +180,17 @@ public final class LuaHotReload {
      * storage of globals one of those versions declared as variables, which code may then have written.
      * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}): which of
      * them the map runs depends on which payloads it installed, which the editor does not know.
+     * {@code reboundSlots} holds the run keys of binding statements sent by earlier payloads, including supertype
+     * tables: an undo must restore the baseline's binding too.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
-                          Map<String, List<String>> groupShapes) {
+                          Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
+        public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
+                       Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
+                       Map<String, List<String>> groupShapes) {
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, Set.of());
+        }
         public History(Set<String> reloaded, Map<String, String> captured) {
             this(reloaded, captured, Map.of(), Map.of(), Set.of());
         }
@@ -209,12 +216,13 @@ public final class LuaHotReload {
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
      * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
-     * hashes. {@code slots}, {@code initializers}, {@code variables} and {@code groupShapes} carry the installation
+     * hashes. {@code slots}, {@code initializers}, {@code variables}, {@code groupShapes} and {@code reboundSlots} carry the installation
      * metadata subsequent payloads need.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
                           Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
-                          Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
+                          Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
+                          Set<String> reboundSlots) {
     }
 
     /** An edit which a payload cannot carry: the map has to be rebuilt and restarted. */
@@ -628,6 +636,7 @@ public final class LuaHotReload {
 
         List<Statement> declarations = new ArrayList<>();
         List<Statement> initialisations = new ArrayList<>();
+        Set<String> sentSlots = new LinkedHashSet<>(history.reboundSlots());
         Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
         Map<String, String> currentInitializers = initializers(current);
         Map<String, String> baselineInitializers = initializers(baseline);
@@ -672,11 +681,17 @@ public final class LuaHotReload {
                 }
             }
             for (Statement s : current.statements()) {
-                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())) {
+                if (!s.scope().equals(scope) || oldTexts.contains(s.revision())
+                    && !(s.kind().equals("slot") && sentSlots.contains(runKey(s)))) {
                     continue;
                 }
                 Statement old = oldByKey.get(s.key());
                 boolean slot = s.kind().equals("slot");
+                if (slot) {
+                    // Remember every binding sent, even when a later edit restores the baseline. A map may have
+                    // installed any earlier payload, so that baseline assignment must keep shipping too.
+                    sentSlots.add(runKey(s));
+                }
                 if (scope.equals("init") && s.kind().equals("global")) {
                     long existing = s.targets().stream().filter(knownNames::contains).count();
                     if (existing > 0 && existing < s.targets().size()) {
@@ -922,7 +937,7 @@ public final class LuaHotReload {
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
-            Collections.unmodifiableMap(groupShapes));
+            Collections.unmodifiableMap(groupShapes), Collections.unmodifiableSet(sentSlots));
     }
 
     /** The run keys of the source initializers, as Lua strings, in the order the map runs them. */

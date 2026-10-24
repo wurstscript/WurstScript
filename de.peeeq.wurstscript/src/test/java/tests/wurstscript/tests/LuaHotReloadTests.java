@@ -1196,13 +1196,13 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void payloadWarningsAreOneNote() {
         LuaHotReload.Payload none = new LuaHotReload.Payload(3, List.of(), "", List.of(), java.util.Map.of(), java.util.Map.of(),
-            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals(null, LuaHotReloadSession.warningNote(none));
         LuaHotReload.Payload one = new LuaHotReload.Payload(3, List.of(), "", List.of("a"), java.util.Map.of(), java.util.Map.of(),
-            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals("a", LuaHotReloadSession.warningNote(one));
         LuaHotReload.Payload two = new LuaHotReload.Payload(3, List.of(), "", List.of("a", "b"), java.util.Map.of(),
-            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of());
+            java.util.Map.of(), java.util.Map.of(), Set.of(), Set.of(), java.util.Map.of(), Set.of());
         assertEquals("Hot reload payload 3 applies with 2 notes:\na\nb", LuaHotReloadSession.warningNote(two));
     }
 
@@ -3089,6 +3089,33 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void instanceofFollowsTheInterfacesAClassImplementsAfterTheReload() {
         test().testLua(true).executeProg().luaHotReload(implementingAndChecking("Predicate"))
             .lines(implementingAndChecking("Visitor"));
+    }
+
+    @Test
+    public void undoingAnInterfaceChangeRestoresTheRunningObjectsSupertypes() throws Exception {
+        String[] original = interfaceUndoProgram("Visitor");
+        String[] changed = interfaceUndoProgram("Predicate");
+        var baseline = manifest(original);
+        var build = java.nio.file.Files.createTempDirectory("hotReloadInterfaceUndo");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadInterfaceUndoDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, manifest(changed)).payload();
+        var second = LuaHotReloadSession.send(build, delivery, baseline).payload();
+        test().testLua(true).luaHotReload(original).lines(original);
+        String script = "test-output/lua/LuaHotReloadTests_undoingAnInterfaceChangeRestoresTheRunningObjectsSupertypes.lua";
+        String probe = luaName(baseline, "isVisitor") + "()";
+        assertEquals("true false nil\ntrue true nil", applyInLua(script,
+            List.of(first.source(), second.source()), probe).replace("\r\n", "\n"));
+        assertEquals("true true nil", applyInLua(script, List.of(second.source()), probe));
+    }
+
+    private static String[] interfaceUndoProgram(String iface) {
+        return new String[] {"package Test", "interface Thing", "interface Visitor extends Thing",
+            "    function visit() returns int", "interface Predicate extends Thing", "    function visit() returns int",
+            "class Doubler implements " + iface, "    function visit() returns int", "        return 2",
+            "Thing saved", "function isVisitor() returns boolean", "    return saved instanceof Visitor",
+            "function probePredicate(Predicate p) returns int", "    return p.visit()", "init", "    saved = new Doubler()",
+            "    isVisitor()", "    probePredicate(null)"};
     }
 
     private static String[] implementingAndChecking(String iface) {
