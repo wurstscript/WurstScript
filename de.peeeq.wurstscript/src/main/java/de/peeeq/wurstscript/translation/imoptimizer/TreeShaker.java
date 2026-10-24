@@ -292,7 +292,8 @@ public final class TreeShaker {
         /**
          * Removes the globals which no reachable code reads, with the assignments of effect-free values to them. A
          * global is needed when reachable code mentions it in any other way (a read, an assignment which may have an
-         * effect, a call argument), when it is preserved or pinned, and when the effect-free value assigned to a
+         * effect, a call argument), when it is preserved or pinned, in a hot-reload build when it is a global of the
+         * source ({@link ImTranslator#isHotReloadSourceGlobal}), and when the effect-free value assigned to a
          * needed global or the initialiser of a needed global of blizzard.j or common.j reads it. Those are in no
          * function body: the game initialises them, and the interpreters evaluate them when they are first read.
          */
@@ -306,7 +307,7 @@ public final class TreeShaker {
                 markNeeded(var, needed, pending);
             }
             for (ImVar var : prog.getGlobals()) {
-                if (NamePreservation.isPreserved(var)) {
+                if (NamePreservation.isPreserved(var) || trans.isHotReloadSourceGlobal(var)) {
                     markNeeded(var, needed, pending);
                 }
             }

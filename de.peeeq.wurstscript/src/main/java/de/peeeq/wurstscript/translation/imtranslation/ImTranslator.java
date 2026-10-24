@@ -423,6 +423,23 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
     /**
+     * Whether {@code global} is a global of the source which a {@code -luaHotReload} build keeps whether anything reads
+     * it or not. Its initializer is a unit of the manifest which records the storage it writes; dropping the storage
+     * of a global nothing reads would change that unit whenever an edit starts or stops reading the global, and a
+     * payload refuses that. Kept, a global an edit starts to read has the value the map gave it at the start. The
+     * globals of common.j and blizzard.j and those of generic classes, which the generics specialise, are not
+     * included. False in any other build.
+     */
+    public boolean isHotReloadSourceGlobal(ImVar global) {
+        return runArgs.isLuaHotReload()
+            && !global.getIsBJ()
+            && global.getTrace() instanceof GlobalVarDef
+            && isGlobalOf(global)
+            && genericStaticOwnerOf(global) == null
+            && specialisationOf(global) == null;
+    }
+
+    /**
      * The globals this translator created for passes which run later and reach them through its handle, not through
      * an access in a body: the variables which manage the instances of a class, which the class elimination builds
      * the allocators and the dispatch from. A new field of this kind has to be listed here.
@@ -2248,9 +2265,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             calculateCallRelations(hook, includeUsedVariables);
         }
 
-        // Mark externally visible globals as read so they survive garbage collection.
+        // Mark externally visible globals as read so they survive garbage collection, and in a hot-reload build every
+        // global of the source.
         for (ImVar global : imProg.getGlobals()) {
-            if (NamePreservation.isPreserved(global)) readVariables.add(global);
+            if (NamePreservation.isPreserved(global) || isHotReloadSourceGlobal(global)) readVariables.add(global);
         }
 
         // The game initialises common.j and blizzard.j globals itself, so their initialisers are in no
@@ -2452,7 +2470,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         }
         List<ImVar> unread = new ArrayList<>();
         for (ImVar v : candidates) {
-            if (isGlobalOf(v) && NamePreservation.isPreserved(v)) {
+            if ((isGlobalOf(v) && NamePreservation.isPreserved(v)) || isHotReloadSourceGlobal(v)) {
                 continue;
             }
             if (v.getIsBJ()) {

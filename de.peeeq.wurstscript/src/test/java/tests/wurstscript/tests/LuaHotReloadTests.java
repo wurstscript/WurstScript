@@ -1253,6 +1253,65 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 5 14 nil\ntrue 5 14 nil", output.replace("\r\n", "\n"));
     }
 
+    private static String[] unreadGlobals(String bumpResult) {
+        // A constant nothing reads, a variable only updated from itself and one never initialized, until an edit reads
+        // them in bump.
+        return new String[] {
+            "package Main",
+            "public int made = 0",
+            "int reloads = 0",
+            "int unset",
+            "class BuildingIds",
+            "    static constant templeOfStorm = 42",
+            "public function bump() returns int",
+            "    made++",
+            "    reloads += 1",
+            "    return " + bumpResult,
+            "init",
+            "    bump()",
+        };
+    }
+
+    /**
+     * A hot-reload build keeps the storage of every global of the source, read or not, so starting to read one changes
+     * no initializer's storage: the payload applies, and the global has the value the map gave it at the start.
+     */
+    @Test
+    public void startingToReadAGlobalKeepsItsStorage() throws Exception {
+        String[] unread = unreadGlobals("made");
+        test().testLua(true).luaHotReload(unread).lines(unread);
+        String script = "test-output/lua/LuaHotReloadTests_startingToReadAGlobalKeepsItsStorage.lua";
+        LuaHotReload.Manifest baseline = manifest(unread);
+        LuaHotReload.Manifest reading = manifest(unreadGlobals("made + BuildingIds.templeOfStorm + reloads + unset"));
+        String output = applyInLua(script, List.of(LuaHotReload.payload(baseline, reading, LuaHotReload.History.NONE, 1).source()),
+            globalName(reading, "templeOfStorm"), globalName(reading, "reloads"), luaName(reading, "bump") + "()");
+        // The init bumped once: reloads is 1; the call above bumps again, made 2 + 42 + reloads 2.
+        assertEquals(output, "true 42 1 46 nil", output.replace("\r\n", "\n"));
+    }
+
+    /** Without the flag the globals nothing reads are removed, as before. */
+    @Test
+    public void unreadGlobalsAreRemovedWithoutTheFlag() throws Exception {
+        test().testLua(true).lines(unreadGlobals("made"));
+        String lua = java.nio.file.Files.readString(
+            java.nio.file.Path.of("test-output/lua/LuaHotReloadTests_unreadGlobalsAreRemovedWithoutTheFlag.lua"));
+        assertTrue(lua, lua.contains("made"));
+        for (String global : List.of("templeOfStorm", "reloads", "unset")) {
+            assertFalse(lua, lua.contains(global));
+        }
+    }
+
+    /** The reverse edit: a global nothing reads any more keeps its storage too. */
+    @Test
+    public void stoppingToReadAGlobalKeepsItsStorage() throws Exception {
+        LuaHotReload.Manifest reading = manifest(unreadGlobals("made + BuildingIds.templeOfStorm + reloads + unset"));
+        LuaHotReload.Manifest unread = manifest(unreadGlobals("made"));
+        LuaHotReload.payload(reading, unread, LuaHotReload.History.NONE, 1);
+        for (String global : List.of("templeOfStorm", "reloads", "unset")) {
+            assertEquals(globalName(unread, global), globalName(reading, global));
+        }
+    }
+
     @DataProvider
     public Object[][] referenceStorageCases() {
         return new Object[][] {{true}, {false}};
