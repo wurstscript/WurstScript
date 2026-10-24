@@ -274,14 +274,21 @@ public class ClosureTranslator {
 
     private String hotReloadOwnerIdentity(TranslatedToImFunction callable) {
         StringBuilder identity = new StringBuilder(callable instanceof ConstructorDef ? "constructor"
-            : callable instanceof OnDestroyDef ? "destructor" : callable instanceof ExtensionFuncDef ? "extension" : "function");
+            : callable instanceof OnDestroyDef ? "destructor" : callable instanceof ExtensionFuncDef ? "extension"
+            : callable instanceof InitBlock ? "init" : "function");
         for (Element scope = callable; scope != null; scope = scope.getParent()) {
             if (scope instanceof NamedScope named) {
                 String segment = named.getName();
                 identity.append(segment.length()).append(':').append(segment);
             }
         }
-        ImFunction owner = tr.getFuncFor(callable);
+        if (callable instanceof InitBlock) {
+            // An init block is translated into its package's init function, which has no signature: the package is
+            // the whole identity.
+            return Hashing.sha256().hashString(identity, StandardCharsets.UTF_8).toString();
+        }
+        // A constructor's body is its construct function; getFuncFor would make another one from the same parameters.
+        ImFunction owner = callable instanceof ConstructorDef constructor ? tr.getConstructFunc(constructor) : tr.getFuncFor(callable);
         identity.append('<').append(owner.getTypeVariables().size()).append('>')
             .append(owner.hasFlag(FunctionFlagEnum.IS_VARARG) ? "vararg" : "fixed");
         for (ImVar parameter : owner.getParameters()) {

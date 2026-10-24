@@ -13,8 +13,10 @@ import de.peeeq.wurstscript.translation.imtranslation.LuaKeyedMap;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
+import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector2;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -617,7 +619,30 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImStringVal e, LuaTranslator tr) {
-        return LuaAst.LuaExprStringVal(e.getValS());
+        LuaExprStringVal result = LuaAst.LuaExprStringVal(e.getValS());
+        if (tr.isHotReload() && isStackPosition(e)) {
+            tr.stackPositions.add(result);
+        }
+        return result;
+    }
+
+    /** Whether {@code e} is the source position a call passes for -stacktraces (StackTraceInjector2). */
+    private static boolean isStackPosition(ImStringVal e) {
+        if (!(e.getParent() instanceof ImExprs args)) {
+            return false;
+        }
+        int index = args.indexOf(e);
+        List<ImVar> parameters;
+        if (args.getParent() instanceof ImFunctionCall call) {
+            parameters = call.getFunc().getParameters();
+        } else if (args.getParent() instanceof ImMethodCall call && call.getMethod().getImplementation() != null) {
+            // The implementation's first parameter is the receiver, which a method call passes apart.
+            parameters = call.getMethod().getImplementation().getParameters();
+            index++;
+        } else {
+            return false;
+        }
+        return index < parameters.size() && StackTraceInjector2.isStackPositionParameter(parameters.get(index));
     }
 
     /** Only the results of a return are a tuple (StmtTranslation): see {@link LuaMultipleResults}. */

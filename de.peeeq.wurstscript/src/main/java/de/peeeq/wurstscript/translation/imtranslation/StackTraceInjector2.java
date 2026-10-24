@@ -106,6 +106,8 @@ public class StackTraceInjector2 {
         prog.getGlobals().add(stackSize);
         stack = JassIm.ImVar(trace, TypesHelper.imStringArray(), "wurst_stack", false);
         prog.getGlobals().add(stack);
+        tr.stackTraceStorage.add(stackSize);
+        tr.stackTraceStorage.add(stack);
         prog.getGlobalInits().put(stackSize, Collections.singletonList(
             JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImIntVal(0))));
 
@@ -542,6 +544,11 @@ public class StackTraceInjector2 {
     }
 
     private boolean isStackTraceParam(ImVar p) {
+        return isStackPositionParameter(p);
+    }
+
+    /** Whether {@code p} is the parameter this injection adds, which each call passes its source position in. */
+    public static boolean isStackPositionParameter(ImVar p) {
         return p.getName().equals(STACK_POS_PARAM);
     }
 

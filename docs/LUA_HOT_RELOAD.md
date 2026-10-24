@@ -1,8 +1,9 @@
 # Lua body hot reload (prototype)
 
 Status: implemented behind `-luaHotReload`. The whole path (a payload compiled by the editor, written as a preload
-file, picked up by the running map and installed) was measured once on the 3.0.1.24371 client in a test map; see
-"Measured in the game", where the editor side was also driven through the language server as VS Code drives it.
+file, picked up by the running map and installed) was measured on the 3.0.1.24371 client in a test map, last with nine
+payloads in one game across every kind of edit; see "Measured in the game", where the editor side was also driven
+through the language server as VS Code drives it (22 Oct).
 Background: [LUA_RUNTIME_OPPORTUNITIES.md](LUA_RUNTIME_OPPORTUNITIES.md), "Lua hot reload".
 
 ## What it does
@@ -11,7 +12,8 @@ A map built with `-luaHotReload` takes edits of its program while it runs: chang
 signatures, new globals, class fields, classes, interfaces and lambdas, and new packages. The editor compiles the
 edited project and builds a payload from the difference between the script the map runs and the edited one. The map
 compiles the payload with `load`, checks it, and applies it. Globals, field stores, class tables, objects and the
-allocator keep their state. What a payload cannot change is rejected with the reasons, and the map is left untouched.
+allocator keep their state; a tuned constant takes its new value, and so do the constants computed from it (see
+"Constants"). What a payload cannot change is rejected with the reasons, and the map is left untouched.
 
 ```
 edit ─► language server: compile with -luaHotReload ─► LuaHotReload.payload(baseline, current, history)
@@ -56,7 +58,8 @@ The payload compares the running script's manifest with the edited one:
   ordinary method. The session preserves slot bindings from earlier payloads for this check.
 - A new top-level declaration runs (a new class table, a new field store); a changed one is rejected.
 - A new bootstrap or initialiser statement runs; a changed slot binding runs; the initial value of a new global runs.
-- A changed initial value of a global the map has is skipped with a warning: the map keeps the value it has.
+- A changed initial value of a constant which only computes its value runs again (see "Constants"). A changed initial
+  value of any other global the map has is skipped with a warning: the map keeps the value it has.
   Removing the initializer has the same warning. For a global added by an earlier payload, its run-once marker in
   the map determines whether that removed initializer actually ran before the map warns.
 - Any other changed bootstrap statement (class data of a class which exists) is rejected, and so is a name which
@@ -65,12 +68,17 @@ The payload compares the running script's manifest with the edited one:
   hot-reload builds. Adding or reordering distinct named siblings keeps existing closures' identities and captured
   values; their methods can be replaced while old objects remain alive. Nested closures include outer variable
   bindings too. The source owner's scope and structural signature distinguish equal binding names in overloaded
-  functions, including packages and enclosing scopes of nested parameter types. Removing or renaming a closure still requires a restart
+  functions, including packages and enclosing scopes of nested parameter types. A closure in a package's `init` block
+  is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure still requires a restart
   when its old class-table bindings survive.
   Siblings still sharing an identity (anonymous closures or equal binding names within one callable) are told apart
   by their order. Adding or removing one, changing their bodies or swapping them requires a restart: the map cannot
   match the existing objects to their new definitions. Their protected definitions are recorded in session history
   as well, so a group introduced by an earlier payload receives the same protection.
+- With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
+  payload ships them with their new positions, but every comparison of what must not change or what already ran (a
+  protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not
+  an edit.
 - All package initialization follows the order the map starts packages: after their dependencies. At each package,
   a new package's whole init runs once; an existing package only initializes its added globals. This includes packages
   an earlier payload added, so their later globals are ready before dependent packages initialize. If a new init fails, the
@@ -81,9 +89,11 @@ The payload compares the running script's manifest with the edited one:
   payload changes it; resending unchanged code gives no warning.
   Init comparisons preserve statement order and multiplicity, so removing one repeated call or reordering existing
   initialization work also warns.
-  Each initializer unit also records its first successful completion position in the map. Payloads compare their
-  requested initializer order against those positions, covering globals added by earlier payloads without assuming
-  that delivered files ran. A map which missed an earlier payload records only the order it actually executes.
+  Each initializer unit also records its first successful completion position in the map, and when that was: at the
+  start or in which payload. Payloads compare their requested initializer order against those positions, among the
+  units which first ran together, covering globals added by earlier payloads without assuming that delivered files ran.
+  A global a payload adds runs after every one the map has, wherever it is in the source; that is no reordering. A map
+  which missed an earlier payload records only the order it actually executes.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
   and kept, so what is stored in it stays.
 
@@ -105,6 +115,40 @@ installed, so a failure partway through a payload still protects the declaration
 function stored as a value keeps the body it had
 then: the session records that definition, and a later change to it is rejected. The fingerprint identifies the running script; a payload carries the running script's fingerprint.
 
+### Constants
+
+A changed initial value of a constant (`constant` or `let`, including a `@config` override of one) runs again, and so
+does every constant computed from it, in the order the map initialises them. Nothing but its initializer writes a
+constant, so it gets the value a restarted map would give it. `ConstantInitializers` decides which initializers may
+run again: those which only compute their value. Such an initializer reads its own locals, constants initialised before
+it and the game's constants; it writes only its own global; it calls only natives whose result depends on their
+arguments alone (not getters of game state such as `GetPlayerTeam`), the backend's operator intrinsics and functions
+which follow the same rules. The stack-trace bookkeeping does not count. Every other global
+keeps its value, with the warning:
+
+- a variable, which holds the map's state;
+- a constant which allocates an object or calls a native with effects: running it again would leak what it made;
+- an array constant: running it again would keep the entries an edit drops;
+- a constant which reads a variable, or a constant initialised after it (from a package an `initlater` import
+  initialises later), which held its default when the map started;
+- a constant which reads an element of an array: code may assign an element of a constant array.
+
+The manifest lists the initializer of each constant, whether it is pure, which constants it reads and which functions
+of the program it calls. A payload runs one again when its definition changed, a function it calls changed, or a
+constant it reads runs again. The map records the revision each one last ran (`__wurst_hotreload_constants`): its
+definition together with the functions it calls and the revisions of the constants it reads. So an undone edit runs
+the original initializer again, a map which missed a payload still ends at the current values, and a constant a
+payload added runs again when a later edit changes it. A constant which the baseline or an earlier payload declared as
+a variable, with an initial value or without, may hold a value code wrote; the manifest lists the storage of every
+variable, the session records those of earlier payloads (`History.variables`), and such a constant keeps its value,
+with the warning, and so does every constant computed from one, rather than the map mixing new values with ones
+computed from the old.
+
+Copies taken at startup do not follow: a unit's life set from a constant in `init`, or a timer started with a constant
+period. That needs the reload hook (see "Next stages"). Measured on the 3.0.1.24371 client: phases 7 and 9 of the
+in-game suite (see "Measured in the game"); the unit tests run it with and without `-stacktraces`
+(`tunedConstantsReachTheRunningMap`).
+
 ### Answers to the staged plan
 
 | Point | Answer in the prototype |
@@ -117,7 +161,7 @@ then: the session records that definition, and a later change to it is rejected.
 | Inlining dependencies | `-luaHotReload` refuses `-inline` and `-opt` with an explicit error. Inlining copies bodies into callers, which the text rule would still handle, but a helper inlined everywhere disappears from the skeleton, and `-opt` renames every declaration per build. `-localOptimizations` is allowed: its interprocedural facts only change body text. |
 | Saved callbacks | `ImFuncRef` is emitted as a callback adapter which calls its target by name, so triggers, timers and enumerations registered before a reload run the new body. A closure is an object whose class table binds its method, so its body is replaced like an override (`closureBodyIsReplacedWithTheStandardLibrary`). The closure's captured values are fields and keep their values. |
 | Active frames | A call in progress finishes in the body it started in, because a Lua function value does not change. The next call by name or through a class table runs the new body (`replacedBodiesRunAndStateSurvives` replaces bodies while `init` is running and calls them from it). The poll runs in a timer callback of its own, so when a payload is installed the only other frames are threads suspended by a wait. Measured on the 3.0.1.24371 client: a thread waiting in `TriggerSleepAction` through a reload resumed in its old body and called the new body by name. The init of a package the payload adds runs once; other package inits and `main` never run again, so a change to them ships with a warning that it needs a restart. |
-| Scope | Functions, globals, fields, classes, interfaces, lambdas and packages which are new or changed, in single-player development builds (see "The script in parts"). No migration of state: a changed field type, a changed initial value of an existing global or changed class data is rejected or kept, never converted. |
+| Scope | Functions, globals, fields, classes, interfaces, lambdas and packages which are new or changed, and the values of tuned constants, in single-player development builds (see "The script in parts" and "Constants"). No migration of state: a changed field type, a changed initial value of an existing variable or changed class data is rejected or kept, never converted. |
 | No release overhead | Without the flag the emission is unchanged, byte for byte (see "Release output"). With it, the runtime costs a global lookup where a main-chunk upvalue was, plus a once-a-second poll. |
 | Multiplayer | Not supported: a preload file is local to one machine, so applying it would desync the game. The poll returns at once unless `bj_isSinglePlayer`. Multiplayer would need the payload sent through a synchronised channel (for example `BlzSendSyncData` from the host, in chunks), applied by every client at the same point in the game's order, with the fingerprint checked identically on every client. |
 
@@ -133,11 +177,24 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
    (`customMapDataPath` in the configuration overrides the folder). A hot run deletes the files of earlier sessions. JHCR stays the path for Jass maps. A rejected edit fails the request
    with the reasons. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
 
+Without the editor, a map built with `-build ... -luaHotReload` (with run arguments: `-luaHotReload` refuses `-inline`
+and `-opt`) starts a session and takes payloads from the compiler's command line, which is how the in-game test drives
+it:
+
+```
+java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession start <build dir> <CustomMapData>
+java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession send <build dir> <CustomMapData>
+```
+
+`start` takes the map of the last build as the running one and deletes the payload files of an earlier session; `send`
+writes the next cumulative payload for the last build, or exits with 1 and the reasons.
+
 Game side (measured, see below): `main` starts a one-second timer which calls `__wurst_hotreload_poll`. The poll sets
 the tooltip of ability `Aamk` to a space, calls `Preloader` on the next payload file, and reads the tooltip back. The
 file's Lua section (between `//!beginusercode` and `//!endusercode`) puts `wurst-hot-reload-payload:` and the payload
 in that tooltip, in chunks of 1,000 characters. Text with that marker moves the poll on to the next file and goes to
-`__wurst_hotreload_apply`; `__wurst_hotreload_status()` answers what became of it, and the poll prints it. The writer
+`__wurst_hotreload_apply`; `__wurst_hotreload_status()` answers what became of it (applied, followed by anything it
+printed it could not apply, or rejected with the reason), and the poll prints it. The writer
 escapes `//!` inside the payload so that no marker can end the section early. Three facts of the game shape this,
 each measured on the 3.0.1.24371 client:
 
@@ -220,8 +277,41 @@ the new one by name. The matrix found three defects, each fixed with a test: pay
 read (one file rewritten, see "Delivery"); with no payload file the poll took the ability's tooltip for one; and a
 local added to a body could take the name of a function translated later.
 
+### 24 Oct 2026: nine payloads in one game
+
+On the 3.0.1.24371 client, single player, a test map was built with `-build ... -lua -luaHotReload` and a project's
+default run arguments (`-runcompiletimefunctions -injectobjects -stacktraces`), its session started from the compiler's
+command line (`LuaHotReloadSession start`, see "Delivery"), and the game launched. Each time the map asked for the next
+phase, the edited project was built again and the next payload written (`LuaHotReloadSession send`). 44 checks, all
+passed:
+
+| Phase | Edit | In the game |
+| --- | --- | --- |
+| 1 | the 15 kinds of body of the first matrix (above) | every body new; objects made before keep their fields |
+| 2 | 300 bodies, and one of a function with 210 locals | applied |
+| 3 | phase 1's edit of a free function undone | the original body is back, the other edits stay |
+| 4 | a stale payload, one for another script, one which does not compile | each rejected; nothing changed |
+| 5 | a field's type changed, then a new function, global, class with a field default, interface, lambda, and field | the first refused by the compiler with the reasons; then 84, as in the first matrix |
+| 6 | a closure bound to another variable added before an existing one, whose body changed | the closure made at the start returns 11 (its new body, its seed 5); new ones 1014 |
+| 7 | a configured constant 5 to 7, a real and a variable | 7, the constant computed from it 14, the string computed with `I2S` "lvl7", the real 250; the variable kept 5 |
+| 8 | a new package | its init ran once |
+| 9 | a constant of that package, 40 to 55 | 55; the init did not run again |
+
+A thread waiting in `TriggerSleepAction` through phase 1 resumed in its old body and then called the new one by name,
+as on 22 Oct. Every payload which applied printed nothing but "applied payload n" (each phase checks the status, which
+now carries what a payload printed it could not apply). A payload arrived 25 to 51 s after the map asked for it (phase
+5 builds twice), almost all of it the build: about 24 s with the game running, 14 s without.
+
+The suite found four defects the unit tests had missed, each fixed with a test: a closure in a package's `init` block
+crashed every `-luaHotReload` build, the standard library's `Preloader` among them
+(`closuresInAnInitBlockAreNamedAndReloaded`); so did a closure in a constructor
+(`closuresInAConstructorAreNamedAndReloaded`); with `-stacktraces` a moved line counted as a change of the closures
+told apart by their order, so any edit above them was refused (`movedLinesDoNotFreezeClosuresToldApartByOrder`); and a
+global added to a package which starts before another made every later payload print "global initializer order
+changed" (`addedGlobalBeforeALaterPackageIsNoReorder`).
+
 Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); a real project's
-edits; multiplayer, which is refused.
+edits; the editor's part since 22 Oct (the suite builds from the command line); multiplayer, which is refused.
 
 ## Probe for other clients
 
