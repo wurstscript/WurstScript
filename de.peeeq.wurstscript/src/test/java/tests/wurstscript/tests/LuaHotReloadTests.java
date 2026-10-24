@@ -3683,6 +3683,49 @@ public class LuaHotReloadTests extends WurstScriptTest {
             added ? "    return snapshot.storedId" : "    return 0", "init", "    read()"};
     }
 
+    @Test
+    public void anEarlierCompiletimeAliasKeepsTheExistingObject() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg().luaHotReload(aliasedSnapshot(true, false))
+            .lines(aliasedSnapshot(false, false));
+    }
+
+    @Test
+    public void anEarlierCompiletimeAliasKeepsAnExistingNestedObject() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg().luaHotReload(aliasedSnapshot(true, true))
+            .lines(aliasedSnapshot(false, true));
+    }
+
+    @Test
+    public void anEarlierCompiletimeAliasKeepsTheExistingHashtable() {
+        String[] base = {"type agent extends handle", "type hashtable extends agent", "package Test",
+            "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "@extern native InitHashtable() returns hashtable", "@extern native SaveInteger(hashtable h, int p, int c, int v)",
+            "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+            "function compiletime(hashtable h) returns hashtable", "    return h", "",
+            "constant a = compiletime(InitHashtable())", "function existing() returns hashtable", "    return a",
+            "function aliased() returns hashtable", "    return a", "init", "    SaveInteger(a, 1, 2, 10)",
+            "    hotReload()", "    if aliased() != a or LoadInteger(aliased(), 1, 2) != 10",
+            "        testFail(\"an alias duplicated the existing hashtable\")", "    testSuccess()"};
+        String[] edited = base.clone();
+        edited[11] = "constant z = compiletime(existing())";
+        edited[16] = "    return z";
+        test().testLua(true).runCompiletimeFunctions(true).executeProg().luaHotReload(edited).lines(base);
+    }
+
+    private static String[] aliasedSnapshot(boolean alias, boolean nested) {
+        String target = nested ? "a.child" : "a";
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Thing", "    int value", "    Thing child", "    construct(int v)", "        value = v",
+            "function compiletime(Thing t) returns Thing", "    return t", "function makeThing() returns Thing",
+            "    let result = new Thing(1)", "    result.child = new Thing(2)", "    return result",
+            alias ? "constant z = compiletime(existing())" : "", "constant a = compiletime(makeThing())",
+            "function existing() returns Thing", "    return " + target,
+            "function aliased() returns Thing", "    return " + (alias ? "z" : target), "init",
+            "    " + target + ".value = 10", "    hotReload()",
+            "    if aliased() != " + target + " or aliased().value != 10",
+            "        testFail(\"an alias duplicated the existing snapshot\")", "    testSuccess()"};
+    }
+
     private static String[] removedThing(boolean present) {
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
             "class Thing", "    int value", "    construct(int value)", "        this.value = value",

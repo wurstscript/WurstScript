@@ -345,6 +345,7 @@ public class EvaluateExpr {
         if (res == null) {
             res = expr.getExpr().evaluate(globalState, localState);
             expr.evaluationResult().set(res);
+            globalState.noteCompiletimeExpressionEvaluated(expr);
         }
         return res;
     }

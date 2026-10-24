@@ -41,6 +41,18 @@ public class ProgramState extends State implements AutoCloseable {
     private boolean typeIdsRead;
     /** Compile-time integers may retain object/handle identities which a live allocator cannot reproduce. */
     private boolean objectIdsRead;
+    private final List<ImCompiletimeExpr> evaluatedCompiletimeExpressions = new ArrayList<>();
+
+    /** Preserve dependency completion order before the runner materializes an outer expression's result. */
+    public void noteCompiletimeExpressionEvaluated(ImCompiletimeExpr expression) {
+        evaluatedCompiletimeExpressions.add(expression);
+    }
+
+    public List<ImCompiletimeExpr> takeEvaluatedCompiletimeExpressions() {
+        List<ImCompiletimeExpr> result = List.copyOf(evaluatedCompiletimeExpressions);
+        evaluatedCompiletimeExpressions.clear();
+        return result;
+    }
 
     public void noteObjectIdsRead() {
         objectIdsRead = true;

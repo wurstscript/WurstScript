@@ -66,6 +66,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
      * ({@link #globalIdentity}): the function holding it and its place among that function's compiletime expressions.
      */
     private final Map<ImCompiletimeExpr, String> expressionPaths = new IdentityHashMap<>();
+    private final Map<ILconst, String> materializationPaths = new IdentityHashMap<>();
     private final Map<ImCompiletimeExpr, String> expressionRoots = new IdentityHashMap<>();
     private final Map<String, Integer> expressionCounts = new TreeMap<>();
     private final Map<String, Integer> persistedExpressionCounts = new TreeMap<>();
@@ -403,6 +404,13 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             globalState.pushStackframe(cte, cte.attrTrace().attrErrorPos());
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
+            for (ImCompiletimeExpr evaluated : globalState.takeEvaluatedCompiletimeExpressions()) {
+                String path = expressionPaths.get(evaluated);
+                if (path == null) {
+                    throw new IllegalStateException("Unregistered compile-time expression " + evaluated);
+                }
+                rememberMaterializationPaths(evaluated.evaluationResult().get(), path);
+            }
             if (hasMaterializedValue(value)) {
                 String root = expressionRoots.get(cte);
                 persistedExpressionCounts.put(root, expressionCounts.get(root));
@@ -456,6 +464,28 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             }
         }
         return false;
+    }
+
+    /** A dependency owns its returned graph before an earlier source binding can alias the graph or one of its fields. */
+    private void rememberMaterializationPaths(ILconst value, String path) {
+        if (value instanceof ILconstObject object) {
+            if (materializationPaths.putIfAbsent(object, path) != null) {
+                return;
+            }
+            for (Map.Entry<ImVar, Map<List<Integer>, ILconst>> field : object.getAttributes().rowMap().entrySet()) {
+                for (Map.Entry<List<Integer>, ILconst> element : field.getValue().entrySet()) {
+                    rememberMaterializationPaths(element.getValue(), "compiletime:" + path + "."
+                        + LuaHotReload.variableId(field.getKey()) + element.getKey());
+                }
+            }
+        } else if (value instanceof IlConstHandle handle) {
+            materializationPaths.putIfAbsent(handle, path);
+        } else if (value instanceof ILconstTuple tuple) {
+            int index = 0;
+            for (ILconst component : tuple.values()) {
+                rememberMaterializationPaths(component, path + "/" + index++);
+            }
+        }
     }
 
 
@@ -606,12 +636,12 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     )
             );
         } else if (value instanceof IlConstHandle h) {
-            pendingPath = path;
+            pendingPath = materializationPaths.getOrDefault(h, path);
             ImVar hVar = globalForHandle.getFor(h);
             return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
             ILconstObject obj = globalState.toObject(value);
-            pendingPath = path;
+            pendingPath = materializationPaths.getOrDefault(obj, path);
             ImVar v = globalForObject.getFor(obj);
             return JassIm.ImVarAccess(v);
         }
