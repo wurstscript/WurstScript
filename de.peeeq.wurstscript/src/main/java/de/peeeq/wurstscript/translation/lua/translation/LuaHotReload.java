@@ -1479,7 +1479,11 @@ public final class LuaHotReload {
         model.add(LuaAst.LuaLiteral(KEPT_INITIALIZERS + " = {}"));
         model.add(LuaAst.LuaLiteral(CONSTANT_VALUES + " = {}"));
         model.add(LuaAst.LuaLiteral(CONSTANT_LENGTHS + " = {}"));
-        model.add(LuaAst.LuaLiteral(String.join("\n",
+        // With -stacktraces the code a payload runs pushes frames, and an install which fails (the init of a package it
+        // adds raises) never pops them: the depth is put back after it, as after each hook.
+        LuaVariable depthVar = tr.stackTraceDepth();
+        String depth = depthVar == null ? null : depthVar.getName();
+        List<String> apply = new ArrayList<>(List.of(
             "function " + APPLY_FUNCTION + "(source)",
             "    local chunk, err = load(source, \"=wurst hot reload\", \"t\", _ENV)",
             "    if not chunk then return false, err end",
@@ -1492,14 +1496,22 @@ public final class LuaHotReload {
             "        return false, \"payload \" .. tostring(version) .. \" is not newer than \" .. " + VERSION_GLOBAL,
             "    end",
             "    " + WARNINGS + " = {}",
-            "    " + CURRENT_BATCH + " = version",
-            "    local installed, installErr = pcall(install)",
+            "    " + CURRENT_BATCH + " = version"));
+        if (depth != null) {
+            apply.add("    local depth = " + depth);
+        }
+        apply.add("    local installed, installErr = pcall(install)");
+        if (depth != null) {
+            apply.add("    " + depth + " = depth");
+        }
+        apply.addAll(List.of(
             "    if not installed then",
             "        return false, \"the payload failed while it was installed, so the map may run old and new bodies: \" .. tostring(installErr)",
             "    end",
             "    " + VERSION_GLOBAL + " = version",
             "    return true",
-            "end")));
+            "end"));
+        model.add(LuaAst.LuaLiteral(String.join("\n", apply)));
         model.add(LuaAst.LuaLiteral(WARNINGS + " = {}"));
         model.add(LuaAst.LuaLiteral(String.join("\n",
             "function " + WARN_FUNCTION + "(text)",
@@ -1510,12 +1522,6 @@ public final class LuaHotReload {
             "end")));
         // A hook takes no parameters but, with -stacktraces, the position of its call, as every function does; without,
         // Lua drops the argument. The frames a failing hook pushed are never popped, so the depth is put back after it.
-        String depth = null;
-        for (ImVar v : tr.imTr.stackTraceStorage) {
-            if (!(v.getType() instanceof ImArrayType)) {
-                depth = tr.luaVar.getFor(v).getName();
-            }
-        }
         List<String> runHook = new ArrayList<>(List.of("function " + HOOK_FUNCTION + "(hook, name)"));
         if (depth != null) {
             runHook.add("    local depth = " + depth);

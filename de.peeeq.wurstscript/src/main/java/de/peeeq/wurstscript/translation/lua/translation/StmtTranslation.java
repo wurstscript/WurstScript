@@ -182,10 +182,25 @@ public class StmtTranslation {
         String packageName = tr.imTr.luaInitFunctions.getOrDefault(initFunc, "?");
         // no local/do-block: locals hidden in literals are invisible to the
         // 200-locals accounting in enforceLuaLocalLimits
+        // With -stacktraces a raising init leaves the frames it pushed, as a raising callback does
+        // (LuaTranslator.callbackAdapterFor): the depth is put back after xpcall, once the handler has printed them.
+        // Package inits run one after another, never nested, so one global holds the depth. Jass cannot catch:
+        // a crashed Jass init leaves its frames too.
+        LuaVariable depth = tr.stackTraceDepth();
+        String depthName = depth == null ? null : depth.getName();
+        if (depthName != null) {
+            res.add(LuaAst.LuaLiteral(INIT_DEPTH + " = " + depthName));
+        }
         res.add(LuaAst.LuaLiteral("if not xpcall(" + funcName + ", " + tr.initErrorHandler().getName() + ") then"));
+        if (depthName != null) {
+            res.add(LuaAst.LuaLiteral("    " + depthName + " = " + INIT_DEPTH));
+        }
         res.add(LuaAst.LuaLiteral("    " + ExprTranslation.callErrorFunc(tr, "\"Could not initialize package " + packageName + ".\"")));
         res.add(LuaAst.LuaLiteral("end"));
     }
+
+    /** The stack-trace depth before the package init which runs, in a {@code -stacktraces} build. */
+    private static final String INIT_DEPTH = "__wurst_initStackDepth";
 
     public static void translate(ImExitwhen s, List<LuaStatement> res, LuaTranslator tr) {
         LuaIf r = LuaAst.LuaIf(s.getCondition().translateToLua(tr),
