@@ -1112,7 +1112,7 @@ public final class LuaHotReload {
         /** The groups whose names hold other tables than those the started map gave them. */
         final Set<String> permuted = new TreeSet<>();
         private final Map<String, String> lineageOf = new HashMap<>();
-        private final Map<String, Map<String, String>> origins = new HashMap<>();
+        private final Map<String, Map<String, String>> origins = new TreeMap<>();
         private final Map<String, List<String>> membersByGroup = new TreeMap<>();
 
         Lineages(Manifest baseline, Manifest current, History history, int version, List<String> reasons) {
@@ -1239,6 +1239,11 @@ public final class LuaHotReload {
                     for (Map.Entry<String, String> table : curClosures.get(name).tables().entrySet()) {
                         String began = origin.get(table.getKey());
                         moves |= !table.getValue().equals(began);
+                        if (!table.getValue().equals(began)) {
+                            // A matched survivor can take a removed closure's names too. Every reassignment must
+                            // protect the old bodies that still read those globals, not only new-lineage allocation.
+                            reclaimed.put(table.getValue(), name);
+                        }
                     }
                 }
                 if (moves) {

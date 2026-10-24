@@ -1560,6 +1560,21 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("cannot be told apart"));
     }
 
+    @Test
+    public void aSurvivingCallbackCannotTakeARemovedCallbacksCaptureNames() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadSurvivorNames");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadSurvivorNamesDelivery");
+        LuaHotReloadSession.start(build, manifest(insertedCallbacks(false)));
+        String[] removed = java.util.Arrays.stream(insertedCallbacks(false))
+            .map(line -> line.contains("second = keep(") ? "    second = null" : line).toArray(String[]::new);
+        String[] inserted = java.util.Arrays.stream(insertedCallbacks(true))
+            .map(line -> line.contains("second = keep(") ? "    second = null" : line).toArray(String[]::new);
+        LuaHotReloadSession.send(build, delivery, manifest(removed));
+        LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, manifest(inserted)));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("an earlier edit removed it"));
+    }
+
     private static String[] typedCallbacks(boolean inserted, boolean real) {
         return new String[] {"package Test", "native R2I(real r) returns int", "interface Op", "    function apply() returns int",
             "Op last", "function keep(Op op)", "    last = op", "function registerAll()",
