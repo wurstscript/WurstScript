@@ -32,6 +32,19 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void hotReloadCompiletimeObjectSnapshotsAreDeterministic() {
+        CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
+            "    construct(int v)", "        value = v", "public function make(int v) returns Node", "    return new Node(v)");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Values", "native observe(int v)",
+            "function compiletime(Node n) returns Node", "    return n", "constant a = compiletime(make(1))",
+            "constant b = compiletime(make(2))", "init", "    observe(a.value + b.value)");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload", "-stacktraces", "-runcompiletimefunctions");
+        var first = compileLuaHotReloadManifest(false, args, values, main);
+        assertEquals(compileLuaHotReloadManifest(false, args, main, values), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, values, main), first);
+    }
+
+    @Test
     public void hotReloadRemovalWarningsIgnoreHistoryMapOrder() throws Exception {
         Map<String, String> forward = new java.util.LinkedHashMap<>();
         forward.put("alpha", "markerA");

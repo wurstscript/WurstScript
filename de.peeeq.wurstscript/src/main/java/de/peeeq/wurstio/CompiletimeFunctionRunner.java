@@ -13,6 +13,8 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.GlobalOrLocalVarDef;
+import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -361,15 +363,25 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void collectCompiletimeExpressions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
-        Map<ImFunction, Integer> ordinals = new HashMap<>();
+        Map<String, Integer> ordinals = new HashMap<>();
         imProg.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {
                 super.visit(e);
                 toExecute.add(Either.forLeft(e));
                 ImFunction holder = e.getNearestFunc();
-                int ordinal = ordinals.merge(holder, 1, Integer::sum) - 1;
-                expressionPaths.put(e, (holder == null ? "program" : LuaHotReload.functionId(holder)) + "#" + ordinal);
+                String root = holder == null ? "program" : LuaHotReload.functionId(holder);
+                for (Element scope = e.getTrace(); scope != null; scope = scope.getParent()) {
+                    if (scope instanceof GlobalOrLocalVarDef binding) {
+                        root += ":binding:" + binding.getName();
+                        break;
+                    }
+                    if (scope instanceof TranslatedToImFunction) {
+                        break;
+                    }
+                }
+                int ordinal = ordinals.merge(root, 1, Integer::sum) - 1;
+                expressionPaths.put(e, root + "#" + ordinal);
             }
         });
     }

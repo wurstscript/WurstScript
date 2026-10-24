@@ -3076,6 +3076,111 @@ public class LuaHotReloadTests extends WurstScriptTest {
             .luaHotReload(removedThing(false)).lines(removedThing(true));
     }
 
+    @Test
+    public void compiletimeObjectsReplayWithStacktraces() {
+        test().testLua(true).stacktraces().runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(things(true)).lines(things(false));
+        test().testLua(true).stacktraces().runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(insertedThing(true)).lines(insertedThing(false));
+    }
+
+    @Test(dataProvider = "stacktraceCases")
+    public void addedCompiletimeObjectGraphsPreserveCyclesAndExistingMutations(boolean traced) {
+        TestConfig config = test().testLua(true).runCompiletimeFunctions(true);
+        if (traced) config = config.stacktraces();
+        config.executeProg().luaHotReload(objectGraph(true)).lines(objectGraph(false));
+    }
+
+    private static String[] objectGraph(boolean added) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Node", "    int value", "    Node next", "    construct(int v)", "        value = v",
+            "function make(int v) returns Node", "    let a = new Node(v)", "    let b = new Node(v + 1)",
+            "    a.next = b", "    b.next = a", "    return a", "function compiletime(Node n) returns Node", "    return n",
+            "constant a = compiletime(make(1))", added ? "constant b = compiletime(make(7))" : "",
+            "function total() returns int", added ? "    if b.next.next != b\n        return -1\n    return a.value + b.value + b.next.value" : "    return a.value",
+            "init", "    a.value = 10", "    hotReload()", "    if total() != 25", "        testFail(\"object graph replay\")",
+            "    testSuccess()"};
+    }
+
+    @Test(dataProvider = "stacktraceCases")
+    public void addedCompiletimeHashtablesReplayTheirEntries(boolean traced) {
+        TestConfig config = test().testLua(true).runCompiletimeFunctions(true);
+        if (traced) config = config.stacktraces();
+        config.executeProg().luaHotReload(hashtableObjects(true)).lines(hashtableObjects(false));
+    }
+
+    private static String[] hashtableObjects(boolean added) {
+        return new String[] {"type agent extends handle", "type hashtable extends agent", "package Test",
+            "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "@extern native InitHashtable() returns hashtable", "@extern native SaveInteger(hashtable h, int p, int c, int v)",
+            "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+            "function compiletime(hashtable h) returns hashtable", "    return h", "function make(int v) returns hashtable",
+            "    let h = InitHashtable()", "    SaveInteger(h, 1, 2, v)", "    return h",
+            "constant a = compiletime(make(1))", added ? "constant b = compiletime(make(7))" : "",
+            "function total() returns int", added ? "    return LoadInteger(a, 1, 2) + LoadInteger(b, 1, 2)" : "    return LoadInteger(a, 1, 2)",
+            "init", "    SaveInteger(a, 1, 2, 10)", "    hotReload()", "    if total() != 17",
+            "        testFail(\"hashtable snapshot replay\")", "    testSuccess()"};
+    }
+
+    @Test
+    public void changedCompiletimeSnapshotsWarnAndStartupReplayIsNotShipped() throws Exception {
+        var baseline = compiletimeManifest(things(false));
+        String[] tuned = things(false);
+        for (int i = 0; i < tuned.length; i++) tuned[i] = tuned[i].replace("makeThing(1)", "makeThing(7)");
+        var payload = LuaHotReload.payload(baseline, compiletimeManifest(tuned), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("compile-time state")));
+        assertFalse(payload.source(), payload.source().contains("function initCompiletimeState"));
+        assertTrue(baseline.functions().keySet().toString(), baseline.functions().keySet().stream()
+            .noneMatch(n -> n.startsWith("initCompiletimeState")));
+    }
+
+    @Test
+    public void laterPayloadsKeepAnAddedCompiletimeObjectsRuntimeState() throws Exception {
+        String[] original = sessionObjects(false, 0);
+        var baseline = compiletimeManifest(original);
+        var build = java.nio.file.Files.createTempDirectory("hotReloadCompiletimeSession");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadCompiletimeSessionDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, compiletimeManifest(sessionObjects(true, 7))).payload();
+        var second = LuaHotReloadSession.send(build, delivery, compiletimeManifest(sessionObjects(true, 9))).payload();
+        var third = LuaHotReloadSession.send(build, delivery, compiletimeManifest(sessionObjects(true, 9))).payload();
+        test().testLua(true).runCompiletimeFunctions(true).luaHotReload(original).lines(original);
+        String script = "test-output/lua/LuaHotReloadTests_laterPayloadsKeepAnAddedCompiletimeObjectsRuntimeState.lua";
+        String read = luaName(compiletimeManifest(sessionObjects(true, 9)), "read") + "()";
+        assertEquals("true 17 nil\ntrue 18 nil\ntrue 19 nil", applyInLua(script,
+            List.of(first.source(), second.source(), third.source()), read).replace("\r\n", "\n"));
+        assertEquals("true 19 nil", applyInLua(script, List.of(second.source()), read));
+    }
+
+    private LuaHotReload.Manifest compiletimeManifest(String[] lines) {
+        return compileLuaHotReloadManifest(false, HOT_RELOAD.with("-runcompiletimefunctions"),
+            new CU("Test", String.join("\n", lines) + "\n"));
+    }
+
+    private static String[] sessionObjects(boolean added, int value) {
+        return new String[] {"package Test", "class Thing", "    int value", "    construct(int v)", "        value = v",
+            "function compiletime(Thing t) returns Thing", "    return t", "constant a = compiletime(new Thing(1))",
+            added ? "constant b = compiletime(new Thing(" + value + "))" : "", "function read() returns int",
+            "    let result = a.value" + (added ? " + b.value" : ""), added ? "    b.value++" : "", "    return result",
+            "init", "    a.value = 10", "    read()"};
+    }
+
+    @Test
+    public void insertingALocallyBoundCompiletimeObjectPreservesTheOtherBindings() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(localCompiletimeObjects(true)).lines(localCompiletimeObjects(false));
+    }
+
+    private static String[] localCompiletimeObjects(boolean added) {
+        return new String[] {"package Test", "native hotReload()", "native testSuccess()", "native testFail(string msg)",
+            "class Thing", "    int value", "    construct(int v)", "        value = v",
+            "function compiletime(Thing t) returns Thing", "    return t", "function total() returns int",
+            added ? "    let z = compiletime(new Thing(5))" : "", "    let a = compiletime(new Thing(1))",
+            added ? "    return a.value * 10 + z.value" : "    return a.value * 10", "init", "    total()",
+            "    hotReload()", "    if total() != 15", "        testFail(\"local compile-time bindings shifted\")",
+            "    testSuccess()"};
+    }
+
     private static String[] removedThing(boolean present) {
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
             "class Thing", "    int value", "    construct(int value)", "        this.value = value",

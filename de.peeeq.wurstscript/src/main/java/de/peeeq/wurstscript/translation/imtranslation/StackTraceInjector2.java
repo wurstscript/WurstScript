@@ -529,6 +529,7 @@ public class StackTraceInjector2 {
             }
             body.add(stmt);
 
+            tr.registerCompiletimeStateBridge(f, bridgeFunc);
             fr.setFunc(bridgeFunc);
         }
     }

@@ -226,6 +226,20 @@ public class ImTranslator implements SpecialisationLookup {
         return compiletimeStateParts;
     }
 
+    /** Preserve startup replay ownership when stack-trace injection introduces a bridge for a split part. */
+    public void registerCompiletimeStateBridge(ImFunction original, ImFunction bridge) {
+        List<ImFunction> parts = new ArrayList<>(compiletimeStateParts);
+        if (original == compiletimeStateFunction) {
+            parts.add(original);
+            compiletimeStateFunction = bridge;
+        } else if (parts.contains(original)) {
+            parts.add(bridge);
+        } else {
+            return;
+        }
+        compiletimeStateParts = List.copyOf(parts);
+    }
+
     /** The specialisations of generic statics which {@link #addSpecializedGlobalInitializer} gave a unit of their own. */
     private final Set<ImVar> specializationsWithOwnUnit = Collections.newSetFromMap(new IdentityHashMap<>());
 

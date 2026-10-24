@@ -93,6 +93,11 @@ The payload compares the running script's manifest with the edited one:
   value of any other global the map has is skipped with a warning: the map keeps the value it has.
   Removing the initializer has the same warning. For a global added by an earlier payload, its run-once marker in
   the map determines whether that removed initializer actually ran before the map warns.
+- Objects and hashtables materialized by `compiletime(...)` are named for their source binding and the path through
+  their fields or tuple components. Adding a binding creates its snapshot before new source initializers run; existing
+  snapshots retain runtime mutations. A changed snapshot warns that a restart is needed. Nested objects and cycles
+  retain their references, and cumulative payloads do not replay snapshots already installed. Startup allocator-ID
+  bookkeeping and the large split startup replay functions are never shipped as reloadable functions.
 - Any other changed bootstrap statement (other class data of a class which exists) is rejected, and so is a name which
   now means another declaration or a type, such as a field which holds another class.
 - Interface/class closures bound to source variables include those variable names in their class identities in
