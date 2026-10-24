@@ -2499,6 +2499,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertFalse(output, output.contains("explode"));
     }
 
+    /**
+     * A payload whose install fails (here the init of a package it adds raises) leaves the -stacktraces stack as it
+     * found it: the frames the init pushed are not in the traces the map takes after.
+     */
+    @Test
+    public void failedInstallLeavesNoFramesBehind() throws Exception {
+        RunArgs traced = HOT_RELOAD.with("-stacktraces");
+        String name = "failedInstallLeavesNoFramesBehind";
+        String[] base = concat(MAIN_PACKAGE, new String[] {
+            "function getStackTraceString() returns string", "    return \"\"",
+            "public function traceNow() returns string", "    return getStackTraceString()",
+            "init", "    traceNow()"});
+        String[] added = concat(base, new String[] {"endpackage",
+            "package Broken", "import Main", "native I2S(int i) returns string",
+            "function explode()", "    I2S(1 div 0)", "init", "    explode()"});
+        test().testLua(true).stacktraces().luaHotReload(base).lines(base);
+        LuaHotReload.Manifest before = compileLuaHotReloadManifest(false, traced, new CU(name, String.join("\n", base) + "\n"));
+        LuaHotReload.Manifest after = compileLuaHotReloadManifest(false, traced, new CU(name, String.join("\n", added) + "\n"));
+        String output = applyInLua("test-output/lua/LuaHotReloadTests_" + name + ".lua",
+            List.of(LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1).source()),
+            luaName(before, "traceNow") + "('after the payload')").replace("\r\n", "\n");
+        assertTrue(output, output.startsWith("false "));
+        assertTrue(output, output.contains("after the payload"));
+        assertFalse(output, output.contains("explode"));
+    }
+
     /** A hook is called with nothing, so it has no type arguments either. */
     @Test
     public void reloadHookIsNotGeneric() {

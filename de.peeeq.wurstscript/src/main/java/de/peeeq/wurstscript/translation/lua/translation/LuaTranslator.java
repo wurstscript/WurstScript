@@ -713,8 +713,20 @@ public class LuaTranslator {
             xpcallArgs.add(LuaAst.LuaExprVarAccess(dots));
         }
         LuaExprFunctionCallByName xpcall = LuaAst.LuaExprFunctionCallByName("xpcall", xpcallArgs);
+        // With -stacktraces a raising target leaves the frames it and its callees pushed: xpcall unwinds past their
+        // pops. The handler still has to see them, and it runs before the unwind, so the depth is put back after
+        // xpcall returns. A target called synchronously inside another instrumented function (ForGroup, pcall)
+        // returns to that function's depth, which is the depth on entry here. Jass cannot catch, so a crashed Jass
+        // thread leaves the depth raised as well; there the difference is in the runtime, not in the translation.
+        LuaVariable depth = stackTraceDepth();
+        LuaVariable savedDepth = null;
+        if (depth != null) {
+            savedDepth = LuaAst.LuaVariable("__wurst_depth", LuaAst.LuaExprVarAccess(depth));
+            adapter.getBody().add(savedDepth);
+        }
         if (target.getReturnType() instanceof ImVoid) {
             adapter.getBody().add(xpcall);
+            restoreStackTraceDepth(adapter, depth, savedDepth);
         } else {
             // Keep exactly the first callback result. Returning select(2, xpcall(...)) directly
             // could leak additional Lua return values into a surrounding argument list.
@@ -724,10 +736,29 @@ public class LuaTranslator {
             adapter.getBody().add(result);
             adapter.getBody().add(LuaAst.LuaAssignment(
                 LuaAst.LuaLiteral("_, result"), xpcall));
+            restoreStackTraceDepth(adapter, depth, savedDepth);
             adapter.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(result)));
         }
         luaModel.add(adapter);
         return adapter;
+    }
+
+    private static void restoreStackTraceDepth(LuaFunction adapter, @Nullable LuaVariable depth,
+                                               @Nullable LuaVariable savedDepth) {
+        if (depth != null && savedDepth != null) {
+            adapter.getBody().add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(depth),
+                LuaAst.LuaExprVarAccess(savedDepth)));
+        }
+    }
+
+    /** The global holding the stack-trace depth ({@code StackTraceInjector2}) in a {@code -stacktraces} build, else null. */
+    @Nullable LuaVariable stackTraceDepth() {
+        for (ImVar v : imTr.stackTraceStorage) {
+            if (!(v.getType() instanceof ImArrayType)) {
+                return luaVar.getFor(v);
+            }
+        }
+        return null;
     }
 
     private LuaFunction callbackErrorHandler() {
