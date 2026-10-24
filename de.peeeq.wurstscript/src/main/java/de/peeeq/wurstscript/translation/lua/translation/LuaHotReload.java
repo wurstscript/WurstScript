@@ -1392,7 +1392,7 @@ public final class LuaHotReload {
      * program of 100,000 declarations) are numbered by {@link LuaTranslator#uniqueName}; a payload whose names then mean
      * other declarations is rejected by the binding check.
      */
-    static String identityHash(String identity) {
+    public static String identityHash(String identity) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, 6);

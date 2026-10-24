@@ -21,12 +21,15 @@ import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVars;
+import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.LinkedHashMap;
@@ -132,13 +135,22 @@ public final class LuaDispatchPreparation {
             group.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
             // The name is about to become a Lua table key. Sanitising before uniquing means two
             // names that only differed in characters Lua has no place for still get one slot each.
-            String name = uniqueName(LuaIdentifiers.toIdentifier(group.get(0).getName()), usedNames);
+            // Numbered in the order of the groups, a group added before others of its name (an interface with a
+            // `run` sorting before another's) renames their slots, which the objects a running map has were bound
+            // to; so does a member added which sorts first. A hot-reload build names a group after its root instead,
+            // and the root's key, as it names declarations.
+            ImMethod namedAfter = tr.getRunArgs().isLuaHotReload() ? rootOf(group) : group.get(0);
+            String base = LuaIdentifiers.toIdentifier(namedAfter.getName());
+            if (tr.getRunArgs().isLuaHotReload()) {
+                base = base + "_" + LuaHotReload.identityHash(rootKey(namedAfter));
+            }
+            String name = uniqueName(base, usedNames);
             // The group is named after one member, whose name is that member's own class and then
             // the method, so stripping the class here is the one place the boundary is known rather
             // than guessed at. Every member shares the segment, including members of other classes
             // whose own name appears nowhere in it - which is why no method can work this out for
             // itself afterwards.
-            String segment = segmentOf(name, group.get(0));
+            String segment = segmentOf(name, namedAfter);
             for (int j = 0; j < group.size(); j++) {
                 ImMethod method = group.get(j);
                 method.setName(name);
@@ -179,6 +191,35 @@ public final class LuaDispatchPreparation {
                 usedNames.add(global.getName());
             }
         }
+    }
+
+    /**
+     * What a hot-reload build names a dispatch group after: its root, the first by key of the members no other member
+     * overrides (an interface's method, a base class's). An implementation added to the group leaves it as it is; the
+     * group's first member by name changes when the new one's class sorts before the others.
+     */
+    private static ImMethod rootOf(List<ImMethod> group) {
+        Set<ImMethod> overriding = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImMethod method : group) {
+            overriding.addAll(method.getSubMethods());
+        }
+        ImMethod root = null;
+        String rootKey = null;
+        for (ImMethod method : group) {
+            if (!overriding.contains(method)) {
+                String key = rootKey(method);
+                if (rootKey == null || key.compareTo(rootKey) < 0) {
+                    root = method;
+                    rootKey = key;
+                }
+            }
+        }
+        return root != null ? root : group.get(0);
+    }
+
+    private static String rootKey(ImMethod root) {
+        ImClass owner = root.attrClass();
+        return methodSortKey(root) + "|" + dispatchSignatureKey(root) + OWNERS + (owner == null ? "" : packageOf(owner.getTrace()));
     }
 
     private static String uniqueName(String name, Set<String> usedNames) {

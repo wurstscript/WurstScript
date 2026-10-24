@@ -92,7 +92,15 @@ The payload compares the running script's manifest with the edited one:
   functions, including packages and enclosing scopes of nested parameter types. A closure in a package's `init` block
   is owned by the package, one in a constructor by the constructor's function. Removing or renaming a closure still requires a restart
   when its old class-table bindings survive. Identities name the classes a nested class is declared in, so two inner
-  classes of one name in one package (`A.N`, `B.N`) are two.
+  classes of one name in one package (`A.N`, `B.N`) are two, and a closure's owner is its function by name as well as
+  signature: two functions of one signature in one package used to give their closures one identity, told apart by
+  their order across both, so a closure added to one moved the other's (`closuresOfTwoFunctionsOfOneSignatureAreTwoGroups`).
+  A dispatch slot (the class-table key a method call goes through) is named after its group's root, the method none of
+  the group's others override (an interface's `run`), and that root's key (`LuaDispatchPreparation.rootOf`). Groups of one
+  method name used to be numbered in the order of their classes' names (`run`, `run1`, ... `run13` in Castle Fight), so
+  an interface or an implementation added whose class sorted before others renamed their slots, and every closure bound
+  to them lost its binding and was refused (`addedInterfaceWithAMethodOfTheSameNameKeepsTheOthersSlots`,
+  `addedImplementationSortingFirstKeepsTheSlot`). Builds without `-luaHotReload` name groups as before.
   Siblings still sharing an identity (anonymous closures, such as several `doAfter` callbacks in one function, or equal
   binding names within one callable) are told apart by their order, which matches an object to the closure it was made
   from. Editing their bodies keeps that order, and so does adding one after them: both reload. A closure whose source

@@ -1050,6 +1050,63 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("told apart by their order"));
     }
 
+    /**
+     * A dispatch slot is named after its group, not after the order the groups are named in. Interfaces with a method
+     * of one name (`run`) had their slots numbered in the order of their classes' names (`run`, `run1`, ...), so an
+     * interface added before another renumbered its slot, the closures bound to it lost their binding, and the edit
+     * was refused: in a large map's history it was most of the closure refusals.
+     */
+    @Test
+    public void addedInterfaceWithAMethodOfTheSameNameKeepsTheOthersSlots() throws Exception {
+        String[] base = {"package Test", "interface Alpha", "    function run() returns int",
+            "interface Zeta", "    function run() returns int",
+            "function callA(Alpha a) returns int", "    return a.run()",
+            "function callZ(Zeta z) returns int", "    return z.run()",
+            // Two closures of each, so the calls dispatch through the interfaces' slots.
+            "function combine() returns int", "    return callA(() -> 1) + callA(() -> 2) + callZ(() -> 3) + callZ(() -> 4)",
+            "init", "    combine()"};
+        String[] edited = base.clone();
+        edited[10] = "    return callA(() -> 1) + callA(() -> 2) + callZ(() -> 3) + callZ(() -> 4) + callB(() -> 5) + callB(() -> 6)";
+        edited = concat(edited, new String[] {"interface Beta", "    function run() returns int",
+            "function callB(Beta b) returns int", "    return b.run()"});
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
+    /**
+     * A group is named after its roots, the methods none of its others override: a class added which implements an
+     * interface and sorts before it (`AaaImpl` before `Zeta`) leaves the interface's slot as it was.
+     */
+    @Test
+    public void addedImplementationSortingFirstKeepsTheSlot() throws Exception {
+        String[] base = {"package Test", "interface Zeta", "    function run() returns int",
+            "function callZ(Zeta z) returns int", "    return z.run()",
+            "function combine() returns int", "    return callZ(() -> 1) + callZ(() -> 2)", "init", "    combine()"};
+        String[] edited = base.clone();
+        edited[6] = "    return callZ(() -> 1) + callZ(() -> 2) + callZ(new AaaImpl())";
+        edited = concat(edited, new String[] {"class AaaImpl implements Zeta", "    function run() returns int",
+            "        return 3"});
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
+    /**
+     * A closure's owner is its function, named: two functions of one signature in one package (`makeKept()` and
+     * `makeOther()`, both `returns Value`) made their closures one group told apart by order, so a closure added to the
+     * first moved the second's and the edit was refused.
+     */
+    @Test
+    public void closuresOfTwoFunctionsOfOneSignatureAreTwoGroups() throws Exception {
+        String[] base = {"package Test", "interface Value", "    function get() returns int",
+            "function makeKept(boolean first) returns Value", "    return () -> 1",
+            "function makeOther(boolean first) returns Value", "    return () -> 2",
+            "init", "    makeKept(true).get()", "    makeOther(true).get()"};
+        String[] edited = base.clone();
+        edited[4] = "    if first\n        return () -> 1\n    return () -> 3";
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(edited), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
     private static String[] consumers(String closures) {
         return new String[] {"package Test", "interface Op", "    function apply(int v) returns int",
             "function consume(Op op) returns int", "    let result = op.apply(1)", "    destroy op", "    return result",
