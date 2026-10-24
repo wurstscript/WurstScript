@@ -7549,6 +7549,142 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * With -stacktraces, a callback that raises leaves the frames it pushed: xpcall unwinds past their pops. The
+     * adapter puts the depth back after xpcall, so a later trace has none of them. Measured from inside an
+     * instrumented function which runs the callback synchronously, as ForGroup does, for an ordinary Lua error and for
+     * the thread abort, which the error handler does not report.
+     */
+    @Test
+    public void raisingCallbackLeavesNoStackFramesBehind() {
+        test().testLua(true).stacktraces().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "native I2S(int i) returns string",
+            "@extern native pcall(code callback) returns bool",
+            "@extern native assert(boolean b)",
+            "function getStackTraceString() returns string",
+            "    return \"\"",
+            "string array traces",
+            "function boom()",
+            "    assert(false)",
+            "function abortThread()",
+            "    I2S(1 div 0)",
+            "function failWithError()",
+            "    boom()",
+            "function failWithAbort()",
+            "    abortThread()",
+            "function snapshot() returns string",
+            "    return getStackTraceString()",
+            "function measure(int which) returns string",
+            "    if which == 1",
+            "        pcall(function failWithError)",
+            "    else if which == 2",
+            "        pcall(function failWithAbort)",
+            "    return snapshot()",
+            "init",
+            "    for i = 0 to 2",
+            "        traces[i] = measure(i)",
+            "    if traces[1] != traces[0]",
+            "        testFail(\"an error left frames: \" + traces[1] + \" instead of \" + traces[0])",
+            "    else if traces[2] != traces[0]",
+            "        testFail(\"an abort left frames: \" + traces[2] + \" instead of \" + traces[0])",
+            "    else",
+            "        testSuccess()");
+    }
+
+    /** The same for a package init that raises: the next init's trace has none of its frames. */
+    @Test
+    public void raisingPackageInitLeavesNoStackFramesBehind() throws Exception {
+        String name = "raisingPackageInitLeavesNoStackFramesBehind";
+        test().testLua(true).stacktraces().lines(
+            "package Probe",
+            "native I2S(int i) returns string",
+            "@extern native print(string s)",
+            "@extern native assert(boolean b)",
+            "function getStackTraceString() returns string",
+            "    return \"\"",
+            "function snapshot() returns string",
+            "    return getStackTraceString()",
+            "public function report()",
+            "    print(\"#trace\" + snapshot())",
+            "public function boom()",
+            "    assert(false)",
+            "public function abortThread()",
+            "    I2S(1 div 0)",
+            "endpackage",
+            "package First", "import Probe", "init", "    report()", "endpackage",
+            "package BrokenByError", "import Probe", "init", "    boom()", "endpackage",
+            "package BrokenByAbort", "import Probe", "init", "    abortThread()", "endpackage",
+            "package Last", "import First", "import BrokenByError", "import BrokenByAbort", "import Probe", "init",
+            "    report()", "endpackage");
+        String luaExecutable;
+        try {
+            luaExecutable = getLuaExecutable();
+        } catch (IllegalStateException e) {
+            throw new org.testng.SkipException("Skipped the Lua run (luac checked the script): " + e.getMessage());
+        }
+        StringBuilder chunk = new StringBuilder();
+        for (String runtimeFile : new String[]{"wc3shim.lua", "common.j.lua", "blizzard.j.lua"}) {
+            chunk.append("dofile('").append(new File("src/test/resources/luaruntime", runtimeFile).getPath()
+                .replace('\\', '/')).append("');");
+        }
+        chunk.append("dofile('").append(new File(TEST_OUTPUT_PATH, "lua/LuaBackendAuditTests_" + name + ".lua")
+            .getPath().replace('\\', '/')).append("'); main()");
+        Process p = new ProcessBuilder(luaExecutable, "-e", chunk.toString()).redirectErrorStream(true).start();
+        String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n");
+        assertEquals(output, 0, p.waitFor());
+        List<String> traces = new ArrayList<>();
+        for (String block : output.split("#trace")) {
+            if (block.startsWith(" Stacktrace:")) {
+                // A trace ends where the next line printed without indentation starts.
+                StringBuilder trace = new StringBuilder();
+                for (String line : block.split("\n")) {
+                    if (!trace.isEmpty() && !line.startsWith("   ")) {
+                        break;
+                    }
+                    trace.append(line).append("\n");
+                }
+                traces.add(trace.toString());
+            }
+        }
+        assertEquals(output, 2, traces.size());
+        assertTrue(output, output.contains("lua init error"));
+        // Last runs after both broken inits; First may too (the init order follows the dependencies only).
+        for (String trace : traces) {
+            assertFalse(output, trace.contains("boom") || trace.contains("abortThread"));
+        }
+        assertEquals(output, traces.get(0).split("\n").length, traces.get(1).split("\n").length);
+    }
+
+    /** Without -stacktraces there is no depth to keep, and the adapters are what they were. */
+    @Test
+    public void callbackAdapterWithoutStacktracesKeepsNoDepth() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native pcall(code callback) returns bool",
+            "int calls = 0",
+            "function tick()",
+            "    calls++",
+            "function tickAndAccept() returns boolean",
+            "    calls++",
+            "    return true",
+            "init",
+            "    if pcall(function tick) and pcall(function tickAndAccept) and calls == 2",
+            "        testSuccess()");
+        String compiled = compiledLua("callbackAdapterWithoutStacktracesKeepsNoDepth");
+        assertTrue(compiled, java.util.regex.Pattern.compile(
+            "function __wurst_callback_tick\\w*\\(\\) \\n\\txpcall\\(tick\\w*, __wurst_callback_error\\w*\\)\\nend\\n")
+            .matcher(compiled).find());
+        assertTrue(compiled, java.util.regex.Pattern.compile(
+            "function __wurst_callback_tickAndAccept\\w*\\(\\) \\n\\tlocal _\\n\\tlocal result\\n"
+                + "\\t_, result = xpcall\\(tickAndAccept\\w*, __wurst_callback_error\\w*\\)\\n\\treturn result\\nend\\n")
+            .matcher(compiled).find());
+        assertFalse(compiled, compiled.contains("depth") || compiled.contains("wurst_stack"));
+    }
+
+    /**
      * Reading a never-written array slot must not permanently store an entry
      * for it - merely probing a sparse array would otherwise grow it
      * unboundedly. Immutable (primitive) defaults are served by a dedicated

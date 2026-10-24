@@ -1510,12 +1510,8 @@ public final class LuaHotReload {
             "end")));
         // A hook takes no parameters but, with -stacktraces, the position of its call, as every function does; without,
         // Lua drops the argument. The frames a failing hook pushed are never popped, so the depth is put back after it.
-        String depth = null;
-        for (ImVar v : tr.imTr.stackTraceStorage) {
-            if (!(v.getType() instanceof ImArrayType)) {
-                depth = tr.luaVar.getFor(v).getName();
-            }
-        }
+        LuaVariable depthVar = tr.stackTraceDepth();
+        String depth = depthVar == null ? null : depthVar.getName();
         List<String> runHook = new ArrayList<>(List.of("function " + HOOK_FUNCTION + "(hook, name)"));
         if (depth != null) {
             runHook.add("    local depth = " + depth);
