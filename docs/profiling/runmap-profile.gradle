@@ -3,7 +3,8 @@ allprojects {
     afterEvaluate {
         tasks.register('compileRunMapProfile', JavaCompile) {
             dependsOn tasks.named('classes')
-            source files('../docs/profiling/RunMapProfile.java', '../docs/profiling/RunMapProfileReport.java')
+            source files('../docs/profiling/RunMapProfile.java', '../docs/profiling/RunMapProfileReport.java',
+                '../docs/profiling/IncrementalHotReloadProfile.java')
             classpath = sourceSets.main.runtimeClasspath
             destinationDirectory = layout.buildDirectory.dir('runmap-profile')
             javaCompiler = javaToolchains.compilerFor(java.toolchain)
@@ -30,6 +31,16 @@ allprojects {
             classpath = files(layout.buildDirectory.dir('runmap-profile'))
             mainClass = 'RunMapProfileReport'
             args file('temp/' + project.property('profileLabel') + '.jfr').absolutePath
+        }
+        tasks.register('incrementalHotReloadProfile', JavaExec) {
+            dependsOn tasks.named('compileRunMapProfile')
+            classpath = files(layout.buildDirectory.dir('runmap-profile')) + sourceSets.main.runtimeClasspath
+            mainClass = 'IncrementalHotReloadProfile'
+            javaLauncher = tasks.named('test', Test).get().javaLauncher
+            args file(project.property('profileRoot')).absolutePath
+            workingDir file(project.property('profileRoot'))
+            maxHeapSize = '4g'
+            jvmArgs '-XX:+UseParallelGC'
         }
     }
 }

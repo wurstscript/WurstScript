@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.translation.imtranslation.IncrementalImTranslation;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import org.testng.SkipException;
 import org.testng.annotations.Test;
@@ -303,7 +304,10 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         for (Map.Entry<String, String> unit : p.units(reference).entrySet()) {
             units.add(new CU(unit.getKey(), unit.getValue()));
         }
-        LuaHotReloadBuild b = compileLuaHotReload(false, args, units.toArray(CU[]::new));
+        // Exercise the private graph fork against an independent, uncached reference compilation.
+        LuaHotReloadBuild b = compileLuaHotReload(false, args,
+            reference ? null : new IncrementalImTranslation(),
+            units.toArray(CU[]::new));
         return new Build(b.script(), b.manifest());
     }
 

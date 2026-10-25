@@ -95,8 +95,22 @@ public class IncrementalModelOracleTests {
         check(seed, true);
     }
 
+    @Test(dataProvider = "seeds")
+    public void incrementalHotReloadMatchesFreshBuild(long seed) throws Exception {
+        check(seed, false, true);
+    }
+
+    @Test(dataProvider = "configSeeds")
+    public void incrementalHotReloadMatchesFreshBuildWithConfigPackages(long seed) throws Exception {
+        check(seed, true, true);
+    }
+
     private void check(long seed, boolean configs) throws Exception {
-        File project = new File("./temp/incrementalOracle" + (configs ? "Config" : "") + seed + "/");
+        check(seed, configs, false);
+    }
+
+    private void check(long seed, boolean configs, boolean hotReload) throws Exception {
+        File project = new File("./temp/incrementalOracle" + (hotReload ? "HotReload" : "") + (configs ? "Config" : "") + seed + "/");
         newCleanFolder(project);
 
         // 1. what a build from scratch says about every state
@@ -106,7 +120,7 @@ public class IncrementalModelOracleTests {
         List<String> history = new ArrayList<>();
         history.add(sim.lastEdit);
         applyToDisk(project, onDisk, sim.render());
-        expected.add(freshObservation(project));
+        expected.add(freshObservation(project, hotReload));
         int compared = 1;
         int compiled = expected.get(0).script != null ? 1 : 0;
         for (int step = 1; step <= STEPS; step++) {
@@ -114,7 +128,7 @@ public class IncrementalModelOracleTests {
             history.add(sim.lastEdit);
             applyToDisk(project, onDisk, sim.render());
             if (sim.structurallyValid()) {
-                Observation fresh = freshObservation(project);
+                Observation fresh = freshObservation(project, hotReload);
                 expected.add(fresh);
                 compared++;
                 if (fresh.script != null) {
@@ -137,7 +151,12 @@ public class IncrementalModelOracleTests {
         ModelManagerImpl manager = new ModelManagerImpl(project, new BufferManager());
         DiagnosticsLog log = new DiagnosticsLog(manager);
         manager.buildProject();
-        assertSameObservation(seed, 0, history, expected.get(0), observe(project, manager, log, true));
+        assertSameObservation(seed, 0, history, expected.get(0), observe(project, manager, log, true, hotReload));
+        if (hotReload) {
+            assertSameObservation(seed, 0, history, expected.get(0), observe(project, manager, log, true, true));
+            assertTrue(manager.incrementalImTranslation().statistics().reusedFunctions() > 0,
+                manager.incrementalImTranslation().statistics().toString());
+        }
 
         Random how = new Random(seed * 31 + 7);
         for (int step = 1; step <= STEPS; step++) {
@@ -168,7 +187,7 @@ public class IncrementalModelOracleTests {
             onDisk.putAll(next);
             manager.reconcile(changes);
             if (expected.get(step) != null) {
-                assertSameObservation(seed, step, history, expected.get(step), observe(project, manager, log, true));
+                assertSameObservation(seed, step, history, expected.get(step), observe(project, manager, log, true, hotReload));
             }
         }
     }
@@ -213,30 +232,31 @@ public class IncrementalModelOracleTests {
         }
     }
 
-    private static Observation freshObservation(File project) {
+    private static Observation freshObservation(File project, boolean hotReload) {
         ModelManagerImpl manager = new ModelManagerImpl(project, new BufferManager());
         DiagnosticsLog log = new DiagnosticsLog(manager);
         manager.buildProject();
-        return observe(project, manager, log, false);
+        return observe(project, manager, log, false, hotReload);
     }
 
     /**
      * @param reuseCheck compile like a run does, which does not check a model again that the manager has
      *                   checked completely; a fresh build is compiled with a check of its own as the reference
      */
-    private static Observation observe(File project, ModelManagerImpl manager, DiagnosticsLog log, boolean reuseCheck) {
+    private static Observation observe(File project, ModelManagerImpl manager, DiagnosticsLog log, boolean reuseCheck, boolean hotReload) {
         Map<String, List<String>> diagnostics = log.current();
         boolean hasErrors = log.hasErrors();
-        return new Observation(diagnostics, hasErrors ? null : compile(project, manager, reuseCheck));
+        return new Observation(diagnostics, hasErrors ? null : compile(project, manager, reuseCheck, hotReload));
     }
 
     /** Compiles the managed model itself, as a run does. */
-    private static String compile(File project, ModelManagerImpl manager, boolean reuseCheck) {
+    private static String compile(File project, ModelManagerImpl manager, boolean reuseCheck, boolean hotReload) {
         try {
             WurstGui gui = new WurstGuiLogger();
-            RunArgs runArgs = new RunArgs("-lua");
+            RunArgs runArgs = hotReload ? new RunArgs("-lua", "-luaHotReload", "-stacktraces") : new RunArgs("-lua");
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new TimeTaker.Default(), project, gui, null,
                 runArgs);
+            if (hotReload && reuseCheck) compiler.setIncrementalImTranslation(manager.incrementalImTranslation());
             WurstModel model = manager.getModel();
             if (reuseCheck) {
                 MapRequest.checkModel(manager, compiler, model, runArgs);
@@ -253,7 +273,8 @@ public class IncrementalModelOracleTests {
             LuaCompilationUnit lua = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
             lua.print(sb, 0);
-            return sb.toString();
+            return hotReload ? sb + "\n" + new com.google.gson.Gson().toJson(compiler.getLuaTranslator().hotReloadManifest())
+                : sb.toString();
         } catch (RuntimeException e) {
             return "exception: " + e;
         }

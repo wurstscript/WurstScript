@@ -178,6 +178,54 @@ for unsaved buffers; these are separate from the cancellation regression fixed h
 
 ## Reproduction artifacts
 
+### Incremental Lua hot-reload frontend
+
+Measured on 25 October 2026, Windows x64, Java 27, 4 GB heap and ParallelGC. The managed model now retains
+pre-lowering IM for Lua hot-reload compilations. Unchanged function bodies and class metadata are reused; ordinary
+body edits update that input if declaration dependencies and generated products stay unchanged. Every build forks
+an independent IM graph and translator metadata, then reruns compile-time evaluation and all backend passes.
+Declaration edits and unsupported body changes rebuild the retained input. Cleaning the model releases it.
+
+The first per-function fragment prototype provided little consistent benefit, because it still rebuilt class
+metadata. Retaining the whole frontend graph reduced allocations in isolated AST→IM measurements on Zombie Defense
+from about 333–335 MB to 157 MB per warm translation, while that stage alone was only about 8% faster.
+
+The subsequent experiment exercised the real `MapRequest.compileScript` path, including compile-time evaluation,
+Lua lowering, printing and manifest generation. It alternated cached and uncached frontend translation in one JVM,
+using the same checked model and isolated source/map copies. A small reachable function alternated between two
+integer return values; reconciliation happened before the timed compilation. Optional optimisations and
+compile-time caching were disabled; stack traces were enabled. These are compilation timings, excluding payload
+diff/delivery, editor reconciliation, game launch and map import/finalisation.
+
+Twelve compilations per map, alternating in groups of uncached/cached/cached/uncached. The first four runs are warm-up;
+the table gives the median of the remaining four cached and four uncached compilations:
+
+| Map | Uncached | Cached body edit | Improvement |
+| --- | ---: | ---: | ---: |
+| Zombie Defense | 4,119 ms | 3,644 ms | 11.5% |
+| Castle Fight | 6,392 ms | 5,710 ms | 10.7% |
+
+Every cached run translated one changed function and retained the other frontend bodies. All twelve scripts and
+manifests matched the corresponding uncached source version on each map. Zombie Defense's compile-time build-date
+expression was replaced by a fixed literal in its isolated fixture: otherwise crossing a minute changes its script
+and ABI even between two uncached compilations. An unchanged-source Zombie Defense run measured 4,080 versus
+3,608 ms (11.6%). These are results on this host and these fixtures, not a prediction for the earlier loaded-machine
+14–30 second reload measurements. The first compilation and invalidated compilations also pay for the private copy,
+and the session retains another IM program in memory. Backend lowering still processes the whole program.
+
+`docs/profiling/IncrementalHotReloadProfile.java` reproduces the body-edit comparison. Use an isolated project copy
+with dependencies installed, a pinned `wc3Patch`, a packed input map named `base.w3x`, and `wurst/war3map.j`.
+Fix time-dependent compile-time input in that copy before comparing output. The harness adds
+`wurst/IncrementalProfile.wurst`, writes build outputs and never launches or discovers Warcraft.
+
+```powershell
+.\gradlew.bat -I ../docs/profiling/runmap-profile.gradle incrementalHotReloadProfile `
+  '-PprofileRoot=temp/retained-profile-zombie'
+```
+
+Raw local logs: `test-output/retained-reload-profile-{zombie,castle}-edits.log` and
+`test-output/retained-reload-profile-zombie.log`.
+
 ### Larger-map follow-up
 
 Measured an isolated copy of a larger Jass map project,

@@ -253,7 +253,11 @@ Notes; finished-work narrative does not.
   reconcile is the whole program again, while a body edit changes one function. A cheaper reload needs IM and Lua
   translation per changed unit with whole-program facts kept between reloads (the generic demand graph, the
   reachable set, slot bindings); the output must stay byte-identical to a fresh compilation, which an oracle like
-  `IncrementalModelOracleTests` would check. Not started: it is a redesign of the translation pipeline.
+  `IncrementalModelOracleTests` checks. The first step retains pre-lowering IM in the managed model and updates
+  ordinary function bodies when their declaration dependencies stay unchanged. Each compilation forks private IM
+  and reruns compile-time evaluation and all lowering. Warm body-edit compilation improved by about 11 to 12 %
+  in isolated Castle Fight and Zombie Defense copies (`docs/RUNMAP_PERFORMANCE.md`); this does not include payload
+  diff/delivery. Keeping generic demand, reachability, slot bindings and Lua emission between reloads remains open.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

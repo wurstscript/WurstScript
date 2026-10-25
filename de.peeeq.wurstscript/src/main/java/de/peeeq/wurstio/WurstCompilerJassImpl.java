@@ -705,12 +705,23 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return translateProgToIm(root, root);
     }
 
+    private @Nullable IncrementalImTranslation incrementalImTranslation;
+
+    public void setIncrementalImTranslation(IncrementalImTranslation cache) {
+        incrementalImTranslation = cache;
+    }
+
     /** Translate a compilation view without removing units from the checked editor model. */
     public @Nullable ImProg translateProgToIm(WurstModel root, Collection<CompilationUnit> compilationUnits) {
         beginPhase(1, "to intermediate lang");
         // translate wurst to intermediate lang:
-        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs, compilationUnits);
-        imProg = getImTranslator().translateProg();
+        if (runArgs.isLuaHotReload() && incrementalImTranslation != null) {
+            imTranslator = incrementalImTranslation.translate(root, compilationUnits, errorHandler.isUnitTestMode(), runArgs);
+            imProg = imTranslator.imProg();
+        } else {
+            imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs, compilationUnits);
+            imProg = imTranslator.translateProg();
+        }
         // Before any compile-time function runs: the library asks whether this compiler lowers CodeList.
         CodeListSupport.markSupported(imProg);
         int stage = 1;

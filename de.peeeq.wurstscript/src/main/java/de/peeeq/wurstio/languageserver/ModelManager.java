@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.translation.imtranslation.IncrementalImTranslation;
 import io.vavr.collection.HashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -19,6 +20,11 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public interface ModelManager {
+
+    /** Session-local pre-lowering translations; absent for managers which do not retain compiler work. */
+    default @Nullable IncrementalImTranslation incrementalImTranslation() {
+        return null;
+    }
 
     Changes removeCompilationUnit(WFile filename);
 

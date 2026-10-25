@@ -22,6 +22,23 @@ edit ─► language server: compile with -luaHotReload ─► LuaHotReload.payl
 
 ## Design
 
+### Incremental frontend translation
+
+The language server retains the program before compile-time execution and backend lowering. An ordinary function
+body edit updates that input while its declaration dependencies and generated declarations stay unchanged.
+Unchanged bodies keep their source nodes, with refreshed positions, so closures and diagnostics retain their
+identities. Declaration edits, changed dependencies, constructors, init blocks, extension functions and nested-class
+body edits rebuild the frontend input. A function edit which creates or removes a closure also rebuilds it.
+
+Every compilation copies the complete IM graph and frontend metadata into private state, then reruns compile-time
+evaluation and backend lowering. Compile-time results are never reused by this cache. A failed or cancelled private
+compilation cannot change the retained input; cleaning the editor model releases it. CLI processes still compile
+from scratch. There is one compilation mode; cache invalidation is automatic.
+
+This reduces frontend work but retains another IM program in memory, and a rebuild also pays for the private copy.
+The backend and manifest still process the whole program. See [RUNMAP_PERFORMANCE.md](RUNMAP_PERFORMANCE.md) for
+measurements and the remaining work.
+
 ### Names from identities
 
 Release builds number generated Lua names in translation order. A hot-reload build names each function, global,

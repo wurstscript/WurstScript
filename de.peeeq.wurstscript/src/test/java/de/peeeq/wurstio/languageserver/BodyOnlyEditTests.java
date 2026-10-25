@@ -91,6 +91,26 @@ public class BodyOnlyEditTests {
     }
 
     @Test
+    public void unchangedBodiesKeepTheirNodesWhenAnotherBodyMovesThem() throws IOException {
+        Path root = project();
+        String source = A.replace("    return x + 1", "    let result = x\n    return result + 1");
+        write(root, "A", source);
+        ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());
+        Log log = new Log(manager);
+        manager.buildProject();
+        FuncDef f = linkedFunction(manager, "B", "f");
+        WStatements body = f.getBody();
+        WStatement local = body.get(1);
+        int line = local.attrSource().getLine();
+        String edited = source.replace("        return side * side", "        let s = side\n        return s * side");
+        manager.reconcile(sync(manager, root, "A", edited));
+        assertSame(f.getBody(), body, "an unchanged body's nodes remain valid compiler inputs");
+        assertSame(f.getBody().get(1), local);
+        assertEquals(local.attrSource().getLine(), line + 1);
+        assertSameAsFreshBuild(root, manager, log);
+    }
+
+    @Test
     public void aBodyEditChecksOnlyItsUnitAndKeepsWhatImportersResolved() throws IOException {
         Path root = project();
         ModelManagerImpl manager = new ModelManagerImpl(root.toFile(), new BufferManager());

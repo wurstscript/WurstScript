@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.translation.imtranslation.IncrementalImTranslation;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.jdt.annotation.Nullable;
@@ -64,6 +65,12 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private final BufferManager bufferManager;
+    private final IncrementalImTranslation incrementalImTranslation = new IncrementalImTranslation();
+
+    @Override
+    public IncrementalImTranslation incrementalImTranslation() {
+        return incrementalImTranslation;
+    }
     private volatile @Nullable WurstModel model;
     private final File projectPath;
     // dependency project folders discovered in _build/dependencies
@@ -166,6 +173,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void clean() {
+        incrementalImTranslation.clear();
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;
