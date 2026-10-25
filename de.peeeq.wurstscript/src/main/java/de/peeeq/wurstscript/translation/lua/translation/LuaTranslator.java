@@ -187,6 +187,8 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
+            String bound = boundParameterNames.get(a);
+            if (bound != null) return LuaAst.LuaVariable(bound, LuaAst.LuaNoExpr());
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
                 name = a.isGlobal() ? declarationName(name, LuaHotReload.variableId(imTr, a)) : localName(ownerFunction(a), name);
@@ -216,7 +218,10 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
-            if (!a.isExtern() && !a.isBj() && !a.isNative()
+            FunctionFrame bound = boundFunctionFrames.get(a);
+            if (bound != null) {
+                name = bound.name();
+            } else if (!a.isExtern() && !a.isBj() && !a.isNative()
                 && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
                 name = declarationName(name, LuaHotReload.functionId(a));
             } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
@@ -481,6 +486,33 @@ public class LuaTranslator {
     private final Map<Object, Set<String>> localNamesByScope = new IdentityHashMap<>();
     /** The IM function each Lua function was translated from. */
     private final Map<LuaFunction, ImFunction> imFunctionOf = new IdentityHashMap<>();
+
+    /** Frozen declaration bindings; the scalar body cannot introduce another name or capture. */
+    record FunctionFrame(String name, List<String> parameters) {
+        public FunctionFrame { parameters = List.copyOf(parameters); }
+    }
+    private final Map<ImVar, String> boundParameterNames = new IdentityHashMap<>();
+    private final Map<ImFunction, FunctionFrame> boundFunctionFrames = new IdentityHashMap<>();
+    private @Nullable LuaStatement hotReloadAbiStatement;
+
+    @Nullable LuaStatement hotReloadAbiStatement() { return hotReloadAbiStatement; }
+    void setHotReloadAbiStatement(LuaStatement statement) { hotReloadAbiStatement = statement; }
+
+    Map<LuaFunction, ImFunction> translatedFunctions() { return Collections.unmodifiableMap(hotReloadFunctions); }
+    LuaCompilationUnit translatedModel() { return luaModel; }
+
+    static String emitOwnedScalar(ImFunction function, FunctionFrame frame, ImTranslator context) {
+        LuaTranslator emitter = new LuaTranslator(context.imProg(), context);
+        emitter.boundFunctionFrames.put(function, frame);
+        if (function.getParameters().size() != frame.parameters().size()) throw new IllegalArgumentException("Scalar ABI changed");
+        for (int i = 0; i < frame.parameters().size(); i++) {
+            emitter.boundParameterNames.put(function.getParameters().get(i), frame.parameters().get(i));
+        }
+        emitter.translateFunc(function);
+        StringBuilder definition = new StringBuilder();
+        emitter.luaFunc.getFor(function).print(definition, 0);
+        return definition.toString();
+    }
 
     /**
      * The name of a local of {@code scope} (an IM function, or a Lua function the backend made). A hot-reload build
@@ -1269,6 +1301,7 @@ public class LuaTranslator {
             // Printed where it is called; a call which cannot be printed so defines it (hashtableHelper).
             return;
         }
+        de.peeeq.wurstscript.translation.BackendWork.emitted(f);
         LuaFunction lf = luaFunc.getFor(f);
         if (f.isNative()) {
             LuaNatives.get(lf);

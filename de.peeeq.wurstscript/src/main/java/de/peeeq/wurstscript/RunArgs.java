@@ -254,6 +254,9 @@ public class RunArgs {
         return files;
     }
 
+    /** Original immutable arguments for request-local compiler cache environments. */
+    public List<String> arguments() { return List.of(args.clone()); }
+
     public boolean isOptimize() {
         return optionOpt.isSet;
     }

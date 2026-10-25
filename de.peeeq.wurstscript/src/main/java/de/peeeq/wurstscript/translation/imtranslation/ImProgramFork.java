@@ -35,6 +35,7 @@ final class ImProgramFork {
     }
 
     private void register(Element original, Element result) {
+        de.peeeq.wurstscript.translation.BackendWork.copied(original);
         if (copies.put(original, result) != null) throw new IllegalStateException("Owned IM node is present twice");
         pending.addLast(original);
         for (int i = 0; i < original.size(); i++) register(original.get(i), result.get(i));

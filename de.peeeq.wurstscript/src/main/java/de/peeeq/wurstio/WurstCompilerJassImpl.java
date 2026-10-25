@@ -706,9 +706,25 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     private @Nullable IncrementalImTranslation incrementalImTranslation;
+    private IncrementalImTranslation.@Nullable Prepared preparedIncrementalTranslation;
+    private boolean incrementalPreparationSupplied;
 
     public void setIncrementalImTranslation(IncrementalImTranslation cache) {
         incrementalImTranslation = cache;
+        preparedIncrementalTranslation = null;
+        incrementalPreparationSupplied = false;
+    }
+
+    public void setPreparedIncrementalImTranslation(IncrementalImTranslation cache, IncrementalImTranslation.Prepared prepared) {
+        incrementalImTranslation = cache;
+        preparedIncrementalTranslation = prepared;
+        incrementalPreparationSupplied = true;
+    }
+
+    public void rememberIncrementalLuaOutput() {
+        if (incrementalImTranslation != null && preparedIncrementalTranslation != null && luaTranslator != null) {
+            incrementalImTranslation.rememberLuaOutput(preparedIncrementalTranslation, luaTranslator, runArgs);
+        }
     }
 
     /** Translate a compilation view without removing units from the checked editor model. */
@@ -716,7 +732,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(1, "to intermediate lang");
         // translate wurst to intermediate lang:
         if (runArgs.isLuaHotReload() && incrementalImTranslation != null) {
-            imTranslator = incrementalImTranslation.translate(root, compilationUnits, errorHandler.isUnitTestMode(), runArgs);
+            if (!incrementalPreparationSupplied) {
+                preparedIncrementalTranslation = incrementalImTranslation.prepare(root, compilationUnits, errorHandler.isUnitTestMode(), runArgs);
+            }
+            incrementalPreparationSupplied = false;
+            imTranslator = incrementalImTranslation.fork(preparedIncrementalTranslation, runArgs);
             imProg = imTranslator.imProg();
         } else {
             imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs, compilationUnits);

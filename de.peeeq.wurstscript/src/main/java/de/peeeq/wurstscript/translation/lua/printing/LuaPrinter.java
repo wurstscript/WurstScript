@@ -33,20 +33,42 @@ public class LuaPrinter {
     }
 
     public static void print(LuaCompilationUnit cu, StringBuilder sb, int indent) {
+        printCompilationUnit(cu, sb, indent, null);
+    }
+
+    public record PrintedStatement(String prefix, String text, String suffix) {
+        public String render(String replacement) { return prefix + replacement + suffix; }
+    }
+
+    /** Preserve the printer's top-level context without retaining mutable Lua nodes in a cached fragment. */
+    public static List<PrintedStatement> fragments(LuaCompilationUnit cu) {
+        List<PrintedStatement> result = new ArrayList<>();
+        printCompilationUnit(cu, new StringBuilder(), 0, result);
+        return List.copyOf(result);
+    }
+
+    private static void printCompilationUnit(LuaCompilationUnit cu, StringBuilder sb, int indent,
+        List<PrintedStatement> fragments) {
         boolean statementBlock = false;
         for (LuaStatement d : cu) {
+            int start = sb.length();
+            int bodyStart = start;
+            int bodyEnd;
             if (d instanceof LuaVariable luaVariable) {
                 // don't translate global variables as locals:
                 printVariable(luaVariable, sb, indent);
+                bodyEnd = sb.length();
                 sb.append("\n");
                 statementBlock = true;
             } else if (d instanceof LuaChunkLocal local && local.getDefinition() instanceof LuaVariable) {
                 d.print(sb, indent);
+                bodyEnd = sb.length();
                 sb.append("\n");
                 statementBlock = true;
             } else if(d instanceof LuaAssignment) {
                 // these are top level assignments that are not inside functions
                 d.print(sb, indent);
+                bodyEnd = sb.length();
                 sb.append("\n");
                 statementBlock = true;
             } else {
@@ -54,10 +76,14 @@ public class LuaPrinter {
                 if(statementBlock) {
                     sb.append("\n");
                 }
+                bodyStart = sb.length();
                 d.print(sb, indent);
+                bodyEnd = sb.length();
                 sb.append("\n\n");
                 statementBlock = false;
             }
+            if (fragments != null) fragments.add(new PrintedStatement(sb.substring(start, bodyStart),
+                sb.substring(bodyStart, bodyEnd), sb.substring(bodyEnd)));
         }
     }
 

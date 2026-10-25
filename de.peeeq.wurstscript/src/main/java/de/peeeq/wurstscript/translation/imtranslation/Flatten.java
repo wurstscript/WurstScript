@@ -479,6 +479,7 @@ public class Flatten {
             }
             return;
         }
+        de.peeeq.wurstscript.translation.BackendWork.lowered(f);
         ImStmts newBody = flattenStatements(f.getBody(), translator, f);
         f.setBody(newBody);
         translator.flattened(f);

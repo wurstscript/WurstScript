@@ -30,7 +30,7 @@ Unchanged bodies keep their source nodes, with refreshed positions, so closures 
 identities. Declaration edits, changed dependencies, constructors, init blocks, extension functions and nested-class
 body edits rebuild the frontend input. A function edit which creates or removes a closure also rebuilds it.
 
-Every compilation copies the complete IM graph and frontend metadata into private state, then reruns compile-time
+The general path copies the complete IM graph and frontend metadata into private state, then reruns compile-time
 evaluation and backend lowering. Compile-time results are never reused by this cache. A failed or cancelled private
 compilation cannot change the retained input; cleaning the editor model releases it. CLI processes still compile
 from scratch. There is one compilation mode; cache invalidation is automatic.
@@ -38,6 +38,29 @@ from scratch. There is one compilation mode; cache invalidation is automatic.
 This reduces frontend work but retains another IM program in memory, and a rebuild also pays for the private copy.
 The backend and manifest still process the whole program. See [RUNMAP_PERFORMANCE.md](RUNMAP_PERFORMANCE.md) for
 measurements and the remaining work.
+
+### First incremental backend slice
+
+After a successful compilation with matching arguments, the managed map-compilation path can reuse immutable Lua
+fragments and materialise only edited scalar functions. Initially this covers live, top-level non-generic functions
+returning an integer expression made solely of integer parameters/literals and binary `+`, `-`, `*`, with no locals,
+calls, storage access or annotations. Only literal changes preserving that expression's structure are supported;
+source positions must stay unchanged. A changed parameter, call, operator structure, declaration or source position
+takes the general path automatically.
+
+The slice excludes requests with compile-time execution, stack traces, inlining, optimisations, tests or object/import
+processing. It introduces no setting and changes no emitted runtime representation. The private task uses the existing
+flattening and Lua function emitter with frozen declaration bindings, and publishes a new artifact snapshot only after
+successful generation. Function modification counts detect an uncompiled edit even after an earlier task was cancelled.
+
+`IncrementalScalarBackendTests` compares scripts, manifests and payloads with independent fresh builds. Work counters
+at graph copying, flattening and function emission show one lowered/emitted function and zero graph-copy nodes after
+a supported edit, including with 1,000 additional live functions. A stock-Lua test applies the payload and calls the
+updated function through its unchanged caller. These checks establish the narrow reuse contract, not a speedup on
+Castle Fight or Zombie Defense with their normal compile-time/stack-trace options.
+
+The source/frontend eligibility scans, full-script assembly/write, ABI hashing and payload comparison are still
+whole-program work. The remaining design and acceptance gates are in [INCREMENTAL_BACKEND.md](INCREMENTAL_BACKEND.md).
 
 ### Names from identities
 

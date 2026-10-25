@@ -258,6 +258,12 @@ Notes; finished-work narrative does not.
   and reruns compile-time evaluation and all lowering. Warm body-edit compilation improved by about 11 to 12 %
   in isolated Castle Fight and Zombie Defense copies (`docs/RUNMAP_PERFORMANCE.md`); this does not include payload
   diff/delivery. Keeping generic demand, reachability, slot bindings and Lua emission between reloads remains open.
+  Concrete design and staged acceptance gates: [`docs/INCREMENTAL_BACKEND.md`](docs/INCREMENTAL_BACKEND.md).
+  The first scalar-function ownership/lowering/emission slice now proves zero graph-copy nodes and one lowered/emitted
+  function after a supported literal edit, including with 1,000 additional live functions. It excludes compile-time
+  execution, stack traces and optimisations; source/metadata scans, assembly/hashing and payload comparison still do
+  whole-program work. The full incremental backend remains open, and compilation-stage timings do not establish
+  save-to-applied latency.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
