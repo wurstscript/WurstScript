@@ -236,10 +236,8 @@ Notes; finished-work narrative does not.
     nested aliases. Investigate changes between independent roots before promising stable identity there. New
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
     integer fields and keys cannot be relocated safely onto the live allocator.
-  - The command-line session has only `start` and `send`, so `grill run --hot` replaces the running map's session
-    before it launches, and a failed launch has already deleted its payloads. Add staged activation/restoration in
-    the owning CLI integration, matching the language server's launch lifecycle. The first reload after a command-line
-    start checks the whole model again (about 47 s on Castle Fight). `-luaHotReload` in `wurst_run.args` is combined
+  - The first reload after a command-line start checks the whole model again (about 47 s on Castle Fight).
+    `-luaHotReload` in `wurst_run.args` is combined
     with the build-only `+` lines of a release build and refused. The initializer-order check lists every key
     (about 370 KB with 23,000 keys on a large map), and generated object-data functions ship whole. Measure smaller
     representations without discarding the order check or splitting effectful initialization incorrectly.

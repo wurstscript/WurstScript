@@ -84,20 +84,37 @@ public final class LuaHotReloadSession {
      *   of an earlier session are deleted;</li>
      *   <li>{@code send <build dir> <CustomMapData>}: writes the next payload, which takes the running map to the program
      *   of the last build, where the map polls for it;</li>
+     *   <li>{@code prepare <build dir> <CustomMapData>}: stages the last build and sets old payloads aside before launch;</li>
+     *   <li>{@code activate <build dir> <CustomMapData>}: commits a prepared launch and discards the old payloads;</li>
+     *   <li>{@code abort <build dir> <CustomMapData>}: drops a prepared launch and restores the old payloads;</li>
      *   <li>{@code <baseline manifest.json> <current manifest.json> <output .pld>}: the first payload a map running the
      *   first manifest would get for the second, written as a preload file.</li>
      * </ul>
      * A payload the edit cannot carry exits with 1 and prints the reasons.
      */
     public static void main(String[] args) throws IOException {
-        if (args.length == 3 && (args[0].equals("start") || args[0].equals("send"))) {
+        if (args.length == 3 && Set.of("start", "send", "prepare", "activate", "abort").contains(args[0])) {
             Path buildDir = Path.of(args[1]);
             Path customMapData = Path.of(args[2]);
+            if (args[0].equals("activate")) {
+                completeLaunch(buildDir, customMapData);
+                System.out.println("session activated");
+                return;
+            }
+            if (args[0].equals("abort")) {
+                abortLaunch(buildDir, customMapData);
+                System.out.println("launch aborted; previous session restored");
+                return;
+            }
             LuaHotReload.Manifest manifest = readManifest(buildDir.resolve(SESSION_FOLDER).resolve("manifest.json"));
+            if (args[0].equals("prepare")) {
+                prepareLaunch(buildDir, customMapData, manifest);
+                System.out.println("session prepared");
+                return;
+            }
             if (args[0].equals("start")) {
-                setAsideDeliveries(customMapData);
-                discardDeliveries(customMapData);
-                start(buildDir, manifest);
+                prepareLaunch(buildDir, customMapData, manifest);
+                completeLaunch(buildDir, customMapData);
                 System.out.println("session started");
                 return;
             }
@@ -113,7 +130,7 @@ public final class LuaHotReloadSession {
             return;
         }
         if (args.length != 3) {
-            System.err.println("usage: start <build dir> <CustomMapData> | send <build dir> <CustomMapData>"
+            System.err.println("usage: start|send|prepare|activate|abort <build dir> <CustomMapData>"
                 + " | <baseline manifest.json> <current manifest.json> <output .pld>");
             System.exit(2);
         }
@@ -144,6 +161,44 @@ public final class LuaHotReloadSession {
     public static void start(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
         stage(buildDir, manifest);
         activate(buildDir);
+    }
+
+    /** Preserve the active session while hiding its payloads from a map which is about to launch. */
+    public static void prepareLaunch(Path buildDir, Path customMapData, LuaHotReload.Manifest manifest) throws IOException {
+        stage(buildDir, manifest);
+        try {
+            setAsideDeliveries(customMapData);
+        } catch (IOException e) {
+            try {
+                unstage(buildDir);
+            } catch (IOException cleanup) {
+                e.addSuppressed(cleanup);
+            }
+            throw e;
+        }
+    }
+
+    /** Called only after the launcher succeeds; errors after activation must not restore obsolete payloads. */
+    public static void completeLaunch(Path buildDir, Path customMapData) throws IOException {
+        // Persist the handoff before replacing session.json: activate's later cleanup can fail or be interrupted.
+        Path aside = markDeliveriesSuperseded(customMapData);
+        activate(buildDir);
+        deleteFolder(aside);
+    }
+
+    /** Attempt both rollback steps, preserving diagnostics if either fails. Safe when no launch was prepared. */
+    public static void abortLaunch(Path buildDir, Path customMapData) throws IOException {
+        try {
+            restoreDeliveries(customMapData);
+        } catch (IOException e) {
+            try {
+                unstage(buildDir);
+            } catch (IOException cleanup) {
+                e.addSuppressed(cleanup);
+            }
+            throw e;
+        }
+        unstage(buildDir);
     }
 
     /**
@@ -280,6 +335,9 @@ public final class LuaHotReloadSession {
      */
     public static Sent send(Path buildDir, Path customMapData, LuaHotReload.Manifest current)
         throws IOException, LuaHotReload.Rejected {
+        if (Files.exists(stagedFile(buildDir))) {
+            throw new LuaHotReload.Rejected(List.of("a hot reload launch is prepared: activate or abort it before sending a payload"));
+        }
         Path file = stateFile(buildDir);
         if (!Files.exists(file)) {
             throw new LuaHotReload.Rejected(List.of("no map was started with hot run (or -luaHotReload): start the map with hot run first"));
@@ -457,7 +515,11 @@ public final class LuaHotReloadSession {
             }
         } catch (IOException e) {
             // A file the running map has not read must not stay hidden: put back what was moved.
-            restoreDeliveries(customMapData);
+            try {
+                restoreDeliveries(customMapData);
+            } catch (IOException cleanup) {
+                e.addSuppressed(cleanup);
+            }
             throw e;
         }
     }
@@ -467,6 +529,11 @@ public final class LuaHotReloadSession {
         Path folder = deliveryFolder(customMapData);
         Path aside = folder.resolve(SET_ASIDE);
         if (!Files.isDirectory(aside)) {
+            return;
+        }
+        if (Files.exists(aside.resolve(SUPERSEDED))) {
+            // Activation already committed. Cleanup may be retried, but these files must never reach the new map.
+            deleteFolder(aside);
             return;
         }
         for (Path file : deliveries(aside)) {
@@ -480,12 +547,15 @@ public final class LuaHotReloadSession {
      * a deletion which is interrupted leaves files the next launch knows to delete rather than restore.
      */
     public static void discardDeliveries(Path customMapData) throws IOException {
+        deleteFolder(markDeliveriesSuperseded(customMapData));
+    }
+
+    private static Path markDeliveriesSuperseded(Path customMapData) throws IOException {
         Path aside = deliveryFolder(customMapData).resolve(SET_ASIDE);
-        if (!Files.isDirectory(aside)) {
-            return;
+        if (Files.isDirectory(aside)) {
+            Files.writeString(aside.resolve(SUPERSEDED), "");
         }
-        Files.writeString(aside.resolve(SUPERSEDED), "");
-        deleteFolder(aside);
+        return aside;
     }
 
     private static final String SET_ASIDE = "hotreload-set-aside";
