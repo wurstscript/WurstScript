@@ -1339,8 +1339,9 @@ public final class LuaHotReload {
             Set<String> taken = new HashSet<>(baseClosures.keySet());
             taken.addAll(knownOrigins.keySet());
             before.values().forEach(ms -> ms.forEach(m -> taken.add(m.lineage())));
-            // Tables a closure the map has began with: a new closure whose name holds one of them makes its own.
-            Set<String> occupied = new HashSet<>();
+            // A name used as a remapping destination may hold a survivor's table even when no lineage began there.
+            // A new closure must not adopt any table name earlier bodies have read; it makes a fresh table instead.
+            Set<String> occupied = new HashSet<>(readers.keySet());
             baseClosures.values().forEach(c -> occupied.addAll(c.tables().values()));
             knownOrigins.values().forEach(o -> occupied.addAll(o.values()));
             for (Map.Entry<String, Closure> c : baseClosures.entrySet()) {

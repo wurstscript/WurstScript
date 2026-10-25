@@ -229,8 +229,8 @@ Notes; finished-work narrative does not.
     recorded specialization field-storage refusal. Shared canonical field tables must have one source-field
     identity in the manifest, independent of the specialization discovery order. Minimize any remaining refusal
     before changing storage ownership: specialized and erased accesses deliberately share those tables.
-    Old-generics `run_wrapper` functions form order groups too; investigate their source ownership before trying
-    to accept ambiguous edits. Materialized compile-time expressions without distinct bindings also retain an
+    Old-generics conversion bridges which still share an anonymous source owner form order groups too; ambiguous
+    edits still need a restart. Materialized compile-time expressions without distinct bindings also retain an
     order-group count; changing that count requires a restart. Dependency-owned object graphs preserve direct and
     nested aliases. Investigate changes between independent roots before promising stable identity there. New
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;

@@ -132,7 +132,11 @@ public class OverrideUtils {
 
         List<FunctionFlag> flags = Collections.emptyList();
 
-        ImFunction implementation = JassIm.ImFunction(e, subMethod.getName() + "_wrapper", typeVars, parameters, rType, locals, body, flags);
+        // The implementing class carries its source class/closure owner. A bare method name groups unrelated bridges
+        // together after old-generic parameters are erased, so adding a closure can look like moving another one's body.
+        String wrapperName = (tr.getRunArgs().isLuaHotReload()
+            ? subClass.getName() + "_" + subMethod.getName() : subMethod.getName()) + "_wrapper";
+        ImFunction implementation = JassIm.ImFunction(e, wrapperName, typeVars, parameters, rType, locals, body, flags);
         tr.getImProg().getFunctions().add(implementation);
 
         ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getMethodClass(), subMethod.getName() + "_wrapper", implementation, JassIm.ImMethods(), new ArrayList<>(), "", false);
