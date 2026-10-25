@@ -230,8 +230,10 @@ Notes; finished-work narrative does not.
     specialisation's names. Minimize that source into a regression and fix the identity where it is assigned.
     Old-generics `run_wrapper` functions form order groups too; investigate their source ownership before trying
     to accept ambiguous edits. Materialized compile-time expressions without distinct bindings also retain an
-    order-group count; changing that count requires a restart. Shared object graphs use the first binding that
-    reaches them, so changing that root needs investigation before promising stable identity.
+    order-group count; changing that count requires a restart. Dependency-owned object graphs preserve direct and
+    nested aliases. Investigate changes between independent roots before promising stable identity there. New
+    snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
+    integer fields and keys cannot be relocated safely onto the live allocator.
   - The command-line session has only `start` and `send`, so `grill run --hot` replaces the running map's session
     before it launches, and a failed launch has already deleted its payloads. Add staged activation/restoration in
     the owning CLI integration, matching the language server's launch lifecycle. The first reload after a command-line
@@ -276,17 +278,6 @@ Notes; finished-work narrative does not.
   instances. New generics specialize values to their native types and do not need this representation
   change; the handle-keyed `FastKeyedMap` work is separate. Do not start the old-container migration
   autonomously.
-
-- **Lua hot reload: what an order group still refuses.** A closure inserted before others of its order group
-  reloads: the payload gives each name the tables of the closure it continues (`LuaHotReload.Lineages`,
-  `docs/LUA_HOT_RELOAD.md`). Still refused, each needing a restart: an insertion and an edit before the same
-  unchanged closure in one payload (ambiguous; made one at a time they apply), and removing a closure while the
-  others' names change, which includes undoing an insertion (the removed closure's old body reads its captured
-  values by names other closures now hold), which includes a group which loses a closure and changes another
-  between the same unchanged ones. A closure added where an earlier payload removed one is refused unless it is
-  that one back as it was. Separately, the field stores of a new-generics specialisation share an identity with
-  those of the class's other specialisations, so adding one can rename the others' stores (a Castle Fight commit
-  adding `ArrayList<TickCandidates>` beside `ArrayList<UnitStat>`); that needs a restart too.
 
 ## Notes
 
