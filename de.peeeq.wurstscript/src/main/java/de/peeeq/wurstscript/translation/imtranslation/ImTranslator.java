@@ -244,6 +244,13 @@ public class ImTranslator implements SpecialisationLookup {
         return Collections.unmodifiableSet(compiletimeGlobalIdentities.keySet());
     }
 
+    /** Remove unread globals together with their materialized snapshot identities. */
+    public boolean retainGlobals(Set<ImVar> retained) {
+        boolean changed = imProg.getGlobals().retainAll(retained);
+        compiletimeGlobalIdentities.keySet().retainAll(retained);
+        return changed;
+    }
+
     public void setCompiletimeStateFunctions(ImFunction root, List<ImFunction> parts) {
         compiletimeStateFunction = root;
         compiletimeStateParts = List.copyOf(parts);

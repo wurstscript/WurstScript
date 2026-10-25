@@ -337,7 +337,7 @@ public final class TreeShaker {
                 entry.getKey().removeIf(assignmentsToRemove::contains);
             }
             prog.getGlobalInits().keySet().removeIf(var -> globals.contains(var) && !needed.contains(var));
-            prog.getGlobals().retainAll(needed);
+            trans.retainGlobals(needed);
         }
 
         private void markNeeded(ImVar var, Set<ImVar> needed, ArrayDeque<ImVar> pending) {

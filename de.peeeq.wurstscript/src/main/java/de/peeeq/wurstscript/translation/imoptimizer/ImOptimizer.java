@@ -261,7 +261,7 @@ public class ImOptimizer {
 
         if (variablesLost) {
             // keep only used variables
-            changes |= prog.getGlobals().retainAll(readVars);
+            changes |= trans.retainGlobals(readVars);
         }
 
         if (!incremental) {

@@ -4029,6 +4029,15 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void unreadSnapshotRootDoesNotLeaveDetachedManifestInputs() {
+        String[] source = independentSnapshots(true);
+        source = java.util.Arrays.copyOf(source, java.util.Arrays.asList(source).indexOf("init") + 2);
+        compiletimeManifest(source);
+        compileLuaHotReloadManifest(false, HOT_RELOAD.with("-runcompiletimefunctions", "-stacktraces"),
+            new CU("Test", String.join("\n", source) + "\n"));
+    }
+
+    @Test
     public void independentSnapshotRootsKeepTheirSharedLiveObject() {
         test().testLua(true).runCompiletimeFunctions(true).executeProg()
             .luaHotReload(independentSnapshots(true, true)).lines(independentSnapshots(false));
