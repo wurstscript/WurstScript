@@ -3323,6 +3323,131 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue("cumulative: score, back at its original body, comes again", second.contains("(x + 1)") && second.contains(", 2, function()"));
     }
 
+    @Test
+    public void cliLaunchAbortRestoresTheActiveSessionAndUnreadPayloads() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload cli abort");
+        var delivery = build.resolve("Custom Map Data");
+        var baseline = manifest(program("x + 1", "side * side", INIT));
+        var edit = manifest(program("x + 10", "side * side", INIT));
+        LuaHotReloadSession.start(build, baseline);
+        var first = LuaHotReloadSession.send(build, delivery, edit);
+        byte[] payload = java.nio.file.Files.readAllBytes(first.file());
+        var state = build.resolve("luaHotReload/session.json");
+        byte[] active = java.nio.file.Files.readAllBytes(state);
+        LuaHotReloadSession.writeManifest(build, manifest(program("x + 2", "side * side", INIT)));
+
+        LuaHotReloadSession.main(new String[]{"prepare", build.resolve(".").toString(), delivery.toString()});
+        assertTrue(java.util.Arrays.equals(active, java.nio.file.Files.readAllBytes(state)));
+        assertFalse(java.nio.file.Files.exists(first.file()));
+        // Rollback must use the staged transaction, even if the next build's manifest is no longer available.
+        java.nio.file.Files.delete(build.resolve("luaHotReload/manifest.json"));
+        LuaHotReloadSession.main(new String[]{"abort", build.toString(), delivery.toString()});
+        assertTrue(java.util.Arrays.equals(active, java.nio.file.Files.readAllBytes(state)));
+        assertTrue(java.util.Arrays.equals(payload, java.nio.file.Files.readAllBytes(first.file())));
+        var resumed = LuaHotReloadSession.send(build, delivery, edit).payload();
+        assertEquals(2, resumed.version());
+        assertEquals(LuaHotReload.payload(baseline, edit, Set.of(), 2).source(), resumed.source());
+    }
+
+    @Test
+    public void cliLaunchActivationUsesThePreparedBaseline() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload cli activate");
+        var delivery = build.resolve("Custom Map Data");
+        LuaHotReloadSession.start(build, manifest(program("x + 1", "side * side", INIT)));
+        var old = LuaHotReloadSession.send(build, delivery, manifest(program("x + 10", "side * side", INIT)));
+        var replacement = manifest(program("x + 2", "side * side", INIT));
+        LuaHotReloadSession.writeManifest(build, replacement);
+        LuaHotReloadSession.main(new String[]{"prepare", build.toString(), delivery.toString()});
+        java.nio.file.Files.delete(build.resolve("luaHotReload/manifest.json"));
+        LuaHotReloadSession.main(new String[]{"activate", build.toString(), delivery.toString()});
+        assertFalse(java.nio.file.Files.exists(old.file()));
+        var edit = manifest(program("x + 3", "side * side", INIT));
+        var sent = LuaHotReloadSession.send(build, delivery, edit).payload();
+        assertEquals(1, sent.version());
+        assertEquals(LuaHotReload.payload(replacement, edit, Set.of(), 1).source(), sent.source());
+    }
+
+    @Test
+    public void aPreparedLaunchRefusesReloadsUntilItCompletes() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload in flight");
+        var delivery = build.resolve("Custom Map Data");
+        var baseline = manifest(program("x + 1", "side * side", INIT));
+        LuaHotReloadSession.start(build, baseline);
+        var state = build.resolve("luaHotReload/session.json");
+        byte[] active = java.nio.file.Files.readAllBytes(state);
+        LuaHotReloadSession.prepareLaunch(build, delivery, baseline);
+        try {
+            var rejected = expectThrows(LuaHotReload.Rejected.class,
+                () -> LuaHotReloadSession.send(build, delivery, baseline));
+            assertTrue(rejected.getMessage(), rejected.getMessage().contains("launch is prepared"));
+            assertTrue(java.util.Arrays.equals(active, java.nio.file.Files.readAllBytes(state)));
+            assertFalse(java.nio.file.Files.exists(delivery.resolve("Wurst/hotreload-1.pld")));
+        } finally {
+            LuaHotReloadSession.abortLaunch(build, delivery);
+        }
+    }
+
+    @Test
+    public void aPreparationFailureKeepsTheOldSessionAndPayloads() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload prepare failure");
+        var delivery = build.resolve("Custom Map Data");
+        var baseline = manifest(program("x + 1", "side * side", INIT));
+        LuaHotReloadSession.start(build, baseline);
+        var oldBaseline = onlyBaselineFile(build.resolve("luaHotReload"));
+        var sent = LuaHotReloadSession.send(build, delivery, baseline);
+        byte[] payload = java.nio.file.Files.readAllBytes(sent.file());
+        var state = build.resolve("luaHotReload/session.json");
+        byte[] active = java.nio.file.Files.readAllBytes(state);
+        // A regular file cannot be the folder which holds the hidden payloads, on every supported host.
+        java.nio.file.Files.writeString(delivery.resolve("Wurst/hotreload-set-aside"), "obstruction");
+        expectThrows(IOException.class, () -> LuaHotReloadSession.prepareLaunch(build, delivery,
+            manifest(program("x + 2", "side * side", INIT))));
+        assertTrue(java.util.Arrays.equals(active, java.nio.file.Files.readAllBytes(state)));
+        assertTrue(java.util.Arrays.equals(payload, java.nio.file.Files.readAllBytes(sent.file())));
+        assertFalse(java.nio.file.Files.exists(build.resolve("luaHotReload/session-staged.json")));
+        assertTrue(java.nio.file.Files.isSameFile(oldBaseline, onlyBaselineFile(build.resolve("./luaHotReload"))));
+    }
+
+    @Test
+    public void aRollbackFailureStillDropsTheStagedSessionAndPreservesTheBackup() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload rollback failure");
+        var delivery = build.resolve("Custom Map Data");
+        var baseline = manifest(program("x + 1", "side * side", INIT));
+        LuaHotReloadSession.start(build, baseline);
+        var sent = LuaHotReloadSession.send(build, delivery, baseline);
+        byte[] payload = java.nio.file.Files.readAllBytes(sent.file());
+        LuaHotReloadSession.prepareLaunch(build, delivery, manifest(program("x + 2", "side * side", INIT)));
+        java.nio.file.Files.createDirectories(sent.file());
+        var obstruction = sent.file().resolve("obstruction");
+        java.nio.file.Files.writeString(obstruction, "cannot replace a nonempty directory");
+        expectThrows(IOException.class, () -> LuaHotReloadSession.abortLaunch(build, delivery));
+        assertFalse(java.nio.file.Files.exists(build.resolve("luaHotReload/session-staged.json")));
+        assertTrue(java.util.Arrays.equals(payload, java.nio.file.Files.readAllBytes(
+            delivery.resolve("Wurst/hotreload-set-aside").resolve(sent.file().getFileName()))));
+        java.nio.file.Files.delete(obstruction);
+        java.nio.file.Files.delete(sent.file());
+        LuaHotReloadSession.restoreDeliveries(delivery);
+        assertTrue(java.util.Arrays.equals(payload, java.nio.file.Files.readAllBytes(sent.file())));
+    }
+
+    @Test
+    public void abortAfterCommitNeverRestoresSupersededPayloads() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload committed abort");
+        var delivery = build.resolve("Custom Map Data");
+        LuaHotReloadSession.start(build, manifest(program("x + 1", "side * side", INIT)));
+        var old = LuaHotReloadSession.send(build, delivery, manifest(program("x + 10", "side * side", INIT)));
+        var replacement = manifest(program("x + 2", "side * side", INIT));
+        LuaHotReloadSession.prepareLaunch(build, delivery, replacement);
+        LuaHotReloadSession.activate(build);
+        // discardDeliveries marks the backup before deleting its first file; a crash can leave this exact state.
+        java.nio.file.Files.writeString(delivery.resolve("Wurst/hotreload-set-aside/superseded"), "");
+        LuaHotReloadSession.abortLaunch(build, delivery);
+        assertFalse(java.nio.file.Files.exists(old.file()));
+        var edit = manifest(program("x + 3", "side * side", INIT));
+        assertEquals(LuaHotReload.payload(replacement, edit, Set.of(), 1).source(),
+            LuaHotReloadSession.send(build, delivery, edit).payload().source());
+    }
+
     /**
      * Hot reload is for a single-player game: with more users playing the poll reads no payload file, says so once, and
      * the status tells why. It counts the users itself, as blizzard.j does for bj_isSinglePlayer, which a map whose main

@@ -302,6 +302,13 @@ java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSe
 java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession send <build dir> <CustomMapData>
 ```
 
+Launch integrations use `prepare`, then `activate` after the launcher succeeds or `abort` if it fails, with the same
+two folder arguments. Preparation stages the new baseline and moves old payloads aside; it does not replace the
+active session. Aborting restores unread payloads and drops the staged baseline. Activation commits the prepared
+baseline and discards the old payloads. Neither activation nor abort reads the most recent build's manifest.
+Reloads are refused while a launch is prepared, so they cannot put payloads for the old session in the new map's
+polling directory. These commands and the language-server launch share the same session transaction helpers.
+
 `start` takes the map of the last build as the running one and deletes the payload files of an earlier session; `send`
 writes the next cumulative payload for the last build, or exits with 1 and the reasons. Both read the manifest a build
 leaves in `_build/luaHotReload/manifest.json`; the editor's hot reload builds no map and leaves it as it was.

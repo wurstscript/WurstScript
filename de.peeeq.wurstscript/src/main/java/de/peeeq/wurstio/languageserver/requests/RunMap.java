@@ -150,17 +150,18 @@ public class RunMap extends MapRequest {
                 // The new map polls from the first file. The session and the files of a map which is still running
                 // change only once the new map is launched, so a launch which fails leaves that map's session intact.
                 Path customMapData = getCustomMapDataPath();
-                LuaHotReloadSession.stage(buildDir.toPath(), luaHotReloadManifest);
-                LuaHotReloadSession.setAsideDeliveries(customMapData);
+                LuaHotReloadSession.prepareLaunch(buildDir.toPath(), customMapData, luaHotReloadManifest);
                 try {
                     startGame(gui, result);
                 } catch (Exception e) {
-                    LuaHotReloadSession.restoreDeliveries(customMapData);
-                    LuaHotReloadSession.unstage(buildDir.toPath());
+                    try {
+                        LuaHotReloadSession.abortLaunch(buildDir.toPath(), customMapData);
+                    } catch (IOException cleanup) {
+                        e.addSuppressed(cleanup);
+                    }
                     throw e;
                 }
-                LuaHotReloadSession.activate(buildDir.toPath());
-                LuaHotReloadSession.discardDeliveries(customMapData);
+                LuaHotReloadSession.completeLaunch(buildDir.toPath(), customMapData);
             }
         }
         return null;
