@@ -2,10 +2,12 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.translation.lua.translation.ScalarLuaBackend;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 
-/** Session-owned frontend input. Each build forks private IR for compile-time execution and lowering. */
+/** Session-owned frontend input. General builds fork private IR; supported scalar edits use frozen backend artifacts. */
 public final class IncrementalImTranslation {
     private @Nullable ImTranslator frontend;
     private List<CompilationUnit> modelUnits = List.of();
@@ -13,6 +15,19 @@ public final class IncrementalImTranslation {
     private final Map<FunctionLike, WStatements> bodies = new IdentityHashMap<>();
     private int reused, translated, frontendBuilds;
     private String rebuildReason = "first compilation";
+    private final ScalarLuaBackend scalarBackend = new ScalarLuaBackend();
+    private long revision;
+    public String scalarBackendReason() { return scalarBackend.reason(); }
+
+    /** Opaque preparation token: the retained frontend is never handed to a mutable backend consumer. */
+    public static final class Prepared {
+        private final ImTranslator frontend;
+        private final long revision;
+        private Prepared(ImTranslator frontend, long revision) {
+            this.frontend = frontend;
+            this.revision = revision;
+        }
+    }
 
     public record Statistics(int reusedFunctions, int translatedFunctions, int cachedFunctions,
                              int frontendBuilds, String rebuildReason) { }
@@ -22,6 +37,8 @@ public final class IncrementalImTranslation {
     }
 
     public void clear() {
+        scalarBackend.clear();
+        revision++;
         frontend = null;
         modelUnits = selectedUnits = List.of();
         bodies.clear();
@@ -30,6 +47,10 @@ public final class IncrementalImTranslation {
     }
 
     public ImTranslator translate(WurstModel model, Collection<CompilationUnit> units, boolean unitTest, RunArgs args) {
+        return fork(prepare(model, units, unitTest, args), args);
+    }
+
+    public Prepared prepare(WurstModel model, Collection<CompilationUnit> units, boolean unitTest, RunArgs args) {
         List<CompilationUnit> selected = List.copyOf(units);
         try {
             String reason = frontend == null ? "first compilation"
@@ -54,6 +75,7 @@ public final class IncrementalImTranslation {
                 reason = "function dependencies or generated declarations changed";
             }
             if (reason != null) {
+                scalarBackend.clear();
                 frontend = new ImTranslator(model, unitTest, args, units);
                 frontend.translateProg();
                 frontendBuilds++;
@@ -69,11 +91,36 @@ public final class IncrementalImTranslation {
             }
             bodies.clear();
             bodies.putAll(current);
-            return Objects.requireNonNull(frontend).forkForLowering(args);
+            scalarBackend.sourcePrepared();
+            return new Prepared(Objects.requireNonNull(frontend), ++revision);
         } catch (RuntimeException | Error failure) {
             clear();
             throw failure;
         }
+    }
+
+    private void requireCurrent(Prepared prepared) {
+        if (prepared.frontend != frontend || prepared.revision != revision) throw new IllegalStateException("Stale frontend preparation");
+    }
+
+    public ImTranslator fork(Prepared prepared, RunArgs args) {
+        requireCurrent(prepared);
+        try {
+            return prepared.frontend.forkForLowering(args);
+        } catch (RuntimeException | Error failure) {
+            clear();
+            throw failure;
+        }
+    }
+
+    public ScalarLuaBackend.@Nullable Pending tryScalarBackend(Prepared prepared, RunArgs args) {
+        requireCurrent(prepared);
+        return scalarBackend.prepare(selectedUnits, prepared.frontend::sourceFunctions, args);
+    }
+
+    public void rememberLuaOutput(Prepared prepared, LuaTranslator translated, RunArgs args) {
+        requireCurrent(prepared);
+        scalarBackend.remember(selectedUnits, prepared.frontend::sourceFunctions, translated, args);
     }
 
     private static Map<FunctionLike, WStatements> sourceBodies(Collection<CompilationUnit> units) {

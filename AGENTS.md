@@ -167,8 +167,11 @@ This repository has multiple entry points that may trigger compilation/build beh
 * Add, replace, remove or purge compilation units of the managed model only through `ModelManager` (`retainCompilationUnits` for purges), never by mutating `getModel()`: lookups from other threads rely on its `modelLock`. A copy from `ModelManager.copy` can be changed freely.
 * Lua hot-reload compilations retain pre-lowering IM through `IncrementalImTranslation`. Unchanged bodies keep their
   AST nodes and refresh their positions; changed bodies update the retained input only while declaration dependencies
-  and generated products stay unchanged. Every compilation forks the entire IM graph and frontend metadata before
-  compile-time execution and lowering. Never reuse compile-time results or share mutable IM with the retained input.
+  and generated products stay unchanged. The first scalar backend slice (`ScalarLuaBackend`) reuses frozen fragments
+  and materialises only changed, closed integer-return functions under its conservative eligibility checks. It reads
+  source-function modification counts; cancelled work must not hide a pending edit. Other compilations fork the
+  entire IM graph and frontend metadata before compile-time execution and lowering. Never reuse compile-time results
+  or share mutable IM with the retained input.
   When adding frontend translator state or an IM reference field, update the fork and its fresh-build oracles.
 * A load parses the files of the project and of its libraries ahead, by several threads (`-Dwurst.parseThreads=n`, 1 parses nothing ahead), and takes each parse when it comes to the file. Only the parse runs on those threads, because it depends on nothing but the text of one file. The model is changed by the loading thread alone, file by file in the order of the sequential load, and the imports resolve depth first as before: that order is the order of the compilation units, and so of the output. A step which adds to the model or reads it from the parse threads is not safe (the generated attributes, `GlobalCaches` and `ErrorHandler` are not thread safe, see `BACKLOG.md`). `ParallelLoadTests` compares a load with one thread and with four.
 * User actions like build/start/tests are implemented in `languageserver.requests.*`.

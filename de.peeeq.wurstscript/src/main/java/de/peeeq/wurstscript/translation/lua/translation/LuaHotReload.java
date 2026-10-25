@@ -467,16 +467,8 @@ public final class LuaHotReload {
             }
         }
 
-        List<String> parts = new ArrayList<>();
-        for (Function f : functions.values()) {
-            parts.add(f.definition());
-        }
-        for (Statement s : statements) {
-            parts.add(s.scope() + " " + s.text() + " " + s.targets());
-        }
-        tr.imTr.compiletimeExpressionCounts().forEach((group, count) -> parts.add("compiletime expressions:" + group + "=" + count));
-        parts.add("compiletime integer references:" + tr.imTr.compiletimeIntegerReferences());
-        String abi = fingerprint(compilerVersion, parts, bindings);
+        String abi = manifestAbi(compilerVersion, functions, statements, bindings,
+            tr.imTr.compiletimeExpressionCounts(), tr.imTr.compiletimeIntegerReferences());
         appendRuntime(tr, model, abi);
         List<String> initOrder = new ArrayList<>();
         for (ImFunction init : packageInits) {
@@ -517,6 +509,37 @@ public final class LuaHotReload {
             List.copyOf(hooks), closures(tr, reloadable, bootstrap), tr.imTr.compiletimeExpressionCounts(),
             tr.imTr.compiletimeIntegerReferences(), Collections.unmodifiableMap(new TreeMap<>(tr.imTr.compiletimeReferenceOwners())));
     }
+
+    private static String manifestAbi(String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+        List<String> bindings, Map<String, Integer> compiletimeGroups, boolean integerReferences) {
+        List<String> parts = new ArrayList<>();
+        for (Function f : functions.values()) {
+            parts.add(f.definition());
+        }
+        for (Statement s : statements) {
+            parts.add(s.scope() + " " + s.text() + " " + s.targets());
+        }
+        compiletimeGroups.forEach((group, count) -> parts.add("compiletime expressions:" + group + "=" + count));
+        parts.add("compiletime integer references:" + integerReferences);
+        return fingerprint(compilerVersion, parts, bindings);
+    }
+
+    /** Closed scalar edits change definitions and their shapes, never declaration/initialisation metadata. */
+    static Manifest replaceScalarDefinitions(Manifest previous, Map<String, String> replacements) {
+        Map<String, Function> functions = new LinkedHashMap<>(previous.functions());
+        replacements.forEach((name, definition) -> {
+            Function old = Objects.requireNonNull(functions.get(name), "Unknown scalar function");
+            functions.put(name, new Function(name, old.semanticId(), definition, old.slots(), old.captures(), old.kind(),
+                identityHash(definition), old.closureSource()));
+        });
+        String abi = manifestAbi(previous.compilerVersion(), functions, previous.statements(), previous.bindings(),
+            previous.compiletimeGroups(), previous.compiletimeIntegerReferences());
+        return new Manifest(abi, previous.compilerVersion(), Collections.unmodifiableMap(functions), previous.statements(),
+            previous.bindings(), previous.initOrder(), previous.constants(), previous.variables(), previous.hooks(),
+            previous.closures(), previous.compiletimeGroups(), previous.compiletimeIntegerReferences(), previous.compiletimeReferenceOwners());
+    }
+
+    static String abiDefinition(String abi) { return ABI_GLOBAL + " = \"" + abi + "\""; }
 
     /** Expand the startup replay in execution order, retaining the object each statement initializes. */
     private static void collectCompiletimeStatements(LuaTranslator tr, LuaFunction function, Set<LuaFunction> parts,
@@ -2273,7 +2296,9 @@ public final class LuaHotReload {
      * only assigns, is called. A rejected payload leaves the map untouched.
      */
     private static void appendRuntime(LuaTranslator tr, LuaCompilationUnit model, String abi) {
-        model.add(LuaAst.LuaLiteral(ABI_GLOBAL + " = \"" + abi + "\""));
+        LuaStatement abiStatement = LuaAst.LuaLiteral(abiDefinition(abi));
+        tr.setHotReloadAbiStatement(abiStatement);
+        model.add(abiStatement);
         model.add(LuaAst.LuaLiteral(VERSION_GLOBAL + " = 0"));
         model.add(LuaAst.LuaLiteral("__wurst_hotreload_nextFile = 1"));
         model.add(LuaAst.LuaLiteral(RAN_TABLE + " = {}"));

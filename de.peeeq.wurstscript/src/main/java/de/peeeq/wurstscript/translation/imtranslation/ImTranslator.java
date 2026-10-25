@@ -2472,6 +2472,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         function.getBody().addAll(translateStatements(function, source.getBody()));
     }
 
+    Map<FuncDef, ImFunction> sourceFunctions() {
+        Map<FuncDef, ImFunction> result = new LinkedHashMap<>();
+        functionMap.forEach((source, function) -> {
+            if (source instanceof FuncDef definition) result.put(definition, function);
+        });
+        return result;
+    }
+
     boolean hasCurrentPreservation() {
         for (VarDef source : varMap.keySet()) {
             if (source instanceof GlobalVarDef

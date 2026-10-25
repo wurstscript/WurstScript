@@ -37,6 +37,7 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
+import de.peeeq.wurstscript.translation.lua.translation.ScalarLuaBackend;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
@@ -226,6 +227,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             compiler.setMapFile(mapCopy);
             // injectMapData imports the project files into the map afterwards
             compiler.setImportFiles(false);
+            ScalarLuaBackend.Pending[] scalar = new ScalarLuaBackend.Pending[1];
             if (map.isPresent() && mapCopy.isPresent() && mapCopy.get().equals(getCachedMapFile())) {
                 // The cached map holds the object data written back by the previous run, so start from the source map's.
                 compiler.setObjectDataSource(map.get());
@@ -236,10 +238,17 @@ public abstract class MapRequest extends UserRequest<Object> {
                 // From here on compilation mutates private IM, not the shared AST.
                 CompilationCancellation.check();
                 CompilationCancellation.run(() -> false,
-                    () -> prepareImProgram(modelManager, compiler, model, gui, runArgs));
+                    () -> scalar[0] = prepareImProgram(modelManager, compiler, model, gui, runArgs));
                 CompilationCancellation.check();
             } else {
-                prepareImProgram(modelManager, compiler, model, gui, runArgs);
+                scalar[0] = prepareImProgram(modelManager, compiler, model, gui, runArgs);
+            }
+
+            if (scalar[0] != null) {
+                gui.sendProgress("Compiling changed scalar functions");
+                ScalarLuaBackend.Result output = timeTaker.measure("Incremental scalar backend", scalar[0]::compile);
+                CompilationCancellation.check();
+                return writeLuaOutput(output.script(), output.manifest(), runArgs);
             }
 
             if (runArgs.isRunTests()) {
@@ -269,21 +278,9 @@ public abstract class MapRequest extends UserRequest<Object> {
                 StringBuilder sb = new StringBuilder();
                 timeTaker.measure("Print Lua", () -> luaCode.get().print(sb, 0));
 
-                String compiledMapScript = sb.toString();
-                LuaAssertions.assertNoLeakedNativeCalls(compiledMapScript);
-                luaHotReloadManifest = runArgs.isLuaHotReload() ? compiler.getLuaTranslator().hotReloadManifest() : null;
-                if (luaHotReloadManifest != null) {
-                    long stored = luaHotReloadManifest.functions().values().stream().filter(f -> !f.captures().isEmpty()).count();
-                    println("Lua hot reload: " + luaHotReloadManifest.functions().size() + " reloadable functions, "
-                        + stored + " of them stored as values (not reloadable)");
-                }
-                File buildDir = getBuildDir();
-                // A hot reload builds a payload, not a map: the manifest stays that of the last map built.
-                if (luaHotReloadManifest != null && !runArgs.isHotReload()) {
-                    LuaHotReloadSession.writeManifest(buildDir.toPath(), luaHotReloadManifest);
-                }
-                File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
-                Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+                File outFile = writeLuaOutput(sb.toString(), runArgs.isLuaHotReload()
+                    ? compiler.getLuaTranslator().hotReloadManifest() : null, runArgs);
+                compiler.rememberIncrementalLuaOutput();
                 return outFile;
 
             } else {
@@ -332,7 +329,22 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    private void prepareImProgram(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
+    private File writeLuaOutput(String script, LuaHotReload.@Nullable Manifest manifest, RunArgs args) throws IOException {
+        LuaAssertions.assertNoLeakedNativeCalls(script);
+        luaHotReloadManifest = manifest;
+        if (manifest != null) {
+            long stored = manifest.functions().values().stream().filter(f -> !f.captures().isEmpty()).count();
+            println("Lua hot reload: " + manifest.functions().size() + " reloadable functions, "
+                + stored + " of them stored as values (not reloadable)");
+        }
+        File buildDir = getBuildDir();
+        if (manifest != null && !args.isHotReload()) LuaHotReloadSession.writeManifest(buildDir.toPath(), manifest);
+        File output = new File(buildDir, BUILD_COMPILED_LUA_NAME);
+        Files.write(script.getBytes(Charsets.UTF_8), output);
+        return output;
+    }
+
+    private ScalarLuaBackend.@Nullable Pending prepareImProgram(ModelManager modelManager, WurstCompilerJassImpl compiler, WurstModel model,
                                   WurstGui gui, RunArgs runArgs) {
         Set<CompilationUnit> compilationUnits = compilationUnits(model);
         List<CompilationUnit> units = model.stream().filter(compilationUnits::contains).toList();
@@ -346,7 +358,12 @@ public abstract class MapRequest extends UserRequest<Object> {
             print("translating program ... ");
             if (runArgs.isLuaHotReload() && model == modelManager.getModel()) {
                 var cache = modelManager.incrementalImTranslation();
-                if (cache != null) compiler.setIncrementalImTranslation(cache);
+                if (cache != null) {
+                    var prepared = cache.prepare(model, units, compiler.getErrorHandler().isUnitTestMode(), runArgs);
+                    ScalarLuaBackend.Pending result = isObjectExportOnly() ? null : cache.tryScalarBackend(prepared, runArgs);
+                    if (result != null) return result;
+                    compiler.setPreparedIncrementalImTranslation(cache, prepared);
+                }
             }
             compiler.translateProgToIm(model, units);
             if (gui.getErrorCount() > 0) {
@@ -354,6 +371,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                     "Could not compile project (error in translation): " + gui.getErrorList().get(0));
             }
         }
+        return null;
     }
 
     protected File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
