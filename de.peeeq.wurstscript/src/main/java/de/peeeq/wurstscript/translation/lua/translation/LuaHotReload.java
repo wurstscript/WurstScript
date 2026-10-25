@@ -1206,7 +1206,10 @@ public final class LuaHotReload {
         if (initializerOrder.size() > 1) {
             // Only initializers which first ran together (when the map started, or in one payload) have an order to keep:
             // one a payload added runs after every one which ran before it, wherever it is in the source.
-            sb.append("local previous = {}\nfor _, key in ipairs({").append(String.join(", ", initializerOrder)).append("}) do\n")
+            // Run keys are fixed-width hex hashes. Packing them avoids the quotes/separators and a temporary Lua
+            // array of every key, while retaining every entry and its exact order, including absent initializers.
+            sb.append("local previous = {}\nfor key in string.gmatch(").append(luaString(String.join("", initializerOrder)))
+                .append(", ").append(luaString(".".repeat(initializerOrder.getFirst().length()))).append(") do\n")
                 .append("local position = ").append(INITIALIZER_POSITIONS).append("[key]\nif position then\n")
                 .append("local batch = ").append(INITIALIZER_BATCHES).append("[key]\n")
                 .append("if previous[batch] and position < previous[batch] then\n").append(WARN_FUNCTION).append("(")
@@ -1636,12 +1639,12 @@ public final class LuaHotReload {
         }
     }
 
-    /** The run keys of the source initializers, as Lua strings, in the order the map runs them. */
+    /** The fixed-width run keys of the source initializers, in the order the map runs them. */
     private static List<String> initializerOrder(Manifest manifest) {
         Map<String, List<String>> keysByOwner = new LinkedHashMap<>();
         for (Statement s : manifest.statements()) {
             if (s.scope().equals("init") && s.kind().equals("global")) {
-                keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(luaString(runKey(s)));
+                keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(runKey(s));
             }
         }
         List<String> order = new ArrayList<>();

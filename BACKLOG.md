@@ -236,9 +236,8 @@ Notes; finished-work narrative does not.
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
     integer fields and keys cannot be relocated safely onto the live allocator.
   - The first reload after a command-line start checks the whole model again (about 47 s on Castle Fight).
-    The initializer-order check lists every key
-    (about 370 KB with 23,000 keys on a large map), and generated object-data functions ship whole. Measure smaller
-    representations without discarding the order check or splitting effectful initialization incorrectly.
+    Generated object-data functions ship whole. Measure smaller representations without splitting effectful
+    initialization incorrectly.
   - Run the in-game suite again: it last ran on #1556, before #1558 through #1566, including closure lineage remaps
     and compile-time snapshot replay. Also exercise `grill run --hot` launching a map and picking up a payload.
     Stock Lua and CI do not verify Warcraft's preload channel or numeric runtime.

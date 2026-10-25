@@ -196,6 +196,10 @@ The payload compares the running script's manifest with the edited one:
   lists those payloads added. Likewise it checks storage for a mix of old and new only for a unit with storage the
   started map lacks. Listing every initializer made a payload of Castle Fight 403,624 bytes with nothing changed, past
   the 200,000 characters the delivery was measured with; it is now 93 bytes.
+  When an order check is needed, its fixed-width hash keys are packed into one string and read in order with
+  `string.gmatch`; no key is shortened or omitted, and no temporary array of the keys is built. For 23,000 keys,
+  that loop is 276,048 bytes rather than 368,026 bytes with individually quoted keys (91,978 bytes, about 25%, saved).
+  Missing completion positions and initialization batches are checked as before.
 - A field added to a class gives objects made before it its default; an array or tuple default is made once per object
   and kept, so what is stored in it stays.
 
