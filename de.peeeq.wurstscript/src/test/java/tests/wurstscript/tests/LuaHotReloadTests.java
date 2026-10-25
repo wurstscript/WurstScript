@@ -1367,6 +1367,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "    if second.apply() != 50",
             "        testFail(\"the original callback did not run\")",
             "    hotReload()",
+            "    if first.apply() != 1",
+            "        testFail(\"new capture on an old object did not default\")",
             "    if second.apply() != 50",
             "        testFail(\"a callback made before the reload lost the value it captured\")",
             "    makeAll(6)",
@@ -1377,8 +1379,33 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
-    public void callbackWhichStartsCapturingLeavesItsSiblingsCaptures() {
-        test().testLua(true).executeProg().luaHotReload(capturingCallbacks("s + 1")).lines(capturingCallbacks("1"));
+    public void callbackWhichStartsCapturingLeavesItsSiblingsCaptures() throws Exception {
+        String[] before = capturingCallbacks("1");
+        String[] after = capturingCallbacks("s + 1");
+        var payload = LuaHotReload.payload(manifest(before), manifest(after), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w ->
+            w.contains("now captures") && w.contains("typed default") && w.contains("restart the map")));
+        // The old first object reads 0 + 1, while the newly constructed one captures 6 and reads 7.
+        test().testLua(true).executeProg().luaHotReload(after).lines(before);
+    }
+
+    @Test
+    public void captureWarningsFollowClosuresIntroducedByEarlierPayloads() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hotReloadNewCapture");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadNewCaptureDelivery");
+        LuaHotReloadSession.start(build, manifest(MAIN_PACKAGE));
+        var introduced = LuaHotReloadSession.send(build, delivery, manifest(capturingCallbacks("1"))).payload();
+        assertFalse(introduced.warnings().toString(), introduced.warnings().stream().anyMatch(w -> w.contains("now captures")));
+        var capturing = manifest(capturingCallbacks("s + 1"));
+        var added = LuaHotReloadSession.send(build, delivery, capturing).payload();
+        assertEquals(added.warnings().toString(), 1L,
+            added.warnings().stream().filter(w -> w.contains("now captures")).count());
+        var repeated = LuaHotReloadSession.send(build, delivery, capturing).payload();
+        assertFalse(repeated.warnings().toString(), repeated.warnings().stream().anyMatch(w -> w.contains("now captures")));
+        var stopped = LuaHotReloadSession.send(build, delivery, manifest(capturingCallbacks("1"))).payload();
+        assertFalse(stopped.warnings().toString(), stopped.warnings().stream().anyMatch(w -> w.contains("now captures")));
+        var resumed = LuaHotReloadSession.send(build, delivery, capturing).payload();
+        assertFalse(resumed.warnings().toString(), resumed.warnings().stream().anyMatch(w -> w.contains("now captures")));
     }
 
     @Test

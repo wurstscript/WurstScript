@@ -160,7 +160,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     // The edit is undone, as a developer would, and the next one starts from the program before it.
                     continue;
                 }
-                if (edit.mayRefuse) {
+                if (edit.mayRefuse || movesAnonymousSource(base, steps, edit.prog)
+                    && rejected.getReasons().stream().allMatch(reason -> reason.contains(" now has the body ")
+                        && reason.endsWith(" had: they moved; restart the map"))) {
                     stats.refusedMayRefuse++;
                     continue;
                 }
@@ -229,6 +231,24 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             return null;
         }
         return String.join("\n", report);
+    }
+
+    /** Reusing a sibling's historical body is indistinguishable from moving that anonymous closure. */
+    private static boolean movesAnonymousSource(Prog base, List<Step> steps, Prog next) {
+        List<Prog> versions = new ArrayList<>(List.of(base));
+        steps.forEach(step -> versions.add(step.edit.prog));
+        List<Clo> past = versions.stream().flatMap(p -> p.closures.stream()).filter(c -> !c.bound).toList();
+        for (Clo now : next.closures) {
+            if (now.bound || past.stream().anyMatch(old -> old.slot == now.slot && old.body.equals(now.body))) {
+                continue;
+            }
+            if (past.stream().anyMatch(old -> old.slot != now.slot && old.body.equals(now.body)
+                && next.closures.stream().noneMatch(kept -> !kept.bound && kept.slot == old.slot
+                    && kept.body.equals(old.body)))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void compare(List<String> report, Step step, Path dir, String what, String expected, String actual)
@@ -1253,6 +1273,10 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 ops.add("function body " + f.name);
             }
             p.arrayProbe = Math.max(p.arrayProbe, p.arrays.stream().mapToInt(a -> a.entries.size()).max().orElse(0) + 1);
+            // Only the final edit matters: several operations may add and then remove a capture again. The late bit
+            // remembers that objects of this lineage predate its capture, including across earlier edits.
+            mustWarn |= p.closures.stream().anyMatch(c -> c.late && Clo.captures(c.body)
+                && before.closures.stream().anyMatch(old -> old.slot == c.slot && !old.late));
             return new Edit(p, ops, mustRefuse, mayRefuse, mustWarn && !mustRefuse);
         }
 

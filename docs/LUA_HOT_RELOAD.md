@@ -169,7 +169,10 @@ The payload compares the running script's manifest with the edited one:
   name, so a closure which started to capture `s` took a later sibling's storage of `s`, whose objects then read 0, and
   one which stopped capturing was refused as a removed closure (`callbackWhichStartsCapturingLeavesItsSiblingsCaptures`,
   `callbackWhichStopsCapturingIsABodyEdit`). A closure made before the reload holds no value of a variable it did not
-  capture then: like an object of a class which gains a field, it reads the default.
+  capture then: like an object of a class which gains a field, it reads the typed default. The compiler warns when
+  a continuing closure lineage first gains each capture: restart the map to reconstruct old objects with captured
+  values. The session remembers the captured fields, so resending that capture, or removing and restoring it,
+  does not repeat the warning. A newly introduced closure with captures has no older objects and does not warn.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not
