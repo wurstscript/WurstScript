@@ -456,6 +456,20 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(applied, 1, occurrences(applied, "global initializer order changed"));
     }
 
+    @Test
+    public void initializerOrderKeysArePackedWithoutDroppingAny() throws Exception {
+        String[] before = extraAndAnother(false);
+        var payload = LuaHotReload.payload(manifest(before), manifest(extraAndAnother(true)), LuaHotReload.History.NONE, 1);
+        var packed = Pattern.compile("for key in string\\.gmatch\\(\"([0-9a-f]+)\", \"(\\.+)\"\\) do")
+            .matcher(payload.source());
+        assertTrue(payload.source(), packed.find());
+        int width = LuaHotReload.identityHash("").length();
+        assertEquals(width, packed.group(2).length());
+        // main's made initializer and the two side-effectful initializers must all remain in the check.
+        assertEquals(width * 3, packed.group(1).length());
+        assertFalse(payload.source(), payload.source().contains("for _, key in ipairs({"));
+    }
+
     private static String[] tupleProgram(String value) {
         return concat(MAIN_PACKAGE, new String[] {
             "tuple Pair(int a, int b)", "int array xs = [bump(), bump()]", "Pair pair = Pair(bump(), bump())",
