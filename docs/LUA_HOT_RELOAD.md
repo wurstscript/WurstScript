@@ -173,7 +173,8 @@ The payload compares the running script's manifest with the edited one:
   a continuing closure lineage first gains each capture: restart the map to reconstruct old objects with captured
   values. The session remembers the captured fields, so resending that capture, or removing and restoring it,
   does not repeat the warning. A newly introduced closure with captures has no older objects and does not warn.
-  Old-generic conversion bridges take the implementing class's source-owner name in hot-reload builds too. A bare
+  Old-generic conversion bridges take the implementing class's source-owner name in hot-reload builds too, with a
+  length delimiter so underscores in class and method names cannot merge distinct owners. A bare
   `run_wrapper` gave closures from different named functions one erased signature and one order group, so adding or
   removing an unrelated closure could be refused as moving another one's body. Bridges whose anonymous owners
   still share an identity retain the same order-group safety rules. Naming without `-luaHotReload` is unchanged.

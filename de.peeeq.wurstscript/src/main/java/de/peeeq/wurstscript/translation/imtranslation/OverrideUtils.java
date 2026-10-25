@@ -134,8 +134,10 @@ public class OverrideUtils {
 
         // The implementing class carries its source class/closure owner. A bare method name groups unrelated bridges
         // together after old-generic parameters are erased, so adding a closure can look like moving another one's body.
+        // Delimit the owner's length: concatenated class and method names can collide at underscores.
         String wrapperName = (tr.getRunArgs().isLuaHotReload()
-            ? subClass.getName() + "_" + subMethod.getName() : subMethod.getName()) + "_wrapper";
+            ? "bridge_" + subClass.getName().length() + "_" + subClass.getName() + "_" + subMethod.getName()
+            : subMethod.getName()) + "_wrapper";
         ImFunction implementation = JassIm.ImFunction(e, wrapperName, typeVars, parameters, rType, locals, body, flags);
         tr.getImProg().getFunctions().add(implementation);
 

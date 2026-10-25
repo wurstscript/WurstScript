@@ -1385,6 +1385,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
         test().testLua(true).executeProg().luaHotReload(after).lines(before);
     }
 
+    @Test
+    public void oldGenericBridgeOwnersDoNotCollideAtUnderscores() {
+        var current = manifest("package Test", "native observe(int v)",
+            "function booleanToIndex(bool b) returns int", "    return b ? 1 : 0",
+            "function booleanFromIndex(int i) returns bool", "    return i != 0",
+            "interface Action<T>", "    function run(T v) returns int", "    function A_A_run(T v) returns int",
+            "class A implements Action<bool>", "    override function run(bool v) returns int", "        return 1",
+            "    override function A_A_run(bool v) returns int", "        return 2",
+            "class A_A implements Action<bool>", "    override function run(bool v) returns int", "        return 3",
+            "    override function A_A_run(bool v) returns int", "        return 4",
+            "function consume(Action<bool> a) returns int", "    return a.run(true) + a.A_A_run(false)",
+            "init", "    observe(consume(new A()) + consume(new A_A()))");
+        var bridges = current.functions().values().stream().filter(f -> f.semanticId().contains("_wrapper(")).toList();
+        assertEquals(bridges.toString(), 4, bridges.size());
+        assertEquals(bridges.toString(), 4L, bridges.stream().map(LuaHotReload.Function::semanticId).distinct().count());
+    }
+
     private static String[] oldGenericBridges(boolean added) {
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
             "function booleanToIndex(bool b) returns int", "    return b ? 1 : 0",
