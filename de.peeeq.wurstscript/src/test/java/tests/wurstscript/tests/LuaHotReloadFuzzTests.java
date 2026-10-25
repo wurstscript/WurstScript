@@ -534,6 +534,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         final List<Clo> closures = new ArrayList<>();
         final List<Bridge> bridges = new ArrayList<>();
         final List<Snapshot> snapshots = new ArrayList<>();
+        boolean unreadSnapshots;
         final List<Old> olds = new ArrayList<>();
         final List<Hook> hooks = new ArrayList<>();
         final List<Pkg> pkgs = new ArrayList<>();
@@ -562,6 +563,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             closures.addAll(p.closures);
             bridges.addAll(p.bridges);
             snapshots.addAll(p.snapshots);
+            unreadSnapshots = p.unreadSnapshots;
             olds.addAll(p.olds);
             hooks.addAll(p.hooks);
             pkgs.addAll(p.pkgs);
@@ -667,6 +669,16 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             for (Snapshot snapshot : snapshots) {
                 sb.append("constant ").append(snapshot.name).append(" = compiletime(makeSnapshot(")
                     .append(snapshot.value).append("))\n");
+            }
+            if (unreadSnapshots) {
+                sb.append("class UnreadSnapshotNode\n    int value\n    UnreadSnapshotNode child\n")
+                    .append("UnreadSnapshotNode unreadCached = null\n")
+                    .append("function compiletime(UnreadSnapshotNode n) returns UnreadSnapshotNode\n    return n\n")
+                    .append("function makeUnreadSnapshot() returns UnreadSnapshotNode\n    if unreadCached == null\n")
+                    .append("        unreadCached = new UnreadSnapshotNode\n    let root = new UnreadSnapshotNode\n")
+                    .append("    root.child = unreadCached\n    return root\n")
+                    .append("constant unreadFirst = compiletime(makeUnreadSnapshot())\n")
+                    .append("constant unreadSecond = compiletime(makeUnreadSnapshot())\n");
             }
             for (Arr a : arrays) {
                 sb.append("constant int array ").append(a.name).append(" = [")
@@ -827,6 +839,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             }
             sb.append("    fuzzOut(\"end\")\n");
             sb.append("init\n");
+            if (unreadSnapshots) {
+                sb.append("    unreadSecond.child.value = 10\n");
+            }
             sb.append("    makeOps(").append(capture == 0 ? 1 : 5).append(", 0)\n");
             sb.append("    ").append(snapshots.getFirst().name).append(".child.value = 10\n");
             sb.append("    gen0 = new Gen<int>\n    gen0.val = 6\n    gen0.k = 3\n");
@@ -1035,6 +1050,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             }
             p.bridges.add(new Bridge(p.fresh("bridge"), r.nextInt(10)));
             p.snapshots.add(new Snapshot(p.fresh("snapshot"), r.nextInt(10)));
+            p.unreadSnapshots = r.nextBoolean();
             p.stateProbe.add("fuzzOut(\"snapshot shared \" + I2S(" + p.snapshots.getFirst().name + ".child.value))");
             return p;
         }

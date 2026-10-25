@@ -236,11 +236,6 @@ Notes; finished-work narrative does not.
     ownership requires a restart. New
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
     integer fields and keys cannot be relocated safely onto the live allocator.
-  - An unread materialized snapshot root can leave a detached global in the hot-reload manifest's input metadata
-    after garbage removal. Repro: two independent roots share a cached child, but only the second root's child is
-    written in init and the helper reading both roots is unreachable; compilation reports `Variable Node Node_compiletime...
-    not attached`. Reconcile compile-time global ownership with the live program at the owning phase; do not add a
-    backend fallback for detached variables.
   - The first reload after a command-line start checks the whole model again (about 47 s on Castle Fight).
     Generated object-data functions ship whole. Measure smaller representations without splitting effectful
     initialization incorrectly.

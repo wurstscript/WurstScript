@@ -32,6 +32,21 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void hotReloadUnreadSnapshotRootsAreDeterministic() {
+        CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
+            "    public Node child", "Node cached = null", "public function make() returns Node",
+            "    if cached == null", "        cached = new Node", "    let root = new Node",
+            "    root.child = cached", "    return root");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Values",
+            "function compiletime(Node n) returns Node", "    return n", "constant a = compiletime(make())",
+            "constant b = compiletime(make())", "init", "    b.child.value = 10");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload", "-runcompiletimefunctions");
+        var first = compileLuaHotReload(false, args, values, main);
+        assertEquals(compileLuaHotReload(false, args, main, values), first);
+        assertEquals(compileLuaHotReload(false, args, values, main), first);
+    }
+
+    @Test
     public void hotReloadSharedSnapshotReferencesAreDeterministic() {
         CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
             "    public Node child", "    construct(int v)", "        value = v", "Node cached = null",
