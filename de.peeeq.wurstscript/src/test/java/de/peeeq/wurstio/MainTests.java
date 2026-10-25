@@ -46,6 +46,20 @@ public class MainTests {
         assertTrue(release.containsAll(List.of("-stacktraces", "-opt", "-inline", "-localOptimizations")));
     }
 
+    @Test
+    public void hotReloadInTheWorkspaceFileTakesRunArgumentsForBuilds() throws Exception {
+        Path project = Files.createTempDirectory("wurst hot reload workspace args ");
+        Files.writeString(project.resolve("wurst.build"), "projectName: HotReloadArgs\n");
+        Files.writeString(project.resolve("wurst_run.args"),
+            "  -luaHotReload  \r\n-stacktraces\r\n-localOptimizations\r\n+opt\r\n+inline\r\n+localOptimizations\r\n");
+
+        List<String> args = Main.workspaceCompileArgs(project.toString(), new RunArgs("-build"));
+        assertTrue(args.containsAll(List.of("-luaHotReload", "-stacktraces", "-localOptimizations")));
+        assertFalse(args.contains("-opt"));
+        assertFalse(args.contains("-inline"));
+        assertEquals(args.stream().filter("-localOptimizations"::equals).count(), 1L);
+    }
+
     private String captureStdout(Runnable action) {
         PrintStream previousOut = System.out;
         ByteArrayOutputStream output = new ByteArrayOutputStream();
