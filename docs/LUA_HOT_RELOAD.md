@@ -294,8 +294,10 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
    output. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
 
 Without the editor, a map built with `-build ... -luaHotReload` (which takes the run arguments of `wurst_run.args`, not
-its build-only `+` lines: `-luaHotReload` refuses `-inline` and `-opt`) starts a session and takes payloads from the compiler's command line, which is how the in-game test drives
-it:
+its build-only `+` lines: `-luaHotReload` refuses `-inline` and `-opt`) takes payloads from the compiler's command line,
+which is how the in-game test drives it. Setting `-luaHotReload` on a shared line in `wurst_run.args` selects the same
+run arguments for a CLI build. Shared `-inline` or `-opt` entries remain explicit choices and are still rejected;
+use `+` for release-only options. Start the session and send payloads with:
 
 ```
 java -cp wurstscript.jar de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession start <build dir> <CustomMapData>

@@ -51,4 +51,33 @@ public class WurstCommandsTests {
         assertTrue(config.contains("+inline"));
         assertTrue(config.contains("+localOptimizations"));
     }
+
+    @Test
+    public void explicitHotReloadOmitsBuildOnlyOptionsWhenCreatingDefaults() throws Exception {
+        Path project = Files.createTempDirectory("wurst-hot-reload-defaults");
+        Files.writeString(project.resolve("wurst.build"), "projectName: HotReloadDefaults\n");
+
+        WFile root = WFile.create(project.toFile());
+        List<String> args = WurstCommands.getCompileArgs(root, true, "-luaHotReload");
+        assertTrue(args.containsAll(List.of("-luaHotReload", "-stacktraces")));
+        assertFalse(args.contains("-opt"));
+        assertFalse(args.contains("-inline"));
+        assertFalse(args.contains("-localOptimizations"));
+
+        List<String> release = WurstCommands.getCompileArgs(root, true);
+        assertTrue(release.containsAll(List.of("-opt", "-inline", "-localOptimizations")));
+    }
+
+    @Test
+    public void explicitHotReloadOmitsExistingBuildOnlyOptions() throws Exception {
+        Path project = Files.createTempDirectory("wurst-hot-reload-explicit-args");
+        Files.writeString(project.resolve("wurst.build"), "projectName: HotReloadExplicit\n");
+        Files.writeString(project.resolve("wurst_run.args"), "-inline\n+opt\n+localOptimizations\n");
+
+        List<String> args = WurstCommands.getCompileArgs(WFile.create(project.toFile()), true, "-luaHotReload");
+        assertTrue(args.containsAll(List.of("-luaHotReload", "-inline")),
+            "shared options remain explicit user choices, including incompatible ones");
+        assertFalse(args.contains("-opt"));
+        assertFalse(args.contains("-localOptimizations"));
+    }
 }

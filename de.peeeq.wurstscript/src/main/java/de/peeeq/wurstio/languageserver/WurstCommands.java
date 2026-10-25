@@ -135,17 +135,22 @@ public class WurstCommands {
     /**
      * Reads the workspace run-args file. A leading '-' is shared by run and build;
      * a leading '+' is build-only and is normalized to '-' for the compiler.
+     * Hot reload takes only shared options, even when requested by a map build.
      */
     public static List<String> getCompileArgs(WFile rootPath, boolean forBuild, String... additionalArgs) {
         try {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
             if (Files.exists(configFile)) {
                 try (Stream<String> lines = Files.lines(configFile)) {
-                    List<String> args = new ArrayList<>(lines
+                    List<String> configured = lines
                         .map(String::trim)
                         .filter(s -> !s.isEmpty() && !s.startsWith("#"))
-                        .filter(s -> s.startsWith("-") || (forBuild && s.startsWith("+")))
-                        .map(s -> forBuild && s.startsWith("+") ? "-" + s.substring(1) : s)
+                        .collect(Collectors.toList());
+                    boolean includeBuildOnly = forBuild && !configured.contains("-luaHotReload")
+                        && !List.of(additionalArgs).contains("-luaHotReload");
+                    List<String> args = new ArrayList<>(configured.stream()
+                        .filter(s -> s.startsWith("-") || (includeBuildOnly && s.startsWith("+")))
+                        .map(s -> s.startsWith("+") ? "-" + s.substring(1) : s)
                         .collect(Collectors.toList()));
                     args.addAll(List.of(additionalArgs));
                     return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(args);
@@ -155,7 +160,7 @@ public class WurstCommands {
                     + "\n+opt\n+inline\n+localOptimizations\n";
                 Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
                 List<String> args = new ArrayList<>(defaultArgs);
-                if (forBuild) {
+                if (forBuild && !List.of(additionalArgs).contains("-luaHotReload")) {
                     args.add("-opt");
                     args.add("-inline");
                     args.add("-localOptimizations");
