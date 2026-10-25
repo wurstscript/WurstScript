@@ -451,6 +451,10 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         }
     }
 
+    /** A named closure owner whose old-generic bool argument requires a conversion bridge. */
+    record Bridge(String name, int offset) {
+    }
+
     /** An object made by init into a global, with a field set after construction. */
     record Old(String global, String cls, int arg, String field, int value) {
     }
@@ -525,6 +529,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         final List<Var> vars = new ArrayList<>();
         final List<Cls> classes = new ArrayList<>();
         final List<Clo> closures = new ArrayList<>();
+        final List<Bridge> bridges = new ArrayList<>();
         final List<Old> olds = new ArrayList<>();
         final List<Hook> hooks = new ArrayList<>();
         final List<Pkg> pkgs = new ArrayList<>();
@@ -551,6 +556,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 classes.add(new Cls(c));
             }
             closures.addAll(p.closures);
+            bridges.addAll(p.bridges);
             olds.addAll(p.olds);
             hooks.addAll(p.hooks);
             pkgs.addAll(p.pkgs);
@@ -639,6 +645,14 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             sb.append("native fuzzOut(string s)\nnative I2S(int i) returns string\nnative R2S(real r) returns string\n");
             sb.append("@annotation function onHotReload()\n");
             sb.append("interface Op\n    function apply(int x) returns int\n");
+            sb.append("interface BoolAction<T>\n    function run(T flag) returns int\n")
+                .append("function booleanToIndex(bool b) returns int\n    return b ? 1 : 0\n")
+                .append("function booleanFromIndex(int i) returns bool\n    return i != 0\n");
+            for (Bridge bridge : bridges) {
+                sb.append("function ").append(bridge.name).append("(int seed) returns BoolAction<bool>\n")
+                    .append("    BoolAction<bool> action = (bool b) -> seed + ").append(bridge.offset)
+                    .append(" + (b ? 1 : 0)\n    return action\n");
+            }
             for (Arr a : arrays) {
                 sb.append("constant int array ").append(a.name).append(" = [")
                     .append(String.join(", ", a.entries.stream().map(String::valueOf).toList())).append("]\n");
@@ -737,6 +751,11 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             }
             for (Fn f : funcs) {
                 sb.append("    fuzzOut(\"").append(f.name).append(" \" + I2S(").append(f.name).append("(3)))\n");
+            }
+            for (Bridge bridge : bridges) {
+                sb.append("    let ").append(bridge.name).append("Value = ").append(bridge.name).append("(3)\n")
+                    .append("    fuzzOut(\"").append(bridge.name).append(" \" + I2S(").append(bridge.name)
+                    .append("Value.run(true)))\n    destroy ").append(bridge.name).append("Value\n");
             }
             for (Const c : consts) {
                 sb.append("    fuzzOut(\"").append(c.name).append(" \" + ").append(c.string ? c.name : "I2S(" + c.name + ")").append(")\n");
@@ -992,6 +1011,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                         + o.global + "." + f.name + "))");
                 }
             }
+            p.bridges.add(new Bridge(p.fresh("bridge"), r.nextInt(10)));
             return p;
         }
 
@@ -1277,6 +1297,15 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             // remembers that objects of this lineage predate its capture, including across earlier edits.
             mustWarn |= p.closures.stream().anyMatch(c -> c.late && Clo.captures(c.body)
                 && before.closures.stream().anyMatch(old -> old.slot == c.slot && !old.late));
+            if (r.nextInt(4) == 0) {
+                p.bridges.add(0, new Bridge(p.fresh("bridge"), r.nextInt(10)));
+                ops.add("added old-generic bridge " + p.bridges.getFirst().name);
+            } else if (r.nextInt(4) == 0) {
+                int index = r.nextInt(p.bridges.size());
+                Bridge old = p.bridges.get(index);
+                p.bridges.set(index, new Bridge(old.name, old.offset + 1 + r.nextInt(10)));
+                ops.add("old-generic bridge body " + old.name);
+            }
             return new Edit(p, ops, mustRefuse, mayRefuse, mustWarn && !mustRefuse);
         }
 

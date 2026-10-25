@@ -1364,6 +1364,58 @@ public class LuaHotReloadTests extends WurstScriptTest {
             .luaHotReload(appended).lines(baseline);
     }
 
+    @Test
+    public void oldGenericClosureBridgesKeepTheirSourceOwners() throws Exception {
+        String[] before = oldGenericBridges(false);
+        String[] after = oldGenericBridges(true);
+        var baseline = manifest(before);
+        var current = manifest(after);
+        assertTrue("adding an unrelated closure renamed existing bridge functions",
+            current.functions().keySet().containsAll(baseline.functions().keySet()));
+        LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1);
+        test().testLua(true).executeProg().luaHotReload(after).lines(before);
+    }
+
+    @Test
+    public void removingAnUnrelatedOldGenericBridgeKeepsTheSurvivor() {
+        String[] before = java.util.Arrays.stream(oldGenericBridges(true))
+            .map(line -> line.replace("if check() != 26", "if check() != 6")).toArray(String[]::new);
+        String[] after = java.util.Arrays.stream(oldGenericBridges(false))
+            .map(line -> line.replace("if check() != 26", "if check() != 6")).toArray(String[]::new);
+        test().testLua(true).executeProg().luaHotReload(after).lines(before);
+    }
+
+    @Test
+    public void oldGenericBridgeOwnersDoNotCollideAtUnderscores() {
+        var current = manifest("package Test", "native observe(int v)",
+            "function booleanToIndex(bool b) returns int", "    return b ? 1 : 0",
+            "function booleanFromIndex(int i) returns bool", "    return i != 0",
+            "interface Action<T>", "    function run(T v) returns int", "    function A_A_run(T v) returns int",
+            "class A implements Action<bool>", "    override function run(bool v) returns int", "        return 1",
+            "    override function A_A_run(bool v) returns int", "        return 2",
+            "class A_A implements Action<bool>", "    override function run(bool v) returns int", "        return 3",
+            "    override function A_A_run(bool v) returns int", "        return 4",
+            "function consume(Action<bool> a) returns int", "    return a.run(true) + a.A_A_run(false)",
+            "init", "    observe(consume(new A()) + consume(new A_A()))");
+        var bridges = current.functions().values().stream().filter(f -> f.semanticId().contains("_wrapper(")).toList();
+        assertEquals(bridges.toString(), 4, bridges.size());
+        assertEquals(bridges.toString(), 4L, bridges.stream().map(LuaHotReload.Function::semanticId).distinct().count());
+    }
+
+    private static String[] oldGenericBridges(boolean added) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "function booleanToIndex(bool b) returns int", "    return b ? 1 : 0",
+            "function booleanFromIndex(int i) returns bool", "    return i != 0",
+            "interface Action<T>", "    function run(T value) returns int",
+            added ? "function earlier(int seed) returns Action<bool>\n    Action<bool> action = (bool v) -> seed * 10 + (v ? 1 : 0)\n    return action" : "",
+            "function make(int seed) returns Action<bool>",
+            "    Action<bool> action = (bool v) -> seed + (v ? 1 : 0)", "    return action",
+            "Action<bool> kept", "function check() returns int",
+            added ? "    return kept.run(true) + earlier(2).run(false)" : "    return kept.run(true)",
+            "init", "    kept = make(5)", "    hotReload()", "    if check() != 26",
+            "        testFail(\"an unrelated old-generic bridge changed the existing callback\")", "    testSuccess()"};
+    }
+
     private static String[] capturingCallbacks(String first) {
         return capturingCallbacks(first, 7);
     }
@@ -1537,6 +1589,36 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(rejected.getMessage(), rejected.getMessage().contains("cannot be told apart"));
         LuaHotReload.payload(base, manifest(registered("9", "1", "2")), Set.of(), 1);
         LuaHotReload.payload(base, manifest(registered("10", "2")), Set.of(), 1);
+    }
+
+    @Test
+    public void successiveAnonymousInsertionsDoNotReuseRemappedClassTables() throws Exception {
+        String[] base = successiveInsertions(0);
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_successiveAnonymousInsertionsDoNotReuseRemappedClassTables.lua";
+        var baseline = manifest(base);
+        var build = java.nio.file.Files.createTempDirectory("hotReloadSuccessiveInsertions");
+        var delivery = java.nio.file.Files.createTempDirectory("hotReloadSuccessiveInsertionsDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        String first = LuaHotReloadSession.send(build, delivery, manifest(successiveInsertions(1))).payload().source();
+        var current = manifest(successiveInsertions(2));
+        String second = LuaHotReloadSession.send(build, delivery, current).payload().source();
+        String probe = luaName(current, "remake") + "()";
+        assertEquals("true 1,2,3,9 nil\ntrue 1,2,3,9,8 nil",
+            applyInLua(script, List.of(first, second), probe).replace("\r\n", "\n"));
+        assertEquals("true 1,2,3,9,8 nil", applyInLua(script, List.of(second), probe));
+    }
+
+    private static String[] successiveInsertions(int added) {
+        return new String[] {"package Test", "native I2S(int i) returns string", "interface Op",
+            "    function apply() returns int", "Op array live", "function makeAll()",
+            "    live[0] = () -> 1", "    live[1] = () -> 2",
+            added >= 1 ? "    live[3] = () -> 9" : "", added >= 2 ? "    live[4] = () -> 8" : "",
+            "    live[2] = () -> 3", "function remake() returns string", "    makeAll()",
+            "    return I2S(live[0].apply()) + \",\" + I2S(live[1].apply()) + \",\" + I2S(live[2].apply())"
+                + (added >= 1 ? " + \",\" + I2S(live[3].apply())" : "")
+                + (added >= 2 ? " + \",\" + I2S(live[4].apply())" : ""),
+            "bool probing = false", "init", "    makeAll()", "    if probing", "        remake()"};
     }
 
     /**

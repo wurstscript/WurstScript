@@ -173,6 +173,14 @@ The payload compares the running script's manifest with the edited one:
   a continuing closure lineage first gains each capture: restart the map to reconstruct old objects with captured
   values. The session remembers the captured fields, so resending that capture, or removing and restoring it,
   does not repeat the warning. A newly introduced closure with captures has no older objects and does not warn.
+  Old-generic conversion bridges take the implementing class's source-owner name in hot-reload builds too, with a
+  length delimiter so underscores in class and method names cannot merge distinct owners. A bare
+  `run_wrapper` gave closures from different named functions one erased signature and one order group, so adding or
+  removing an unrelated closure could be refused as moving another one's body. Bridges whose anonymous owners
+  still share an identity retain the same order-group safety rules. Naming without `-luaHotReload` is unchanged.
+  Successive insertions also reserve every table name earlier closure bodies have read, including remapping
+  destinations. A new closure gets a fresh table when its name already holds a survivor's table; two callbacks
+  must never share a class table just because no lineage originally started at that name.
 - With `-stacktraces` a call passes its source position, so an edit which moves lines changes the bodies below it. The
   payload ships them with their new positions, but every comparison of what must not change or what already ran (a
   protected body, a package init, an initial value) leaves the positions out (`Function.shape`): a moved line is not

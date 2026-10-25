@@ -32,6 +32,23 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void hotReloadOldGenericClosureBridgesAreDeterministic() {
+        CU actions = compilationUnit("Actions.wurst", "package Actions", "public interface Action<T>",
+            "    function run(T value) returns int", "public function booleanToIndex(bool b) returns int",
+            "    return b ? 1 : 0", "public function booleanFromIndex(int i) returns bool", "    return i != 0",
+            "public function make(int seed) returns Action<bool>",
+            "    Action<bool> action = (bool v) -> seed + (v ? 1 : 0)", "    return action",
+            "public function earlier(int seed) returns Action<bool>",
+            "    Action<bool> action = (bool v) -> seed * 10 + (v ? 1 : 0)", "    return action");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Actions", "native observe(int value)", "init",
+            "    let first = make(5)", "    let second = earlier(2)", "    observe(first.run(true) + second.run(false))");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload");
+        var first = compileLuaHotReloadManifest(false, args, actions, main);
+        assertEquals(compileLuaHotReloadManifest(false, args, main, actions), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, actions, main), first);
+    }
+
+    @Test
     public void hotReloadSharedSpecializedFieldBindingsAreDeterministic() {
         CU cells = compilationUnit("Cells.wurst", "package Cells", "public class Cell<T:>",
             "    static int calls = 0", "    public int value", "    construct(int v)", "        value = v",
