@@ -32,6 +32,20 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void hotReloadSharedSpecializedFieldBindingsAreDeterministic() {
+        CU cells = compilationUnit("Cells.wurst", "package Cells", "public class Cell<T:>",
+            "    static int calls = 0", "    public int value", "    construct(int v)", "        value = v",
+            "    function read() returns int", "        calls++", "        return value");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Cells", "native observe(int v)", "init",
+            "    let a = new Cell<string>(1)", "    let b = new Cell<int>(2)", "    observe(a.read() + b.read())",
+            "    destroy a", "    destroy b");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload");
+        var first = compileLuaHotReloadManifest(false, args, cells, main);
+        assertEquals(compileLuaHotReloadManifest(false, args, main, cells), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, cells, main), first);
+    }
+
+    @Test
     public void hotReloadCompiletimeObjectSnapshotsAreDeterministic() {
         CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
             "    construct(int v)", "        value = v", "public function make(int v) returns Node", "    return new Node(v)");

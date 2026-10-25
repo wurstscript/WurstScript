@@ -69,6 +69,11 @@ between `[]` and `[x]` when an edit starts or stops reading it: in a replay of a
 two largest causes of refused payloads. Kept, a global an edit starts to read has the value its initializer gave it
 when the map started (`startingToReadAGlobalKeepsItsStorage`). A build without the flag still removes them.
 
+Specializations which share a canonical instance field also share its Lua storage table. The manifest records that
+table once, using the original field's identity and type, as its Lua name does. Adding a specialization therefore
+cannot give that same table a different owner in the manifest; concrete capture types remain checked by closure
+lineage metadata.
+
 The payload compares the running script's manifest with the edited one:
 
 - A new or changed function is defined, and every class-table slot which binds it is bound again. One stored as a
