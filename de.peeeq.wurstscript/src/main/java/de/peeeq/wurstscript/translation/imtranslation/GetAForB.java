@@ -20,4 +20,9 @@ public abstract class GetAForB<B, A> {
         return created;
     }
 
+    void copyKnownTo(GetAForB<B, A> target, java.util.function.Function<B, B> keys,
+                     java.util.function.Function<A, A> values) {
+        thing.forEach((key, value) -> target.thing.put(keys.apply(key), values.apply(value)));
+    }
+
 }

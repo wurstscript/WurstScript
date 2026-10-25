@@ -39,6 +39,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
@@ -726,14 +727,110 @@ public class ImTranslator implements SpecialisationLookup {
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs,
                         Collection<CompilationUnit> compilationUnits) {
+        this(wurstProg, isUnitTestMode, runArgs, compilationUnits, null);
+    }
+
+    private ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs,
+                         Collection<CompilationUnit> compilationUnits, @Nullable ImProg prepared) {
         this.wurstProg = wurstProg;
         this.compilationUnits = List.copyOf(compilationUnits);
         this.selectedCompilationUnits = Set.copyOf(compilationUnits);
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(),
+        imProg = prepared != null ? prepared : ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(),
             new Object2ObjectLinkedOpenHashMap<>(), NamePreservation.preservedVariables(compilationUnits));
         this.runArgs = runArgs;
+    }
+
+    /** Fork the frontend's pristine result. Compile-time execution and lowering must never mutate that result. */
+    ImTranslator forkForLowering(RunArgs args) {
+        if (compiletimeStateFunction != null || luaMultipleResultsLowered || luaFieldDefaultsMaterialized
+            || !stackTraceStorage.isEmpty() || classManagementVars != null || !closuresInTranslation.isEmpty()
+            || !erasedGenericAllocations.isEmpty()) {
+            throw new IllegalStateException("Only a pre-compile-time, pre-lowering translation can be forked");
+        }
+        ImProgramFork copy = new ImProgramFork();
+        ImTranslator result = new ImTranslator(wurstProg, isUnitTestMode, args, compilationUnits, copy.copy(imProg));
+        copy.map(functionMap, result.functionMap);
+        copy.map(varMap, result.varMap);
+        copy.map(thisVarMap, result.thisVarMap);
+        copy.map(initFuncMap, result.initFuncMap);
+        copy.map(luaInitFunctions, result.luaInitFunctions);
+        copy.map(luaGlobalInitializers, result.luaGlobalInitializers);
+        copy.map(luaGlobalInitializerTails, result.luaGlobalInitializerTails);
+        copy.map(genericStaticOwners, result.genericStaticOwners);
+        copy.map(typeVariableReverse, result.typeVariableReverse);
+        copy.map(capturedOwnerTypeVarsByStaticClass, result.capturedOwnerTypeVarsByStaticClass);
+        result.capturingOwnerByStaticClass.putAll(capturingOwnerByStaticClass);
+        copy.map(bridgeFunctions, result.bridgeFunctions);
+        copy.map(constructorFuncs, result.constructorFuncs);
+        copy.map(constrNewFuncs, result.constrNewFuncs);
+        copy.map(classForStructureDef, result.classForStructureDef);
+        copy.map(classForClosure, result.classForClosure);
+        copy.map(methodForFuncDef, result.methodForFuncDef);
+        copy.map(typeClassFuncs, result.typeClassFuncs);
+        copy.map(originalReturnValues, result.originalReturnValues);
+        copy.map(luaKeyedStubs, result.luaKeyedStubs);
+        copy.map(luaHashtableStubs, result.luaHashtableStubs);
+        specialisations.forEach((node, origin) -> result.specialisations.put(copy.copy(node),
+            new Specialisation(copy.copy(origin.original()), copy.metadata(origin.typeArguments()))));
+        typeClassImpls.forEach((requirement, impls) -> result.typeClassImpls.put(copy.copy(requirement),
+            impls.stream().map(impl -> new TypeClassImpl(copy.copy(impl.instanceType()), copy.copy(impl.impl())))
+                .collect(Collectors.toCollection(ArrayList::new))));
+        classDynamicInitMap.forEach((owner, inits) -> result.classDynamicInitMap.put(owner,
+            inits.stream().map(init -> Pair.create(copy.copy(init.getA()), init.getB()))
+                .collect(Collectors.toCollection(ArrayList::new))));
+        varsForTupleVar.forEach((variable, tuple) -> result.varsForTupleVar.put(copy.copy(variable), forkTuple(tuple, copy)));
+        tempReturnVars.forEach((function, tuple) -> result.tempReturnVars.put(copy.copy(function), forkTuple(tuple, copy)));
+        for (Bridge bridge : bridges) result.bridges.add(new Bridge(copy.copy(bridge.bridge()), copy.copy(bridge.inherited())));
+        typeVariable.copyKnownTo(result.typeVariable, Function.identity(), copy::copy);
+        destroyFunc.copyKnownTo(result.destroyFunc, Function.identity(), copy::copy);
+        destroyMethod.copyKnownTo(result.destroyMethod, Function.identity(), copy::copy);
+        allocFunc.copyKnownTo(result.allocFunc, copy::copy, copy::copy);
+        deallocFunc.copyKnownTo(result.deallocFunc, copy::copy, copy::copy);
+        result.globalInitFunc = copy.copy(globalInitFunc);
+        result.mainFunc = copy.copy(mainFunc);
+        result.configFunc = copy.copy(configFunc);
+        result.debugPrintFunction = copy.copy(debugPrintFunction);
+        result.errorFunc = copy.copy(errorFunc);
+        result.genericNewMarker = copy.copy(genericNewMarker);
+        result.ensureIntFunc = copy.copy(ensureIntFunc);
+        result.ensureBoolFunc = copy.copy(ensureBoolFunc);
+        result.ensureRealFunc = copy.copy(ensureRealFunc);
+        result.ensureStrFunc = copy.copy(ensureStrFunc);
+        result.stringConcatFunc = copy.copy(stringConcatFunc);
+        result.luaRawFloorDivIntFunc = copy.copy(luaRawFloorDivIntFunc);
+        result.luaRawFmodIntFunc = copy.copy(luaRawFmodIntFunc);
+        result.luaRawFloorModIntFunc = copy.copy(luaRawFloorModIntFunc);
+        result.luaRawConcatFunc = copy.copy(luaRawConcatFunc);
+        result.luaRawOrEmptyFunc = copy.copy(luaRawOrEmptyFunc);
+        result.luaRawR2IFunc = copy.copy(luaRawR2IFunc);
+        result.luaRawToNumberIntFunc = copy.copy(luaRawToNumberIntFunc);
+        result.luaRawToNumberRealFunc = copy.copy(luaRawToNumberRealFunc);
+        result.luaRawToIntegerFunc = copy.copy(luaRawToIntegerFunc);
+        result.luaRawToStringFunc = copy.copy(luaRawToStringFunc);
+        result.luaIntDivFunc = copy.copy(luaIntDivFunc);
+        result.luaModIntFunc = copy.copy(luaModIntFunc);
+        result.luaModRealFunc = copy.copy(luaModRealFunc);
+        result.translatedPackages.addAll(translatedPackages);
+        result.translatedClasses.addAll(translatedClasses);
+        result.packagesTranslated.addAll(packagesTranslated);
+        result.initializationOrder.addAll(copy.metadata(initializationOrder));
+        result.compiletimeFlags.putAll(compiletimeFlags);
+        result.compiletimeExpressionsOrder.putAll(compiletimeExpressionsOrder);
+        result.compiletimeOrderCounter = compiletimeOrderCounter;
+        result.scopePrefixCache.putAll(scopePrefixCache);
+        result.properties.addAll(properties);
+        result.awaitingFunctions = null;
+        result.requestCount = requestCount;
+        result.isEclipseMode = isEclipseMode;
+        return result;
+    }
+
+    private static VarsForTupleResult forkTuple(VarsForTupleResult tuple, ImProgramFork copy) {
+        if (tuple instanceof SingleVarResult leaf) return new SingleVarResult(copy.copy(leaf.getVar()));
+        TupleResult branch = (TupleResult) tuple;
+        return new TupleResult(branch.getItems().stream().map(item -> forkTuple(item, copy)).toList());
     }
 
 
@@ -2369,6 +2466,148 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             popTypeVarOverrides(ov);
         }
         return result;
+    }
+
+    void translateFunctionBody(FuncDef source, ImFunction function) {
+        function.getBody().addAll(translateStatements(function, source.getBody()));
+    }
+
+    boolean hasCurrentPreservation() {
+        for (VarDef source : varMap.keySet()) {
+            if (source instanceof GlobalVarDef
+                && source.hasAnnotation(NamePreservation.ANNOTATION) != imProg.getPreservedVariables().contains(source)) return false;
+        }
+        return true;
+    }
+
+    private record FrontendShape(int functions, int globals, int classes, int classFunctions, int methods,
+                                 int fields, int sourceFunctions, int typeClasses, int closures, int typeVariables) { }
+
+    private FrontendShape frontendShape() {
+        int functions = 0, methods = 0, fields = 0;
+        for (ImClass clazz : imProg.getClasses()) {
+            functions += clazz.getFunctions().size();
+            methods += clazz.getMethods().size();
+            fields += clazz.getFields().size();
+        }
+        return new FrontendShape(imProg.getFunctions().size(), imProg.getGlobals().size(), imProg.getClasses().size(),
+            functions, methods, fields, functionMap.size(), typeClassFuncs.size(), classForClosure.size(), typeVariableReverse.size());
+    }
+
+    /** Update bodies only while the frontend products and their declaration dependencies stay unchanged. */
+    boolean updateFunctionBodies(List<FuncDef> changed) {
+        for (FuncDef source : changed) {
+            ImFunction function = functionMap.get(source);
+            if (function == null || source.attrIsAbstract()) return false;
+            List<Object> before = bodyDependencies(function);
+            if (before == null || hasLocalPreservation(source.getBody())
+                || function.getLocals().stream().anyMatch(local -> local.getTrace() instanceof NameDef name
+                    && name.hasAnnotation(NamePreservation.ANNOTATION))) return false;
+            FrontendShape shape = frontendShape();
+            Set<ImVar> oldLocals = Collections.newSetFromMap(new IdentityHashMap<>());
+            oldLocals.addAll(function.getLocals());
+            varMap.entrySet().removeIf(entry -> oldLocals.contains(entry.getValue()));
+            oldLocals.forEach(varsForTupleVar::remove);
+            function.getLocals().clear();
+            function.getBody().clear();
+            translateFunctionBody(source, function);
+            function.clearAttributes();
+            if (!shape.equals(frontendShape()) || !before.equals(bodyDependencies(function))) return false;
+        }
+        if (!changed.isEmpty()) sortEverything();
+        return true;
+    }
+
+    private static boolean hasLocalPreservation(de.peeeq.wurstscript.ast.Element element) {
+        if (element instanceof NameDef name && name.hasAnnotation(NamePreservation.ANNOTATION)) return true;
+        for (int i = 0; i < element.size(); i++) if (hasLocalPreservation(element.get(i))) return true;
+        return false;
+    }
+
+    private static @Nullable List<Object> bodyDependencies(ImFunction function) {
+        List<Object> result = new ArrayList<>();
+        for (ImVar local : function.getLocals()) bodyTypeDependencies(local.getType(), result);
+        boolean[] compiletime = {false};
+        function.getBody().accept(new Element.DefaultVisitor() {
+            @Override public void visit(ImAlloc expression) { bodyTypeDependencies(expression.getClazz(), result); }
+            @Override public void visit(ImDealloc expression) {
+                bodyTypeDependencies(expression.getClazz(), result);
+                super.visit(expression);
+            }
+            @Override public void visit(ImInstanceof expression) {
+                bodyTypeDependencies(expression.getClazz(), result);
+                super.visit(expression);
+            }
+            @Override public void visit(ImTypeIdOfObj expression) {
+                bodyTypeDependencies(expression.getClazz(), result);
+                super.visit(expression);
+            }
+            @Override public void visit(ImTypeIdOfClass expression) { bodyTypeDependencies(expression.getClazz(), result); }
+            @Override public void visit(ImCast expression) {
+                bodyTypeDependencies(expression.getFromType(), result);
+                bodyTypeDependencies(expression.getToType(), result);
+                super.visit(expression);
+            }
+            @Override public void visit(ImNull expression) { bodyTypeDependencies(expression.getType(), result); }
+            @Override public void visit(ImTypeArgument argument) {
+                bodyTypeDependencies(argument.getType(), result);
+                result.add(new LinkedHashMap<>(argument.getTypeClassBinding()));
+            }
+            @Override public void visit(ImTypeVarDispatch expression) {
+                result.add(expression.getTypeClassFunc());
+                result.add(expression.getTypeVariable());
+                super.visit(expression);
+            }
+            @Override public void visit(ImFunctionCall call) {
+                result.add(call.getFunc());
+                result.add(call.getCallType());
+                super.visit(call);
+            }
+            @Override public void visit(ImFuncRef ref) {
+                result.add(ref.getFunc());
+                result.add(ImFuncRef.class);
+            }
+            @Override public void visit(ImMethodCall call) {
+                result.add(call.getMethod());
+                super.visit(call);
+            }
+            @Override public void visit(ImMemberAccess access) {
+                result.add(access.getVar());
+                super.visit(access);
+            }
+            @Override public void visit(ImVarAccess access) {
+                if (access.getVar().getParent() != function.getLocals() && access.getVar().getParent() != function.getParameters()) {
+                    result.add(access.getVar());
+                }
+            }
+            @Override public void visit(ImVarArrayAccess access) {
+                if (access.getVar().getParent() != function.getLocals() && access.getVar().getParent() != function.getParameters()) {
+                    result.add(access.getVar());
+                }
+                super.visit(access);
+            }
+            @Override public void visit(ImCompiletimeExpr expression) { compiletime[0] = true; }
+        });
+        return compiletime[0] ? null : result;
+    }
+
+    /** Types contain declaration references outside the owned expression tree. Compare those structurally. */
+    private static void bodyTypeDependencies(ImType type, List<Object> result) {
+        if (type instanceof ImClassType clazz) {
+            result.add(clazz.getClassDef());
+            for (ImTypeArgument argument : clazz.getTypeArguments()) {
+                bodyTypeDependencies(argument.getType(), result);
+                result.add(new LinkedHashMap<>(argument.getTypeClassBinding()));
+            }
+        } else if (type instanceof ImTypeVarRef variable) {
+            result.add(variable.getTypeVariable());
+        } else if (type instanceof ImArrayType array) {
+            bodyTypeDependencies(array.getEntryType(), result);
+        } else if (type instanceof ImArrayTypeMulti array) {
+            bodyTypeDependencies(array.getEntryType(), result);
+        } else if (type instanceof ImTupleType tuple) {
+            for (ImType component : tuple.getTypes()) bodyTypeDependencies(component, result);
+        }
     }
 
     public void setMainFunc(ImFunction f) {

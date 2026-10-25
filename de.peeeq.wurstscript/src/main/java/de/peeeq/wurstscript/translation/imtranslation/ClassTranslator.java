@@ -299,7 +299,7 @@ public class ClassTranslator {
 
     private ImFunction createStaticCallFunc(FuncDef funcDef) {
         ImFunction f = translator.getFuncFor(funcDef);
-        f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
+        translator.translateFunctionBody(funcDef, f);
         // TODO add return for abstract function
         if (funcDef.attrIsAbstract() && !(funcDef.attrReturnType() instanceof WurstTypeVoid)) {
             f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue(translator)));

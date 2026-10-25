@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.IncrementalImTranslation;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.Utils;
@@ -814,8 +815,14 @@ public class WurstScriptTest {
 
     /** Compiles {@code units} to Lua with {@code runArgs}, which include {@code -luaHotReload}: the script and its manifest. */
     LuaHotReloadBuild compileLuaHotReload(boolean withStdLib, RunArgs runArgs, CU... units) {
+        return compileLuaHotReload(withStdLib, runArgs, null, units);
+    }
+
+    LuaHotReloadBuild compileLuaHotReload(boolean withStdLib, RunArgs runArgs,
+        IncrementalImTranslation cache, CU... units) {
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+        if (cache != null) compiler.setIncrementalImTranslation(cache);
         compiler.getErrorHandler().enableUnitTestMode();
         WurstModel model = parseFiles(Collections.emptyList(), Arrays.asList(units), withStdLib, compiler);
         compiler.checkProg(model);

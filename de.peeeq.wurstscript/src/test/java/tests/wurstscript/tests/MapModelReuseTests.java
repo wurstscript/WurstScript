@@ -17,6 +17,7 @@ import org.wurstscript.projectconfig.WurstProjectConfigData;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -25,6 +26,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.testng.Assert.*;
 
 public class MapModelReuseTests {
+    @Test
+    public void hotReloadReusesPreLoweringFunctionsAcrossRequests() throws Exception {
+        Project project = project();
+        String source = source(7) + "function scalar(int x) returns int\n    return x * 2\n"
+            + "init\n    BJDebugMsg(I2S(scalar(3)))\n";
+        Files.writeString(project.source.toPath(), source);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), source));
+        List<String> args = List.of("-lua", "-luaHotReload");
+        String first = compile(new RunProbe(project.root, args), project, new WurstGuiCliImpl());
+        String second = compile(new RunProbe(project.root, args), project, new WurstGuiCliImpl());
+        assertEquals(second, first);
+        assertTrue(project.manager.incrementalImTranslation().statistics().reusedFunctions() > 0);
+    }
+
     @Test
     public void objectExportRunsGenerationWithoutEmittingScriptOrChangingInputMap() throws Exception {
         Project project = project();
@@ -356,8 +371,13 @@ public class MapModelReuseTests {
         assertEquals(project.manager.cleanCalls, 0);
     }
 
-    @Test
-    public void cancellationDuringPrivateCompiletimeWorkKeepsTheModelReusable() throws Exception {
+    @DataProvider(name = "hotReloadModes")
+    public Object[][] hotReloadModes() {
+        return new Object[][]{{false}, {true}};
+    }
+
+    @Test(dataProvider = "hotReloadModes")
+    public void cancellationDuringPrivateCompiletimeWorkKeepsTheModelReusable(boolean hotReload) throws Exception {
         Project project = project();
         AtomicBoolean canceled = new AtomicBoolean();
         WurstGui gui = new WurstGuiCliImpl() {
@@ -366,16 +386,23 @@ public class MapModelReuseTests {
                 CompilationCancellation.check();
             }
         };
-        Probe request = new RunProbe(project.root, List.of("-lua", "-runcompiletimefunctions"));
+        List<String> args = hotReload ? List.of("-lua", "-luaHotReload") : List.of("-lua");
+        List<String> compiletimeArgs = new ArrayList<>(args);
+        compiletimeArgs.add("-runcompiletimefunctions");
+        Probe request = new RunProbe(project.root, compiletimeArgs);
         expectThrows(CancellationException.class, () -> CompilationCancellation.run(canceled::get,
             () -> request.compile(gui, project.manager, project.script)));
         assertTrue(canceled.get(), "private compilation must remain cancellable");
         assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
         assertEquals(gui.getErrorCount(), 0);
-        String afterCancel = compile(new RunProbe(project.root, List.of("-lua")), project, new WurstGuiCliImpl());
+        String afterCancel = compile(new RunProbe(project.root, args), project, new WurstGuiCliImpl());
+        if (hotReload) {
+            assertTrue(project.manager.incrementalImTranslation().statistics().reusedFunctions() > 0);
+            assertEquals(project.manager.incrementalImTranslation().statistics().frontendBuilds(), 1);
+        }
         Project fresh = new Project(project.root, project.source, project.script, new CountingManager(project.root));
         fresh.manager.buildProject();
-        assertEquals(compile(new RunProbe(project.root, List.of("-lua")), fresh, new WurstGuiCliImpl()), afterCancel);
+        assertEquals(compile(new RunProbe(project.root, args), fresh, new WurstGuiCliImpl()), afterCancel);
         assertEquals(project.manager.cleanCalls, 0);
     }
 

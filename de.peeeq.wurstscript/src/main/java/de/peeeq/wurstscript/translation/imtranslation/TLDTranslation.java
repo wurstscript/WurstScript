@@ -105,13 +105,7 @@ public class TLDTranslation {
         // Cache function lookup - this is a hotspot
         ImFunction f = translator.getFuncFor(funcDef);
 
-        // Pre-allocate body list with estimated capacity if possible
-        List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
-
-        // Use addAll for batch addition
-        if (!stmts.isEmpty()) {
-            f.getBody().addAll(stmts);
-        }
+        translator.translateFunctionBody(funcDef, f);
 
         // Cache package lookup
         if (funcDef.attrNearestPackage() instanceof CompilationUnit) {

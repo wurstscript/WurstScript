@@ -344,6 +344,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                 throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
             }
             print("translating program ... ");
+            if (runArgs.isLuaHotReload() && model == modelManager.getModel()) {
+                var cache = modelManager.incrementalImTranslation();
+                if (cache != null) compiler.setIncrementalImTranslation(cache);
+            }
             compiler.translateProgToIm(model, units);
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Error,

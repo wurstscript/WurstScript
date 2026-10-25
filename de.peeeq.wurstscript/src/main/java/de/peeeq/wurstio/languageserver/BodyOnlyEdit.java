@@ -41,7 +41,8 @@ final class BodyOnlyEdit {
 
     /**
      * Moves the bodies, positions and parse information of {@code fresh} into {@code old}, for which
-     * {@link #applies} holds. {@code fresh} is left without its bodies.
+     * {@link #applies} holds. Changed bodies move out of {@code fresh}; unchanged bodies keep their nodes
+     * and receive the new positions, so retained translation inputs still refer to the managed model.
      */
     static void apply(CompilationUnit old, CompilationUnit fresh) {
         transplant(old.getPackages(), fresh.getPackages(), false);
@@ -158,9 +159,14 @@ final class BodyOnlyEdit {
         WStatements movedBody = null;
         if (!template && old instanceof AstElementWithBody o && holdsBody(old)) {
             AstElementWithBody f = (AstElementWithBody) fresh;
-            movedBody = f.getBody();
-            f.setBody(Ast.WStatements());
-            o.setBody(movedBody);
+            if (sameBody(o.getBody(), f.getBody())) {
+                movedBody = o.getBody();
+                transplant(movedBody, f.getBody(), false);
+            } else {
+                movedBody = f.getBody();
+                f.setBody(Ast.WStatements());
+                o.setBody(movedBody);
+            }
         }
         for (int i = 0; i < old.size(); i++) {
             Element oldChild = old.get(i);
@@ -175,6 +181,21 @@ final class BodyOnlyEdit {
         if (old instanceof ClassOrModule c) {
             moveInstantiations(c);
         }
+    }
+
+    private static boolean sameBody(WStatements old, WStatements fresh) {
+        WStatements a = old.copy();
+        WStatements b = fresh.copy();
+        erasePositions(a);
+        erasePositions(b);
+        return a.structuralEquals(b);
+    }
+
+    private static void erasePositions(Element element) {
+        if (element instanceof AstElementWithSource source) source.setSource(NO_POSITION);
+        if (element instanceof SomeSuperConstructorCall call) call.setKeywordSource(NO_POSITION);
+        if (element instanceof ExprClosure closure) closure.setArrowSource(NO_POSITION);
+        for (int i = 0; i < element.size(); i++) erasePositions(element.get(i));
     }
 
     /**
