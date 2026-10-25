@@ -811,7 +811,7 @@ public final class LuaHotReload {
         }
         // Closures: each one of the edit continues a closure of the running map, its lineage, whose objects keep their
         // class table and captured values, whatever name the edit gives it (Lineages).
-        Lineages lineages = new Lineages(baseline, current, history, version, reasons);
+        Lineages lineages = new Lineages(baseline, current, history, version, reasons, warnings);
         // Any other functions which share an identity are told apart by their place among those of it. An edit of a
         // body keeps the places; one which now has the body another one had, which that one lost, has moved, and what
         // was made from it at its old place would run the other one's body. A copy of a body another one keeps moved
@@ -1280,7 +1280,8 @@ public final class LuaHotReload {
         private final Map<String, Map<String, String>> origins = new TreeMap<>();
         private final Map<String, List<String>> membersByGroup = new TreeMap<>();
 
-        Lineages(Manifest baseline, Manifest current, History history, int version, List<String> reasons) {
+        Lineages(Manifest baseline, Manifest current, History history, int version, List<String> reasons,
+                 List<String> warnings) {
             Map<String, Closure> baseClosures = Objects.requireNonNullElse(baseline.closures(), Map.of());
             Map<String, Closure> curClosures = Objects.requireNonNullElse(current.closures(), Map.of());
             closures.addAll(baseClosures.keySet());
@@ -1368,6 +1369,7 @@ public final class LuaHotReload {
                 for (int i = 0; i < n.size(); i++) {
                     Function f = n.get(i);
                     String lineage;
+                    boolean continued = true;
                     String removed = beganWith.get(curClosures.get(f.name()).tables().get("class"));
                     if (match.pairs()[i] >= 0) {
                         lineage = p.get(match.pairs()[i]).lineage();
@@ -1376,6 +1378,7 @@ public final class LuaHotReload {
                         lineage = removed;
                         live.add(removed);
                     } else {
+                        continued = false;
                         lineage = taken.add(f.name()) ? f.name() : f.name() + "@" + version;
                         taken.add(lineage);
                         if (!origins.containsKey(lineage)) {
@@ -1394,12 +1397,21 @@ public final class LuaHotReload {
                         readers.computeIfAbsent(table, k -> new TreeSet<>()).add(lineage);
                     }
                     Map<String, String> capturedTypes = types.computeIfAbsent(lineage, k -> new TreeMap<>());
+                    Set<String> addedCaptures = new TreeSet<>();
                     for (Map.Entry<String, String> field : curClosures.get(f.name()).captureTypes().entrySet()) {
                         String previousType = capturedTypes.putIfAbsent(field.getKey(), field.getValue());
+                        if (continued && previousType == null) {
+                            addedCaptures.add(field.getKey());
+                        }
                         if (previousType != null && !previousType.equals(field.getValue())) {
                             reasons.add("closure " + f.name() + " captures " + field.getKey() + " as " + field.getValue()
                                 + ", which the closure it continues captured as " + previousType + "; restart the map");
                         }
+                    }
+                    if (!addedCaptures.isEmpty()) {
+                        warnings.add("closure " + f.name() + " now captures " + String.join(", ", addedCaptures)
+                            + "; objects made before these captures were added read their typed default: restart the map"
+                            + " to reconstruct them with captured values.");
                     }
                     members.add(f.name());
                     layout.add(new GroupMember(group, f.name(), lineage, sourceOf(f)));

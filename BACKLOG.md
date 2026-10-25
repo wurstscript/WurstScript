@@ -219,8 +219,7 @@ Notes; finished-work narrative does not.
   commits, a second large map 20 of 36. A warm reload in the editor takes 14 to 30 s on Castle Fight (item below).
   Multiplayer only through a synchronised channel is a later stage in the design note.
 - **Lua hot reload: remaining daily-use work.** Each correctness change needs a failing test first.
-  - A closure which starts capturing a variable gives existing objects that capture's typed default without a
-    warning. Decide whether to warn that reconstructing those objects requires a restart. An anonymous order group
+  - An anonymous order group
     cannot distinguish simultaneous additions/removals and body edits between the same unchanged anchors; make
     those edits in separate payloads. A removed closure may still have live objects, so reusing table names its old
     bodies read is refused even after intermediate payloads remove the whole group. Do not weaken that guard.
