@@ -49,7 +49,7 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class LuaHotReloadFuzzTests extends WurstScriptTest {
 
-    private static final RunArgs HOT_RELOAD = new RunArgs().with("-lua", "-luaHotReload");
+    private static final RunArgs HOT_RELOAD = new RunArgs().with("-lua", "-luaHotReload", "-runcompiletimefunctions");
     private static final String OUT = "test-output/fuzz-hotreload";
 
     @Test
@@ -455,6 +455,9 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
     record Bridge(String name, int offset) {
     }
 
+    record Snapshot(String name, int value) {
+    }
+
     /** An object made by init into a global, with a field set after construction. */
     record Old(String global, String cls, int arg, String field, int value) {
     }
@@ -530,6 +533,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
         final List<Cls> classes = new ArrayList<>();
         final List<Clo> closures = new ArrayList<>();
         final List<Bridge> bridges = new ArrayList<>();
+        final List<Snapshot> snapshots = new ArrayList<>();
         final List<Old> olds = new ArrayList<>();
         final List<Hook> hooks = new ArrayList<>();
         final List<Pkg> pkgs = new ArrayList<>();
@@ -557,6 +561,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             }
             closures.addAll(p.closures);
             bridges.addAll(p.bridges);
+            snapshots.addAll(p.snapshots);
             olds.addAll(p.olds);
             hooks.addAll(p.hooks);
             pkgs.addAll(p.pkgs);
@@ -652,6 +657,16 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 sb.append("function ").append(bridge.name).append("(int seed) returns BoolAction<bool>\n")
                     .append("    BoolAction<bool> action = (bool b) -> seed + ").append(bridge.offset)
                     .append(" + (b ? 1 : 0)\n    return action\n");
+            }
+            sb.append("class SnapshotNode\n    int value\n    SnapshotNode child\n    construct(int v)\n        value = v\n")
+                .append("SnapshotNode snapshotCached = null\n")
+                .append("function compiletime(SnapshotNode n) returns SnapshotNode\n    return n\n")
+                .append("function makeSnapshot(int value) returns SnapshotNode\n    if snapshotCached == null\n")
+                .append("        snapshotCached = new SnapshotNode(5)\n    let root = new SnapshotNode(value)\n")
+                .append("    root.child = snapshotCached\n    return root\n");
+            for (Snapshot snapshot : snapshots) {
+                sb.append("constant ").append(snapshot.name).append(" = compiletime(makeSnapshot(")
+                    .append(snapshot.value).append("))\n");
             }
             for (Arr a : arrays) {
                 sb.append("constant int array ").append(a.name).append(" = [")
@@ -757,6 +772,12 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                     .append("    fuzzOut(\"").append(bridge.name).append(" \" + I2S(").append(bridge.name)
                     .append("Value.run(true)))\n    destroy ").append(bridge.name).append("Value\n");
             }
+            for (Snapshot snapshot : snapshots) {
+                sb.append("    fuzzOut(\"").append(snapshot.name).append(" \" + I2S(").append(snapshot.name)
+                    .append(".value) + \" \" + I2S(").append(snapshot.name).append(".child.value) + \" \" + I2S(")
+                    .append(snapshot.name).append(".child == ").append(snapshots.getFirst().name)
+                    .append(".child ? 1 : 0))\n");
+            }
             for (Const c : consts) {
                 sb.append("    fuzzOut(\"").append(c.name).append(" \" + ").append(c.string ? c.name : "I2S(" + c.name + ")").append(")\n");
             }
@@ -807,6 +828,7 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
             sb.append("    fuzzOut(\"end\")\n");
             sb.append("init\n");
             sb.append("    makeOps(").append(capture == 0 ? 1 : 5).append(", 0)\n");
+            sb.append("    ").append(snapshots.getFirst().name).append(".child.value = 10\n");
             sb.append("    gen0 = new Gen<int>\n    gen0.val = 6\n    gen0.k = 3\n");
             for (Old o : olds) {
                 sb.append("    ").append(o.global).append(" = new ").append(o.cls).append("(").append(o.arg).append(")\n");
@@ -1012,6 +1034,8 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 }
             }
             p.bridges.add(new Bridge(p.fresh("bridge"), r.nextInt(10)));
+            p.snapshots.add(new Snapshot(p.fresh("snapshot"), r.nextInt(10)));
+            p.stateProbe.add("fuzzOut(\"snapshot shared \" + I2S(" + p.snapshots.getFirst().name + ".child.value))");
             return p;
         }
 
@@ -1305,6 +1329,13 @@ public class LuaHotReloadFuzzTests extends WurstScriptTest {
                 Bridge old = p.bridges.get(index);
                 p.bridges.set(index, new Bridge(old.name, old.offset + 1 + r.nextInt(10)));
                 ops.add("old-generic bridge body " + old.name);
+            }
+            if (r.nextInt(8) == 0) {
+                boolean first = r.nextBoolean();
+                Snapshot snapshot = new Snapshot(p.fresh("snapshot"), r.nextInt(10));
+                p.snapshots.add(first ? 0 : p.snapshots.size(), snapshot);
+                ops.add((first ? "prepended" : "appended") + " shared snapshot " + snapshot.name);
+                mustRefuse |= first;
             }
             return new Edit(p, ops, mustRefuse, mayRefuse, mustWarn && !mustRefuse);
         }

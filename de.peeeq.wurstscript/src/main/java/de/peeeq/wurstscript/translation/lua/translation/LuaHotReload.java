@@ -162,11 +162,21 @@ public final class LuaHotReload {
      * the package inits in the order main calls them, {@code constants} the initializers of constant globals,
      * {@code variables} the storage of the globals the program declares as variables, initialised or not, and
      * {@code hooks} the functions annotated {@code @onHotReload}, in the order a payload calls them.
+     * {@code compiletimeReferenceOwners} maps each materialized reference's source path to its actual object/hashtable
+     * global's semantic identity, so aliasing cannot silently move an existing graph to a new snapshot owner.
      */
     public record Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                            List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
                            List<String> variables, List<String> hooks, Map<String, Closure> closures,
-                           Map<String, Integer> compiletimeGroups, boolean compiletimeIntegerReferences) {
+                           Map<String, Integer> compiletimeGroups, boolean compiletimeIntegerReferences,
+                           Map<String, String> compiletimeReferenceOwners) {
+        public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
+                        List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
+                        List<String> variables, List<String> hooks, Map<String, Closure> closures,
+                        Map<String, Integer> compiletimeGroups, boolean compiletimeIntegerReferences) {
+            this(abi, compilerVersion, functions, statements, bindings, initOrder, constants, variables, hooks, closures,
+                compiletimeGroups, compiletimeIntegerReferences, null);
+        }
         public Manifest(String abi, String compilerVersion, Map<String, Function> functions, List<Statement> statements,
                         List<String> bindings, List<String> initOrder, Map<String, Constant> constants,
                         List<String> variables, List<String> hooks, Map<String, Closure> closures,
@@ -228,22 +238,24 @@ public final class LuaHotReload {
      * {@code permutedGroups} names the groups whose tables a payload gave to other closures.
      * {@code lineageTypes} preserves captured field types even when a later payload removes a capture or its closure.
      * {@code tableReaders} retains the historical lineages whose emitted bodies may still read each table name.
+     * {@code compiletimeReferenceOwners} retains snapshot paths introduced by earlier payloads, including removed ones.
      */
     public record History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                           Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                           Map<String, List<String>> groupShapes, List<GroupMember> groupLayout,
                           Map<String, Map<String, String>> lineageOrigins, Set<String> permutedGroups, Set<String> reboundSlots,
-                          Map<String, Map<String, String>> lineageTypes, Map<String, Set<String>> tableReaders, Map<String, Integer> compiletimeGroups) {
+                          Map<String, Map<String, String>> lineageTypes, Map<String, Set<String>> tableReaders,
+                          Map<String, Integer> compiletimeGroups, Map<String, String> compiletimeReferenceOwners) {
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of(), Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of(), Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured) {
@@ -279,19 +291,20 @@ public final class LuaHotReload {
                           Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes,
                           List<GroupMember> groupLayout, Map<String, Map<String, String>> lineageOrigins,
                           Set<String> permutedGroups, Set<String> reboundSlots, Map<String, Map<String, String>> lineageTypes,
-                          Map<String, Set<String>> tableReaders, Map<String, Integer> compiletimeGroups) {
+                          Map<String, Set<String>> tableReaders, Map<String, Integer> compiletimeGroups,
+                          Map<String, String> compiletimeReferenceOwners) {
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes, Set<String> reboundSlots) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of());
+                List.of(), Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of(), Map.of());
         }
 
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of());
+                List.of(), Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of(), Map.of());
         }
     }
 
@@ -502,7 +515,7 @@ public final class LuaHotReload {
         return new Manifest(abi, compilerVersion, Collections.unmodifiableMap(functions), List.copyOf(statements),
             List.copyOf(bindings), List.copyOf(initOrder), Collections.unmodifiableMap(constants), List.copyOf(variables),
             List.copyOf(hooks), closures(tr, reloadable, bootstrap), tr.imTr.compiletimeExpressionCounts(),
-            tr.imTr.compiletimeIntegerReferences());
+            tr.imTr.compiletimeIntegerReferences(), Collections.unmodifiableMap(new TreeMap<>(tr.imTr.compiletimeReferenceOwners())));
     }
 
     /** Expand the startup replay in execution order, retaining the object each statement initializes. */
@@ -754,6 +767,22 @@ public final class LuaHotReload {
     public static Payload payload(Manifest baseline, Manifest current, History history, int version) throws Rejected {
         List<String> reasons = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        Map<String, String> baselineOwners = Objects.requireNonNullElse(baseline.compiletimeReferenceOwners(), Map.of());
+        Map<String, String> oldOwners = new TreeMap<>(baselineOwners);
+        Objects.requireNonNullElse(history.compiletimeReferenceOwners(), Map.<String, String>of()).forEach(oldOwners::putIfAbsent);
+        Map<String, String> currentOwners = new TreeMap<>(Objects.requireNonNullElse(current.compiletimeReferenceOwners(), Map.of()));
+        Map<String, String> introducedOwners = new TreeMap<>();
+        for (Map.Entry<String, String> reference : currentOwners.entrySet()) {
+            if (!baselineOwners.containsKey(reference.getKey())) {
+                introducedOwners.put(reference.getKey(), reference.getValue());
+            }
+            String before = oldOwners.get(reference.getKey());
+            if (before != null && !before.equals(reference.getValue())) {
+                reasons.add("compile-time snapshot reference " + reference.getKey() + " now points to " + reference.getValue()
+                    + " instead of " + before + "; restart the map to preserve shared live objects");
+                break;
+            }
+        }
         if (current.compiletimeIntegerReferences()) {
             Set<String> newSnapshots = new TreeSet<>(compiletimeState(current).keySet());
             newSnapshots.removeAll(compiletimeState(baseline).keySet());
@@ -776,6 +805,12 @@ public final class LuaHotReload {
                 + baseline.compilerVersion() + ")");
             // A manifest of another compiler need not have the parts read below.
             throw new Rejected(reasons);
+        }
+        if (baseline.compiletimeReferenceOwners() == null && !compiletimeState(baseline).isEmpty()
+            || current.compiletimeReferenceOwners() == null && !compiletimeState(current).isEmpty()
+            || history.compiletimeReferenceOwners() == null && (!baselineOwners.isEmpty() || !currentOwners.isEmpty()
+                || !Objects.requireNonNullElse(history.compiletimeGroups(), Map.of()).isEmpty())) {
+            reasons.add("the session lacks compile-time snapshot reference ownership: restart the map");
         }
         Map<String, String> oldBindings = bindingMap(baseline.bindings());
         for (Map.Entry<String, String> b : bindingMap(current.bindings()).entrySet()) {
@@ -1065,6 +1100,15 @@ public final class LuaHotReload {
         sb.append("-- Wurst hot reload payload ").append(version).append(": ").append(String.join(", ", defined)).append("\n");
         // The running script's fingerprint: the payload applies to that script, whatever the edit made of the rest.
         sb.append("return \"").append(baseline.abi()).append("\", ").append(version).append(", function()\n");
+        // A cumulative payload may be made without delivery history. Check what this map installed before changing
+        // anything; snapshot-reference keys cannot collide with the Lua identifiers this table otherwise records.
+        for (Map.Entry<String, String> reference : introducedOwners.entrySet()) {
+            String installed = BINDINGS_TABLE + "[" + luaString("snapshot-reference:" + reference.getKey()) + "]";
+            sb.append("if ").append(installed).append(" and ").append(installed).append(" ~= ")
+                .append(luaString(reference.getValue())).append(" then error(")
+                .append(luaString("compile-time snapshot reference " + reference.getKey()
+                    + " changed owner; restart the map to preserve shared live objects")).append(", 0) end\n");
+        }
         Map<String, String> newBindings = new LinkedHashMap<>(bindingMap(current.bindings()));
         newBindings.keySet().removeAll(oldBindings.keySet());
         for (Map.Entry<String, String> binding : newBindings.entrySet()) {
@@ -1112,6 +1156,11 @@ public final class LuaHotReload {
                     .append(String.join(" or ", existing)).append(") then\n")
                     .append(KEPT_INITIALIZERS).append("[").append(luaString(runKey(s))).append("] = true\nend\n");
             }
+        }
+        // Reserve ownership before work which may fail partway through installation, like delivery history does.
+        for (Map.Entry<String, String> reference : introducedOwners.entrySet()) {
+            sb.append(BINDINGS_TABLE).append("[").append(luaString("snapshot-reference:" + reference.getKey())).append("] = ")
+                .append(luaString(reference.getValue())).append("\n");
         }
         // Functions first: a new declaration may hold one (a metatable's __index). Then the declarations, which the
         // slots of a new class need, then the slots of what changed.
@@ -1242,7 +1291,7 @@ public final class LuaHotReload {
             Collections.unmodifiableMap(groupShapes), List.copyOf(lineages.layout),
             Collections.unmodifiableMap(lineages.newOrigins), Collections.unmodifiableSet(lineages.permuted), Collections.unmodifiableSet(sentSlots),
             Collections.unmodifiableMap(lineages.types), Collections.unmodifiableMap(lineages.readers),
-            Objects.requireNonNullElse(current.compiletimeGroups(), Map.of()));
+            Objects.requireNonNullElse(current.compiletimeGroups(), Map.of()), Collections.unmodifiableMap(introducedOwners));
     }
 
     /**

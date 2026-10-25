@@ -638,11 +638,13 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         } else if (value instanceof IlConstHandle h) {
             pendingPath = materializationPaths.getOrDefault(h, path);
             ImVar hVar = globalForHandle.getFor(h);
+            translator.recordCompiletimeReferenceOwner(path, hVar);
             return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
             ILconstObject obj = globalState.toObject(value);
             pendingPath = materializationPaths.getOrDefault(obj, path);
             ImVar v = globalForObject.getFor(obj);
+            translator.recordCompiletimeReferenceOwner(path, v);
             return JassIm.ImVarAccess(v);
         }
         throw new InterpreterException(trace, "Compiletime expression returned unsupported value " + value);
