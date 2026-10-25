@@ -439,13 +439,18 @@ public final class LuaHotReload {
             bindings.add(tr.luaVar.getFor(global).getName() + "=" + variableId(tr.imTr, global)
                 + ":" + typeKey(global.getType()));
         }
+        Set<ImVar> boundFields = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImClass c : tr.prog.getClasses()) {
             bindings.add(tr.luaClassVar.getFor(c).getName() + "=" + semanticId(c, c.getName()));
             for (ImVar field : c.getFields()) {
+                ImVar canonical = tr.imTr.canonical(field);
+                if (!boundFields.add(canonical)) {
+                    continue;
+                }
                 // With its type: objects which exist keep the values of the old one, which two class types
                 // with the same nil default and storage would not reveal.
-                bindings.add(tr.fieldStorage(field).getName() + "=" + semanticId(field, c.getName() + "." + field.getName())
-                    + captureOwner(tr, c) + ":" + typeKey(field.getType()));
+                bindings.add(tr.fieldStorage(field).getName() + "=" + fieldId(tr, canonical)
+                    + ":" + typeKey(canonical.getType()));
             }
         }
 
@@ -2084,6 +2089,16 @@ public final class LuaHotReload {
     public static String variableId(ImVar v) {
         de.peeeq.wurstscript.jassIm.Element owner = v.getParent() == null ? null : v.getParent().getParent();
         return semanticId(v, (owner instanceof ImClass c ? c.getName() + "." : "") + v.getName());
+    }
+
+    /** Specializations share the original field's store, so its name and binding use that same declaration. */
+    static String fieldId(LuaTranslator tr, ImVar field) {
+        ImVar canonical = tr.imTr.canonical(field);
+        String identity = variableId(canonical);
+        if (canonical.getParent() != null && canonical.getParent().getParent() instanceof ImClass owner) {
+            identity += captureOwner(tr, owner);
+        }
+        return identity;
     }
 
     /** {@link #variableId}, or for a global holding a compile-time object or hashtable, what made it. */

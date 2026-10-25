@@ -226,8 +226,10 @@ Notes; finished-work narrative does not.
     bodies read is refused even after intermediate payloads remove the whole group. Do not weaken that guard.
     Replay the real-map histories again to measure acceptance after the closure fixes; the recorded 27/30 Castle
     Fight result was from an intermediate branch, not the final implementation.
-  - A recorded Castle Fight refusal involved a new-generics specialisation whose field stores took another
-    specialisation's names. Minimize that source into a regression and fix the identity where it is assigned.
+  - Replay Castle Fight's addition of `ArrayList<TickCandidates>` beside `ArrayList<UnitStat>` to check the
+    recorded specialization field-storage refusal. Shared canonical field tables must have one source-field
+    identity in the manifest, independent of the specialization discovery order. Minimize any remaining refusal
+    before changing storage ownership: specialized and erased accesses deliberately share those tables.
     Old-generics `run_wrapper` functions form order groups too; investigate their source ownership before trying
     to accept ambiguous edits. Materialized compile-time expressions without distinct bindings also retain an
     order-group count; changing that count requires a restart. Dependency-owned object graphs preserve direct and

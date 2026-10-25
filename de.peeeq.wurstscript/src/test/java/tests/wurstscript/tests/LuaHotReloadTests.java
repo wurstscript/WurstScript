@@ -747,6 +747,49 @@ public class LuaHotReloadTests extends WurstScriptTest {
         return program;
     }
 
+    @Test
+    public void addingASpecializationKeepsExistingInstanceFieldStorage() {
+        test().testLua(true).executeProg().luaHotReload(specializedFields(true)).lines(specializedFields(false));
+    }
+
+    @Test
+    public void sharedGenericFieldStorageKeepsNativeStringAndIntegerValues() {
+        String[] base = nativeSpecializedFields(false);
+        test().testLua(true).executeProg().luaHotReload(nativeSpecializedFields(true)).lines(base);
+    }
+
+    private static String[] nativeSpecializedFields(boolean added) {
+        return java.util.Arrays.stream(specializedFields(added)).map(line -> line
+            .replace("int value", "T value").replace("construct(int v)", "construct(T v)")
+            .replace("read() returns int", "read() returns T").replace("new Cell<string>(1)", "new Cell<string>(\"base\")")
+            .replace("original.value = 50", "original.value = \"live\"")
+            .replace("original.read() != 50", "original.read() != \"live\"")).toArray(String[]::new);
+    }
+
+    @Test
+    public void specializedFieldStorageHasOneSemanticBinding() {
+        var bindings = manifest(specializedFields(true)).bindings().stream()
+            .filter(b -> b.startsWith("Cell_value_storage_")).toList();
+        assertEquals(bindings.toString(), 1, bindings.stream().distinct().count());
+    }
+
+    @Test
+    public void addedSpecializationDoesNotChangeTheManifestFieldBinding() throws Exception {
+        LuaHotReload.payload(manifest(specializedFields(false)), manifest(specializedFields(true)),
+            LuaHotReload.History.NONE, 1);
+    }
+
+    private static String[] specializedFields(boolean added) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Cell<T:>", "    static int calls = 0", "    int value", "    construct(int v)", "        value = v",
+            "    function read() returns int", "        calls++", "        return value",
+            "init", "    let original = new Cell<string>(1)", "    original.value = 50",
+            added ? "    let second = new Cell<int>(7)\n    second.read()\n    destroy second" : "", "    hotReload()",
+            "    if original.read() != 50 or extra() != 7", "        testFail(\"specialized field storage changed\")",
+            "    destroy original", "    testSuccess()", "function extra() returns int",
+            added ? "    return 7" : "    return 0"};
+    }
+
     private static String[] genericStorageProgram(boolean initialized, boolean secondSpecialization) {
         String[] declarations = java.util.Arrays.copyOf(genericStaticProgram(initialized), 14);
         String[] init = {"init", "    let ints = new Store<int>()", "    ints.put(42)",
