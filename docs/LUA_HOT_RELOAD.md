@@ -101,6 +101,14 @@ The payload compares the running script's manifest with the edited one:
 - Objects and hashtables materialized by `compiletime(...)` are named for their source binding and the path through
   their fields or tuple components. Dependencies take ownership of their returned graphs before an outer expression
   can alias them, so an earlier alias reuses existing objects, including nested objects and their live mutations.
+  Independent roots can share an object too, provided its established snapshot owner stays fixed. Moving ownership
+  to an earlier root or removing its original owner requires a restart: replaying under a new owner would duplicate
+  the object and split its live aliases. The compiler records each materialized reference's source path and actual
+  object/hashtable owner, and checks the baseline plus earlier payloads. Cumulative payloads also check ownership
+  installed in the map before changing any functions or state; missing earlier deliveries do not cause a false refusal.
+  Ownership is reserved before installation work which can fail, and is preserved through pending-delivery recovery.
+  The immutable baseline holds startup references; the session saves only references introduced afterwards. A session
+  missing required ownership metadata needs a restart rather than guessing at existing aliases.
   Adding a binding creates its snapshot before new source initializers run; existing
   snapshots retain runtime mutations. A changed snapshot warns that a restart is needed. Nested objects and cycles
   retain their references, and cumulative payloads do not replay snapshots already installed. Startup allocator-ID

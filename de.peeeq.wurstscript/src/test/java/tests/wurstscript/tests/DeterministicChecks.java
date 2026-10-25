@@ -32,6 +32,22 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void hotReloadSharedSnapshotReferencesAreDeterministic() {
+        CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
+            "    public Node child", "    construct(int v)", "        value = v", "Node cached = null",
+            "public function make(int v) returns Node", "    if cached == null", "        cached = new Node(5)",
+            "    let root = new Node(v)", "    root.child = cached", "    return root");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Values", "native observe(int value)",
+            "function compiletime(Node n) returns Node", "    return n", "constant a = compiletime(make(1))",
+            "constant b = compiletime(make(2))", "init", "    observe(a.child.value + b.child.value)");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload", "-stacktraces", "-runcompiletimefunctions");
+        var first = compileLuaHotReloadManifest(false, args, values, main);
+        assertTrue(!first.compiletimeReferenceOwners().isEmpty());
+        assertEquals(compileLuaHotReloadManifest(false, args, main, values), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, values, main), first);
+    }
+
+    @Test
     public void hotReloadOldGenericClosureBridgesAreDeterministic() {
         CU actions = compilationUnit("Actions.wurst", "package Actions", "public interface Action<T>",
             "    function run(T value) returns int", "public function booleanToIndex(bool b) returns int",

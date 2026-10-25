@@ -4028,6 +4028,174 @@ public class LuaHotReloadTests extends WurstScriptTest {
         test().testLua(true).runCompiletimeFunctions(true).executeProg().luaHotReload(edited).lines(base);
     }
 
+    @Test
+    public void independentSnapshotRootsKeepTheirSharedLiveObject() {
+        test().testLua(true).runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(independentSnapshots(true, true)).lines(independentSnapshots(false));
+    }
+
+    @Test
+    public void movingASharedSnapshotToAnEarlierRootRequiresRestart() {
+        var baseline = compiletimeManifest(independentSnapshots(false));
+        var current = compiletimeManifest(independentSnapshots(true));
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("compile-time snapshot reference"));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("restart the map to preserve shared live objects"));
+    }
+
+    @Test
+    public void movingASharedCompiletimeHashtableOwnerRequiresRestart() {
+        String[] before = {"type agent extends handle", "type hashtable extends agent", "package Test",
+            "native observe(int value)", "@extern native InitHashtable() returns hashtable",
+            "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+            "function compiletime(hashtable h) returns hashtable", "    return h", "hashtable cached = null",
+            "function makeTable() returns hashtable", "    if cached == null", "        cached = InitHashtable()",
+            "    return cached", "", "constant a = compiletime(makeTable())", "init", "    observe(LoadInteger(a, 1, 2))"};
+        String[] after = before.clone();
+        after[13] = "constant z = compiletime(makeTable())";
+        after[16] = "    observe(LoadInteger(a, 1, 2) + LoadInteger(z, 1, 2))";
+        var baseline = compiletimeManifest(before);
+        var current = compiletimeManifest(after);
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("preserve shared live objects"));
+    }
+
+    @Test
+    public void snapshotReferenceOwnersSurvivePayloadHistory() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("snapshotReferenceOwners");
+        var delivery = java.nio.file.Files.createTempDirectory("snapshotReferenceOwnersDelivery");
+        LuaHotReloadSession.start(build, manifest(MAIN_PACKAGE));
+        LuaHotReloadSession.send(build, delivery, compiletimeManifest(independentSnapshots(false)));
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, compiletimeManifest(independentSnapshots(true))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("preserve shared live objects"));
+    }
+
+    @Test
+    public void snapshotResendsUseTheBaselineOwnershipMetadata() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("snapshotBaselineOwners");
+        var delivery = java.nio.file.Files.createTempDirectory("snapshotBaselineOwnersDelivery");
+        var baseline = compiletimeManifest(independentSnapshots(false));
+        LuaHotReloadSession.start(build, baseline);
+        assertTrue(LuaHotReloadSession.send(build, delivery, baseline).payload().compiletimeReferenceOwners().isEmpty());
+        assertTrue(LuaHotReloadSession.send(build, delivery, baseline).payload().compiletimeReferenceOwners().isEmpty());
+    }
+
+    @Test
+    public void snapshotOwnershipSurvivesDeliveredPayloadRecovery() throws Exception {
+        checkSnapshotOwnershipRecovery(false);
+    }
+
+    @Test
+    public void missingDeliveredSnapshotOwnershipRequiresRestart() throws Exception {
+        checkSnapshotOwnershipRecovery(true);
+    }
+
+    private void checkSnapshotOwnershipRecovery(boolean missingMetadata) throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("snapshotPendingOwners");
+        var delivery = java.nio.file.Files.createTempDirectory("snapshotPendingOwnersDelivery");
+        LuaHotReloadSession.start(build, manifest(MAIN_PACKAGE));
+        var blockedSave = build.resolve("luaHotReload/session.json.tmp");
+        java.nio.file.Files.createDirectory(blockedSave);
+        expectThrows(IOException.class,
+            () -> LuaHotReloadSession.send(build, delivery, compiletimeManifest(independentSnapshots(false))));
+        if (missingMetadata) {
+            var pendingFile = build.resolve("luaHotReload/pending.json");
+            var pending = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(pendingFile)).getAsJsonObject();
+            pending.remove("compiletimeReferenceOwners");
+            java.nio.file.Files.writeString(pendingFile, pending.toString());
+        }
+        java.nio.file.Files.delete(blockedSave);
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReloadSession.send(build, delivery, compiletimeManifest(independentSnapshots(true))));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains(missingMetadata
+            ? "lacks compile-time snapshot reference ownership" : "preserve shared live objects"));
+        assertFalse(java.nio.file.Files.exists(build.resolve("luaHotReload/pending.json")));
+    }
+
+    @Test
+    public void missingHistoricalSnapshotOwnershipRequiresRestart() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("snapshotMissingOwners");
+        var delivery = java.nio.file.Files.createTempDirectory("snapshotMissingOwnersDelivery");
+        LuaHotReloadSession.start(build, manifest(MAIN_PACKAGE));
+        var current = compiletimeManifest(independentSnapshots(false));
+        LuaHotReloadSession.send(build, delivery, current);
+        var file = build.resolve("luaHotReload/session.json");
+        var state = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(file)).getAsJsonObject();
+        state.remove("compiletimeReferenceOwners");
+        java.nio.file.Files.writeString(file, state.toString());
+        var rejected = expectThrows(LuaHotReload.Rejected.class, () -> LuaHotReloadSession.send(build, delivery, current));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("lacks compile-time snapshot reference ownership"));
+    }
+
+    @Test
+    public void missingBaselineSnapshotOwnershipRequiresRestart() {
+        var current = compiletimeManifest(independentSnapshots(false));
+        var gson = new com.google.gson.Gson();
+        var json = gson.toJsonTree(current).getAsJsonObject();
+        json.remove("compiletimeReferenceOwners");
+        var baseline = gson.fromJson(json, LuaHotReload.Manifest.class);
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("lacks compile-time snapshot reference ownership"));
+    }
+
+    @Test
+    public void removingTheOwnerOfASharedSnapshotRequiresRestart() {
+        String[] before = independentSnapshots(true, true);
+        String[] after = java.util.Arrays.stream(before).map(line -> line.equals("constant a = compiletime(makeRoot(1))") ? ""
+            : line.replace("z.child == a.child and ", "").replace("a.child.value = 10", "z.child.value = 10"))
+            .toArray(String[]::new);
+        var baseline = compiletimeManifest(before);
+        var current = compiletimeManifest(after);
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(baseline, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("preserve shared live objects"));
+    }
+
+    @Test
+    public void installedSnapshotOwnershipIsCheckedBeforeCumulativePayloadChanges() throws Exception {
+        test().testLua(true).luaHotReload(MAIN_PACKAGE).lines(MAIN_PACKAGE);
+        String script = "test-output/lua/LuaHotReloadTests_installedSnapshotOwnershipIsCheckedBeforeCumulativePayloadChanges.lua";
+        var baseline = manifest(MAIN_PACKAGE);
+        String[] firstSource = independentSnapshots(false);
+        firstSource = java.util.Arrays.copyOf(firstSource, java.util.Arrays.asList(firstSource).indexOf("init") + 2);
+        firstSource = concat(firstSource, new String[]{"    if probing", "        shared()"});
+        String[] secondSource = independentSnapshots(true);
+        secondSource = java.util.Arrays.copyOf(secondSource, java.util.Arrays.asList(secondSource).indexOf("init") + 2);
+        secondSource = concat(secondSource, new String[]{"    if probing", "        shared()"});
+        var first = compiletimeManifest(firstSource);
+        var second = compiletimeManifest(secondSource);
+        String p1 = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source();
+        String p2 = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2).source();
+        String probe = luaName(first, "shared") + "()";
+        String applied = applyInLua(script, List.of(p1, p2), probe);
+        String[] lines = applied.split("\\R");
+        assertEquals(applied, "true true nil", lines[0]);
+        assertTrue(applied, lines[1].startsWith("false true ") && lines[1].contains("preserve shared live objects"));
+        assertEquals("true true nil", applyInLua(script, List.of(p2), probe));
+    }
+
+    private static String[] independentSnapshots(boolean added) {
+        return independentSnapshots(added, false);
+    }
+
+    private static String[] independentSnapshots(boolean added, boolean after) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "class Node", "    int value", "    Node child", "    construct(int v)", "        value = v",
+            "Node cached = null", "function compiletime(Node n) returns Node", "    return n",
+            "function makeRoot(int v) returns Node", "    if cached == null", "        cached = new Node(5)",
+            "    let root = new Node(v)", "    root.child = cached", "    return root",
+            added && !after ? "constant z = compiletime(makeRoot(2))" : "", "constant a = compiletime(makeRoot(1))",
+            added && after ? "constant z = compiletime(makeRoot(2))" : "",
+            "function shared() returns bool",
+            added ? "    return z.child == a.child and z.child.value == 10" : "    return a.child.value == 10",
+            "bool probing = false", "init", "    a.child.value = 10", "    hotReload()", "    if not shared()",
+            "        testFail(\"an independent snapshot duplicated the shared live object\")", "    testSuccess()"};
+    }
+
     private static String[] aliasedSnapshot(boolean alias, boolean nested) {
         String target = nested ? "a.child" : "a";
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",

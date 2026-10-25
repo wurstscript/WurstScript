@@ -200,6 +200,19 @@ public class ImTranslator implements SpecialisationLookup {
     private List<ImFunction> compiletimeStateParts = List.of();
     private Map<String, Integer> compiletimeExpressionCounts = Map.of();
     private boolean compiletimeIntegerReferences;
+    /** Each materialized snapshot reference's source path and the object/hashtable global it actually points to. */
+    private final Map<String, String> compiletimeReferenceOwners = new TreeMap<>();
+
+    public void recordCompiletimeReferenceOwner(String path, ImVar global) {
+        if (getRunArgs().isLuaHotReload()) {
+            compiletimeReferenceOwners.put("compiletime:" + path,
+                Objects.requireNonNull(compiletimeGlobalIdentity(global), "Materialized reference has no compile-time owner"));
+        }
+    }
+
+    public Map<String, String> compiletimeReferenceOwners() {
+        return Collections.unmodifiableMap(compiletimeReferenceOwners);
+    }
 
     public void setCompiletimeIntegerReferences(boolean read) {
         compiletimeIntegerReferences = read;

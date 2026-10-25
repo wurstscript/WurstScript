@@ -72,6 +72,8 @@ public final class LuaHotReloadSession {
         List<String> permutedGroups = new ArrayList<>();
         Set<String> reboundSlots = new LinkedHashSet<>();
         Map<String, Integer> compiletimeGroups = new LinkedHashMap<>();
+        /** Null means an older session did not record reference ownership. */
+        Map<String, String> compiletimeReferenceOwners;
         Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
         Map<String, Set<String>> tableReaders = new LinkedHashMap<>();
     }
@@ -213,6 +215,7 @@ public final class LuaHotReloadSession {
             writeAtomically(baseline, json);
         }
         State state = new State();
+        state.compiletimeReferenceOwners = new LinkedHashMap<>();
         state.baselineFile = baseline.getFileName().toString();
         writeAtomically(stagedFile(buildDir), GSON.toJson(state));
     }
@@ -304,6 +307,7 @@ public final class LuaHotReloadSession {
         List<String> permutedGroups = new ArrayList<>();
         Set<String> reboundSlots = new LinkedHashSet<>();
         Map<String, Integer> compiletimeGroups = new LinkedHashMap<>();
+        Map<String, String> compiletimeReferenceOwners;
         Map<String, Map<String, String>> lineageTypes = new LinkedHashMap<>();
         Map<String, Set<String>> tableReaders = new LinkedHashMap<>();
     }
@@ -350,7 +354,8 @@ public final class LuaHotReloadSession {
             new LinkedHashSet<>(orEmpty(state.variables)), orEmpty(state.groupShapes),
             state.groupLayout, orEmpty(state.lineageOrigins),
             new LinkedHashSet<>(orEmpty(state.permutedGroups)),
-            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes), orEmpty(state.tableReaders), orEmpty(state.compiletimeGroups)), state.version + 1);
+            state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes), orEmpty(state.tableReaders),
+            orEmpty(state.compiletimeGroups), state.compiletimeReferenceOwners), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
@@ -365,6 +370,7 @@ public final class LuaHotReloadSession {
         pending.permutedGroups = new ArrayList<>(payload.permutedGroups());
         pending.reboundSlots = new LinkedHashSet<>(payload.reboundSlots());
         pending.compiletimeGroups = new LinkedHashMap<>(payload.compiletimeGroups());
+        pending.compiletimeReferenceOwners = new LinkedHashMap<>(payload.compiletimeReferenceOwners());
         pending.lineageTypes = new LinkedHashMap<>(payload.lineageTypes());
         pending.tableReaders = new LinkedHashMap<>(payload.tableReaders());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
@@ -440,6 +446,14 @@ public final class LuaHotReloadSession {
         Map<String, Integer> compiletimeGroups = new LinkedHashMap<>(orEmpty(state.compiletimeGroups));
         orEmpty(sent.compiletimeGroups).forEach(compiletimeGroups::putIfAbsent);
         state.compiletimeGroups = compiletimeGroups;
+        if (state.compiletimeReferenceOwners == null || sent.compiletimeReferenceOwners == null) {
+            // Recovery of an older pending delivery cannot invent the ownership metadata it never saved.
+            state.compiletimeReferenceOwners = null;
+        } else {
+            Map<String, String> referenceOwners = new LinkedHashMap<>(state.compiletimeReferenceOwners);
+            sent.compiletimeReferenceOwners.forEach(referenceOwners::putIfAbsent);
+            state.compiletimeReferenceOwners = referenceOwners;
+        }
         Map<String, Map<String, String>> types = new LinkedHashMap<>(orEmpty(state.lineageTypes));
         orEmpty(sent.lineageTypes).forEach((lineage, fields) -> {
             Map<String, String> combined = new LinkedHashMap<>(types.getOrDefault(lineage, Map.of()));
