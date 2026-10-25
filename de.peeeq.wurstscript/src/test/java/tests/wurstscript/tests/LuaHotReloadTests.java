@@ -3448,6 +3448,31 @@ public class LuaHotReloadTests extends WurstScriptTest {
             LuaHotReloadSession.send(build, delivery, edit).payload().source());
     }
 
+    @Test
+    public void activationCleanupFailureCannotReopenOldPayloads() throws Exception {
+        var build = java.nio.file.Files.createTempDirectory("hot reload activation cleanup");
+        var delivery = build.resolve("Custom Map Data");
+        LuaHotReloadSession.start(build, manifest(program("x + 1", "side * side", INIT)));
+        var old = LuaHotReloadSession.send(build, delivery, manifest(program("x + 10", "side * side", INIT)));
+        var replacement = manifest(program("x + 2", "side * side", INIT));
+        LuaHotReloadSession.prepareLaunch(build, delivery, replacement);
+        // activate replaces session.json before deleting pending.json. Make that cleanup fail on every host.
+        var pending = build.resolve("luaHotReload/pending.json");
+        java.nio.file.Files.createDirectory(pending);
+        var obstruction = pending.resolve("obstruction");
+        java.nio.file.Files.writeString(obstruction, "nonempty directory");
+        expectThrows(IOException.class, () -> LuaHotReloadSession.completeLaunch(build, delivery));
+        assertFalse("the baseline replacement committed before cleanup failed",
+            java.nio.file.Files.exists(build.resolve("luaHotReload/session-staged.json")));
+        java.nio.file.Files.delete(obstruction);
+        java.nio.file.Files.delete(pending);
+        LuaHotReloadSession.abortLaunch(build, delivery);
+        assertFalse("old-session payloads must not reach the launched map", java.nio.file.Files.exists(old.file()));
+        var edit = manifest(program("x + 3", "side * side", INIT));
+        assertEquals(LuaHotReload.payload(replacement, edit, Set.of(), 1).source(),
+            LuaHotReloadSession.send(build, delivery, edit).payload().source());
+    }
+
     /**
      * Hot reload is for a single-player game: with more users playing the poll reads no payload file, says so once, and
      * the status tells why. It counts the users itself, as blizzard.j does for bj_isSinglePlayer, which a map whose main

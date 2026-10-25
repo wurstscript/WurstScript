@@ -180,8 +180,10 @@ public final class LuaHotReloadSession {
 
     /** Called only after the launcher succeeds; errors after activation must not restore obsolete payloads. */
     public static void completeLaunch(Path buildDir, Path customMapData) throws IOException {
+        // Persist the handoff before replacing session.json: activate's later cleanup can fail or be interrupted.
+        Path aside = markDeliveriesSuperseded(customMapData);
         activate(buildDir);
-        discardDeliveries(customMapData);
+        deleteFolder(aside);
     }
 
     /** Attempt both rollback steps, preserving diagnostics if either fails. Safe when no launch was prepared. */
@@ -545,12 +547,15 @@ public final class LuaHotReloadSession {
      * a deletion which is interrupted leaves files the next launch knows to delete rather than restore.
      */
     public static void discardDeliveries(Path customMapData) throws IOException {
+        deleteFolder(markDeliveriesSuperseded(customMapData));
+    }
+
+    private static Path markDeliveriesSuperseded(Path customMapData) throws IOException {
         Path aside = deliveryFolder(customMapData).resolve(SET_ASIDE);
-        if (!Files.isDirectory(aside)) {
-            return;
+        if (Files.isDirectory(aside)) {
+            Files.writeString(aside.resolve(SUPERSEDED), "");
         }
-        Files.writeString(aside.resolve(SUPERSEDED), "");
-        deleteFolder(aside);
+        return aside;
     }
 
     private static final String SET_ASIDE = "hotreload-set-aside";
