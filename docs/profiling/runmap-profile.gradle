@@ -48,6 +48,7 @@ allprojects {
             mainClass = 'MapCommitHotReloadProfile'
             javaLauncher = tasks.named('test', Test).get().javaLauncher
             args file(project.property('profileRoot')).absolutePath
+            workingDir file(project.property('profileRoot')).toPath().resolve('project').toFile()
             if (project.hasProperty('profilePublicCompiler')) jvmArgs '-Dprofile.publicCompiler=true'
             if (project.hasProperty('profileMeasure')) jvmArgs '-Dprofile.measure=true'
             if (project.hasProperty('profileCommitLimit')) jvmArgs '-Dprofile.commitLimit=' + project.property('profileCommitLimit')
