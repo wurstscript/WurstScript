@@ -13,6 +13,8 @@ it still admits only structure-preserving literal edits. It requires no generate
 schema changes: every other node kind is rejected by the eligibility check. It does not implement a general IM codec,
 persistent global dependency worklists, source-map relocations or incremental payload indexing. Those remain planned.
 
+The [real-map commit replay](MAP_COMMIT_REPLAY.md) now provides a parent/child oracle corpus. Its 24 measured edits all use the batch backend: payload acceptance and incremental compilation coverage are separate gates. The next work must admit ordinary symbol-referencing bodies and fresh compile-time products, rather than expanding only the closed scalar whitelist.
+
 ## Outcome and acceptance contract
 
 After changing `return x + 1` to `return x + 2`, with unchanged declarations, dependencies and compile-time outputs:

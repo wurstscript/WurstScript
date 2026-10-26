@@ -4,7 +4,7 @@ allprojects {
         tasks.register('compileRunMapProfile', JavaCompile) {
             dependsOn tasks.named('classes')
             source files('../docs/profiling/RunMapProfile.java', '../docs/profiling/RunMapProfileReport.java',
-                '../docs/profiling/IncrementalHotReloadProfile.java')
+                '../docs/profiling/IncrementalHotReloadProfile.java', '../docs/profiling/MapCommitHotReloadProfile.java')
             classpath = sourceSets.main.runtimeClasspath
             destinationDirectory = layout.buildDirectory.dir('runmap-profile')
             javaCompiler = javaToolchains.compilerFor(java.toolchain)
@@ -40,6 +40,19 @@ allprojects {
             args file(project.property('profileRoot')).absolutePath
             workingDir file(project.property('profileRoot'))
             maxHeapSize = '4g'
+            jvmArgs '-XX:+UseParallelGC'
+        }
+        tasks.register('mapCommitHotReloadProfile', JavaExec) {
+            dependsOn tasks.named('compileRunMapProfile')
+            classpath = files(layout.buildDirectory.dir('runmap-profile')) + sourceSets.main.runtimeClasspath
+            mainClass = 'MapCommitHotReloadProfile'
+            javaLauncher = tasks.named('test', Test).get().javaLauncher
+            args file(project.property('profileRoot')).absolutePath
+            if (project.hasProperty('profilePublicCompiler')) jvmArgs '-Dprofile.publicCompiler=true'
+            if (project.hasProperty('profileMeasure')) jvmArgs '-Dprofile.measure=true'
+            if (project.hasProperty('profileCommitLimit')) jvmArgs '-Dprofile.commitLimit=' + project.property('profileCommitLimit')
+            if (project.hasProperty('profileContinueOnError')) jvmArgs '-Dprofile.continueOnError=true'
+            maxHeapSize = '6g'
             jvmArgs '-XX:+UseParallelGC'
         }
     }
