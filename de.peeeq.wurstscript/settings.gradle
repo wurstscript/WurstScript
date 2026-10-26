@@ -23,7 +23,7 @@ dependencyResolutionManagement {
                 includeModule('com.github.inwc3', 'JMPQ3')
                 includeModule('com.github.inwc3', 'wc3libs')
                 includeModule('com.github.wurstscript', 'wurst-project-config')
-                includeModule('com.github.peterzeller', 'abstractsyntaxgen')
+                includeModule('com.github.wurstscript', 'abstractsyntaxgen')
                 includeModule('com.github.peterzeller', 'java-smallcheck')
             }
         }
