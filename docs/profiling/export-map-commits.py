@@ -16,7 +16,7 @@ def git(repo, *args):
 
 
 def changed_paths(repo, commit):
-    return git(repo, 'diff', '--name-only', '-z', commit + '^', commit).decode('utf-8').rstrip('\0').split('\0')
+    return git(repo, 'diff', '--no-renames', '--name-only', '-z', commit + '^', commit).decode('utf-8').rstrip('\0').split('\0')
 
 
 def is_test_source(path):

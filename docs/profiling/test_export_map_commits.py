@@ -17,7 +17,10 @@ class ExportMapCommitsTests(unittest.TestCase):
     def test_jurst_only_edit_is_exported_and_classified_as_runtime_source(self):
         self.export_short_history(".jurst")
 
-    def export_short_history(self, extension):
+    def test_source_move_outside_project_is_exported_as_removal(self):
+        self.export_short_history(".wurst", move_out=True)
+
+    def export_short_history(self, extension, move_out=False):
         workspace = tempfile.TemporaryDirectory(prefix='wurst-commit-export-')
         root = Path(workspace.name).resolve()
         try:
@@ -42,7 +45,11 @@ class ExportMapCommitsTests(unittest.TestCase):
             git('add', '.')
             git('commit', '-m', 'Initial Wurst source')
             parent = git('rev-parse', 'HEAD')
-            source.write_text(source.read_text(encoding='utf-8').replace('return 1', 'return 2'), encoding='utf-8')
+            if not move_out:
+                source.write_text(source.read_text(encoding='utf-8').replace('return 1', 'return 2'), encoding='utf-8')
+            if move_out:
+                (repository / 'archive').mkdir()
+                git('mv', 'wurst/Runtime' + extension, 'archive/Runtime' + extension)
             git('commit', '-am', 'Body edit')
             child = git('rev-parse', 'HEAD')
             (repository / '_build/dependencies').mkdir(parents=True)
@@ -60,7 +67,10 @@ class ExportMapCommitsTests(unittest.TestCase):
             self.assertEqual(['wurst/Runtime' + extension], corpus['pairs'][0]['runtimePaths'])
             self.assertTrue(corpus['pairs'][0]['production'])
             self.assertIn('return 1', (output / 'states' / parent / ('wurst/Runtime' + extension)).read_text(encoding='utf-8'))
-            self.assertIn('return 2', (output / 'states' / child / ('wurst/Runtime' + extension)).read_text(encoding='utf-8'))
+            if move_out:
+                self.assertFalse((output / 'states' / child / ('wurst/Runtime' + extension)).exists())
+            else:
+                self.assertIn('return 2', (output / 'states' / child / ('wurst/Runtime' + extension)).read_text(encoding='utf-8'))
         finally:
             # Verify the absolute recursive-cleanup target remains the temporary workspace we created.
             if root.parent != Path(tempfile.gettempdir()).resolve() or not root.name.startswith('wurst-commit-export-'):
