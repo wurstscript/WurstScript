@@ -87,6 +87,11 @@ Frozen environment receipts (SHA-256 of ordered relative file paths and bytes; `
 
 Measurement inputs were exported into isolated fixtures under the compiler’s ignored `temp/` directory. The exporter records parent/child SHAs, paths, source categories, environment hashes and explicit dependency overrides. Full local `results.json` receipts retain timings, owner/node work counts, phase reports, exact warnings/rejections and oracle outcomes.
 
+The complete 24-state correctness campaign was repeated after integrating the organization-owned generator pin
+from master `61c1c33464c8b5f46e977985f2e51912bbcd8702`. Every child again matched its independent fresh Lua and
+manifest, with the same 8/12 and 12/12 payload outcomes. This repeat is a correctness check; the timing table above
+remains the recorded earlier baseline, not a controlled before/after generator benchmark.
+
 ## Backend result and next exit gate
 
 **0/24 edits used the incremental scalar backend.** Both maps enable fresh compile-time execution and object injection. The current scalar cache excludes those options and ordinary calls, storage, class methods and structural edits. All successful measured requests still copied, lowered and emitted tens of thousands of functions. For example, the first Castle Fight child copied 59,637 functions / 2,313,933 nodes, lowered 36,350 functions and emitted 35,318 functions. This campaign establishes no incremental backend speedup.

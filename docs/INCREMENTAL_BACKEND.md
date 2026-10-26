@@ -130,6 +130,36 @@ Freezing/materialising costs O(size of dirty owner). No whole-program `ImProgram
 body-edit path. Published data is never passed to a destructive pass. Tests must detect attempted foreign mutation,
 shared mutable types, stale AST traces and references to an obsolete snapshot.
 
+#### Generator contracts for broader bodies
+
+The maintained [generator fork](https://github.com/wurstscript/abstractsyntaxgen) now supplies a shallow `NodeCodec`
+for every schema, pinned here at `cc63402b30`. It distinguishes direct owned children, direct references and other
+metadata, includes persistent and ignored-equality fields, and reconstructs private nodes. Its immutable `Data<V>`
+containers still require the compiler to supply detached immutable values. This is schema coverage, not a complete
+frozen IM representation or a backend cache.
+
+Prioritise these contracts alongside the first general function-body consumer:
+
+* **Describe collection ownership and reference shape.** Fields such as `ImClass.superClasses`,
+  `ImMethod.subMethods` and `ImTypeArgument.typeClassBinding` contain IM nodes inside Java collections. They currently
+  reach the codec as opaque metadata. Express which nested values are owned, structural values or references in the
+  schema, so generated traversal can cover them without another handwritten list of IM fields.
+* **Close mutation-count gaps for owned collection metadata.** Generated setters report changes, but a raw Java
+  collection getter permits mutation without a setter: `getFlags().add(...)` is a concrete example. Give owned
+  collections tracked mutation or immutable replacement semantics, accounting for aliases to incoming containers.
+  Do not propagate changes through reference targets: a callee's body change is a dependency-query input, not a
+  mutation of every caller. This is a contract gap to test before widening reuse, not a demonstrated stale result in
+  the guarded scalar path.
+* **Separate semantic and origin revisions.** Refresh source locations independently of body/ABI facts, so moving
+  unchanged code does not force semantic lowering. Wurst supplies the field roles and source-map meaning.
+* **Validate snapshot ownership in tests.** Detect mutable AST/IM retained in published values and mutations of
+  foreign owners. Exercise nested metadata, aliasing, cycles, cancellation and fresh round trips. Validators must
+  not add bookkeeping to emitted game code.
+
+Dependency queries, reachability, specialization, dispatch ABI and compile-time effects remain compiler-owned.
+Optimise codec allocation and traversal only after profiling real owned artifacts; faster full-graph copying does
+not satisfy the bounded-work gate.
+
 ## 2. Dependency queries, not blanket invalidation
 
 Provide `BackendQueries` with typed reads such as `signature`, `bodyFacts`, `specialisationDemand`, `layout`,

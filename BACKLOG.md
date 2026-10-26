@@ -268,6 +268,9 @@ Notes; finished-work narrative does not.
   names and shared statement/counted-loop emission, register demotion and locals spilling. The generated spill-table
   binding is a frozen producer-owned fact. Calls, changed body structure and garbage-producing bodies still take
   the batch path.
+  The organization-owned generator now supplies schema codecs. Before broadening reuse, give reference-bearing
+  collection metadata explicit ownership/shape and close owned-collection mutation-count gaps; direct mutation of a
+  raw Java collection bypasses generated setters. See the generator contracts in `docs/INCREMENTAL_BACKEND.md`.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
