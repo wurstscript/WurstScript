@@ -227,19 +227,29 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
         Project project = withBody(project(0), body);
         String source = project.source;
         if (global) source += "@extern native __wurst_locals() returns int\ninit\n    observe(__wurst_locals())\n";
+        List<String> states = new ArrayList<>();
+        states.add(source);
+        for (String value : List.of("2", "0", "1")) {
+            states.add(source.replace((local ? "__wurst_locals" : "v0") + " = x + 1",
+                (local ? "__wurst_locals" : "v0") + " = x + " + value));
+        }
+        List<Output> expected = new ArrayList<>();
+        for (String state : states) { Files.writeString(project.file, state); expected.add(fresh(project, ARGS)); }
         edit(project, source);
         Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertSameOutput(baseline, expected.get(0));
         String scalar = functionName(baseline.manifest, "scalar");
         int suffix = (local ? 1 : 0) + (global ? 1 : 0);
         String table = "__wurst_locals" + (suffix == 0 ? "" : suffix);
         assertTrue(baseline.manifest.functions().get(scalar).definition().contains("local " + table + " = ({})"),
             baseline.manifest.functions().get(scalar).definition());
-        for (String value : List.of("2", "0", "1")) {
-            edit(project, source.replace((local ? "__wurst_locals" : "v0") + " = x + 1",
-                (local ? "__wurst_locals" : "v0") + " = x + " + value));
+        for (int i = 1; i < states.size(); i++) {
+            edit(project, states.get(i));
             Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
             assertScalarWork(actual, project.manager);
-            assertSameOutput(actual, fresh(project, ARGS));
+            assertSameOutput(actual, expected.get(i));
+            assertEquals(LuaHotReload.payload(baseline.manifest, actual.manifest, Set.of(), i),
+                LuaHotReload.payload(baseline.manifest, expected.get(i).manifest, Set.of(), i));
             assertTrue(actual.manifest.functions().get(scalar).definition().contains("local " + table + " = ({})"));
         }
     }
