@@ -7,8 +7,9 @@ the independent correctness oracle while backend stages are migrated.
 The first scalar ownership slice is implemented under the restrictions in
 [LUA_HOT_RELOAD.md](LUA_HOT_RELOAD.md#first-incremental-backend-slice). It freezes a deliberately closed integer IM
 subset into immutable records and retains variable slots and emitted declaration frames. The next body-pipeline slice
-extends it to integer/boolean locals, assignments and control flow, with cold/lowered equality and conservative
-register-budget checks; it still admits only structure-preserving literal edits. It requires no generated
+extends it to integer/boolean locals, assignments and control flow, with cold/lowered equality. Register demotion
+and locals spilling now run on the owned function too, consuming the cold producer's frozen spill-table binding;
+it still admits only structure-preserving literal edits. It requires no generated
 schema changes: every other node kind is rejected by the eligibility check. It does not implement a general IM codec,
 persistent global dependency worklists, source-map relocations or incremental payload indexing. Those remain planned.
 

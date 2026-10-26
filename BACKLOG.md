@@ -265,8 +265,9 @@ Notes; finished-work narrative does not.
   whole-program work. The full incremental backend remains open, and compilation-stage timings do not establish
   save-to-applied latency.
   The owned-body subset now includes integer/boolean locals, assignments, branches and loops, preserving cold-emitter
-  names and shared statement/counted-loop emission. Calls, changed body structure, garbage-producing bodies and
-  functions requiring local spilling still take the batch path.
+  names and shared statement/counted-loop emission, register demotion and locals spilling. The generated spill-table
+  binding is a frozen producer-owned fact. Calls, changed body structure and garbage-producing bodies still take
+  the batch path.
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what

@@ -176,24 +176,91 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
     }
 
     @DataProvider(name = "localCounts")
-    public Object[][] localCounts() { return new Object[][] {{198, false, true}, {199, false, false}, {193, true, true}, {194, true, false}}; }
+    public Object[][] localCounts() { return new Object[][] {{198, false}, {199, false}, {193, true}, {194, true}, {220, true}}; }
 
-    @Test(dataProvider = "localCounts")
-    public void theLocalRegisterBoundaryUsesBatchWhenNeeded(int count, boolean counted, boolean incremental) throws Exception {
+    private static String largeBody(int count, boolean counted) {
         StringBuilder body = new StringBuilder();
         for (int i = 0; i < count; i++) body.append("    int v").append(i).append(" = x + 1\n");
         if (counted) body.append("    for i = 0 to 3\n        v0 = v0 + i\n");
         body.append("    return ").append(String.join(" + ", java.util.stream.IntStream.range(0, count).mapToObj(i -> "v" + i).toList())).append('\n');
-        Project project = withBody(project(0), body.toString());
+        return body.toString();
+    }
+
+    @Test(dataProvider = "localCounts")
+    public void theLocalRegisterBoundaryOnlyRecompilesItsOwner(int count, boolean counted) throws Exception {
+        Project project = withBody(project(0), largeBody(count, counted));
         new Probe(project.root, ARGS).compile(project.manager, project.script);
         edit(project, project.source.replace("v0 = x + 1", "v0 = x + 2"));
         Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
-        if (incremental) assertScalarWork(actual, project.manager);
-        else {
-            assertTrue(actual.work.copiedFunctions() > 1);
-            if (!counted) assertTrue(actual.script.contains("__wurst_locals"));
-        }
+        assertScalarWork(actual, project.manager);
+        String definition = actual.manifest.functions().get(functionName(actual.manifest, "scalar")).definition();
+        if (count >= 199) assertTrue(definition.contains("local __wurst_locals = ({})"), definition);
+        if (counted && count >= 194) assertTrue(definition.contains("while true do"), definition);
         assertSameOutput(actual, fresh(project, ARGS));
+    }
+
+    @Test(dataProvider = "sizes")
+    public void spillingAndNestedLoopDemotionSkipUnrelatedFunctions(int extraFunctions) throws Exception {
+        String body = largeBody(220, false).replace("    return ",
+            "    for i = 0 to 3\n        for j = 0 to 2\n            v0 = v0 + i * j\n    return ");
+        Project project = withBody(project(extraFunctions), body);
+        String changed = project.source.replace("v0 = x + 1", "v0 = x + 2");
+        Files.writeString(project.file, changed);
+        Output expected = fresh(project, ARGS);
+        Files.writeString(project.file, project.source);
+        Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        edit(project, changed);
+        Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertScalarWork(actual, project.manager);
+        assertSameOutput(actual, expected);
+        assertEquals(LuaHotReload.payload(baseline.manifest, actual.manifest, Set.of(), 1),
+            LuaHotReload.payload(baseline.manifest, expected.manifest, Set.of(), 1));
+    }
+
+    @DataProvider(name = "spillCollisions")
+    public Object[][] spillCollisions() { return new Object[][] {{false, false}, {true, false}, {false, true}, {true, true}}; }
+
+    @Test(dataProvider = "spillCollisions")
+    public void spillBindingsSurviveLocalAndGlobalNameCollisions(boolean local, boolean global) throws Exception {
+        String body = largeBody(220, true);
+        if (local) body = body.replace("v0", "__wurst_locals");
+        Project project = withBody(project(0), body);
+        String source = project.source;
+        if (global) source += "@extern native __wurst_locals() returns int\ninit\n    observe(__wurst_locals())\n";
+        edit(project, source);
+        Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        String scalar = functionName(baseline.manifest, "scalar");
+        int suffix = (local ? 1 : 0) + (global ? 1 : 0);
+        String table = "__wurst_locals" + (suffix == 0 ? "" : suffix);
+        assertTrue(baseline.manifest.functions().get(scalar).definition().contains("local " + table + " = ({})"),
+            baseline.manifest.functions().get(scalar).definition());
+        for (String value : List.of("2", "0", "1")) {
+            edit(project, source.replace((local ? "__wurst_locals" : "v0") + " = x + 1",
+                (local ? "__wurst_locals" : "v0") + " = x + " + value));
+            Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+            assertScalarWork(actual, project.manager);
+            assertSameOutput(actual, fresh(project, ARGS));
+            assertTrue(actual.manifest.functions().get(scalar).definition().contains("local " + table + " = ({})"));
+        }
+    }
+
+    @Test
+    public void loopRecognitionChangesKeepTheSpillFrameAndFreshOutput() throws Exception {
+        Project project = withBody(project(0), largeBody(220, true).replace("to 3", "to 3 step 2"));
+        List<String> states = List.of(project.source, project.source.replace("step 2", "step 0"),
+            project.source.replace("step 2", "step 1"), project.source);
+        List<Output> expected = new ArrayList<>();
+        for (String state : states) { Files.writeString(project.file, state); expected.add(fresh(project, ARGS)); }
+        Files.writeString(project.file, project.source);
+        Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        for (int i = 1; i < states.size(); i++) {
+            edit(project, states.get(i));
+            Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+            assertScalarWork(actual, project.manager);
+            assertSameOutput(actual, expected.get(i));
+            assertEquals(LuaHotReload.payload(baseline.manifest, actual.manifest, Set.of(), i),
+                LuaHotReload.payload(baseline.manifest, expected.get(i).manifest, Set.of(), i));
+        }
     }
 
     @Test
@@ -317,9 +384,12 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
         }
     }
 
-    @Test
-    public void aCancelledPrivateTaskKeepsTheEditedFunctionPending() throws Exception {
-        Project project = project(0);
+    @DataProvider(name = "cancelBodies")
+    public Object[][] cancelBodies() { return new Object[][] {{"    return x + 1\n"}, {largeBody(220, true)}}; }
+
+    @Test(dataProvider = "cancelBodies")
+    public void aCancelledPrivateTaskKeepsTheEditedFunctionPending(String body) throws Exception {
+        Project project = withBody(project(0), body);
         Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
         edit(project, project.source.replace("x + 1", "x + 2"));
         AtomicBoolean cancelled = new AtomicBoolean();
@@ -391,7 +461,11 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
         return new Object[][] {
             {"    return x + 1\n", "x + 1", "x + 2", "5\n6\n6\n15\n"},
             {"    int result = x + 1\n    if result > 3\n        return result * 3\n    return result - 1\n", "result * 3", "result * 4", "15\n20\n20\n15\n"},
-            {"    int result = x + 1\n    for i = 0 to 3\n        result = result + i\n    return result\n", "x + 1", "x + 2", "11\n12\n12\n15\n"}
+            {"    int result = x + 1\n    for i = 0 to 3\n        result = result + i\n    return result\n", "x + 1", "x + 2", "11\n12\n12\n15\n"},
+            {largeBody(220, true), "v0 = x + 1", "v0 = x + 2", "1106\n1107\n1107\n15\n"},
+            {largeBody(220, true).replace("    return ", "    if x > 0\n        int nested = 7\n        v0 = v0 + nested\n    return "),
+                "v0 = x + 1", "v0 = x + 2", "1113\n1114\n1114\n15\n"},
+            {largeBody(220, true).replace("v0", "__wurst_locals"), "__wurst_locals = x + 1", "__wurst_locals = x + 2", "1106\n1107\n1107\n15\n"}
         };
     }
 
@@ -450,7 +524,7 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
     @Test
     public void randomScalarEditChainsMatchIndependentBatchBuilds() throws Exception {
         int programs = Integer.parseInt(System.getenv().getOrDefault("WURST_FUZZ_PROGRAMS", "10"));
-        long seed = Long.parseLong(System.getenv().getOrDefault("WURST_FUZZ_SEED", "20261026001"));
+        long seed = Long.parseLong(System.getenv().getOrDefault("WURST_FUZZ_SEED", "20261026129"));
         Random random = new Random(seed);
         for (int program = 0; program < programs; program++) {
             Project project = project(0);
@@ -471,8 +545,14 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
                 case 1 -> "    for i = 0 to 3\n        result = result + i\n";
                 default -> "    if result < 0\n        return -result\n";
             };
-            body += "    return result\n";
+            int locals = 190 + random.nextInt(35);
+            StringBuilder prologue = new StringBuilder();
+            for (int i = 0; i < locals; i++) prologue.append("    int v").append(i).append(" = x + ").append(i % 10).append('\n');
+            body = prologue + body + "    result = result + "
+                + String.join(" + ", java.util.stream.IntStream.range(0, locals).mapToObj(i -> "v" + i).toList()) + "\n    return result\n";
+            if (random.nextBoolean()) body = body.replace("v0", "__wurst_locals");
             String template = baseSource.replace("    return x + 1\n", body);
+            if (random.nextBoolean()) template += "@extern native __wurst_locals() returns int\ninit\n    observe(__wurst_locals())\n";
             List<String> states = new ArrayList<>();
             List<Output> expected = new ArrayList<>();
             for (int edit = 0; edit < 4; edit++) {

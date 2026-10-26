@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
-    static final int LUA_LOCALS_LIMIT = 200;
+    private static final int LUA_LOCALS_LIMIT = 200;
     private static final int LUA_STORAGE_ALIAS_LOCAL_BUDGET = 190;
     private static final int LUA_STORAGE_ALIAS_LIMIT = 16;
     private static final List<String> HASHTABLE_HANDLE_SAVE_NAMES = Arrays.asList(
@@ -488,11 +488,13 @@ public class LuaTranslator {
     private final Map<LuaFunction, ImFunction> imFunctionOf = new IdentityHashMap<>();
 
     /** Frozen declaration bindings; the scalar body cannot introduce another name or capture. */
-    record FunctionFrame(String name, List<String> parameters, List<String> locals) {
+    record FunctionFrame(String name, List<String> parameters, List<String> locals, @Nullable String localsTable) {
         public FunctionFrame { parameters = List.copyOf(parameters); locals = List.copyOf(locals); }
     }
     private final Map<ImVar, String> boundVariableNames = new IdentityHashMap<>();
     private final Map<ImFunction, FunctionFrame> boundFunctionFrames = new IdentityHashMap<>();
+    /** Generated spill-table binding, recorded by its producer rather than recovered from printed names. */
+    private final Map<ImFunction, String> scalarLocalsTables = new IdentityHashMap<>();
     private @Nullable LuaStatement hotReloadAbiStatement;
 
     @Nullable LuaStatement hotReloadAbiStatement() { return hotReloadAbiStatement; }
@@ -503,7 +505,7 @@ public class LuaTranslator {
 
     FunctionFrame scalarFrame(LuaFunction emitted, ImFunction function) {
         return new FunctionFrame(emitted.getName(), emitted.getParams().stream().map(LuaVariable::getName).toList(),
-            function.getLocals().stream().map(v -> luaVar.getFor(v).getName()).toList());
+            function.getLocals().stream().map(v -> luaVar.getFor(v).getName()).toList(), scalarLocalsTables.get(function));
     }
 
     static String emitOwnedScalar(ImFunction function, FunctionFrame frame, ImTranslator context) {
@@ -518,9 +520,13 @@ public class LuaTranslator {
             emitter.boundVariableNames.put(function.getLocals().get(i), frame.locals().get(i));
         }
         emitter.translateFunc(function);
-        // Same producer as batch compilation. Eligibility bounds all locals, including numeric-for registers,
-        // below the limit, and admits no storage accesses for localisation or helper-generated temporaries.
+        // Each visitor sees only this private function. Storage localisation is identity on the closed subset.
         emitter.cleanStatements();
+        emitter.demoteForLoopsOverLocalLimit();
+        emitter.enforceLuaLocalLimits();
+        if (!Objects.equals(frame.localsTable(), emitter.scalarLocalsTables.get(function))) {
+            throw new IllegalStateException("Scalar spill-table demand changed");
+        }
         StringBuilder definition = new StringBuilder();
         emitter.luaFunc.getFor(function).print(definition, 0);
         return definition.toString();
@@ -1661,8 +1667,15 @@ public class LuaTranslator {
 
         LuaVariable localsTable = findTopLevelLocalsTable(body);
         if (localsTable == null) {
-            localsTable = LuaAst.LuaVariable(localName(scopeOf(owner), "__wurst_locals"),
+            Object scope = scopeOf(owner);
+            FunctionFrame bound = scope instanceof ImFunction function ? boundFunctionFrames.get(function) : null;
+            String tableName = bound == null ? localName(scope, "__wurst_locals")
+                : Objects.requireNonNull(bound.localsTable(), "Scalar spill-table binding missing");
+            localsTable = LuaAst.LuaVariable(tableName,
                 LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        }
+        if (hotReload && scopeOf(owner) instanceof ImFunction function) {
+            scalarLocalsTables.put(function, localsTable.getName());
         }
         // Must be declared before any rewritten uses; otherwise accesses become global lookups.
         if (!body.isEmpty() && body.get(0) != localsTable) {
