@@ -116,8 +116,6 @@ record ScalarFunctionArtifact(String imName, List<Variable> parameters, List<Var
         List<Variable> parameters = freezeVariables(function.getParameters(), slots);
         List<Variable> locals = freezeVariables(function.getLocals(), slots);
         if (parameters == null || locals == null) return null;
-        // Every loop could become a numeric for. Reserve all four registers even for non-counted loops.
-        if (slots.size() + 4L * countLoops(function.getBody()) >= LuaTranslator.LUA_LOCALS_LIMIT) return null;
         List<Statement> body = freezeBlock(function.getBody(), slots);
         return body == null ? null : new ScalarFunctionArtifact(function.getName(), parameters, locals, body);
     }
@@ -131,12 +129,6 @@ record ScalarFunctionArtifact(String imName, List<Variable> parameters, List<Var
             result.add(new Variable(variable.getName(), type));
         }
         return result;
-    }
-
-    private static long countLoops(de.peeeq.wurstscript.jassIm.Element element) {
-        long count = element instanceof ImLoop ? 1 : 0;
-        for (int i = 0; i < element.size(); i++) count += countLoops(element.get(i));
-        return count;
     }
 
     private static @Nullable List<Statement> freezeBlock(ImStmts statements, Map<ImVar, Integer> slots) {

@@ -52,9 +52,11 @@ the general path automatically.
 Cold capture independently lowers each eligible frozen source body with the shared body passes and requires equality
 with the batch-lowered body: a function whose unused locals or assignments were removed is not admitted. This admission
 work runs only when seeding a batch snapshot. A literal edit preserves these read/write facts. Parameters and locals
-retain the names assigned by the cold emitter, and the private task uses the same statement cleanup and counted-loop producer as batch
-compilation. Eligibility reserves four registers for every loop and rejects bodies reaching the Lua local limit;
-functions needing spilling or loop demotion use the full backend.
+retain the names assigned by the cold emitter. The private task uses the same statement cleanup, counted-loop
+producer, register-limit demotion and locals-table spilling as batch compilation, visiting only its owned function.
+The cold spilling producer records the generated table's binding in the frozen frame, including local/global name
+collisions; the private task consumes that binding directly. Numeric spill slots and nested initialisations retain
+their existing representation. Large scalar functions are eligible without a separate register-budget restriction.
 
 The slice excludes requests with compile-time execution, stack traces, inlining, optimisations, tests or object/import
 processing. It introduces no setting and changes no emitted runtime representation. The private task uses the existing
