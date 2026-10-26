@@ -109,6 +109,7 @@ def main():
             shutil.copytree(source, project / name)
         else:
             shutil.copy2(source, project / name)
+    (project / '_build/dependencies').mkdir(parents=True)
     for dependency in sorted(dependencies.iterdir()):
         if dependency.is_dir():
             shutil.copytree(overrides.get(dependency.name, dependency), project / '_build/dependencies' / dependency.name,
