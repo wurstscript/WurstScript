@@ -36,7 +36,7 @@ compilation cannot change the retained input; cleaning the editor model releases
 from scratch. There is one compilation mode; cache invalidation is automatic.
 
 This reduces frontend work but retains another IM program in memory, and a rebuild also pays for the private copy.
-The backend and manifest still process the whole program. See [RUNMAP_PERFORMANCE.md](RUNMAP_PERFORMANCE.md) for
+Unsupported backend edits still lower and emit the whole program; the supported slices below reuse function artifacts. See [RUNMAP_PERFORMANCE.md](RUNMAP_PERFORMANCE.md) for
 measurements and the remaining work.
 
 ### First incremental backend slice
@@ -71,6 +71,31 @@ Castle Fight or Zombie Defense with their normal compile-time/stack-trace option
 
 The source/frontend eligibility scans, full-script assembly/write, ABI hashing and payload comparison are still
 whole-program work. The remaining design and acceptance gates are in [INCREMENTAL_BACKEND.md](INCREMENTAL_BACKEND.md).
+
+### Ordinary functions after fresh compile-time execution
+
+A second slice uses the generator's owned graph snapshots and symbolic operands. It runs after this request's fresh
+compile-time evaluation and object injection. Eligible functions use primitive/void signatures, primitive locals or
+arrays, ordinary calls, global storage, array access, branches and loops. Ordinary annotations and preserved names
+retain the cold emitter's bindings. Changing a literal can lower and emit only its owning function; unchanged callers
+continue to call the replaced global function without being regenerated. Cold admission requires exact lowered-body
+and emitted-definition agreement with the batch compiler.
+
+The slice validates declaration metadata, non-admitted bodies, admitted body shapes and fresh compile-time products
+before reuse. Cache hits freeze/materialise only changed admitted bodies; unchanged snapshots remain detached.
+Entry points, package initialisers and compile-time replay metadata retain their batch-owned manifest products.
+A frontend rebuild invalidates it. Calls must retain their targets and ABI; class operations, generic
+bodies, varargs, helper-dependent arithmetic (integer division and modulo), structural edits, stack traces and
+optimisations remain on the batch path. A native call requiring a rewritten wrapper is admitted only when cold
+lowering leaves the body identical. No new user setting or runtime indirection is introduced.
+
+`IncrementalSymbolBackendTests` proves one runtime function lowered/emitted with 1,000 unrelated live functions,
+multiple changed owners, zero-work no-op requests, unchanged caller identity in stock Lua, cancellation/retry and
+fresh compile-time execution. Complete Lua, manifests and payloads are compared with independent fresh builds.
+Counters distinguish compile-time and runtime lowering. The private full-graph copy for compile-time evaluation,
+whole-program receipt validation, output assembly/write, ABI hashing and payload comparison remain measurable work;
+this is not completion of the fully incremental design. Real-map probes and timings are recorded in
+[MAP_COMMIT_REPLAY.md](MAP_COMMIT_REPLAY.md).
 
 ### Names from identities
 

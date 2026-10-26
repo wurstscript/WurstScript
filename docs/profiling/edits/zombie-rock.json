@@ -1,0 +1,5 @@
+{
+  "file": "wurst/biomes/RockField.wurst",
+  "before": "GetRandomReal(0., 1.) < chance",
+  "after": "GetRandomReal(0., 2.) < chance"
+}

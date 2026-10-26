@@ -266,6 +266,13 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
 
             if (runArgs.isLua()) {
+                gui.sendProgress("Preparing Lua backend");
+                CompilationCancellation.check();
+                var incremental = timeTaker.measure("Incremental symbol backend", compiler::tryIncrementalSymbolBackend);
+                if (incremental != null) {
+                    CompilationCancellation.check();
+                    return writeLuaOutput(incremental.script(), incremental.manifest(), runArgs);
+                }
                 print("Translating program to Lua ... ");
                 Optional<LuaCompilationUnit> luaCode = Optional.ofNullable(
                     timeTaker.measure("Transform program to Lua", compiler::transformProgToLua));

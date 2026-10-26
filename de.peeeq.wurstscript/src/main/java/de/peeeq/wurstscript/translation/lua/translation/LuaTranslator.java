@@ -90,6 +90,7 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    private Set<String> boundDeclarationNames = Set.of();
     /**
      * The names of the locals of every function in a hot-reload build, which {@link #uniqueName} avoids: a global named
      * after a local of the same name (a helper made when a body first needs it) would be shadowed in that body.
@@ -221,6 +222,8 @@ public class LuaTranslator {
             FunctionFrame bound = boundFunctionFrames.get(a);
             if (bound != null) {
                 name = bound.name();
+            } else if (boundFunctionNames.containsKey(a)) {
+                name = boundFunctionNames.get(a);
             } else if (!a.isExtern() && !a.isBj() && !a.isNative()
                 && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
                 name = declarationName(name, LuaHotReload.functionId(a));
@@ -493,6 +496,7 @@ public class LuaTranslator {
     }
     private final Map<ImVar, String> boundVariableNames = new IdentityHashMap<>();
     private final Map<ImFunction, FunctionFrame> boundFunctionFrames = new IdentityHashMap<>();
+    private final Map<ImFunction, String> boundFunctionNames = new IdentityHashMap<>();
     /** Generated spill-table binding, recorded by its producer rather than recovered from printed names. */
     private final Map<ImFunction, String> scalarLocalsTables = new IdentityHashMap<>();
     private @Nullable LuaStatement hotReloadAbiStatement;
@@ -501,6 +505,7 @@ public class LuaTranslator {
     void setHotReloadAbiStatement(LuaStatement statement) { hotReloadAbiStatement = statement; }
 
     Map<LuaFunction, ImFunction> translatedFunctions() { return Collections.unmodifiableMap(hotReloadFunctions); }
+    Set<String> occupiedDeclarationNames() { return Set.copyOf(usedNames); }
     LuaCompilationUnit translatedModel() { return luaModel; }
 
     FunctionFrame scalarFrame(LuaFunction emitted, ImFunction function) {
@@ -509,7 +514,31 @@ public class LuaTranslator {
     }
 
     static String emitOwnedScalar(ImFunction function, FunctionFrame frame, ImTranslator context) {
+        return emitOwnedFunction(function, frame, context, Map.of(), Map.of(), Set.of());
+    }
+
+    Map<Integer, String> functionBindings(ImBackendInput input) {
+        Map<Integer, String> bindings = new LinkedHashMap<>();
+        input.externalDeclarations().forEach((id, node) -> {
+            if (node instanceof ImFunction function) bindings.put(id, luaFunc.getFor(function).getName());
+        });
+        return Map.copyOf(bindings);
+    }
+
+    Map<Integer, String> variableBindings(ImBackendInput input) {
+        Map<Integer, String> bindings = new LinkedHashMap<>();
+        input.externalDeclarations().forEach((id, node) -> {
+            if (node instanceof ImVar variable && variable.getParent() != null && variable.isGlobal()) bindings.put(id, luaVar.getFor(variable).getName());
+        });
+        return Map.copyOf(bindings);
+    }
+
+    static String emitOwnedFunction(ImFunction function, FunctionFrame frame, ImTranslator context,
+                                   Map<ImFunction, String> functions, Map<ImVar, String> variables, Set<String> declarationNames) {
         LuaTranslator emitter = new LuaTranslator(context.imProg(), context);
+        emitter.boundFunctionNames.putAll(functions);
+        emitter.boundVariableNames.putAll(variables);
+        emitter.boundDeclarationNames = declarationNames;
         emitter.boundFunctionFrames.put(function, frame);
         if (function.getParameters().size() != frame.parameters().size()) throw new IllegalArgumentException("Scalar ABI changed");
         for (int i = 0; i < frame.parameters().size(); i++) {
@@ -544,7 +573,7 @@ public class LuaTranslator {
         String name = LuaIdentifiers.toIdentifier(rawName);
         Set<String> used = localNamesByScope.computeIfAbsent(scope, k -> new HashSet<>());
         String candidate = name;
-        for (int i = 1; usedNames.contains(candidate) || used.contains(candidate); i++) {
+        for (int i = 1; boundDeclarationNames.contains(candidate) || usedNames.contains(candidate) || used.contains(candidate); i++) {
             candidate = name + i;
         }
         used.add(candidate);
@@ -571,7 +600,7 @@ public class LuaTranslator {
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);
-            if (!localNames.contains(name) && usedNames.add(name)) {
+            if (!boundDeclarationNames.contains(name) && !localNames.contains(name) && usedNames.add(name)) {
                 return name;
             }
             nextIndex = 1;
@@ -580,7 +609,7 @@ public class LuaTranslator {
         do {
             candidate = name + nextIndex;
             nextIndex++;
-        } while (localNames.contains(candidate) || !usedNames.add(candidate));
+        } while (boundDeclarationNames.contains(candidate) || localNames.contains(candidate) || !usedNames.add(candidate));
         uniqueNameCounters.put(name, nextIndex);
         return candidate;
     }

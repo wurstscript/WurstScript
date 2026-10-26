@@ -11,9 +11,23 @@ public final class BackendWork implements AutoCloseable {
     private final Set<ImFunction> copied = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<ImFunction> lowered = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<ImFunction> emitted = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImFunction> compiletimeLowered = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImFunction> runtimeLowered = Collections.newSetFromMap(new IdentityHashMap<>());
+    private int compiletimeDepth;
     private long copiedNodes;
 
-    public record Snapshot(int copiedFunctions, long copiedNodes, int loweredFunctions, int emittedFunctions) { }
+    public record Snapshot(int copiedFunctions, long copiedNodes, int loweredFunctions, int emittedFunctions,
+                           int compiletimeLoweredFunctions, int runtimeLoweredFunctions) {
+        public Snapshot(int copiedFunctions, long copiedNodes, int loweredFunctions, int emittedFunctions) {
+            this(copiedFunctions, copiedNodes, loweredFunctions, emittedFunctions, 0, loweredFunctions);
+        }
+    }
+    public static final class Phase implements AutoCloseable {
+        private final BackendWork work = ACTIVE.get();
+        private Phase() { if (work != null) work.compiletimeDepth++; }
+        public void close() { if (work != null) work.compiletimeDepth--; }
+    }
+    public static Phase compiletime() { return new Phase(); }
 
     private BackendWork() { }
 
@@ -24,7 +38,9 @@ public final class BackendWork implements AutoCloseable {
         return work;
     }
 
-    public Snapshot snapshot() { return new Snapshot(copied.size(), copiedNodes, lowered.size(), emitted.size()); }
+    public Snapshot snapshot() {
+        return new Snapshot(copied.size(), copiedNodes, lowered.size(), emitted.size(), compiletimeLowered.size(), runtimeLowered.size());
+    }
 
     public static void copied(Element node) {
         BackendWork work = ACTIVE.get();
@@ -36,7 +52,10 @@ public final class BackendWork implements AutoCloseable {
 
     public static void lowered(ImFunction function) {
         BackendWork work = ACTIVE.get();
-        if (work != null) work.lowered.add(function);
+        if (work != null) {
+            work.lowered.add(function);
+            (work.compiletimeDepth > 0 ? work.compiletimeLowered : work.runtimeLowered).add(function);
+        }
     }
 
     public static void emitted(ImFunction function) {

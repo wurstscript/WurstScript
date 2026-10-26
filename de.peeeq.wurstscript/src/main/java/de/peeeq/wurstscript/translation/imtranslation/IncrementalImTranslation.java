@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.translation.lua.translation.ScalarLuaBackend;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
+import de.peeeq.wurstscript.translation.lua.translation.SymbolLuaBackend;
 import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 
@@ -16,8 +17,10 @@ public final class IncrementalImTranslation {
     private int reused, translated, frontendBuilds;
     private String rebuildReason = "first compilation";
     private final ScalarLuaBackend scalarBackend = new ScalarLuaBackend();
+    private final SymbolLuaBackend symbolBackend = new SymbolLuaBackend();
+    public SymbolLuaBackend symbolBackend() { return symbolBackend; }
     private long revision;
-    public String scalarBackendReason() { return scalarBackend.reason(); }
+    public String scalarBackendReason() { return scalarBackend.reason() + "; " + symbolBackend.reason(); }
 
     /** Opaque preparation token: the retained frontend is never handed to a mutable backend consumer. */
     public static final class Prepared {
@@ -38,6 +41,7 @@ public final class IncrementalImTranslation {
 
     public void clear() {
         scalarBackend.clear();
+        symbolBackend.clear();
         revision++;
         frontend = null;
         modelUnits = selectedUnits = List.of();
@@ -76,6 +80,7 @@ public final class IncrementalImTranslation {
             }
             if (reason != null) {
                 scalarBackend.clear();
+                symbolBackend.clear();
                 frontend = new ImTranslator(model, unitTest, args, units);
                 frontend.translateProg();
                 frontendBuilds++;
@@ -92,6 +97,7 @@ public final class IncrementalImTranslation {
             bodies.clear();
             bodies.putAll(current);
             scalarBackend.sourcePrepared();
+            symbolBackend.sourcePrepared();
             return new Prepared(Objects.requireNonNull(frontend), ++revision);
         } catch (RuntimeException | Error failure) {
             clear();
@@ -116,6 +122,11 @@ public final class IncrementalImTranslation {
     public ScalarLuaBackend.@Nullable Pending tryScalarBackend(Prepared prepared, RunArgs args) {
         requireCurrent(prepared);
         return scalarBackend.prepare(selectedUnits, prepared.frontend::sourceFunctions, args);
+    }
+
+    public SymbolLuaBackend.@Nullable Result trySymbolBackend(Prepared prepared, ImTranslator request, RunArgs args) {
+        requireCurrent(prepared);
+        return symbolBackend.prepare(request.imProg(), request, args);
     }
 
     public void rememberLuaOutput(Prepared prepared, LuaTranslator translated, RunArgs args) {

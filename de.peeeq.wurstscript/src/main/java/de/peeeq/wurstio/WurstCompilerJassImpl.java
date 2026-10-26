@@ -132,7 +132,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             gui.sendProgress("Running compiletime functions");
             timeTaker.beginPhase("run compiletime functions");
             // Use try-with-resources to release open native resources (e.g., SQLite DB handles) after compiletime execution finishes.
-            try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
+            try (var compiletimeWork = de.peeeq.wurstscript.translation.BackendWork.compiletime();
+                 CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
                 CompiletimeFunctions, projectConfigData, isProd, cache)) {
                 ctr.setInjectObjects(runArgs.isInjectObjects());
                 ctr.getGlobalState().setExportW3o(runArgs.isExportW3o());
@@ -724,7 +725,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     public void rememberIncrementalLuaOutput() {
         if (incrementalImTranslation != null && preparedIncrementalTranslation != null && luaTranslator != null) {
             incrementalImTranslation.rememberLuaOutput(preparedIncrementalTranslation, luaTranslator, runArgs);
+            incrementalImTranslation.symbolBackend().remember(luaTranslator, runArgs);
         }
+    }
+
+    public de.peeeq.wurstscript.translation.lua.translation.SymbolLuaBackend.@Nullable Result tryIncrementalSymbolBackend() {
+        return incrementalImTranslation == null || preparedIncrementalTranslation == null ? null
+            : incrementalImTranslation.trySymbolBackend(preparedIncrementalTranslation, getImTranslator(), runArgs);
     }
 
     /** Translate a compilation view without removing units from the checked editor model. */
