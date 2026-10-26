@@ -135,8 +135,8 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.1"
 
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
-    compileOnly 'com.github.wurstscript:abstractsyntaxgen:aa65feb1e6'
-    astgen 'com.github.wurstscript:abstractsyntaxgen:aa65feb1e6'
+    compileOnly 'com.github.wurstscript:abstractsyntaxgen:f9f4da9dbd'
+    astgen 'com.github.wurstscript:abstractsyntaxgen:f9f4da9dbd'
 
 
     // Tests

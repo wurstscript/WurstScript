@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.jassIm
 
 modification counts: ImFunction
+metadata adapter: de.peeeq.wurstscript.translation.imtranslation.ImMetadataAdapter
 
 abstract syntax:
 	
