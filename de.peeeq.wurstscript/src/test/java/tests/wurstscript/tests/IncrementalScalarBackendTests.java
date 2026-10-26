@@ -7,6 +7,11 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.translation.BackendWork;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.CompilationCancellation;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -106,6 +111,139 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
         ModelManagerImpl manager = new ModelManagerImpl(project.root.toFile(), new BufferManager());
         manager.buildProject();
         return new Probe(project.root, args).compile(manager, project.script);
+    }
+
+    private static Project withBody(Project project, String body) throws Exception {
+        String source = project.source.replace("    return x + 1\n", body);
+        edit(project, source);
+        return new Project(project.root, project.file, project.script, source, project.manager);
+    }
+
+    @Test(dataProvider = "sizes")
+    public void localAssignmentsBranchesAndLoopsOnlyRecompileTheirOwner(int extraFunctions) throws Exception {
+        Project project = withBody(project(extraFunctions),
+            "    int result = x + 1\n"
+            + "    bool positive = result > 0\n"
+            + "    if positive and x != 0\n"
+            + "        result = result * 3\n"
+            + "    else\n"
+            + "        result = result - 2\n"
+            + "    while result < 9\n"
+            + "        result = result + 1\n"
+            + "    return result\n");
+        String changed = project.source.replace("result * 3", "result * 4");
+        Files.writeString(project.file, changed);
+        Output expected = fresh(project, ARGS);
+        Files.writeString(project.file, project.source);
+        Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        edit(project, changed);
+        Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertScalarWork(actual, project.manager);
+        assertSameOutput(actual, expected);
+        assertEquals(LuaHotReload.payload(baseline.manifest, actual.manifest, Set.of(), 1),
+            LuaHotReload.payload(baseline.manifest, expected.manifest, Set.of(), 1));
+    }
+
+    @DataProvider(name = "controlBodies")
+    public Object[][] controlBodies() {
+        return new Object[][] {
+            {"    int result = x + 1\n    for i = 0 to 4\n        result = result + i\n    return result\n"},
+            {"    int result = x + 1\n    for i = 3 downto 0\n        for j = 0 to 2\n            result = result + i * j\n    return result\n"},
+            {"    int result = x + 1\n    if result < 0\n        return -result\n    else\n        if result > 5\n            return result * 2\n    return result\n"},
+            {"    int local = x + 1\n    int local_ = local * 2\n    bool flag = not (local_ <= 0) or x >= 3\n    if flag\n        local_ = local_ - 1\n    return local_\n"},
+            {"    int result = x + 1\n    int count = 4\n    while count > 0\n        if count == 2\n            break\n        result = result + count\n        count = count - 1\n    return result\n"},
+            {"    bool flag = true\n    int result = x + 1\n    if flag\n        result = result + 2\n    return result\n"}
+        };
+    }
+
+    @Test(dataProvider = "controlBodies")
+    public void controlFlowEditChainsAndRevertsMatchBatch(String body) throws Exception {
+        Project project = withBody(project(0), body);
+        List<String> states = List.of(project.source, project.source.replace("x + 1", "x + 2"),
+            project.source.replace("x + 1", "x + 0"), project.source);
+        List<Output> expected = new ArrayList<>();
+        for (String state : states) { Files.writeString(project.file, state); expected.add(fresh(project, ARGS)); }
+        Files.writeString(project.file, project.source);
+        Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        for (int i = 1; i < states.size(); i++) {
+            edit(project, states.get(i));
+            Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+            assertScalarWork(actual, project.manager);
+            assertSameOutput(actual, expected.get(i));
+            assertEquals(LuaHotReload.payload(baseline.manifest, actual.manifest, Set.of(), i),
+                LuaHotReload.payload(baseline.manifest, expected.get(i).manifest, Set.of(), i));
+        }
+    }
+
+    @DataProvider(name = "localCounts")
+    public Object[][] localCounts() { return new Object[][] {{198, false, true}, {199, false, false}, {193, true, true}, {194, true, false}}; }
+
+    @Test(dataProvider = "localCounts")
+    public void theLocalRegisterBoundaryUsesBatchWhenNeeded(int count, boolean counted, boolean incremental) throws Exception {
+        StringBuilder body = new StringBuilder();
+        for (int i = 0; i < count; i++) body.append("    int v").append(i).append(" = x + 1\n");
+        if (counted) body.append("    for i = 0 to 3\n        v0 = v0 + i\n");
+        body.append("    return ").append(String.join(" + ", java.util.stream.IntStream.range(0, count).mapToObj(i -> "v" + i).toList())).append('\n');
+        Project project = withBody(project(0), body.toString());
+        new Probe(project.root, ARGS).compile(project.manager, project.script);
+        edit(project, project.source.replace("v0 = x + 1", "v0 = x + 2"));
+        Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        if (incremental) assertScalarWork(actual, project.manager);
+        else {
+            assertTrue(actual.work.copiedFunctions() > 1);
+            if (!counted) assertTrue(actual.script.contains("__wurst_locals"));
+        }
+        assertSameOutput(actual, fresh(project, ARGS));
+    }
+
+    @Test
+    public void booleanParametersKeepTheirColdDeclarationBindings() throws Exception {
+        Project project = project(0);
+        String source = project.source.replace("    return x + 1\n", "    if flag\n        return x + 1\n    return -x\n")
+            .replace("scalar(int x)", "scalar(int x, bool flag)").replace("scalar(x)", "scalar(x, x > 0)");
+        // Install the complete declaration before checking the body that refers to the new parameter.
+        Files.writeString(project.file, source);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.file), source));
+        assertFalse(project.manager.hasErrors(), project.manager.getFirstErrorDescription());
+        new Probe(project.root, ARGS).compile(project.manager, project.script);
+        edit(project, source.replace("x + 1", "x + 2"));
+        Output actual = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertScalarWork(actual, project.manager);
+        assertSameOutput(actual, fresh(project, ARGS));
+    }
+
+    @Test
+    public void unreadLocalsUseBatchBeforeReuseRecovers() throws Exception {
+        Project project = withBody(project(0), "    int unused = x + 1\n    return x * 3\n");
+        new Probe(project.root, ARGS).compile(project.manager, project.script);
+        edit(project, project.source.replace("x + 1", "x + 2"));
+        Output unused = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertTrue(unused.work.copiedFunctions() > 1);
+        assertSameOutput(unused, fresh(project, ARGS));
+        String used = project.source.replace("    int unused = x + 1\n    return x * 3\n", "    int result = x + 1\n    return result\n");
+        edit(project, used);
+        Output rebound = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertTrue(rebound.work.copiedFunctions() > 1);
+        assertSameOutput(rebound, fresh(project, ARGS));
+        edit(project, used.replace("x + 1", "x + 2"));
+        Output warm = new Probe(project.root, ARGS).compile(project.manager, project.script);
+        assertScalarWork(warm, project.manager);
+        assertSameOutput(warm, fresh(project, ARGS));
+    }
+
+    @Test
+    public void oneFunctionTypeLoweringKeepsMutableTypesOwned() {
+        var trace = Ast.NoExpr();
+        var first = JassIm.ImFunction(trace, "first", JassIm.ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt().copy(),
+            JassIm.ImVars(JassIm.ImVar(trace, TypesHelper.imInt().copy(), "a", false)), JassIm.ImStmts(), new ArrayList<>());
+        var second = first.copy();
+        EliminateLocalTypes.eliminateLocalTypesFunc(first);
+        EliminateLocalTypes.eliminateLocalTypesFunc(second);
+        ImSimpleType type = (ImSimpleType) first.getLocals().get(0).getType();
+        assertNotSame(type, second.getLocals().get(0).getType());
+        type.setTypename("changed scratch type");
+        assertTrue(EliminateLocalTypes.isIntegerOrLocalInteger(second.getLocals().get(0).getType()));
+        assertTrue(EliminateLocalTypes.isIntegerOrLocalInteger(EliminateLocalTypes.localTypeFor(TypesHelper.imInt())));
     }
 
     private static void assertSameOutput(Output actual, Output expected) {
@@ -248,11 +386,20 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
         assertSameOutput(changed, fresh(project, ARGS));
     }
 
-    @Test
-    public void anIncrementalPayloadUpdatesTheFunctionAndItsUnchangedCallerInLua() throws Exception {
-        Project project = project(0);
+    @DataProvider(name = "runtimeBodies")
+    public Object[][] runtimeBodies() {
+        return new Object[][] {
+            {"    return x + 1\n", "x + 1", "x + 2", "5\n6\n6\n15\n"},
+            {"    int result = x + 1\n    if result > 3\n        return result * 3\n    return result - 1\n", "result * 3", "result * 4", "15\n20\n20\n15\n"},
+            {"    int result = x + 1\n    for i = 0 to 3\n        result = result + i\n    return result\n", "x + 1", "x + 2", "11\n12\n12\n15\n"}
+        };
+    }
+
+    @Test(dataProvider = "runtimeBodies")
+    public void anIncrementalPayloadUpdatesTheFunctionAndItsUnchangedCallerInLua(String body, String before, String after, String expected) throws Exception {
+        Project project = withBody(project(0), body);
         Output baseline = new Probe(project.root, ARGS).compile(project.manager, project.script);
-        edit(project, project.source.replace("x + 1", "x + 2"));
+        edit(project, project.source.replace(before, after));
         Output edited = new Probe(project.root, ARGS).compile(project.manager, project.script);
         assertScalarWork(edited, project.manager);
         String scalar = functionName(baseline.manifest, "scalar");
@@ -271,7 +418,7 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
             assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Lua payload execution timed out");
             String output = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             assertEquals(process.exitValue(), 0, output);
-            assertEquals(output.replace("\r\n", "\n"), "5\n6\n6\n15\n");
+            assertEquals(output.replace("\r\n", "\n"), expected);
         } finally {
             if (process.isAlive()) {
                 process.destroyForcibly();
@@ -303,7 +450,7 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
     @Test
     public void randomScalarEditChainsMatchIndependentBatchBuilds() throws Exception {
         int programs = Integer.parseInt(System.getenv().getOrDefault("WURST_FUZZ_PROGRAMS", "10"));
-        long seed = Long.parseLong(System.getenv().getOrDefault("WURST_FUZZ_SEED", "20261025399"));
+        long seed = Long.parseLong(System.getenv().getOrDefault("WURST_FUZZ_SEED", "20261026001"));
         Random random = new Random(seed);
         for (int program = 0; program < programs; program++) {
             Project project = project(0);
@@ -316,10 +463,20 @@ public class IncrementalScalarBackendTests extends WurstScriptTest {
                 String operator = List.of(" + ", " - ", " * ").get(random.nextInt(3));
                 expression = random.nextBoolean() ? "(" + expression + operator + other + ")" : "(" + other + operator + expression + ")";
             }
+            String condition = "x " + List.of("<", ">", "==", "!=", "<=", ">=").get(random.nextInt(6)) + " y";
+            String body = "    int result = " + expression + "\n    bool choose = " + condition + "\n"
+                + "    if choose and not (x == 0)\n        result = result * 2\n    else\n        result = result - 3\n";
+            body += switch (random.nextInt(3)) {
+                case 0 -> "    int count = 3\n    while count > 0\n        result = result + count\n        count = count - 1\n";
+                case 1 -> "    for i = 0 to 3\n        result = result + i\n";
+                default -> "    if result < 0\n        return -result\n";
+            };
+            body += "    return result\n";
+            String template = baseSource.replace("    return x + 1\n", body);
             List<String> states = new ArrayList<>();
             List<Output> expected = new ArrayList<>();
             for (int edit = 0; edit < 4; edit++) {
-                String source = baseSource.replace("x + 1", expression.replace("#", Integer.toString((edit + program) % 10)));
+                String source = template.replace("#", Integer.toString((edit + program) % 10));
                 states.add(source);
                 Files.writeString(project.file, source);
                 expected.add(fresh(project, ARGS));

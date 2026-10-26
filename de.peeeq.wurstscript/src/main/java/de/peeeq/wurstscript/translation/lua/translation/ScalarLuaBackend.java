@@ -78,11 +78,11 @@ public final class ScalarLuaBackend {
             if (!(entry.getValue().getTrace() instanceof FuncDef source)) continue;
             ImFunction original = sourceFunctions.get(source);
             ScalarFunctionArtifact body = original == null ? null : ScalarFunctionArtifact.freeze(original);
-            if (body == null || !body.equals(ScalarFunctionArtifact.freeze(entry.getValue()))
+            ScalarFunctionArtifact lowered = body == null ? null : body.loweredArtifact(args);
+            if (lowered == null || !lowered.equals(ScalarFunctionArtifact.freeze(entry.getValue()))
                 || !manifest.functions().containsKey(entry.getKey().getName())) continue;
             Symbol symbol = sourceIndex.get(source);
-            functions.put(symbol, new Artifact(body, new LuaTranslator.FunctionFrame(entry.getKey().getName(),
-                entry.getKey().getParams().stream().map(p -> p.getName()).toList())));
+            functions.put(symbol, new Artifact(body, translated.scalarFrame(entry.getKey(), entry.getValue())));
             owners.put(entry.getKey(), symbol);
         }
         List<Fragment> fragments = new ArrayList<>();

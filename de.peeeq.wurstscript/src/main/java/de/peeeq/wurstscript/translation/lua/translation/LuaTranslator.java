@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
-    private static final int LUA_LOCALS_LIMIT = 200;
+    static final int LUA_LOCALS_LIMIT = 200;
     private static final int LUA_STORAGE_ALIAS_LOCAL_BUDGET = 190;
     private static final int LUA_STORAGE_ALIAS_LIMIT = 16;
     private static final List<String> HASHTABLE_HANDLE_SAVE_NAMES = Arrays.asList(
@@ -187,7 +187,7 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
-            String bound = boundParameterNames.get(a);
+            String bound = boundVariableNames.get(a);
             if (bound != null) return LuaAst.LuaVariable(bound, LuaAst.LuaNoExpr());
             String name = a.getName();
             if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
@@ -488,10 +488,10 @@ public class LuaTranslator {
     private final Map<LuaFunction, ImFunction> imFunctionOf = new IdentityHashMap<>();
 
     /** Frozen declaration bindings; the scalar body cannot introduce another name or capture. */
-    record FunctionFrame(String name, List<String> parameters) {
-        public FunctionFrame { parameters = List.copyOf(parameters); }
+    record FunctionFrame(String name, List<String> parameters, List<String> locals) {
+        public FunctionFrame { parameters = List.copyOf(parameters); locals = List.copyOf(locals); }
     }
-    private final Map<ImVar, String> boundParameterNames = new IdentityHashMap<>();
+    private final Map<ImVar, String> boundVariableNames = new IdentityHashMap<>();
     private final Map<ImFunction, FunctionFrame> boundFunctionFrames = new IdentityHashMap<>();
     private @Nullable LuaStatement hotReloadAbiStatement;
 
@@ -501,14 +501,26 @@ public class LuaTranslator {
     Map<LuaFunction, ImFunction> translatedFunctions() { return Collections.unmodifiableMap(hotReloadFunctions); }
     LuaCompilationUnit translatedModel() { return luaModel; }
 
+    FunctionFrame scalarFrame(LuaFunction emitted, ImFunction function) {
+        return new FunctionFrame(emitted.getName(), emitted.getParams().stream().map(LuaVariable::getName).toList(),
+            function.getLocals().stream().map(v -> luaVar.getFor(v).getName()).toList());
+    }
+
     static String emitOwnedScalar(ImFunction function, FunctionFrame frame, ImTranslator context) {
         LuaTranslator emitter = new LuaTranslator(context.imProg(), context);
         emitter.boundFunctionFrames.put(function, frame);
         if (function.getParameters().size() != frame.parameters().size()) throw new IllegalArgumentException("Scalar ABI changed");
         for (int i = 0; i < frame.parameters().size(); i++) {
-            emitter.boundParameterNames.put(function.getParameters().get(i), frame.parameters().get(i));
+            emitter.boundVariableNames.put(function.getParameters().get(i), frame.parameters().get(i));
+        }
+        if (function.getLocals().size() != frame.locals().size()) throw new IllegalArgumentException("Scalar locals changed");
+        for (int i = 0; i < frame.locals().size(); i++) {
+            emitter.boundVariableNames.put(function.getLocals().get(i), frame.locals().get(i));
         }
         emitter.translateFunc(function);
+        // Same producer as batch compilation. Eligibility bounds all locals, including numeric-for registers,
+        // below the limit, and admits no storage accesses for localisation or helper-generated temporaries.
+        emitter.cleanStatements();
         StringBuilder definition = new StringBuilder();
         emitter.luaFunc.getFor(function).print(definition, 0);
         return definition.toString();
