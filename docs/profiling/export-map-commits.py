@@ -42,7 +42,8 @@ def tree_digest(root):
 
 def export(repo, revision, target):
     target.mkdir()
-    archive = git(repo, 'archive', '--format=zip', revision, '--', 'wurst', 'wurst.build', 'wurst_run.args')
+    paths = git(repo, 'ls-tree', '--name-only', revision, '--', 'wurst', 'wurst.build', 'wurst_run.args').decode('utf-8').splitlines()
+    archive = git(repo, 'archive', '--format=zip', revision, '--', *paths)
     with zipfile.ZipFile(io.BytesIO(archive)) as files:
         for entry in files.infolist():
             path = PurePosixPath(entry.filename)
@@ -56,6 +57,8 @@ def export(repo, revision, target):
             else:
                 output.parent.mkdir(parents=True, exist_ok=True)
                 output.write_bytes(files.read(entry))
+
+    (target / 'wurst').mkdir(exist_ok=True)  # A commit may remove the last source unit.
 
 
 def main():
