@@ -80,7 +80,7 @@ def main():
             parser.error('Duplicate dependency or missing source directory: ' + specification)
         overrides[name] = Path(source)
     args.output.mkdir(parents=True)  # Refuse to replace an existing fixture.
-    candidates = git(args.repository, 'rev-list', '--first-parent', args.ref, '--', 'wurst').decode().splitlines()
+    candidates = git(args.repository, 'rev-list', '--first-parent', '--min-parents=1', args.ref, '--', 'wurst').decode().splitlines()
     commits = []
     for commit in candidates:
         paths = changed_paths(args.repository, commit)
