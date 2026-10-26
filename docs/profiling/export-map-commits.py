@@ -84,7 +84,7 @@ def main():
     commits = []
     for commit in candidates:
         paths = changed_paths(args.repository, commit)
-        if any(p.startswith('wurst/') and p.endswith('.wurst') for p in paths):
+        if any(p.startswith('wurst/') and p.endswith(('.wurst', '.jurst', '.j')) for p in paths):
             commits.append(commit)
         if len(commits) == args.count:
             break
@@ -118,7 +118,7 @@ def main():
     for commit in commits:
         parent = git(args.repository, 'rev-parse', commit + '^').decode().strip()
         paths = changed_paths(args.repository, commit)
-        sources = [p for p in paths if p.startswith('wurst/') and p.endswith(('.wurst', '.j'))]
+        sources = [p for p in paths if p.startswith('wurst/') and p.endswith(('.wurst', '.jurst', '.j'))]
         runtime = [p for p in sources if not is_test_source(p)]
         pairs.append(dict(commit=commit, parent=parent, title=git(args.repository, 'show', '-s', '--format=%s', commit).decode().strip(),
                           paths=paths, production=bool(runtime), runtimePaths=runtime,

@@ -69,7 +69,7 @@ public final class MapCommitHotReloadProfile {
         Map<String, String> result = new TreeMap<>();
         try (var paths = Files.walk(state.resolve("wurst"))) {
             for (Path path : paths.filter(Files::isRegularFile).sorted().toList()) {
-                if (path.toString().endsWith(".wurst") || path.toString().endsWith(".j")) {
+                if (path.toString().endsWith(".wurst") || path.toString().endsWith(".jurst") || path.toString().endsWith(".j")) {
                     result.put(state.relativize(path).toString(), Files.readString(path));
                 }
             }
