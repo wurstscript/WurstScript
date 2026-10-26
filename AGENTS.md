@@ -36,7 +36,8 @@ Inside `de.peeeq.wurstscript`:
 
 * **`parserspec/`**
   Contains **.parseq grammars** for `abstractsyntaxgen`
-  ([https://github.com/peterzeller/abstractsyntaxgen](https://github.com/peterzeller/abstractsyntaxgen)).
+  ([our maintained abstractsyntaxgen fork](https://github.com/wurstscript/abstractsyntaxgen),
+  with general fixes contributed to [upstream](https://github.com/peterzeller/abstractsyntaxgen)).
   These define the AST structure used by the compiler.
   Code is generated via the Gradle task:
 
