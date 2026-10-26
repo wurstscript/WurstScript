@@ -42,16 +42,24 @@ measurements and the remaining work.
 ### First incremental backend slice
 
 After a successful compilation with matching arguments, the managed map-compilation path can reuse immutable Lua
-fragments and materialise only edited scalar functions. Initially this covers live, top-level non-generic functions
-returning an integer expression made solely of integer parameters/literals and binary `+`, `-`, `*`, with no locals,
-calls, storage access or annotations. Only literal changes preserving that expression's structure are supported;
-source positions must stay unchanged. A changed parameter, call, operator structure, declaration or source position
-takes the general path automatically.
+fragments and materialise only edited scalar functions. This covers live, top-level non-generic integer-returning
+functions with integer/boolean parameters and locals, assignments, branches, loops and returns. Expressions may use
+owned variables, literals, integer `+`, `-`, `*`, unary minus, comparisons and boolean operators. Calls, storage access,
+other types and annotations are excluded. Only literal changes preserving the body structure, variable slots and
+source positions are supported. A changed parameter, call, operator structure, declaration or source position takes
+the general path automatically.
+
+Cold capture independently lowers each eligible frozen source body with the shared body passes and requires equality
+with the batch-lowered body: a function whose unused locals or assignments were removed is not admitted. This admission
+work runs only when seeding a batch snapshot. A literal edit preserves these read/write facts. Parameters and locals
+retain the names assigned by the cold emitter, and the private task uses the same statement cleanup and counted-loop producer as batch
+compilation. Eligibility reserves four registers for every loop and rejects bodies reaching the Lua local limit;
+functions needing spilling or loop demotion use the full backend.
 
 The slice excludes requests with compile-time execution, stack traces, inlining, optimisations, tests or object/import
 processing. It introduces no setting and changes no emitted runtime representation. The private task uses the existing
-flattening and Lua function emitter with frozen declaration bindings, and publishes a new artifact snapshot only after
-successful generation. Function modification counts detect an uncompiled edit even after an earlier task was cancelled.
+flattening, local-type lowering and Lua function emitter with frozen declaration bindings, and publishes a new artifact
+snapshot only after successful generation. Function modification counts detect an uncompiled edit even after an earlier task was cancelled.
 
 `IncrementalScalarBackendTests` compares scripts, manifests and payloads with independent fresh builds. Work counters
 at graph copying, flattening and function emission show one lowered/emitted function and zero graph-copy nodes after

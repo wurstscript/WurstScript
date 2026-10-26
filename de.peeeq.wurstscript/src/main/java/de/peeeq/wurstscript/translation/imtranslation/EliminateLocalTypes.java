@@ -16,6 +16,11 @@ public class EliminateLocalTypes {
             || (t instanceof ImSimpleType simple && simple.equalsType(localIntType));
     }
 
+    /** True for a boolean before or after local type erasure. */
+    public static boolean isBooleanOrLocalBoolean(ImType t) {
+        return TypesHelper.isBoolType(t) || (t instanceof ImSimpleType simple && simple.equalsType(localBoolType));
+    }
+
     public static void eliminateLocalTypesProg(ImProg imProg, ImTranslator translator) {
         // While local types are still there, perform transformation, such that the lua translator does not need to know variable types
         // null string -> "" (avoids type dependency in null translation)
@@ -24,17 +29,18 @@ public class EliminateLocalTypes {
         transformProgram(imProg, translator);
         // Eliminates local types to be able to merge more locals in Lua.
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(imProg)) {
-            eliminateLocalTypesFunc(f, translator);
+            eliminateLocalTypesFunc(f);
         }
     }
 
-    private static void eliminateLocalTypesFunc(ImFunction f, final ImTranslator translator) {
+    /** Body-local type canonicalisation; callers must already have lowered casts and null strings. */
+    public static void eliminateLocalTypesFunc(ImFunction f) {
         for(ImVar local : f.getLocals()) {
             ImType t = local.getType();
             if(t instanceof ImSimpleType imSimpleType) {
                 // Keep primitive domains separate so later local merging cannot
                 // unify e.g. number/bool/string temporaries into one slot.
-                local.setType(canonicalizeSimpleLocalType(imSimpleType));
+                local.setType(canonicalizeSimpleLocalType(imSimpleType).copy());
             }
         }
     }
