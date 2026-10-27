@@ -178,6 +178,7 @@ public class StmtTranslation {
     }
 
     private static void emitLuaInitXpcall(ImFunction initFunc, List<LuaStatement> res, LuaTranslator tr) {
+        int firstStatement = res.size();
         String funcName = tr.luaFunc.getFor(initFunc).getName();
         String packageName = tr.imTr.luaInitFunctions.getOrDefault(initFunc, "?");
         // no local/do-block: locals hidden in literals are invisible to the
@@ -197,6 +198,7 @@ public class StmtTranslation {
         }
         res.add(LuaAst.LuaLiteral("    " + ExprTranslation.callErrorFunc(tr, "\"Could not initialize package " + packageName + ".\"")));
         res.add(LuaAst.LuaLiteral("end"));
+        tr.recordPackageInitDispatch(res.subList(firstStatement, res.size()));
     }
 
     /** The stack-trace depth before the package init which runs, in a {@code -stacktraces} build. */

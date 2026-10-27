@@ -61,7 +61,13 @@ public class FuncSkeleton {
         for (WShortParameter p : e.getShortParameters()) {
             f.getParameters().add(tr.getVarFor(p));
         }
-        f.setReturnType(e.getImplementation().attrTyp().imTranslateType(tr));
+        // A value-returning expression can implement a void SAM. Its result is discarded, not part of the ABI.
+        if (e.attrExpectedTypAfterOverloading() instanceof de.peeeq.wurstscript.types.WurstTypeClassOrInterface
+                && ((FuncDef) e.attrClosureAbstractMethod().getDef()).attrReturnTyp().isVoid()) {
+            f.setReturnType(de.peeeq.wurstscript.jassIm.JassIm.ImVoid());
+        } else {
+            f.setReturnType(e.getImplementation().attrTyp().imTranslateType(tr));
+        }
 
     }
 

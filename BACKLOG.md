@@ -219,6 +219,11 @@ Notes; finished-work narrative does not.
   commits, a second large map 20 of 36. A warm reload in the editor takes 14 to 30 s on Castle Fight (item below).
   Multiplayer only through a synchronised channel is a later stage in the design note.
 - **Lua hot reload: remaining daily-use work.** Each correctness change needs a failing test first.
+  - Callback bodies now use source-callable ownership for native `code` callbacks as well as class closures. Stable
+    event arguments anchor distinct registrations. Independent, unique direct registrations added to existing package
+    init blocks run as complete source-owned units, once, without repeating previous setup. Computed/local operands,
+    generic/duplicate registrations and existing live capture/state migration remain separate work. Test behavioral
+    effects of CF/ZD edits; payload acceptance and warning counts alone do not establish whole-commit coverage.
   - An anonymous order group
     cannot distinguish simultaneous additions/removals and body edits between the same unchanged anchors; make
     those edits in separate payloads. A removed closure may still have live objects, so reusing table names its old

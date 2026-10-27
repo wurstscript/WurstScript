@@ -32,6 +32,20 @@ import static org.testng.Assert.assertTrue;
 public class DeterministicChecks extends WurstScriptTest {
 
     @Test
+    public void hotReloadRegistrationUnitsAndCallbackSitesAreDeterministic() {
+        CU registrations = compilationUnit("Events.wurst", "package Events", "public interface Callback",
+            "    function run() returns int", "Callback array saved", "public constant int EVENT_A = 2",
+            "public function register(int event, Callback cb)", "    saved[event] = cb");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Events", "init",
+            "    register(EVENT_A, () -> 20)", "    register(3, () -> 30)");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload", "-stacktraces");
+        var first = compileLuaHotReloadManifest(false, args, registrations, main);
+        assertTrue(first.statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+        assertEquals(compileLuaHotReloadManifest(false, args, main, registrations), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, registrations, main), first);
+    }
+
+    @Test
     public void hotReloadUnreadSnapshotRootsAreDeterministic() {
         CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
             "    public Node child", "Node cached = null", "public function make() returns Node",
