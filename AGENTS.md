@@ -173,6 +173,10 @@ This repository has multiple entry points that may trigger compilation/build beh
   source-function modification counts; cancelled work must not hide a pending edit. Other compilations fork the
   entire IM graph and frontend metadata before compile-time execution and lowering. Never reuse compile-time results
   or share mutable IM with the retained input.
+  A post-compile-time symbol slice also freezes generated owned graphs and reuses cold declaration bindings for
+  same-shape primitive body edits with calls/storage. Fresh compiler facts and non-admitted bodies are guarded by
+  global receipts; a frontend rebuild clears the snapshot. Publish no mutable IM in its artifacts. Keep compile-time
+  and runtime lowering counters separate: the full private compile-time fork remains a rollout bridge.
   When adding frontend translator state or an IM reference field, update the fork and its fresh-build oracles.
 * A load parses the files of the project and of its libraries ahead, by several threads (`-Dwurst.parseThreads=n`, 1 parses nothing ahead), and takes each parse when it comes to the file. Only the parse runs on those threads, because it depends on nothing but the text of one file. The model is changed by the loading thread alone, file by file in the order of the sequential load, and the imports resolve depth first as before: that order is the order of the compilation units, and so of the output. A step which adds to the model or reads it from the parse threads is not safe (the generated attributes, `GlobalCaches` and `ErrorHandler` are not thread safe, see `BACKLOG.md`). `ParallelLoadTests` compares a load with one thread and with four.
 * User actions like build/start/tests are implemented in `languageserver.requests.*`.

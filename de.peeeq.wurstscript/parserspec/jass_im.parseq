@@ -6,7 +6,7 @@ metadata adapter: de.peeeq.wurstscript.translation.imtranslation.ImMetadataAdapt
 abstract syntax:
 	
 ImProg(
-    @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+    @source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
     ImVars globals,
 	ImFunctions functions,
 	ImMethods methods,
@@ -20,7 +20,7 @@ ImFunctions * ImFunction
 ImClasses * ImClass
 ImTypeClassFuncs * ImTypeClassFunc
 
-ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
+ImVar(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
 
 ImType = 
 	  ImSimpleType(String typename)
@@ -40,23 +40,23 @@ ImTypeVars * ImTypeVar
 
 ImTypeVar(String name)
 
-ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
+ImFunction(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars parameters, 
 	ref ImType returnType, 
 	ImVars locals, 
 	ImStmts body, 
-	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
+	@tracked java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 
-ImTypeClassFunc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+ImTypeClassFunc(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars parameters,
 	ref ImType returnType)
 
 
-ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
+ImClass(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars fields, 
@@ -66,7 +66,7 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 
 ImMethods * ImMethod
 
-ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+ImMethod(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
     ref ImClassType methodClass,
 	String name,
 	ref ImFunction implementation,
@@ -82,13 +82,13 @@ ImVarargLoopVars * ImVarargLoopVar
 ImVarargLoopVar(ref ImVar var)
 
 ImStmt = 
-	  ImIf(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
-	| ImLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body)
-	| ImExitwhen(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition)
-	| ImReturn(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExprOpt returnValue)
-	| ImSet(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImLExpr left, ImExpr right)
+	  ImIf(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
+	| ImLoop(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body)
+	| ImExitwhen(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition)
+	| ImReturn(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExprOpt returnValue)
+	| ImSet(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImLExpr left, ImExpr right)
 	| ImExpr
-	| ImVarargLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ImVarargLoopVars loopVars)
+	| ImVarargLoop(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ImVarargLoopVars loopVars)
 	
 	
 ImExprOpt =
@@ -103,9 +103,9 @@ ImExpr =
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
-	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
+	| ImCompiletimeExpr(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
     | ImLExpr
-    | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
+    | ImTypeVarDispatch(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
                        , ref ImTypeVar typeVariable)
 	// The conversion's source type survives inlining and copy propagation of its operand.
 	| ImCast(ImExpr expr, ref ImType fromType, ref ImType toType)
@@ -113,7 +113,7 @@ ImExpr =
 // an expression which can be used on the left hand side of an assignment
 ImLExpr =
       ImVarAccess(ref ImVar var)
-    | ImVarArrayAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar var, ImExprs indexes)
+    | ImVarArrayAccess(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar var, ImExprs indexes)
     | ImTupleSelection(ImExpr tupleExpr, int tupleIndex) // can only be used as L-value if tupleExpr is l-exprs
     | ImMemberAccess
     | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
@@ -126,12 +126,12 @@ ImClassRelatedExpr =
 	| ImClassRelatedExprWithClass
 
 ImMemberOrMethodAccess =
-	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
-	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ImTypeArguments typeArguments, ref ImVar var, ImExprs indexes)
+	  ImMethodCall(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
+	| ImMemberAccess(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ImTypeArguments typeArguments, ref ImVar var, ImExprs indexes)
 
 ImClassRelatedExprWithClass =
-	  ImAlloc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz)
-	| ImDealloc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz, ImExpr obj)
+	  ImAlloc(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz)
+	| ImDealloc(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz, ImExpr obj)
 	| ImInstanceof(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfClass(ref ImClassType clazz)
@@ -140,7 +140,7 @@ ImClassRelatedExprWithClass =
 
 
 ImCall = 
-	  ImFunctionCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImTypeArguments typeArguments, ImExprs arguments
+	  ImFunctionCall(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImTypeArguments typeArguments, ImExprs arguments
 	  				, boolean tuplesEliminated, de.peeeq.wurstscript.translation.imtranslation.CallType callType)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
@@ -149,7 +149,7 @@ ImConst =
 	| ImRealVal(String valR)
 	| ImStringVal(String valS)
 	| ImBoolVal(boolean valB)
-	| ImFuncRef(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func)
+	| ImFuncRef(@source @ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func)
 	| ImNull(ref ImType type)
 
 ImTypeArguments * ImTypeArgument

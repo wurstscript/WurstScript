@@ -321,7 +321,23 @@ public class Flatten {
         List<ImStmt> stmts = new ArrayList<>(l.stmts.size() + r.stmts.size() + 1);
         stmts.addAll(l.stmts);
         stmts.addAll(r.stmts);
-        stmts.add(JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr));
+        ImSet replacement = JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr);
+        // Flatten moves the operands out of s. Initializer metadata must follow the replacement,
+        // rather than retaining the abandoned assignment with children now owned by another node.
+        ImVar variable = s.getLeft() instanceof ImVarAccess access ? access.getVar()
+            : s.getLeft() instanceof ImVarArrayAccess access ? access.getVar() : null;
+        List<ImSet> initializers = variable == null ? null : t.imProg().getGlobalInits().get(variable);
+        if (initializers != null) {
+            for (int i = 0; i < initializers.size(); i++) {
+                if (initializers.get(i) != s) continue;
+                if (!(initializers instanceof ArrayList<?>)) {
+                    initializers = new ArrayList<>(initializers);
+                    t.imProg().getGlobalInits().put(variable, initializers);
+                }
+                initializers.set(i, replacement);
+            }
+        }
+        stmts.add(replacement);
         return new Result(stmts);
     }
 

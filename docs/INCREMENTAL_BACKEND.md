@@ -1,6 +1,6 @@
 # Incremental Lua backend plan
 
-Status: proposed design and implementation sequence, 25 October 2026. This document authorizes no change to language
+Status: staged implementation and remaining design, 26 October 2026. This document authorizes no change to language
 semantics or runtime representation. The initial implementation target is Lua hot reload; the batch compiler remains
 the independent correctness oracle while backend stages are migrated.
 
@@ -13,7 +13,18 @@ it still admits only structure-preserving literal edits. It requires no generate
 schema changes: every other node kind is rejected by the eligibility check. It does not implement a general IM codec,
 persistent global dependency worklists, source-map relocations or incremental payload indexing. Those remain planned.
 
-The [real-map commit replay](MAP_COMMIT_REPLAY.md) now provides a parent/child oracle corpus. Its 24 measured edits all use the batch backend: payload acceptance and incremental compilation coverage are separate gates. The next work must admit ordinary symbol-referencing bodies and fresh compile-time products, rather than expanding only the closed scalar whitelist.
+The generated graph contracts are now adopted by a second, post-compile-time body slice. It freezes function-owned
+nodes with symbolic call/storage/type operands, validates fresh compile-time products and compiler facts, and reuses
+cold declaration bindings and printed fragments. Ordinary primitive functions can contain calls, global/array access
+and control flow. Admission requires equality with both the cold lowered body and its emitted definition. Cache hits freeze and
+materialise only changed admitted bodies; cold capture seeds the detached snapshots before destructive lowering. Only
+same-shape literal edits are admitted; unported body shapes and changed declarations use the batch compiler.
+
+The [real-map commit replay](MAP_COMMIT_REPLAY.md) remains the broad correctness corpus. Its earlier 24 measured
+commits all used the batch backend. Separate existing-function probes now exercise actual map code through the new
+slice; whole-commit acceptance and incremental compilation coverage must continue to be reported separately.
+This remains a rollout bridge: fresh compile-time evaluation still copies the complete frontend IM, global semantic
+receipts scan the program, and script assembly, ABI hashing and payload comparison process the full output.
 
 ## Outcome and acceptance contract
 
@@ -132,29 +143,18 @@ shared mutable types, stale AST traces and references to an obsolete snapshot.
 
 #### Generator contracts for broader bodies
 
-The maintained [generator fork](https://github.com/wurstscript/abstractsyntaxgen) now supplies a shallow `NodeCodec`
-for every schema, pinned here at `cc63402b30`. It distinguishes direct owned children, direct references and other
-metadata, includes persistent and ignored-equality fields, and reconstructs private nodes. Its immutable `Data<V>`
-containers still require the compiler to supply detached immutable values. This is schema coverage, not a complete
-frozen IM representation or a backend cache.
+The maintained [generator fork](https://github.com/wurstscript/abstractsyntaxgen), pinned at `0dedc58e7e`, supplies:
 
-Prioritise these contracts alongside the first general function-body consumer:
+* `NodeCodec` for shallow schema-complete encoding, including persistent and ignored-equality fields.
+* `NodeGraphs` for owned snapshots, symbolic references, nested metadata, cycle/alias handling and private materialisation.
+* Tracked owned collection replacement and semantic/source revisions; IM function flags now opt into tracking.
+* Ownership scopes and snapshot validation for foreign mutation and retained mutable references.
 
-* **Describe collection ownership and reference shape.** Fields such as `ImClass.superClasses`,
-  `ImMethod.subMethods` and `ImTypeArgument.typeClassBinding` contain IM nodes inside Java collections. They currently
-  reach the codec as opaque metadata. Express which nested values are owned, structural values or references in the
-  schema, so generated traversal can cover them without another handwritten list of IM fields.
-* **Close mutation-count gaps for owned collection metadata.** Generated setters report changes, but a raw Java
-  collection getter permits mutation without a setter: `getFlags().add(...)` is a concrete example. Give owned
-  collections tracked mutation or immutable replacement semantics, accounting for aliases to incoming containers.
-  Do not propagate changes through reference targets: a callee's body change is a dependency-query input, not a
-  mutation of every caller. This is a contract gap to test before widening reuse, not a demonstrated stale result in
-  the guarded scalar path.
-* **Separate semantic and origin revisions.** Refresh source locations independently of body/ABI facts, so moving
-  unchanged code does not force semantic lowering. Wurst supplies the field roles and source-map meaning.
-* **Validate snapshot ownership in tests.** Detect mutable AST/IM retained in published values and mutations of
-  foreign owners. Exercise nested metadata, aliasing, cycles, cancellation and fresh round trips. Validators must
-  not add bookkeeping to emitted game code.
+The compiler declares source fields in `.parseq` and supplies semantic symbol/type/origin bindings through its metadata
+adapter. The backend uses generated traversal rather than a second handwritten list of IM reference fields.
+`ImBackendInput` is request-local; published body graphs and emission frames are immutable. The initial symbol
+identity is an ordinal within an unchanged graph shape, protected by a full semantic receipt and frontend rebuild
+invalidation. It is not yet the persistent declaration registry described above.
 
 Dependency queries, reachability, specialization, dispatch ABI and compile-time effects remain compiler-owned.
 Optimise codec allocation and traversal only after profiling real owned artifacts; faster full-graph copying does

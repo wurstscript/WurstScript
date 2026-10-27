@@ -94,13 +94,68 @@ remains the recorded earlier baseline, not a controlled before/after generator b
 
 ## Backend result and next exit gate
 
-**0/24 edits used the incremental scalar backend.** Both maps enable fresh compile-time execution and object injection. The current scalar cache excludes those options and ordinary calls, storage, class methods and structural edits. All successful measured requests still copied, lowered and emitted tens of thousands of functions. For example, the first Castle Fight child copied 59,637 functions / 2,313,933 nodes, lowered 36,350 functions and emitted 35,318 functions. This campaign establishes no incremental backend speedup.
+**In the recorded baseline, 0/24 edits used the incremental scalar backend.** Both maps enable fresh compile-time execution and object injection. That scalar cache excludes those options and ordinary calls, storage, class methods and structural edits. All successful measured requests still copied, lowered and emitted tens of thousands of functions. For example, the first Castle Fight child copied 59,637 functions / 2,313,933 nodes, lowered 36,350 functions and emitted 35,318 functions. This campaign establishes no incremental backend speedup.
 
 In that Castle Fight request, compile-time work took 0.29 s, Lua transformation 3.65 s (including generic specialization 0.84 s and translation/emission 1.29 s), and printing 0.07 s. The rest includes frontend/forking, manifest work, reconciliation and delivery. Compile-time execution must stay fresh; its product boundary is required for cache correctness, rather than being the dominant measured time cost.
 
-The next useful slices need generated schema codecs, owned bodies with symbolic call/storage/type operands and explicit ABI dependencies, and a fresh compile-time product bridge. A slice counts as a practical gain only when this corpus and ordinary body-edit probes show less unrelated backend work, exact fresh-build agreement, and lower whole-request latency. New declarations and generated demand must invalidate their affected products without silently becoming safe because a payload was writable.
+The new post-compile-time symbol slice adopts generated owned graph snapshots and symbolic call/storage/type operands. Controlled existing-function probes below measure its initial coverage; structural, class and vararg edits still need producer contracts and explicit dependencies. A slice counts as a practical gain only when this corpus and ordinary body-edit probes show less unrelated backend work, exact fresh-build agreement, and lower whole-request latency. New declarations and generated demand must invalidate their affected products without silently becoming safe because a payload was writable.
 
 No Warcraft client was launched. No claim is made about engine timing or in-game application. Measurements are Windows-only; Ubuntu/macOS timing and actual save-to-applied latency remain unverified.
+
+## Existing-function backend probes
+
+`SymbolHotReloadProfile` edits an existing function in an isolated exported fixture, warms both compiler variants
+with a no-op request, measures reconciliation through `LuaHotReloadSession.send`, and independently rebuilds the
+edited project. Complete Lua and manifest equality are mandatory; payload publication alone is insufficient.
+The symbol variant also requires exactly one runtime function lowered and one emitted. Compile-time evaluation
+runs freshly on both variants. The harness restores source in `finally`, locks each fixture against concurrent
+probes and retries complete trials across build-date minute boundaries without normalising output.
+
+The checked-in edits cover Zombie Defense's `tileTakesRock` probability (ordinary calls, global array reads and real
+comparison) and Castle Fight's `shouldRestartLeaderForEqualSpawn` threshold (real/boolean control flow). These are
+edits to existing map code, rather than synthetic functions added to a map. They do not establish that an entire
+historical commit takes the incremental path. The armor-cost edit using Math.min/max remains excluded because its
+vararg products have not been migrated.
+
+Measured on 26 October 2026, Windows x64, Java 27, 6 GiB heap and ParallelGC. The baseline is exact master
+`1c23fb384c0f6c96da55218a996703378014ee51`; the new compiler code is `ef9e5cb3d87d37920f22aa37290c3c6139ccad19`.
+Each map/variant has three trials in separate JVMs, in baseline/symbol/symbol/baseline/baseline/symbol order, using
+identical current harness/dependencies and the latest exported source states recorded above. All twelve trials
+matched independent fresh Lua and manifests and produced one-function payloads.
+
+| Existing function edit | Previous median through payload | New median | Reduction | Compilation alone, old → new |
+| --- | ---: | ---: | ---: | ---: |
+| Castle Fight sync threshold | 9.71 s | 6.37 s | 34.4% | 7.44 → 4.33 s |
+| Zombie Defense rock probability | 5.82 s | 4.89 s | 15.9% | 3.99 → 3.05 s |
+
+Total ranges were 9.29–9.77 s / 6.35–6.44 s on Castle Fight and 5.39–6.06 s / 4.66–6.32 s on Zombie Defense
+(previous / new). Zombie Defense's ranges overlap and one new trial exceeded the previous median. Three trials
+show a local median gain, not a p95 guarantee. Editor queueing and game application remain excluded.
+
+Each new request lowered **one runtime function** and emitted one, versus 36,757 lowered / 35,723 emitted on Castle
+Fight and 30,624 / 29,761 on Zombie Defense with the previous compiler. One compile-time owner was also lowered
+freshly per new request. The compile-time bridge still copied 60,018 functions / 2,339,305 nodes on Castle Fight and
+54,551 / 1,519,344 on Zombie Defense. Global receipt validation, output assembly, ABI hashing and payload comparison
+remain whole-program work.
+
+Cold admission adds work: the independent fresh-model compilation oracles took medians 8.11 → 14.08 s on Castle
+Fight and 4.94 → 9.29 s on Zombie Defense. These are compilation-stage observations after model loading, rather than
+end-to-end startup measurements. The warm timing table requires a completed admission snapshot. Eliminating the
+remaining global work is still necessary for the subsecond target. Full local trial receipts are retained under
+`de.peeeq.wurstscript/test-output/symbol-final-benchmarks.json`; the table includes every trial, including the outlier.
+
+Run from `de.peeeq.wurstscript`, after exporting the corresponding fixture:
+
+```powershell
+.\gradlew.bat -I ../docs/profiling/runmap-profile.gradle symbolHotReloadProfile -PprofileRoot=temp/map-commits-zombie/project -PprofileEdit=../docs/profiling/edits/zombie-rock.json -PprofilePublicCompiler
+```
+
+For Castle Fight select its fixture and `castle-sync.json`. For the prior compiler, compile its exact source archive
+separately and add `-PprofileBaseline -PprofileCompilerClasses=<absolute-main-classes-directory>`. Both runs use the
+same current harness, dependencies, fixture, 6 GiB heap and ParallelGC. Alternate variants in separate JVMs, archive
+`project/_build/symbol-results.json` after each invocation, and report medians/ranges rather than interpreting the
+independent fresh oracle's cold admission work as the old warm compiler's baseline. Editor queueing and Warcraft
+pickup/application are outside this measurement.
 
 ## Running another campaign
 

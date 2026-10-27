@@ -1,0 +1,5 @@
+{
+  "file": "wurst/ai/TeamCompositionStats.wurst",
+  "before": "followerDoneSeconds < 1.",
+  "after": "followerDoneSeconds < 2."
+}

@@ -268,9 +268,17 @@ Notes; finished-work narrative does not.
   names and shared statement/counted-loop emission, register demotion and locals spilling. The generated spill-table
   binding is a frozen producer-owned fact. Calls, changed body structure and garbage-producing bodies still take
   the batch path.
-  The organization-owned generator now supplies schema codecs. Before broadening reuse, give reference-bearing
-  collection metadata explicit ownership/shape and close owned-collection mutation-count gaps; direct mutation of a
-  raw Java collection bypasses generated setters. See the generator contracts in `docs/INCREMENTAL_BACKEND.md`.
+  The organization-owned generator now supplies owned graph snapshots, symbolic nested references, tracked owned
+  collections and semantic/source revisions. The compiler adopts these for post-compile-time primitive function
+  bodies with ordinary calls, global/array storage and control flow. Cold-lowered/emitted equality gates admission;
+  same-shape literal edits can lower/emit only changed owners, including actual Castle Fight and Zombie Defense
+  functions. See `docs/MAP_COMMIT_REPLAY.md` for controlled measurements and the distinction from whole-commit coverage.
+  Fresh compile-time execution still forks the whole graph; semantic receipts, full-file assembly, ABI hashing and
+  payload comparison still scan global state. Next: producer-owned vararg/native helper descriptors and class/generic
+  products, versioned dependency queries instead of global receipts, compile-time closure-only materialisation and
+  incremental payload indexing. Port producer contracts rather than parsing generated names or synthesising empty
+  function headers. The real Zombie Defense armor-cost edit currently falls back because Math.min/max use varargs.
+
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
   were simply the easiest thing to emit. Method: read the emitted script of a real map next to what
