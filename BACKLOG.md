@@ -220,8 +220,9 @@ Notes; finished-work narrative does not.
   Multiplayer only through a synchronised channel is a later stage in the design note.
 - **Lua hot reload: remaining daily-use work.** Each correctness change needs a failing test first.
   - Callback bodies now use source-callable ownership for native `code` callbacks as well as class closures. Stable
-    event arguments anchor distinct registrations. Independent, unique direct registrations added to existing package
-    init blocks run as complete source-owned units, once, without repeating previous setup. Computed/local operands,
+    event arguments anchor distinct registrations, including qualified static calls such as `EventListener.add` and
+    `DamageEvent.addListener`. Independent, unique direct registrations added to existing package
+    init blocks run as complete source-owned units, once, without repeating previous setup. Instance receivers, computed/local operands,
     generic/duplicate registrations and existing live capture/state migration remain separate work. Test behavioral
     effects of CF/ZD edits; payload acceptance and warning counts alone do not establish whole-commit coverage.
   - An anonymous order group

@@ -351,7 +351,7 @@ public class ClosureTranslator {
         StringBuilder sites = new StringBuilder();
         Element argument = e;
         for (Element parent = e.getParent(); parent != null; argument = parent, parent = parent.getParent()) {
-            if (!(parent instanceof Arguments args) || !(parent.getParent() instanceof ExprFunctionCall call)) continue;
+            if (!(parent instanceof Arguments args) || !(parent.getParent() instanceof FunctionCall call)) continue;
             if (!(argument instanceof ExprClosure) || args.stream().allMatch(value -> value instanceof ExprClosure)) continue;
             String key = registrationIdentity(call, tr);
             if (key != null) sites.append("_site").append(key).append("_argument").append(args.indexOf(argument));
@@ -359,7 +359,17 @@ public class ClosureTranslator {
         return sites.toString();
     }
 
-    static String registrationIdentity(ExprFunctionCall call, ImTranslator tr) {
+    static String registrationIdentity(FunctionCall call, ImTranslator tr) {
+        if (call instanceof ExprMemberMethod member) {
+            // A static qualifier names the resolved declaration, not a runtime receiver. Dynamic receivers and
+            // generic bindings need their own identities; do not guess those from the spelling of the qualifier.
+            if (!(member instanceof ExprMemberMethodDot)
+                    || !(member.getLeft().attrTyp() instanceof WurstTypeNamedScope qualifier)
+                    || !qualifier.isStaticRef() || !qualifier.getTypeParameters().isEmpty()
+                    || call.attrImplicitParameter() instanceof Expr
+                    || (call.attrFuncDef() instanceof AstElementWithTypeParameters generic
+                        && !generic.getTypeParameters().isEmpty())) return null;
+        }
         if (!call.getTypeArgs().isEmpty() || !tr.getFuncFor(call.attrFuncDef()).getTypeVariables().isEmpty()) return null;
         StringBuilder key = new StringBuilder(hotReloadOwnerIdentity(call.attrFuncDef(), tr));
         boolean callback = false;

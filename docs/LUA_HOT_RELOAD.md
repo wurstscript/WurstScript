@@ -100,7 +100,7 @@ this is not completion of the fully incremental design. Real-map probes and timi
 ### Adding and editing event registrations
 
 Hot-reload callback identities include their source callable and named bindings for both class closures and native
-`code` callbacks. Direct non-generic calls with stable non-callback arguments also use the resolved target and those
+`code` callbacks. Direct free-function calls and qualified static method calls with stable non-callback arguments use the resolved target and those
 arguments as anchors. Handlers registered for distinct event constants are separate identities, so inserting one
 and editing another need not shift existing callbacks. Repeated calls with indistinguishable operands still use the
 conservative order-group checks below.
@@ -108,11 +108,12 @@ conservative order-group checks below.
 Void interface/class callbacks retain the declared void ABI even when their expression body computes a value;
 changing such an expression into a guarded block preserves the callback identity and discards only the unused result.
 
-Unique, independent direct callback calls (inline closures or named function references) at the top level of package `init` blocks become source-owned initialization
+Unique, independent direct callback calls (inline closures or named function references), including qualified static calls such as
+`EventListener.add(EVENT_PLAYER_UNIT_CONSTRUCT_START, ...)` and `DamageEvent.addListener(102, ...)`, at the top level of package `init` blocks become source-owned initialization
 actions in hot-reload builds. A new action runs once in the live map, in package dependency order, without repeating
 existing setup. Each complete statement owns its closure construction and temporaries; the backend does not extract
 registration calls from flattened code. Calls that depend on locals outside the statement, computed/mutable arguments,
-generic calls and duplicate action identities remain ordinary init code and retain restart warnings. Actions run
+instance receivers (even constant instances), generic qualifiers/callees and duplicate action identities remain ordinary init code and retain restart warnings. Actions run
 against current live state, not a reconstruction of startup state.
 
 Completed actions are recorded by the running script. Repeated/cumulative payloads do not repeat them; a failed action
@@ -124,7 +125,8 @@ these changes do not relax that guard.
 Package dispatch emitted by the compiler is tracked by its producer, so a new package whose initialization the payload
 already applies no longer produces a misleading changed-`main` warning. Actual entry-point edits and changes to the
 relative initialization order of existing packages still warn. The action-completion protocol requires a **new game
-session after upgrading from an older compiler**, even if the compiler's version label is unchanged.
+session after upgrading from an older compiler**, even if the compiler's version label is unchanged. Earlier action-aware compilers
+that tracked only free-function calls also require a new session before using qualified static registrations.
 
 ### Names from identities
 

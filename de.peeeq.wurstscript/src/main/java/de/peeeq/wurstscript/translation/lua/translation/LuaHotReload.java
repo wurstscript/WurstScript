@@ -333,8 +333,8 @@ public final class LuaHotReload {
      */
     static Manifest install(LuaTranslator tr, Map<LuaFunction, ImFunction> reloadable, List<ImFunction> packageInits,
                             Set<ImFunction> entries, String compilerVersion) {
-        // Older scripts did not record completed action units; applying these units to one would repeat setup.
-        compilerVersion += "+hotreload-init-actions-v1";
+        // Older scripts did not record every supported action kind; applying an unmarked unit would repeat setup.
+        compilerVersion += "+hotreload-init-actions-v2";
         Set<ImFunction> inits = Collections.newSetFromMap(new IdentityHashMap<>());
         inits.addAll(packageInits);
         Map<ImFunction, String> initNames = new IdentityHashMap<>();
