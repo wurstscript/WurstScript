@@ -128,6 +128,24 @@ relative initialization order of existing packages still warn. The action-comple
 session after upgrading from an older compiler**, even if the compiler's version label is unchanged. Earlier action-aware compilers
 that tracked only free-function calls also require a new session before using qualified static registrations.
 
+### Registrations under constant build guards
+
+Independent registrations under `if not isProd`, `if isAntiCheatEnabled` and nested constant boolean branches use
+those same source-owned units. Admitted guards are boolean literals, constant boolean globals, and `not`/`and`/`or`
+combinations. Each source statement retains its complete branch path; ordinary startup work keeps its order and is
+not repeated when a later payload adds a handler. The frontend establishes these boundaries before lowering.
+Dynamic or effectful predicates, init-local captures and registrations inside loops retain ordinary-init behavior
+and its warnings. Duplicate identities across branches remain excluded.
+
+A guarded unit completes once even when its guard is false, without constructing or registering the callback.
+Tuning a guard constant later does not replay completed setup. A new action tests the current guard values;
+a client which missed an earlier payload can therefore have different completed setup from one which applied it.
+Changing an existing action's guard code warns instead of replaying it. Failed actions remain retryable and completed
+siblings stay recorded; partial effects still cannot be rolled back.
+
+This extends the startup-completion protocol to v3. Sessions made by earlier free-call or static-call implementations
+require a fresh game session before these guarded units can be applied safely.
+
 ### Names from identities
 
 Release builds number generated Lua names in translation order. A hot-reload build names each function, global,
