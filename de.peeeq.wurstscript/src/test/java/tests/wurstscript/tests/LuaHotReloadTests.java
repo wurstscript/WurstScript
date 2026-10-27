@@ -1237,6 +1237,104 @@ public class LuaHotReloadTests extends WurstScriptTest {
         test().testLua(true).executeProg().luaHotReload(eventCallbacks(true)).lines(eventCallbacks(false));
     }
 
+    @Test
+    public void qualifiedStaticCallbackSitesKeepCapturedValuesAcrossInsertions() {
+        test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(eventCallbacks(true)))
+            .lines(qualifiedRegistrations(eventCallbacks(false)));
+    }
+
+    @Test
+    public void qualifiedStaticRegistrationsRunOnceWithoutRepeatingOldSetup() {
+        test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(initEventCallbacks(true)))
+            .lines(qualifiedRegistrations(initEventCallbacks(false)));
+    }
+
+    @Test
+    public void qualifiedStaticNativeRegistrationsKeepEditedBodies() {
+        test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(nativeEventCallbacks(true)))
+            .lines(qualifiedRegistrations(nativeEventCallbacks(false)));
+    }
+
+    @Test
+    public void qualifiedStaticNamedCallbacksRegisterOnce() {
+        test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(namedNativeEventCallbacks(true)))
+            .lines(qualifiedRegistrations(namedNativeEventCallbacks(false)));
+    }
+
+    @Test
+    public void qualifiedStaticRegistrationsPreserveNormalBackendSemantics() {
+        String[] source = java.util.Arrays.stream(qualifiedRegistrations(initEventCallbacks(true)))
+            .filter(line -> !line.equals("    hotReload()")).toArray(String[]::new);
+        test().testLua(true).luaOnly(false).executeProg().lines(source);
+    }
+
+    @DataProvider
+    public Object[][] instanceRegistrationCases() {
+        return new Object[][] {{false}, {true}};
+    }
+
+    @Test(dataProvider = "instanceRegistrationCases")
+    public void instanceRegistrationReceiversRemainOrdinaryInit(boolean constant) throws Exception {
+        String[] before = {"package Main", "interface Callback", "    function run() returns int",
+            "Callback array saved", "class Events", "    function register(int event, Callback cb)",
+            "        saved[event] = cb", (constant ? "constant " : "") + "Events events = new Events",
+            "init", "    events.register(2, () -> 2)"};
+        var after = manifest(concat(before, new String[] {"    events.register(1, () -> 1)"}));
+        assertFalse(after.statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+        var payload = LuaHotReload.payload(manifest(before), after, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("Changed package init")));
+    }
+
+    @DataProvider
+    public Object[][] genericStaticRegistrationCases() {
+        return new Object[][] {{"class Events<T>", "Events<int>", ""}, {"class Events<T:>", "Events<int>", ""},
+            {"class Events", "Events", "<T>"}, {"class Events", "Events", "<T:>"}};
+    }
+
+    @Test
+    public void qualifiedAndUnqualifiedStaticCallsKeepTheSameCallbackIdentity() {
+        test().testLua(true).executeProg().luaHotReload(staticCallSpelling(true)).lines(staticCallSpelling(false));
+    }
+
+    private static String[] staticCallSpelling(boolean edited) {
+        String call = edited ? "register" : "Events.register";
+        return new String[] {"package Main", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Callback", "    function run() returns int", "Callback array saved", "class Events",
+            "    static function register(int event, Callback cb)", "        saved[event] = cb",
+            "    static function setup(int seed)", edited ? "        register(1, () -> seed + 1)" : "        skip",
+            "        " + call + "(2, () -> seed + " + (edited ? "20" : "2") + ")",
+            "        " + call + "(3, () -> seed + 3)", "init", "    Events.setup(7)", "    let kept = saved[2]",
+            "    hotReload()", "    if kept.run() != 27 or saved[3].run() != 10",
+            "        testFail(\"static qualification changed callback identity or captured state\")", "    testSuccess()"};
+    }
+
+    @Test(dataProvider = "genericStaticRegistrationCases")
+    public void genericStaticRegistrationsRemainOrdinaryInit(String owner, String qualifier, String parameters) {
+        String[] source = {"package Main", "interface Callback", "    function run() returns int", "Callback saved",
+            owner, "    static function register" + parameters + "(int event, Callback cb)", "        saved = cb",
+            "init", "    " + qualifier + ".register" + (parameters.isEmpty() ? "" : "<int>") + "(1, () -> 1)"};
+        assertFalse(manifest(source).statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+    }
+
+    /** The same behavioral fixtures through EventListener.add-style static methods. */
+    private static String[] qualifiedRegistrations(String[] source) {
+        var result = new java.util.ArrayList<String>();
+        boolean registrationBody = false;
+        for (String line : source) {
+            if (line.startsWith("function register(")) {
+                result.add("class Events");
+                result.add("    static " + line);
+                registrationBody = true;
+            } else if (registrationBody && line.startsWith("    ")) {
+                result.add("    " + line);
+            } else {
+                registrationBody = false;
+                result.add(line.replace("register(", "Events.register("));
+            }
+        }
+        return result.toArray(String[]::new);
+    }
+
     private static String[] eventCallbacks(boolean edited) {
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
             "interface Callback", "    function run() returns int", "Callback array saved",
@@ -1380,10 +1478,21 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void scriptsWithoutQualifiedStaticActionMarkersRequireANewSession() {
+        var current = manifest(qualifiedRegistrations(initEventCallbacks(false)));
+        var legacy = new LuaHotReload.Manifest(current.abi(),
+            current.compilerVersion().replace("+hotreload-init-actions-v2", "+hotreload-init-actions-v1"),
+            current.functions(), current.statements(), current.bindings(), current.initOrder());
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("another compiler"));
+    }
+
+    @Test
     public void scriptsWithoutInitializationActionMarkersRequireANewSession() {
         var current = manifest(initEventCallbacks(false));
         var legacy = new LuaHotReload.Manifest(current.abi(),
-            current.compilerVersion().replace("+hotreload-init-actions-v1", ""), current.functions(), current.statements(),
+            current.compilerVersion().replace("+hotreload-init-actions-v2", ""), current.functions(), current.statements(),
             current.bindings(), current.initOrder());
         var rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));

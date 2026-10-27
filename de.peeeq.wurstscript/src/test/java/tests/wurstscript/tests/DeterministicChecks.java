@@ -46,6 +46,20 @@ public class DeterministicChecks extends WurstScriptTest {
     }
 
     @Test
+    public void hotReloadQualifiedStaticRegistrationsAreDeterministic() {
+        CU registrations = compilationUnit("Events.wurst", "package Events", "public interface Callback",
+            "    function run() returns int", "Callback array saved", "public class Registry",
+            "    static function add(int event, Callback cb)", "        saved[event] = cb");
+        CU main = compilationUnit("Main.wurst", "package Main", "import Events", "init",
+            "    Registry.add(2, () -> 20)", "    Registry.add(3, () -> 30)");
+        RunArgs args = new RunArgs().with("-lua", "-luaHotReload", "-stacktraces");
+        var first = compileLuaHotReloadManifest(false, args, registrations, main);
+        assertEquals(2L, first.statements().stream().filter(statement -> statement.kind().equals("action")).count());
+        assertEquals(compileLuaHotReloadManifest(false, args, main, registrations), first);
+        assertEquals(compileLuaHotReloadManifest(false, args, registrations, main), first);
+    }
+
+    @Test
     public void hotReloadUnreadSnapshotRootsAreDeterministic() {
         CU values = compilationUnit("Values.wurst", "package Values", "public class Node", "    public int value",
             "    public Node child", "Node cached = null", "public function make() returns Node",

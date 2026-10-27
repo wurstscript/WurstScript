@@ -11,19 +11,19 @@ final class HotReloadInitActions {
 
     static void translate(InitBlock block, ImTranslator translator, ImFunction init) {
         Map<String, Integer> occurrences = new LinkedHashMap<>();
-        Map<ExprFunctionCall, String> identities = new IdentityHashMap<>();
+        Map<FunctionCall, String> identities = new IdentityHashMap<>();
         // Equal registrations in separate init blocks are ambiguous too. Keep such groups in the ordinary init.
         ((WPackage) block.attrNearestPackage()).accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
             @Override public void visit(InitBlock candidate) {
                 for (WStatement statement : candidate.getBody()) {
-                    if (!(statement instanceof ExprFunctionCall call) || readsOutsideLocal(call)) continue;
+                    if (!(statement instanceof FunctionCall call) || readsOutsideLocal(call)) continue;
                     String key = ClosureTranslator.registrationIdentity(call, translator);
                     if (key != null) { identities.put(call, key); occurrences.merge(key, 1, Integer::sum); }
                 }
             }
         });
         for (WStatement statement : block.getBody()) {
-            String key = statement instanceof ExprFunctionCall call ? identities.get(call) : null;
+            String key = statement instanceof FunctionCall call ? identities.get(call) : null;
             if (key == null || occurrences.get(key) != 1) {
                 init.getBody().addAll(translator.translateStatements(init, List.of(statement)));
                 continue;
@@ -36,7 +36,7 @@ final class HotReloadInitActions {
         }
     }
 
-    private static boolean readsOutsideLocal(ExprFunctionCall call) {
+    private static boolean readsOutsideLocal(FunctionCall call) {
         boolean[] outside = {false};
         call.accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
             private void check(NameDef declaration) {
