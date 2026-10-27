@@ -58,6 +58,7 @@ public final class LuaHotReloadSession {
         Map<String, String> capturedDefinitions = new LinkedHashMap<>();
         Map<String, List<String>> slots = new LinkedHashMap<>();
         Map<String, String> initializers = new LinkedHashMap<>();
+        Map<String, String> actions = new LinkedHashMap<>();
         List<String> packageInits = new ArrayList<>();
         /** The initializers of globals a version the map ran declared as variables, which code may have written. */
         List<String> variables = new ArrayList<>();
@@ -299,6 +300,7 @@ public final class LuaHotReloadSession {
         Map<String, String> capturedDefinitions = new LinkedHashMap<>();
         Map<String, List<String>> slots = new LinkedHashMap<>();
         Map<String, String> initializers = new LinkedHashMap<>();
+        Map<String, String> actions = new LinkedHashMap<>();
         List<String> packageInits = new ArrayList<>();
         List<String> variables = new ArrayList<>();
         Map<String, String> groupShapes = new LinkedHashMap<>();
@@ -355,13 +357,14 @@ public final class LuaHotReloadSession {
             state.groupLayout, orEmpty(state.lineageOrigins),
             new LinkedHashSet<>(orEmpty(state.permutedGroups)),
             state.reboundSlots == null ? Set.of() : state.reboundSlots, orEmpty(state.lineageTypes), orEmpty(state.tableReaders),
-            orEmpty(state.compiletimeGroups), state.compiletimeReferenceOwners), state.version + 1);
+            orEmpty(state.compiletimeGroups), state.compiletimeReferenceOwners, orEmpty(state.actions)), state.version + 1);
         Pending pending = new Pending();
         pending.version = payload.version();
         pending.functions = payload.functions();
         pending.capturedDefinitions = new LinkedHashMap<>(payload.captured());
         pending.slots = new LinkedHashMap<>(payload.slots());
         pending.initializers = new LinkedHashMap<>(payload.initializers());
+        pending.actions = new LinkedHashMap<>(payload.actions());
         pending.packageInits = new ArrayList<>(payload.packageInits());
         pending.variables = new ArrayList<>(payload.variables());
         pending.groupShapes = new LinkedHashMap<>(payload.groupShapes());
@@ -418,6 +421,9 @@ public final class LuaHotReloadSession {
         Map<String, String> initializers = new LinkedHashMap<>(orEmpty(state.initializers));
         orEmpty(sent.initializers).forEach(initializers::putIfAbsent);
         state.initializers = initializers;
+        Map<String, String> actions = new LinkedHashMap<>(orEmpty(state.actions));
+        orEmpty(sent.actions).forEach(actions::putIfAbsent);
+        state.actions = actions;
         Set<String> packageInits = new LinkedHashSet<>(orEmpty(state.packageInits));
         packageInits.addAll(orEmpty(sent.packageInits));
         state.packageInits = new ArrayList<>(packageInits);

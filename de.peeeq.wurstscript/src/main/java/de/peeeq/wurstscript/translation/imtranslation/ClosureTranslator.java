@@ -111,7 +111,7 @@ public class ClosureTranslator {
 
     private ImExpr translateAnonFunc() {
         impl = tr.getFuncFor(e);
-        impl.setName("code_" + makeNameSuffix());
+        impl.setName("code_" + makeNameSuffix() + (tr.getRunArgs().isLuaHotReload() ? hotReloadSourceOwner() : ""));
         impl.getParameters().clear();
         ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
 
@@ -234,7 +234,7 @@ public class ClosureTranslator {
         }
 
 
-        if (e.getImplementation().attrTyp().isVoid()) {
+        if (impl.getReturnType() instanceof ImVoid) {
             impl.getBody().add(translated);
         } else {
             impl.getBody().add(JassIm.ImReturn(e, translated));
@@ -255,24 +255,24 @@ public class ClosureTranslator {
 
     private String makeClassName(ImClassType superClass) {
         String name = superClass.getClassDef().getName() + makeNameSuffix();
-        if (tr.getRunArgs().isLuaHotReload()) {
-            // A local/global binding anchors this source closure independently of sibling translation order.
-            // Include outer bindings too, so identically named locals in different enclosing closures stay apart.
-            for (Element scope = e.getParent(); scope != null; scope = scope.getParent()) {
-                if (scope instanceof GlobalOrLocalVarDef variable) {
-                    String binding = variable.getName();
-                    name += "_bound" + binding.length() + "_" + binding;
-                } else if (scope instanceof TranslatedToImFunction callable && !(scope instanceof ExprClosure)) {
-                    // Resolve the actual source owner; an enclosing closure's generated implementation is not its
-                    // owner identity. Parameter types distinguish overloads, including same-named imported classes.
-                    name += "_owner" + hotReloadOwnerIdentity(callable);
-                }
-            }
-        }
-        return name;
+        return name + (tr.getRunArgs().isLuaHotReload() ? hotReloadSourceOwner() : "");
     }
 
-    private String hotReloadOwnerIdentity(TranslatedToImFunction callable) {
+    private String hotReloadSourceOwner() {
+        StringBuilder owner = new StringBuilder();
+        // Named bindings and the source callable distinguish both class closures and native code callbacks.
+        for (Element scope = e.getParent(); scope != null; scope = scope.getParent()) {
+            if (scope instanceof GlobalOrLocalVarDef variable) {
+                String binding = variable.getName();
+                owner.append("_bound").append(binding.length()).append('_').append(binding);
+            } else if (scope instanceof TranslatedToImFunction callable && !(scope instanceof ExprClosure)) {
+                owner.append("_owner").append(hotReloadOwnerIdentity(callable, tr));
+            }
+        }
+        return owner.toString();
+    }
+
+    private static String hotReloadOwnerIdentity(TranslatedToImFunction callable, ImTranslator tr) {
         StringBuilder identity = new StringBuilder(callable instanceof ConstructorDef ? "constructor"
             : callable instanceof OnDestroyDef ? "destructor" : callable instanceof ExtensionFuncDef ? "extension"
             : callable instanceof InitBlock ? "init" : "function");
@@ -342,7 +342,58 @@ public class ClosureTranslator {
             child = elem;
             elem = elem.getParent();
         }
+        if (tr.getRunArgs().isLuaHotReload()) sb.append(hotReloadCallSites());
         return sb.toString();
+    }
+
+    /** Stable source operands distinguish registrations for different events without inspecting callback bodies. */
+    private String hotReloadCallSites() {
+        StringBuilder sites = new StringBuilder();
+        Element argument = e;
+        for (Element parent = e.getParent(); parent != null; argument = parent, parent = parent.getParent()) {
+            if (!(parent instanceof Arguments args) || !(parent.getParent() instanceof ExprFunctionCall call)) continue;
+            if (!(argument instanceof ExprClosure) || args.stream().allMatch(value -> value instanceof ExprClosure)) continue;
+            String key = registrationIdentity(call, tr);
+            if (key != null) sites.append("_site").append(key).append("_argument").append(args.indexOf(argument));
+        }
+        return sites.toString();
+    }
+
+    static String registrationIdentity(ExprFunctionCall call, ImTranslator tr) {
+        if (!call.getTypeArgs().isEmpty() || !tr.getFuncFor(call.attrFuncDef()).getTypeVariables().isEmpty()) return null;
+        StringBuilder key = new StringBuilder(hotReloadOwnerIdentity(call.attrFuncDef(), tr));
+        boolean callback = false;
+        for (int i = 0; i < call.getArgs().size(); i++) {
+            Expr value = call.getArgs().get(i);
+            String part;
+            if (value instanceof ExprClosure) { part = "callback:" + i; callback = true; }
+            else if (value instanceof ExprFuncRef reference) {
+                part = "callback-reference:" + i + ":" + hotReloadOwnerIdentity(reference.attrFuncDef(), tr); callback = true;
+            } else { part = hotReloadArgument(value); if (part == null) return null; }
+            key.append(part.length()).append(':').append(part);
+        }
+        return callback ? Hashing.sha256().hashString(key, StandardCharsets.UTF_8).toString() : null;
+    }
+
+    private static String hotReloadArgument(Expr value) {
+        if (value instanceof ExprIntVal literal) return "int:" + literal.getValI();
+        if (value instanceof ExprRealVal literal) return "real:" + literal.getValR();
+        if (value instanceof ExprStringVal literal) return "string:" + literal.getValS();
+        if (value instanceof ExprBoolVal literal) return "bool:" + literal.getValB();
+        if (value instanceof ExprNull) return "null";
+        if (value instanceof ExprVarAccess access && access.attrNameDef() instanceof GlobalVarDef global
+                && global.attrIsConstant()) {
+            StringBuilder name = new StringBuilder("global:");
+            String segment = global.getName(); name.append(segment.length()).append(':').append(segment);
+            for (Element scope = global.getParent(); scope != null; scope = scope.getParent()) {
+                if (scope instanceof NamedScope named) {
+                    segment = named.getName(); name.append(segment.length()).append(':').append(segment);
+                }
+            }
+            return name.toString();
+        }
+        // Mutable/local values and computed expressions do not provide a stable discriminator.
+        return null;
     }
 
     private String makeFuncName(FuncDef superClass) {

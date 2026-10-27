@@ -88,6 +88,11 @@ public class LuaTranslator {
     final ImProg prog;
     final LuaCompilationUnit luaModel;
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
+    /** Package dispatch statements whose work the payload's package pipeline owns. */
+    private final Set<LuaStatement> packageInitDispatch = Collections.newSetFromMap(new IdentityHashMap<>());
+    void recordPackageInitDispatch(List<LuaStatement> statements) { packageInitDispatch.addAll(statements); }
+    boolean isPackageInitDispatch(LuaStatement statement) { return packageInitDispatch.contains(statement); }
+
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
     private Set<String> boundDeclarationNames = Set.of();

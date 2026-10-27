@@ -1232,6 +1232,251 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
     }
 
+    @Test
+    public void eventArgumentsAnchorExistingCapturedCallbacksAcrossInsertionsAndBodyEdits() {
+        test().testLua(true).executeProg().luaHotReload(eventCallbacks(true)).lines(eventCallbacks(false));
+    }
+
+    private static String[] eventCallbacks(boolean edited) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Callback", "    function run() returns int", "Callback array saved",
+            "constant int EVENT_FIRST = 1", "constant int EVENT_SECOND = 2", "constant int EVENT_THIRD = 3",
+            "function register(int event, Callback cb)", "    saved[event] = cb",
+            "function setup(int seed)",
+            edited ? "    register(EVENT_FIRST, () -> seed + 1)" : "    skip",
+            "    register(EVENT_SECOND, () -> seed + " + (edited ? "20" : "2") + ")",
+            "    register(EVENT_THIRD, () -> seed + 3)",
+            "init", "    setup(7)", "    let oldTwo = saved[2]", "    let oldThree = saved[3]",
+            "    hotReload()",
+            "    if oldTwo.run() != 27 or oldThree.run() != 10", "        testFail(\"registered callbacks lost their identity or captures\")",
+            "    setup(100)", "    if saved[1].run() != 101 or saved[2].run() != 120 or oldTwo.run() != 27",
+            "        testFail(\"new callbacks or retained instances used the wrong storage\")", "    testSuccess()"};
+    }
+
+    @Test
+    public void newEventRegistrationsInExistingInitRunOnceWithoutReplayingOldSetup() {
+        String[] before = initEventCallbacks(false), after = initEventCallbacks(true);
+        test().testLua(true).executeProg().luaHotReload(after).lines(before);
+    }
+
+    private static String[] initEventCallbacks(boolean edited) {
+        return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Callback", "    function run() returns int", "Callback array saved", "int registrations = 0",
+            "function register(int event, Callback cb)", "    registrations++", "    saved[event] = cb",
+            "init", "    register(2, () -> " + (edited ? "20" : "2") + ")",
+            edited ? "    register(1, () -> 10)" : "    skip",
+            "    hotReload()", "    if registrations != 2 or saved[1] == null or saved[1].run() != 10 or saved[2].run() != 20",
+            "        testFail(\"added event did not register, or old setup ran again\")", "    testSuccess()"};
+    }
+
+    @Test
+    public void registrationActionsCapturingInitLocalsRemainExplicitlyUnsupported() throws Exception {
+        String[] before = initEventCallbacks(false), after = initEventCallbacks(true);
+        before[11] = "init\n    let seed = 7"; after[11] = before[11];
+        before[12] = "    register(2, () -> seed + 2)"; after[12] = "    register(2, () -> seed + 20)";
+        after[13] = "    register(1, () -> seed + 1)";
+        var payload = LuaHotReload.payload(manifest(before), manifest(after), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("Changed package init")));
+    }
+
+    @Test
+    public void newRegistrationActionRetriesAfterFailureAndNeverRepeatsCompletedRegistrations() throws Exception {
+        String[] before = {"package Main", "native I2S(int value) returns string", "interface Callback",
+            "    function run() returns int", "int registrations = 0", "int attempts = 0", "Callback array saved",
+            "function register(int event, Callback cb)", "    if event == 1", "        attempts++",
+            "        if attempts == 1", "            I2S(1 div 0)", "    registrations++", "    saved[event] = cb",
+            "init", "    register(2, () -> 2)"};
+        String[] after = concat(before, new String[]{"    register(1, () -> 10)"});
+        var baseline = manifest(before); var edited = manifest(after);
+        var payload = LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+        test().testLua(true).luaHotReload(before).lines(before);
+        String script = "test-output/lua/LuaHotReloadTests_newRegistrationActionRetriesAfterFailureAndNeverRepeatsCompletedRegistrations.lua";
+        String output = applyInLua(script, List.of(payload.source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 2).source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 3).source()),
+            globalName(edited, "registrations"), globalName(edited, "attempts"));
+        String[] lines = output.split("\\R");
+        assertTrue(output, lines[0].startsWith("false 1 1 "));
+        assertEquals(output, "true 2 2 nil", lines[1]);
+        assertEquals(output, "true 2 2 nil", lines[2]);
+    }
+
+    @DataProvider
+    public Object[][] addedPackageRegistrationCases() {
+        return new Object[][] {{false}, {true}};
+    }
+
+    @Test(dataProvider = "addedPackageRegistrationCases")
+    public void registrationsAddedToEarlierPayloadsPackageRunOnce(boolean skipFirst) throws Exception {
+        String[] mainSource = {"package Main", "public interface Callback", "    function run() returns int",
+            "public int registrations = 0", "public Callback array saved",
+            "public function register(int event, Callback cb)", "    registrations++", "    saved[event] = cb"};
+        test().testLua(true).luaHotReload(mainSource).lines(mainSource);
+        String script = "test-output/lua/LuaHotReloadTests_registrationsAddedToEarlierPayloadsPackageRunOnce.lua";
+        var baseline = manifest(mainSource);
+        CU main = new CU("Main", String.join("\n", mainSource) + "\n");
+        CU firstSource = new CU("Added", "package Added\nimport Main\ninit\n    register(2, () -> 2)\n");
+        CU secondSource = new CU("Added", "package Added\nimport Main\ninit\n    register(1, () -> 10)\n    register(2, () -> 2)\n");
+        var first = compileLuaHotReloadManifest(false, HOT_RELOAD, main, firstSource);
+        var second = compileLuaHotReloadManifest(false, HOT_RELOAD, main, secondSource);
+        var payloads = new java.util.ArrayList<String>();
+        if (!skipFirst) {
+            payloads.add(LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source());
+        }
+        var added = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2);
+        assertTrue(added.warnings().toString(), added.warnings().isEmpty());
+        payloads.add(added.source());
+        payloads.add(LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 3).source());
+        String output = applyInLua(script, payloads, globalName(second, "registrations"));
+        String[] lines = output.split("\\R");
+        if (!skipFirst) {
+            assertEquals(output, "true 1 nil", lines[0]);
+        }
+        assertEquals(output, "true 2 nil", lines[lines.length - 2]);
+        assertEquals("no registration repeats: " + output, lines[lines.length - 2], lines[lines.length - 1]);
+    }
+
+    @DataProvider
+    public Object[][] removedRegistrationCases() {
+        return new Object[][] {{false, false}, {false, true}, {true, false}, {true, true}};
+    }
+
+    @Test(dataProvider = "removedRegistrationCases")
+    public void removedActionsFromEarlierPayloadsWarnOnlyIfTheyRan(boolean newPackage, boolean skipFirst) throws Exception {
+        String[] base = {"package Main", "public int registrations = 0", "public function handler()", "    skip",
+            "public function register(int event, code cb)", "    registrations++", "init", "    register(2, function handler)"};
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedActionsFromEarlierPayloadsWarnOnlyIfTheyRan.lua";
+        var baseline = manifest(base);
+        var main = new CU("Main", String.join("\n", base) + "\n");
+        var first = newPackage
+            ? compileLuaHotReloadManifest(false, HOT_RELOAD, main,
+                new CU("Added", "package Added\nimport Main\ninit\n    register(1, function handler)\n"))
+            : manifest(concat(base, new String[] {"    register(1, function handler)"}));
+        var removed = newPackage
+            ? compileLuaHotReloadManifest(false, HOT_RELOAD, main,
+                new CU("Added", "package Added\nimport Main\ninit\n    skip\n"))
+            : baseline;
+        var build = java.nio.file.Files.createTempDirectory("removedActionBuild");
+        var delivery = java.nio.file.Files.createTempDirectory("removedActionDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var added = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1);
+        // Delivery succeeded but saving the session failed. Recovery must preserve the action metadata too.
+        var blockedSave = build.resolve("luaHotReload/session.json.tmp");
+        java.nio.file.Files.createDirectory(blockedSave);
+        expectThrows(IOException.class, () -> LuaHotReloadSession.send(build, delivery, first));
+        java.nio.file.Files.delete(blockedSave);
+        var removal = LuaHotReloadSession.send(build, delivery, removed).payload();
+        assertFalse(java.nio.file.Files.exists(build.resolve("luaHotReload/pending.json")));
+        assertTrue(removal.source(), removal.source().contains("removed initialization action"));
+        var payloads = new java.util.ArrayList<String>();
+        if (!skipFirst) payloads.add(added.source());
+        payloads.add(removal.source());
+        payloads.add(LuaHotReloadSession.send(build, delivery, removed).payload().source());
+        String output = applyInLua(script, payloads, true, globalName(baseline, "registrations"));
+        assertEquals(output, !skipFirst, output.contains("removed initialization action"));
+        assertEquals(output, skipFirst ? 2 : 3, occurrences(output, "true " + (skipFirst ? 1 : 2) + " nil"));
+    }
+
+    @Test
+    public void scriptsWithoutInitializationActionMarkersRequireANewSession() {
+        var current = manifest(initEventCallbacks(false));
+        var legacy = new LuaHotReload.Manifest(current.abi(),
+            current.compilerVersion().replace("+hotreload-init-actions-v1", ""), current.functions(), current.statements(),
+            current.bindings(), current.initOrder());
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("another compiler"));
+    }
+
+    @Test
+    public void addedPackageInitializationDoesNotWarnOfAnUnappliedMainEdit() throws Exception {
+        var baseline = manifest(MAIN_PACKAGE);
+        var after = compileLuaHotReloadManifest(false, HOT_RELOAD,
+            new CU("Main", String.join("\n", MAIN_PACKAGE) + "\n"), addedPackage(false));
+        var payload = LuaHotReload.payload(baseline, after, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
+    @Test
+    public void nativeEventCallbacksKeepTheirRegistrationsAndRunNewBodies() {
+        test().testLua(true).executeProg().luaHotReload(nativeEventCallbacks(true)).lines(nativeEventCallbacks(false));
+    }
+
+    private static String[] nativeEventCallbacks(boolean edited) {
+        return new String[]{"type trigger extends handle", "type triggeraction extends handle", "package Test",
+            "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "native CreateTrigger() returns trigger", "native TriggerAddAction(trigger t, code cb) returns triggeraction",
+            "native TriggerExecute(trigger t)", "trigger array events", "int registrations = 0", "int observed = 0",
+            "function observe(int value)", "    observed = value", "function register(int event, code cb)",
+            "    registrations++", "    events[event] = CreateTrigger()", "    TriggerAddAction(events[event], cb)",
+            "init", edited ? "    register(1, () -> observe(1))" : "    skip",
+            "    register(2, () -> observe(" + (edited ? "20" : "2") + "))", "    register(3, () -> observe(3))",
+            "    hotReload()", "    TriggerExecute(events[2])", "    if observed != 20 or registrations != 3",
+            "        testFail(\"existing native registration did not run its edited callback, or setup repeated\")",
+            "    TriggerExecute(events[1])", "    if observed != 1", "        testFail(\"new native event was not registered\")",
+            "    TriggerExecute(events[3])", "    if observed != 3", "        testFail(\"unrelated native event changed\")",
+            "    testSuccess()"};
+    }
+
+    @Test
+    public void codeCallbacksOfDifferentFunctionsDoNotShareAnOrderGroup() throws Exception {
+        String[] base = {"package Main", "native register(code cb)", "native observe(int value)",
+            "function first()", "    register(() -> observe(1))", "function second()", "    register(() -> observe(2))",
+            "init", "    first()", "    second()"};
+        String[] after = base.clone(); after[4] += "\n    register(() -> observe(3))";
+        var payload = LuaHotReload.payload(manifest(base), manifest(after), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
+    @Test
+    public void voidCallbackExpressionCanBecomeAGuardedBlockWithoutChangingItsAbi() {
+        test().testLua(true).executeProg().luaHotReload(guardedVoidCallback(true)).lines(guardedVoidCallback(false));
+    }
+
+    @Test
+    public void discardedCallbackResultsKeepTheirEffectsOnEveryBackend() {
+        String[] source = java.util.Arrays.stream(guardedVoidCallback(false))
+            .filter(line -> !line.equals("    hotReload()")).toArray(String[]::new);
+        test().testLua(true).luaOnly(false).executeProg().lines(source);
+    }
+
+    private static String[] guardedVoidCallback(boolean guarded) {
+        return new String[]{"package Main", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Action", "    function run()", "int calls = 0", "function work(int seed) returns boolean",
+            "    calls += seed", "    return true", "function make(int seed) returns Action",
+            guarded ? "    Action action = () ->\n        if seed > 0\n            work(seed)" : "    Action action = () -> work(seed)",
+            "    return action", "init", "    let kept = make(7)", "    hotReload()", "    kept.run()",
+            "    if calls != 7", "        testFail(\"void callback lost its effects or captured value\")", "    testSuccess()"};
+    }
+
+    @Test
+    public void namedNativeCallbacksAddedToExistingInitRegisterWithoutRepeatingOldEvents() {
+        test().testLua(true).executeProg().luaHotReload(namedNativeEventCallbacks(true)).lines(namedNativeEventCallbacks(false));
+    }
+
+    private static String[] namedNativeEventCallbacks(boolean edited) {
+        return java.util.Arrays.stream(nativeEventCallbacks(edited)).map(line -> {
+            if (line.equals("init")) return "function firstEvent()\n    observe(1)\nfunction secondEvent()\n    observe("
+                + (edited ? "20" : "2") + ")\nfunction thirdEvent()\n    observe(3)\ninit";
+            if (line.startsWith("    register(1,")) return "    register(1, function firstEvent)";
+            if (line.startsWith("    register(2,")) return "    register(2, function secondEvent)";
+            if (line.startsWith("    register(3,")) return "    register(3, function thirdEvent)";
+            return line;
+        }).toArray(String[]::new);
+    }
+
+    @Test
+    public void eventArgumentsAnchorCodeCallbacksAcrossInsertionsAndBodyEdits() throws Exception {
+        String[] base = {"package Main", "native register(int event, code cb)", "native observe(int value)",
+            "function setup()", "    register(2, () -> observe(2))", "    register(3, () -> observe(3))", "init", "    setup()"};
+        String[] after = base.clone();
+        after[4] = "    register(1, () -> observe(1))\n    register(2, () -> observe(20))";
+        LuaHotReload.Payload payload = LuaHotReload.payload(manifest(base), manifest(after), LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+    }
+
     /**
      * A closure's owner is its function, named: two functions of one signature in one package (`makeKept()` and
      * `makeOther()`, both `returns Value`) made their closures one group told apart by order, so a closure added to the
