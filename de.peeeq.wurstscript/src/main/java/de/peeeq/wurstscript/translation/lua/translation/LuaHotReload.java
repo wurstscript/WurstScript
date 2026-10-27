@@ -1091,6 +1091,14 @@ public final class LuaHotReload {
                         + " to " + s.targets() + "; restart the map");
                     continue;
                 }
+                // A package introduced by an earlier payload is still new to the baseline. Its whole init
+                // may already be complete, but later actions must be scheduled with their own completion markers.
+                if (scope.equals("init") && s.kind().equals("action")) {
+                    if (!oldActions.containsKey(s.key())) {
+                        packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
+                    }
+                    continue;
+                }
                 if (scope.equals("init") && newInits.contains(s.owner())) {
                     // The init of a new package runs as a whole, below, and records its initial values as run. One added
                     // to it after it ran runs on its own, after it.
@@ -1102,12 +1110,6 @@ public final class LuaHotReload {
                         } else {
                             packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
                         }
-                    }
-                    continue;
-                }
-                if (scope.equals("init") && s.kind().equals("action")) {
-                    if (!oldActions.containsKey(s.key())) {
-                        packageValues.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
                     }
                     continue;
                 }

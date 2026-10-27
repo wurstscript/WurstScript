@@ -1302,6 +1302,41 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(output, "true 2 2 nil", lines[2]);
     }
 
+    @DataProvider
+    public Object[][] addedPackageRegistrationCases() {
+        return new Object[][] {{false}, {true}};
+    }
+
+    @Test(dataProvider = "addedPackageRegistrationCases")
+    public void registrationsAddedToEarlierPayloadsPackageRunOnce(boolean skipFirst) throws Exception {
+        String[] mainSource = {"package Main", "public interface Callback", "    function run() returns int",
+            "public int registrations = 0", "public Callback array saved",
+            "public function register(int event, Callback cb)", "    registrations++", "    saved[event] = cb"};
+        test().testLua(true).luaHotReload(mainSource).lines(mainSource);
+        String script = "test-output/lua/LuaHotReloadTests_registrationsAddedToEarlierPayloadsPackageRunOnce.lua";
+        var baseline = manifest(mainSource);
+        CU main = new CU("Main", String.join("\n", mainSource) + "\n");
+        CU firstSource = new CU("Added", "package Added\nimport Main\ninit\n    register(2, () -> 2)\n");
+        CU secondSource = new CU("Added", "package Added\nimport Main\ninit\n    register(1, () -> 10)\n    register(2, () -> 2)\n");
+        var first = compileLuaHotReloadManifest(false, HOT_RELOAD, main, firstSource);
+        var second = compileLuaHotReloadManifest(false, HOT_RELOAD, main, secondSource);
+        var payloads = new java.util.ArrayList<String>();
+        if (!skipFirst) {
+            payloads.add(LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1).source());
+        }
+        var added = LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 2);
+        assertTrue(added.warnings().toString(), added.warnings().isEmpty());
+        payloads.add(added.source());
+        payloads.add(LuaHotReload.payload(baseline, second, LuaHotReload.History.NONE, 3).source());
+        String output = applyInLua(script, payloads, globalName(second, "registrations"));
+        String[] lines = output.split("\\R");
+        if (!skipFirst) {
+            assertEquals(output, "true 1 nil", lines[0]);
+        }
+        assertEquals(output, "true 2 nil", lines[lines.length - 2]);
+        assertEquals("no registration repeats: " + output, lines[lines.length - 2], lines[lines.length - 1]);
+    }
+
     @Test
     public void scriptsWithoutInitializationActionMarkersRequireANewSession() {
         var current = manifest(initEventCallbacks(false));
