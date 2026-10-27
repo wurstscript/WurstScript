@@ -1335,6 +1335,234 @@ public class LuaHotReloadTests extends WurstScriptTest {
         return result.toArray(String[]::new);
     }
 
+    @DataProvider
+    public Object[][] guardedRegistrationCases() {
+        return new Object[][] {{true, false}, {true, true}, {false, false}, {false, true}};
+    }
+
+    @Test(dataProvider = "guardedRegistrationCases")
+    public void constantGuardedRegistrationsRunOnceAndKeepStartupOrder(boolean enabled, boolean qualified) {
+        test().testLua(true).executeProg().luaHotReload(guardedRegistrations(true, enabled, qualified, true))
+            .lines(guardedRegistrations(false, enabled, qualified, true));
+    }
+
+    @Test(dataProvider = "guardedRegistrationCases")
+    public void constantGuardedRegistrationsKeepNormalBackendSemantics(boolean enabled, boolean qualified) {
+        test().testLua(true).luaOnly(false).executeProg().lines(guardedRegistrations(true, enabled, qualified, false));
+    }
+
+    private static String[] guardedRegistrations(boolean edited, boolean enabled, boolean qualified, boolean reload) {
+        String call = qualified ? "Events.register" : "register";
+        String declaration = qualified ? "class Events\n    static function register(int event, Callback cb)"
+            : "function register(int event, Callback cb)";
+        String indent = qualified ? "        " : "    ";
+        return new String[] {"package Main", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Callback", "    function run() returns int", "Callback array saved", "int registrations = 0",
+            "int trace = 0", "constant boolean isProd = " + !enabled, "constant boolean FEATURE = true", declaration,
+            indent + "registrations++", indent + "trace = trace * 10 + event", indent + "saved[event] = cb", "init",
+            "    if not isProd and FEATURE", "        trace = trace * 10 + 1",
+            "        " + call + "(2) ->", "            return " + (edited ? 20 : 2),
+            edited ? "        " + call + "(1, () -> 10)" : "        skip",
+            "        trace = trace * 10 + 3", "    else", "        trace = trace * 10 + 4", "        trace = trace * 10 + 6",
+            reload ? "    hotReload()" : "    skip", "    if registrations != " + (enabled ? 2 : 0),
+            "        testFail(\"guarded registration missing or old setup repeated\")",
+            "    if trace != " + (enabled ? (reload ? 1231 : 1213) : 46),
+            "        testFail(\"guard lowering changed startup order or repeated ordinary setup\")",
+            "    if " + enabled, "        if saved[1] == null or saved[1].run() != 10 or saved[2].run() != 20",
+            "            testFail(\"guarded callbacks did not install their current bodies\")", "    testSuccess()"};
+    }
+
+    @Test(dataProvider = "guardedRegistrationCases")
+    public void nestedConstantGuardsAndElseBranchesKeepTheSelectedPath(boolean outer, boolean inner) {
+        test().testLua(true).executeProg().luaHotReload(nestedGuardedRegistrations(true, outer, inner))
+            .lines(nestedGuardedRegistrations(false, outer, inner));
+    }
+
+    private static String[] nestedGuardedRegistrations(boolean edited, boolean outer, boolean inner) {
+        var source = new java.util.ArrayList<String>(List.of("package Main", "native testSuccess()",
+            "native testFail(string msg)", "native hotReload()", "interface Callback", "    function run() returns int",
+            "Callback array saved", "int registrations = 0", "constant boolean OUTER = " + outer,
+            "constant boolean INNER = " + inner, "function register(int event, Callback cb)", "    registrations++",
+            "    saved[event] = cb", "init", "    if OUTER", "        if INNER"));
+        for (int event = 2; event <= 8; event += 2) {
+            if (event == 4 || event == 8) source.add("        else");
+            if (event == 6) { source.add("    else"); source.add("        if INNER"); }
+            source.add("            register(" + event + ", () -> " + (edited ? 20 : 2) + ")");
+            if (edited) source.add("            register(" + (event + 1) + ", () -> 10)");
+        }
+        int active = outer ? (inner ? 2 : 4) : (inner ? 6 : 8);
+        source.addAll(List.of("    hotReload()", "    if registrations != 2", "        testFail(\"wrong guarded branch ran\")",
+            "    if saved[" + active + "].run() != 20 or saved[" + (active + 1) + "] == null or saved[" + (active + 1) + "].run() != 10",
+            "        testFail(\"nested guarded callback did not update or register\")", "    for id = 1 to 9",
+            "        if id != " + active + " and id != " + (active + 1) + " and saved[id] != null",
+            "            testFail(\"inactive branch allocated a callback\")", "    testSuccess()"));
+        return source.toArray(String[]::new);
+    }
+
+    private static String[] guardedFixture(boolean enabled, String guard, String... body) {
+        var source = new java.util.ArrayList<String>(List.of("package Main", "interface Callback",
+            "    function run() returns int", "Callback array saved", "int registrations = 0", "int checks = 0",
+            "constant boolean ENABLED = " + enabled, "boolean dynamic = true", "function probe() returns boolean",
+            "    checks++", "    return dynamic", "function register(int event, Callback cb)", "    registrations++",
+            "    saved[event] = cb", "init", "    if " + guard));
+        for (String line : body) source.add("        " + line);
+        return source.toArray(String[]::new);
+    }
+
+    @DataProvider
+    public Object[][] guardedDeliveryCases() {
+        return new Object[][] {{false}, {true}};
+    }
+
+    @Test(dataProvider = "guardedDeliveryCases")
+    public void disabledGuardedActionsCompleteOnceAcrossCumulativePayloads(boolean skipFirst) throws Exception {
+        String[] base = guardedFixture(false, "ENABLED", "register(2, () -> 2)");
+        var baseline = manifest(base);
+        var first = manifest(guardedFixture(false, "ENABLED", "register(2, () -> 2)", "register(1, () -> 10)"));
+        var second = manifest(guardedFixture(true, "ENABLED", "register(2, () -> 2)", "register(1, () -> 10)", "register(3, () -> 30)"));
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_disabledGuardedActionsCompleteOnceAcrossCumulativePayloads.lua";
+        var build = java.nio.file.Files.createTempDirectory("guardedActionsBuild");
+        var delivery = java.nio.file.Files.createTempDirectory("guardedActionsDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var payloads = new java.util.ArrayList<String>();
+        var added = LuaHotReloadSession.send(build, delivery, first).payload();
+        if (!skipFirst) payloads.add(added.source());
+        payloads.add(LuaHotReloadSession.send(build, delivery, second).payload().source());
+        payloads.add(LuaHotReloadSession.send(build, delivery, second).payload().source());
+        String saved = globalName(second, "saved");
+        String output = applyInLua(script, payloads, globalName(second, "registrations"),
+            saved + "[1] ~= nil", saved + "[2] ~= nil", saved + "[3] ~= nil");
+        String[] lines = output.split("\\R");
+        if (!skipFirst) assertEquals(output, "true 0 false false false nil", lines[0]);
+        String expected = skipFirst ? "true 2 true false true nil" : "true 1 false false true nil";
+        assertEquals(output, expected, lines[lines.length - 2]);
+        assertEquals(output, expected, lines[lines.length - 1]);
+    }
+
+    @Test
+    public void firstRegistrationInAnExistingConstantGuardDoesNotRepeatOrdinarySetup() throws Exception {
+        String[] base = guardedFixture(true, "ENABLED", "checks += 1", "checks += 10");
+        var baseline = manifest(base);
+        var edited = manifest(guardedFixture(true, "ENABLED", "checks += 1", "register(1, () -> 10)", "checks += 10"));
+        var payload = LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().isEmpty());
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_firstRegistrationInAnExistingConstantGuardDoesNotRepeatOrdinarySetup.lua";
+        String output = applyInLua(script, List.of(payload.source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 2).source()),
+            globalName(edited, "registrations"), globalName(edited, "checks"));
+        assertEquals(output, "true 1 11 nil\ntrue 1 11 nil", output.replace("\r\n", "\n"));
+    }
+
+    @DataProvider
+    public Object[][] unsupportedInitGuards() {
+        return new Object[][] {{"dynamic"}, {"probe()"}};
+    }
+
+    @Test(dataProvider = "unsupportedInitGuards")
+    public void dynamicAndEffectfulGuardsRemainOrdinaryInit(String guard) throws Exception {
+        String[] base = guardedFixture(true, guard, "register(2, () -> 2)");
+        var edited = manifest(guardedFixture(true, guard, "register(2, () -> 2)", "register(1, () -> 10)"));
+        assertFalse(edited.statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+        var payload = LuaHotReload.payload(manifest(base), edited, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream().anyMatch(w -> w.contains("Changed package init")));
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_dynamicAndEffectfulGuardsRemainOrdinaryInit.lua";
+        String output = applyInLua(script, List.of(payload.source()), globalName(edited, "registrations"), globalName(edited, "checks"));
+        assertEquals(output, "true 1 " + (guard.equals("probe()") ? 1 : 0) + " nil", output);
+    }
+
+    @Test
+    public void guardedActionsDoNotCaptureLocalsFromTheirInit() throws Exception {
+        String[] base = guardedFixture(true, "ENABLED", "let seed = 7", "register(2, () -> seed + 2)");
+        var edited = manifest(guardedFixture(true, "ENABLED", "let seed = 7", "register(2, () -> seed + 2)", "register(1, () -> seed + 1)"));
+        assertFalse(edited.statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+        assertTrue(LuaHotReload.payload(manifest(base), edited, LuaHotReload.History.NONE, 1).warnings().stream()
+            .anyMatch(w -> w.contains("Changed package init")));
+    }
+
+    @Test
+    public void duplicateRegistrationsAcrossConstantBranchesRemainOrdinaryInit() {
+        String[] source = guardedFixture(true, "ENABLED", "register(2, () -> 2)", "skip");
+        source = concat(source, new String[] {"    else", "        register(2, () -> 3)"});
+        assertFalse(manifest(source).statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+    }
+
+    @Test
+    public void changedGuardOfAnExistingRegistrationWarnsInsteadOfReplayingIt() throws Exception {
+        var before = manifest(guardedFixture(true, "ENABLED", "register(2, () -> 2)"));
+        var after = manifest(guardedFixture(true, "not ENABLED", "register(2, () -> 2)"));
+        var payload = LuaHotReload.payload(before, after, LuaHotReload.History.NONE, 1);
+        assertTrue(payload.warnings().toString(), payload.warnings().stream()
+            .anyMatch(w -> w.contains("Initialization action") && w.contains("already ran")));
+    }
+
+    @Test
+    public void scriptsWithoutGuardedActionMarkersRequireANewSession() {
+        var current = manifest(guardedFixture(true, "ENABLED", "register(2, () -> 2)"));
+        var legacy = new LuaHotReload.Manifest(current.abi(),
+            current.compilerVersion().replace("+hotreload-init-actions-v3", "+hotreload-init-actions-v2"),
+            current.functions(), current.statements(), current.bindings(), current.initOrder());
+        var rejected = expectThrows(LuaHotReload.Rejected.class,
+            () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("another compiler"));
+    }
+
+    @Test
+    public void registrationsInsideLoopsRemainOrdinaryInit() {
+        String[] source = guardedFixture(true, "ENABLED", "for i = 0 to 2", "    register(1, () -> 1)");
+        assertFalse(manifest(source).statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+    }
+
+    @Test
+    public void constantGuardedNativeRegistrationsKeepEditedBodies() {
+        test().testLua(true).executeProg()
+            .luaHotReload(guardNativeRegistrations(qualifiedRegistrations(nativeEventCallbacks(true))))
+            .lines(guardNativeRegistrations(qualifiedRegistrations(nativeEventCallbacks(false))));
+    }
+
+    private static String[] guardNativeRegistrations(String[] source) {
+        var result = new java.util.ArrayList<String>();
+        boolean registrationBody = false;
+        for (String line : String.join("\n", source).split("\n")) {
+            if (line.equals("init")) {
+                result.add("constant boolean ENABLED = true");
+                result.add("init");
+                result.add("    if ENABLED");
+                registrationBody = true;
+            } else {
+                if (line.equals("    hotReload()")) registrationBody = false;
+                result.add(registrationBody ? "    " + line : line);
+            }
+        }
+        return result.toArray(String[]::new);
+    }
+
+    @Test
+    public void failedGuardedRegistrationRetriesWithoutRepeatingCompletedSiblings() throws Exception {
+        String[] before = java.util.Arrays.stream(guardedFixture(true, "ENABLED", "register(2, () -> 2)")).map(line -> {
+            if (line.equals("package Main")) return "package Main\nnative I2S(int value) returns string";
+            if (line.equals("int checks = 0")) return "int checks = 0\nint attempts = 0";
+            if (line.equals("    registrations++")) return "    if event == 1\n        attempts++\n        if attempts == 1\n            I2S(1 div 0)\n    registrations++";
+            return line;
+        }).toArray(String[]::new);
+        String[] after = concat(before, new String[] {"        register(1, () -> 10)"});
+        var baseline = manifest(before); var edited = manifest(after);
+        var first = LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 1);
+        assertTrue(first.warnings().toString(), first.warnings().isEmpty());
+        test().testLua(true).luaHotReload(before).lines(before);
+        String script = "test-output/lua/LuaHotReloadTests_failedGuardedRegistrationRetriesWithoutRepeatingCompletedSiblings.lua";
+        String output = applyInLua(script, List.of(first.source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 2).source(),
+            LuaHotReload.payload(baseline, edited, LuaHotReload.History.NONE, 3).source()),
+            globalName(edited, "registrations"), globalName(edited, "attempts"));
+        String[] lines = output.split("\\R");
+        assertTrue(output, lines[0].startsWith("false 1 1 "));
+        assertEquals(output, "true 2 2 nil", lines[1]);
+        assertEquals(output, "true 2 2 nil", lines[2]);
+    }
+
     private static String[] eventCallbacks(boolean edited) {
         return new String[] {"package Test", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
             "interface Callback", "    function run() returns int", "Callback array saved",
@@ -1481,7 +1709,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void scriptsWithoutQualifiedStaticActionMarkersRequireANewSession() {
         var current = manifest(qualifiedRegistrations(initEventCallbacks(false)));
         var legacy = new LuaHotReload.Manifest(current.abi(),
-            current.compilerVersion().replace("+hotreload-init-actions-v2", "+hotreload-init-actions-v1"),
+            current.compilerVersion().replace("+hotreload-init-actions-v3", "+hotreload-init-actions-v1"),
             current.functions(), current.statements(), current.bindings(), current.initOrder());
         var rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));
@@ -1492,7 +1720,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
     public void scriptsWithoutInitializationActionMarkersRequireANewSession() {
         var current = manifest(initEventCallbacks(false));
         var legacy = new LuaHotReload.Manifest(current.abi(),
-            current.compilerVersion().replace("+hotreload-init-actions-v2", ""), current.functions(), current.statements(),
+            current.compilerVersion().replace("+hotreload-init-actions-v3", ""), current.functions(), current.statements(),
             current.bindings(), current.initOrder());
         var rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(legacy, current, LuaHotReload.History.NONE, 1));

@@ -222,7 +222,8 @@ Notes; finished-work narrative does not.
   - Callback bodies now use source-callable ownership for native `code` callbacks as well as class closures. Stable
     event arguments anchor distinct registrations, including qualified static calls such as `EventListener.add` and
     `DamageEvent.addListener`. Independent, unique direct registrations added to existing package
-    init blocks run as complete source-owned units, once, without repeating previous setup. Instance receivers, computed/local operands,
+    init blocks, including immutable boolean build guards, run as complete source-owned units, once, without repeating
+    previous setup. Dynamic/effectful guards, loops, instance receivers, computed/local operands,
     generic/duplicate registrations and existing live capture/state migration remain separate work. Test behavioral
     effects of CF/ZD edits; payload acceptance and warning counts alone do not establish whole-commit coverage.
   - An anonymous order group
