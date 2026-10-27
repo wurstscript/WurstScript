@@ -134,6 +134,10 @@ public class TLDTranslation {
         WPackage nearestPackage = (WPackage) initBlock.attrNearestPackage();
         ImFunction f = translator.getInitFuncFor(nearestPackage);
 
+        if (translator.getRunArgs().isLuaHotReload()) {
+            HotReloadInitActions.translate(initBlock, translator, f);
+            return;
+        }
         // Translate and add statements in batch
         List<ImStmt> stmts = translator.translateStatements(f, initBlock.getBody());
         if (!stmts.isEmpty()) {

@@ -429,3 +429,10 @@ end
 function DisplayTextToPlayer(toPlayer, x, y, message)
     print(message)
 end
+
+-- Trigger actions use the compiler fallback's actions list (CreateTrigger / TriggerAddAction).
+-- Execute existing registrations too, so hot-reload tests exercise callbacks stored before a payload.
+function TriggerExecute(t)
+    if t == nil then return end
+    for _, action in ipairs(t.actions) do action() end
+end

@@ -97,6 +97,32 @@ whole-program receipt validation, output assembly/write, ABI hashing and payload
 this is not completion of the fully incremental design. Real-map probes and timings are recorded in
 [MAP_COMMIT_REPLAY.md](MAP_COMMIT_REPLAY.md).
 
+### Adding and editing event registrations
+
+Hot-reload callback identities include their source callable and named bindings for both class closures and native
+`code` callbacks. Direct non-generic calls with stable non-callback arguments also use the resolved target and those
+arguments as anchors. Handlers registered for distinct event constants are separate identities, so inserting one
+and editing another need not shift existing callbacks. Repeated calls with indistinguishable operands still use the
+conservative order-group checks below.
+
+Unique, independent direct callback calls at the top level of package `init` blocks become source-owned initialization
+actions in hot-reload builds. A new action runs once in the live map, in package dependency order, without repeating
+existing setup. Each complete statement owns its closure construction and temporaries; the backend does not extract
+registration calls from flattened code. Calls that depend on locals outside the statement, computed/mutable arguments,
+generic calls and duplicate action identities remain ordinary init code and retain restart warnings. Actions run
+against current live state, not a reconstruction of startup state.
+
+Completed actions are recorded by the running script. Repeated/cumulative payloads do not repeat them; a failed action
+can be retried, while completed siblings remain recorded. As with other effectful initialization, failure after partial
+side effects cannot roll those effects back. Removing an action cannot unregister its old engine effects automatically,
+and changing completed setup still warns. Adding captures to old closures still requires a reconstruction/migration;
+these changes do not relax that guard.
+
+Package dispatch emitted by the compiler is tracked by its producer, so a new package whose initialization the payload
+already applies no longer produces a misleading changed-`main` warning. Actual entry-point edits and changes to the
+relative initialization order of existing packages still warn. The action-completion protocol requires a **new game
+session after upgrading from an older compiler**, even if the compiler's version label is unchanged.
+
 ### Names from identities
 
 Release builds number generated Lua names in translation order. A hot-reload build names each function, global,
