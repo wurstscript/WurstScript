@@ -51,9 +51,8 @@ public class LocalMerger implements OptimizerPass {
 
     void optimizeFunc(ImFunction func) {
         LivenessAnalysis liveness = analyzeLiveness(func);
-        // The liveness is that of the code which a path reaches: a local which only code no path reaches reads (after
-        // a loop which nothing leaves, say) is live nowhere, and eliminateDeadCode removes the assignments to it. That
-        // code goes too, so that no read is left with no assignment before it, which pjass rejects.
+        // Remove unreachable reads together with their assignments. On Jass the graph conservatively lets loops
+        // fall through: pjass requires a return after a non-exiting loop, and its operands must stay initialised.
         List<ImStmt> unreachable = liveness.cfg.unreachableStatements();
         if (!unreachable.isEmpty()) {
             for (ImStmt s : unreachable) {
@@ -399,7 +398,9 @@ public class LocalMerger implements OptimizerPass {
 
     private LivenessAnalysis analyzeLiveness(ImFunction func) {
         // 1. Build Control Flow Graph
-        ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
+        boolean needsJassReturn = translator != null && !translator.isLuaTarget()
+            && !(func.getReturnType() instanceof ImVoid);
+        ControlFlowGraph cfg = new ControlFlowGraph(func.getBody(), needsJassReturn);
         final List<Node> nodes = cfg.getNodes();
         final int N = nodes.size();
 
