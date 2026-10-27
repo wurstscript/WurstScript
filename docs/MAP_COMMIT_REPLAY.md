@@ -117,6 +117,33 @@ edits to existing map code, rather than synthetic functions added to a map. They
 historical commit takes the incremental path. The armor-cost edit using Math.min/max remains excluded because its
 vararg products have not been migrated.
 
+Measured on 26 October 2026, Windows x64, Java 27, 6 GiB heap and ParallelGC. The baseline is exact master
+`1c23fb384c0f6c96da55218a996703378014ee51`; the new compiler code is `ef9e5cb3d87d37920f22aa37290c3c6139ccad19`.
+Each map/variant has three trials in separate JVMs, in baseline/symbol/symbol/baseline/baseline/symbol order, using
+identical current harness/dependencies and the latest exported source states recorded above. All twelve trials
+matched independent fresh Lua and manifests and produced one-function payloads.
+
+| Existing function edit | Previous median through payload | New median | Reduction | Compilation alone, old → new |
+| --- | ---: | ---: | ---: | ---: |
+| Castle Fight sync threshold | 9.71 s | 6.37 s | 34.4% | 7.44 → 4.33 s |
+| Zombie Defense rock probability | 5.82 s | 4.89 s | 15.9% | 3.99 → 3.05 s |
+
+Total ranges were 9.29–9.77 s / 6.35–6.44 s on Castle Fight and 5.39–6.06 s / 4.66–6.32 s on Zombie Defense
+(previous / new). Zombie Defense's ranges overlap and one new trial exceeded the previous median. Three trials
+show a local median gain, not a p95 guarantee. Editor queueing and game application remain excluded.
+
+Each new request lowered **one runtime function** and emitted one, versus 36,757 lowered / 35,723 emitted on Castle
+Fight and 30,624 / 29,761 on Zombie Defense with the previous compiler. One compile-time owner was also lowered
+freshly per new request. The compile-time bridge still copied 60,018 functions / 2,339,305 nodes on Castle Fight and
+54,551 / 1,519,344 on Zombie Defense. Global receipt validation, output assembly, ABI hashing and payload comparison
+remain whole-program work.
+
+Cold admission adds work: the independent fresh-model compilation oracles took medians 8.11 → 14.08 s on Castle
+Fight and 4.94 → 9.29 s on Zombie Defense. These are compilation-stage observations after model loading, rather than
+end-to-end startup measurements. The warm timing table requires a completed admission snapshot. Eliminating the
+remaining global work is still necessary for the subsecond target. Full local trial receipts are retained under
+`de.peeeq.wurstscript/test-output/symbol-final-benchmarks.json`; the table includes every trial, including the outlier.
+
 Run from `de.peeeq.wurstscript`, after exporting the corresponding fixture:
 
 ```powershell
