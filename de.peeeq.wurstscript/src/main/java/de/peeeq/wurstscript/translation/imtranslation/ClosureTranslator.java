@@ -234,7 +234,7 @@ public class ClosureTranslator {
         }
 
 
-        if (e.getImplementation().attrTyp().isVoid()) {
+        if (impl.getReturnType() instanceof ImVoid) {
             impl.getBody().add(translated);
         } else {
             impl.getBody().add(JassIm.ImReturn(e, translated));
@@ -367,7 +367,9 @@ public class ClosureTranslator {
             Expr value = call.getArgs().get(i);
             String part;
             if (value instanceof ExprClosure) { part = "callback:" + i; callback = true; }
-            else { part = hotReloadArgument(value); if (part == null) return null; }
+            else if (value instanceof ExprFuncRef reference) {
+                part = "callback-reference:" + i + ":" + hotReloadOwnerIdentity(reference.attrFuncDef(), tr); callback = true;
+            } else { part = hotReloadArgument(value); if (part == null) return null; }
             key.append(part.length()).append(':').append(part);
         }
         return callback ? Hashing.sha256().hashString(key, StandardCharsets.UTF_8).toString() : null;

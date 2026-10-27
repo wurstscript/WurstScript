@@ -1354,6 +1354,43 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void voidCallbackExpressionCanBecomeAGuardedBlockWithoutChangingItsAbi() {
+        test().testLua(true).executeProg().luaHotReload(guardedVoidCallback(true)).lines(guardedVoidCallback(false));
+    }
+
+    @Test
+    public void discardedCallbackResultsKeepTheirEffectsOnEveryBackend() {
+        String[] source = java.util.Arrays.stream(guardedVoidCallback(false))
+            .filter(line -> !line.equals("    hotReload()")).toArray(String[]::new);
+        test().testLua(true).luaOnly(false).executeProg().lines(source);
+    }
+
+    private static String[] guardedVoidCallback(boolean guarded) {
+        return new String[]{"package Main", "native testSuccess()", "native testFail(string msg)", "native hotReload()",
+            "interface Action", "    function run()", "int calls = 0", "function work(int seed) returns boolean",
+            "    calls += seed", "    return true", "function make(int seed) returns Action",
+            guarded ? "    Action action = () ->\n        if seed > 0\n            work(seed)" : "    Action action = () -> work(seed)",
+            "    return action", "init", "    let kept = make(7)", "    hotReload()", "    kept.run()",
+            "    if calls != 7", "        testFail(\"void callback lost its effects or captured value\")", "    testSuccess()"};
+    }
+
+    @Test
+    public void namedNativeCallbacksAddedToExistingInitRegisterWithoutRepeatingOldEvents() {
+        test().testLua(true).executeProg().luaHotReload(namedNativeEventCallbacks(true)).lines(namedNativeEventCallbacks(false));
+    }
+
+    private static String[] namedNativeEventCallbacks(boolean edited) {
+        return java.util.Arrays.stream(nativeEventCallbacks(edited)).map(line -> {
+            if (line.equals("init")) return "function firstEvent()\n    observe(1)\nfunction secondEvent()\n    observe("
+                + (edited ? "20" : "2") + ")\nfunction thirdEvent()\n    observe(3)\ninit";
+            if (line.startsWith("    register(1,")) return "    register(1, function firstEvent)";
+            if (line.startsWith("    register(2,")) return "    register(2, function secondEvent)";
+            if (line.startsWith("    register(3,")) return "    register(3, function thirdEvent)";
+            return line;
+        }).toArray(String[]::new);
+    }
+
+    @Test
     public void eventArgumentsAnchorCodeCallbacksAcrossInsertionsAndBodyEdits() throws Exception {
         String[] base = {"package Main", "native register(int event, code cb)", "native observe(int value)",
             "function setup()", "    register(2, () -> observe(2))", "    register(3, () -> observe(3))", "init", "    setup()"};

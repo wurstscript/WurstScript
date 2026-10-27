@@ -105,7 +105,10 @@ arguments as anchors. Handlers registered for distinct event constants are separ
 and editing another need not shift existing callbacks. Repeated calls with indistinguishable operands still use the
 conservative order-group checks below.
 
-Unique, independent direct callback calls at the top level of package `init` blocks become source-owned initialization
+Void interface/class callbacks retain the declared void ABI even when their expression body computes a value;
+changing such an expression into a guarded block preserves the callback identity and discards only the unused result.
+
+Unique, independent direct callback calls (inline closures or named function references) at the top level of package `init` blocks become source-owned initialization
 actions in hot-reload builds. A new action runs once in the live map, in package dependency order, without repeating
 existing setup. Each complete statement owns its closure construction and temporaries; the backend does not extract
 registration calls from flattened code. Calls that depend on locals outside the statement, computed/mutable arguments,
