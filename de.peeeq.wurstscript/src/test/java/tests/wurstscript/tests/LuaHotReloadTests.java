@@ -1337,6 +1337,48 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals("no registration repeats: " + output, lines[lines.length - 2], lines[lines.length - 1]);
     }
 
+    @DataProvider
+    public Object[][] removedRegistrationCases() {
+        return new Object[][] {{false, false}, {false, true}, {true, false}, {true, true}};
+    }
+
+    @Test(dataProvider = "removedRegistrationCases")
+    public void removedActionsFromEarlierPayloadsWarnOnlyIfTheyRan(boolean newPackage, boolean skipFirst) throws Exception {
+        String[] base = {"package Main", "public int registrations = 0", "public function handler()", "    skip",
+            "public function register(int event, code cb)", "    registrations++", "init", "    register(2, function handler)"};
+        test().testLua(true).luaHotReload(base).lines(base);
+        String script = "test-output/lua/LuaHotReloadTests_removedActionsFromEarlierPayloadsWarnOnlyIfTheyRan.lua";
+        var baseline = manifest(base);
+        var main = new CU("Main", String.join("\n", base) + "\n");
+        var first = newPackage
+            ? compileLuaHotReloadManifest(false, HOT_RELOAD, main,
+                new CU("Added", "package Added\nimport Main\ninit\n    register(1, function handler)\n"))
+            : manifest(concat(base, new String[] {"    register(1, function handler)"}));
+        var removed = newPackage
+            ? compileLuaHotReloadManifest(false, HOT_RELOAD, main,
+                new CU("Added", "package Added\nimport Main\ninit\n    skip\n"))
+            : baseline;
+        var build = java.nio.file.Files.createTempDirectory("removedActionBuild");
+        var delivery = java.nio.file.Files.createTempDirectory("removedActionDelivery");
+        LuaHotReloadSession.start(build, baseline);
+        var added = LuaHotReload.payload(baseline, first, LuaHotReload.History.NONE, 1);
+        // Delivery succeeded but saving the session failed. Recovery must preserve the action metadata too.
+        var blockedSave = build.resolve("luaHotReload/session.json.tmp");
+        java.nio.file.Files.createDirectory(blockedSave);
+        expectThrows(IOException.class, () -> LuaHotReloadSession.send(build, delivery, first));
+        java.nio.file.Files.delete(blockedSave);
+        var removal = LuaHotReloadSession.send(build, delivery, removed).payload();
+        assertFalse(java.nio.file.Files.exists(build.resolve("luaHotReload/pending.json")));
+        assertTrue(removal.source(), removal.source().contains("removed initialization action"));
+        var payloads = new java.util.ArrayList<String>();
+        if (!skipFirst) payloads.add(added.source());
+        payloads.add(removal.source());
+        payloads.add(LuaHotReloadSession.send(build, delivery, removed).payload().source());
+        String output = applyInLua(script, payloads, true, globalName(baseline, "registrations"));
+        assertEquals(output, !skipFirst, output.contains("removed initialization action"));
+        assertEquals(output, skipFirst ? 2 : 3, occurrences(output, "true " + (skipFirst ? 1 : 2) + " nil"));
+    }
+
     @Test
     public void scriptsWithoutInitializationActionMarkersRequireANewSession() {
         var current = manifest(initEventCallbacks(false));

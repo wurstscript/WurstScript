@@ -138,7 +138,7 @@ public final class LuaHotReload {
      * {@code boot} (the bootstrap), {@code globals} (the global initialisers) or {@code init} (a package init); {@code key}
      * identifies the assignment or complete source initializer;
      * {@code kind} is {@code slot} (a function bound in a table, or a class's table of supertypes), {@code global} (a value given to a global) or
-     * {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
+     * {@code action} (a source-owned registration) or {@code other}; {@code owner} is the package init it is part of, or empty. {@code revision} is the initializer's
      * complete definition for an initializer call, otherwise the statement text. {@code targets} identifies all
      * retained storage written by a source initializer, including tuple leaves and generic specializations.
      */
@@ -228,7 +228,8 @@ public final class LuaHotReload {
      * What earlier payloads sent to the running map: the functions they defined, and the functions they stored as
      * values, each with the hash of the definition it had then ({@link #definitionHash}).
      * {@code slots} preserves the class-table bindings they may have installed; {@code initializers} maps initializer
-     * names to their run-once keys, whose presence in the map confirms whether they ran. {@code variables} names the
+     * names to their run-once keys, whose presence in the map confirms whether they ran. {@code actions} retains the
+     * equivalent keys of registration actions, including removed ones. {@code variables} names the
      * storage of globals one of those versions declared as variables, which code may then have written.
      * {@code groupShapes} holds every shape sent of each closure told apart by its order ({@link #orderGroups}), by its
      * lineage: which of them the map runs depends on which payloads it installed, which the editor does not know.
@@ -246,17 +247,18 @@ public final class LuaHotReload {
                           Map<String, List<String>> groupShapes, List<GroupMember> groupLayout,
                           Map<String, Map<String, String>> lineageOrigins, Set<String> permutedGroups, Set<String> reboundSlots,
                           Map<String, Map<String, String>> lineageTypes, Map<String, Set<String>> tableReaders,
-                          Map<String, Integer> compiletimeGroups, Map<String, String> compiletimeReferenceOwners) {
+                          Map<String, Integer> compiletimeGroups, Map<String, String> compiletimeReferenceOwners,
+                          Map<String, String> actions) {
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of(), Map.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured, Map<String, List<String>> slots,
                        Map<String, String> initializers, Set<String> packageInits, Set<String> variables,
                        Map<String, List<String>> groupShapes, Set<String> reboundSlots) {
-            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of(), Map.of());
+            this(reloaded, captured, slots, initializers, packageInits, variables, groupShapes, null, Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
         }
 
         public History(Set<String> reloaded, Map<String, String> captured) {
@@ -284,7 +286,7 @@ public final class LuaHotReload {
     /**
      * A payload: Lua source which {@code load} compiles and which applies {@code functions}. {@code warnings} name what
      * it carries but cannot apply; {@code captured} the functions its version stores as values, with their definitions'
-     * hashes. {@code slots}, {@code initializers}, {@code variables}, {@code groupShapes} and {@code reboundSlots} carry the installation
+     * hashes. {@code slots}, {@code initializers}, {@code actions}, {@code variables}, {@code groupShapes} and {@code reboundSlots} carry the installation
      * metadata subsequent payloads need.
      */
     public record Payload(int version, List<String> functions, String source, List<String> warnings,
@@ -293,19 +295,20 @@ public final class LuaHotReload {
                           List<GroupMember> groupLayout, Map<String, Map<String, String>> lineageOrigins,
                           Set<String> permutedGroups, Set<String> reboundSlots, Map<String, Map<String, String>> lineageTypes,
                           Map<String, Set<String>> tableReaders, Map<String, Integer> compiletimeGroups,
-                          Map<String, String> compiletimeReferenceOwners) {
+                          Map<String, String> compiletimeReferenceOwners,
+                          Map<String, String> actions) {
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes, Set<String> reboundSlots) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of(), Map.of());
+                List.of(), Map.of(), Set.of(), reboundSlots, Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
         }
 
         public Payload(int version, List<String> functions, String source, List<String> warnings,
                        Map<String, String> captured, Map<String, List<String>> slots, Map<String, String> initializers,
                        Set<String> packageInits, Set<String> variables, Map<String, String> groupShapes) {
             this(version, functions, source, warnings, captured, slots, initializers, packageInits, variables, groupShapes,
-                List.of(), Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of(), Map.of());
+                List.of(), Map.of(), Set.of(), Set.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
         }
     }
 
@@ -1311,6 +1314,13 @@ public final class LuaHotReload {
                         + " keeps its value; restart the map to apply the removal")).append(")\nend\n");
             }
         }
+        for (String action : new TreeSet<>(history.actions().keySet())) {
+            if (!newActions.containsKey(action) && !oldActions.containsKey(action)) {
+                sb.append("if ").append(RAN_TABLE).append("[").append(luaString(history.actions().get(action))).append("] then\n")
+                    .append(WARN_FUNCTION).append("(").append(luaString("Wurst hot reload: removed initialization action " + action
+                        + " keeps its effects; restart the map to apply its removal")).append(")\nend\n");
+            }
+        }
         for (String init : new TreeSet<>(history.packageInits())) {
             if (!baseline.functions().containsKey(init) && !current.functions().containsKey(init)) {
                 sb.append("if ").append(RAN_TABLE).append("[").append(luaString("init:" + init)).append("] then\n")
@@ -1358,13 +1368,16 @@ public final class LuaHotReload {
                 packageInits.add(f.name());
             }
         }
+        Map<String, String> actionKeys = new LinkedHashMap<>();
+        newActions.forEach((key, action) -> actionKeys.put(key, runKey(action)));
         return new Payload(version, List.copyOf(defined), sb.toString(), List.copyOf(warnings),
             Collections.unmodifiableMap(captured), Collections.unmodifiableMap(slots), Collections.unmodifiableMap(currentInitializers),
             Collections.unmodifiableSet(packageInits), Collections.unmodifiableSet(constants.newVariables()),
             Collections.unmodifiableMap(groupShapes), List.copyOf(lineages.layout),
             Collections.unmodifiableMap(lineages.newOrigins), Collections.unmodifiableSet(lineages.permuted), Collections.unmodifiableSet(sentSlots),
             Collections.unmodifiableMap(lineages.types), Collections.unmodifiableMap(lineages.readers),
-            Objects.requireNonNullElse(current.compiletimeGroups(), Map.of()), Collections.unmodifiableMap(introducedOwners));
+            Objects.requireNonNullElse(current.compiletimeGroups(), Map.of()), Collections.unmodifiableMap(introducedOwners),
+            Collections.unmodifiableMap(actionKeys));
     }
 
     /**
@@ -1806,8 +1819,6 @@ public final class LuaHotReload {
         return result;
     }
 
-    /** Init code is a sequence. Existing initializer units retain their positions without comparing their bodies,
-     * whose changed values have their own warning; added and removed units are handled separately. */
     private static Map<String, Statement> initActions(Manifest manifest) {
         Map<String, Statement> result = new LinkedHashMap<>();
         for (Statement statement : manifest.statements()) {
@@ -1824,6 +1835,8 @@ public final class LuaHotReload {
                 + " already ran; restart the map to apply changed setup.")).append(")\nend\n");
     }
 
+    /** Init code is a sequence. Existing initializer units retain their positions without comparing their bodies,
+     * whose changed values have their own warning; added and removed units are handled separately. */
     private static Map<String, List<String>> initCode(Manifest manifest, Set<String> commonInitializers) {
         Map<String, List<String>> result = new LinkedHashMap<>();
         for (Function f : manifest.functions().values()) {
