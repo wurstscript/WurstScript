@@ -2725,6 +2725,50 @@ public class OptimizerTests extends WurstScriptTest {
                 "    testSuccess()"));
     }
 
+    /** Issue #1577: pjass requires a trailing return even when the loop only exits by returning. */
+    @Test
+    public void localOptimizationsKeepJassReturnAfterNonExitingLoop() {
+        for (boolean lua : new boolean[]{false, true}) {
+            TestConfig config = test().localOptimizations().executeProg();
+            if (lua) config.testLua(true);
+            config.compilationUnits(
+                compilationUnit("returningLoop.j",
+                    "function returningLoop takes integer n returns integer",
+                    "    local integer result = n + 7",
+                    "    loop",
+                    "        if n > 0 then",
+                    "            return result",
+                    "        endif",
+                    "        set n = n + 1",
+                    "    endloop",
+                    "    return result",
+                    "endfunction",
+                    "function nestedReturningLoop takes integer n returns string",
+                    "    local string result = \"done\"",
+                    "    if n >= 0 then",
+                    "        loop",
+                    "            loop",
+                    "                exitwhen n > 0",
+                    "                set n = n + 1",
+                    "            endloop",
+                    "            if n > 0 then",
+                    "                return result",
+                    "            endif",
+                    "        endloop",
+                    "    else",
+                    "        return \"negative\"",
+                    "    endif",
+                    "    return result",
+                    "endfunction"),
+                compilationUnit("test.wurst",
+                    "package test",
+                    "native testSuccess()",
+                    "init",
+                    "    if returningLoop(0) == 7 and nestedReturningLoop(0) == \"done\" and nestedReturningLoop(-1) == \"negative\"",
+                    "        testSuccess()"));
+        }
+    }
+
     /**
      * The only read of `a` is after a loop which always returns, so it is never reached. The optimisations do not
      * leave that read with no assignment before it, which pjass rejects.

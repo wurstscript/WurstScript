@@ -40,9 +40,16 @@ public class ControlFlowGraph {
     private final Reference2ObjectOpenHashMap<ImVarargLoop, Node> varargLoopEnd = new Reference2ObjectOpenHashMap<>();
     private final ObjectArrayList<Node> nodeList = new ObjectArrayList<>();
     private final ImStmts body;
+    private final boolean loopsMayFallThrough;
 
     public ControlFlowGraph(ImStmts stmts) {
+        this(stmts, false);
+    }
+
+    /** Conservative loop exits for Jass liveness: its validator requires returns after non-exiting loops too. */
+    public ControlFlowGraph(ImStmts stmts, boolean loopsMayFallThrough) {
         this.body = stmts;
+        this.loopsMayFallThrough = loopsMayFallThrough;
         // a light hint helps the first growth step avoid rehash
         nodes.trim(0);
         buildCfg(stmts);
@@ -120,6 +127,7 @@ public class ControlFlowGraph {
                 buildCfg(body);
                 if (!body.isEmpty()) addSuccessor(current, getNode(body.get(0)));
                 Node endloopNode = getEndloopNode(imLoop);
+                if (loopsMayFallThrough) addSuccessor(current, endloopNode);
                 nodeList.add(endloopNode);
                 addAllSuccessors(endloopNode, getSuccessorList(imLoop, i));
             } else if (s instanceof ImVarargLoop l) {
