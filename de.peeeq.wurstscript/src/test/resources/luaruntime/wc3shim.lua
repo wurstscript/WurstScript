@@ -335,7 +335,8 @@ function DestroyForce(f) end
 function ForceAddPlayer(f, p) f.members[p.id] = p end
 function ForceRemovePlayer(f, p) f.members[p.id] = nil end
 function ForceClear(f) f.members = {} end
-function IsPlayerInForce(p, f) return f.members[p.id] ~= nil end
+-- A null player or force is not a member, matching the native null-handle default.
+function IsPlayerInForce(p, f) return p ~= nil and f ~= nil and f.members[p.id] ~= nil end
 local enumPlayers = {}
 function GetEnumPlayer() return enumPlayers[#enumPlayers] end
 function ForForce(f, callback)
