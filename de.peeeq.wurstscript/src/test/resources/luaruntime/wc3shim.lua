@@ -335,7 +335,8 @@ function DestroyForce(f) end
 function ForceAddPlayer(f, p) f.members[p.id] = p end
 function ForceRemovePlayer(f, p) f.members[p.id] = nil end
 function ForceClear(f) f.members = {} end
-function IsPlayerInForce(p, f) return f.members[p.id] ~= nil end
+-- A null player or force is not a member, matching the native null-handle default.
+function IsPlayerInForce(p, f) return p ~= nil and f ~= nil and f.members[p.id] ~= nil end
 local enumPlayers = {}
 function GetEnumPlayer() return enumPlayers[#enumPlayers] end
 function ForForce(f, callback)
@@ -417,6 +418,11 @@ end
 -- A killed unit stays in its groups (measured on the 3.0.0 client).
 function KillUnit(u) u.dead = true end
 function GetUnitTypeId(u) return u.typeId end
+-- Null-handle defaults let Blizzard helpers evaluate their own conditions. Live unit state is not modeled.
+function GetUnitState(u, state)
+    if u == nil then return 0 end
+    error("GetUnitState: live unit state is not modeled by the test runtime")
+end
 function CreateDestructable(objectId, x, y, face, scale, variation)
     return { typeId = objectId, x = x, y = y, face = face, scale = scale, variation = variation }
 end

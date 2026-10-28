@@ -1183,9 +1183,19 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("a null unit type is UNIT_TYPE_HERO:\n" + type, type.contains("ConvertUnitType(0)"));
     }
 
+    @Test
+    public void aBlizzardHelperEvaluatesNullUsingItsOwnBody() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "init",
+            "    if not IsUnitDeadBJ(null)",
+            "        testFail(\"IsUnitDeadBJ(null) must read the null unit's zero life\")",
+            "    testSuccess()");
+    }
+
     /**
      * Only a native reads a null enum handle as id 0. A blizzard.j helper sees the null, which Jass keeps, so its
-     * guard answers the default as for any other null handle rather than handing the helper the id-0 handle:
+     * call passes null through rather than handing the helper the id-0 handle:
      * RemovePlayerPreserveUnitsBJ compares its game result with PLAYER_GAME_RESULT_VICTORY before any native.
      */
     @Test
@@ -1197,8 +1207,11 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    remove(null, null)");
         String compiled = compiledLua("aBlizzardHelperIsNotHandedTheHandleOfIdZero");
-        String wrapper = topLevelFunctionBodyWithPrefix(compiled, "__wurst_safe_RemovePlayerPreserveUnitsBJ");
-        assertFalse("a helper sees the null:\n" + wrapper, wrapper.contains("ConvertPlayerGameResult"));
+        String caller = topLevelFunctionBodyWithPrefix(compiled, "remove");
+        assertTrue("call the Blizzard helper directly:\n" + caller, caller.contains("RemovePlayerPreserveUnitsBJ("));
+        assertFalse("a helper needs no native nil guard:\n" + compiled,
+            compiled.contains("__wurst_safe_RemovePlayerPreserveUnitsBJ"));
+        assertFalse("a helper sees the null:\n" + caller, caller.contains("ConvertPlayerGameResult"));
     }
 
     /**

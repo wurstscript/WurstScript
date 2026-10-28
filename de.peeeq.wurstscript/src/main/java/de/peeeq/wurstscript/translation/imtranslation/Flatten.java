@@ -316,14 +316,8 @@ public class Flatten {
 
 
     public static Result flatten(ImSet s, ImTranslator t, ImFunction f) {
-        Result l = s.getLeft().flatten(t, f);
-        Result r = s.getRight().flatten(t, f);
-        List<ImStmt> stmts = new ArrayList<>(l.stmts.size() + r.stmts.size() + 1);
-        stmts.addAll(l.stmts);
-        stmts.addAll(r.stmts);
-        ImSet replacement = JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr);
-        // Flatten moves the operands out of s. Initializer metadata must follow the replacement,
-        // rather than retaining the abandoned assignment with children now owned by another node.
+        // Keep a complete lazy initializer before lowering moves its operands. Sharing the replacement
+        // lets later inlining replace its arguments with locals, which do not exist during a lazy read.
         ImVar variable = s.getLeft() instanceof ImVarAccess access ? access.getVar()
             : s.getLeft() instanceof ImVarArrayAccess access ? access.getVar() : null;
         List<ImSet> initializers = variable == null ? null : t.imProg().getGlobalInits().get(variable);
@@ -334,9 +328,15 @@ public class Flatten {
                     initializers = new ArrayList<>(initializers);
                     t.imProg().getGlobalInits().put(variable, initializers);
                 }
-                initializers.set(i, replacement);
+                initializers.set(i, s.copy());
             }
         }
+        Result l = s.getLeft().flatten(t, f);
+        Result r = s.getRight().flatten(t, f);
+        List<ImStmt> stmts = new ArrayList<>(l.stmts.size() + r.stmts.size() + 1);
+        stmts.addAll(l.stmts);
+        stmts.addAll(r.stmts);
+        ImSet replacement = JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr);
         stmts.add(replacement);
         return new Result(stmts);
     }

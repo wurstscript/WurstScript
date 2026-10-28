@@ -256,7 +256,7 @@ public final class LuaNativeLowering {
                         }
                         return stub;
                     });
-                } else if (hasGuardedParam(f)) {
+                } else if (f.isNative() && hasGuardedParam(f)) {
                     // Decided per call: an argument which is never nil needs no test.
                     List<ImVar> params = f.getParameters();
                     boolean[] guarded = new boolean[params.size()];

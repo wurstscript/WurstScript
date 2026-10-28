@@ -25,7 +25,7 @@ public class ImMetadataAdapterTests {
         assertNotEquals(function.sourceModificationCount(), source);
     }
 
-    @Test public void flattenKeepsInitializerMetadataPointingAtTheOwnedReplacement() {
+    @Test public void flattenKeepsAnIndependentCompleteLazyInitializer() {
         var trace = de.peeeq.wurstscript.ast.Ast.NoExpr();
         var translator = new de.peeeq.wurstscript.translation.imtranslation.ImTranslator(
             de.peeeq.wurstscript.ast.Ast.WurstModel(), false, new de.peeeq.wurstscript.RunArgs("-lua"));
@@ -38,8 +38,33 @@ public class ImMetadataAdapterTests {
         translator.imProg().getGlobalInits().put(variable, List.of(initializer));
         function.flatten(translator);
         var current = translator.imProg().getGlobalInits().get(variable).getFirst();
-        assertSame(current, function.getBody().getFirst());
+        assertNotSame(current, function.getBody().getFirst());
+        ((de.peeeq.wurstscript.jassIm.ImSet) function.getBody().getFirst()).setRight(JassIm.ImIntVal(9));
+        assertEquals(((de.peeeq.wurstscript.jassIm.ImIntVal) current.getRight()).getValI(), 7);
         NodeGraphs.validate(current);
+    }
+
+    @Test public void flattenKeepsStatementsNeededByALazyInitializer() {
+        var trace = de.peeeq.wurstscript.ast.Ast.NoExpr();
+        var translator = new de.peeeq.wurstscript.translation.imtranslation.ImTranslator(
+            de.peeeq.wurstscript.ast.Ast.WurstModel(), false, new de.peeeq.wurstscript.RunArgs());
+        var variable = JassIm.ImVar(trace, JassIm.ImSimpleType("int"), "global", false);
+        var temporary = JassIm.ImVar(trace, JassIm.ImSimpleType("int"), "temporary", false);
+        var initializer = JassIm.ImSet(trace, JassIm.ImVarAccess(variable), JassIm.ImStatementExpr(
+            JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(temporary), JassIm.ImIntVal(7))),
+            JassIm.ImVarAccess(temporary)));
+        var function = JassIm.ImFunction(trace, "initialize", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(temporary), JassIm.ImStmts(initializer), new ArrayList<>());
+        translator.imProg().getGlobals().add(variable);
+        translator.imProg().getFunctions().add(function);
+        translator.imProg().getGlobalInits().put(variable, List.of(initializer));
+        function.flatten(translator);
+        var state = new de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState(
+            new de.peeeq.wurstscript.gui.WurstGuiCliImpl(), translator.imProg(), true);
+        var value = JassIm.ImVarAccess(variable).evaluate(state,
+            new de.peeeq.wurstscript.intermediatelang.interpreter.LocalState());
+        assertEquals(value, de.peeeq.wurstscript.intermediatelang.ILconstInt.create(7));
+        NodeGraphs.validate(translator.imProg().getGlobalInits().get(variable).getFirst());
     }
 
     @Test public void insertionOrderedFastutilMapsKeepNonComparableImKeysAndRepairTheirReferences() {
