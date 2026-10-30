@@ -9,7 +9,7 @@ import de.peeeq.wurstscript.translation.imtranslation.*;
 import java.util.*;
 
 /** Generated, detached body graph. External operands are request-local symbols, never retained mutable IM. */
-record SymbolFunctionArtifact(NodeGraphs.Snapshot body, String version, String shape) {
+record SymbolFunctionArtifact(NodeGraphs.Snapshot body, String version, String shape, CallLoweringProducts products) {
     static boolean supports(ImFunction function) {
         if (function.isBj() || function.isNative() || function.isExtern() || !function.getTypeVariables().isEmpty()
             || function.getFlags().stream().anyMatch(flag -> !(flag instanceof FunctionFlagAnnotation)
@@ -31,7 +31,7 @@ record SymbolFunctionArtifact(NodeGraphs.Snapshot body, String version, String s
             if (node instanceof ImFunctionCall call && (!call.getTypeArguments().isEmpty()
                 || !call.getFunc().getTypeVariables().isEmpty() || !simple(call.getFunc().getReturnType())
                 || call.getFunc().getParameters().stream().anyMatch(v -> !simple(v.getType()))
-                || call.getFunc().hasFlag(FunctionFlagEnum.IS_VARARG) || call.getCallType() != CallType.NORMAL)) return false;
+                || call.getCallType() != CallType.NORMAL)) return false;
             if (node instanceof ImOperatorCall call && (call.getOp() == WurstOperator.DIV_INT
                 || call.getOp() == WurstOperator.MOD_INT || call.getOp() == WurstOperator.MOD_REAL
                 || call.getOp() == WurstOperator.JASS_MOD_INT)) return false;
@@ -49,6 +49,7 @@ record SymbolFunctionArtifact(NodeGraphs.Snapshot body, String version, String s
         ImTranslator context = new ImTranslator(Ast.WurstModel(), false, args);
         context.imProg().getFunctions().add(function);
         try (var scope = NodeOwnership.CHECKS ? NodeOwnership.scope(function) : null) {
+            products.lower(function, input, context);
             function.flatten(context);
             EliminateLocalTypes.eliminateLocalTypesFunc(function);
         }

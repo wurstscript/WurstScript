@@ -37,6 +37,7 @@ public class VarargEliminator {
      * calls are redirected, and unreferenced originals are left to garbage removal.
      */
     private final boolean luaTarget;
+    private final CallLoweringObserver observer;
     // original + number of args --> new function
     private final Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
 
@@ -45,8 +46,13 @@ public class VarargEliminator {
     }
 
     public VarargEliminator(ImProg prog, boolean luaTarget) {
+        this(prog, luaTarget, CallLoweringObserver.NONE);
+    }
+
+    public VarargEliminator(ImProg prog, boolean luaTarget, CallLoweringObserver observer) {
         this.prog = prog;
         this.luaTarget = luaTarget;
+        this.observer = observer;
     }
 
     public void run() {
@@ -357,6 +363,7 @@ public class VarargEliminator {
         ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc,
             JassIm.ImTypeArguments(call.getTypeArguments().removeAll()),
             JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(), call.getCallType());
+        observer.replaced(call, newCall);
         call.replaceBy(newCall);
     }
 

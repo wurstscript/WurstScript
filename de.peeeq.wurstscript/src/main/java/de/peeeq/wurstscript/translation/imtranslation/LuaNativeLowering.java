@@ -163,6 +163,10 @@ public final class LuaNativeLowering {
     }
 
     public static void transform(ImProg prog, ImTranslator translator) {
+        transform(prog, translator, CallLoweringObserver.NONE);
+    }
+
+    public static void transform(ImProg prog, ImTranslator translator, CallLoweringObserver observer) {
         // Replace all reads of MagicFunctions_isLua with true.
         // This must happen before any optimizer passes so that dead-code elimination
         // can remove Jass-only branches at compile time.
@@ -183,7 +187,7 @@ public final class LuaNativeLowering {
         removeRedundantTypeAssurance(prog, translator);
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog, translator);
-        lowerRealToInt(prog, translator);
+        lowerRealToInt(prog, translator, observer);
 
         // Maps original BJ function → replacement (IS_NATIVE hashtable stub).
         // Populated lazily during the traversal.
@@ -218,11 +222,11 @@ public final class LuaNativeLowering {
                         if (!deferredAdditions.contains(replacement)) {
                             deferredAdditions.add(replacement);
                         }
-                        call.replaceBy(JassIm.ImFunctionCall(
+                        replaceCall(call, JassIm.ImFunctionCall(
                             call.attrTrace(), replacement,
                             JassIm.ImTypeArguments(),
                             call.getArguments().copy(),
-                            false, CallType.NORMAL));
+                            false, CallType.NORMAL), observer);
                     }
                     return;
                 }
@@ -234,11 +238,11 @@ public final class LuaNativeLowering {
                         if (!deferredAdditions.contains(replacement)) {
                             deferredAdditions.add(replacement);
                         }
-                        call.replaceBy(JassIm.ImFunctionCall(
+                        replaceCall(call, JassIm.ImFunctionCall(
                             call.attrTrace(), replacement,
                             JassIm.ImTypeArguments(),
                             call.getArguments().copy(),
-                            false, CallType.NORMAL));
+                            false, CallType.NORMAL), observer);
                     }
                     return;
                 }
@@ -276,11 +280,11 @@ public final class LuaNativeLowering {
                     return;
                 }
 
-                call.replaceBy(JassIm.ImFunctionCall(
+                replaceCall(call, JassIm.ImFunctionCall(
                     call.attrTrace(), replacement,
                     JassIm.ImTypeArguments(),
                     call.getArguments().copy(),
-                    false, CallType.NORMAL));
+                    false, CallType.NORMAL), observer);
             }
         });
 
@@ -563,6 +567,11 @@ public final class LuaNativeLowering {
         prog.getFunctions().addAll(funcs.createdFunctions());
     }
 
+    private static void replaceCall(ImFunctionCall source, ImFunctionCall lowered, CallLoweringObserver observer) {
+        observer.replaced(source, lowered);
+        source.replaceBy(lowered);
+    }
+
     /**
      * Rewrites calls to the native {@code R2I} to {@code __wurst_R2I}, which truncates in Lua arithmetic:
      * {@code x // 1 | 0} for a non-negative real, and its negation for a negative one. That is exact
@@ -574,7 +583,7 @@ public final class LuaNativeLowering {
      * included. The helper returns one intrinsic call, so it inlines anywhere, and the intrinsic is
      * printed as a single Lua expression ({@code ExprTranslation#realToInt}) with no call in range.
      */
-    private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
+    private static void lowerRealToInt(ImProg prog, ImTranslator translator, CallLoweringObserver observer) {
         ImFunction[] shim = {null};
         List<ImFunction> added = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
@@ -588,8 +597,8 @@ public final class LuaNativeLowering {
                 if (shim[0] == null) {
                     shim[0] = buildRealToInt(translator, added);
                 }
-                call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
-                    JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL));
+                replaceCall(call, JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL), observer);
             }
         });
         if (shim[0] != null) {

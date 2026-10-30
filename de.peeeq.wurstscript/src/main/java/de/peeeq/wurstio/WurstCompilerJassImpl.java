@@ -1044,7 +1044,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // static argument count go to fixed-arity copies, so the emitted Lua packs no table and the
         // copies can inline; originals stay for dispatch, function references and calls above the bound.
         beginPhase(4, "eliminate varargs");
-        new VarargEliminator(imProg, true).run();
+        CallLoweringObserver callLowerings = incrementalImTranslation == null ? CallLoweringObserver.NONE
+            : incrementalImTranslation.symbolBackend().callLoweringObserver();
+        new VarargEliminator(imProg, true, callLowerings).run();
         imTranslator.assertProperties();
         timeTaker.endPhase();
 
@@ -1054,7 +1056,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // Lower Lua-specific native calls into IM-level wrappers before optimization,
         // so the optimizer can inline and eliminate the nil-safety checks and remapped stubs.
         beginPhase(4, "lua native lowering");
-        LuaNativeLowering.transform(imProg, imTranslator2);
+        LuaNativeLowering.transform(imProg, imTranslator2, callLowerings);
         LuaTypedKeyedReads.transform(imProg, imTranslator2);
         timeTaker.endPhase();
 
