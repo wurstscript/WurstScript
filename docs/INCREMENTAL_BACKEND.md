@@ -27,6 +27,11 @@ their helpers again. Call ordinals are recorded during the existing input traver
 eager whole-program source index. Source/arity changes and edits to a vararg original still invalidate the global
 receipt and use batch compilation. This does not implement persistent helper demand or class/generic products.
 
+Exact and shape receipts now share one schema encoding and UTF-8 tokens. Shape hashing replaces only literal
+attributes; it retains all structural/reference fields and the existing global guards. This removes duplicate
+metadata work as eligibility expands, without caching validation facts between requests. The matching-base
+Castle Fight control and min/max measurements are in [MAP_COMMIT_REPLAY.md](MAP_COMMIT_REPLAY.md#shared-receipt-encoding-control-regression-follow-up).
+
 The [real-map commit replay](MAP_COMMIT_REPLAY.md) remains the broad correctness corpus. Its earlier 24 measured
 commits all used the batch backend. Separate existing-function probes now exercise actual map code through the new
 slice; whole-commit acceptance and incremental compilation coverage must continue to be reported separately.

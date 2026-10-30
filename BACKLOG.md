@@ -288,6 +288,8 @@ Notes; finished-work narrative does not.
   incremental payload indexing. Port producer contracts rather than parsing generated names or synthesising empty
   function headers. The real Zombie Defense armor-cost edit now lowers/emits one runtime function; controlled
   timings and remaining whole-program costs are recorded in `docs/MAP_COMMIT_REPLAY.md`.
+  Exact/shape receipt hashing now shares one schema encoding and UTF-8 tokens; matching-master alternating
+  probes removed the observed Castle Fight control regression while retaining the min/max improvement.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that

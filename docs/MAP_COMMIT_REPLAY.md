@@ -159,6 +159,9 @@ pickup/application are outside this measurement.
 
 ## Vararg/native caller products
 
+These are the pre-receipt-sharing measurements. The matching-base follow-up below measures the control regression
+fix on newer master; compare variants within each campaign rather than comparing their absolute times.
+
 Measured 30 October 2026 on Windows x64, Java 27, a 6 GiB profile JVM and ParallelGC. The baseline is
 `168b9a95c`; the new compiler is the working-tree vararg/native extension based on that commit. Both variants
 include the same pre-existing local CFG/local-merger changes. The isolated fixtures are
@@ -211,6 +214,53 @@ rtk proxy .\gradlew.bat -I ../docs/profiling/runmap-profile.gradle symbolHotRelo
 Use the Castle Fight fixture and `castle-sync.json` for the control. Select independently compiled baseline main
 classes with `-PprofileBaseline` and `-PprofileCompilerClasses=<absolute-directory>`. Measurements and focused
 execution are Windows-only; Ubuntu/macOS and current in-game application remain unverified.
+
+## Shared receipt encoding: control regression follow-up
+
+Measured 30 October 2026 on Windows x64, Java 27, 6 GiB heap and ParallelGC, against matching master
+`2b5cd9c0b455b2be5b1041dcec78b14dadf65b97`. Compiler code is `ddb390a90` on that base; subsequent commits
+strengthen the profiling oracle and document results. The same isolated map fixtures, source edits and public-compiler
+lane were used. Source remains frozen except for the specified edit and is restored after each trial.
+
+The broader caller slice exposed duplicate receipt work: each eligible body's exact and shape hashes independently
+encoded the schema and normalized metadata. `ImBackendInput` now encodes a node once, feeds both hashes from that
+data and shares UTF-8 token bytes, except for literal attributes abstracted only in the shape. All declaration,
+non-admitted-body and compile-time-product guards remain. The failing work repro encoded 16 nodes 26 times;
+the fixed path encodes them 16 times. Literal-kind, structural-edit and non-literal/UTF-8 invariants check the two
+fingerprints' meanings.
+
+Three trials per map/variant ran in separate JVMs in baseline/new/new/baseline/baseline/new order. Every trial
+matched independent fresh Lua, the complete manifest and payload exactly, and published a one-function payload.
+The profiling oracle retains an independent delivery session so repeated edit/revert probes preserve history too.
+Times include reconciliation through payload publication; editor queueing and Warcraft application are excluded.
+
+| Existing function edit | Matching-master median | Shared-encoding median | Reduction | Compilation alone, baseline to new |
+| --- | ---: | ---: | ---: | ---: |
+| Castle Fight sync threshold, control | 8.129 s | 6.009 s | 26.1% | 5.477 to 3.941 s |
+| Zombie Defense armor cost, nested Math.min/max | 12.664 s | 5.832 s | 54.0% | 10.193 to 3.539 s |
+
+All host-publication samples, in trial order within each variant:
+
+| Edit | Baseline seconds | Shared-encoding seconds |
+| --- | --- | --- |
+| Castle Fight sync threshold | 7.080, 8.147, 8.129 | 5.955, 6.009, 7.977 |
+| Zombie Defense armor cost | 12.664, 14.925, 12.380 | 6.417, 5.832, 5.541 |
+
+The control stayed at one lowered/emitted runtime function on both variants. The armor edit changed from
+77,891 runtime lowering / 53,234 emission entries (including batch fallback/readmission) to one of each.
+Fresh compile-time execution still lowered one owner and copied the whole bridge graph: 60,333 functions /
+2,337,425 nodes on Castle Fight, 54,771 / 1,521,108 on Zombie Defense. Global receipts, script assembly,
+ABI hashing and payload comparison remain whole-program work. Every adjacent paired comparison favored the
+shared encoder, but three trials and overlapping control ranges do not establish a p95 bound.
+
+Fresh-model compilation-oracle medians were 17.274 to 14.764 s on Castle Fight and 12.544 to 11.857 s on
+Zombie Defense, after model loading. Raw local receipts are in
+`de.peeeq.wurstscript/test-output/receipt-sharing-benchmarks.json`.
+
+On this base, 696 targeted checks pass with ownership checks and both backend variants, including the seven
+`ImBackendInputTests` cases. A new 500-program/1,500-edit campaign with seed `202610301811` and anonymous
+insertion enabled passed: 1,257 applied payloads, 242 expected refusals, one permitted ambiguous refusal, zero
+failures. Execution/timings remain Windows-only; current game application and macOS remain unverified.
 
 ## Running another campaign
 

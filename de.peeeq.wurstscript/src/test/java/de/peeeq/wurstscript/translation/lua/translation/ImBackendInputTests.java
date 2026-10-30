@@ -22,7 +22,7 @@ public class ImBackendInputTests {
 
     private static Input input(ImExpr expression, String type) {
         ImTranslator translator = new ImTranslator(Ast.WurstModel(), false, new RunArgs("-lua", "-luaHotReload"));
-        ImFunction function = JassIm.ImFunction(Ast.NoExpr(), "value", JassIm.ImTypeVars(), JassIm.ImVars(),
+        ImFunction function = JassIm.ImFunction(Ast.NoExpr(), "value_r\u00e9sum\u00e9", JassIm.ImTypeVars(), JassIm.ImVars(),
             JassIm.ImSimpleType(type), JassIm.ImVars(),
             JassIm.ImStmts(JassIm.ImReturn(Ast.NoExpr(), expression)), List.of());
         translator.imProg().getFunctions().add(function);
@@ -42,6 +42,11 @@ public class ImBackendInputTests {
         assertNotEquals(before.input.receipt.bodies().get(before.function), literal.input.receipt.bodies().get(literal.function));
         assertEquals(before.input.receipt.shapes().get(before.function), literal.input.receipt.shapes().get(literal.function));
         assertNotEquals(before.input.receipt.shapes().get(before.function), structural.input.receipt.shapes().get(structural.function));
+    }
+
+    @Test public void nonLiteralBodiesHaveIdenticalExactAndShapeReceipts() {
+        Input fixture = input(JassIm.ImNull(JassIm.ImSimpleType("string")), "string");
+        assertEquals(fixture.input.receipt.bodies().get(fixture.function), fixture.input.receipt.shapes().get(fixture.function));
     }
 
     @DataProvider public Object[][] literals() {
