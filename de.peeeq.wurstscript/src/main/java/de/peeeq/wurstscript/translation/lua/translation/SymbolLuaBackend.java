@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.CallLoweringObserver;
 import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.utils.CompilationCancellation;
 import org.eclipse.jdt.annotation.Nullable;
@@ -20,11 +21,24 @@ public final class SymbolLuaBackend {
     public record Result(String script, LuaHotReload.Manifest manifest) { }
     private @Nullable Snapshot snapshot;
     private @Nullable ImBackendInput pending;
+    private final Map<ImFunctionCall, Integer> callOrigins = new IdentityHashMap<>();
+    private final Map<Integer, CallLoweringProducts.Replacement> callProducts = new LinkedHashMap<>();
+    public CallLoweringObserver callLoweringObserver() {
+        ImBackendInput input = pending;
+        if (input == null) return CallLoweringObserver.NONE;
+        return (source, lowered) -> {
+            Integer id = callOrigins.get(source);
+            if (id == null) id = input.ids.get(source);
+            if (id == null) return;
+            callOrigins.put(lowered, id);
+            callProducts.put(id, new CallLoweringProducts.Replacement(lowered.getFunc(), lowered.getTuplesEliminated(), lowered.getCallType()));
+        };
+    }
     private long generation;
     private String reason = "no completed symbol backend output";
     public String reason() { return reason; }
-    public void clear() { snapshot = null; pending = null; generation++; reason = "model cleared"; }
-    public void sourcePrepared() { pending = null; generation++; }
+    public void clear() { snapshot = null; sourcePrepared(); reason = "model cleared"; }
+    public void sourcePrepared() { pending = null; callOrigins.clear(); callProducts.clear(); generation++; }
     private void requireGeneration(long expected) {
         if (generation != expected) throw new java.util.concurrent.CancellationException("Stale symbol backend preparation");
     }
@@ -76,7 +90,7 @@ public final class SymbolLuaBackend {
             if (body == null || !Objects.equals(old.body.shape(), input.receipt.shapes().get(id))) {
                 snapshot = null; reason = "function shape changed"; return null;
             }
-            replacements.put(id, new Artifact(new SymbolFunctionArtifact(body, version, old.body.shape()), old.frame));
+            replacements.put(id, new Artifact(new SymbolFunctionArtifact(body, version, old.body.shape(), old.body.products()), old.frame));
         }
         try {
             Map<String, String> definitions = new LinkedHashMap<>();
@@ -123,7 +137,8 @@ public final class SymbolLuaBackend {
             if (id == null || !input.candidates.containsKey(id) || !manifest.functions().containsKey(entry.getKey().getName())
                 || manifest.functions().get(entry.getKey().getName()).kind() != LuaHotReload.Kind.PROGRAM) continue;
             try {
-                SymbolFunctionArtifact body = new SymbolFunctionArtifact(input.candidates.get(id), input.receipt.bodies().get(id), input.receipt.shapes().get(id));
+                CallLoweringProducts products = CallLoweringProducts.capture(input, id, callProducts, translated);
+                SymbolFunctionArtifact body = new SymbolFunctionArtifact(input.candidates.get(id), input.receipt.bodies().get(id), input.receipt.shapes().get(id), products);
                 SymbolFunctionArtifact.Lowered lowered = body.lower(input, args);
                 if (!NodeGraphs.freeze(lowered.function(), input).sameSemantics(NodeGraphs.freeze(entry.getValue(), input))) continue;
                 Artifact artifact = new Artifact(body, translated.scalarFrame(entry.getKey(), entry.getValue()));
@@ -144,6 +159,7 @@ public final class SymbolLuaBackend {
         requireGeneration(revision);
         snapshot = new Snapshot(environment(args), input.globalReceipt(artifacts.keySet()), input.receipt, Map.copyOf(artifacts),
             functionNames, variableNames, declarationNames, List.copyOf(fragments), manifest);
+        callOrigins.clear(); callProducts.clear();
         reason += "; captured " + artifacts.size() + " symbol functions; unported products: " + unported;
     }
 
@@ -153,6 +169,10 @@ public final class SymbolLuaBackend {
         Map<ImFunction, String> functions = new IdentityHashMap<>();
         Map<ImVar, String> variables = new IdentityHashMap<>();
         NodeGraphs.referenceSlots(lowered.function(), (field, node) -> {
+            if (node instanceof ImFunction product && input.productNames.containsKey(product)) {
+                functions.put(product, input.productNames.get(product));
+                return;
+            }
             Integer id = node instanceof Element element ? input.ids.get(element) : null;
             if (id == null) return;
             if (node instanceof ImFunction function) {

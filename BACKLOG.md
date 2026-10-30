@@ -281,10 +281,15 @@ Notes; finished-work narrative does not.
   same-shape literal edits can lower/emit only changed owners, including actual Castle Fight and Zombie Defense
   functions. See `docs/MAP_COMMIT_REPLAY.md` for controlled measurements and the distinction from whole-commit coverage.
   Fresh compile-time execution still forks the whole graph; semantic receipts, full-file assembly, ABI hashing and
-  payload comparison still scan global state. Next: producer-owned vararg/native helper descriptors and class/generic
+  payload comparison still scan global state. Vararg/native producers now report argument-preserving call replacements;
+  frozen target graphs and bindings admit ordinary callers of Math.min/max, R2I, nullable-handle wrappers and
+  hashtable stubs under the existing shape/dependency receipts and cold equality gates. Next: class/generic
   products, versioned dependency queries instead of global receipts, compile-time closure-only materialisation and
   incremental payload indexing. Port producer contracts rather than parsing generated names or synthesising empty
-  function headers. The real Zombie Defense armor-cost edit currently falls back because Math.min/max use varargs.
+  function headers. The real Zombie Defense armor-cost edit now lowers/emits one runtime function; controlled
+  timings and remaining whole-program costs are recorded in `docs/MAP_COMMIT_REPLAY.md`.
+  Exact/shape receipt hashing now shares one schema encoding and UTF-8 tokens; matching-master alternating
+  probes removed the observed Castle Fight control regression while retaining the min/max improvement.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that

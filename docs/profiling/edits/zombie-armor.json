@@ -1,0 +1,5 @@
+{
+  "file": "wurst/zombie/TargetSelection.wurst",
+  "before": "max(0., armor) * 0.06",
+  "after": "max(0., armor) * 0.08"
+}

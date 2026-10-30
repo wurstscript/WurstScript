@@ -113,6 +113,90 @@ public class IncrementalSymbolBackendTests extends WurstScriptTest {
         after = compile(project); work(after, 1, project); sameOutput(after, fresh(project, false));
     }
 
+    @Test(dataProvider = "sizes") public void minMaxVarargCallsReuseTheirFixedArityProducts(int extra) throws Exception {
+        String source = SOURCE + "function maximum(vararg real values) returns real\n"
+            + "    real result = 0.\n    for value in values\n        if value > result\n            result = value\n    return result\n"
+            + "function minimum(vararg real values) returns real\n"
+            + "    real result = 100.\n    for value in values\n        if value < result\n            result = value\n    return result\n"
+            + "native observeReal(real value)\n"
+            + "function armor(real value) returns real\n    return minimum(100., maximum(0., value)) * 0.06\n"
+            + "init\n    observeReal(armor(10.))\n";
+        StringBuilder all = new StringBuilder(source);
+        for (int i = 0; i < extra; i++) all.append("function extra").append(i)
+            .append("(int x) returns int\n    return helper(x) + 9\ninit\n    observe(extra").append(i).append("(4))\n");
+        Project project = project(all.toString()); Output before = compile(project);
+        edit(project, project.source.replace("* 0.06", "* 0.08"));
+        Output after = compile(project); work(after, 1, project);
+        Output expected = fresh(project, false); sameOutput(after, expected);
+        assertEquals(LuaHotReload.payload(before.manifest, after.manifest, Set.of(), 1),
+            LuaHotReload.payload(before.manifest, expected.manifest, Set.of(), 1));
+    }
+
+    @Test public void nativeWrappersKeepTheirProducerBindings() throws Exception {
+        Project project = project(SOURCE + "function nativeResult(real value) returns int\n    return R2I(value * 0.5)\n"
+            + "init\n    observe(nativeResult(12.))\n");
+        Output before = compile(project);
+        edit(project, project.source.replace("value * 0.5", "value * 0.75"));
+        Output after = compile(project); work(after, 1, project);
+        Output expected = fresh(project, false); sameOutput(after, expected);
+        assertEquals(LuaHotReload.payload(before.manifest, after.manifest, Set.of(), 1),
+            LuaHotReload.payload(before.manifest, expected.manifest, Set.of(), 1));
+    }
+
+    @DataProvider public Object[][] nativeCalls() {
+        return new Object[][] {
+            {"unit u", "real", "GetUnitX(u)"},
+            {"unit u", "int", "GetHandleId(u)"},
+            {"hashtable table", "int", "LoadInteger(table, 1, 2)"}
+        };
+    }
+    @Test(dataProvider = "nativeCalls") public void nativeHelperCallsKeepUnrelatedFunctionsFrozen(String parameter, String result, String call) throws Exception {
+        String source = SOURCE + "native observeReal(real value)\nfunction nativeValue(" + parameter + ") returns " + result
+            + "\n    return " + call + " + 7\ninit\n    " + (result.equals("real") ? "observeReal" : "observe") + "(nativeValue(null))\n";
+        Project project = project(source); compile(project);
+        edit(project, source.replace(call + " + 7", call + " + 8"));
+        Output after = compile(project); work(after, 1, project); sameOutput(after, fresh(project, false));
+    }
+
+    @Test public void varargArityAndHelperBodyChangesInvalidateProducts() throws Exception {
+        String source = SOURCE + "function sum(vararg int values) returns int\n    int result = 1\n"
+            + "    for value in values\n        result = result + value\n    return result\n"
+            + "function summed(int x) returns int\n    return sum(x, 2) + 7\ninit\n    observe(summed(4))\n";
+        Project project = project(source); compile(project);
+        source = source.replace("sum(x, 2)", "sum(x, 2, 3)");
+        edit(project, source); Output arity = compile(project);
+        assertTrue(arity.work.runtimeLoweredFunctions() > 1); sameOutput(arity, fresh(project, false));
+        source = source.replace("int result = 1", "int result = 2");
+        edit(project, source); Output body = compile(project);
+        sameOutput(body, fresh(project, false)); assertTrue(body.work.runtimeLoweredFunctions() > 1);
+        edit(project, source.replace("sum(x, 2, 3) + 7", "sum(x, 2, 3) + 8"));
+        Output after = compile(project); work(after, 1, project); sameOutput(after, fresh(project, false));
+    }
+
+    @Test public void installedVarargAndNativePayloadUsesNewBodyThroughTheOldCaller() throws Exception {
+        String source = SOURCE + "function sum(vararg real values) returns real\n    real result = 0.\n"
+            + "    for value in values\n        result = result + value\n    return result\n"
+            + "function combined(real value) returns int\n    return R2I(sum(value, 2.) * 0.5)\n"
+            + "function caller(real value) returns int\n    return combined(value)\ninit\n    observe(caller(10.))\n";
+        Project project = project(source); Output before = compile(project);
+        edit(project, source.replace("* 0.5", "* 0.75")); Output after = compile(project); work(after, 1, project);
+        sameOutput(after, fresh(project, false));
+        String caller = name(before, "caller"), combined = name(before, "combined");
+        Path script = project.root.resolve("before.lua"), payload = project.root.resolve("payload.lua"), driver = project.root.resolve("driver.lua");
+        Files.writeString(script, before.script);
+        Files.writeString(payload, LuaHotReload.payload(before.manifest, after.manifest, Set.of(), 1).source());
+        Files.writeString(driver, "dofile(arg[1])\nlocal caller = " + caller + "\nlocal combined = " + combined
+            + "\nassert(caller(10.) == 6)\nlocal f = assert(io.open(arg[2], 'rb')) local source = f:read('a') f:close()\n"
+            + "local ok, err = " + LuaHotReload.APPLY_FUNCTION + "(source) assert(ok, err)\n"
+            + "assert(caller == " + caller + ") assert(combined ~= " + combined + ") assert(caller(10.) == 9)\n");
+        Process process = new ProcessBuilder(getLuaExecutable(), driver.toString(), script.toString(), payload.toString()).redirectErrorStream(true).start();
+        try {
+            assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Lua payload timed out");
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertEquals(process.exitValue(), 0, output);
+        } finally { if (process.isAlive()) { process.destroyForcibly(); assertTrue(process.waitFor(5, TimeUnit.SECONDS)); } }
+    }
+
     @Test public void unchangedCallersKeepTheirBodiesAndObserveTheNewCalleeInLua() throws Exception {
         Project project = project(SOURCE); Output before = compile(project);
         edit(project, SOURCE.replace("x * 3", "x * 4")); Output after = compile(project); work(after, 1, project);

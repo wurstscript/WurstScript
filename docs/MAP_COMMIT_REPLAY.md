@@ -98,7 +98,7 @@ remains the recorded earlier baseline, not a controlled before/after generator b
 
 In that Castle Fight request, compile-time work took 0.29 s, Lua transformation 3.65 s (including generic specialization 0.84 s and translation/emission 1.29 s), and printing 0.07 s. The rest includes frontend/forking, manifest work, reconciliation and delivery. Compile-time execution must stay fresh; its product boundary is required for cache correctness, rather than being the dominant measured time cost.
 
-The new post-compile-time symbol slice adopts generated owned graph snapshots and symbolic call/storage/type operands. Controlled existing-function probes below measure its initial coverage; structural, class and vararg edits still need producer contracts and explicit dependencies. A slice counts as a practical gain only when this corpus and ordinary body-edit probes show less unrelated backend work, exact fresh-build agreement, and lower whole-request latency. New declarations and generated demand must invalidate their affected products without silently becoming safe because a payload was writable.
+The new post-compile-time symbol slice adopts generated owned graph snapshots and symbolic call/storage/type operands. Controlled existing-function probes below measure its initial coverage; structural and class edits and changed vararg demand still need producer contracts and explicit dependencies. A slice counts as a practical gain only when this corpus and ordinary body-edit probes show less unrelated backend work, exact fresh-build agreement, and lower whole-request latency. New declarations and generated demand must invalidate their affected products without silently becoming safe because a payload was writable.
 
 No Warcraft client was launched. No claim is made about engine timing or in-game application. Measurements are Windows-only; Ubuntu/macOS timing and actual save-to-applied latency remain unverified.
 
@@ -114,8 +114,8 @@ probes and retries complete trials across build-date minute boundaries without n
 The checked-in edits cover Zombie Defense's `tileTakesRock` probability (ordinary calls, global array reads and real
 comparison) and Castle Fight's `shouldRestartLeaderForEqualSpawn` threshold (real/boolean control flow). These are
 edits to existing map code, rather than synthetic functions added to a map. They do not establish that an entire
-historical commit takes the incremental path. The armor-cost edit using Math.min/max remains excluded because its
-vararg products have not been migrated.
+historical commit takes the incremental path. The armor-cost edit using Math.min/max is covered by the later
+vararg/native caller measurements below.
 
 Measured on 26 October 2026, Windows x64, Java 27, 6 GiB heap and ParallelGC. The baseline is exact master
 `1c23fb384c0f6c96da55218a996703378014ee51`; the new compiler code is `ef9e5cb3d87d37920f22aa37290c3c6139ccad19`.
@@ -156,6 +156,111 @@ same current harness, dependencies, fixture, 6 GiB heap and ParallelGC. Alternat
 `project/_build/symbol-results.json` after each invocation, and report medians/ranges rather than interpreting the
 independent fresh oracle's cold admission work as the old warm compiler's baseline. Editor queueing and Warcraft
 pickup/application are outside this measurement.
+
+## Vararg/native caller products
+
+These are the pre-receipt-sharing measurements. The matching-base follow-up below measures the control regression
+fix on newer master; compare variants within each campaign rather than comparing their absolute times.
+
+Measured 30 October 2026 on Windows x64, Java 27, a 6 GiB profile JVM and ParallelGC. The baseline is
+`168b9a95c`; the new compiler is the working-tree vararg/native extension based on that commit. Both variants
+include the same pre-existing local CFG/local-merger changes. The isolated fixtures are
+`temp/map-commits-zombie-v3-20261026/project` and `temp/map-commits-castle-v2-20261026/project`, with the
+public-compiler lane and dependency overrides described above. Original map checkouts were not changed.
+
+Each map has three trials per variant, each in a separate JVM, in baseline/new/new/baseline/baseline/new order.
+Every trial matched independent fresh Lua and the complete manifest exactly and published a one-function payload.
+Times include reconciliation through payload publication, excluding editor queueing and Warcraft pickup/application.
+
+| Existing function edit | Baseline median | New median | Compilation alone, baseline to new |
+| --- | ---: | ---: | ---: |
+| Zombie Defense armor cost, `0.06` to `0.08`, with nested Math.min/max | 8.524 s | 3.930 s | 6.877 to 2.353 s |
+| Castle Fight sync threshold, already incremental control | 4.888 s | 5.364 s | 3.142 to 3.532 s |
+
+All host-publication samples, in trial order within each variant:
+
+| Edit | Baseline seconds | New seconds |
+| --- | --- | --- |
+| Zombie Defense armor cost | 8.524, 8.551, 8.359 | 3.893, 3.930, 3.965 |
+| Castle Fight sync threshold | 5.828, 4.888, 4.787 | 6.036, 5.364, 5.262 |
+
+The armor edit's median improved **53.9%**. Its counted runtime lowering/emission work, including batch fallback
+and cold readmission, fell from 77,688/53,031 functions to **1/1**. One compile-time owner still ran freshly, and
+the bridge still copied 54,545 functions / 1,518,737 nodes. The control stayed at 1/1 runtime functions, with a
+median **9.7% higher** (+0.476 s) and overlapping ranges. Three trials do not establish parity or a p95 bound;
+this slice improves newly admitted callers, rather than proving lower latency for every edit. Semantic receipts,
+full-file output, ABI hashing and payload comparison still process global state.
+
+Cold fresh-model compilation-oracle medians were 7.271 to 7.777 s on Zombie Defense and 11.527 to 11.954 s on
+Castle Fight. These are compilation-stage observations after model loading, not end-to-end startup measurements.
+Full local receipts are in `de.peeeq.wurstscript/test-output/vararg-native-final-benchmarks.json`.
+
+The initial repros failed on the old batch fallback; the implementation passes 633 targeted checks across
+`IncrementalSymbolBackendTests`, `IncrementalScalarBackendTests`, `IncrementalHotReloadCompilationTests`,
+`VarargTests`, `LuaBackendAuditTests`, `LuaHashtableTests`, `LuaHotReloadTests` and `LuaNativesTests`, with
+`asg.checkOwnership=true` and `-PallBackends=full`. Checks cover helper body/arity invalidation, R2I,
+nullable-handle wrappers, GetHandleId, hashtable reads, fresh Lua/manifest/payload equality, 1,000 unrelated live
+functions and stock-Lua payload execution through an unchanged caller. Deliberately ignoring a vararg original's
+body receipt made the fresh-Lua oracle fail on stale helper output; that mutant was removed before the clean checks.
+A separate 500-program/1,500-edit hot-reload fuzz campaign (seed `202610301633`, anonymous insertion enabled)
+reported zero failures: 1,258 applied payloads, 241 expected refusals and one permitted ambiguous refusal.
+
+Reproduce the armor probe from `de.peeeq.wurstscript` with:
+
+```powershell
+rtk proxy .\gradlew.bat -I ../docs/profiling/runmap-profile.gradle symbolHotReloadProfile '-PprofileRoot=temp/map-commits-zombie-v3-20261026/project' '-PprofileEdit=../docs/profiling/edits/zombie-armor.json' -PprofilePublicCompiler --no-configuration-cache
+```
+
+Use the Castle Fight fixture and `castle-sync.json` for the control. Select independently compiled baseline main
+classes with `-PprofileBaseline` and `-PprofileCompilerClasses=<absolute-directory>`. Measurements and focused
+execution are Windows-only; Ubuntu/macOS and current in-game application remain unverified.
+
+## Shared receipt encoding: control regression follow-up
+
+Measured 30 October 2026 on Windows x64, Java 27, 6 GiB heap and ParallelGC, against matching master
+`2b5cd9c0b455b2be5b1041dcec78b14dadf65b97`. Compiler code is `ddb390a90` on that base; subsequent commits
+strengthen the profiling oracle and document results. The same isolated map fixtures, source edits and public-compiler
+lane were used. Source remains frozen except for the specified edit and is restored after each trial.
+
+The broader caller slice exposed duplicate receipt work: each eligible body's exact and shape hashes independently
+encoded the schema and normalized metadata. `ImBackendInput` now encodes a node once, feeds both hashes from that
+data and shares UTF-8 token bytes, except for literal attributes abstracted only in the shape. All declaration,
+non-admitted-body and compile-time-product guards remain. The failing work repro encoded 16 nodes 26 times;
+the fixed path encodes them 16 times. Literal-kind, structural-edit and non-literal/UTF-8 invariants check the two
+fingerprints' meanings.
+
+Three trials per map/variant ran in separate JVMs in baseline/new/new/baseline/baseline/new order. Every trial
+matched independent fresh Lua, the complete manifest and payload exactly, and published a one-function payload.
+The profiling oracle retains an independent delivery session so repeated edit/revert probes preserve history too.
+Times include reconciliation through payload publication; editor queueing and Warcraft application are excluded.
+
+| Existing function edit | Matching-master median | Shared-encoding median | Reduction | Compilation alone, baseline to new |
+| --- | ---: | ---: | ---: | ---: |
+| Castle Fight sync threshold, control | 8.129 s | 6.009 s | 26.1% | 5.477 to 3.941 s |
+| Zombie Defense armor cost, nested Math.min/max | 12.664 s | 5.832 s | 54.0% | 10.193 to 3.539 s |
+
+All host-publication samples, in trial order within each variant:
+
+| Edit | Baseline seconds | Shared-encoding seconds |
+| --- | --- | --- |
+| Castle Fight sync threshold | 7.080, 8.147, 8.129 | 5.955, 6.009, 7.977 |
+| Zombie Defense armor cost | 12.664, 14.925, 12.380 | 6.417, 5.832, 5.541 |
+
+The control stayed at one lowered/emitted runtime function on both variants. The armor edit changed from
+77,891 runtime lowering / 53,234 emission entries (including batch fallback/readmission) to one of each.
+Fresh compile-time execution still lowered one owner and copied the whole bridge graph: 60,333 functions /
+2,337,425 nodes on Castle Fight, 54,771 / 1,521,108 on Zombie Defense. Global receipts, script assembly,
+ABI hashing and payload comparison remain whole-program work. Every adjacent paired comparison favored the
+shared encoder, but three trials and overlapping control ranges do not establish a p95 bound.
+
+Fresh-model compilation-oracle medians were 17.274 to 14.764 s on Castle Fight and 12.544 to 11.857 s on
+Zombie Defense, after model loading. Raw local receipts are in
+`de.peeeq.wurstscript/test-output/receipt-sharing-benchmarks.json`.
+
+On this base, 696 targeted checks pass with ownership checks and both backend variants, including the seven
+`ImBackendInputTests` cases. A new 500-program/1,500-edit campaign with seed `202610301811` and anonymous
+insertion enabled passed: 1,257 applied payloads, 242 expected refusals, one permitted ambiguous refusal, zero
+failures. Execution/timings remain Windows-only; current game application and macOS remain unverified.
 
 ## Running another campaign
 

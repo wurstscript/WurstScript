@@ -84,10 +84,19 @@ and emitted-definition agreement with the batch compiler.
 The slice validates declaration metadata, non-admitted bodies, admitted body shapes and fresh compile-time products
 before reuse. Cache hits freeze/materialise only changed admitted bodies; unchanged snapshots remain detached.
 Entry points, package initialisers and compile-time replay metadata retain their batch-owned manifest products.
-A frontend rebuild invalidates it. Calls must retain their targets and ABI; class operations, generic
-bodies, varargs, helper-dependent arithmetic (integer division and modulo), structural edits, stack traces and
-optimisations remain on the batch path. A native call requiring a rewritten wrapper is admitted only when cold
-lowering leaves the body identical. No new user setting or runtime indirection is introduced.
+A frontend rebuild invalidates it. Calls must retain their source targets and ABI; class operations, generic
+bodies, helper-dependent arithmetic (integer division and modulo), structural edits, stack traces and
+optimisations remain on the batch path. A native call requiring a rewritten wrapper is admitted only when its
+private lowered body and emitted definition agree with the cold compiler. No new user setting or runtime indirection is introduced.
+
+Vararg and native call producers report argument-preserving replacements before discarding their source calls.
+Cold admission retains their selected target graphs, emitted bindings, structural types and hashtable-stub roles
+as detached products. An ordinary caller of `Math.min/max`, `R2I`, a nullable-handle native or a hashtable native can
+therefore reuse its fixed-arity function or native helper after a same-shape literal edit. The private body consumes
+these products without generating or emitting the helpers again. A vararg original's body, call arity, source target
+or declaration change still invalidates the receipt and uses batch compilation; vararg bodies themselves are not
+admitted. Cold body/output equality remains mandatory for every caller, including native lowering not covered by
+these contracts. Helpers retain complete frozen graphs; no declarations are reconstructed from emitted names.
 
 `IncrementalSymbolBackendTests` proves one runtime function lowered/emitted with 1,000 unrelated live functions,
 multiple changed owners, zero-work no-op requests, unchanged caller identity in stock Lua, cancellation/retry and

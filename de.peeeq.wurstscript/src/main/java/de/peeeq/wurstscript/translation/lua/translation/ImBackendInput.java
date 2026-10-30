@@ -20,6 +20,21 @@ final class ImBackendInput extends ImMetadataAdapter {
     final Map<Element, Integer> ids = new IdentityHashMap<>();
     final Map<Integer, ImFunction> functions = new LinkedHashMap<>();
     final Map<Integer, NodeGraphs.Snapshot> candidates = new LinkedHashMap<>();
+    final Map<Integer, List<Integer>> calls = new LinkedHashMap<>();
+    private @org.eclipse.jdt.annotation.Nullable Map<de.peeeq.wurstscript.ast.Element, Integer> sourceFunctions;
+    Map<de.peeeq.wurstscript.ast.Element, Integer> sourceFunctions() {
+        if (sourceFunctions == null) {
+            sourceFunctions = new IdentityHashMap<>();
+            functions.forEach((id, function) -> sourceFunctions.putIfAbsent(function.getTrace(), id));
+        }
+        return sourceFunctions;
+    }
+    private final Map<ImFunction, String> productSymbols = new IdentityHashMap<>();
+    final Map<ImFunction, String> productNames = new IdentityHashMap<>();
+    void product(ImFunction function, String symbol, String name) {
+        productSymbols.put(function, symbol);
+        productNames.put(function, name);
+    }
     private final Map<NodeGraphs.Symbol, Object> symbols = new HashMap<>();
     private final Map<Integer, Element> externalDeclarations = new TreeMap<>();
     Map<Integer, Element> externalDeclarations() { return Collections.unmodifiableMap(externalDeclarations); }
@@ -27,6 +42,7 @@ final class ImBackendInput extends ImMetadataAdapter {
     private final Map<de.peeeq.wurstscript.ast.Element, String> origins = new IdentityHashMap<>();
     private final Map<Class<?>, Set<Integer>> sourceFields = new HashMap<>();
     final Receipt receipt;
+    int receiptEncodings;
 
     ImBackendInput(ImProg program, ImTranslator translator) {
         Map<String, Object> facts = new LinkedHashMap<>();
@@ -81,20 +97,23 @@ final class ImBackendInput extends ImMetadataAdapter {
         for (int i = 0; i < nodes.size(); i++) {
             if ((i & 4095) == 0) CompilationCancellation.check();
             Element node = nodes.get(i); int owner = owners.get(i);
+            if (node instanceof ImFunctionCall && shapes.containsKey(owner)) {
+                calls.computeIfAbsent(owner, ignored -> new ArrayList<>()).add(i);
+            }
             MessageDigest exact = owner < 0 ? declarations : bodies.get(owner);
-            encode(node, exact, false);
             MessageDigest shape = shapes.get(owner);
-            if (shape != null) encode(node, shape, true);
+            encode(node, exact, shape);
             // Naming observes declaration origins even when semantic lowering does not.
             String binding = node instanceof ImFunction function ? LuaHotReload.functionId(function)
                 : node instanceof ImClass clazz ? LuaHotReload.classId(clazz)
                 : node instanceof ImVar variable && variable.isGlobal() ? LuaHotReload.variableId(translator, variable) : "";
-            token(exact, binding); if (shape != null) token(shape, binding);
+            token(exact, shape, binding);
         }
         Map<Integer, String> exact = new LinkedHashMap<>(), shape = new LinkedHashMap<>();
         bodies.forEach((id, hash) -> exact.put(id, hex(hash)));
         shapes.forEach((id, hash) -> shape.put(id, hex(hash)));
         receipt = new Receipt(hex(declarations), Map.copyOf(exact), Map.copyOf(shape));
+        calls.replaceAll((id, ownedCalls) -> List.copyOf(ownedCalls));
     }
 
     void freezeCandidates() {
@@ -120,21 +139,34 @@ final class ImBackendInput extends ImMetadataAdapter {
     }
 
 
-    private void encode(Element node, MessageDigest hash, boolean shape) {
+    private void encode(Element node, MessageDigest hash, MessageDigest shape) {
+        receiptEncodings++;
         Set<Integer> source = sourceFields.computeIfAbsent(node.getClass(), ignored -> NodeCodec.sourceFields(NodeCodec.encode(node, TAGS).kind()));
+        // Both receipts consume the same schema data. Only literal attributes differ in the shape.
+        BitSet literalFields = shape != null && node instanceof ImConst && !(node instanceof ImFuncRef) && !(node instanceof ImNull)
+            ? new BitSet() : null;
         NodeCodec.Data<String> data = NodeCodec.encode(node, new NodeCodec.Encoder<>() {
             int index;
             public String child(Element value) { index++; return "owned:" + ids.get(value); }
             public String reference(Element value) { index++; return referenceValue(value); }
             public String attribute(String field, Object value) {
-                if (source.contains(index++)) return "origin";
-                if (shape && node instanceof ImConst && !(node instanceof ImFuncRef) && !(node instanceof ImNull)) return "literal";
+                int position = index++;
+                if (source.contains(position)) return "origin";
+                if (literalFields != null) literalFields.set(position);
                 return metadata(value);
             }
         });
-        token(hash, data.kind());
-        for (String field : data.fields()) token(hash, field);
-        token(hash, "items"); for (String item : data.items()) token(hash, item);
+        token(hash, shape, data.kind());
+        for (int i = 0; i < data.fields().size(); i++) {
+            String field = data.fields().get(i);
+            if (literalFields != null && literalFields.get(i)) {
+                token(hash, field); token(shape, "literal");
+            } else {
+                token(hash, shape, field);
+            }
+        }
+        token(hash, shape, "items");
+        for (String item : data.items()) token(hash, shape, item);
     }
     private static final NodeCodec.Encoder<String> TAGS = new NodeCodec.Encoder<>() {
         public String child(Element node) { return ""; }
@@ -143,6 +175,7 @@ final class ImBackendInput extends ImMetadataAdapter {
     };
     private String referenceValue(Element value) {
         if (value == null) return "null";
+        if (value instanceof ImFunction function && productSymbols.containsKey(function)) return "product:" + productSymbols.get(function);
         if (value instanceof ImType type) return typeKey(type);
         Integer id = ids.get(value);
         if (id == null) {
@@ -253,8 +286,15 @@ final class ImBackendInput extends ImMetadataAdapter {
         return text.toString();
     }
     private static void token(MessageDigest hash, String value) {
+        token(hash, null, value);
+    }
+    private static void token(MessageDigest hash, MessageDigest shape, String value) {
         if (value == null) value = "missing";
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        tokenBytes(hash, bytes);
+        if (shape != null) tokenBytes(shape, bytes);
+    }
+    private static void tokenBytes(MessageDigest hash, byte[] bytes) {
         for (int shift = 24; shift >= 0; shift -= 8) hash.update((byte) (bytes.length >>> shift));
         hash.update(bytes);
     }

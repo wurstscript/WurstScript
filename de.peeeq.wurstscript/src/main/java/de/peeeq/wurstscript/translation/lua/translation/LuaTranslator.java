@@ -530,6 +530,9 @@ public class LuaTranslator {
         return Map.copyOf(bindings);
     }
 
+    String functionBinding(ImFunction function) { return luaFunc.getFor(function).getName(); }
+    boolean hashtableStub(ImFunction function) { return imTr.luaHashtableStubs.get(function.getName()) == function; }
+
     Map<Integer, String> variableBindings(ImBackendInput input) {
         Map<Integer, String> bindings = new LinkedHashMap<>();
         input.externalDeclarations().forEach((id, node) -> {
