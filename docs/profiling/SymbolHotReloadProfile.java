@@ -109,7 +109,9 @@ public final class SymbolHotReloadProfile {
                         if (!clockWindow.equals(java.time.LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MINUTES))) throw new ClockBoundary();
                         throw new AssertionError("Fresh output differs within the same clock window");
                     }
-                    row.put("freshOracle", "equal Lua and manifest"); row.put("freshCompileMillis", expected.millis);
+                    var expectedPayload = LuaHotReload.payload(before.manifest, expected.manifest, Set.of(), sent.payload().version());
+                    if (!sent.payload().equals(expectedPayload)) throw new AssertionError("Fresh payload differs");
+                    row.put("freshOracle", "equal Lua, manifest and payload"); row.put("freshCompileMillis", expected.millis);
                 } finally { fresh.clean(); }
                 results.add(row); System.out.println("SYMBOL_PROFILE " + JSON.toJson(row));
                 Files.writeString(root.resolve("_build/symbol-results.json"), JSON.toJson(results));
