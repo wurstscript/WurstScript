@@ -7424,6 +7424,47 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    testSuccess()");
     }
 
+    /**
+     * The check names the class without its type arguments, so it asks for no specialisation: a class whose
+     * destructor destroys a deeper instantiation of itself compiles, as it did without the check.
+     */
+    @Test(timeOut = 60_000)
+    public void aStaleDestroyCheckDoesNotSpecialiseRecursiveGenerics() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Chain<T:>",
+            "    Chain<Chain<T>> child = null",
+            "    ondestroy",
+            "        if child != null",
+            "            destroy child",
+            "init",
+            "    let c = new Chain<int>",
+            "    c.child = new Chain<Chain<int>>",
+            "    destroy c",
+            "    testSuccess()");
+    }
+
+    /** Instantiations a parameterized instanceof keeps apart are still instances of their class when destroyed. */
+    @Test
+    public void destroyOfASpecialisedInstantiationIsNotStale() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "init",
+            "    Box<int> ints = new Box<int>",
+            "    Box<string> strings = new Box<string>",
+            "    Marker m = ints",
+            "    Marker n = strings",
+            "    let kept = m instanceof Box<int> and not (n instanceof Box<int>)",
+            "    destroy ints",
+            "    destroy strings",
+            "    if kept",
+            "        testSuccess()");
+    }
+
     /** A destroy through a reference of a superclass is not stale: the object is of a subclass of it. */
     @Test
     public void destroyThroughASuperclassReferenceIsNotStale() {

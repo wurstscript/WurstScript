@@ -72,8 +72,12 @@ public final class LuaStaleDestroy {
                          StructureDef destroyedAs) {
         ImExpr notNull = JassIm.ImOperatorCall(WurstOperator.NOTEQ,
             JassIm.ImExprs(JassIm.ImVarAccess(object), JassIm.ImNull(object.getType())));
+        // The class alone, without its type arguments: a parameterized instanceof observes the identity of an
+        // instantiation and makes EliminateGenerics specialise for it, which a check must not change. Every
+        // instantiation of an erased class is an instance of the class.
+        ImClassType erased = JassIm.ImClassType(type.getClassDef(), JassIm.ImTypeArguments());
         ImExpr notInstance = JassIm.ImOperatorCall(WurstOperator.NOT,
-            JassIm.ImExprs(JassIm.ImInstanceof(JassIm.ImVarAccess(object), type)));
+            JassIm.ImExprs(JassIm.ImInstanceof(JassIm.ImVarAccess(object), erased)));
         ImExpr fails = JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(notNull, notInstance));
         // The site is added by the Lua translation, from the call's trace: a cached function keeps its IM
         // across an edit that moves it, while its traces are refreshed.
