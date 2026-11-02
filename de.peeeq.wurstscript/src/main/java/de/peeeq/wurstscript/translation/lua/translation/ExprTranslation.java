@@ -89,6 +89,9 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
+        if (LuaStaleDestroy.NATIVE_CHECK.equals(e.getFunc().getName()) && e.getFunc().isNative()) {
+            return staleDestroyCheck(e, tr);
+        }
         // String concatenation is lowered to imTr.stringConcatFunc at the IM level
         // (see EliminateLocalTypes). It is a plain, portable, uniquely-named IM
         // function now (see LuaEnsureFunctions), so it needs no special-casing
@@ -621,6 +624,18 @@ public class ExprTranslation {
             LuaAst.LuaExprlist());
     }
 
+    /** The check of a destroy (LuaStaleDestroy), given its site here, from the call's current trace. */
+    private static LuaExpr staleDestroyCheck(ImFunctionCall e, LuaTranslator tr) {
+        LuaExpr object = e.getArguments().get(0).translateToLua(tr);
+        ImStringVal expected = (ImStringVal) e.getArguments().get(1);
+        LuaExprStringVal site = LuaAst.LuaExprStringVal(LuaStaleDestroy.site(e.attrTrace()));
+        if (tr.isHotReload()) {
+            tr.stackPositions.add(site);
+        }
+        return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()),
+            LuaAst.LuaExprlist(object, LuaAst.LuaExprStringVal(expected.getValS()), site));
+    }
+
     public static LuaExpr translate(ImStringVal e, LuaTranslator tr) {
         LuaExprStringVal result = LuaAst.LuaExprStringVal(e.getValS());
         if (tr.isHotReload() && isStackPosition(e)) {
@@ -637,10 +652,6 @@ public class ExprTranslation {
         int index = args.indexOf(e);
         List<ImVar> parameters;
         if (args.getParent() instanceof ImFunctionCall call) {
-            if (LuaStaleDestroy.NATIVE_CHECK.equals(call.getFunc().getName())) {
-                // The site of a destroy, which a stale destroy reports (LuaStaleDestroy).
-                return index == 2;
-            }
             parameters = call.getFunc().getParameters();
         } else if (args.getParent() instanceof ImMethodCall call && call.getMethod().getImplementation() != null) {
             // The implementation's first parameter is the receiver, which a method call passes apart.

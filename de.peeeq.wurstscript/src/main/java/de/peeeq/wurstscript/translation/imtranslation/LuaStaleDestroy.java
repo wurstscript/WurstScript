@@ -75,13 +75,19 @@ public final class LuaStaleDestroy {
         ImExpr notInstance = JassIm.ImOperatorCall(WurstOperator.NOT,
             JassIm.ImExprs(JassIm.ImInstanceof(JassIm.ImVarAccess(object), type)));
         ImExpr fails = JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(notNull, notInstance));
-        WPos pos = trace.attrSource();
-        String file = pos.getFile().replace('\\', '/');
-        String site = file.substring(file.lastIndexOf('/') + 1) + ":" + pos.getLine();
+        // The site is added by the Lua translation, from the call's trace: a cached function keeps its IM
+        // across an edit that moves it, while its traces are refreshed.
         stmts.add(JassIm.ImIf(trace, fails, JassIm.ImStmts(JassIm.ImFunctionCall(trace, checkStub(t, trace),
             JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(object),
-                JassIm.ImStringVal(destroyedAs.getName()), JassIm.ImStringVal(site)), false, CallType.NORMAL)),
+                JassIm.ImStringVal(destroyedAs.getName())), false, CallType.NORMAL)),
             JassIm.ImStmts()));
+    }
+
+    /** {@code File.wurst:line} of {@code trace}, without the checkout path. */
+    public static String site(de.peeeq.wurstscript.ast.Element trace) {
+        WPos pos = trace.attrSource();
+        String file = pos.getFile().replace('\\', '/');
+        return file.substring(file.lastIndexOf('/') + 1) + ":" + pos.getLine();
     }
 
     private static ImFunction checkStub(ImTranslator t, Expr trace) {
@@ -92,8 +98,7 @@ public final class LuaStaleDestroy {
         }
         ImFunction stub = JassIm.ImFunction(trace, NATIVE_CHECK, JassIm.ImTypeVars(),
             JassIm.ImVars(JassIm.ImVar(trace, JassIm.ImAnyType(), "object", false),
-                JassIm.ImVar(trace, WurstTypeString.instance().imTranslateType(t), "expected", false),
-                JassIm.ImVar(trace, WurstTypeString.instance().imTranslateType(t), "site", false)),
+                JassIm.ImVar(trace, WurstTypeString.instance().imTranslateType(t), "expected", false)),
             JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
         t.getImProg().getFunctions().add(stub);
         return stub;
