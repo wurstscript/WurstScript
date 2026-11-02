@@ -7298,10 +7298,130 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    ForForce(f, function destroyStale)",
             "    let next = new Freed",
             "    if before == \"\" and liveId == stale castTo int and live.typeId == Live.typeId",
-            "        and next castTo int != liveId and staleDestroyReport().endsWith(\"|Live|Freed\")",
+            "        and next castTo int != liveId and staleDestroyReport().contains(\"|Live|Freed|aStaleDestroyFreesNothingAndIsReported:\")",
             "        testSuccess()",
             "    else",
             "        print(staleDestroyReport())");
+    }
+
+    /** Runs {@code body} (the init lines after the shared declarations) with and without optimisations. */
+    private void staleDestroyProgram(String name, boolean optimised, String... body) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "int destructions = 0",
+            "int evaluations = 0",
+            "interface Named",
+            "    function name() returns string",
+            "class Shape",
+            "    ondestroy",
+            "        destructions++",
+            "class Square extends Shape implements Named",
+            "    function name() returns string",
+            "        return \"square\"",
+            "class Box<T:>",
+            "    T value",
+            "    ondestroy",
+            "        destructions++",
+            "class Other",
+            "    ondestroy",
+            "        destructions += 100",
+            "Shape staleShape",
+            "Named staleNamed",
+            "Box<int> staleBox",
+            "function countedShape() returns Shape",
+            "    evaluations++",
+            "    return staleShape",
+            "function destroyStaleShape()",
+            "    destroy countedShape()",
+            "function destroyStaleNamed()",
+            "    destroy staleNamed",
+            "function destroyStaleBox()",
+            "    destroy staleBox",
+            "function inCallback(code c)",
+            "    let f = CreateForce()",
+            "    ForceAddPlayer(f, Player(0))",
+            "    ForForce(f, c)",
+            "    DestroyForce(f)",
+            "init"));
+        lines.addAll(List.of(body));
+        if (optimised) {
+            test().testLua(true).withStdLib().inline().localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+        } else {
+            test().testLua(true).withStdLib().executeProg().lines(lines.toArray(new String[0]));
+        }
+    }
+
+    private static final String[] STALE_THROUGH_EVERY_REFERENCE = {
+        // A base class reference whose id now holds an Other: refused before Other's ondestroy, evaluated once.
+        "    Shape s = new Square",
+        "    staleShape = s",
+        "    destroy s",
+        "    destructions = 0",
+        "    let other = new Other",
+        "    let otherId = other castTo int",
+        "    inCallback(function destroyStaleShape)",
+        "    let shapeRefused = destructions == 0 and evaluations == 1 and other castTo int == otherId",
+        // An interface reference.
+        "    Named n = new Square",
+        "    staleNamed = n",
+        "    destroy n",
+        "    destructions = 0",
+        "    let other2 = new Other",
+        "    inCallback(function destroyStaleNamed)",
+        "    let namedRefused = destructions == 0",
+        // A generic class.
+        "    let b = new Box<int>",
+        "    staleBox = b",
+        "    destroy b",
+        "    destructions = 0",
+        "    let other3 = new Other",
+        "    inCallback(function destroyStaleBox)",
+        "    let boxRefused = destructions == 0",
+        // Valid destroys, through the class, a base class and an interface: one destructor each.
+        "    destructions = 0",
+        "    destroy other",
+        "    destroy other2",
+        "    destroy other3",
+        "    Shape viaBase = new Square",
+        "    destroy viaBase",
+        "    Named viaInterface = new Square",
+        "    destroy viaInterface",
+        "    let validOnce = destructions == 302",
+        "    if shapeRefused and namedRefused and boxRefused and validOnce",
+        "        testSuccess()",
+        "    else",
+        "        print(\"stale \" + shapeRefused.toString() + namedRefused.toString() + boxRefused.toString()"
+            + " + \" valid \" + destructions.toString())"};
+
+    /**
+     * The check runs at the destroy, with the type the caller destroys as, before dispatch picks a destructor and
+     * before any ondestroy: a refused destroy runs no destructor, whether through a class, a base class, an interface
+     * or a generic class, and evaluates its receiver once. Valid destroys run their destructor once.
+     */
+    @Test
+    public void aStaleDestroyRunsNoDestructor() {
+        staleDestroyProgram("aStaleDestroyRunsNoDestructor", false, STALE_THROUGH_EVERY_REFERENCE);
+    }
+
+    /** The same after inlining and the local optimisations, which devirtualise and inline the destructors. */
+    @Test
+    public void aStaleDestroyRunsNoDestructorOptimised() {
+        staleDestroyProgram("aStaleDestroyRunsNoDestructorOptimised", true, STALE_THROUGH_EVERY_REFERENCE);
+    }
+
+    /** A plain double destroy, of a free id, keeps the deallocator's error. */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Double free.*")
+    public void aDoubleDestroyKeepsItsError() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "init",
+            "    let a = new A",
+            "    let alias = a",
+            "    destroy a",
+            "    destroy alias",
+            "    testSuccess()");
     }
 
     /** A destroy through a reference of a superclass is not stale: the object is of a subclass of it. */
@@ -7354,7 +7474,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                 + "local __wurst_objectMax = 0\n"
                 + "local __wurst_objectFreeCount = 0\n"
                 + "\n"
-                + "local function __wurst_deallocObject(object, expected) \n"));
+                + "local function __wurst_deallocObject(object) \n"));
         java.util.Set<String> globals = globalsAccessedBy("objectRuntimeStateIsMainChunkLocal");
         for (String local : List.of("__wurst_objectClass", "__wurst_objectFree", "__wurst_objectMax",
                 "__wurst_objectFreeCount", "__wurst_deallocObject")) {

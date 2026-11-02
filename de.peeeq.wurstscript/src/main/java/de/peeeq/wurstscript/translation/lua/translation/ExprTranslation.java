@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.LuaStaleDestroy;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
@@ -59,10 +60,8 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImDealloc e, LuaTranslator tr) {
-        ImClass c = e.getClazz().getClassDef();
-        // The class the object is destroyed as, which the deallocator checks the object still belongs to.
-        return LuaAst.LuaExprFunctionCall(tr.deallocFor(c),
-            LuaAst.LuaExprlist(e.getObj().translateToLua(tr), LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(c))));
+        return LuaAst.LuaExprFunctionCall(tr.deallocFor(e.getClazz().getClassDef()),
+            LuaAst.LuaExprlist(e.getObj().translateToLua(tr)));
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
@@ -638,6 +637,10 @@ public class ExprTranslation {
         int index = args.indexOf(e);
         List<ImVar> parameters;
         if (args.getParent() instanceof ImFunctionCall call) {
+            if (LuaStaleDestroy.NATIVE_CHECK.equals(call.getFunc().getName())) {
+                // The site of a destroy, which a stale destroy reports (LuaStaleDestroy).
+                return index == 2;
+            }
             parameters = call.getFunc().getParameters();
         } else if (args.getParent() instanceof ImMethodCall call && call.getMethod().getImplementation() != null) {
             // The implementation's first parameter is the receiver, which a method call passes apart.

@@ -253,6 +253,21 @@ public class LuaNatives {
             // as it is behind a trigger.
             f.getBody().add(LuaAst.LuaLiteral("local i = 1 local c = t[1] while c do c() i = i + 1 c = t[i] end"));
         });
+        addNative(LuaStaleDestroy.NATIVE_CHECK, f -> {
+            f.getParams().add(LuaAst.LuaVariable("object", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("expected", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("site", LuaAst.LuaNoExpr()));
+            // A free id is a double destroy, which the deallocator reports as before.
+            String count = LuaStaleDestroy.COUNT;
+            String actual = "descriptor." + ExprTranslation.WURST_CLASS_NAME;
+            f.getBody().add(LuaAst.LuaLiteral("local descriptor = __wurst_objectClass[object] "
+                + "if descriptor == nil then return end "
+                + count + " = (" + count + " or 0) + 1 "
+                + LuaStaleDestroy.RECORD + " = " + count + " .. \"|\" .. object .. \"|\" .. " + actual
+                + " .. \"|\" .. expected .. \"|\" .. site "
+                + "error(\"Stale destroy: object \" .. object .. \" is a \" .. " + actual
+                + " .. \", destroyed as a \" .. expected .. \" at \" .. site)"));
+        });
         addNative(LuaStaleDestroy.NATIVE_REPORT, f ->
             f.getBody().add(LuaAst.LuaLiteral("return " + LuaStaleDestroy.RECORD + " or \"\"")));
         addNative("__wurst_keyedMapDestroy", f -> {

@@ -4072,8 +4072,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("Counted.__wurst_instanceGroup = 1"));
         assertFalse(compiled.contains("Other.__wurst_instanceGroup"));
         assertTrue(compiled.contains("__wurst_allocObject(Other)"));
-        assertContainsRegex(compiled, "__wurst_deallocCounted\\(c, Counted\\)");
-        assertContainsRegex(compiled, "__wurst_deallocObject\\(o, Other\\)");
+        assertContainsRegex(compiled, "__wurst_deallocCounted\\(c\\)");
+        assertContainsRegex(compiled, "__wurst_deallocObject\\(o\\)");
         assertFalse(compiled.contains("__wurst_instancePeak"));
         assertFalse(compiled.contains("__wurst_typeGroups"));
     }
