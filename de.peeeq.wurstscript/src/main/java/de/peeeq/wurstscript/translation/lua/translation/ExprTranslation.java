@@ -24,6 +24,8 @@ public class ExprTranslation {
 
     public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
+    /** The class name on a class table, which the error of a stale destroy reports. */
+    public static final String WURST_CLASS_NAME = "__wurst_className";
     static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
     private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
         "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
@@ -57,8 +59,10 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImDealloc e, LuaTranslator tr) {
-        return LuaAst.LuaExprFunctionCall(tr.deallocFor(e.getClazz().getClassDef()),
-            LuaAst.LuaExprlist(e.getObj().translateToLua(tr)));
+        ImClass c = e.getClazz().getClassDef();
+        // The class the object is destroyed as, which the deallocator checks the object still belongs to.
+        return LuaAst.LuaExprFunctionCall(tr.deallocFor(c),
+            LuaAst.LuaExprlist(e.getObj().translateToLua(tr), LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(c))));
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {

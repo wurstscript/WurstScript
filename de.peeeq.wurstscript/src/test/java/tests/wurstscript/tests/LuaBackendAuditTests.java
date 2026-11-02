@@ -7249,6 +7249,79 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * Lua has one id space for every class, and an allocation hands out the most recently freed id. A destroy through
+     * a stale reference therefore frees whatever object holds that id now, of any class, and the next allocation
+     * shares it with the live one. The deallocator checks that the object is still of the class it is destroyed as,
+     * and raises before it frees anything.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Stale destroy.*")
+    public void aStaleDestroyOfAnotherClassIsAnError() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Freed",
+            "class Live",
+            "init",
+            "    let freed = new Freed",
+            "    let stale = freed",
+            "    destroy freed",
+            "    let live = new Live",
+            "    if live castTo int == stale castTo int",
+            "        destroy stale",
+            "    testSuccess()");
+    }
+
+    /**
+     * The refused destroy frees nothing: the live object keeps its id, the next allocation gets another, and
+     * staleDestroyReport tells the map about it after the raising thread has ended.
+     */
+    @Test
+    public void aStaleDestroyFreesNothingAndIsReported() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "class Freed",
+            "class Live",
+            "@compilerintrinsic function staleDestroyReport() returns string",
+            "    return \"\"",
+            "Freed stale",
+            "function destroyStale()",
+            "    destroy stale",
+            "init",
+            "    let before = staleDestroyReport()",
+            "    let freed = new Freed",
+            "    stale = freed",
+            "    destroy freed",
+            "    let live = new Live",
+            "    let liveId = live castTo int",
+            "    let f = CreateForce()",
+            "    ForceAddPlayer(f, Player(0))",
+            "    ForForce(f, function destroyStale)",
+            "    let next = new Freed",
+            "    if before == \"\" and liveId == stale castTo int and live.typeId == Live.typeId",
+            "        and next castTo int != liveId and staleDestroyReport().endsWith(\"|Live|Freed\")",
+            "        testSuccess()",
+            "    else",
+            "        print(staleDestroyReport())");
+    }
+
+    /** A destroy through a reference of a superclass is not stale: the object is of a subclass of it. */
+    @Test
+    public void destroyThroughASuperclassReferenceIsNotStale() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Shape",
+            "class Square extends Shape",
+            "init",
+            "    Shape s = new Square",
+            "    let id = s castTo int",
+            "    destroy s",
+            "    let next = new Square",
+            "    if next castTo int == id",
+            "        testSuccess()");
+    }
+
+    /**
      * Every allocation and destroy reads the allocator's state and every destroy calls the
      * deallocator, so they are locals of the main chunk, declared before any function: a function
      * reaches them as upvalues, not by a lookup among the thousands of globals of a map.
@@ -7281,7 +7354,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                 + "local __wurst_objectMax = 0\n"
                 + "local __wurst_objectFreeCount = 0\n"
                 + "\n"
-                + "local function __wurst_deallocObject(object) \n"));
+                + "local function __wurst_deallocObject(object, expected) \n"));
         java.util.Set<String> globals = globalsAccessedBy("objectRuntimeStateIsMainChunkLocal");
         for (String local : List.of("__wurst_objectClass", "__wurst_objectFree", "__wurst_objectMax",
                 "__wurst_objectFreeCount", "__wurst_deallocObject")) {
@@ -7454,8 +7527,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * A class table carries its supertypes for {@code instanceof} and its type id for {@code x.typeId}, and nothing
-     * else reads them: a program which does neither gets neither, and no instanceof helper.
+     * A class table carries its supertypes for {@code instanceof} and {@code destroy} and its type id for
+     * {@code x.typeId}, and nothing else reads them: a program which does none of these gets neither, and no
+     * instanceof helper.
      */
     @Test
     public void classMetadataIsEmittedOnlyForTheReadsWhichNeedIt() throws IOException {

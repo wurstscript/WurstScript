@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
 import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
+import de.peeeq.wurstscript.translation.imtranslation.LuaStaleDestroy;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Arrays;
@@ -252,6 +253,8 @@ public class LuaNatives {
             // as it is behind a trigger.
             f.getBody().add(LuaAst.LuaLiteral("local i = 1 local c = t[1] while c do c() i = i + 1 c = t[i] end"));
         });
+        addNative(LuaStaleDestroy.NATIVE_REPORT, f ->
+            f.getBody().add(LuaAst.LuaLiteral("return " + LuaStaleDestroy.RECORD + " or \"\"")));
         addNative("__wurst_keyedMapDestroy", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             // The owner may still be reachable through an alias after destroy, so clear this table

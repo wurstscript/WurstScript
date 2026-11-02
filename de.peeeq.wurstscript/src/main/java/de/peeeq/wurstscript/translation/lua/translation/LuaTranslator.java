@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaFieldDefaults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
+import de.peeeq.wurstscript.translation.imtranslation.LuaStaleDestroy;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
@@ -28,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_CLASS_NAME;
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
@@ -1165,6 +1167,12 @@ public class LuaTranslator {
             }
 
             @Override
+            public void visit(ImDealloc e) {
+                super.visit(e);
+                checksDestroyedClass = true;
+            }
+
+            @Override
             public void visit(ImTypeIdOfObj e) {
                 super.visit(e);
                 readsObjectTypeId = true;
@@ -1203,6 +1211,8 @@ public class LuaTranslator {
     private Map<ImClass, Set<ImVar>> fieldDefaultsOnAllocation = Collections.emptyMap();
     /** Whether the program has an {@code instanceof}, the only reader of a class table's supertypes. */
     private boolean readsSupertypes;
+    /** A destroy checks the class of its object (addDeallocation), which needs the supertypes and class names. */
+    private boolean checksDestroyedClass;
     /** Whether the program reads the type id of an object, the only reader of a class table's type id. */
     private boolean readsObjectTypeId;
     /** The natives of {@code Reflection}, null when the program calls none. */
@@ -1263,13 +1273,18 @@ public class LuaTranslator {
     }
 
     /**
-     * Gives {@code dealloc} the parameter {@code object} and a body which destroys it: the object's descriptor is
-     * removed and its id pushed onto the free stack, or a double free is an error. Returns the local which holds the
-     * descriptor.
+     * Gives {@code dealloc} the parameters {@code object} and {@code expected} and a body which destroys it: the
+     * object's descriptor is removed and its id pushed onto the free stack, or a double free is an error. All classes
+     * share one id space and an allocation hands out the most recently freed id, so a destroy through a stale
+     * reference would free an object of any class: when the call names the class the object is destroyed as, an
+     * object of another class is an error, raised before anything is freed. A destroy through dispatch names none.
+     * Returns the local which holds the descriptor.
      */
     LuaVariable addDeallocation(LuaFunction dealloc) {
         LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
         dealloc.getParams().add(object);
+        LuaVariable expected = LuaAst.LuaVariable("expected", LuaAst.LuaNoExpr());
+        dealloc.getParams().add(expected);
         LuaVariable descriptor = LuaAst.LuaVariable("descriptor",
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
@@ -1279,6 +1294,15 @@ public class LuaTranslator {
             LuaAst.LuaStatements(LuaAst.LuaExprFunctionCallByName("error",
                 LuaAst.LuaExprlist(LuaAst.LuaExprStringVal("Double free or invalid Wurst object.")))),
             LuaAst.LuaStatements()));
+        if (checksDestroyedClass) {
+                // Recorded before it raises, for staleDestroyReport (LuaStaleDestroy): the raising thread ends here.
+            String count = LuaStaleDestroy.COUNT;
+            dealloc.getBody().add(LuaAst.LuaLiteral("if expected ~= nil and descriptor." + WURST_SUPERTYPES
+                + "[expected] ~= true then " + count + " = (" + count + " or 0) + 1 " + LuaStaleDestroy.RECORD
+                + " = " + count + " .. \"|\" .. descriptor." + WURST_CLASS_NAME + " .. \"|\" .. expected."
+                + WURST_CLASS_NAME + " error(\"Stale destroy: object \" .. object .. \" is a \" .. descriptor."
+                + WURST_CLASS_NAME + " .. \", destroyed as a \" .. expected." + WURST_CLASS_NAME + ") end"));
+        }
         dealloc.getBody().add(LuaAst.LuaAssignment(
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
@@ -1958,13 +1982,20 @@ public class LuaTranslator {
         createMethods(c, classVar);
 
         // set supertype metadata:
-        if (readsSupertypes) {
+        if (readsSupertypes || checksDestroyedClass) {
             LuaTableFields superClasses = LuaAst.LuaTableFields();
             collectSuperClasses(superClasses, c, new HashSet<>());
             deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 WURST_SUPERTYPES),
                 LuaAst.LuaTableConstructor(superClasses)
+            ));
+        }
+        if (checksDestroyedClass) {
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                WURST_CLASS_NAME),
+                LuaAst.LuaExprStringVal(imTr.canonical(c).getName())
             ));
         }
 
