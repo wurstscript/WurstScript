@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaFieldDefaults;
 import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
+import de.peeeq.wurstscript.translation.imtranslation.LuaStaleDestroy;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMultipleResults;
@@ -28,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_CLASS_NAME;
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
@@ -1176,6 +1178,9 @@ public class LuaTranslator {
                 if (LuaReflection.isReflectionNative(e.getFunc())) {
                     reflectionCalls.add(e);
                 }
+                if (LuaStaleDestroy.NATIVE_CHECK.equals(e.getFunc().getName())) {
+                    namesClasses = true;
+                }
             }
         });
         if (reflectionCalls.isEmpty()) {
@@ -1203,6 +1208,8 @@ public class LuaTranslator {
     private Map<ImClass, Set<ImVar>> fieldDefaultsOnAllocation = Collections.emptyMap();
     /** Whether the program has an {@code instanceof}, the only reader of a class table's supertypes. */
     private boolean readsSupertypes;
+    /** A destroy checks the class of its object (LuaStaleDestroy), whose report names the classes. */
+    private boolean namesClasses;
     /** Whether the program reads the type id of an object, the only reader of a class table's type id. */
     private boolean readsObjectTypeId;
     /** The natives of {@code Reflection}, null when the program calls none. */
@@ -1965,6 +1972,13 @@ public class LuaTranslator {
                 LuaAst.LuaExprVarAccess(classVar),
                 WURST_SUPERTYPES),
                 LuaAst.LuaTableConstructor(superClasses)
+            ));
+        }
+        if (namesClasses) {
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                WURST_CLASS_NAME),
+                LuaAst.LuaExprStringVal(imTr.canonical(c).getName())
             ));
         }
 

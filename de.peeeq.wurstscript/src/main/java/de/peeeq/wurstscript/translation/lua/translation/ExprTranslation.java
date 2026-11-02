@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.LuaStaleDestroy;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaHashtable;
@@ -24,6 +25,8 @@ public class ExprTranslation {
 
     public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
+    /** The class name on a class table, which the error of a stale destroy reports. */
+    public static final String WURST_CLASS_NAME = "__wurst_className";
     static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
     private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
         "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
@@ -86,6 +89,9 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
+        if (LuaStaleDestroy.NATIVE_CHECK.equals(e.getFunc().getName()) && e.getFunc().isNative()) {
+            return staleDestroyCheck(e, tr);
+        }
         // String concatenation is lowered to imTr.stringConcatFunc at the IM level
         // (see EliminateLocalTypes). It is a plain, portable, uniquely-named IM
         // function now (see LuaEnsureFunctions), so it needs no special-casing
@@ -616,6 +622,18 @@ public class ExprTranslation {
         return LuaAst.LuaExprFunctionCallE(
             LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(), body),
             LuaAst.LuaExprlist());
+    }
+
+    /** The check of a destroy (LuaStaleDestroy), given its site here, from the call's current trace. */
+    private static LuaExpr staleDestroyCheck(ImFunctionCall e, LuaTranslator tr) {
+        LuaExpr object = e.getArguments().get(0).translateToLua(tr);
+        ImStringVal expected = (ImStringVal) e.getArguments().get(1);
+        LuaExprStringVal site = LuaAst.LuaExprStringVal(LuaStaleDestroy.site(e.attrTrace()));
+        if (tr.isHotReload()) {
+            tr.stackPositions.add(site);
+        }
+        return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()),
+            LuaAst.LuaExprlist(object, LuaAst.LuaExprStringVal(expected.getValS()), site));
     }
 
     public static LuaExpr translate(ImStringVal e, LuaTranslator tr) {

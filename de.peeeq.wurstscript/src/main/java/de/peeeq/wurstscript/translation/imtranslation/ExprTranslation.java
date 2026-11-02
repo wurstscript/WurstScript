@@ -953,8 +953,17 @@ public class ExprTranslation {
         ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
         Expr destroyed = s.getDestroyedObj();
         ImExpr receiver = destroyed.imTranslateExpr(t, f);
-        return ImMethodCall(s, destroyFunc, ImTypeArguments(erasedReceiverTypeArguments(destroyed, receiver, classDef, t)),
-            receiver, ImExprs(), false);
+        ImTypeArguments typeArgs = ImTypeArguments(erasedReceiverTypeArguments(destroyed, receiver, classDef, t));
+        if (!t.isLuaTarget() || !(receiver.attrTyp() instanceof ImClassType receiverType)) {
+            return ImMethodCall(s, destroyFunc, typeArgs, receiver, ImExprs(), false);
+        }
+        // Checked here, before the dispatch picks a destructor and before any ondestroy runs (LuaStaleDestroy).
+        ImVar object = JassIm.ImVar(s, receiverType, "destroyed", false);
+        f.getLocals().add(object);
+        ImStmts stmts = ImStmts(ImSet(s, ImVarAccess(object), receiver));
+        LuaStaleDestroy.addCheck(t, s, stmts, object, receiverType, classDef);
+        return JassIm.ImStatementExpr(stmts,
+            ImMethodCall(s, destroyFunc, typeArgs, ImVarAccess(object), ImExprs(), false));
 
     }
 

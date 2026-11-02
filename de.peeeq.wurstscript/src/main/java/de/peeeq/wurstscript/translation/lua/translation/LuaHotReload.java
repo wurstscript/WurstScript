@@ -781,7 +781,7 @@ public final class LuaHotReload {
             revision = withoutPositions(tr, s);
             if (a.getLeft() instanceof LuaExprFieldAccess field && (a.getRight() instanceof LuaExprFuncRef
                 || field.getFieldName().equals(ExprTranslation.WURST_SUPERTYPES))) {
-                // A class's supertypes are read only by instanceof, when it runs, so a changed table is assigned again
+                // A class's supertypes are read only by instanceof and destroy, when they run, so a changed table is assigned again
                 // as a slot is bound again: objects made before then answer for the class as it is now.
                 kind = "slot";
             } else if (!scope.equals("init") && a.getLeft() instanceof LuaExprVarAccess target && globals.contains(target.getVar())) {

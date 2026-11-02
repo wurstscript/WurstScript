@@ -7249,6 +7249,240 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * Lua has one id space for every class, and an allocation hands out the most recently freed id. A destroy through
+     * a stale reference therefore frees whatever object holds that id now, of any class, and the next allocation
+     * shares it with the live one. The deallocator checks that the object is still of the class it is destroyed as,
+     * and raises before it frees anything.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Stale destroy.*")
+    public void aStaleDestroyOfAnotherClassIsAnError() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Freed",
+            "class Live",
+            "init",
+            "    let freed = new Freed",
+            "    let stale = freed",
+            "    destroy freed",
+            "    let live = new Live",
+            "    if live castTo int == stale castTo int",
+            "        destroy stale",
+            "    testSuccess()");
+    }
+
+    /**
+     * The refused destroy frees nothing: the live object keeps its id, the next allocation gets another, and
+     * staleDestroyReport tells the map about it after the raising thread has ended.
+     */
+    @Test
+    public void aStaleDestroyFreesNothingAndIsReported() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "class Freed",
+            "class Live",
+            "@compilerintrinsic function staleDestroyReport() returns string",
+            "    return \"\"",
+            "Freed stale",
+            "function destroyStale()",
+            "    destroy stale",
+            "init",
+            "    let before = staleDestroyReport()",
+            "    let freed = new Freed",
+            "    stale = freed",
+            "    destroy freed",
+            "    let live = new Live",
+            "    let liveId = live castTo int",
+            "    let f = CreateForce()",
+            "    ForceAddPlayer(f, Player(0))",
+            "    ForForce(f, function destroyStale)",
+            "    let next = new Freed",
+            "    if before == \"\" and liveId == stale castTo int and live.typeId == Live.typeId",
+            "        and next castTo int != liveId and staleDestroyReport().contains(\"|Live|Freed|aStaleDestroyFreesNothingAndIsReported:\")",
+            "        testSuccess()",
+            "    else",
+            "        print(staleDestroyReport())");
+    }
+
+    /** Runs {@code body} (the init lines after the shared declarations) with and without optimisations. */
+    private void staleDestroyProgram(String name, boolean optimised, String... body) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "int destructions = 0",
+            "int evaluations = 0",
+            "interface Named",
+            "    function name() returns string",
+            "class Shape",
+            "    ondestroy",
+            "        destructions++",
+            "class Square extends Shape implements Named",
+            "    function name() returns string",
+            "        return \"square\"",
+            "class Box<T:>",
+            "    T value",
+            "    ondestroy",
+            "        destructions++",
+            "class Other",
+            "    ondestroy",
+            "        destructions += 100",
+            "Shape staleShape",
+            "Named staleNamed",
+            "Box<int> staleBox",
+            "function countedShape() returns Shape",
+            "    evaluations++",
+            "    return staleShape",
+            "function destroyStaleShape()",
+            "    destroy countedShape()",
+            "function destroyStaleNamed()",
+            "    destroy staleNamed",
+            "function destroyStaleBox()",
+            "    destroy staleBox",
+            "function inCallback(code c)",
+            "    let f = CreateForce()",
+            "    ForceAddPlayer(f, Player(0))",
+            "    ForForce(f, c)",
+            "    DestroyForce(f)",
+            "init"));
+        lines.addAll(List.of(body));
+        if (optimised) {
+            test().testLua(true).withStdLib().inline().localOptimizations().executeProg().lines(lines.toArray(new String[0]));
+        } else {
+            test().testLua(true).withStdLib().executeProg().lines(lines.toArray(new String[0]));
+        }
+    }
+
+    private static final String[] STALE_THROUGH_EVERY_REFERENCE = {
+        // A base class reference whose id now holds an Other: refused before Other's ondestroy, evaluated once.
+        "    Shape s = new Square",
+        "    staleShape = s",
+        "    destroy s",
+        "    destructions = 0",
+        "    let other = new Other",
+        "    let otherId = other castTo int",
+        "    inCallback(function destroyStaleShape)",
+        "    let shapeRefused = destructions == 0 and evaluations == 1 and other castTo int == otherId",
+        // An interface reference.
+        "    Named n = new Square",
+        "    staleNamed = n",
+        "    destroy n",
+        "    destructions = 0",
+        "    let other2 = new Other",
+        "    inCallback(function destroyStaleNamed)",
+        "    let namedRefused = destructions == 0",
+        // A generic class.
+        "    let b = new Box<int>",
+        "    staleBox = b",
+        "    destroy b",
+        "    destructions = 0",
+        "    let other3 = new Other",
+        "    inCallback(function destroyStaleBox)",
+        "    let boxRefused = destructions == 0",
+        // Valid destroys, through the class, a base class and an interface: one destructor each.
+        "    destructions = 0",
+        "    destroy other",
+        "    destroy other2",
+        "    destroy other3",
+        "    Shape viaBase = new Square",
+        "    destroy viaBase",
+        "    Named viaInterface = new Square",
+        "    destroy viaInterface",
+        "    let validOnce = destructions == 302",
+        "    if shapeRefused and namedRefused and boxRefused and validOnce",
+        "        testSuccess()",
+        "    else",
+        "        print(\"stale \" + shapeRefused.toString() + namedRefused.toString() + boxRefused.toString()"
+            + " + \" valid \" + destructions.toString())"};
+
+    /**
+     * The check runs at the destroy, with the type the caller destroys as, before dispatch picks a destructor and
+     * before any ondestroy: a refused destroy runs no destructor, whether through a class, a base class, an interface
+     * or a generic class, and evaluates its receiver once. Valid destroys run their destructor once.
+     */
+    @Test
+    public void aStaleDestroyRunsNoDestructor() {
+        staleDestroyProgram("aStaleDestroyRunsNoDestructor", false, STALE_THROUGH_EVERY_REFERENCE);
+    }
+
+    /** The same after inlining and the local optimisations, which devirtualise and inline the destructors. */
+    @Test
+    public void aStaleDestroyRunsNoDestructorOptimised() {
+        staleDestroyProgram("aStaleDestroyRunsNoDestructorOptimised", true, STALE_THROUGH_EVERY_REFERENCE);
+    }
+
+    /** A plain double destroy, of a free id, keeps the deallocator's error. */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = "(?s).*Double free.*")
+    public void aDoubleDestroyKeepsItsError() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class A",
+            "init",
+            "    let a = new A",
+            "    let alias = a",
+            "    destroy a",
+            "    destroy alias",
+            "    testSuccess()");
+    }
+
+    /**
+     * The check names the class without its type arguments, so it asks for no specialisation: a class whose
+     * destructor destroys a deeper instantiation of itself compiles, as it did without the check.
+     */
+    @Test(timeOut = 60_000)
+    public void aStaleDestroyCheckDoesNotSpecialiseRecursiveGenerics() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Chain<T:>",
+            "    Chain<Chain<T>> child = null",
+            "    ondestroy",
+            "        if child != null",
+            "            destroy child",
+            "init",
+            "    let c = new Chain<int>",
+            "    c.child = new Chain<Chain<int>>",
+            "    destroy c",
+            "    testSuccess()");
+    }
+
+    /** Instantiations a parameterized instanceof keeps apart are still instances of their class when destroyed. */
+    @Test
+    public void destroyOfASpecialisedInstantiationIsNotStale() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "init",
+            "    Box<int> ints = new Box<int>",
+            "    Box<string> strings = new Box<string>",
+            "    Marker m = ints",
+            "    Marker n = strings",
+            "    let kept = m instanceof Box<int> and not (n instanceof Box<int>)",
+            "    destroy ints",
+            "    destroy strings",
+            "    if kept",
+            "        testSuccess()");
+    }
+
+    /** A destroy through a reference of a superclass is not stale: the object is of a subclass of it. */
+    @Test
+    public void destroyThroughASuperclassReferenceIsNotStale() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Shape",
+            "class Square extends Shape",
+            "init",
+            "    Shape s = new Square",
+            "    let id = s castTo int",
+            "    destroy s",
+            "    let next = new Square",
+            "    if next castTo int == id",
+            "        testSuccess()");
+    }
+
+    /**
      * Every allocation and destroy reads the allocator's state and every destroy calls the
      * deallocator, so they are locals of the main chunk, declared before any function: a function
      * reaches them as upvalues, not by a lookup among the thousands of globals of a map.
@@ -7454,8 +7688,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * A class table carries its supertypes for {@code instanceof} and its type id for {@code x.typeId}, and nothing
-     * else reads them: a program which does neither gets neither, and no instanceof helper.
+     * A class table carries its supertypes for {@code instanceof} and {@code destroy} and its type id for
+     * {@code x.typeId}, and nothing else reads them: a program which does none of these gets neither, and no
+     * instanceof helper.
      */
     @Test
     public void classMetadataIsEmittedOnlyForTheReadsWhichNeedIt() throws IOException {

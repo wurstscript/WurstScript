@@ -122,6 +122,9 @@ public final class LuaNativeLowering {
                     stubName = LuaCodeList.nativeStubFor(f);
                 }
                 if (stubName == null) {
+                    stubName = LuaStaleDestroy.nativeStubFor(f);
+                }
+                if (stubName == null) {
                     return;
                 }
                 ImFunction replacement = stubs.computeIfAbsent(stubName, name -> {
