@@ -541,8 +541,8 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    let b = new BuildScanIterator",
             "    b.tryRect(new MyRect(0., 0., 256., 256.), 1, 1)"
         );
-        assertContainsRegex(compiled, "\"when calling contains");
-        assertDoesNotContainRegex(compiled, "\"when calling contains[^\"]*\"\\s*[<>]=?");
+        assertContainsRegex(compiled, "\"contains");
+        assertDoesNotContainRegex(compiled, "\"contains[^\"]*\"\\s*[<>]=?");
         assertDoesNotContainRegex(compiled, "(?s)if not\\((\\w+)\\) then.*?stepsAlongY\\([^\\n]*,\\s*\\1\\s*,");
     }
 
@@ -2005,10 +2005,10 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "function\\s+config\\([^\\)]*__wurst_stackPos");
         assertDoesNotContainRegex(compiled, "function\\s+config1\\([^\\)]*__wurst_stackPos");
         assertDoesNotContainRegex(compiled, "function\\s+configHelper\\([^\\)]*__wurst_stackPos");
-        assertDoesNotContainRegex(compiled, "configHelper\\(\"when calling configHelper");
+        assertDoesNotContainRegex(compiled, "configHelper\\(\"configHelper");
 
         assertContainsRegex(compiled, "function\\s+runtimeHelper\\([^\\)]*__wurst_stackPos");
-        assertContainsRegex(compiled, "runtimeHelper\\(\"when calling runtimeHelper");
+        assertContainsRegex(compiled, "runtimeHelper\\(\"runtimeHelper");
     }
 
     @Test
@@ -2031,12 +2031,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         assertDoesNotContainRegex(compiled, "function\\s+configOnlyHelper\\([^\\)]*__wurst_stackPos");
-        assertDoesNotContainRegex(compiled, "configOnlyHelper\\(\"when calling configOnlyHelper");
+        assertDoesNotContainRegex(compiled, "configOnlyHelper\\(\"configOnlyHelper");
 
         assertContainsRegex(compiled, "function\\s+sharedHelper\\([^\\)]*__wurst_stackPos");
         assertContainsRegex(compiled, "function\\s+sharedLeaf\\([^\\)]*__wurst_stackPos");
-        assertContainsRegex(compiled, "sharedHelper\\(\"when calling sharedHelper");
-        assertContainsRegex(compiled, "sharedLeaf\\(\"when calling sharedLeaf");
+        assertContainsRegex(compiled, "sharedHelper\\(\"sharedHelper");
+        assertContainsRegex(compiled, "sharedLeaf\\(\"sharedLeaf");
     }
 
     @Test
@@ -2723,8 +2723,8 @@ public class LuaTranslationTests extends WurstScriptTest {
             Charsets.UTF_8);
 
         assertTrue("the concatenation should go through the helper",
-            compiled.contains("\"when calling __wurst_stringConcat in aLoweredConcatenationKeepsItsPositionInAStackTrace, line 3\""));
-        assertFalse("no helper call may lose its position", compiled.contains("\"when calling __wurst_stringConcat\""));
+            compiled.contains("\"__wurst_stringConcat (aLoweredConcatenationKeepsItsPositionInAStackTrace:L3)\""));
+        assertFalse("no helper call may lose its position", compiled.contains("\"__wurst_stringConcat\""));
     }
 
     @Test

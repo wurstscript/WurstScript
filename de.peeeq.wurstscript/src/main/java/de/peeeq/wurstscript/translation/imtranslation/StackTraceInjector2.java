@@ -260,7 +260,7 @@ public class StackTraceInjector2 {
                 super.visit(call);
                 if (affectedFuncs.contains(call.getMethod().getImplementation())) {
                     String callPos = getCallPos(call.attrTrace().attrErrorPos());
-                    call.getArguments().add(getStacktraceIndex(call), str("when calling " + name(call.getMethod()) + callPos));
+                    call.getArguments().add(getStacktraceIndex(call), str(name(call.getMethod()) + callPos));
                 }
             }
         });
@@ -400,7 +400,7 @@ public class StackTraceInjector2 {
             // pass the stacktrace parameter at all calls
             for (ImFunctionCall call : callsForF) {
                 String callPos = getCallPos(call.attrTrace().attrErrorPos());
-                call.getArguments().add(getStacktraceIndex(call), str("when calling " + name(f) + callPos));
+                call.getArguments().add(getStacktraceIndex(call), str(name(f) + callPos));
             }
         }
     }
@@ -464,13 +464,17 @@ public class StackTraceInjector2 {
     }
 
     public static String getCallPos(WPos source) {
-        String callPos;
         if (source.getFile().startsWith("<")) {
-            callPos = "";
-        } else {
-            callPos = " in " + source.printShort();
+            return "";
         }
-        return callPos;
+        // Source paths can use either separator, independently of the compiler's host OS.
+        String file = source.getFile().replace('\\', '/');
+        file = file.substring(file.lastIndexOf('/') + 1);
+        int extension = file.lastIndexOf('.');
+        if (extension > 0) {
+            file = file.substring(0, extension);
+        }
+        return " (" + file + ":L" + source.getLine() + ")";
     }
 
     private ImStmt increment(de.peeeq.wurstscript.ast.Element trace, ImVar v) {
@@ -511,7 +515,7 @@ public class StackTraceInjector2 {
                     msg += " in function " + frEnclosingFunc.getName();
                 }
             } else {
-                msg += " " +frTrace.attrSource().printShort();
+                msg += getCallPos(frTrace.attrSource());
             }
             ImExpr str = str(msg);
             ImExprs args = JassIm.ImExprs(str);
