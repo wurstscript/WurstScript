@@ -129,7 +129,7 @@ public class MultiArrayEliminator {
                         args.add(set.getRight().copy());
 
                         if (generateStacktraces) {
-                            args.add(JassIm.ImStringVal("when writing array " + va.getVar().getName() + StackTraceInjector2.getCallPos(va.getTrace().attrSource())));
+                            args.add(JassIm.ImStringVal("write " + va.getVar().getName() + StackTraceInjector2.getCallPos(va.getTrace().attrSource())));
                         }
 
                         replacer.replace(set,
@@ -154,7 +154,7 @@ public class MultiArrayEliminator {
                     args.add(val.copy());
                 }
                 if (generateStacktraces) {
-                    args.add(JassIm.ImStringVal("when reading array " + am.getVar().getName() + " in " + StackTraceInjector2.getCallPos(am.getTrace().attrSource())));
+                    args.add(JassIm.ImStringVal("read " + am.getVar().getName() + StackTraceInjector2.getCallPos(am.getTrace().attrSource())));
                 }
                 if (getSetMap.containsKey(am.getVar())) {
                     replacer.replace(am,

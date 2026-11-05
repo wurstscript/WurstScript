@@ -671,7 +671,7 @@ public final class LuaNativeLowering {
     private static ImFunctionCall callWithStacktrace(de.peeeq.wurstscript.ast.Element trace, ImFunction f, ImExprs args) {
         int stacktraceIndex = stacktraceParamIndex(f);
         if (stacktraceIndex >= 0) {
-            args.add(stacktraceIndex, JassIm.ImStringVal("when calling " + f.getName()
+            args.add(stacktraceIndex, JassIm.ImStringVal(f.getName()
                 + StackTraceInjector2.getCallPos(trace.attrErrorPos())));
         }
         return JassIm.ImFunctionCall(trace, f, JassIm.ImTypeArguments(), args, false, CallType.NORMAL);
