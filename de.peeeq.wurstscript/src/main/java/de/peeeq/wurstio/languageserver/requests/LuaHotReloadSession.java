@@ -7,11 +7,13 @@ import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -156,7 +158,13 @@ public final class LuaHotReloadSession {
     public static void writeManifest(Path buildDir, LuaHotReload.Manifest manifest) throws IOException {
         Path file = buildDir.resolve(SESSION_FOLDER).resolve("manifest.json");
         Files.createDirectories(file.getParent());
-        Files.writeString(file, GSON.toJson(manifest), StandardCharsets.UTF_8);
+        Path partial = Files.createTempFile(file.getParent(), "manifest-", ".tmp");
+        try {
+            writeManifestJson(manifest, Files.newOutputStream(partial));
+            Files.move(partial, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(partial);
+        }
     }
 
     private static LuaHotReload.Manifest readManifest(Path file) throws IOException {
@@ -244,23 +252,27 @@ public final class LuaHotReloadSession {
         Files.createDirectories(folder);
         Path partial = Files.createTempFile(folder, BASELINE_PREFIX, ".tmp");
         try {
-            try (var writer = new BufferedWriter(new OutputStreamWriter(
-                new DigestOutputStream(Files.newOutputStream(partial), digest), StandardCharsets.UTF_8.newEncoder()))) {
-                GSON.toJson(manifest, writer);
-            } catch (JsonIOException e) {
-                if (e.getCause() instanceof IOException io) {
-                    throw io;
-                }
-                throw e;
-            }
+            writeManifestJson(manifest, new DigestOutputStream(Files.newOutputStream(partial), digest));
             String name = BASELINE_PREFIX + HexFormat.of().formatHex(digest.digest()) + ".json";
             Path baseline = folder.resolve(name);
             if (!Files.exists(baseline)) {
-                Files.move(partial, baseline, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                Files.move(partial, baseline, StandardCopyOption.ATOMIC_MOVE);
             }
             return name;
         } finally {
             Files.deleteIfExists(partial);
+        }
+    }
+
+    /** Serialize the manifest to UTF-8 and close the supplied stream before publication. */
+    private static void writeManifestJson(LuaHotReload.Manifest manifest, OutputStream output) throws IOException {
+        try (var writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8.newEncoder()))) {
+            GSON.toJson(manifest, writer);
+        } catch (JsonIOException e) {
+            if (e.getCause() instanceof IOException io) {
+                throw io;
+            }
+            throw e;
         }
     }
 

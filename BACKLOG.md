@@ -269,6 +269,9 @@ Notes; finished-work narrative does not.
   Hot-run staging now hashes the manifest while streaming it to a temporary file. On the 101 MB Castle Fight
   baseline, warmed staging allocated 6–7 MB per run instead of 1.72 GB across three runs per build on Windows.
   The staged bytes and SHA-256 filename matched the existing baseline.
+  The compiler-to-CLI handoff also streams `manifest.json` and atomically replaces it once complete.
+  On the same fixture, warmed allocation fell from 1.31 GB to 1.2–1.4 MB across three writes per build,
+  with identical output bytes.
   Concrete design and staged acceptance gates: [`docs/INCREMENTAL_BACKEND.md`](docs/INCREMENTAL_BACKEND.md).
   The first scalar-function ownership/lowering/emission slice now proves zero graph-copy nodes and one lowered/emitted
   function after a supported literal edit, including with 1,000 additional live functions. It excludes compile-time
