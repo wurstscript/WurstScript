@@ -302,6 +302,10 @@ Notes; finished-work narrative does not.
   Baseline cache misses and standalone CLI manifest reads now parse from buffered UTF-8. On the 101 MB
   Castle Fight replay baseline, the allocating thread used 324 MB per warmed read, down from 931 MB
   across three reads per build on Windows. The decoded manifests were equal in the same JVM.
+  A Windows JFR allocation profile of the unchanged Castle Fight diff attributed roughly two-thirds of sampled
+  bytes in payload generation to rebuilding binding maps. The diff now parses each manifest's bindings once
+  and shares the ordered maps across its checks. Warmed thread allocation fell from 371 MB to 176 MB on
+  the same 101 MB manifest pair, with the same payload digest and warnings.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
