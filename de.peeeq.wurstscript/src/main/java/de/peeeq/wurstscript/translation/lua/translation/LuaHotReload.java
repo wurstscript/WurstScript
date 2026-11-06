@@ -1024,10 +1024,10 @@ public final class LuaHotReload {
         }
         Set<String> commonActions = new HashSet<>(oldActions.keySet()); commonActions.retainAll(newActions.keySet());
         commonInitializers.addAll(commonActions);
-        Map<String, List<String>> oldInitCode = initCode(baseline, commonInitializers);
-        Map<String, List<String>> newInitCode = initCode(current, commonInitializers);
-        for (Map.Entry<String, List<String>> init : oldInitCode.entrySet()) {
-            if (!init.getValue().equals(newInitCode.getOrDefault(init.getKey(), List.of()))) {
+        Map<String, List<Statement>> oldInitCode = initCode(baseline, commonInitializers);
+        Map<String, List<Statement>> newInitCode = initCode(current, commonInitializers);
+        for (Map.Entry<String, List<Statement>> init : oldInitCode.entrySet()) {
+            if (!sameInitCode(init.getValue(), newInitCode.getOrDefault(init.getKey(), List.of()))) {
                 changedInits.add(init.getKey());
             }
         }
@@ -1825,20 +1825,43 @@ public final class LuaHotReload {
 
     /** Init code is a sequence. Existing initializer units retain their positions without comparing their bodies,
      * whose changed values have their own warning; added and removed units are handled separately. */
-    private static Map<String, List<String>> initCode(Manifest manifest, Set<String> commonInitializers) {
-        Map<String, List<String>> result = new LinkedHashMap<>();
+    private static Map<String, List<Statement>> initCode(Manifest manifest, Set<String> commonInitializers) {
+        Map<String, List<Statement>> result = new LinkedHashMap<>();
         for (Function f : manifest.functions().values()) {
             if (f.kind() == Kind.PACKAGE_INIT) {
                 result.put(f.name(), new ArrayList<>());
             }
         }
         for (Statement s : manifest.statements()) {
-            if (s.scope().equals("init") && (!(s.kind().equals("global") || s.kind().equals("action")) || commonInitializers.contains(s.key()))) {
-                result.computeIfAbsent(s.owner(), k -> new ArrayList<>())
-                    .add((s.kind().equals("global") || s.kind().equals("action")) ? "initializer:" + s.key() : "code:" + s.revision());
+            if (s.scope().equals("init") && (!isInitializerUnit(s) || commonInitializers.contains(s.key()))) {
+                result.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(s);
             }
         }
         return result;
+    }
+
+    private static boolean isInitializerUnit(Statement s) {
+        return s.kind().equals("global") || s.kind().equals("action");
+    }
+
+    private static boolean sameInitCode(List<Statement> before, List<Statement> after) {
+        if (before.size() != after.size()) {
+            return false;
+        }
+        for (int i = 0; i < before.size(); i++) {
+            Statement old = before.get(i);
+            Statement current = after.get(i);
+            boolean initializer = isInitializerUnit(old);
+            if (initializer != isInitializerUnit(current)) {
+                return false;
+            }
+            String oldValue = initializer ? old.key() : old.revision();
+            String currentValue = initializer ? current.key() : current.revision();
+            if (!String.valueOf(oldValue).equals(String.valueOf(currentValue))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** What tells a function's definitions apart, apart from source positions ({@link Function#shape}), for {@link History#captured}. */
