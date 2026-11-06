@@ -1,6 +1,7 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.languageserver.*;
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.RunArgs;
@@ -127,7 +128,7 @@ public final class MapCommitHotReloadProfile {
         return result;
     }
 
-    private void run() throws Exception {
+    private void run(String buildDate) throws Exception {
         Corpus corpus = JSON.fromJson(Files.readString(fixture.resolve("corpus.json")), Corpus.class);
         int limit = Integer.parseInt(System.getProperty("profile.commitLimit", Integer.toString(corpus.pairs.size())));
         if (limit <= 0) throw new IllegalArgumentException("profile.commitLimit must be positive");
@@ -139,64 +140,56 @@ public final class MapCommitHotReloadProfile {
             row.put("production", pair.production); row.put("paths", pair.paths);
             row.put("runtimePaths", pair.runtimePaths); row.put("testPaths", pair.testPaths); row.put("otherPaths", pair.otherPaths);
             row.put("publicCompilerAdjustment", Boolean.getBoolean("profile.publicCompiler"));
-            int clockRetries = 0;
-            while (true) {
-                LocalDateTime clockWindow = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-                try {
-                    // Build the expected child before creating the parent's warmed model. The reference cannot
-                    // inherit any retained translator, body artifact or AST lookup from the measured edit.
-                    if (manager != null) manager.clean();
-                    manager = null;
-                    install(pair.commit);
-                    if (manager.hasErrors()) throw new IllegalStateException(manager.getFirstErrorDescription());
-                    Build expected = new Probe(root, args()).compile(manager, root);
-                    manager.clean();
-                    manager = null;
-                    install(pair.parent);
-                    if (manager.hasErrors()) throw new IllegalStateException(manager.getFirstErrorDescription());
-                    List<String> beforeArgs = args();
-                    Build before = new Probe(root, beforeArgs).compile(manager, root);
-                    Path session = root.resolve("_build/commit-session"), delivery = root.resolve("_build/commit-delivery");
-                    LuaHotReloadSession.start(session, before.manifest);
-                    long total = System.nanoTime();
-                    row.put("reconcileMillis", install(pair.commit));
-                    List<String> afterArgs = args(); row.put("args", afterArgs);
-                    Build after = new Probe(root, afterArgs).compile(manager, root);
-                    if (!expected.script.equals(after.script) || !expected.manifest.equals(after.manifest)) {
-                        // getBuildDate() intentionally observes wall time. Retry the complete independent oracle and
-                        // warmed edit if they straddled a minute; never normalize a generated value or accept a mismatch.
-                        if (!clockWindow.equals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)) && clockRetries++ < 2) continue;
-                        Files.writeString(fixture.resolve("expected.lua"), expected.script);
-                        Files.writeString(fixture.resolve("actual.lua"), after.script);
-                        Files.writeString(fixture.resolve("expected-manifest.json"), JSON.toJson(expected.manifest));
-                        Files.writeString(fixture.resolve("actual-manifest.json"), JSON.toJson(after.manifest));
-                        throw new IllegalStateException("Fresh/retained output differs for " + pair.commit);
-                    }
-                    row.put("freshOracle", "equal Lua and manifest");
-                    row.put("clockRetries", clockRetries);
-                    row.put("compileMillis", after.millis); row.put("backendWork", after.work);
-                    row.put("phases", after.phases);
-                    row.put("frontend", manager.incrementalImTranslation().statistics());
-                    row.put("backendReason", manager.incrementalImTranslation().scalarBackendReason());
-                    long sending = System.nanoTime();
-                    try {
-                        var sent = LuaHotReloadSession.send(session, delivery, after.manifest);
-                        row.put("status", "accepted"); row.put("payloadBytes", Files.size(sent.file()));
-                        row.put("functions", sent.payload().functions().size()); row.put("warnings", sent.payload().warnings());
-                        // Acceptance only establishes that the payload can be delivered. Warnings can describe
-                        // initialization/state changes that require restart; do not count those as full commit coverage.
-                        row.put("coverage", sent.payload().warnings().isEmpty() ? "accepted without warnings" : "accepted with state limitations");
-                    } catch (LuaHotReload.Rejected rejected) {
-                        row.put("status", "restart"); row.put("reasons", rejected.getReasons());
-                    }
-                    row.put("sendMillis", elapsed(sending)); row.put("totalMillis", elapsed(total));
-                } catch (Exception failure) {
-                    row.put("status", "build-failed"); row.put("error", failure.toString());
-                    failure.printStackTrace();
-                    if (manager != null) manager.clean();
-                    manager = null;
+            row.put("buildDate", buildDate);
+            try {
+                // Build the expected child before creating the parent's warmed model. The reference cannot
+                // inherit any retained translator, body artifact or AST lookup from the measured edit.
+                if (manager != null) manager.clean();
+                manager = null;
+                install(pair.commit);
+                if (manager.hasErrors()) throw new IllegalStateException(manager.getFirstErrorDescription());
+                Build expected = new Probe(root, args()).compile(manager, root);
+                manager.clean();
+                manager = null;
+                install(pair.parent);
+                if (manager.hasErrors()) throw new IllegalStateException(manager.getFirstErrorDescription());
+                List<String> beforeArgs = args();
+                Build before = new Probe(root, beforeArgs).compile(manager, root);
+                Path session = root.resolve("_build/commit-session"), delivery = root.resolve("_build/commit-delivery");
+                LuaHotReloadSession.start(session, before.manifest);
+                long total = System.nanoTime();
+                row.put("reconcileMillis", install(pair.commit));
+                List<String> afterArgs = args(); row.put("args", afterArgs);
+                Build after = new Probe(root, afterArgs).compile(manager, root);
+                if (!expected.script.equals(after.script) || !expected.manifest.equals(after.manifest)) {
+                    Files.writeString(fixture.resolve("expected.lua"), expected.script);
+                    Files.writeString(fixture.resolve("actual.lua"), after.script);
+                    Files.writeString(fixture.resolve("expected-manifest.json"), JSON.toJson(expected.manifest));
+                    Files.writeString(fixture.resolve("actual-manifest.json"), JSON.toJson(after.manifest));
+                    throw new IllegalStateException("Fresh/retained output differs for " + pair.commit);
                 }
-                break;
+                row.put("freshOracle", "equal Lua and manifest");
+                row.put("compileMillis", after.millis); row.put("backendWork", after.work);
+                row.put("phases", after.phases);
+                row.put("frontend", manager.incrementalImTranslation().statistics());
+                row.put("backendReason", manager.incrementalImTranslation().scalarBackendReason());
+                long sending = System.nanoTime();
+                try {
+                    var sent = LuaHotReloadSession.send(session, delivery, after.manifest);
+                    row.put("status", "accepted"); row.put("payloadBytes", Files.size(sent.file()));
+                    row.put("functions", sent.payload().functions().size()); row.put("warnings", sent.payload().warnings());
+                    // Acceptance only establishes that the payload can be delivered. Warnings can describe
+                    // initialization/state changes that require restart; do not count those as full commit coverage.
+                    row.put("coverage", sent.payload().warnings().isEmpty() ? "accepted without warnings" : "accepted with state limitations");
+                } catch (LuaHotReload.Rejected rejected) {
+                    row.put("status", "restart"); row.put("reasons", rejected.getReasons());
+                }
+                row.put("sendMillis", elapsed(sending)); row.put("totalMillis", elapsed(total));
+            } catch (Exception failure) {
+                row.put("status", "build-failed"); row.put("error", failure.toString());
+                failure.printStackTrace();
+                if (manager != null) manager.clean();
+                manager = null;
             }
             rows.add(row);
             Files.writeString(fixture.resolve("results.json"), JSON.toJson(rows));
@@ -210,6 +203,10 @@ public final class MapCommitHotReloadProfile {
     private static double elapsed(long start) { return (System.nanoTime() - start) / 1_000_000.0; }
 
     public static void main(String[] args) throws Exception {
-        new MapCommitHotReloadProfile(Path.of(args[0]).toAbsolutePath().normalize()).run();
+        String configured = System.getProperty("profile.buildDate");
+        LocalDateTime date = configured == null ? LocalDateTime.now() : LocalDateTime.parse(configured);
+        String buildDate = date.truncatedTo(ChronoUnit.MINUTES).toString();
+        System.setProperty(CompiletimeNatives.BUILD_DATE_PROPERTY, buildDate);
+        new MapCommitHotReloadProfile(Path.of(args[0]).toAbsolutePath().normalize()).run(buildDate);
     }
 }

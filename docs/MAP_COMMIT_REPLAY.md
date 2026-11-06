@@ -313,8 +313,8 @@ A build failure or fresh/retained mismatch fails the task after recording the ro
 `-PprofileContinueOnError` continues collecting failures; inspect every row before treating the task
 as successful validation. A rejected payload is a measured `restart` result, rather than a build failure.
 
-`getBuildDate()` observes the current minute. When unequal oracle outputs straddle a wall-clock minute,
-the harness retries the **entire** independent-child / warmed-parent / edited-child sequence at most twice.
-It records the retries and still requires exact output equality. It never rewrites timestamps, reuses
-compile-time results, or ignores mismatching output. Other changing external inputs must be controlled by
-the fixture owner; an unstable oracle is not evidence of a cache defect or proof of correctness.
+The replay pins the compile-time `getBuildDate()` input to the minute when the campaign starts. The
+fresh child, baseline, and retained child all receive that timestamp, and each result records it as
+`buildDate`. Pass `-PprofileBuildDate=2026-11-06T22:00` to repeat a campaign with a specific local
+timestamp. The oracle compares the complete Lua and manifests. The fixture owner still controls other
+external inputs that can vary between builds.

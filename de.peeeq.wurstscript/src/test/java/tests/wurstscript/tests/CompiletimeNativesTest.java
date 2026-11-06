@@ -46,6 +46,22 @@ import static org.testng.Assert.assertTrue;
 public class CompiletimeNativesTest {
 
     @Test
+    public void buildDateCanBePinnedForReplay() {
+        String property = "wurst.compiletime.buildDate";
+        String previous = System.getProperty(property);
+        try {
+            System.setProperty(property, "2001-02-03T04:05:59");
+            assertEquals(new CompiletimeNatives(null, null, false).getBuildDate().text(), "2001-02-03T04:05");
+        } finally {
+            if (previous == null) {
+                System.clearProperty(property);
+            } else {
+                System.setProperty(property, previous);
+            }
+        }
+    }
+
+    @Test
     public void modifyObjectKeepsDifferentDataPointers() throws Exception {
         CompiletimeNatives natives = new CompiletimeNatives(null, null, false);
         W3A w3a = new W3A();
