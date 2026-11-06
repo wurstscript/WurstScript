@@ -306,8 +306,10 @@ For Zombie Defense use `../zombie-defense`, `origin/main` and its own template, 
 `-PprofilePublicCompiler`, and optionally export with `--dependency Frentity=<verified-local-tree>`.
 The public-compiler flag removes **only** `-luaEncapsulation`, matching Castle Fight's Jenkins build;
 it does not ignore other unknown flags. `-PprofileMeasure` adds phase timing instrumentation.
-`-PprofileCommitLimit=1` runs a smoke pair. Each invocation overwrites its fixture's `results.json`;
-archive that receipt before reusing a fixture.
+`-PprofileCommitLimit=1` runs the first pair as a smoke test. Use `-PprofileCommit=<hash-or-unique-prefix>`
+to replay a specific child commit from the existing corpus. A missing or ambiguous match fails before
+any pair runs. The replay replaces its fixture's `results.json` as pairs finish, so archive that
+receipt before reusing a fixture.
 
 A build failure or fresh/retained mismatch fails the task after recording the row. An explicit
 `-PprofileContinueOnError` continues collecting failures; inspect every row before treating the task
