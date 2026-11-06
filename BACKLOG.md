@@ -235,8 +235,9 @@ Notes; finished-work narrative does not.
     one MultiboardComponents closure group combines additions/removals with edits between unchanged anchors.
     Minimize that group before changing closure matching. See [the replay results](docs/MAP_COMMIT_REPLAY.md).
   - Old-generics conversion bridges which still share an anonymous source owner form order groups too. Ambiguous
-    edits still need a restart. Materialized compile-time expressions without distinct bindings also retain an
-    order-group count; changing that count requires a restart. Dependency-owned object graphs preserve direct and
+    edits still need a restart. Compile-time expressions that can own snapshots and lack distinct bindings retain an
+    order-group count; changing that count requires a restart. Scalar expressions use no snapshot ordinal, so inserting
+    one between snapshot expressions keeps their identities. Dependency-owned object graphs preserve direct and
     nested aliases. Independent roots can share objects only while established ownership stays fixed; migrating
     ownership requires a restart. New
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
@@ -285,7 +286,8 @@ Notes; finished-work narrative does not.
   frozen target graphs and bindings admit ordinary callers of Math.min/max, R2I, nullable-handle wrappers and
   hashtable stubs under the existing shape/dependency receipts and cold equality gates. Next: class/generic
   products, versioned dependency queries instead of global receipts, compile-time closure-only materialisation and
-  incremental payload indexing. Port producer contracts rather than parsing generated names or synthesising empty
+  incremental payload indexing. Payload comparison now groups compile-time statements once per manifest and reuses
+  the index for compatibility checks, warnings and replay. Port producer contracts rather than parsing generated names or synthesising empty
   function headers. The real Zombie Defense armor-cost edit now lowers/emits one runtime function; controlled
   timings and remaining whole-program costs are recorded in `docs/MAP_COMMIT_REPLAY.md`.
   Exact/shape receipt hashing now shares one schema encoding and UTF-8 tokens; matching-master alternating
