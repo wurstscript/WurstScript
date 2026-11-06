@@ -1033,7 +1033,7 @@ public final class LuaHotReload {
         }
         Set<String> knownNames = oldBindings.keySet();
         Map<String, List<Statement>> unitsByOwner = initializerUnits(current);
-        Constants constants = new Constants(baseline, current, history);
+        Constants constants = new Constants(baseline, current, history, unitsByOwner);
         // In the order the map runs them: a constant which reads one that runs again runs after it.
         Set<String> definedNames = new HashSet<>(defined);
         Set<String> refreshed = new LinkedHashSet<>();
@@ -2022,12 +2022,12 @@ public final class LuaHotReload {
         private final Map<String, String> currentRevisions = new HashMap<>();
         private final Map<String, String> baselineRevisions = new HashMap<>();
 
-        Constants(Manifest baseline, Manifest current, History history) {
+        Constants(Manifest baseline, Manifest current, History history, Map<String, List<Statement>> currentUnitsByOwner) {
             this.baselineManifest = baseline;
             this.currentManifest = current;
             this.current = Objects.requireNonNullElse(current.constants(), Map.of());
             this.baseline = Objects.requireNonNullElse(baseline.constants(), Map.of());
-            initializerUnits(current).values().forEach(units -> units.forEach(s -> currentUnits.put(s.key(), s)));
+            currentUnitsByOwner.values().forEach(units -> units.forEach(s -> currentUnits.put(s.key(), s)));
             initializerUnits(baseline).values().forEach(units -> units.forEach(s -> baselineUnits.put(s.key(), s)));
             // A variable need not have an initializer, so variables are told by their storage.
             variables.addAll(history.variables());
