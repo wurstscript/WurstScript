@@ -945,12 +945,17 @@ public final class LuaHotReload {
         // slot run the body it held, and nothing else does. Only a function whose body is redefined here can differ
         // from what the slot holds, so one which stays as it was warns of nothing. Changing a function which remains
         // stored as a value is another case, refused below: the new code still reaches that value.
-        Set<String> previousFunctions = new TreeSet<>(baseline.functions().keySet());
-        previousFunctions.addAll(history.captured().keySet());
-        previousFunctions.addAll(history.slots().keySet());
+        Set<String> storedFunctions = new TreeSet<>();
+        baseline.functions().forEach((name, function) -> {
+            if (!function.captures().isEmpty() || !function.slots().isEmpty()) {
+                storedFunctions.add(name);
+            }
+        });
+        storedFunctions.addAll(history.captured().keySet());
+        storedFunctions.addAll(history.slots().keySet());
         Set<String> reboundSlots = new HashSet<>();
         current.functions().values().forEach(f -> reboundSlots.addAll(f.slots()));
-        for (String name : previousFunctions) {
+        for (String name : storedFunctions) {
             Function old = baseline.functions().get(name);
             Function now = current.functions().get(name);
             boolean removed = now == null;

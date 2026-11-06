@@ -302,6 +302,9 @@ Notes; finished-work narrative does not.
   Baseline cache misses and standalone CLI manifest reads now parse from buffered UTF-8. On the 101 MB
   Castle Fight replay baseline, the allocating thread used 324 MB per warmed read, down from 931 MB
   across three reads per build on Windows. The decoded manifests were equal in the same JVM.
+  Retained-function warning checks now sort only functions with captures or slots, including entries retained by
+  earlier payloads. The unchanged Castle Fight diff sorted 2,640 baseline candidates instead of 40,553 functions
+  and allocated about 0.6 MB less per warmed diff. The full diff still allocated about 369 MB.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
