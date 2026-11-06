@@ -293,8 +293,10 @@ Notes; finished-work narrative does not.
   frozen target graphs and bindings admit ordinary callers of Math.min/max, R2I, nullable-handle wrappers and
   hashtable stubs under the existing shape/dependency receipts and cold equality gates. Next: class/generic
   products, versioned dependency queries instead of global receipts, compile-time closure-only materialisation and
-  incremental payload indexing. Payload comparison now groups compile-time statements once per manifest and reuses
-  the index for compatibility checks, warnings and replay. Port producer contracts rather than parsing generated names or synthesising empty
+  incremental payload indexing. Payload comparison now reuses compile-time statement, binding and initializer
+  indexes across checks. On the unchanged Castle Fight fixture, the merged allocation changes reduced warmed
+  allocation from 371 MB to 87 MB per diff. See [the offline measurement](docs/RUNMAP_PERFORMANCE.md#payload-diff-allocation).
+  Port producer contracts rather than parsing generated names or synthesising empty
   function headers. The real Zombie Defense armor-cost edit now lowers/emits one runtime function; controlled
   timings and remaining whole-program costs are recorded in `docs/MAP_COMMIT_REPLAY.md`.
   Exact/shape receipt hashing now shares one schema encoding and UTF-8 tokens; matching-master alternating
