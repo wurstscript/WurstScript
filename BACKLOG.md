@@ -230,13 +230,11 @@ Notes; finished-work narrative does not.
     cannot distinguish simultaneous additions/removals and body edits between the same unchanged anchors; make
     those edits in separate payloads. A removed closure may still have live objects, so reusing table names its old
     bodies read is refused even after intermediate payloads remove the whole group. Do not weaken that guard.
-    Replay the real-map histories again to measure acceptance after the closure fixes; the recorded 27/30 Castle
-    Fight result was from an intermediate branch, not the final implementation.
-  - Replay Castle Fight's addition of `ArrayList<TickCandidates>` beside `ArrayList<UnitStat>` to check the
-    recorded specialization field-storage refusal. Shared canonical field tables must have one source-field
-    identity in the manifest, independent of the specialization discovery order. Minimize any remaining refusal
-    before changing storage ownership: specialized and erased accesses deliberately share those tables.
-    Old-generics conversion bridges which still share an anonymous source owner form order groups too; ambiguous
+    A 6 Nov replay matched independent fresh builds for three recent commits per map. Castle Fight accepted
+    two of three and Zombie Defense accepted all three. Castle Fight `bd77dc0` still needs a restart because
+    one MultiboardComponents closure group combines additions/removals with edits between unchanged anchors.
+    Minimize that group before changing closure matching. See [the replay results](docs/MAP_COMMIT_REPLAY.md).
+  - Old-generics conversion bridges which still share an anonymous source owner form order groups too. Ambiguous
     edits still need a restart. Materialized compile-time expressions without distinct bindings also retain an
     order-group count; changing that count requires a restart. Dependency-owned object graphs preserve direct and
     nested aliases. Independent roots can share objects only while established ownership stays fixed; migrating
@@ -246,9 +244,11 @@ Notes; finished-work narrative does not.
   - The first reload after a command-line start checks the whole model again (about 47 s on Castle Fight).
     Generated object-data functions ship whole. Measure smaller representations without splitting effectful
     initialization incorrectly.
-  - Run the in-game suite again: it last ran on #1556, before #1558 through #1566, including closure lineage remaps
-    and compile-time snapshot replay. Also exercise `grill run --hot` launching a map and picking up a payload.
-    Stock Lua and CI do not verify Warcraft's preload channel or numeric runtime.
+  - The 6 Nov harness smoke run proved VS Code save, refusal, recovery and matching game receipts on
+    Reforged 3.0.1.24371. The published Grill `14252b3` also staged and activated its own hot run, then
+    reloaded and recovered from a refusal in the harness-managed game. Still rerun the broader in-game matrix
+    for closure lineage remaps and compile-time snapshot replay. Stock Lua and CI do not verify Warcraft's
+    preload channel or numeric runtime.
 - **Lua hot reload: a reload translates the whole program.** Proposal, measured on 24 Oct 2026 in the language
   server on Castle Fight (`wurst.hotreload` after a body edit, a constant edit and a declaration edit, four of each):
   a warm request took 14 to 30 s on a loaded machine, the first after a command-line start about 47 s (it checks the

@@ -4226,9 +4226,9 @@ public class LuaHotReloadTests extends WurstScriptTest {
         LuaHotReload.Payload second = LuaHotReload.payload(baseline, manifest(program("x + 100", "side * side", INIT)), Set.of(luaName(baseline, "score")), 2);
         java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("luaHotReloadPoll");
         java.nio.file.Files.writeString(dir.resolve("hotreload-1.pld"),
-            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile(first.source()));
+            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile("-- wurst-hot-reload-receipt:0123456789abcdef0123456789abcdef\n" + first.source()));
         java.nio.file.Files.writeString(dir.resolve("hotreload-2.pld"),
-            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile("return ("));
+            de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile("-- wurst-hot-reload-receipt:fedcba9876543210fedcba9876543210\nreturn ("));
         java.nio.file.Files.writeString(dir.resolve("hotreload-3.pld"),
             de.peeeq.wurstio.languageserver.requests.LuaHotReloadSession.preloadFile(second.source()));
         String runtime = "src/test/resources/luaruntime/";
@@ -4249,12 +4249,18 @@ public class LuaHotReloadTests extends WurstScriptTest {
             "  local text = f:read('a') f:close()",
             "  assert(load(text:match('//!beginusercode%s(.-)%s//!endusercode')))()",
             "end",
+            "local receipts = {}",
+            "PreloadGenClear = function() end",
+            "PreloadGenStart = function() end",
+            "Preload = function(text) receipts[#receipts + 1] = text end",
+            "PreloadGenEnd = function(path) assert(path == 'Wurst/hotreload-receipt.txt') end",
             "local scores = {}",
             "for i = 1, 4 do " + LuaHotReload.POLL_FUNCTION + "() scores[i] = " + luaName(baseline, "score") + "(1) end",
             "print(table.concat(requested, ' '))",
             "print(table.concat(scores, ' '))",
             "print(" + LuaHotReload.STATUS_FUNCTION + "())",
-            "print(BlzGetAbilityTooltip(0, 0))");
+            "print(BlzGetAbilityTooltip(0, 0))",
+            "print(table.concat(receipts, ' '))");
         java.io.File driverFile = new java.io.File("test-output/lua/LuaHotReloadTests_pollDriver.lua");
         java.nio.file.Files.writeString(driverFile.toPath(), driver);
         Process p = new ProcessBuilder(getLuaExecutable(), driverFile.getPath()).redirectErrorStream(true).start();
@@ -4265,6 +4271,8 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals("the broken file changes nothing, the next one applies", "11 11 101 101", lines[1]);
         assertEquals("applied payload 2", lines[2]);
         assertEquals("the poll puts the ability's tooltip back", "Attribute Bonus", lines[3]);
+        assertEquals("wurst-hot-reload-receipt:0123456789abcdef0123456789abcdef:applied "
+            + "wurst-hot-reload-receipt:fedcba9876543210fedcba9876543210:rejected", lines[4]);
     }
 
     /** The preload file hands the payload over unchanged, whatever characters and length it has. */

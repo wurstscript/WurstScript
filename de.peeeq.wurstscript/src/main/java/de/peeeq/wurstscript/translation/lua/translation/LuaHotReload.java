@@ -88,6 +88,8 @@ public final class LuaHotReload {
      * file created during the game was read within 0.5 s.
      */
     public static final String PRELOAD_FILE_PREFIX = "Wurst\\hotreload-";
+    public static final String RECEIPT_FILE = "Wurst/hotreload-receipt.txt";
+    public static final String RECEIPT_MARKER = "wurst-hot-reload-receipt:";
 
     /** The file of payload {@code version}, relative to CustomMapData, with Windows separators. */
     public static String preloadFile(int version) {
@@ -2493,6 +2495,16 @@ public final class LuaHotReload {
             "        __wurst_hotreload_lastStatus = \"rejected: \" .. tostring(err)",
             "    end",
             "    BJDebugMsg(\"Wurst hot reload: \" .. __wurst_hotreload_lastStatus)",
+            // The optional transport comment leaves the compiled payload unchanged. Only a fixed outcome and a
+            // validated identifier cross back to the editor, so game error text cannot become preload source.
+            "    local receipt = source:match(\"^%-%- " + RECEIPT_MARKER.replace("-", "%-") + "([0-9a-f]+)\\n\")",
+            "    if receipt and #receipt == 32 then",
+            "        local outcome = ok and (#" + WARNINGS + " > 0 and \"applied-with-warnings\" or \"applied\") or \"rejected\"",
+            "        PreloadGenClear()",
+            "        PreloadGenStart()",
+            "        Preload(\"" + RECEIPT_MARKER + "\" .. receipt .. \":\" .. outcome)",
+            "        PreloadGenEnd(\"" + RECEIPT_FILE + "\")",
+            "    end",
             "end")));
     }
 }
