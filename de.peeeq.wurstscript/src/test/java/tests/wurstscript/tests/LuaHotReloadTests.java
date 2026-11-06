@@ -3966,7 +3966,16 @@ public class LuaHotReloadTests extends WurstScriptTest {
         java.nio.file.Path baselineFile = onlyBaselineFile(folder);
         assertTrue(java.nio.file.Files.readString(baselineFile).contains(baseline.abi()));
         byte[] written = java.nio.file.Files.readAllBytes(baselineFile);
+        String json = new com.google.gson.GsonBuilder().disableHtmlEscaping().create().toJson(baseline);
+        assertEquals(java.nio.file.Files.readString(baselineFile), json);
+        byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(written);
+        assertEquals(baselineFile.getFileName().toString(), "baseline-" + java.util.HexFormat.of().formatHex(digest) + ".json");
+        java.nio.file.Files.setLastModifiedTime(baselineFile, java.nio.file.attribute.FileTime.fromMillis(1_600_000_000_000L));
         java.nio.file.attribute.FileTime writtenAt = java.nio.file.Files.getLastModifiedTime(baselineFile);
+        LuaHotReloadSession.stage(buildDir, baseline);
+        LuaHotReloadSession.unstage(buildDir);
+        assertTrue(java.nio.file.Files.isSameFile(onlyBaselineFile(folder), baselineFile));
+        assertEquals(java.nio.file.Files.getLastModifiedTime(baselineFile), writtenAt);
 
         LuaHotReload.Manifest firstEdit = manifest(program("x + 10", "side * side", INIT));
         LuaHotReloadSession.Sent first = LuaHotReloadSession.send(buildDir, customMapData, firstEdit);
