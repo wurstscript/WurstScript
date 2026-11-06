@@ -870,47 +870,10 @@ public final class LuaHotReload {
             reasons.add("the session lacks compile-time snapshot reference ownership: restart the map");
         }
         Map<String, String> oldBindings = bindingMap(baseline.bindings());
-        Map<String, String> currentBindings = bindingMap(current.bindings());
-        for (Map.Entry<String, String> b : currentBindings.entrySet()) {
-            String before = oldBindings.get(b.getKey());
-            if (before != null && !before.equals(b.getValue())) {
-                reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
-            }
-        }
-        // Declarations which share an identity are numbered in order. One added after the others keeps their order; a
-        // move is found by its body below. Some removed while others remain gives the remaining ones the names of others,
-        // and what was made from them would reach those; all of them removed leaves nothing to confuse. The closures, their
-        // class tables and the stores of their captured values are matched by the Lineages below instead.
-        Set<String> closureNames = new HashSet<>();
-        for (Manifest m : List.of(baseline, current)) {
-            Objects.requireNonNullElse(m.closures(), Map.<String, Closure>of()).forEach((name, c) -> {
-                closureNames.add(name);
-                closureNames.addAll(c.tables().values());
-            });
-        }
-        Map<String, Integer> oldCounts = new HashMap<>();
-        oldBindings.values().forEach(id -> oldCounts.merge(id, 1, Integer::sum));
-        oldCounts.values().removeIf(count -> count < 2);
-        // Partial removal can only be ambiguous for a shared identity that closure lineage cannot handle.
-        Set<String> identities = new TreeSet<>();
-        oldBindings.forEach((name, id) -> {
-            if (oldCounts.containsKey(id) && !closureNames.contains(name)) {
-                identities.add(id);
-            }
-        });
-        Map<String, Integer> newCounts = new HashMap<>();
-        currentBindings.values().forEach(id -> {
-            if (identities.contains(id)) {
-                newCounts.merge(id, 1, Integer::sum);
-            }
-        });
-        for (String id : identities) {
-            int before = oldCounts.get(id);
-            int after = newCounts.getOrDefault(id, 0);
-            if (after < before && after > 0) {
-                reasons.add(before + " declarations share the identity " + id + " and are told apart by their order, and "
-                    + (before - after) + " of them were removed while others remain: restart the map");
-            }
+        boolean sameBindings = baseline.bindings().equals(current.bindings());
+        Map<String, String> currentBindings = sameBindings ? oldBindings : bindingMap(current.bindings());
+        if (!sameBindings) {
+            checkBindingChanges(baseline, current, oldBindings, currentBindings, reasons);
         }
         // Closures: each one of the edit continues a closure of the running map, its lineage, whose objects keep their
         // class table and captured values, whatever name the edit gives it (Lineages).
@@ -1203,11 +1166,13 @@ public final class LuaHotReload {
                     + " changed owner; restart the map to preserve shared live objects")).append(", 0) end\n");
         }
         Map<String, String> newBindings = new LinkedHashMap<>();
-        currentBindings.forEach((name, id) -> {
-            if (!oldBindings.containsKey(name)) {
-                newBindings.put(name, id);
-            }
-        });
+        if (!sameBindings) {
+            currentBindings.forEach((name, id) -> {
+                if (!oldBindings.containsKey(name)) {
+                    newBindings.put(name, id);
+                }
+            });
+        }
         for (Map.Entry<String, String> binding : newBindings.entrySet()) {
             String installed = BINDINGS_TABLE + "[" + luaString(binding.getKey()) + "]";
             sb.append("if ").append(installed).append(" and ").append(installed).append(" ~= ")
@@ -2186,6 +2151,52 @@ public final class LuaHotReload {
         }
         shapes.addAll(Objects.requireNonNullElse(history.groupShapes(), Map.<String, List<String>>of()).getOrDefault(name, List.of()));
         return shapes;
+    }
+
+    private static void checkBindingChanges(Manifest baseline, Manifest current,
+                                            Map<String, String> oldBindings, Map<String, String> currentBindings,
+                                            List<String> reasons) {
+        for (Map.Entry<String, String> b : currentBindings.entrySet()) {
+            String before = oldBindings.get(b.getKey());
+            if (before != null && !before.equals(b.getValue())) {
+                reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
+            }
+        }
+        // Declarations which share an identity are numbered in order. One added after the others keeps their order; a
+        // move is found by its body below. Some removed while others remain gives the remaining ones the names of others,
+        // and what was made from them would reach those; all of them removed leaves nothing to confuse. The closures, their
+        // class tables and the stores of their captured values are matched by the Lineages below instead.
+        Set<String> closureNames = new HashSet<>();
+        for (Manifest m : List.of(baseline, current)) {
+            Objects.requireNonNullElse(m.closures(), Map.<String, Closure>of()).forEach((name, c) -> {
+                closureNames.add(name);
+                closureNames.addAll(c.tables().values());
+            });
+        }
+        Map<String, Integer> oldCounts = new HashMap<>();
+        oldBindings.values().forEach(id -> oldCounts.merge(id, 1, Integer::sum));
+        oldCounts.values().removeIf(count -> count < 2);
+        // Partial removal can only be ambiguous for a shared identity that closure lineage cannot handle.
+        Set<String> identities = new TreeSet<>();
+        oldBindings.forEach((name, id) -> {
+            if (oldCounts.containsKey(id) && !closureNames.contains(name)) {
+                identities.add(id);
+            }
+        });
+        Map<String, Integer> newCounts = new HashMap<>();
+        currentBindings.values().forEach(id -> {
+            if (identities.contains(id)) {
+                newCounts.merge(id, 1, Integer::sum);
+            }
+        });
+        for (String id : identities) {
+            int before = oldCounts.get(id);
+            int after = newCounts.getOrDefault(id, 0);
+            if (after < before && after > 0) {
+                reasons.add(before + " declarations share the identity " + id + " and are told apart by their order, and "
+                    + (before - after) + " of them were removed while others remain: restart the map");
+            }
+        }
     }
 
     private static Map<String, String> bindingMap(List<String> bindings) {
