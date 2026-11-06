@@ -114,7 +114,8 @@ public final class LuaHotReloadSession {
                 System.out.println("launch aborted; previous session restored");
                 return;
             }
-            LuaHotReload.Manifest manifest = readManifest(buildDir.resolve(SESSION_FOLDER).resolve("manifest.json"));
+            LuaHotReload.Manifest manifest = readJson(buildDir.resolve(SESSION_FOLDER).resolve("manifest.json"),
+                LuaHotReload.Manifest.class);
             if (args[0].equals("prepare")) {
                 prepareLaunch(buildDir, customMapData, manifest);
                 System.out.println("session prepared");
@@ -142,8 +143,8 @@ public final class LuaHotReloadSession {
                 + " | <baseline manifest.json> <current manifest.json> <output .pld>");
             System.exit(2);
         }
-        LuaHotReload.Manifest baseline = readManifest(Path.of(args[0]));
-        LuaHotReload.Manifest current = readManifest(Path.of(args[1]));
+        LuaHotReload.Manifest baseline = readJson(Path.of(args[0]), LuaHotReload.Manifest.class);
+        LuaHotReload.Manifest current = readJson(Path.of(args[1]), LuaHotReload.Manifest.class);
         try {
             LuaHotReload.Payload payload = LuaHotReload.payload(baseline, current, Set.of(), 1);
             writePreloadFile(Path.of(args[2]), payload.source());
@@ -160,16 +161,16 @@ public final class LuaHotReloadSession {
         Files.createDirectories(file.getParent());
         Path partial = Files.createTempFile(file.getParent(), "manifest-", ".tmp");
         try {
-            writeManifestJson(manifest, Files.newOutputStream(partial));
+            writeJson(manifest, Files.newOutputStream(partial));
             Files.move(partial, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } finally {
             Files.deleteIfExists(partial);
         }
     }
 
-    private static LuaHotReload.Manifest readManifest(Path file) throws IOException {
+    private static <T> T readJson(Path file, Class<T> type) throws IOException {
         try (var reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            return GSON.fromJson(reader, LuaHotReload.Manifest.class);
+            return GSON.fromJson(reader, type);
         }
     }
 
@@ -226,7 +227,7 @@ public final class LuaHotReloadSession {
         State state = new State();
         state.compiletimeReferenceOwners = new LinkedHashMap<>();
         state.baselineFile = writeBaseline(buildDir.resolve(SESSION_FOLDER), manifest);
-        writeAtomically(stagedFile(buildDir), GSON.toJson(state));
+        writeAtomically(stagedFile(buildDir), state);
     }
 
     public static void activate(Path buildDir) throws IOException {
@@ -252,7 +253,7 @@ public final class LuaHotReloadSession {
         Files.createDirectories(folder);
         Path partial = Files.createTempFile(folder, BASELINE_PREFIX, ".tmp");
         try {
-            writeManifestJson(manifest, new DigestOutputStream(Files.newOutputStream(partial), digest));
+            writeJson(manifest, new DigestOutputStream(Files.newOutputStream(partial), digest));
             String name = BASELINE_PREFIX + HexFormat.of().formatHex(digest.digest()) + ".json";
             Path baseline = folder.resolve(name);
             if (!Files.exists(baseline)) {
@@ -264,10 +265,10 @@ public final class LuaHotReloadSession {
         }
     }
 
-    /** Serialize the manifest to UTF-8 and close the supplied stream before publication. */
-    private static void writeManifestJson(LuaHotReload.Manifest manifest, OutputStream output) throws IOException {
+    /** Serialize to UTF-8 and close the supplied stream before publication. */
+    private static void writeJson(Object value, OutputStream output) throws IOException {
         try (var writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8.newEncoder()))) {
-            GSON.toJson(manifest, writer);
+            GSON.toJson(value, writer);
         } catch (JsonIOException e) {
             if (e.getCause() instanceof IOException io) {
                 throw io;
@@ -281,7 +282,7 @@ public final class LuaHotReloadSession {
         Set<String> used = new LinkedHashSet<>();
         for (Path stateFile : List.of(stateFile(buildDir), stagedFile(buildDir))) {
             if (Files.exists(stateFile)) {
-                State state = GSON.fromJson(Files.readString(stateFile, StandardCharsets.UTF_8), State.class);
+                State state = readJson(stateFile, State.class);
                 if (state.baselineFile != null) {
                     used.add(state.baselineFile);
                 }
@@ -315,7 +316,7 @@ public final class LuaHotReloadSession {
                 return last.getValue();
             }
         }
-        LuaHotReload.Manifest manifest = readManifest(file);
+        LuaHotReload.Manifest manifest = readJson(file, LuaHotReload.Manifest.class);
         synchronized (LuaHotReloadSession.class) {
             lastBaseline = new SoftReference<>(Map.entry(key, manifest));
         }
@@ -386,7 +387,7 @@ public final class LuaHotReloadSession {
         if (!Files.exists(file)) {
             throw new LuaHotReload.Rejected(List.of("no map was started with hot run (or -luaHotReload): start the map with hot run first"));
         }
-        State state = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), State.class);
+        State state = readJson(file, State.class);
         recoverPending(buildDir, customMapData, state);
         LuaHotReload.Payload payload = LuaHotReload.payload(baseline(buildDir, state), current, new LuaHotReload.History(
             new LinkedHashSet<>(state.reloaded), orEmpty(state.capturedDefinitions), orEmpty(state.slots),
@@ -414,7 +415,7 @@ public final class LuaHotReloadSession {
         pending.compiletimeReferenceOwners = new LinkedHashMap<>(payload.compiletimeReferenceOwners());
         pending.lineageTypes = new LinkedHashMap<>(payload.lineageTypes());
         pending.tableReaders = new LinkedHashMap<>(payload.tableReaders());
-        writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
+        writeAtomically(pendingFile(buildDir), pending);
         Path delivered = deliver(customMapData, payload, receiptToken);
         record(state, pending);
         save(buildDir, state);
@@ -432,7 +433,7 @@ public final class LuaHotReloadSession {
         if (!Files.exists(file)) {
             return;
         }
-        Pending pending = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), Pending.class);
+        Pending pending = readJson(file, Pending.class);
         Path delivered = customMapData.resolve(LuaHotReload.preloadFile(pending.version).replace('\\', '/'));
         if (pending.version > state.version && Files.exists(delivered)) {
             record(state, pending);
@@ -551,10 +552,10 @@ public final class LuaHotReloadSession {
     }
 
     /** Writes a complete temporary file and renames it, so no reader and no interrupted write leaves a partial file. */
-    private static void writeAtomically(Path file, String text) throws IOException {
+    private static void writeAtomically(Path file, Object value) throws IOException {
         Files.createDirectories(file.getParent());
         Path partial = file.resolveSibling(file.getFileName() + ".tmp");
-        Files.writeString(partial, text, StandardCharsets.UTF_8);
+        writeJson(value, Files.newOutputStream(partial));
         Files.move(partial, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     }
 
@@ -721,6 +722,6 @@ public final class LuaHotReloadSession {
 
     private static void save(Path buildDir, State state) throws IOException {
         // A payload may already be out: a half-written state would lose the number the map waits for next.
-        writeAtomically(stateFile(buildDir), GSON.toJson(state));
+        writeAtomically(stateFile(buildDir), state);
     }
 }
