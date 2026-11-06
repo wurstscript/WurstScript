@@ -291,6 +291,9 @@ Notes; finished-work narrative does not.
   timings and remaining whole-program costs are recorded in `docs/MAP_COMMIT_REPLAY.md`.
   Exact/shape receipt hashing now shares one schema encoding and UTF-8 tokens; matching-master alternating
   probes removed the observed Castle Fight control regression while retaining the min/max improvement.
+  Baseline cache misses and standalone CLI manifest reads now parse from buffered UTF-8. On the 101 MB
+  Castle Fight replay baseline, the allocating thread used 324 MB per warmed read, down from 931 MB
+  across three reads per build on Windows. The decoded manifests were equal in the same JVM.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
