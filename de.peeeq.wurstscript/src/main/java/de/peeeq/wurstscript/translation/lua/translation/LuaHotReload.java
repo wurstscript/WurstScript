@@ -1024,8 +1024,10 @@ public final class LuaHotReload {
         List<Statement> initialisations = new ArrayList<>();
         Set<String> sentSlots = new LinkedHashSet<>(history.reboundSlots());
         Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
-        Map<String, String> currentInitializers = initializers(current);
-        Map<String, String> baselineInitializers = initializers(baseline);
+        InitializerIndex currentInitializerIndex = indexInitializers(current);
+        InitializerIndex baselineInitializerIndex = indexInitializers(baseline);
+        Map<String, String> currentInitializers = currentInitializerIndex.byName();
+        Map<String, String> baselineInitializers = baselineInitializerIndex.byName();
         for (String initializer : baselineInitializers.keySet()) {
             if (!currentInitializers.containsKey(initializer)) {
                 keptValues.add(initializer + " (removed initializer)");
@@ -1337,8 +1339,8 @@ public final class LuaHotReload {
                         + " already ran; restart the map to apply its removal")).append(")\nend\n");
             }
         }
-        List<String> initializerOrder = initializerOrder(current);
-        List<String> startOrder = initializerOrder(baseline);
+        List<String> initializerOrder = currentInitializerIndex.runOrder();
+        List<String> startOrder = baselineInitializerIndex.runOrder();
         if (!swapsAny(startOrder, initializerOrder)) {
             // The started map ran its initializers in the baseline's order, and this one keeps it: only those payloads
             // added can have run in another. Listing every initializer made most of each payload of a large map.
@@ -1782,19 +1784,24 @@ public final class LuaHotReload {
         }
     }
 
-    /** The fixed-width run keys of the source initializers, in the order the map runs them. */
-    private static List<String> initializerOrder(Manifest manifest) {
+    private record InitializerIndex(Map<String, String> byName, List<String> runOrder) {}
+
+    /** Index the fixed-width run keys by name and in the order the map runs them. */
+    private static InitializerIndex indexInitializers(Manifest manifest) {
+        Map<String, String> keysByName = new LinkedHashMap<>();
         Map<String, List<String>> keysByOwner = new LinkedHashMap<>();
         for (Statement s : manifest.statements()) {
             if (s.scope().equals("init") && s.kind().equals("global")) {
-                keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(runKey(s));
+                String key = runKey(s);
+                keysByName.put(s.key(), key);
+                keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(key);
             }
         }
         List<String> order = new ArrayList<>();
         for (String init : manifest.initOrder()) {
             order.addAll(keysByOwner.getOrDefault(init, List.of()));
         }
-        return order;
+        return new InitializerIndex(keysByName, order);
     }
 
     /** Whether {@code now} puts two of the keys {@code before} has in another order. */
@@ -1814,16 +1821,6 @@ public final class LuaHotReload {
             }
         }
         return false;
-    }
-
-    private static Map<String, String> initializers(Manifest manifest) {
-        Map<String, String> result = new LinkedHashMap<>();
-        for (Statement s : manifest.statements()) {
-            if (s.scope().equals("init") && s.kind().equals("global")) {
-                result.put(s.key(), runKey(s));
-            }
-        }
-        return result;
     }
 
     private static Map<String, Statement> initActions(Manifest manifest) {

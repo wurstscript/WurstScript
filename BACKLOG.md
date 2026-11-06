@@ -306,6 +306,9 @@ Notes; finished-work narrative does not.
   bytes in payload generation to rebuilding binding maps. The diff now parses each manifest's bindings once
   and shares the ordered maps across its checks. Warmed thread allocation fell from 371 MB to 176 MB on
   the same 101 MB manifest pair, with the same payload digest and warnings.
+  The follow-up profile found duplicate initializer marker hashing in the name and order indexes.
+  Building both views from one hash per statement reduced warmed allocation from 175 MB to 148 MB
+  in the paired Castle Fight run. The payload digest and warnings matched.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
