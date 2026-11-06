@@ -870,7 +870,8 @@ public final class LuaHotReload {
             reasons.add("the session lacks compile-time snapshot reference ownership: restart the map");
         }
         Map<String, String> oldBindings = bindingMap(baseline.bindings());
-        for (Map.Entry<String, String> b : bindingMap(current.bindings()).entrySet()) {
+        Map<String, String> currentBindings = bindingMap(current.bindings());
+        for (Map.Entry<String, String> b : currentBindings.entrySet()) {
             String before = oldBindings.get(b.getKey());
             if (before != null && !before.equals(b.getValue())) {
                 reasons.add("the name " + b.getKey() + " now means " + b.getValue() + " instead of " + before);
@@ -887,10 +888,10 @@ public final class LuaHotReload {
                 closureNames.addAll(c.tables().values());
             });
         }
-        Map<String, Integer> oldCounts = identityCounts(baseline.bindings());
-        Map<String, Integer> newCounts = identityCounts(current.bindings());
+        Map<String, Integer> oldCounts = identityCounts(oldBindings);
+        Map<String, Integer> newCounts = identityCounts(currentBindings);
         Map<String, Set<String>> oldNames = new HashMap<>();
-        bindingMap(baseline.bindings()).forEach((name, id) -> oldNames.computeIfAbsent(id, k -> new HashSet<>()).add(name));
+        oldBindings.forEach((name, id) -> oldNames.computeIfAbsent(id, k -> new HashSet<>()).add(name));
         Set<String> identities = new TreeSet<>(oldCounts.keySet());
         identities.addAll(newCounts.keySet());
         for (String id : identities) {
@@ -903,12 +904,12 @@ public final class LuaHotReload {
         }
         // Closures: each one of the edit continues a closure of the running map, its lineage, whose objects keep their
         // class table and captured values, whatever name the edit gives it (Lineages).
-        Lineages lineages = new Lineages(baseline, current, history, version, reasons, warnings);
+        Lineages lineages = new Lineages(baseline, current, oldBindings, currentBindings, history, version, reasons, warnings);
         // Any other functions which share an identity are told apart by their place among those of it. An edit of a
         // body keeps the places; one which now has the body another one had, which that one lost, has moved, and what
         // was made from it at its old place would run the other one's body. A copy of a body another one keeps moved
         // nothing.
-        Map<String, Set<String>> groups = orderGroups(baseline, current);
+        Map<String, Set<String>> groups = orderGroups(baseline, current, oldBindings, currentBindings);
         Map<String, String> groupShapes = new TreeMap<>(lineages.shapes);
         for (Map.Entry<String, Set<String>> group : groups.entrySet()) {
             for (String name : group.getValue()) {
@@ -1054,7 +1055,7 @@ public final class LuaHotReload {
                 changedInits.add(init.getKey());
             }
         }
-        Set<String> knownNames = bindingMap(baseline.bindings()).keySet();
+        Set<String> knownNames = oldBindings.keySet();
         Map<String, List<Statement>> unitsByOwner = initializerUnits(current);
         Constants constants = new Constants(baseline, current, history);
         // In the order the map runs them: a constant which reads one that runs again runs after it.
@@ -1193,8 +1194,12 @@ public final class LuaHotReload {
                 .append(luaString("compile-time snapshot reference " + reference.getKey()
                     + " changed owner; restart the map to preserve shared live objects")).append(", 0) end\n");
         }
-        Map<String, String> newBindings = new LinkedHashMap<>(bindingMap(current.bindings()));
-        newBindings.keySet().removeAll(oldBindings.keySet());
+        Map<String, String> newBindings = new LinkedHashMap<>();
+        currentBindings.forEach((name, id) -> {
+            if (!oldBindings.containsKey(name)) {
+                newBindings.put(name, id);
+            }
+        });
         for (Map.Entry<String, String> binding : newBindings.entrySet()) {
             String installed = BINDINGS_TABLE + "[" + luaString(binding.getKey()) + "]";
             sb.append("if ").append(installed).append(" and ").append(installed).append(" ~= ")
@@ -1427,14 +1432,12 @@ public final class LuaHotReload {
         private final Map<String, Map<String, String>> origins = new TreeMap<>();
         private final Map<String, List<String>> membersByGroup = new TreeMap<>();
 
-        Lineages(Manifest baseline, Manifest current, History history, int version, List<String> reasons,
-                 List<String> warnings) {
+        Lineages(Manifest baseline, Manifest current, Map<String, String> baseIds, Map<String, String> curIds,
+                 History history, int version, List<String> reasons, List<String> warnings) {
             Map<String, Closure> baseClosures = Objects.requireNonNullElse(baseline.closures(), Map.of());
             Map<String, Closure> curClosures = Objects.requireNonNullElse(current.closures(), Map.of());
             closures.addAll(baseClosures.keySet());
             closures.addAll(curClosures.keySet());
-            Map<String, String> baseIds = bindingMap(baseline.bindings());
-            Map<String, String> curIds = bindingMap(current.bindings());
             List<GroupMember> lastLayout = Objects.requireNonNullElse(history.groupLayout(), List.of());
             Map<String, Map<String, String>> knownOrigins = Objects.requireNonNullElse(history.lineageOrigins(), Map.of());
             Map<String, List<String>> knownShapes = Objects.requireNonNullElse(history.groupShapes(), Map.of());
@@ -2139,17 +2142,21 @@ public final class LuaHotReload {
      * The functions which share an identity, by that identity, in either manifest: the closures of one interface method
      * in one function, which are told apart by their order alone.
      */
-    private static Map<String, Set<String>> orderGroups(Manifest baseline, Manifest current) {
+    private static Map<String, Set<String>> orderGroups(Manifest baseline, Manifest current,
+                                                       Map<String, String> oldBindings, Map<String, String> currentBindings) {
         Map<String, Set<String>> groups = new TreeMap<>();
-        for (Manifest m : List.of(baseline, current)) {
-            for (Map.Entry<String, String> b : bindingMap(m.bindings()).entrySet()) {
-                if (m.functions().containsKey(b.getKey())) {
-                    groups.computeIfAbsent(b.getValue(), k -> new TreeSet<>()).add(b.getKey());
-                }
-            }
-        }
+        addOrderGroups(groups, baseline, oldBindings);
+        addOrderGroups(groups, current, currentBindings);
         groups.values().removeIf(names -> names.size() < 2);
         return groups;
+    }
+
+    private static void addOrderGroups(Map<String, Set<String>> groups, Manifest manifest, Map<String, String> bindings) {
+        bindings.forEach((name, id) -> {
+            if (manifest.functions().containsKey(name)) {
+                groups.computeIfAbsent(id, k -> new TreeSet<>()).add(name);
+            }
+        });
     }
 
     /** What a function of an order group is compared by: its closure's source, or else its shape. */
@@ -2169,9 +2176,9 @@ public final class LuaHotReload {
     }
 
     /** How many names each identity has: more than one for the closures of one interface method in one function. */
-    private static Map<String, Integer> identityCounts(List<String> bindings) {
+    private static Map<String, Integer> identityCounts(Map<String, String> bindings) {
         Map<String, Integer> counts = new LinkedHashMap<>();
-        for (String id : bindingMap(bindings).values()) {
+        for (String id : bindings.values()) {
             counts.merge(id, 1, Integer::sum);
         }
         return counts;
