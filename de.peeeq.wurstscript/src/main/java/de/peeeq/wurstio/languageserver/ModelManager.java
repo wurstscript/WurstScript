@@ -129,6 +129,11 @@ public interface ModelManager {
         return isFullyChecked(model);
     }
 
+    /** Units requiring validation when compiling the selected view of a managed model. */
+    default Collection<CompilationUnit> unitsToCheckForBuild(WurstModel model, Collection<CompilationUnit> units) {
+        return units;
+    }
+
     /** Record a successful check without claiming excluded units were checked. */
     default void markChecked(WurstModel model, Collection<CompilationUnit> units) {
         if (units.size() == model.size() && units.containsAll(model)) {

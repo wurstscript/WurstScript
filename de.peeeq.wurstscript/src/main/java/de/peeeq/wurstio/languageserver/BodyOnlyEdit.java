@@ -13,8 +13,8 @@ import de.peeeq.wurstscript.parser.WPos;
  * checked again.
  * <p>
  * The bodies of a module and of an interface are not bodies in this sense: a module is copied into every class
- * using it, and whether an interface function has a body decides whether it is abstract. A unit declaring Jass
- * names is never edited in place either, because every unit sees them.
+ * using it, and whether an interface function has a body decides whether it is abstract. A pure Jass unit can
+ * retain its declarations when only function bodies change.
  */
 final class BodyOnlyEdit {
 
@@ -27,7 +27,14 @@ final class BodyOnlyEdit {
     /** Whether {@code fresh} differs from {@code old} in nothing but bodies, see {@link BodyOnlyEdit}. */
     static boolean applies(CompilationUnit old, CompilationUnit fresh) {
         if (!old.getJassDecls().isEmpty() || !fresh.getJassDecls().isEmpty()) {
-            return false;
+            if (!old.getPackages().isEmpty() || !fresh.getPackages().isEmpty()) {
+                return false;
+            }
+            JassToplevelDeclarations a = old.getJassDecls().copy();
+            JassToplevelDeclarations b = fresh.getJassDecls().copy();
+            normaliseJass(a);
+            normaliseJass(b);
+            return a.structuralEquals(b);
         }
         if (!modulesExpandedCleanly(old.getPackages())) {
             return false;
@@ -45,8 +52,29 @@ final class BodyOnlyEdit {
      * and receive the new positions, so retained translation inputs still refer to the managed model.
      */
     static void apply(CompilationUnit old, CompilationUnit fresh) {
+        transplant(old.getJassDecls(), fresh.getJassDecls(), false);
         transplant(old.getPackages(), fresh.getPackages(), false);
         old.setCuInfo(fresh.getCuInfo());
+    }
+
+    private static void normaliseJass(JassToplevelDeclarations declarations) {
+        for (JassToplevelDeclaration declaration : declarations) {
+            // Wrapper detection affects validation of callers in other files.
+            boolean mayDefineWrapper = declaration instanceof FuncDef function && callsVariableEvent(function.getBody());
+            normalise(declaration, mayDefineWrapper);
+        }
+    }
+
+    private static boolean callsVariableEvent(Element e) {
+        if (e instanceof ExprFunctionCall call && call.getFuncName().equals("TriggerRegisterVariableEvent")) {
+            return true;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (callsVariableEvent(e.get(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
