@@ -4488,6 +4488,23 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void scalarCompiletimeInsertionPreservesUnboundObjectSnapshots() {
+        String[] baseline = {"package Test", "native hotReload()", "native testSuccess()", "native testFail(string msg)",
+            "class Thing", "    int value", "    construct(int v)", "        value = v",
+            "function compiletime(Thing t) returns Thing", "    return t",
+            "function compiletime(int n) returns int", "    return n",
+            "function read(Thing t) returns int", "    t.value += 1", "    return t.value", "function total() returns int",
+            "    return read(compiletime(new Thing(4)))", "init",
+            "    if total() != 5", "        testFail(\"baseline snapshot\")",
+            "    hotReload()", "    if total() != 9", "        testFail(\"reloaded snapshot\")",
+            "    testSuccess()"};
+        String[] edited = baseline.clone();
+        edited[16] = "    return compiletime(3) + read(compiletime(new Thing(4)))";
+        test().testLua(true).runCompiletimeFunctions(true).executeProg()
+            .luaHotReload(edited).lines(baseline);
+    }
+
+    @Test
     public void addingAnUnboundCompiletimeExpressionCannotRenumberExistingObjects() throws Exception {
         LuaHotReload.Rejected rejected = expectThrows(LuaHotReload.Rejected.class,
             () -> LuaHotReload.payload(compiletimeManifest(unboundCompiletimeObjects(false)),

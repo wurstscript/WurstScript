@@ -618,9 +618,8 @@ public final class LuaHotReload {
      * precede field writes, including cycles. Per-statement markers allow retry after a failed write; the owner marker
      * freezes the complete snapshot once installed, so a later edit cannot partially overwrite runtime mutations.
      */
-    private static void appendCompiletimeState(StringBuilder sb, Manifest baseline, Manifest current) {
-        Map<String, List<Statement>> owners = compiletimeState(current);
-        owners.keySet().removeAll(compiletimeState(baseline).keySet());
+    private static void appendCompiletimeState(StringBuilder sb, Manifest current,
+                                               Map<String, List<Statement>> owners) {
         if (owners.isEmpty()) {
             return;
         }
@@ -819,8 +818,21 @@ public final class LuaHotReload {
      * earlier payload defined, is defined again, so an edit which is undone is undone in the map too.
      */
     public static Payload payload(Manifest baseline, Manifest current, History history, int version) throws Rejected {
+        if (!Objects.equals(baseline.compilerVersion(), current.compilerVersion())) {
+            // A manifest of another compiler need not have the parts read below.
+            throw new Rejected(List.of("the edit was compiled by another compiler (" + current.compilerVersion()
+                + ") than the running script (" + baseline.compilerVersion() + ")"));
+        }
         List<String> reasons = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        Map<String, List<Statement>> oldCompiletime = compiletimeState(baseline);
+        Map<String, List<Statement>> currentCompiletime = compiletimeState(current);
+        Map<String, List<Statement>> newSnapshots = new LinkedHashMap<>();
+        currentCompiletime.forEach((owner, statements) -> {
+            if (!oldCompiletime.containsKey(owner)) {
+                newSnapshots.put(owner, statements);
+            }
+        });
         Map<String, String> baselineOwners = Objects.requireNonNullElse(baseline.compiletimeReferenceOwners(), Map.of());
         Map<String, String> oldOwners = new TreeMap<>(baselineOwners);
         Objects.requireNonNullElse(history.compiletimeReferenceOwners(), Map.<String, String>of()).forEach(oldOwners::putIfAbsent);
@@ -837,13 +849,10 @@ public final class LuaHotReload {
                 break;
             }
         }
-        if (current.compiletimeIntegerReferences()) {
-            Set<String> newSnapshots = new TreeSet<>(compiletimeState(current).keySet());
-            newSnapshots.removeAll(compiletimeState(baseline).keySet());
-            if (!newSnapshots.isEmpty()) {
-                reasons.add("compile-time evaluation read integer-encoded references; new snapshots " + newSnapshots
-                    + " cannot preserve those identities with the live allocator: restart the map");
-            }
+        if (current.compiletimeIntegerReferences() && !newSnapshots.isEmpty()) {
+            reasons.add("compile-time evaluation read integer-encoded references; new snapshots "
+                + new TreeSet<>(newSnapshots.keySet())
+                + " cannot preserve those identities with the live allocator: restart the map");
         }
         Map<String, Integer> oldGroups = new TreeMap<>(Objects.requireNonNullElse(baseline.compiletimeGroups(), Map.of()));
         Objects.requireNonNullElse(history.compiletimeGroups(), Map.<String, Integer>of()).forEach(oldGroups::putIfAbsent);
@@ -854,14 +863,8 @@ public final class LuaHotReload {
                     + group.getValue() + "; their objects are told apart by order: restart the map");
             }
         }
-        if (!Objects.equals(baseline.compilerVersion(), current.compilerVersion())) {
-            reasons.add("the edit was compiled by another compiler (" + current.compilerVersion() + ") than the running script ("
-                + baseline.compilerVersion() + ")");
-            // A manifest of another compiler need not have the parts read below.
-            throw new Rejected(reasons);
-        }
-        if (baseline.compiletimeReferenceOwners() == null && !compiletimeState(baseline).isEmpty()
-            || current.compiletimeReferenceOwners() == null && !compiletimeState(current).isEmpty()
+        if (baseline.compiletimeReferenceOwners() == null && !oldCompiletime.isEmpty()
+            || current.compiletimeReferenceOwners() == null && !currentCompiletime.isEmpty()
             || history.compiletimeReferenceOwners() == null && (!baselineOwners.isEmpty() || !currentOwners.isEmpty()
                 || !Objects.requireNonNullElse(history.compiletimeGroups(), Map.of()).isEmpty())) {
             reasons.add("the session lacks compile-time snapshot reference ownership: restart the map");
@@ -1150,8 +1153,7 @@ public final class LuaHotReload {
             warnings.add("Changed package init code ran when the map started and does not run again ("
                 + String.join(", ", changedInits) + "): restart the map to apply it.");
         }
-        Map<String, List<Statement>> oldCompiletime = compiletimeState(baseline);
-        for (Map.Entry<String, List<Statement>> owner : compiletimeState(current).entrySet()) {
+        for (Map.Entry<String, List<Statement>> owner : currentCompiletime.entrySet()) {
             List<Statement> old = oldCompiletime.get(owner.getKey());
             if (old != null && !compiletimeRevision(old).equals(compiletimeRevision(owner.getValue()))) {
                 keptValues.add(owner.getKey() + " (compile-time state)");
@@ -1266,7 +1268,7 @@ public final class LuaHotReload {
             }
             appendBinding(sb, s.key(), newBindings);
         }
-        appendCompiletimeState(sb, baseline, current);
+        appendCompiletimeState(sb, current, newSnapshots);
         // All package work shares main's dependency order. A new package may depend on a new global in an existing
         // package, and an existing package's new global may depend on a new package (including an earlier payload's).
         for (String init : current.initOrder()) {

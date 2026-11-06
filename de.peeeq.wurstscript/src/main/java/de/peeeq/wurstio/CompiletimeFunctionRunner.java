@@ -375,6 +375,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             public void visit(ImCompiletimeExpr e) {
                 super.visit(e);
                 toExecute.add(Either.forLeft(e));
+                if (translator.getRunArgs().isLuaHotReload()) {
+                    ImType type = e.attrTyp();
+                    // Scalar results cannot own a snapshot. Keep their edits out of the reference ordinal space.
+                    if (TypesHelper.isIntType(type) || TypesHelper.isRealType(type)
+                        || TypesHelper.isBoolType(type) || TypesHelper.isStringType(type)) {
+                        return;
+                    }
+                }
                 ImFunction holder = e.getNearestFunc();
                 String root = holder == null ? "program" : LuaHotReload.functionId(holder);
                 for (Element scope = e.getTrace(); scope != null; scope = scope.getParent()) {
@@ -405,17 +413,21 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
             for (ImCompiletimeExpr evaluated : globalState.takeEvaluatedCompiletimeExpressions()) {
+                ILconst result = evaluated.evaluationResult().get();
+                if (!hasMaterializedValue(result)) {
+                    continue;
+                }
                 String path = expressionPaths.get(evaluated);
                 if (path == null) {
                     throw new IllegalStateException("Unregistered compile-time expression " + evaluated);
                 }
-                rememberMaterializationPaths(evaluated.evaluationResult().get(), path);
+                rememberMaterializationPaths(result, path);
             }
             if (hasMaterializedValue(value)) {
                 String root = expressionRoots.get(cte);
                 persistedExpressionCounts.put(root, expressionCounts.get(root));
             }
-            ImExpr newExpr = constantToExpr(cte.getTrace(), value, null, expressionPaths.get(cte));
+            ImExpr newExpr = constantToExpr(cte.getTrace(), value, null, expressionPaths.getOrDefault(cte, ""));
             if(translator.isLuaTarget() && value.toString().equals("0")) {
                 // convert 0 to null/nil, if the value is 0 and not a numeric type
                 ImExpr expr = cte.getExpr();
