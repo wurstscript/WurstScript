@@ -331,3 +331,19 @@ map title. The baseline checked 758 units in 4.95 s. Body-only reuse checked one
 Each measurement came from one fresh JVM run. These are compiler stage observations, with no game launch or
 save-to-game measurement. The next first-reload optimization needs to handle Jass declaration
 additions without overlooking cross-file name resolution or diagnostics.
+
+## Payload diff allocation
+
+On 6 Nov 2026, a Windows Java 27 probe decoded the same 101 MB Castle Fight baseline twice
+and called `LuaHotReload.payload` with those independently decoded manifests and empty delivery
+history. The thread allocation counter covered only payload generation. The last three of eight
+iterations measured 371.1 MB per diff before the changes (`c14f37aa1` payload code) and 87.4 MB
+on merged master (`a6b6d02cb`). Both produced the same 93-byte Lua payload and no warnings.
+This control measures an unchanged diff. It excludes manifest reads, compilation, delivery and
+game application.
+
+JFR identified repeated binding parsing as the largest allocation in the original diff. The
+merged changes share the parsed indexes and skip binding-change checks when the ordered bindings
+match. They also share initializer marker hashes and limit retained-function, partial-removal and
+order-group bookkeeping to relevant entries. [Binding index PR](https://github.com/wurstscript/WurstScript/pull/1602)
+and [identical-binding fast path PR](https://github.com/wurstscript/WurstScript/pull/1607).
