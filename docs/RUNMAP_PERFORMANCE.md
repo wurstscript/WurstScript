@@ -317,3 +317,17 @@ Raw artifacts are retained under the compiler's ignored `temp/`: `runmap-{castle
 `runmap-{castle,zombie}-{0,1,2}.jfr`, `runmap-{castle,zombie}-2-report.log`, and the equivalent
 `runmap-{castle,zombie}-control*` logs/recordings. `runmap-{castle,zombie}-normal.lua` preserves the comparison
 outputs. Earlier `map-*-cold*` recordings measure optimized CLI builds and are outside this RunMap analysis.
+
+## First reload after map config injection
+
+On 6 Nov, a compile-only Windows probe loaded the pinned Castle Fight replay fixture as the editor
+does, then compiled its first Lua reload against the script produced by the normal config injector.
+The baseline (`bf5d7fd0b`) and the body-only reuse change (`f6727bf3b`) both checked all 758 units.
+The injector introduced `InitCustomPlayerSlots`, `InitCustomTeams` and `InitAllyPriorities` as top-level
+functions, so a full check was required. The typecheck stage took 2.85 s and 2.97 s, respectively.
+
+As a control, the same fixture started from the already configured script and applied a different
+map title. The baseline checked 758 units in 4.95 s. Body-only reuse checked one unit in 0.23 s.
+Each measurement came from one fresh JVM run. These are compiler stage observations, with no game launch or
+save-to-game measurement. The next first-reload optimization needs to handle Jass declaration
+additions without overlooking cross-file name resolution or diagnostics.

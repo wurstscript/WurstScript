@@ -195,6 +195,8 @@ public class MapModelReuseTests {
             + "function configuredHelper takes nothing returns integer\nreturn 2\nendfunction\n");
         assertFalse(compile(request, project, new WurstGuiCliImpl()).contains("selectedGlobal"),
             "validation of a changed configured script must also use the selected view");
+        assertTrue(project.manager.lastBuildCheck.contains(project.manager.getCompilationUnit(WFile.create(project.source))),
+            "a generated top-level Jass function changes the names visible to every selected unit");
     }
 
     @Test(dataProvider = "commands")

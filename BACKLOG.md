@@ -241,7 +241,8 @@ Notes; finished-work narrative does not.
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
     integer fields and keys cannot be relocated safely onto the live allocator.
   - The first reload after a command-line start previously checked the whole model again (about 47 s on Castle Fight).
-    Configured Jass body-only changes now reuse the checked project model. Remeasure the first reload on real maps.
+    A Castle Fight title-only control reused the checked model. The normal config injection still checks the whole
+    model because it introduces three top-level Jass functions. See [offline measurements](docs/RUNMAP_PERFORMANCE.md#first-reload-after-map-config-injection).
     Generated object-data functions ship whole. Measure smaller representations without splitting effectful
     initialization incorrectly.
   - The 6 Nov harness smoke run proved VS Code save, refusal, recovery and matching game receipts on
