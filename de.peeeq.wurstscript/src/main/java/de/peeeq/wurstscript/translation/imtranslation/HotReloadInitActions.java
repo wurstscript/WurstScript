@@ -75,14 +75,12 @@ final class HotReloadInitActions {
 
     private static boolean immutableGuard(Expr expression) {
         if (expression instanceof ExprBoolVal) return true;
-        if (expression instanceof ExprVarAccess access && access.attrNameDef() instanceof GlobalVarDef global) {
-            return global.attrIsConstant() && !global.attrIsDynamicClassMember() && access.attrTyp() instanceof WurstTypeBool;
-        }
         if (expression instanceof ExprUnary unary && unary.getOpU() == WurstOperator.NOT) return immutableGuard(unary.getRight());
         if (expression instanceof ExprBinary binary && (binary.getOp() == WurstOperator.AND || binary.getOp() == WurstOperator.OR)) {
             return immutableGuard(binary.getLeft()) && immutableGuard(binary.getRight());
         }
-        return false;
+        GlobalVarDef constant = ClosureTranslator.hotReloadConstant(expression);
+        return constant != null && !constant.attrIsDynamicClassMember() && expression.attrTyp() instanceof WurstTypeBool;
     }
 
     private static boolean readsOutsideLocal(FunctionCall call) {

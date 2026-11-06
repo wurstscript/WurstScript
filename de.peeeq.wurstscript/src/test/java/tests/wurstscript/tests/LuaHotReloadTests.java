@@ -1455,6 +1455,31 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test(dataProvider = "guardedRegistrationCases")
+    public void qualifiedConstantGuardsReplayOnlyNewRegistrations(boolean enabled, boolean qualified) {
+        test().testLua(true).executeProg().luaHotReload(qualifiedConstantGuards(true, enabled, qualified))
+            .lines(qualifiedConstantGuards(false, enabled, qualified));
+    }
+
+    private static String[] qualifiedConstantGuards(boolean edited, boolean enabled, boolean qualified) {
+        return java.util.Arrays.stream(guardedRegistrations(edited, enabled, qualified, true))
+            .map(line -> line.replace("constant boolean isProd", "class Flags\n    static constant boolean isProd")
+                .replace("constant boolean FEATURE", "    static constant boolean FEATURE")
+                .replace("not isProd and FEATURE", "not Flags.isProd and Flags.FEATURE"))
+            .toArray(String[]::new);
+    }
+
+    @Test
+    public void qualifiedMutableAndInstanceGuardsRemainOrdinaryInit() {
+        String[] mutable = guardedFixture(true, "Flags.FEATURE", "register(1, () -> 10)");
+        mutable[0] = "package Main\nclass Flags\n    static boolean FEATURE = true";
+        assertFalse(manifest(mutable).statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+
+        String[] instance = guardedFixture(true, "flags.feature", "register(1, () -> 10)");
+        instance[0] = "package Main\nclass Flags\n    let feature = true\nconstant flags = new Flags()";
+        assertFalse(manifest(instance).statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+    }
+
+    @Test(dataProvider = "guardedRegistrationCases")
     public void constantGuardedRegistrationsKeepNormalBackendSemantics(boolean enabled, boolean qualified) {
         test().testLua(true).luaOnly(false).executeProg().lines(guardedRegistrations(true, enabled, qualified, false));
     }

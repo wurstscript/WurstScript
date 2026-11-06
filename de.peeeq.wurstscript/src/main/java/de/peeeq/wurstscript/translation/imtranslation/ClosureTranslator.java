@@ -431,7 +431,7 @@ public class ClosureTranslator {
         if (value instanceof ExprStringVal literal) return "string:" + literal.getValS();
         if (value instanceof ExprBoolVal literal) return "bool:" + literal.getValB();
         if (value instanceof ExprNull) return "null";
-        GlobalVarDef global = registrationConstant(value);
+        GlobalVarDef global = hotReloadConstant(value);
         if (global != null) {
             StringBuilder name = new StringBuilder("global:");
             String segment = global.getName(); name.append(segment.length()).append(':').append(segment);
@@ -446,7 +446,7 @@ public class ClosureTranslator {
         return null;
     }
 
-    private static @Nullable GlobalVarDef registrationConstant(Expr value) {
+    static @Nullable GlobalVarDef hotReloadConstant(Expr value) {
         if (value instanceof ExprVarAccess access && access.attrNameDef() instanceof GlobalVarDef global
                 && global.attrIsConstant()) {
             return global;
