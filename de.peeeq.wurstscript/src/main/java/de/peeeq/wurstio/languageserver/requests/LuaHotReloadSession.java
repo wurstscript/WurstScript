@@ -157,7 +157,9 @@ public final class LuaHotReloadSession {
     }
 
     private static LuaHotReload.Manifest readManifest(Path file) throws IOException {
-        return GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), LuaHotReload.Manifest.class);
+        try (var reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            return GSON.fromJson(reader, LuaHotReload.Manifest.class);
+        }
     }
 
     /** Records the manifest of a map which is being started; earlier payloads do not apply to it. */
