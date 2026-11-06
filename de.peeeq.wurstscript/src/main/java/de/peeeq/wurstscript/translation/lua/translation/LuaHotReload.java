@@ -1059,7 +1059,7 @@ public final class LuaHotReload {
             }
             for (Statement s : current.statements()) {
                 if (!s.scope().equals(scope) || oldTexts.contains(s.revision())
-                    && !(s.kind().equals("slot") && sentSlots.contains(runKey(s)))) {
+                    && !(s.kind().equals("slot") && !sentSlots.isEmpty() && sentSlots.contains(runKey(s)))) {
                     continue;
                 }
                 Statement old = oldByKey.get(s.key());
