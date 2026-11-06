@@ -405,10 +405,10 @@ public abstract class MapRequest extends UserRequest<Object> {
      * Selects project Wurst sources, the map/core Jass scripts and their imports, without changing the editor model.
      */
     private Set<CompilationUnit> compilationUnits(WurstModel model) {
-
+        Path mapScript = existingProjectMapScriptPath();
         Set<CompilationUnit> imported = model.stream()
             .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile())
-                || isProjectWar3MapScript(cu.getCuInfo().getFile())
+                || (mapScript != null && mapScript.equals(Paths.get(cu.getCuInfo().getFile()).toAbsolutePath().normalize()))
                 || isRequiredBuildJass(cu.getCuInfo().getFile()))
             .collect(Collectors.toSet());
         addImports(imported, imported);
@@ -416,18 +416,17 @@ public abstract class MapRequest extends UserRequest<Object> {
         return imported;
     }
 
-    private boolean isProjectWar3MapScript(String file) {
-        if (!file.endsWith("war3map.j")) {
-            return false;
-        }
-        Path p = Paths.get(file).toAbsolutePath().normalize();
-        Path projectWurstFolder;
+    private @Nullable Path existingProjectMapScriptPath() {
         try {
-            projectWurstFolder = workspaceRoot.getPath().resolve("wurst").toAbsolutePath().normalize();
+            Path path = projectMapScript().getPath();
+            return java.nio.file.Files.isRegularFile(path) ? path : null;
         } catch (FileNotFoundException e) {
-            return false;
+            return null;
         }
-        return p.startsWith(projectWurstFolder) && java.nio.file.Files.exists(p);
+    }
+
+    private WFile projectMapScript() throws FileNotFoundException {
+        return WFile.create(workspaceRoot.getPath().resolve("wurst").resolve("war3map.j"));
     }
 
     private boolean isInProjectWurstFolder(String file) {
@@ -545,15 +544,10 @@ public abstract class MapRequest extends UserRequest<Object> {
         return !runArgs.isLegacyJassTypeChecks();
     }
 
-    private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {
-        Optional<CompilationUnit> war3mapJ = modelManager.getModel()
-            .stream()
-            .filter((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))
-            .findFirst();
-
-        if (war3mapJ.isPresent()) {
-            modelManager.syncCompilationUnitContent(WFile.create(war3mapJ.get().getCuInfo().getFile()),
-                java.nio.file.Files.readString(scriptFile.toPath()));
+    private void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {
+        WFile mapScript = projectMapScript();
+        if (java.nio.file.Files.isRegularFile(mapScript.getPath())) {
+            modelManager.syncCompilationUnitContent(mapScript, java.nio.file.Files.readString(scriptFile.toPath()));
         }
     }
 
@@ -773,7 +767,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             result = new CompilationResult();
             result.script = new File(buildDir, BUILD_CONFIGURED_SCRIPT_NAME);
             if (!result.script.exists()) {
-                result.script = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
+                result.script = projectMapScript().getFile();
             }
             if (!result.script.exists()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find war3map.j file");
@@ -788,12 +782,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         // Compile the script
         result.script = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData, isProd, result.script);
 
-        Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
-        if (!model.isPresent()
-            || model
-            .get()
-            .stream()
-            .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
+        if (modelManager.getCompilationUnit(projectMapScript()) == null) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
             println("Put the map's war3map.j into your wurst-folder, or use a map that contains it. ");
             println("We will try to start the map now, but it will probably fail. ");
@@ -993,7 +982,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     protected File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
-        File scriptFile = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
+        File scriptFile = projectMapScript().getFile();
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
         if (!mapCopy.isPresent() || runArgs.isNoExtractMapScript()) {

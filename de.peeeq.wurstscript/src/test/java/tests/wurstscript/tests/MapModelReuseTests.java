@@ -534,6 +534,38 @@ public class MapModelReuseTests {
         assertEquals(project.manager.getModel().size(), units, "map compilation must leave the editor model alone");
     }
 
+    @Test(dataProvider = "commands")
+    public void configuredScriptReplacesOnlyTheProjectMapScript(boolean build, boolean lua) throws Exception {
+        Project project = project();
+        File base = new File(project.root, "wurst/./war3map.j");
+        WFile baseUnit = WFile.create(base);
+        project.manager.reconcile(project.manager.removeCompilationUnit(baseUnit));
+        List<WFile> backupFiles = new java.util.ArrayList<>();
+        for (String relative : List.of("wurst/backup-war3map.j", "wurst/backup/war3map.j")) {
+            File backup = new File(project.root, relative);
+            Files.createDirectories(backup.toPath().getParent());
+            String backupScript = configuredScript(2);
+            Files.writeString(backup.toPath(), backupScript);
+            WFile backupUnit = WFile.create(backup);
+            project.manager.syncCompilationUnitContent(backupUnit, backupScript);
+            backupFiles.add(backupUnit);
+        }
+        project.manager.syncCompilationUnitContent(baseUnit, Files.readString(base.toPath()));
+        List<CompilationUnit> backups = backupFiles.stream().map(project.manager::getCompilationUnit).toList();
+        Files.writeString(project.script.toPath(), "function main takes nothing returns nothing\n"
+            + "call BJDebugMsg(\"configured-project-map-script\")\nendfunction\n");
+        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
+
+        String output = compile(request, project, new WurstGuiCliImpl());
+        assertTrue(output.contains("configured-project-map-script"), "the configured project script must be compiled");
+        assertEquals(backupFiles.stream().map(project.manager::getCompilationUnit).toList(), backups);
+
+        project.manager.reconcile(project.manager.removeCompilationUnit(baseUnit));
+        assertEquals(compile(request, project, new WurstGuiCliImpl()), output,
+            "the first reload must find the project map script even if it was absent from the editor model");
+    }
+
     /** Runs used to drop unimported units from the model after the config overrides were computed, detaching them. */
     @Test(dataProvider = "commands")
     public void unimportedDependencyConfigPackagesAreNotCompiled(boolean build, boolean lua) throws Exception {
