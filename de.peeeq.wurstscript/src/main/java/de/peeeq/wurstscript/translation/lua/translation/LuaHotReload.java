@@ -2151,17 +2151,24 @@ public final class LuaHotReload {
      */
     private static Map<String, Set<String>> orderGroups(Manifest baseline, Manifest current,
                                                        Map<String, String> oldBindings, Map<String, String> currentBindings) {
+        Map<String, String> firstNames = new HashMap<>();
         Map<String, Set<String>> groups = new TreeMap<>();
-        addOrderGroups(groups, baseline, oldBindings);
-        addOrderGroups(groups, current, currentBindings);
-        groups.values().removeIf(names -> names.size() < 2);
+        addOrderGroups(firstNames, groups, baseline, oldBindings);
+        addOrderGroups(firstNames, groups, current, currentBindings);
         return groups;
     }
 
-    private static void addOrderGroups(Map<String, Set<String>> groups, Manifest manifest, Map<String, String> bindings) {
+    private static void addOrderGroups(Map<String, String> firstNames, Map<String, Set<String>> groups,
+                                       Manifest manifest, Map<String, String> bindings) {
         bindings.forEach((name, id) -> {
-            if (manifest.functions().containsKey(name)) {
-                groups.computeIfAbsent(id, k -> new TreeSet<>()).add(name);
+            if (!manifest.functions().containsKey(name)) {
+                return;
+            }
+            String first = firstNames.putIfAbsent(id, name);
+            if (first != null && !first.equals(name)) {
+                Set<String> names = groups.computeIfAbsent(id, k -> new TreeSet<>());
+                names.add(first);
+                names.add(name);
             }
         });
     }
