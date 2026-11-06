@@ -1272,6 +1272,62 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void callbacksOnDistinctAccessorResultsKeepTheirLiveCaptures() {
+        String source = """
+            package Test
+            native hotReload()
+            native testSuccess()
+            native testFail(string message)
+            interface Callback
+                function run() returns int
+            class Button
+                Callback callback
+            int getterCalls
+            class Panel
+                let primary = new Button()
+                let secondary = new Button()
+                function getPrimary() returns Button
+                    getterCalls++
+                    return primary
+                function getSecondary() returns Button
+                    getterCalls++
+                    return secondary
+            function Button.onClick(Callback action)
+                this.callback = action
+            Panel shown
+            Panel other
+            function setup(int seed)
+                let panel = new Panel()
+                let alternate = new Panel()
+                shown = panel
+                other = alternate
+            %s
+            init
+                setup(10)
+                hotReload()
+                if shown.primary.callback.run() != 12 or getterCalls != 1
+                    testFail("reload did not preserve the live callback or ran an accessor")
+                setup(20)
+                if shown.primary.callback.run() != 22 or shown.secondary.callback.run() != 120 or other.primary.callback.run() != 220
+                    testFail("setup did not install separate callbacks")
+                testSuccess()
+            """;
+        String existing = """
+                panel.getPrimary().onClick() ->
+                    return seed + %d
+            """;
+        String added = """
+                panel.getSecondary().onClick() ->
+                    return seed + 100
+                alternate.getPrimary().onClick() ->
+                    return seed + 200
+            """;
+        String[] baseline = source.formatted(existing.formatted(1)).lines().toArray(String[]::new);
+        String[] edited = source.formatted(added + existing.formatted(2)).lines().toArray(String[]::new);
+        test().testLua(true).executeProg().luaHotReload(edited).lines(baseline);
+    }
+
+    @Test
     public void qualifiedStaticRegistrationsRunOnceWithoutRepeatingOldSetup() {
         test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(initEventCallbacks(true)))
             .lines(qualifiedRegistrations(initEventCallbacks(false)));
