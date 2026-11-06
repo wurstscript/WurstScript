@@ -431,8 +431,8 @@ public class ClosureTranslator {
         if (value instanceof ExprStringVal literal) return "string:" + literal.getValS();
         if (value instanceof ExprBoolVal literal) return "bool:" + literal.getValB();
         if (value instanceof ExprNull) return "null";
-        if (value instanceof ExprVarAccess access && access.attrNameDef() instanceof GlobalVarDef global
-                && global.attrIsConstant()) {
+        GlobalVarDef global = registrationConstant(value);
+        if (global != null) {
             StringBuilder name = new StringBuilder("global:");
             String segment = global.getName(); name.append(segment.length()).append(':').append(segment);
             for (Element scope = global.getParent(); scope != null; scope = scope.getParent()) {
@@ -443,6 +443,21 @@ public class ClosureTranslator {
             return name.toString();
         }
         // Mutable/local values and computed expressions do not provide a stable discriminator.
+        return null;
+    }
+
+    private static @Nullable GlobalVarDef registrationConstant(Expr value) {
+        if (value instanceof ExprVarAccess access && access.attrNameDef() instanceof GlobalVarDef global
+                && global.attrIsConstant()) {
+            return global;
+        }
+        if (value instanceof ExprMemberVarDot access
+                && access.getLeft().attrTyp() instanceof WurstTypeNamedScope qualifier && qualifier.isStaticRef()
+                && qualifier.getDef() instanceof ClassDef owner && owner.getTypeParameters().isEmpty()
+                && access.attrNameDef() instanceof GlobalVarDef global && global.attrIsConstant()
+                && !global.attrIsDynamicClassMember() && global.attrNearestStructureDef() == owner) {
+            return global;
+        }
         return null;
     }
 
