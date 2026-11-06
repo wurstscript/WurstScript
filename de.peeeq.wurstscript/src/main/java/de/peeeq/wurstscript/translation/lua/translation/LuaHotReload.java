@@ -2056,11 +2056,20 @@ public final class LuaHotReload {
             if (known == null) {
                 Constant c = current.get(key);
                 Statement unit = currentUnits.get(key);
-                known = c != null && unit != null && unit.targets().stream().noneMatch(variables::contains)
-                    && c.reads().stream().allMatch(this::reliable);
+                known = c != null && unit != null && Collections.disjoint(variables, unit.targets())
+                    && reliableReads(c.reads());
                 reliable.put(key, known);
             }
             return known;
+        }
+
+        private boolean reliableReads(List<String> reads) {
+            for (String read : reads) {
+                if (!reliable(read)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /** The revision of a constant which runs again when it changes; null for any other global. */
@@ -2076,7 +2085,7 @@ public final class LuaHotReload {
     }
 
     private static boolean initializedBefore(Statement s, Set<String> knownNames) {
-        return knownNames.contains(s.key()) || !s.targets().isEmpty() && s.targets().stream().allMatch(knownNames::contains);
+        return knownNames.contains(s.key()) || !s.targets().isEmpty() && knownNames.containsAll(s.targets());
     }
 
     private static String initializerLabel(Statement s) {
