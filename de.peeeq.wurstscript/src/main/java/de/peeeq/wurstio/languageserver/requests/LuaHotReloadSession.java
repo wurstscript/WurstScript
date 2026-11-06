@@ -146,7 +146,7 @@ public final class LuaHotReloadSession {
         LuaHotReload.Manifest current = readManifest(Path.of(args[1]));
         try {
             LuaHotReload.Payload payload = LuaHotReload.payload(baseline, current, Set.of(), 1);
-            Files.writeString(Path.of(args[2]), preloadFile(payload.source()), StandardCharsets.UTF_8);
+            writePreloadFile(Path.of(args[2]), payload.source());
             System.out.println("payload " + payload.version() + ": " + String.join(", ", payload.functions()));
         } catch (LuaHotReload.Rejected e) {
             System.err.println(e.getMessage());
@@ -537,8 +537,17 @@ public final class LuaHotReloadSession {
         Path file = customMapData.resolve(LuaHotReload.preloadFile(payload.version()).replace('\\', '/'));
         String source = receiptToken.isEmpty() ? payload.source()
             : "-- " + LuaHotReload.RECEIPT_MARKER + receiptToken + "\n" + payload.source();
-        writeAtomically(file, preloadFile(source));
+        Files.createDirectories(file.getParent());
+        Path partial = file.resolveSibling(file.getFileName() + ".tmp");
+        writePreloadFile(partial, source);
+        Files.move(partial, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         return file;
+    }
+
+    private static void writePreloadFile(Path file, String payload) throws IOException {
+        try (var writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            appendPreloadFile(writer, payload);
+        }
     }
 
     /** Writes a complete temporary file and renames it, so no reader and no interrupted write leaves a partial file. */
@@ -654,6 +663,15 @@ public final class LuaHotReloadSession {
      */
     public static String preloadFile(String payload) {
         StringBuilder sb = new StringBuilder();
+        try {
+            appendPreloadFile(sb, payload);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
+        return sb.toString();
+    }
+
+    private static void appendPreloadFile(Appendable sb, String payload) throws IOException {
         sb.append("function PreloadFiles takes nothing returns nothing\n");
         sb.append("//!beginusercode\n");
         // The marker tells the map's poll that the tooltip holds a payload rather than the ability's own text.
@@ -665,22 +683,21 @@ public final class LuaHotReloadSession {
                 end--;
             }
             sb.append("p[#p + 1] = \"");
-            appendEscaped(sb, payload.substring(i, end));
+            appendEscaped(sb, payload, i, end);
             sb.append("\"\n");
             i = end;
         }
         sb.append("BlzSetAbilityTooltip(FourCC(\"").append(LuaHotReload.CHANNEL_ABILITY).append("\"), table.concat(p), 0)\n");
         sb.append("//!endusercode\n");
         sb.append("endfunction\n");
-        return sb.toString();
     }
 
     /**
      * A Lua quoted-string body on one line. A {@code //!} is written {@code //\033}, so the payload cannot hold a
      * marker which would end the Lua section early.
      */
-    private static void appendEscaped(StringBuilder sb, String s) {
-        for (int i = 0; i < s.length(); i++) {
+    private static void appendEscaped(Appendable sb, String s, int start, int end) throws IOException {
+        for (int i = start; i < end; i++) {
             char c = s.charAt(i);
             switch (c) {
                 case '\\' -> sb.append("\\\\");
@@ -688,7 +705,7 @@ public final class LuaHotReloadSession {
                 case '\n' -> sb.append("\\n");
                 case '\r' -> sb.append("\\r");
                 default -> {
-                    if (c < 0x20 || c == 0x7f || (c == '!' && i >= 2 && s.startsWith("//", i - 2))) {
+                    if (c < 0x20 || c == 0x7f || (c == '!' && i >= start + 2 && s.startsWith("//", i - 2))) {
                         sb.append(String.format(Locale.ROOT, "\\%03d", (int) c));
                     } else {
                         sb.append(c);
