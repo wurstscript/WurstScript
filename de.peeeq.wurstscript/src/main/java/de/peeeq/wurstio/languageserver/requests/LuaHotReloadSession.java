@@ -9,6 +9,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,7 +23,6 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -698,21 +698,39 @@ public final class LuaHotReloadSession {
      * marker which would end the Lua section early.
      */
     private static void appendEscaped(Appendable sb, String s, int start, int end) throws IOException {
+        int plain = start;
         for (int i = start; i < end; i++) {
             char c = s.charAt(i);
-            switch (c) {
-                case '\\' -> sb.append("\\\\");
-                case '"' -> sb.append("\\\"");
-                case '\n' -> sb.append("\\n");
-                case '\r' -> sb.append("\\r");
-                default -> {
-                    if (c < 0x20 || c == 0x7f || (c == '!' && i >= start + 2 && s.startsWith("//", i - 2))) {
-                        sb.append(String.format(Locale.ROOT, "\\%03d", (int) c));
-                    } else {
-                        sb.append(c);
-                    }
-                }
+            String escaped = switch (c) {
+                case '\\' -> "\\\\";
+                case '"' -> "\\\"";
+                case '\n' -> "\\n";
+                case '\r' -> "\\r";
+                default -> null;
+            };
+            if (escaped == null && c >= 0x20 && c != 0x7f
+                    && !(c == '!' && i >= start + 2 && s.startsWith("//", i - 2))) {
+                continue;
             }
+            appendPlainText(sb, s, plain, i);
+            if (escaped != null) {
+                sb.append(escaped);
+            } else {
+                // Always write three digits so Lua cannot consume a following payload digit as part of the escape.
+                sb.append('\\').append((char) ('0' + c / 100))
+                    .append((char) ('0' + c / 10 % 10)).append((char) ('0' + c % 10));
+            }
+            plain = i + 1;
+        }
+        appendPlainText(sb, s, plain, end);
+    }
+
+    private static void appendPlainText(Appendable out, String text, int start, int end) throws IOException {
+        if (start == end) return;
+        if (out instanceof Writer writer) {
+            writer.write(text, start, end - start);
+        } else {
+            out.append(text, start, end);
         }
     }
 
