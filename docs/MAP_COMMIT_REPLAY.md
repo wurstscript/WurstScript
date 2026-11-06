@@ -262,6 +262,31 @@ On this base, 696 targeted checks pass with ownership checks and both backend va
 insertion enabled passed: 1,257 applied payloads, 242 expected refusals, one permitted ambiguous refusal, zero
 failures. Execution/timings remain Windows-only; current game application and macOS remain unverified.
 
+## 6 Nov 2026 compatibility spot check
+
+The compiler at `179169de7` with the editor receipt patch replayed three recent first-parent commits per
+map on Windows. Every measured child matched independent fresh Lua and its manifest. The fixtures froze
+map data and dependencies. Castle Fight used WurstStdlib2 `eac3824` for `UnitLifecycleTrace`. Zombie
+Defense's last pair used Frentity `5bddf50` for the new height-sampling API.
+
+| Map | Commit | Payload | Warnings | Host seconds |
+| --- | --- | --- | ---: | ---: |
+| Castle Fight | `f71b7d0` | accepted | 0 | 18.92 |
+| Castle Fight | `6d9d077` | accepted | 1 | 15.12 |
+| Castle Fight | `bd77dc0` | restart | 1 | 15.84 |
+| Zombie Defense | `36f8e7f` | accepted | 14 | 10.47 |
+| Zombie Defense | `6a22737` | accepted | 4 | 8.57 |
+| Zombie Defense | `ad0e118` | accepted | 0 | 11.29 |
+
+The Castle Fight refusal came from the `withParent` closures in `MultiboardComponents.ResourceRow` with both additions or removals
+and edits between the same unchanged closures. The Zombie Defense boss callback changes were accepted
+with warnings for existing captures and removed callbacks. The offline timings end at host publication or
+refusal and exclude Warcraft III pickup.
+
+The targeted Castle Fight replay of `2b7e0acb`, which added the `TickCandidates` specialization,
+also matched the fresh oracle and published its payload in 14.82 s with 22 warnings. The earlier
+specialization field-storage refusal did not reproduce.
+
 ## Running another campaign
 
 From the repository root, export into a **new** fixture directory. The template directory must contain

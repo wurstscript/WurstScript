@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 
@@ -68,7 +69,7 @@ public class RunMap extends MapRequest {
         WurstGui gui = createGui(modelManager, "Running Wurst map");
         try {
             warnAboutRunOptimizations(gui);
-            String ok = compileMap(modelManager, gui, projectConfig);
+            Object ok = compileMap(modelManager, gui, projectConfig);
             if (ok != null) return ok;
         } catch (CompileError e) {
             WLogger.info(e);
@@ -102,7 +103,7 @@ public class RunMap extends MapRequest {
     }
 
     @Nullable
-    private String compileMap(ModelManager modelManager, WurstGui gui, WurstProjectConfigData projectConfig) throws Exception {
+    private Object compileMap(ModelManager modelManager, WurstGui gui, WurstProjectConfigData projectConfig) throws Exception {
         if (map.isPresent() && !map.get().exists()) {
             throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
         }
@@ -128,8 +129,7 @@ public class RunMap extends MapRequest {
         CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
 
         if (runArgs.isHotReload() && runArgs.isLua()) {
-            sendLuaHotReloadPayload(gui, buildDir);
-            return "ok";
+            return sendLuaHotReloadPayload(gui, buildDir);
         }
 
         if (runArgs.isHotReload()) {
@@ -439,14 +439,18 @@ public class RunMap extends MapRequest {
      * Sends the running Lua map the payload of the edits since it started (docs/LUA_HOT_RELOAD.md). The map polls the
      * CustomMapData folder for it; an edit a payload cannot carry fails here, with the reasons, and changes nothing.
      */
-    private void sendLuaHotReloadPayload(WurstGui gui, File buildDir) throws IOException {
+    public record ReloadReceipt(String token, String receiptFile, int version) {}
+
+    private ReloadReceipt sendLuaHotReloadPayload(WurstGui gui, File buildDir) throws IOException {
         if (luaHotReloadManifest == null) {
             throw new RequestFailedException(MessageType.Error, "Lua hot reload needs a Lua build;"
                 + " start the map with hot run first.");
         }
+        Path customMapData = getCustomMapDataPath();
+        String token = UUID.randomUUID().toString().replace("-", "");
         LuaHotReloadSession.Sent sent;
         try {
-            sent = LuaHotReloadSession.send(buildDir.toPath(), getCustomMapDataPath(), luaHotReloadManifest);
+            sent = LuaHotReloadSession.send(buildDir.toPath(), customMapData, luaHotReloadManifest, token);
         } catch (LuaHotReload.Rejected e) {
             throw new RequestFailedException(MessageType.Warning, e.getMessage());
         }
@@ -456,6 +460,8 @@ public class RunMap extends MapRequest {
         if (note != null) {
             gui.showInfoMessage(note);
         }
+        return new ReloadReceipt(token, customMapData.resolve(LuaHotReload.RECEIPT_FILE).toAbsolutePath().toString(),
+            sent.payload().version());
     }
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {

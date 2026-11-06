@@ -449,6 +449,16 @@ Editor side (implemented, `LuaHotReloadSession`, `RunMap`):
    with the reasons as its error message; the VS Code extension shows the first line and writes the rest to its
    output. While a hot run is active, the VS Code extension sends it on every save of a Wurst file.
 
+For a Lua project, VS Code's Run button offers **Run** and **Hot Run**. The direct commands stay
+available in the Command Palette. The editor first reports **reload payload sent**, then waits up to
+ten seconds for a matching game receipt. It can report application, application with warnings,
+rejection, or no game response. The game still prints detailed warnings and rejection reasons.
+
+The language server adds a random receipt token in a Lua comment at delivery time. The running map
+echoes the token and a fixed outcome in `CustomMapData/Wurst/hotreload-receipt.txt` after processing
+the payload. The editor checks the token so a receipt from an earlier payload or session cannot
+confirm the current reload. With an older compiler, the editor reports delivery only.
+
 Without the editor, a map built with `-build ... -luaHotReload` (which takes the run arguments of `wurst_run.args`, not
 its build-only `+` lines: `-luaHotReload` refuses `-inline` and `-opt`) takes payloads from the compiler's command line,
 which is how the in-game test drives it. Setting `-luaHotReload` on a shared line in `wurst_run.args` selects the same
@@ -667,6 +677,13 @@ a map command's failure now carries its own text (`BuildDiagnosticsTests`).
 
 Not measured: whether the preload file's Lua section sees the map's globals (it does not need to); multiplayer, which
 is refused.
+
+### 6 Nov 2026: game receipts in VS Code
+
+The Warcraft III E2E harness ran a single-player test on Windows with Reforged `3.0.1.24371`.
+VS Code saves applied payloads 1 and 2 and the game wrote a matching receipt for each. Between them
+the compiler refused an existing field type change without publishing a payload. The timer advanced
+from tick 1 to 14 and an object created before either edit kept its field value of 79.
 
 ## Probe for other clients
 

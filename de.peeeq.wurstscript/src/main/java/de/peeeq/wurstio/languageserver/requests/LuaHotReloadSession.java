@@ -341,6 +341,11 @@ public final class LuaHotReloadSession {
      */
     public static Sent send(Path buildDir, Path customMapData, LuaHotReload.Manifest current)
         throws IOException, LuaHotReload.Rejected {
+        return send(buildDir, customMapData, current, "");
+    }
+
+    static Sent send(Path buildDir, Path customMapData, LuaHotReload.Manifest current, String receiptToken)
+        throws IOException, LuaHotReload.Rejected {
         if (Files.exists(stagedFile(buildDir))) {
             throw new LuaHotReload.Rejected(List.of("a hot reload launch is prepared: activate or abort it before sending a payload"));
         }
@@ -377,7 +382,7 @@ public final class LuaHotReloadSession {
         pending.lineageTypes = new LinkedHashMap<>(payload.lineageTypes());
         pending.tableReaders = new LinkedHashMap<>(payload.tableReaders());
         writeAtomically(pendingFile(buildDir), GSON.toJson(pending));
-        Path delivered = deliver(customMapData, payload);
+        Path delivered = deliver(customMapData, payload, receiptToken);
         record(state, pending);
         save(buildDir, state);
         Files.deleteIfExists(pendingFile(buildDir));
@@ -495,9 +500,11 @@ public final class LuaHotReloadSession {
      * Writes the payload's file by renaming a complete temporary file: the game reads a file once, so a poll which met a
      * file half written would never see the rest.
      */
-    private static Path deliver(Path customMapData, LuaHotReload.Payload payload) throws IOException {
+    private static Path deliver(Path customMapData, LuaHotReload.Payload payload, String receiptToken) throws IOException {
         Path file = customMapData.resolve(LuaHotReload.preloadFile(payload.version()).replace('\\', '/'));
-        writeAtomically(file, preloadFile(payload.source()));
+        String source = receiptToken.isEmpty() ? payload.source()
+            : "-- " + LuaHotReload.RECEIPT_MARKER + receiptToken + "\n" + payload.source();
+        writeAtomically(file, preloadFile(source));
         return file;
     }
 
