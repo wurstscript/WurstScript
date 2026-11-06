@@ -1334,6 +1334,30 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void qualifiedEventConstantsKeepRegistrationsDistinct() {
+        test().testLua(true).executeProg().luaHotReload(qualifiedEventConstants(true))
+            .lines(qualifiedEventConstants(false));
+    }
+
+    private static String[] qualifiedEventConstants(boolean edited) {
+        return java.util.Arrays.stream(initEventCallbacks(edited))
+            .map(line -> line.equals("package Test")
+                ? line + "\nclass EventIds\n    static constant FIRST = 1\n    static constant SECOND = 2"
+                : line.replace("register(1,", "register(EventIds.FIRST,")
+                    .replace("register(2,", "register(EventIds.SECOND,"))
+            .toArray(String[]::new);
+    }
+
+    @Test
+    public void qualifiedInstanceEventConstantsRemainOrdinaryInit() {
+        String[] source = {"package Test", "class EventIds", "    let eventId = 1", "constant ids = new EventIds()",
+            "interface Callback", "    function run() returns int", "Callback array saved",
+            "function register(int event, Callback cb)", "    saved[event] = cb",
+            "init", "    register(ids.eventId, () -> 10)"};
+        assertFalse(manifest(source).statements().stream().anyMatch(statement -> statement.kind().equals("action")));
+    }
+
+    @Test
     public void qualifiedStaticNativeRegistrationsKeepEditedBodies() {
         test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(nativeEventCallbacks(true)))
             .lines(qualifiedRegistrations(nativeEventCallbacks(false)));
