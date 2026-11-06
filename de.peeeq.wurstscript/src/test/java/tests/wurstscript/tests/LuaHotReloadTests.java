@@ -3985,6 +3985,7 @@ public class LuaHotReloadTests extends WurstScriptTest {
         assertEquals(1, first.payload().version());
         assertEquals(List.of("score"), sourceNames(first.payload().functions()));
         assertEquals("each payload has a file of its own", customMapData.resolve("Wurst").resolve("hotreload-1.pld"), first.file());
+        assertEquals(LuaHotReloadSession.preloadFile(first.payload().source()), java.nio.file.Files.readString(first.file()));
 
         LuaHotReloadSession.Sent second = LuaHotReloadSession.send(buildDir, customMapData,
             manifest(program("x + 1", "side * side * 10", INIT)));
@@ -4372,6 +4373,10 @@ public class LuaHotReloadTests extends WurstScriptTest {
     @Test
     public void preloadFileCarriesThePayloadText() throws Exception {
         StringBuilder payload = new StringBuilder("-- \"quoted\" \\ back\\slash\r\n\ttab \u0001 ctrl1 2\n//!endusercode\n");
+        for (char control = 0; control < ' '; control++) {
+            payload.append(control).append('7');
+        }
+        payload.append('\u007f').append('7');
         // A character outside the BMP is two Java chars; this one straddles the first chunk boundary.
         while (payload.length() < LuaHotReloadSession.PRELOAD_CHUNK - 1) {
             payload.append('x');
