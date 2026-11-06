@@ -266,6 +266,9 @@ Notes; finished-work narrative does not.
   and reruns compile-time evaluation and all lowering. Warm body-edit compilation improved by about 11 to 12 %
   in isolated Castle Fight and Zombie Defense copies (`docs/RUNMAP_PERFORMANCE.md`); this does not include payload
   diff/delivery. Keeping generic demand, reachability, slot bindings and Lua emission between reloads remains open.
+  Hot-run staging now hashes the manifest while streaming it to a temporary file. On the 101 MB Castle Fight
+  baseline, warmed staging allocated 6–7 MB per run instead of 1.72 GB across three runs per build on Windows.
+  The staged bytes and SHA-256 filename matched the existing baseline.
   Concrete design and staged acceptance gates: [`docs/INCREMENTAL_BACKEND.md`](docs/INCREMENTAL_BACKEND.md).
   The first scalar-function ownership/lowering/emission slice now proves zero graph-copy nodes and one lowered/emitted
   function after a supported literal edit, including with 1,000 additional live functions. It excludes compile-time
