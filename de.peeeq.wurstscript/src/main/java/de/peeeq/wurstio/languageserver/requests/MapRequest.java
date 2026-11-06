@@ -205,9 +205,10 @@ public abstract class MapRequest extends UserRequest<Object> {
             compiler.adoptCheckedModel(model, units);
             return;
         }
-        boolean validated = compiler.checkProg(model, units, units);
+        Collection<CompilationUnit> toCheck = sameChecks ? modelManager.unitsToCheckForBuild(model, units) : units;
+        boolean validated = compiler.checkProg(model, toCheck, units);
         if (sameChecks && validated && compiler.getErrorHandler().getErrorCount() == 0) {
-            modelManager.markChecked(model, units);
+            modelManager.markChecked(model, toCheck);
         }
     }
 

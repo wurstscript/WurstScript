@@ -1255,6 +1255,25 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
+    public Collection<CompilationUnit> unitsToCheckForBuild(WurstModel checkedModel, Collection<CompilationUnit> units) {
+        synchronized (modelLock) {
+            if (checkedModel == null || checkedModel != model) {
+                return units;
+            }
+            List<CompilationUnit> dirty = new ArrayList<>();
+            for (CompilationUnit unit : units) {
+                if (uncheckedUnits.contains(unit)) {
+                    if (!bodyEdited.contains(unit) || unit.getJassDecls().isEmpty()) {
+                        return units;
+                    }
+                    dirty.add(unit);
+                }
+            }
+            return dirty;
+        }
+    }
+
+    @Override
     public void markChecked(WurstModel checkedModel, Collection<CompilationUnit> units) {
         synchronized (modelLock) {
             if (checkedModel != null && checkedModel == model) {
@@ -1408,7 +1427,7 @@ public class ModelManagerImpl implements ModelManager {
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
         result.addAll(changed);
 
-        if (oldJassNames || changed.stream().anyMatch(ModelManagerImpl::declaresJassNames)) {
+        if (oldJassNames || changed.stream().anyMatch(cu -> declaresJassNames(cu) && !isBodyEdited(cu))) {
             // Jass names are visible everywhere, so everything must be checked again:
             result.addAll(model);
             return result;

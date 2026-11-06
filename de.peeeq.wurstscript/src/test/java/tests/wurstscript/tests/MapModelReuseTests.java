@@ -3,6 +3,7 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstio.languageserver.*;
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -18,6 +19,7 @@ import org.wurstscript.projectconfig.WurstProjectConfigData;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -435,27 +437,53 @@ public class MapModelReuseTests {
         File baseScript = new File(project.root, "wurst/war3map.j");
         String base = configuredScript(1);
         Files.writeString(baseScript.toPath(), base);
-        project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(baseScript), base));
+        WFile mapSource = WFile.create(baseScript);
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(mapSource, base));
+        var originalMapUnit = project.manager.getCompilationUnit(mapSource);
         String main = source(7) + "public int fromMap = getConfigured()\n"
             + "init\n    BJDebugMsg(I2S(fromMap))\n";
         Files.writeString(project.source.toPath(), main);
         project.manager.reconcile(project.manager.syncCompilationUnitContent(WFile.create(project.source), main));
-        List<String> args = lua ? List.of("-lua") : List.of("-noPJass");
+        List<String> args = lua ? List.of("-lua", "-luaHotReload") : List.of("-noPJass");
         Probe request = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
 
         Files.writeString(project.script.toPath(), configuredScript(2));
         String first = compile(request, project, new WurstGuiCliImpl());
+        assertSame(project.manager.getCompilationUnit(mapSource), originalMapUnit,
+            "changing only a configured Jass body must keep the declarations the project already resolved");
+        assertEquals(project.manager.lastBuildCheck, List.of(originalMapUnit));
         assertTrue(project.manager.isFullyChecked(project.manager.getModel()));
         Files.writeString(project.script.toPath(), configuredScript(3));
         String changed = compile(request, project, new WurstGuiCliImpl());
         assertNotEquals(changed, first);
         assertEquals(compile(request, project, new WurstGuiCliImpl()), changed);
+        var manifestPath = project.root.toPath().resolve("_build/luaHotReload/manifest.json");
+        String manifest = lua ? Files.readString(manifestPath) : "";
 
         Project fresh = new Project(project.root, project.source, project.script, new CountingManager(project.root));
         fresh.manager.buildProject();
         Probe freshRequest = build ? new BuildProbe(project.root, args) : new RunProbe(project.root, args);
         assertEquals(compile(freshRequest, fresh, new WurstGuiCliImpl()), changed);
+        if (lua) {
+            assertEquals(Files.readString(manifestPath), manifest);
+        }
         assertEquals(project.manager.cleanCalls, 0);
+    }
+
+    @Test
+    public void configuredJassBodyThatDefinesAVariableEventWrapperRechecksCallers() throws Exception {
+        Project project = project();
+        WFile mapSource = WFile.create(new File(project.root, "wurst/war3map.j"));
+        String script = Files.readString(mapSource.getFile().toPath())
+            + "function forwardEvent takes string name returns event\n    return null\nendfunction\n";
+        project.manager.reconcile(project.manager.syncCompilationUnitContent(mapSource, script));
+        var originalMapUnit = project.manager.getCompilationUnit(mapSource);
+        String edited = script.replace("return null", "return TriggerRegisterVariableEvent(null, name, null, 0.0)");
+        Files.writeString(project.script.toPath(), edited);
+        compile(new RunProbe(project.root, List.of("-lua")), project, new WurstGuiCliImpl());
+        assertNotSame(project.manager.getCompilationUnit(mapSource), originalMapUnit);
+        assertTrue(project.manager.lastBuildCheck.contains(project.manager.getCompilationUnit(WFile.create(project.source))),
+            "a change in wrapper status can change validation of callers");
     }
 
     @Test(dataProvider = "commands")
@@ -576,8 +604,13 @@ public class MapModelReuseTests {
 
     private static class CountingManager extends ModelManagerImpl {
         int cleanCalls;
+        List<CompilationUnit> lastBuildCheck = List.of();
         CountingManager(File root) { super(root, new BufferManager()); }
         @Override public void clean() { cleanCalls++; super.clean(); }
+        @Override public void markChecked(WurstModel model, Collection<CompilationUnit> units) {
+            lastBuildCheck = List.copyOf(units);
+            super.markChecked(model, units);
+        }
     }
 
     private interface Probe {

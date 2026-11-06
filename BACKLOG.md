@@ -52,13 +52,12 @@ Notes; finished-work narrative does not.
 - **Incremental map-script declarations and build source policy.** Run, editor build and CLI build use
   the managed model; cancellation is honored at safe boundaries around shared AST preparation and
   throughout the private IM/backend work. See `docs/RUNMAP_PERFORMANCE.md`. What is left:
-  a `.j` change makes `calculateCUsToUpdate` return the whole model, and a compilation
-  swaps the map script with the project config applied into the model (`replaceBaseScriptWithConfig`).
-  The swap changes only function bodies (`config`, `InitCustomPlayerSlots`, ...) yet invalidates every
-  attribute, so the first compilation of a model checks all of it again; later ones skip the check. The
+  a `.j` declaration change makes `calculateCUsToUpdate` return the whole model. A configured map script
+  that changes only function bodies keeps its declarations in place and is validated on its own when
+  the rest of the selected model is already checked. Changes to variable-event wrapper candidates still
+  invalidate callers. The
   CLI loads the project without checking it, swaps the script in and checks once (`ModelManager.loadProject`,
-  `checkProject`); the language server has checked its model before it knows the map, so its first
-  run still checks again. The swap's own cost in the language server was not isolated: on castle fight
+  `checkProject`). The swap's own cost in the language server was not isolated: on Castle Fight
   without optimisations the first build of a model takes 21 s and later ones 11 to 12 s in one JVM, and
   the stage samples show most of the difference in passes the swap does not touch, so JIT warm-up. Next,
   keep the unchanged top-level declarations of a changed Jass file and re-check only the units which
@@ -241,7 +240,8 @@ Notes; finished-work narrative does not.
     ownership requires a restart. New
     snapshots also require a restart when compile-time evaluation observes integer object/handle identities;
     integer fields and keys cannot be relocated safely onto the live allocator.
-  - The first reload after a command-line start checks the whole model again (about 47 s on Castle Fight).
+  - The first reload after a command-line start previously checked the whole model again (about 47 s on Castle Fight).
+    Configured Jass body-only changes now reuse the checked project model. Remeasure the first reload on real maps.
     Generated object-data functions ship whole. Measure smaller representations without splitting effectful
     initialization incorrectly.
   - The 6 Nov harness smoke run proved VS Code save, refusal, recovery and matching game receipts on
