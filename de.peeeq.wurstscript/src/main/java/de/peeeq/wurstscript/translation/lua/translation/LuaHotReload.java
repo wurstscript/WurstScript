@@ -1034,8 +1034,9 @@ public final class LuaHotReload {
         List<Statement> initialisations = new ArrayList<>();
         Set<String> sentSlots = new LinkedHashSet<>(history.reboundSlots());
         Map<String, List<Statement>> packageValues = new LinkedHashMap<>();
-        InitializerIndex currentInitializerIndex = indexInitializers(current);
-        InitializerIndex baselineInitializerIndex = indexInitializers(baseline);
+        Map<InitializerSite, String> initializerMarkers = new HashMap<>();
+        InitializerIndex currentInitializerIndex = indexInitializers(current, initializerMarkers);
+        InitializerIndex baselineInitializerIndex = indexInitializers(baseline, initializerMarkers);
         Map<String, String> currentInitializers = currentInitializerIndex.byName();
         Map<String, String> baselineInitializers = baselineInitializerIndex.byName();
         for (String initializer : baselineInitializers.keySet()) {
@@ -1796,13 +1797,16 @@ public final class LuaHotReload {
 
     private record InitializerIndex(Map<String, String> byName, List<String> runOrder) {}
 
+    private record InitializerSite(String owner, String name) {}
+
     /** Index the fixed-width run keys by name and in the order the map runs them. */
-    private static InitializerIndex indexInitializers(Manifest manifest) {
+    private static InitializerIndex indexInitializers(Manifest manifest, Map<InitializerSite, String> markers) {
         Map<String, String> keysByName = new LinkedHashMap<>();
         Map<String, List<String>> keysByOwner = new LinkedHashMap<>();
         for (Statement s : manifest.statements()) {
             if (s.scope().equals("init") && s.kind().equals("global")) {
-                String key = runKey(s);
+                String key = markers.computeIfAbsent(new InitializerSite(s.owner(), s.key()),
+                    site -> runKey("init", site.owner(), site.name()));
                 keysByName.put(s.key(), key);
                 keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(key);
             }
