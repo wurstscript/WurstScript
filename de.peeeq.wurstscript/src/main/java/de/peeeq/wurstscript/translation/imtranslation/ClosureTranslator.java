@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -352,15 +353,30 @@ public class ClosureTranslator {
         Element argument = e;
         for (Element parent = e.getParent(); parent != null; argument = parent, parent = parent.getParent()) {
             if (!(parent instanceof Arguments args) || !(parent.getParent() instanceof FunctionCall call)) continue;
-            if (!(argument instanceof ExprClosure) || args.stream().allMatch(value -> value instanceof ExprClosure)) continue;
-            String key = registrationIdentity(call, tr);
+            if (!(argument instanceof ExprClosure)) continue;
+            String localReceiver = localReceiverName(call);
+            if (localReceiver == null && args.stream().allMatch(value -> value instanceof ExprClosure)) continue;
+            String key = registrationIdentity(call, tr, localReceiver);
             if (key != null) sites.append("_site").append(key).append("_argument").append(args.indexOf(argument));
         }
         return sites.toString();
     }
 
     static String registrationIdentity(FunctionCall call, ImTranslator tr) {
-        if (call instanceof ExprMemberMethod member) {
+        return registrationIdentity(call, tr, null);
+    }
+
+    /** A local receiver can name a callback site, but its setup cannot be replayed as an init action. */
+    private static @Nullable String localReceiverName(FunctionCall call) {
+        if (call instanceof ExprMemberMethodDot member && member.getLeft() instanceof ExprVarAccess access
+            && access.attrNameDef() instanceof LocalVarDef local && local.attrIsConstant()) {
+            return local.getName();
+        }
+        return null;
+    }
+
+    private static String registrationIdentity(FunctionCall call, ImTranslator tr, @Nullable String localReceiver) {
+        if (localReceiver == null && call instanceof ExprMemberMethod member) {
             // A static qualifier names the resolved declaration, not a runtime receiver. Dynamic receivers and
             // generic bindings need their own identities; do not guess those from the spelling of the qualifier.
             if (!(member instanceof ExprMemberMethodDot)
@@ -372,6 +388,9 @@ public class ClosureTranslator {
         }
         if (!call.getTypeArgs().isEmpty() || !tr.getFuncFor(call.attrFuncDef()).getTypeVariables().isEmpty()) return null;
         StringBuilder key = new StringBuilder(hotReloadOwnerIdentity(call.attrFuncDef(), tr));
+        if (localReceiver != null) {
+            key.append("receiver:").append(localReceiver.length()).append(':').append(localReceiver);
+        }
         boolean callback = false;
         for (int i = 0; i < call.getArgs().size(); i++) {
             Expr value = call.getArgs().get(i);

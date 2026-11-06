@@ -1244,6 +1244,34 @@ public class LuaHotReloadTests extends WurstScriptTest {
     }
 
     @Test
+    public void callbacksOnDistinctLocalReceiversKeepTheirLiveCaptures() {
+        String[] baseline = {
+            "package Test", "native hotReload()", "native testSuccess()", "native testFail(string message)",
+            "interface Callback", "    function run() returns int",
+            "class Button", "    Callback callback",
+            "function Button.onClick(Callback action)", "    this.callback = action",
+            "Button mainButton", "Button alternateButton",
+            "function setup(int seed)",
+            "    let main = new Button()", "    let alternate = new Button()",
+            "    mainButton = main", "    alternateButton = alternate",
+            "    main.onClick() ->\n        return seed + 1",
+            "init",
+            "    setup(10)",
+            "    hotReload()",
+            "    if mainButton.callback.run() != 12",
+            "        testFail(\"existing button lost its callback or captures\")",
+            "    setup(20)",
+            "    if mainButton.callback.run() != 22 or alternateButton.callback.run() != 120",
+            "        testFail(\"new buttons did not get their own callbacks\")",
+            "    testSuccess()"
+        };
+        String[] edited = baseline.clone();
+        edited[17] = "    alternate.onClick() ->\n        return seed + 100\n"
+            + "    main.onClick() ->\n        return seed + 2";
+        test().testLua(true).executeProg().luaHotReload(edited).lines(baseline);
+    }
+
+    @Test
     public void qualifiedStaticRegistrationsRunOnceWithoutRepeatingOldSetup() {
         test().testLua(true).executeProg().luaHotReload(qualifiedRegistrations(initEventCallbacks(true)))
             .lines(qualifiedRegistrations(initEventCallbacks(false)));
