@@ -312,8 +312,9 @@ public class ClosureTranslator {
 
     /**
      * The scopes and calls which enclose the closure, innermost first. With {@code collapseRepeats},
-     * a name which directly follows an equal one is left out, so a closure passed to a call inside
-     * a closure passed to the same call is named after that call once rather than once per level.
+     * a name which directly follows an equal one is usually left out. Hot reload retains repeated
+     * call names so a nested closure and its enclosing closure cannot share an identity just because
+     * they were passed to the same builder.
      * <p>
      * A method call whose receiver holds the closure is not named: it comes later in a call chain such as
      * {@code new Wave().modifier(x -> x + 1).hp(100)}, so adding or removing it must not rename the closure (which a
@@ -322,6 +323,8 @@ public class ClosureTranslator {
     private String makeNameSuffix(boolean collapseRepeats) {
         StringBuilder sb = new StringBuilder();
         String previous = null;
+        boolean previousCall = false;
+        boolean hotReload = tr.getRunArgs().isLuaHotReload();
         Element child = null;
         Element elem = this.e;
         while (elem != null) {
@@ -334,16 +337,18 @@ public class ClosureTranslator {
                 name = ((AstElementWithFuncName) elem).getFuncNameId().getName();
             }
             if (name != null) {
-                if (!collapseRepeats || !name.equals(previous)) {
+                boolean call = elem instanceof FunctionCall;
+                if (!collapseRepeats || !name.equals(previous) || (hotReload && call && previousCall)) {
                     sb.append("_");
                     sb.append(name);
                 }
                 previous = name;
+                previousCall = call;
             }
             child = elem;
             elem = elem.getParent();
         }
-        if (tr.getRunArgs().isLuaHotReload()) sb.append(hotReloadCallSites());
+        if (hotReload) sb.append(hotReloadCallSites());
         return sb.toString();
     }
 

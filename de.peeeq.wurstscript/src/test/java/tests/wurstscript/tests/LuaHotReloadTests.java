@@ -5028,6 +5028,32 @@ public class LuaHotReloadTests extends WurstScriptTest {
             .lines(chained(false, 1, 3));
     }
 
+    @Test
+    public void editingABuilderClosureCanIntroduceAnotherCallToTheSameBuilderInsideIt() {
+        String[] baseline = {
+            "package Test", "native hotReload()", "native testSuccess()", "native testFail(string message)",
+            "interface Op", "    function apply() returns int",
+            "function withParent(int parent, Op op) returns Op", "    return op",
+            "Op saved", "Op inner",
+            "function build(int parent, int seed)",
+            "    saved = withParent(parent) ->",
+            "        return seed + parent",
+            "init",
+            "    build(3, 4)",
+            "    if saved.apply() != 7",
+            "        testFail(\"baseline closure\")",
+            "    hotReload()",
+            "    if saved.apply() != 17",
+            "        testFail(\"edited outer closure lost its live captures\")",
+            "    testSuccess()"
+        };
+        String[] edited = baseline.clone();
+        edited[12] = "        inner = withParent(parent) ->\n"
+            + "            return seed + parent + 10\n"
+            + "        return inner.apply()";
+        test().testLua(true).executeProg().luaHotReload(edited).lines(baseline);
+    }
+
     /** Two closures of one chain stay apart: the edit of one reaches only that one. */
     @Test
     public void twoClosuresOfOneChainStayDistinct() {
