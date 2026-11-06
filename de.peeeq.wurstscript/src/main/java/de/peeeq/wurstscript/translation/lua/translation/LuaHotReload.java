@@ -1773,10 +1773,12 @@ public final class LuaHotReload {
     private static InitializerIndex indexInitializers(Manifest manifest, Map<InitializerSite, String> markers) {
         Map<String, String> keysByName = new LinkedHashMap<>();
         Map<String, List<String>> keysByOwner = new LinkedHashMap<>();
+        MessageDigest digest = newIdentityDigest();
+        java.util.function.Function<InitializerSite, String> markerFor =
+            site -> runKey("init", site.owner(), site.name(), digest);
         for (Statement s : manifest.statements()) {
             if (s.scope().equals("init") && s.kind().equals("global")) {
-                String key = markers.computeIfAbsent(new InitializerSite(s.owner(), s.key()),
-                    site -> runKey("init", site.owner(), site.name()));
+                String key = markers.computeIfAbsent(new InitializerSite(s.owner(), s.key()), markerFor);
                 keysByName.put(s.key(), key);
                 keysByOwner.computeIfAbsent(s.owner(), k -> new ArrayList<>()).add(key);
             }
@@ -2135,7 +2137,11 @@ public final class LuaHotReload {
     }
 
     private static String runKey(String scope, String owner, String key) {
-        return identityHash(scope + "\n" + owner + "\n" + key);
+        return runKey(scope, owner, key, newIdentityDigest());
+    }
+
+    private static String runKey(String scope, String owner, String key, MessageDigest digest) {
+        return identityHash(scope + "\n" + owner + "\n" + key, digest);
     }
 
     private static String describe(String scope) {
@@ -2369,9 +2375,16 @@ public final class LuaHotReload {
      * other declarations is rejected by the binding check.
      */
     public static String identityHash(String identity) {
+        return identityHash(identity, newIdentityDigest());
+    }
+
+    private static String identityHash(String identity, MessageDigest digest) {
+        return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, 6);
+    }
+
+    private static MessageDigest newIdentityDigest() {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(identity.getBytes(StandardCharsets.UTF_8)), 0, 6);
+            return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
