@@ -888,16 +888,26 @@ public final class LuaHotReload {
                 closureNames.addAll(c.tables().values());
             });
         }
-        Map<String, Integer> oldCounts = identityCounts(oldBindings);
-        Map<String, Integer> newCounts = identityCounts(currentBindings);
-        Map<String, Set<String>> oldNames = new HashMap<>();
-        oldBindings.forEach((name, id) -> oldNames.computeIfAbsent(id, k -> new HashSet<>()).add(name));
-        Set<String> identities = new TreeSet<>(oldCounts.keySet());
-        identities.addAll(newCounts.keySet());
+        Map<String, Integer> oldCounts = new HashMap<>();
+        oldBindings.values().forEach(id -> oldCounts.merge(id, 1, Integer::sum));
+        oldCounts.values().removeIf(count -> count < 2);
+        // Partial removal can only be ambiguous for a shared identity that closure lineage cannot handle.
+        Set<String> identities = new TreeSet<>();
+        oldBindings.forEach((name, id) -> {
+            if (oldCounts.containsKey(id) && !closureNames.contains(name)) {
+                identities.add(id);
+            }
+        });
+        Map<String, Integer> newCounts = new HashMap<>();
+        currentBindings.values().forEach(id -> {
+            if (identities.contains(id)) {
+                newCounts.merge(id, 1, Integer::sum);
+            }
+        });
         for (String id : identities) {
-            int before = oldCounts.getOrDefault(id, 0);
+            int before = oldCounts.get(id);
             int after = newCounts.getOrDefault(id, 0);
-            if (after < before && after > 0 && !closureNames.containsAll(oldNames.getOrDefault(id, Set.of()))) {
+            if (after < before && after > 0) {
                 reasons.add(before + " declarations share the identity " + id + " and are told apart by their order, and "
                     + (before - after) + " of them were removed while others remain: restart the map");
             }
@@ -2165,15 +2175,6 @@ public final class LuaHotReload {
         }
         shapes.addAll(Objects.requireNonNullElse(history.groupShapes(), Map.<String, List<String>>of()).getOrDefault(name, List.of()));
         return shapes;
-    }
-
-    /** How many names each identity has: more than one for the closures of one interface method in one function. */
-    private static Map<String, Integer> identityCounts(Map<String, String> bindings) {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        for (String id : bindings.values()) {
-            counts.merge(id, 1, Integer::sum);
-        }
-        return counts;
     }
 
     private static Map<String, String> bindingMap(List<String> bindings) {

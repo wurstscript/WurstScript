@@ -309,6 +309,9 @@ Notes; finished-work narrative does not.
   The follow-up profile found duplicate initializer marker hashing in the name and order indexes.
   Building both views from one hash per statement reduced warmed allocation from 175 MB to 148 MB
   in the paired Castle Fight run. The payload digest and warnings matched.
+  The partial-removal guard now counts current bindings only for shared baseline identities that include a
+  declaration outside closure lineage. Removing the per-identity name sets lowered warmed allocation from
+  148 MB to 128 MB in the same offline diff, with matching payload digest and warnings.
 
 - **Audit the remaining Lua emission for waste.** The Lua backend began as "make Lua mode usable", and
   recent fixes (`git log --grep "Lua"`) keep finding helper calls, allocations and dead bindings that
