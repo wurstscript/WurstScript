@@ -129,10 +129,11 @@ public final class MapCommitHotReloadProfile {
 
     private void run() throws Exception {
         Corpus corpus = JSON.fromJson(Files.readString(fixture.resolve("corpus.json")), Corpus.class);
-        int limit = Integer.parseInt(System.getProperty("profile.commitLimit", Integer.toString(corpus.pairs.size())));
+        List<Pair> pairs = selectPairs(corpus.pairs, System.getProperty("profile.commit"));
+        int limit = Integer.parseInt(System.getProperty("profile.commitLimit", Integer.toString(pairs.size())));
         if (limit <= 0) throw new IllegalArgumentException("profile.commitLimit must be positive");
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (Pair pair : corpus.pairs) {
+        for (Pair pair : pairs) {
             if (rows.size() >= limit) break;
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("commit", pair.commit); row.put("parent", pair.parent); row.put("title", pair.title);
@@ -205,6 +206,19 @@ public final class MapCommitHotReloadProfile {
                 throw new IllegalStateException("Commit replay failed; see " + fixture.resolve("results.json"));
             }
         }
+    }
+
+    private static List<Pair> selectPairs(List<Pair> pairs, String selector) {
+        if (selector == null) return pairs;
+        String prefix = selector.toLowerCase(Locale.ROOT);
+        if (prefix.isBlank()) throw new IllegalArgumentException("profile.commit must be a commit hash or prefix");
+        List<Pair> matches = pairs.stream().filter(pair -> pair.commit.startsWith(prefix)).toList();
+        if (matches.isEmpty()) throw new IllegalArgumentException("No replay commit matches " + selector);
+        if (matches.size() > 1) {
+            throw new IllegalArgumentException("Replay commit prefix " + selector + " is ambiguous: "
+                + matches.stream().map(Pair::commit).toList());
+        }
+        return matches;
     }
 
     private static double elapsed(long start) { return (System.nanoTime() - start) / 1_000_000.0; }
