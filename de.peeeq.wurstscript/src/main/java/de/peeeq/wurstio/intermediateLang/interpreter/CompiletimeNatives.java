@@ -35,6 +35,8 @@ import java.util.Set;
 
 @SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
+    public static final String BUILD_DATE_PROPERTY = "wurst.compiletime.buildDate";
+
     private final boolean isProd;
     private final ProgramStateIO globalState;
     private final WurstProjectConfigData projectConfigData;
@@ -188,7 +190,9 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public ILconstString getBuildDate() {
-        return ILconstString.fromText(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString());
+        String configured = System.getProperty(BUILD_DATE_PROPERTY);
+        LocalDateTime date = configured == null ? LocalDateTime.now() : LocalDateTime.parse(configured);
+        return ILconstString.fromText(date.truncatedTo(ChronoUnit.MINUTES).toString());
     }
 
     public ILconstBool isProductionBuild() {

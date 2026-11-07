@@ -57,6 +57,7 @@ allprojects {
             if (project.hasProperty('profileContinueOnError')) jvmArgs '-Dprofile.continueOnError=true'
             maxHeapSize = '6g'
             jvmArgs '-XX:+UseParallelGC'
+            if (project.hasProperty('profileBuildDate')) jvmArgs '-Dprofile.buildDate=' + project.property('profileBuildDate')
         }
         tasks.register('symbolHotReloadProfile', JavaExec) {
             dependsOn tasks.named('compileRunMapProfile')
