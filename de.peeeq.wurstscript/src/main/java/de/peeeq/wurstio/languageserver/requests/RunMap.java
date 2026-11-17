@@ -229,9 +229,15 @@ public class RunMap extends MapRequest {
             .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
         List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
-        renewBattleNetSignIn(gui, gameExe.toPath(), detectedGameVersion, cmd);
+        BattleNetSignIn.Renewal renewal = renewBattleNetSignIn(gui, gameExe.toPath(), detectedGameVersion, cmd);
         gui.sendProgress("running " + cmd);
-        Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+        try {
+            Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+        } catch (IOException | RuntimeException e) {
+            if (renewal != null) renewal.close();
+            throw e;
+        }
+        if (renewal != null) renewal.releaseWhenSignedIn();
     }
 
     /**
@@ -239,16 +245,20 @@ public class RunMap extends MapRequest {
      * Renews it from the Battle.net app first ({@link BattleNetSignIn}). {@code wc3LaunchMode} "auto" (the default)
      * renews when the app is open and otherwise launches on the stored token; "battlenet" asks the user to Retry,
      * Use Legacy Launch or Cancel when it cannot renew; "legacy" never renews.
+     *
+     * @return the renewal, which holds the Battle.net lock until the launched client has signed in; null without one
      */
-    private void renewBattleNetSignIn(WurstGui gui, Path executable, Optional<GameVersion> version, List<String> command) {
+    @Nullable
+    private BattleNetSignIn.Renewal renewBattleNetSignIn(WurstGui gui, Path executable, Optional<GameVersion> version,
+                                                         List<String> command) {
         String mode = langServer.getConfigProvider().getWc3LaunchMode();
         if ("legacy".equals(mode) || !Orient.isWindowsSystem() || !command.contains("-editor")
-            || version.filter(v -> v.compareTo(new GameVersion("3.0")) >= 0).isEmpty()) return;
+            || version.filter(v -> v.compareTo(new GameVersion("3.0")) >= 0).isEmpty()) return null;
         try {
-            if (!BattleNetSignIn.isRegisteredGame(executable)) return;
+            if (!BattleNetSignIn.isRegisteredGame(executable)) return null;
         } catch (IOException e) {
             WLogger.warning("Could not check the Battle.net installation: " + e.getMessage());
-            return;
+            return null;
         }
 
         boolean required = "battlenet".equals(mode);
@@ -258,18 +268,17 @@ public class RunMap extends MapRequest {
             if (battleNet.isPresent() && (required || battleNet.get().isRunning())) {
                 try {
                     gui.sendProgress("Renewing the Warcraft III sign-in from Battle.net...");
-                    battleNet.get().renew();
-                    return;
+                    return battleNet.get().renew();
                 } catch (IOException e) {
                     WLogger.warning("Could not renew the Warcraft III sign-in from Battle.net: " + e.getMessage());
                     problem = e.getMessage();
                 }
             }
             LanguageClient client = langServer.getLanguageClient();
-            if (!required || client == null) return; // launch on the stored sign-in, which may ask for a login
+            if (!required || client == null) return null; // launch on the stored sign-in, which may ask for a login
             switch (askBattleNet(client, problem + " Legacy launch may ask you to sign in.")) {
                 case "Retry" -> { }
-                case "Use Legacy Launch" -> { return; }
+                case "Use Legacy Launch" -> { return null; }
                 default -> throw new RequestFailedException(MessageType.Info, "Run canceled.");
             }
         }

@@ -6,6 +6,7 @@ import net.moonlightflower.wc3libs.port.Orient;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
@@ -40,7 +41,8 @@ import java.util.regex.Pattern;
  * client in. {@link #renew()} asks the app to start the game, closes that client before it spends the token, and
  * stores the token. The map is then launched directly, as without the app.
  *
- * <p>The wc3-e2e-harness does the same (docs/BattleNetSignIn.md there); both take the same localhost port as a lock.
+ * <p>The wc3-e2e-harness does the same (docs/BattleNetSignIn.md there). Both hold the same localhost port as a lock
+ * from the renewal until the launched client has signed in.
  */
 @SuppressWarnings("StringConcatToTextBlock") // Error Prone 2.50 crashes on this source under javac 27.
 public final class BattleNetSignIn {
@@ -52,6 +54,8 @@ public final class BattleNetSignIn {
     private static final long ASK_AGAIN_SECONDS = 25;
     /** The app writes the token and then starts the game; wait this long for that game so it is closed. */
     private static final long GAME_AFTER_TOKEN_SECONDS = 10;
+    /** How long the lock waits for the launched client to sign in; a client that takes longer has its own problems. */
+    static final long SIGN_IN_TIMEOUT_SECONDS = 120;
     private static final Pattern REG_BINARY = Pattern.compile("^\\s*(\\S+)\\s+REG_BINARY\\s+([0-9A-Fa-f]*)\\s*$", Pattern.MULTILINE);
 
     private final Path config;
@@ -106,54 +110,111 @@ public final class BattleNetSignIn {
     /**
      * Stores a token from the app as {@code EDITOR_TOKEN}. Throws, with a message for the user, when the app cannot
      * provide one: it is closed, signed out, updating, or running a client of its own.
+     *
+     * @return the renewal, which holds the Battle.net lock; launch the map, then call
+     *     {@link Renewal#releaseWhenSignedIn()}, or {@link Renewal#close()} if the launch fails
      */
-    void renew() throws IOException {
-        try (ServerSocket ignored = acquireGate()) {
-            if (!isRunning()) throw new IOException("Battle.net is not running.");
-            Set<Long> seen = new HashSet<>();
-            for (ProcessHandle game : games()) {
-                if (startedByLauncher(game)) {
-                    throw new IOException("Close the Warcraft III client started from Battle.net, then run the map again.");
-                }
-                seen.add(game.pid());
-            }
-            Optional<String> before = readBinary(LAUNCH_KEY, "WEB_TOKEN");
-            long start = System.nanoTime();
-            long askedAt = Long.MIN_VALUE;
-            String token = null;
-            long tokenAt = 0;
-            int closed = 0;
-            while (System.nanoTime() - start < TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS)) {
-                checkCancellation();
-                if (token == null && (askedAt == Long.MIN_VALUE
-                    || System.nanoTime() - askedAt >= TimeUnit.SECONDS.toNanos(ASK_AGAIN_SECONDS))) {
-                    askedAt = System.nanoTime();
-                    // An app that is still starting ignores the command, so it is repeated while waiting.
-                    startLauncher("--exec=launch W3");
-                }
-                for (ProcessHandle game : games()) {
-                    if (!seen.add(game.pid()) || !startedByLauncher(game)) continue;
-                    game.destroyForcibly();
-                    closed++;
-                }
-                if (token == null) {
-                    Optional<String> now = readBinary(LAUNCH_KEY, "WEB_TOKEN");
-                    if (now.isPresent() && !now.equals(before)) {
-                        token = now.get();
-                        tokenAt = System.nanoTime();
+    Renewal renew() throws IOException {
+        ServerSocket gate = acquireGate();
+        try {
+            return new Renewal(gate, renewLocked());
+        } catch (IOException | RuntimeException | Error ex) {
+            gate.close();
+            throw ex;
+        }
+    }
+
+    /**
+     * The Battle.net lock, held from the renewal until the launched client has signed in. Released earlier, another
+     * tool's renewal could replace {@code EDITOR_TOKEN} before this client read it, leaving two clients one token.
+     */
+    static final class Renewal implements AutoCloseable {
+        private final ServerSocket _gate;
+        private final String _token;
+
+        private Renewal(ServerSocket gate, String token) {
+            _gate = gate;
+            _token = token;
+        }
+
+        /**
+         * Releases the lock once the client has replaced {@code EDITOR_TOKEN}, which it does as it signs in, or after
+         * {@value #SIGN_IN_TIMEOUT_SECONDS} seconds. Does not block.
+         */
+        void releaseWhenSignedIn() {
+            Thread waiter = new Thread(() -> {
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SIGN_IN_TIMEOUT_SECONDS);
+                try {
+                    while (System.nanoTime() < deadline
+                        && readBinary(GAME_KEY, "EDITOR_TOKEN").filter(_token::equals).isPresent()) {
+                        Thread.sleep(500);
                     }
+                } catch (IOException | InterruptedException | RuntimeException ex) {
+                    WLogger.warning("Stopped waiting for the Warcraft III sign-in: " + ex.getMessage());
+                } finally {
+                    close();
                 }
-                if (token != null && (closed > 0
-                    || System.nanoTime() - tokenAt >= TimeUnit.SECONDS.toNanos(GAME_AFTER_TOKEN_SECONDS))) break;
-                pause(50);
+            }, "Battle.net sign-in lock");
+            waiter.setDaemon(true);
+            waiter.start();
+        }
+
+        @Override
+        public void close() {
+            try {
+                _gate.close();
+            } catch (IOException ex) {
+                WLogger.warning("Could not release the Battle.net lock: " + ex.getMessage());
+            }
+        }
+    }
+
+    private String renewLocked() throws IOException {
+        if (!isRunning()) throw new IOException("Battle.net is not running.");
+        Set<Long> seen = new HashSet<>();
+        for (ProcessHandle game : games()) {
+            if (startedByLauncher(game)) {
+                throw new IOException("Close the Warcraft III client started from Battle.net, then run the map again.");
+            }
+            seen.add(game.pid());
+        }
+        Optional<String> before = readBinary(LAUNCH_KEY, "WEB_TOKEN");
+        long start = System.nanoTime();
+        long askedAt = Long.MIN_VALUE;
+        String token = null;
+        long tokenAt = 0;
+        int closed = 0;
+        while (System.nanoTime() - start < TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS)) {
+            checkCancellation();
+            if (token == null && (askedAt == Long.MIN_VALUE
+                || System.nanoTime() - askedAt >= TimeUnit.SECONDS.toNanos(ASK_AGAIN_SECONDS))) {
+                askedAt = System.nanoTime();
+                // An app that is still starting ignores the command, so it is repeated while waiting.
+                startLauncher("--exec=launch W3");
+            }
+            for (ProcessHandle game : games()) {
+                if (!seen.add(game.pid()) || !startedByLauncher(game)) continue;
+                game.destroyForcibly();
+                closed++;
             }
             if (token == null) {
-                throw new IOException("Battle.net did not start Warcraft III. Check that it is signed in and the game is ready to play.");
+                Optional<String> now = readBinary(LAUNCH_KEY, "WEB_TOKEN");
+                if (now.isPresent() && !now.equals(before)) {
+                    token = now.get();
+                    tokenAt = System.nanoTime();
+                }
             }
-            writeBinary(GAME_KEY, "EDITOR_TOKEN", token);
-            WLogger.info("Renewed the Warcraft III sign-in from Battle.net in "
-                + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + " ms");
+            if (token != null && (closed > 0
+                || System.nanoTime() - tokenAt >= TimeUnit.SECONDS.toNanos(GAME_AFTER_TOKEN_SECONDS))) break;
+            pause(50);
         }
+        if (token == null) {
+            throw new IOException("Battle.net did not start Warcraft III. Check that it is signed in and the game is ready to play.");
+        }
+        writeBinary(GAME_KEY, "EDITOR_TOKEN", token);
+        WLogger.info("Renewed the Warcraft III sign-in from Battle.net in "
+            + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + " ms");
+        return token;
     }
 
     private static List<ProcessHandle> games() {
@@ -227,7 +288,8 @@ public final class BattleNetSignIn {
         while (true) {
             ServerSocket socket = new ServerSocket();
             try {
-                socket.bind(new InetSocketAddress("127.0.0.1", gatePort(config)));
+                // 127.0.0.1 exactly, as the harness binds it; the loopback name could resolve to ::1
+                socket.bind(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127, 0, 0, 1}), gatePort(config)));
                 return socket;
             } catch (BindException ex) {
                 socket.close();
