@@ -168,7 +168,8 @@ public final class BattleNetSignIn {
         Set<Long> seen = new HashSet<>();
         boolean[] asked = {false};
         try {
-            return new Renewal(gate, renewLocked(seen, asked));
+            String token = renewLocked(seen, asked);
+            return signInCheck(gate, token);
         } catch (IOException | RuntimeException | Error ex) {
             if (asked[0]) {
                 closeLateGames(gate, seen, LATE_GAME_SECONDS);
@@ -213,27 +214,37 @@ public final class BattleNetSignIn {
      * tool's renewal could replace {@code EDITOR_TOKEN} before this client read it, leaving two clients one token.
      */
     static final class Renewal implements AutoCloseable {
-        private final ServerSocket _gate;
-        private final @Nullable String _token;
+        /** Whether the launched client has replaced the renewed {@code EDITOR_TOKEN} yet. */
+        @FunctionalInterface
+        interface SignedIn {
+            /** @throws IOException when that can no longer be told */
+            boolean check() throws IOException;
+        }
 
-        /** @param token the renewed {@code EDITOR_TOKEN} as Wurst reads it; null when it could not be read */
-        private Renewal(ServerSocket gate, @Nullable String token) {
+        private final ServerSocket _gate;
+        private final SignedIn _signedIn;
+        private final Runnable _onClose;
+        private final long _pollMillis;
+
+        Renewal(ServerSocket gate, SignedIn signedIn, Runnable onClose, long pollMillis) {
             _gate = gate;
-            _token = token;
+            _signedIn = signedIn;
+            _onClose = onClose;
+            _pollMillis = pollMillis;
         }
 
         /**
          * Releases the lock once the client has replaced {@code EDITOR_TOKEN}, which it does as it signs in, or after
-         * {@value #SIGN_IN_TIMEOUT_SECONDS} seconds. Does not block. Wurst may read a packaged app's private copy of the
-         * registry, where the client's new token never shows; the lock is then held until the timeout.
+         * {@value #SIGN_IN_TIMEOUT_SECONDS} seconds. Does not block.
+         *
+         * @return the thread that waits, for tests
          */
-        void releaseWhenSignedIn() {
+        Thread releaseWhenSignedIn() {
             Thread waiter = new Thread(() -> {
                 long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SIGN_IN_TIMEOUT_SECONDS);
                 try {
-                    while (System.nanoTime() < deadline && (_token == null
-                        || readBinary(GAME_KEY, "EDITOR_TOKEN").filter(_token::equals).isPresent())) {
-                        Thread.sleep(500);
+                    while (System.nanoTime() < deadline && !_signedIn.check()) {
+                        Thread.sleep(_pollMillis);
                     }
                 } catch (IOException | InterruptedException | RuntimeException ex) {
                     WLogger.warning("Stopped waiting for the Warcraft III sign-in: " + ex.getMessage());
@@ -243,6 +254,7 @@ public final class BattleNetSignIn {
             }, "Battle.net sign-in lock");
             waiter.setDaemon(true);
             waiter.start();
+            return waiter;
         }
 
         @Override
@@ -252,7 +264,94 @@ public final class BattleNetSignIn {
             } catch (IOException ex) {
                 WLogger.warning("Could not release the Battle.net lock: " + ex.getMessage());
             }
+            _onClose.run();
         }
+    }
+
+    /**
+     * {@link #SIGNIN_SCRIPT} running in the user's own registry view, where the client replaces {@code EDITOR_TOKEN}
+     * as it signs in. Read from Wurst's own view, the token may never change: a packaged app's private copy keeps the
+     * old one.
+     */
+    static final class SignInWatcher {
+        private final @Nullable ProcessHandle _process;
+        private final Path _output;
+
+        SignInWatcher(@Nullable ProcessHandle process, Path output) {
+            _process = process;
+            _output = output;
+        }
+
+        private List<String> lines() {
+            return parseTokenScriptOutput(completeLines(readOutput(_output))).lines();
+        }
+
+        boolean ready() {
+            return lines().contains("ready");
+        }
+
+        /** True once the client has signed in; throws once the watcher has ended without seeing it. */
+        boolean signedIn() throws IOException {
+            boolean alive = _process != null && _process.isAlive();
+            // Read after the check, so a watcher that saw the sign-in and ended in between is not missed.
+            List<String> lines = lines();
+            if (lines.contains("signed-in")) return true;
+            if (lines.contains("timeout") || !alive) {
+                throw new IOException("the sign-in watcher ended (" + (lines.isEmpty() ? "no output" : lines.getLast()) + ")");
+            }
+            return false;
+        }
+
+        void stop() {
+            if (_process != null) {
+                _process.destroyForcibly();
+                try {
+                    _process.onExit().get(OUTPUT_RELEASE_SECONDS, TimeUnit.SECONDS);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException | TimeoutException ex) {
+                    // still running: the delete below falls back to deleteOnExit
+                }
+            }
+            try {
+                Files.deleteIfExists(_output);
+            } catch (IOException ex) {
+                _output.toFile().deleteOnExit();
+            }
+        }
+    }
+
+    /**
+     * The held lock, with how it tells that the launched client has signed in: from a {@link SignInWatcher} started
+     * outside Wurst's registry view, or, if that cannot start, by reading {@code EDITOR_TOKEN} from here. Called after
+     * the renewal and before the launch, so the token the watcher starts from is the renewed one.
+     *
+     * @param token the renewed {@code EDITOR_TOKEN} as Wurst reads it, for the fallback; null when unreadable
+     */
+    private static Renewal signInCheck(ServerSocket gate, @Nullable String token) {
+        SignInWatcher watcher = null;
+        try {
+            Path output = tempDir().resolve("wurst-battlenet-signin-" + UUID.randomUUID() + ".log");
+            List<String> command = List.of("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
+                "Bypass", "-Command", "& " + powerShellQuote(scriptCopy(SIGNIN_SCRIPT, tempDir()).toString())
+                    + " -TimeoutSeconds " + (SIGN_IN_TIMEOUT_SECONDS + 10) + " *> " + powerShellQuote(output.toString()));
+            long pid = OutsideStart.startOrHere(command, null, OutsideStart.Show.HIDDEN);
+            watcher = new SignInWatcher(ProcessHandle.of(pid).orElse(null), output);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SIGNIN_READY_SECONDS);
+            while (!watcher.ready() && System.nanoTime() < deadline) pause(50);
+            if (watcher.ready()) {
+                SignInWatcher started = watcher;
+                watcher = null;
+                return new Renewal(gate, started::signedIn, started::stop, 250);
+            }
+            WLogger.warning("The Warcraft III sign-in watcher did not start; watching from Wurst instead.");
+        } catch (IOException ex) {
+            WLogger.warning("Watching the Warcraft III sign-in from Wurst instead: " + ex.getMessage());
+        } finally {
+            if (watcher != null) watcher.stop();
+        }
+        return new Renewal(gate, () -> token == null
+            || readBinary(GAME_KEY, "EDITOR_TOKEN").filter(token::equals).isEmpty(), () -> { }, 500);
     }
 
     /**
@@ -427,6 +526,10 @@ public final class BattleNetSignIn {
 
     /** The renewal script, run in the user's own registry view. */
     static final String TOKEN_SCRIPT = "battlenet-token.ps1";
+    /** The sign-in watcher, run in the user's own registry view ({@link SignInWatcher}). */
+    static final String SIGNIN_SCRIPT = "battlenet-signin.ps1";
+    /** How long the sign-in watcher may take to start and read the renewed token before the game is launched. */
+    private static final long SIGNIN_READY_SECONDS = 15;
     /** The watcher that keeps the app's window out of sight during the renewal. */
     static final String WINDOW_SCRIPT = "battlenet-window.ps1";
     /** The watcher's limit without a client: every request the renewal may send, then a launch and a slow sign-in. */

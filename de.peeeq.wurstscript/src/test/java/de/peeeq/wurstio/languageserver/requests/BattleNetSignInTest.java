@@ -158,6 +158,83 @@ public class BattleNetSignInTest {
         return bytes;
     }
 
+    private static ServerSocket loopbackGate() throws Exception {
+        ServerSocket gate = new ServerSocket();
+        gate.bind(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127, 0, 0, 1}), 0));
+        return gate;
+    }
+
+    @Test
+    public void theLockIsReleasedOnceTheClientHasSignedInAndStopsTheWatcherWithIt() throws Exception {
+        ServerSocket gate = loopbackGate();
+        List<Boolean> reads = new java.util.ArrayList<>(List.of(false, false, true));
+        AtomicBoolean stopped = new AtomicBoolean();
+        Thread waiter = new BattleNetSignIn.Renewal(gate, () -> reads.removeFirst(), () -> stopped.set(true), 1)
+            .releaseWhenSignedIn();
+        waiter.join(10_000);
+        assertTrue(reads.isEmpty(), "polled until the client signed in");
+        assertTrue(gate.isClosed(), "the lock is released");
+        assertTrue(stopped.get(), "the sign-in watcher is stopped with the lock");
+    }
+
+    @Test
+    public void aSignInThatCanNoLongerBeWatchedReleasesTheLock() throws Exception {
+        ServerSocket gate = loopbackGate();
+        Thread waiter = new BattleNetSignIn.Renewal(gate, () -> {
+            throw new java.io.IOException("the sign-in watcher ended (timeout)");
+        }, () -> { }, 1).releaseWhenSignedIn();
+        waiter.join(10_000);
+        assertTrue(gate.isClosed());
+    }
+
+    @Test
+    public void aSignInWatcherThatEndedWithoutTheSignInIsNotTakenForOne() throws Exception {
+        Path output = Files.createTempFile("wurst-signin", ".log");
+        Files.write(output, utf16WithBom("ready\r\ntimeout\r\n"));
+        BattleNetSignIn.SignInWatcher watcher = new BattleNetSignIn.SignInWatcher(null, output);
+        assertTrue(watcher.ready());
+        expectThrows(java.io.IOException.class, watcher::signedIn);
+        Files.write(output, utf16WithBom("ready\r\nsigned-in\r\n"));
+        assertTrue(watcher.signedIn(), "a watcher that saw the sign-in and ended still reports it");
+        watcher.stop();
+        assertFalse(Files.exists(output), "stop removes its output");
+    }
+
+    @Test
+    public void theSignInWatcherReportsWhenTheTokenItStartedWithIsReplaced() throws Exception {
+        if (!Orient.isWindowsSystem()) throw new SkipException("Windows registry");
+        String key = "HKCU\\Software\\WurstScriptTests\\SignIn-" + java.util.UUID.randomUUID();
+        reg("add", key, "/v", "EDITOR_TOKEN", "/t", "REG_BINARY", "/d", "0102", "/f");
+        Path dir = Files.createTempDirectory("wurst signin watcher");
+        Path output = dir.resolve("out.log");
+        Path script = BattleNetSignIn.scriptCopy(BattleNetSignIn.SIGNIN_SCRIPT, dir);
+        Process process = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+            "-Command", "& " + BattleNetSignIn.powerShellQuote(script.toString()) + " -TimeoutSeconds 30 -Key "
+                + BattleNetSignIn.powerShellQuote(key.replaceFirst("^HKCU\\\\", "HKCU:\\\\")) + " *> "
+                + BattleNetSignIn.powerShellQuote(output.toString())).start();
+        BattleNetSignIn.SignInWatcher watcher = new BattleNetSignIn.SignInWatcher(process.toHandle(), output);
+        try {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+            while (!watcher.ready() && System.nanoTime() < deadline) Thread.sleep(50);
+            assertTrue(watcher.ready());
+            assertFalse(watcher.signedIn(), "the token it started with is still there");
+            reg("add", key, "/v", "EDITOR_TOKEN", "/t", "REG_BINARY", "/d", "0304", "/f");
+            while (!watcher.signedIn() && System.nanoTime() < deadline) Thread.sleep(50);
+            assertTrue(watcher.signedIn());
+        } finally {
+            watcher.stop();
+            reg("delete", key, "/f");
+        }
+        assertTrue(Files.readString(script).chars().allMatch(c -> c < 128), "Windows PowerShell reads a .ps1 without BOM as ANSI");
+    }
+
+    private static void reg(String... args) throws Exception {
+        List<String> command = new java.util.ArrayList<>(List.of("reg.exe"));
+        command.addAll(List.of(args));
+        assertEquals(new ProcessBuilder(command).redirectErrorStream(true)
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD).start().waitFor(), 0);
+    }
+
     @Test
     public void theWindowWatcherOutlivesEveryRequestOfASlowRenewal() {
         // The renewal asks the app again every 25 s for up to 90 s, and the app shows its window once more as the
