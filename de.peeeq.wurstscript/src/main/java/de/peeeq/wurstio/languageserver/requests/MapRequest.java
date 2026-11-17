@@ -933,32 +933,32 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     /**
-     * {@code -mergeobjects} writes whole tables of the bundled Warcraft III 3.x game data into the map. A classic
+     * {@code -slkobjects} writes whole tables of the bundled Warcraft III 3.x game data into the map. A classic
      * client would play its objects with that data and read rows its own tables do not have, so the merge needs a
      * Reforged target. Called before compiling, so a misconfigured build fails at once.
      */
     protected void requireObjectMergeTarget() {
-        if (!runArgs.isMergeObjects()) {
+        if (!runArgs.isSlkObjects()) {
             return;
         }
         Optional<WurstBuildConfig.Wc3Patch> patch = buildConfig.wc3Patch();
         if (patch.isPresent() && patch.get() != WurstBuildConfig.Wc3Patch.REFORGED) {
-            throw new RequestFailedException(MessageType.Error, "-mergeobjects needs a Reforged target, but wurst.build pins wc3Patch "
+            throw new RequestFailedException(MessageType.Error, "-slkobjects needs a Reforged target, but wurst.build pins wc3Patch "
                 + buildConfig.wc3PatchName().orElse(patch.get().name()) + ". The merge writes Reforged game data tables into the map.");
         }
     }
 
     /**
-     * With {@code -mergeobjects}, moves the object data of the map open in {@code mpq} into SLK tables and profile
+     * With {@code -slkobjects}, moves the object data of the map open in {@code mpq} into SLK tables and profile
      * files ({@link MapObjectMerger}). Only ever applied to a copy that is published or launched, never to the cached
      * map: the next build reads the object files of the cached map and compares them with the ones it generates.
      */
     protected void mergeObjectData(WurstGui gui, MpqEditor mpq) throws Exception {
-        if (!runArgs.isMergeObjects()) {
+        if (!runArgs.isSlkObjects()) {
             return;
         }
-        gui.sendProgress("Merging object data");
-        timeTaker.beginPhase("Merge object data");
+        gui.sendProgress("Moving object data into SLK tables");
+        timeTaker.beginPhase("Move object data into SLK tables");
         MapObjectMerger.merge(mpq);
         timeTaker.endPhase();
     }

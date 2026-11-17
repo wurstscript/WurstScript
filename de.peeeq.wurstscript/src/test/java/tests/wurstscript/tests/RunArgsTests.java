@@ -71,10 +71,10 @@ public class RunArgsTests {
 
     /** Merging object data into SLK and profile files is opt-in. */
     @Test
-    public void mergeObjectsIsOffUnlessRequested() {
-        Assert.assertFalse(new RunArgs().isMergeObjects());
-        Assert.assertFalse(new RunArgs("-injectobjects", "-exportw3o").isMergeObjects());
-        Assert.assertTrue(new RunArgs("-mergeobjects").isMergeObjects());
+    public void slkObjectsIsOffUnlessRequested() {
+        Assert.assertFalse(new RunArgs().isSlkObjects());
+        Assert.assertFalse(new RunArgs("-injectobjects", "-exportw3o").isSlkObjects());
+        Assert.assertTrue(new RunArgs("-slkobjects").isSlkObjects());
     }
 
     @Test

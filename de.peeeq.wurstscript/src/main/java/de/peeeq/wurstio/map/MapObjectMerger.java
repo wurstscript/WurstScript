@@ -19,7 +19,7 @@ import java.util.Map;
 
 /**
  * Moves a built map's object modifications ({@code war3map.w3u} and the others) into SLK tables and profile files
- * with wc3libs' {@link ObjMerger} ({@code -mergeobjects}). A map's table replaces the game's table of the same path,
+ * with wc3libs' {@link ObjMerger} ({@code -slkobjects}). A map's table replaces the game's table of the same path,
  * so whole tables are written, starting from the bundled game data of the data set the map's {@code war3map.w3i}
  * selects, under the tables and profile files the map already ships. What the formats cannot hold stays in a
  * residual object modification file.

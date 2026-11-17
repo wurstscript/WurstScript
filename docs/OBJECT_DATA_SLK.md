@@ -1,6 +1,6 @@
-# Merging object data into SLK tables
+# Moving object data into SLK tables (`-slkobjects`)
 
-Add `-mergeobjects` to `wurst_run.args` (or `+mergeobjects` to merge release builds
+Add `-slkobjects` to `wurst_run.args` (or `+slkobjects` for release builds
 only) to move the built map's object modifications (`war3map.w3u`, `.w3t`, `.w3b`,
 `.w3a`, `.w3h`, `.w3q`) into SLK tables and profile `.txt` files, which the game loads
 faster than it applies object modification files. The option is off by default and
@@ -17,7 +17,7 @@ A file left empty is removed. The build log lists how many objects were merged a
 each object that was kept with its reason.
 
 Only the published map is merged. A map build merges the output map in `_build`;
-Run Map launches a merged copy (`_build/cache/<cached map>_merged.w3x`). The cached map
+Run Map launches an SLK copy (`_build/cache/<cached map>_slk.w3x`). The cached map
 keeps its object files, because the next build compares them with the objects it
 generates.
 

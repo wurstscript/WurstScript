@@ -35,16 +35,16 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.expectThrows;
 
-/** {@code -mergeobjects}: the build moves the output map's object modifications into SLK tables and profile files. */
-public class MergeObjectsBuildTests {
+/** {@code -slkobjects}: the build moves the output map's object modifications into SLK tables and profile files. */
+public class SlkObjectsBuildTests {
     private static final String UNIT_BALANCE = "Units\\UnitBalance.slk";
     private static final String UNIT_FUNC = "Units\\CampaignUnitFunc.txt";
     private static final String BUFF_DATA = "Units\\AbilityBuffData.slk";
 
     @Test
-    public void mergeObjectsMovesTheObjectDataOfTheOutputMapIntoTables() throws Exception {
+    public void slkObjectsMovesTheObjectDataOfTheOutputMapIntoTables() throws Exception {
         Project project = new Project("v2.0");
-        File output = project.build("-mergeobjects");
+        File output = project.build("-slkobjects");
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(output), true)) {
             assertEquals(SlkTable.parse(mpq.extractFile(UNIT_BALANCE)).getRow("h000").get("HP"), "1234");
@@ -66,7 +66,7 @@ public class MergeObjectsBuildTests {
     }
 
     @Test
-    public void withoutMergeObjectsTheOutputMapKeepsItsObjectFiles() throws Exception {
+    public void withoutSlkObjectsTheOutputMapKeepsItsObjectFiles() throws Exception {
         Project project = new Project("v2.0");
         File output = project.build();
 
@@ -80,11 +80,11 @@ public class MergeObjectsBuildTests {
     }
 
     @Test
-    public void mergeObjectsRefusesAClassicTargetBeforeCompiling() throws Exception {
+    public void slkObjectsRefusesAClassicTargetBeforeCompiling() throws Exception {
         Project project = new Project("1.30");
-        RequestFailedException e = expectThrows(RequestFailedException.class, () -> project.build("-mergeobjects"));
+        RequestFailedException e = expectThrows(RequestFailedException.class, () -> project.build("-slkobjects"));
 
-        assertTrue(e.getMessage().contains("-mergeobjects needs a Reforged target"), e.getMessage());
+        assertTrue(e.getMessage().contains("-slkobjects needs a Reforged target"), e.getMessage());
         assertEquals(project.compilations.get(), 0);
     }
 
@@ -97,7 +97,7 @@ public class MergeObjectsBuildTests {
         final AtomicInteger compilations = new AtomicInteger();
 
         Project(String wc3Patch) throws Exception {
-            root = Files.createTempDirectory("wurst-merge-objects");
+            root = Files.createTempDirectory("wurst-slk-objects");
             Files.writeString(root.resolve(ProjectConfigBuilder.FILE_NAME), "projectName: Merge\nwc3Patch: " + wc3Patch + "\n");
             cachedMap = root.resolve("cached.w3x").toFile();
 

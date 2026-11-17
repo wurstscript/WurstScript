@@ -1,10 +1,10 @@
 ## 1.9 (in progress)
 
-- `-mergeobjects` (opt-in, in `wurst_run.args` or on the command line) moves a built map's object modifications into
+- `-slkobjects` (opt-in, in `wurst_run.args` or on the command line) moves a built map's object modifications into
   SLK tables and profile files with wc3libs' `ObjMerger`, which the game loads faster. Whatever the tables cannot
   hold stays in a smaller object file, and the build log reports what was merged and what was kept and why. Map
-  builds merge the output map and Run Map launches a merged copy; the cached map is left as it was. Classic
-  `wc3Patch` targets are refused. See `docs/OBJECT_DATA_MERGE.md`.
+  builds merge the output map and Run Map launches an SLK copy; the cached map is left as it was. Classic
+  `wc3Patch` targets are refused. See `docs/OBJECT_DATA_SLK.md`.
 
 - The local optimisations no longer skip the condition of an if whose branches both start with a return or a loop
   exit. The branch merger moved the equal first statement in front of the if, so `if eff(b) > 0 ... return else
