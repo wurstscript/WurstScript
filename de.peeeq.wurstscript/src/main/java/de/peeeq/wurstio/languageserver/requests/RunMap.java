@@ -230,15 +230,19 @@ public class RunMap extends MapRequest {
         List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
         BattleNetSignIn.Renewal renewal = renewBattleNetSignIn(gui, gameExe.toPath(), detectedGameVersion, cmd);
+        Process game;
         try {
             // Inside: a canceled run throws from the progress notification too, and must release the lock.
             gui.sendProgress("running " + cmd);
-            Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+            game = new ProcessBuilder(cmd).start();
         } catch (IOException | RuntimeException e) {
             if (renewal != null) renewal.close();
             throw e;
         }
-        if (renewal != null) renewal.releaseWhenSignedIn();
+        if (renewal != null) {
+            renewal.releaseWhenSignedIn();
+            BattleNetLaunchWindows.handOff(game);
+        }
     }
 
     /**
