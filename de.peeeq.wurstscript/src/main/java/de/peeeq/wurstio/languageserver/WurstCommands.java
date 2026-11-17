@@ -33,6 +33,7 @@ public class WurstCommands {
     public static final String WURST_BUILDMAP = "wurst.buildmap";
     public static final String WURST_EXPORT_W3O = "wurst.exportw3o";
     public static final String WURST_STARTLAST = "wurst.startlast";
+    public static final String WURST_RESTORE_BATTLENET = "wurst.restoreBattleNetLaunch";
     public static final String WURST_TESTS = "wurst.tests";
     public static final String WURST_TESTS_FILE = "wurst.tests_file";
     public static final String WURST_TESTS_FUNC = "wurst.tests_func";
@@ -54,6 +55,13 @@ public class WurstCommands {
                 return startMap(server, params, "-hotstart");
             case WURST_HOTRELOAD:
                 return startMap(server, params, "-hotreload");
+            case WURST_RESTORE_BATTLENET:
+                return server.worker().handle(new UserRequest<>() {
+                    @Override
+                    public Object execute(ModelManager modelManager) throws IOException {
+                        return BattleNetLaunch.restore();
+                    }
+                });
             case WURST_TESTS:
             case WURST_TESTS_FILE:
             case WURST_TESTS_FUNC:

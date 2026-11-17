@@ -1,6 +1,9 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -14,12 +17,16 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
+import org.eclipse.lsp4j.MessageActionItem;
+import org.eclipse.lsp4j.ShowMessageRequestParams;
+import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -222,8 +229,72 @@ public class RunMap extends MapRequest {
             .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
         List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
+        if (tryBattleNet(gui, gameExe.toPath(), Path.of(path), detectedGameVersion, cmd)) return;
         gui.sendProgress("running " + cmd);
         Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+    }
+
+    private boolean tryBattleNet(WurstGui gui, Path executable, Path mapPath,
+                                 Optional<GameVersion> version, List<String> legacyCommand) {
+        LanguageClient client = langServer.getLanguageClient();
+        if (client == null || !Orient.isWindowsSystem() || "legacy".equals(langServer.getConfigProvider().getWc3LaunchMode())
+            || version.filter(v -> v.compareTo(new GameVersion("3.0")) >= 0).isEmpty()) return false;
+
+        try {
+            if (!BattleNetLaunch.isRegisteredGame(executable)) return false;
+        } catch (IOException e) {
+            WLogger.warning("Could not check the Battle.net installation: " + e.getMessage());
+            return false;
+        }
+
+        List<String> gameArgs = legacyCommand.subList(1, legacyCommand.size() - 2);
+        while (true) {
+            Optional<BattleNetLaunch> battleNet = BattleNetLaunch.find();
+            String problem = "Open Battle.net and sign in to start Warcraft III without an in-game login. "
+                + "Legacy launch may ask you to sign in again.";
+            if (battleNet.isPresent() && battleNet.get().isRunning()) {
+                try {
+                    gui.sendProgress("Starting Warcraft III through Battle.net...");
+                    battleNet.get().launch(mapPath, gameArgs);
+                    return true;
+                } catch (IOException e) {
+                    WLogger.warning("Could not launch Warcraft III through Battle.net: " + e.getMessage());
+                    problem = e.getMessage() + " Legacy launch may ask you to sign in again.";
+                }
+            }
+            switch (askBattleNet(client, problem)) {
+                case "Retry" -> { }
+                case "Use Legacy Launch" -> { return false; }
+                default -> throw new RequestFailedException(MessageType.Info, "Run canceled.");
+            }
+        }
+    }
+
+    static String askBattleNet(LanguageClient client, String message) {
+        ShowMessageRequestParams prompt = new ShowMessageRequestParams();
+        prompt.setType(MessageType.Warning);
+        prompt.setMessage(message);
+        prompt.setActions(List.of(new MessageActionItem("Retry"), new MessageActionItem("Use Legacy Launch"),
+            new MessageActionItem("Cancel")));
+        var answer = client.showMessageRequest(prompt);
+        try {
+            while (true) {
+                CompilationCancellation.check();
+                try {
+                    MessageActionItem choice = answer.get(200, TimeUnit.MILLISECONDS);
+                    return choice == null ? "Cancel" : choice.getTitle();
+                } catch (TimeoutException ignored) {
+                    // The editor can take as long as the user needs to start Battle.net.
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException();
+        } catch (ExecutionException e) {
+            throw new RequestFailedException(MessageType.Error, "Could not ask how to launch Warcraft III.", e);
+        } finally {
+            if (!answer.isDone()) answer.cancel(false);
+        }
     }
 
     private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,

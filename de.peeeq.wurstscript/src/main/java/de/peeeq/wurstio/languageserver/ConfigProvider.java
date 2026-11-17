@@ -152,6 +152,10 @@ public class ConfigProvider {
         return Optional.ofNullable(getConfig("wc3RunArgs", null));
     }
 
+    public String getWc3LaunchMode() {
+        return getConfig("wc3LaunchMode", "auto");
+    }
+
     /**
      * The path where to put maps before running them
      */
