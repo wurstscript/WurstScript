@@ -55,8 +55,8 @@ import java.util.regex.Pattern;
  * its token where nothing else reads it; the script then sees the app start the game but no new token, and the user is
  * told to start Battle.net from the Start menu.
  *
- * <p>The wc3-e2e-harness does the same (docs/BattleNetSignIn.md there). Both hold the same localhost port as a lock
- * from the renewal until the launched client has signed in.
+ * <p>Every tool that renews this sign-in holds the same localhost port as a lock from the renewal until the launched
+ * client has signed in.
  */
 @SuppressWarnings("StringConcatToTextBlock") // Error Prone 2.50 crashes on this source under javac 27.
 public final class BattleNetSignIn {
@@ -425,9 +425,9 @@ public final class BattleNetSignIn {
         return Path.of(System.getProperty("java.io.tmpdir"));
     }
 
-    /** A copy of the wc3-e2e-harness {@code node/src/runner/battlenet-token.ps1}; keep them equal. */
+    /** The renewal script, run in the user's own registry view. */
     static final String TOKEN_SCRIPT = "battlenet-token.ps1";
-    /** A copy of the wc3-e2e-harness {@code node/src/runner/battlenet-window.ps1}; keep them equal. */
+    /** The watcher that keeps the app's window out of sight during the renewal. */
     static final String WINDOW_SCRIPT = "battlenet-window.ps1";
     /** The watcher's limit without a client: every request the renewal may send, then a launch and a slow sign-in. */
     static final long WINDOW_WATCH_SECONDS = TIMEOUT_SECONDS + 150;
@@ -540,7 +540,7 @@ public final class BattleNetSignIn {
         return parseBinary(readCommand(new ProcessBuilder("reg.exe", "query", key, "/v", value)), value);
     }
 
-    // The Node harness takes the same localhost port while it renews the sign-in.
+    // Every tool that renews this sign-in takes the same localhost port while it does.
     static int gatePort(Path config) {
         try {
             String key = config.toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT);
@@ -558,7 +558,7 @@ public final class BattleNetSignIn {
         while (true) {
             ServerSocket socket = new ServerSocket();
             try {
-                // 127.0.0.1 exactly, as the harness binds it; the loopback name could resolve to ::1
+                // 127.0.0.1 exactly, as every holder binds it; the loopback name could resolve to ::1
                 socket.bind(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127, 0, 0, 1}), gatePort(config)));
                 return socket;
             } catch (BindException ex) {

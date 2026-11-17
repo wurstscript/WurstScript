@@ -26,8 +26,6 @@ import java.util.stream.Collectors;
  * them started from inside such an app would keep it where the rest of the machine never sees it. A process created
  * through WMI ({@code Win32_Process.Create}) starts in the user's own context instead, in the same session and on the
  * same desktop.
- *
- * <p>The wc3-e2e-harness does the same ({@code startOutside} in node/src/runner/win32.cjs there).
  */
 final class OutsideStart {
     /** The {@code SW_} value WMI passes to the new process's first window. */

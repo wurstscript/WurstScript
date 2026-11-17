@@ -201,9 +201,9 @@ public class BattleNetSignInTest {
     }
 
     @Test
-    public void takesTheSameLockAsTheE2eHarness() {
+    public void takesTheSharedSignInLockPort() {
         if (!Orient.isWindowsSystem()) throw new SkipException("Battle.net paths are Windows paths");
-        // node/src/runner/battlenet.cjs in wc3-e2e-harness: 33000 + sha256(lower-cased path) as uint32 BE % 10000
+        // 33000 + sha256(lower-cased path) as uint32 BE % 10000, the port every tool that renews this sign-in binds
         assertEquals(BattleNetSignIn.gatePort(Path.of("C:\\Users\\tester\\AppData\\Roaming\\Battle.net\\Battle.net.config")), 36941);
     }
 
