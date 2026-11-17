@@ -1,6 +1,9 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
@@ -14,12 +17,16 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.translation.lua.translation.LuaHotReload;
+import de.peeeq.wurstscript.utils.CompilationCancellation;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
+import org.eclipse.lsp4j.MessageActionItem;
+import org.eclipse.lsp4j.ShowMessageRequestParams;
+import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -222,8 +229,87 @@ public class RunMap extends MapRequest {
             .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
         List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
-        gui.sendProgress("running " + cmd);
-        Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+        BattleNetSignIn.Renewal renewal = renewBattleNetSignIn(gui, gameExe.toPath(), detectedGameVersion, cmd);
+        try {
+            // Inside: a canceled run throws from the progress notification too, and must release the lock.
+            gui.sendProgress("running " + cmd);
+            Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+        } catch (IOException | RuntimeException e) {
+            if (renewal != null) renewal.close();
+            throw e;
+        }
+        if (renewal != null) renewal.releaseWhenSignedIn();
+    }
+
+    /**
+     * An {@code -editor} launch signs in with a stored token that lapses, after which the game asks for a login.
+     * Renews it from the Battle.net app first ({@link BattleNetSignIn}). {@code wc3LaunchMode} "auto" (the default)
+     * renews when the app is open and otherwise launches on the stored token; "battlenet" asks the user to Retry,
+     * Use Legacy Launch or Cancel when it cannot renew; "legacy" never renews.
+     *
+     * @return the renewal, which holds the Battle.net lock until the launched client has signed in; null without one
+     */
+    @Nullable
+    private BattleNetSignIn.Renewal renewBattleNetSignIn(WurstGui gui, Path executable, Optional<GameVersion> version,
+                                                         List<String> command) {
+        String mode = langServer.getConfigProvider().getWc3LaunchMode();
+        if ("legacy".equals(mode) || !Orient.isWindowsSystem() || !command.contains("-editor")
+            || version.filter(v -> v.compareTo(new GameVersion("3.0")) >= 0).isEmpty()) return null;
+        try {
+            if (!BattleNetSignIn.isRegisteredGame(executable)) return null;
+        } catch (IOException e) {
+            WLogger.warning("Could not check the Battle.net installation: " + e.getMessage());
+            return null;
+        }
+
+        boolean required = "battlenet".equals(mode);
+        while (true) {
+            Optional<BattleNetSignIn> battleNet = BattleNetSignIn.find();
+            String problem = "Open Battle.net and sign in so Warcraft III starts without an in-game login.";
+            if (battleNet.isPresent() && (required || battleNet.get().isRunning())) {
+                try {
+                    gui.sendProgress("Renewing the Warcraft III sign-in from Battle.net...");
+                    return battleNet.get().renew();
+                } catch (IOException e) {
+                    WLogger.warning("Could not renew the Warcraft III sign-in from Battle.net: " + e.getMessage());
+                    problem = e.getMessage();
+                }
+            }
+            LanguageClient client = langServer.getLanguageClient();
+            if (!required || client == null) return null; // launch on the stored sign-in, which may ask for a login
+            switch (askBattleNet(client, problem + " Legacy launch may ask you to sign in.")) {
+                case "Retry" -> { }
+                case "Use Legacy Launch" -> { return null; }
+                default -> throw new RequestFailedException(MessageType.Info, "Run canceled.");
+            }
+        }
+    }
+
+    static String askBattleNet(LanguageClient client, String message) {
+        ShowMessageRequestParams prompt = new ShowMessageRequestParams();
+        prompt.setType(MessageType.Warning);
+        prompt.setMessage(message);
+        prompt.setActions(List.of(new MessageActionItem("Retry"), new MessageActionItem("Use Legacy Launch"),
+            new MessageActionItem("Cancel")));
+        var answer = client.showMessageRequest(prompt);
+        try {
+            while (true) {
+                CompilationCancellation.check();
+                try {
+                    MessageActionItem choice = answer.get(200, TimeUnit.MILLISECONDS);
+                    return choice == null ? "Cancel" : choice.getTitle();
+                } catch (TimeoutException ignored) {
+                    // The editor can take as long as the user needs to start Battle.net.
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException();
+        } catch (ExecutionException e) {
+            throw new RequestFailedException(MessageType.Error, "Could not ask how to launch Warcraft III.", e);
+        } finally {
+            if (!answer.isDone()) answer.cancel(false);
+        }
     }
 
     private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,
