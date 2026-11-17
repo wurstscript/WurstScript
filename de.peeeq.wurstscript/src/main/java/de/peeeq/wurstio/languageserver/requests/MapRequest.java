@@ -19,6 +19,7 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstio.languageserver.WurstGuiLsp;
+import de.peeeq.wurstio.map.MapObjectMerger;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -882,6 +883,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
         }
 
+        requireObjectMergeTarget();
         mapLastModified = getSourceMapLastModified(map.get());
         mapPath = map.get().getAbsolutePath();
 
@@ -915,6 +917,8 @@ public abstract class MapRequest extends UserRequest<Object> {
                     // not be present in the distributed map.
                     if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
                     if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
+                    // Only the published copy: the cached map keeps its object files for the next incremental build.
+                    mergeObjectData(gui, mpq);
                     timeTaker.beginPhase("Finalize map");
                     mpq.closeWithCompression();
                     timeTaker.endPhase();
@@ -926,6 +930,37 @@ public abstract class MapRequest extends UserRequest<Object> {
         gui.sendProgress("Done.");
         timeTaker.printReport();
         return targetMapFile;
+    }
+
+    /**
+     * {@code -mergeobjects} writes whole tables of the bundled Warcraft III 3.x game data into the map. A classic
+     * client would play its objects with that data and read rows its own tables do not have, so the merge needs a
+     * Reforged target. Called before compiling, so a misconfigured build fails at once.
+     */
+    protected void requireObjectMergeTarget() {
+        if (!runArgs.isMergeObjects()) {
+            return;
+        }
+        Optional<WurstBuildConfig.Wc3Patch> patch = buildConfig.wc3Patch();
+        if (patch.isPresent() && patch.get() != WurstBuildConfig.Wc3Patch.REFORGED) {
+            throw new RequestFailedException(MessageType.Error, "-mergeobjects needs a Reforged target, but wurst.build pins wc3Patch "
+                + buildConfig.wc3PatchName().orElse(patch.get().name()) + ". The merge writes Reforged game data tables into the map.");
+        }
+    }
+
+    /**
+     * With {@code -mergeobjects}, moves the object data of the map open in {@code mpq} into SLK tables and profile
+     * files ({@link MapObjectMerger}). Only ever applied to a copy that is published or launched, never to the cached
+     * map: the next build reads the object files of the cached map and compares them with the ones it generates.
+     */
+    protected void mergeObjectData(WurstGui gui, MpqEditor mpq) throws Exception {
+        if (!runArgs.isMergeObjects()) {
+            return;
+        }
+        gui.sendProgress("Merging object data");
+        timeTaker.beginPhase("Merge object data");
+        MapObjectMerger.merge(mpq);
+        timeTaker.endPhase();
     }
 
     private void writeRequestedScript(CompilationResult result) throws IOException {

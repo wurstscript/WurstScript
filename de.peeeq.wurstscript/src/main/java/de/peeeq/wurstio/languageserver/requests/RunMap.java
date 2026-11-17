@@ -12,6 +12,8 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -114,6 +116,9 @@ public class RunMap extends MapRequest {
         if (map.isPresent() && !map.get().exists()) {
             throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
         }
+        if (!runArgs.isHotReload()) {
+            requireObjectMergeTarget();
+        }
 
         gui.sendProgress("Copying map");
 
@@ -177,6 +182,7 @@ public class RunMap extends MapRequest {
     private void startGame(WurstGui gui, CompilationResult result) throws Exception {
         Optional<File> cachedMapFile = Optional.ofNullable(getCachedMapFile());
         injectMapData(gui, cachedMapFile, result);
+        File launchMap = runArgs.isMergeObjects() ? mergedLaunchCopy(gui, cachedMapFile.get()) : cachedMapFile.get();
 
         timeTaker.beginPhase("Starting Warcraft 3");
         gui.sendProgress("Starting Warcraft 3...");
@@ -191,7 +197,7 @@ public class RunMap extends MapRequest {
         // Warcraft III folder, then retry with that selection (which also re-decides map placement).
         while (true) {
             try {
-                launchGame(gui, launchData, cachedMapFile.get());
+                launchGame(gui, launchData, launchMap);
                 timeTaker.endPhase();
                 timeTaker.printReport();
                 return;
@@ -203,6 +209,23 @@ public class RunMap extends MapRequest {
                 }
             }
         }
+    }
+
+    /** With {@code -mergeobjects} the game starts a merged copy of the cached map, which keeps its object files. */
+    private File mergedLaunchCopy(WurstGui gui, File cachedMap) throws Exception {
+        String name = cachedMap.getName();
+        int dot = name.lastIndexOf('.');
+        File target = ensureWritableTargetFile(
+            new File(cachedMap.getParentFile(), (dot > 0 ? name.substring(0, dot) : name) + "_merged.w3x"),
+            "Run Map",
+            "The merged run map file is in use and cannot be updated.\nClose Warcraft III and click Retry, choose Rename to use a temporary file name, or Cancel.",
+            "Run canceled because the merged map file is in use."
+        );
+        java.nio.file.Files.copy(cachedMap.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(target))) {
+            mergeObjectData(gui, mpq);
+        }
+        return target;
     }
 
     private void launchGame(WurstGui gui, W3InstallationData launchData, File cachedMapFile) throws IOException {

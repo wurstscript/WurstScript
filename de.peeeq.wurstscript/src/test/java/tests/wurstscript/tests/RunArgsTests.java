@@ -69,6 +69,14 @@ public class RunArgsTests {
         Assert.assertTrue(args.isLanguageServer());
     }
 
+    /** Merging object data into SLK and profile files is opt-in. */
+    @Test
+    public void mergeObjectsIsOffUnlessRequested() {
+        Assert.assertFalse(new RunArgs().isMergeObjects());
+        Assert.assertFalse(new RunArgs("-injectobjects", "-exportw3o").isMergeObjects());
+        Assert.assertTrue(new RunArgs("-mergeobjects").isMergeObjects());
+    }
+
     @Test
     public void supportsProgrammaticMutationAndAdditionalLibraries() {
         RunArgs args = new RunArgs();
