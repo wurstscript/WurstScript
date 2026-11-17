@@ -56,6 +56,8 @@ public final class BattleNetSignIn {
     private static final long GAME_AFTER_TOKEN_SECONDS = 10;
     /** How long the lock waits for the launched client to sign in; a client that takes longer has its own problems. */
     static final long SIGN_IN_TIMEOUT_SECONDS = 120;
+    /** How long a canceled renewal keeps closing the client it asked the app for, which may still be on its way. */
+    static final long LATE_GAME_SECONDS = 30;
     private static final Pattern REG_BINARY = Pattern.compile("^\\s*(\\S+)\\s+REG_BINARY\\s+([0-9A-Fa-f]*)\\s*$", Pattern.MULTILINE);
 
     private final Path config;
@@ -116,12 +118,47 @@ public final class BattleNetSignIn {
      */
     Renewal renew() throws IOException {
         ServerSocket gate = acquireGate();
+        Set<Long> seen = new HashSet<>();
+        boolean[] asked = {false};
         try {
-            return new Renewal(gate, renewLocked());
+            return new Renewal(gate, renewLocked(seen, asked));
         } catch (IOException | RuntimeException | Error ex) {
-            gate.close();
+            if (asked[0]) {
+                closeLateGames(gate, seen, LATE_GAME_SECONDS);
+            } else {
+                gate.close();
+            }
             throw ex;
         }
+    }
+
+    /**
+     * After a renewal that asked the app for a client and then failed or was canceled, that client may still open.
+     * Keeps the lock and closes such a client for {@code seconds} ({@value #LATE_GAME_SECONDS} in use), sparing every
+     * game in {@code seen}. Does not block.
+     */
+    static void closeLateGames(ServerSocket gate, Set<Long> seen, long seconds) {
+        Thread closer = new Thread(() -> {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
+            try {
+                while (System.nanoTime() < deadline) {
+                    for (ProcessHandle game : games()) {
+                        if (seen.add(game.pid()) && startedByLauncher(game)) game.destroyForcibly();
+                    }
+                    Thread.sleep(100);
+                }
+            } catch (InterruptedException | RuntimeException ex) {
+                WLogger.warning("Stopped watching for a Warcraft III client after a canceled renewal: " + ex.getMessage());
+            } finally {
+                try {
+                    gate.close();
+                } catch (IOException ex) {
+                    WLogger.warning("Could not release the Battle.net lock: " + ex.getMessage());
+                }
+            }
+        }, "Battle.net canceled renewal");
+        closer.setDaemon(true);
+        closer.start();
     }
 
     /**
@@ -169,9 +206,13 @@ public final class BattleNetSignIn {
         }
     }
 
-    private String renewLocked() throws IOException {
+    /**
+     * @param seen collects every client that is not this renewal's to close: those running before it, and those
+     *     already handled
+     * @param asked set once the app has been asked for a client
+     */
+    private String renewLocked(Set<Long> seen, boolean[] asked) throws IOException {
         if (!isRunning()) throw new IOException("Battle.net is not running.");
-        Set<Long> seen = new HashSet<>();
         for (ProcessHandle game : games()) {
             if (startedByLauncher(game)) {
                 throw new IOException("Close the Warcraft III client started from Battle.net, then run the map again.");
@@ -189,6 +230,7 @@ public final class BattleNetSignIn {
             if (token == null && (askedAt == Long.MIN_VALUE
                 || System.nanoTime() - askedAt >= TimeUnit.SECONDS.toNanos(ASK_AGAIN_SECONDS))) {
                 askedAt = System.nanoTime();
+                asked[0] = true;
                 // An app that is still starting ignores the command, so it is repeated while waiting.
                 startLauncher("--exec=launch W3");
             }

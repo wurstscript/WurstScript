@@ -8,14 +8,34 @@ import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Proxy;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class BattleNetSignInTest {
+    @Test
+    public void aCanceledRenewalKeepsTheLockWhileItWatchesForTheLateClient() throws Exception {
+        ServerSocket gate = new ServerSocket();
+        gate.bind(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127, 0, 0, 1}), 0));
+
+        BattleNetSignIn.closeLateGames(gate, new HashSet<>(), 1);
+
+        assertFalse(gate.isClosed(), "the lock is held while a late client may still appear");
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!gate.isClosed() && System.nanoTime() < deadline) Thread.sleep(50);
+        assertTrue(gate.isClosed(), "the lock is released once the watch ends");
+    }
+
     @Test
     public void readsOnlyTheRequestedBinaryValueFromRegQuery() {
         List<String> output = List.of(
