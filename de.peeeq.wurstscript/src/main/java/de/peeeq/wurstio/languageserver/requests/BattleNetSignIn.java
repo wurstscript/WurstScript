@@ -18,12 +18,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,11 +60,34 @@ public final class BattleNetSignIn {
     static final long SIGN_IN_TIMEOUT_SECONDS = 120;
     /** How long a canceled renewal keeps closing the client it asked the app for, which may still be on its way. */
     static final long LATE_GAME_SECONDS = 30;
+    /** Another holder renews (up to {@value #TIMEOUT_SECONDS} s) and waits for its client to sign in; outwait both. */
+    static final long GATE_WAIT_SECONDS = TIMEOUT_SECONDS + SIGN_IN_TIMEOUT_SECONDS + 30;
+
+    /**
+     * Another tool has held the renewal lock for longer than a renewal and a sign-in take. Not a reason to launch
+     * without it: that launch could spend the token the other tool's client has not read yet.
+     */
+    static final class LockBusyException extends IOException {
+        LockBusyException(String message) {
+            super(message);
+        }
+    }
+
+    /** What Run Map calls to renew; see {@link RunMap#renewOrRefuse}. */
+    @FunctionalInterface
+    interface Renewer {
+        Renewal renew(Runnable onWait) throws IOException;
+    }
     private static final Pattern REG_BINARY = Pattern.compile("^\\s*(\\S+)\\s+REG_BINARY\\s+([0-9A-Fa-f]*)\\s*$", Pattern.MULTILINE);
 
     private final Path config;
     private final Path gateDir;
     private final Path launcher;
+
+    /** A renewal for {@code config} whose launcher is never started; for tests that only touch the lock. */
+    static BattleNetSignIn forTest(Path config, Path gateDir) {
+        return new BattleNetSignIn(config, gateDir, Path.of("Battle.net.exe"));
+    }
 
     private BattleNetSignIn(Path config, Path gateDir, Path launcher) {
         this.config = config;
@@ -117,7 +142,16 @@ public final class BattleNetSignIn {
      *     {@link Renewal#releaseWhenSignedIn()}, or {@link Renewal#close()} if the launch fails
      */
     Renewal renew() throws IOException {
-        ServerSocket gate = acquireGate();
+        return renew(GATE_WAIT_SECONDS, () -> { });
+    }
+
+    /** @param onWait called once if another launch holds the lock and this one has to wait for it */
+    Renewal renew(Runnable onWait) throws IOException {
+        return renew(GATE_WAIT_SECONDS, onWait);
+    }
+
+    Renewal renew(long gateWaitSeconds, Runnable onWait) throws IOException {
+        ServerSocket gate = acquireGate(gateWaitSeconds, onWait);
         Set<Long> seen = new HashSet<>();
         boolean[] asked = {false};
         try {
@@ -220,6 +254,9 @@ public final class BattleNetSignIn {
             seen.add(game.pid());
         }
         Optional<String> before = readBinary(LAUNCH_KEY, "WEB_TOKEN");
+        // Asked to start the game, the app creates a window in front, and shows it again as the map's client signs
+        // in; the watcher hides it as it is created.
+        watchLauncherWindow();
         long start = System.nanoTime();
         long askedAt = Long.MIN_VALUE;
         String token = null;
@@ -257,6 +294,74 @@ public final class BattleNetSignIn {
         WLogger.info("Renewed the Warcraft III sign-in from Battle.net in "
             + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + " ms");
         return token;
+    }
+
+    /** A copy of the wc3-e2e-harness {@code node/src/runner/battlenet-window.ps1}; keep them equal. */
+    static final String WINDOW_SCRIPT = "battlenet-window.ps1";
+    /** The watcher's limit without a client: every request the renewal may send, then a launch and a slow sign-in. */
+    static final long WINDOW_WATCH_SECONDS = TIMEOUT_SECONDS + 150;
+    private static final long WINDOW_READY_SECONDS = 3;
+
+    /**
+     * The command that runs {@link #WINDOW_SCRIPT} with {@code arguments}, from a copy in {@code dir} named by its
+     * content (a file, not -EncodedCommand: encoded, the script is close to Windows' 32,767-character command line
+     * limit). Null when the script cannot be provided.
+     */
+    static List<String> windowWatcherCommand(List<String> arguments, Path dir) {
+        try (var in = BattleNetSignIn.class.getClassLoader().getResourceAsStream(WINDOW_SCRIPT)) {
+            if (in == null) return null;
+            byte[] script = in.readAllBytes();
+            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(script), 0, 6);
+            Path file = dir.resolve("wurst-battlenet-window-" + hash + ".ps1");
+            if (!Files.isRegularFile(file) || !Arrays.equals(Files.readAllBytes(file), script)) Files.write(file, script);
+            List<String> command = new ArrayList<>(List.of("powershell.exe", "-NoProfile", "-NonInteractive",
+                "-ExecutionPolicy", "Bypass", "-File", file.toString()));
+            command.addAll(arguments);
+            return command;
+        } catch (IOException | NoSuchAlgorithmException ex) {
+            WLogger.warning("Could not prepare the Battle.net window watcher: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Starts the app window watcher and waits until it has noted the windows already open (at most
+     * {@value #WINDOW_READY_SECONDS} s). It then runs on its own: it ends a minute after the map's client appears, past
+     * its sign-in, or after {@link #WINDOW_WATCH_SECONDS}. Best effort: a watcher that does not start only means the
+     * app's window may show. Run Map focuses its client itself ({@link BattleNetLaunchWindows}), so the watcher does not.
+     */
+    private static void watchLauncherWindow() {
+        List<String> command = windowWatcherCommand(List.of("-Seconds", String.valueOf(WINDOW_WATCH_SECONDS)),
+            Path.of(System.getProperty("java.io.tmpdir")));
+        if (command == null) return;
+        Process process;
+        try {
+            process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        } catch (IOException ex) {
+            WLogger.warning("Could not start the Battle.net window watcher: " + ex.getMessage());
+            return;
+        }
+        CountDownLatch ready = new CountDownLatch(1);
+        Thread reader = new Thread(() -> {
+            // The watcher prints nothing after "ready", so its output can be let go then.
+            try (var output = process.inputReader()) {
+                String line;
+                while ((line = output.readLine()) != null) {
+                    if (line.strip().equals("ready")) break;
+                }
+            } catch (IOException ignored) {
+                // A watcher that stopped early only means the app's window may show.
+            } finally {
+                ready.countDown();
+            }
+        }, "Battle.net window watcher");
+        reader.setDaemon(true);
+        reader.start();
+        try {
+            ready.await(WINDOW_READY_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static List<ProcessHandle> games() {
@@ -324,9 +429,10 @@ public final class BattleNetSignIn {
         }
     }
 
-    private ServerSocket acquireGate() throws IOException {
+    private ServerSocket acquireGate(long waitSeconds, Runnable onWait) throws IOException {
         Files.createDirectories(gateDir);
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(waitSeconds);
+        boolean waiting = false;
         while (true) {
             ServerSocket socket = new ServerSocket();
             try {
@@ -335,7 +441,16 @@ public final class BattleNetSignIn {
                 return socket;
             } catch (BindException ex) {
                 socket.close();
-                if (System.nanoTime() >= deadline) throw new IOException("Another Warcraft III test is using Battle.net.", ex);
+                if (!waiting) {
+                    waiting = true;
+                    onWait.run();
+                }
+                if (System.nanoTime() >= deadline) {
+                    LockBusyException busy = new LockBusyException(
+                        "Another Warcraft III launch has held the Battle.net sign-in for over " + waitSeconds + " s.");
+                    busy.initCause(ex);
+                    throw busy;
+                }
                 pause(250);
             } catch (IOException ex) {
                 socket.close();

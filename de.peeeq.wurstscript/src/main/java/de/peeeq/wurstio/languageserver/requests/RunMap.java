@@ -296,7 +296,8 @@ public class RunMap extends MapRequest {
             if (battleNet.isPresent() && (required || battleNet.get().isRunning())) {
                 try {
                     gui.sendProgress("Renewing the Warcraft III sign-in from Battle.net...");
-                    return battleNet.get().renew();
+                    return renewOrRefuse(battleNet.get()::renew,
+                        () -> gui.sendProgress("Another Warcraft III launch is signing in; waiting until it has..."));
                 } catch (IOException e) {
                     WLogger.warning("Could not renew the Warcraft III sign-in from Battle.net: " + e.getMessage());
                     problem = e.getMessage();
@@ -309,6 +310,19 @@ public class RunMap extends MapRequest {
                 case "Use Legacy Launch" -> { return null; }
                 default -> throw new RequestFailedException(MessageType.Info, "Run canceled.");
             }
+        }
+    }
+
+    /**
+     * Renews the sign-in, but never lets a busy lock pass as "could not renew": in "auto" that would launch without the
+     * lock, and that launch could spend the token another tool's client has not read yet. A busy lock fails the run in
+     * every mode; other failures are thrown on for the caller's fallback.
+     */
+    static BattleNetSignIn.Renewal renewOrRefuse(BattleNetSignIn.Renewer renewer, Runnable onWait) throws IOException {
+        try {
+            return renewer.renew(onWait);
+        } catch (BattleNetSignIn.LockBusyException e) {
+            throw new RequestFailedException(MessageType.Error, e.getMessage() + " Run the map again once it has signed in.");
         }
     }
 
