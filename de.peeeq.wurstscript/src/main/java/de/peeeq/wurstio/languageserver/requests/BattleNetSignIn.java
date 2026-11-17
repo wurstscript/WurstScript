@@ -28,7 +28,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +66,8 @@ public final class BattleNetSignIn {
     private static final long TIMEOUT_SECONDS = 90;
     /** How long past its own timeout the renewal script may take to start and to write its result. */
     private static final long SCRIPT_EXIT_GRACE_SECONDS = 30;
+    /** How long the renewal script may take to exit, and close its output file, after writing its result. */
+    private static final long OUTPUT_RELEASE_SECONDS = 5;
     /** How long the lock waits for the launched client to sign in; a client that takes longer has its own problems. */
     static final long SIGN_IN_TIMEOUT_SECONDS = 120;
     /** How long a canceled renewal keeps closing the client it asked the app for, which may still be on its way. */
@@ -355,8 +359,19 @@ public final class BattleNetSignIn {
         try {
             long pid = OutsideStart.startOrHere(tokenScriptCommand(script, launcher, TIMEOUT_SECONDS, output), null,
                 OutsideStart.Show.HIDDEN);
-            return awaitTokenScript(ProcessHandle.of(pid).orElse(null), output,
-                TIMEOUT_SECONDS + SCRIPT_EXIT_GRACE_SECONDS);
+            @Nullable ProcessHandle handle = ProcessHandle.of(pid).orElse(null);
+            TokenScriptResult result = awaitTokenScript(handle, output, TIMEOUT_SECONDS + SCRIPT_EXIT_GRACE_SECONDS);
+            // The script ends right after its result line; let it close the output file before that is removed.
+            if (handle != null) {
+                try {
+                    handle.onExit().get(OUTPUT_RELEASE_SECONDS, TimeUnit.SECONDS);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException | TimeoutException ex) {
+                    // still running: the delete below falls back to deleteOnExit
+                }
+            }
+            return result;
         } finally {
             try {
                 Files.deleteIfExists(output);
