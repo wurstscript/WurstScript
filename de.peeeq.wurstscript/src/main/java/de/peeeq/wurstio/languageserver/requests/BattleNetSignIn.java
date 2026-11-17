@@ -18,12 +18,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -252,6 +254,9 @@ public final class BattleNetSignIn {
             seen.add(game.pid());
         }
         Optional<String> before = readBinary(LAUNCH_KEY, "WEB_TOKEN");
+        // Asked to start the game, the app creates a window in front, and shows it again as the map's client signs
+        // in; the watcher hides it as it is created.
+        watchLauncherWindow();
         long start = System.nanoTime();
         long askedAt = Long.MIN_VALUE;
         String token = null;
@@ -289,6 +294,74 @@ public final class BattleNetSignIn {
         WLogger.info("Renewed the Warcraft III sign-in from Battle.net in "
             + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + " ms");
         return token;
+    }
+
+    /** A copy of the wc3-e2e-harness {@code node/src/runner/battlenet-window.ps1}; keep them equal. */
+    static final String WINDOW_SCRIPT = "battlenet-window.ps1";
+    /** The watcher's limit without a client: every request the renewal may send, then a launch and a slow sign-in. */
+    static final long WINDOW_WATCH_SECONDS = TIMEOUT_SECONDS + 150;
+    private static final long WINDOW_READY_SECONDS = 3;
+
+    /**
+     * The command that runs {@link #WINDOW_SCRIPT} with {@code arguments}, from a copy in {@code dir} named by its
+     * content (a file, not -EncodedCommand: encoded, the script is close to Windows' 32,767-character command line
+     * limit). Null when the script cannot be provided.
+     */
+    static List<String> windowWatcherCommand(List<String> arguments, Path dir) {
+        try (var in = BattleNetSignIn.class.getClassLoader().getResourceAsStream(WINDOW_SCRIPT)) {
+            if (in == null) return null;
+            byte[] script = in.readAllBytes();
+            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(script), 0, 6);
+            Path file = dir.resolve("wurst-battlenet-window-" + hash + ".ps1");
+            if (!Files.isRegularFile(file) || !Arrays.equals(Files.readAllBytes(file), script)) Files.write(file, script);
+            List<String> command = new ArrayList<>(List.of("powershell.exe", "-NoProfile", "-NonInteractive",
+                "-ExecutionPolicy", "Bypass", "-File", file.toString()));
+            command.addAll(arguments);
+            return command;
+        } catch (IOException | NoSuchAlgorithmException ex) {
+            WLogger.warning("Could not prepare the Battle.net window watcher: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Starts the app window watcher and waits until it has noted the windows already open (at most
+     * {@value #WINDOW_READY_SECONDS} s). It then runs on its own: it ends a minute after the map's client appears, past
+     * its sign-in, or after {@link #WINDOW_WATCH_SECONDS}. Best effort: a watcher that does not start only means the
+     * app's window may show. Run Map focuses its client itself ({@link BattleNetLaunchWindows}), so the watcher does not.
+     */
+    private static void watchLauncherWindow() {
+        List<String> command = windowWatcherCommand(List.of("-Seconds", String.valueOf(WINDOW_WATCH_SECONDS)),
+            Path.of(System.getProperty("java.io.tmpdir")));
+        if (command == null) return;
+        Process process;
+        try {
+            process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        } catch (IOException ex) {
+            WLogger.warning("Could not start the Battle.net window watcher: " + ex.getMessage());
+            return;
+        }
+        CountDownLatch ready = new CountDownLatch(1);
+        Thread reader = new Thread(() -> {
+            // The watcher prints nothing after "ready", so its output can be let go then.
+            try (var output = process.inputReader()) {
+                String line;
+                while ((line = output.readLine()) != null) {
+                    if (line.strip().equals("ready")) break;
+                }
+            } catch (IOException ignored) {
+                // A watcher that stopped early only means the app's window may show.
+            } finally {
+                ready.countDown();
+            }
+        }, "Battle.net window watcher");
+        reader.setDaemon(true);
+        reader.start();
+        try {
+            ready.await(WINDOW_READY_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static List<ProcessHandle> games() {

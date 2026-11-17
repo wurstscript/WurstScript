@@ -52,6 +52,29 @@ public class BattleNetSignInTest {
     }
 
     @Test
+    public void theWindowWatcherRunsFromACopyNamedByItsContent() throws Exception {
+        Path dir = Files.createTempDirectory("wurst-window-watcher");
+        List<String> command = BattleNetSignIn.windowWatcherCommand(List.of("-Seconds", "30"), dir);
+        assertEquals(command.subList(0, 6), List.of("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File"));
+        assertEquals(command.subList(7, command.size()), List.of("-Seconds", "30"));
+        Path file = Path.of(command.get(6));
+        assertEquals(file.getParent(), dir);
+        String script = Files.readString(file);
+        assertTrue(script.contains("param([int]$Seconds = 20, [int]$GameSeconds = 60, [switch]$FocusGame, [switch]$Log)"));
+        assertTrue(script.contains("\"ready\""), "the renewal waits for this line");
+        assertTrue(script.chars().allMatch(c -> c < 128), "Windows PowerShell reads a .ps1 without BOM as ANSI");
+        assertEquals(BattleNetSignIn.windowWatcherCommand(List.of(), dir).get(6), command.get(6), "the copy is reused");
+    }
+
+    @Test
+    public void theWindowWatcherOutlivesEveryRequestOfASlowRenewal() {
+        // The renewal asks the app again every 25 s for up to 90 s, and the app shows its window once more as the
+        // launched client signs in (up to 120 s); each can bring its window back.
+        assertTrue(BattleNetSignIn.WINDOW_WATCH_SECONDS >= 90 + BattleNetSignIn.SIGN_IN_TIMEOUT_SECONDS,
+            BattleNetSignIn.WINDOW_WATCH_SECONDS + " s");
+    }
+
+    @Test
     public void theRenewalLockOutwaitsAnotherRenewalAndItsSignIn() {
         assertTrue(BattleNetSignIn.GATE_WAIT_SECONDS > 90 + BattleNetSignIn.SIGN_IN_TIMEOUT_SECONDS,
             BattleNetSignIn.GATE_WAIT_SECONDS + " s");
