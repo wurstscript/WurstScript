@@ -69,11 +69,11 @@ final class BattleNetLaunchWindows {
             "-EncodedCommand", encoded);
     }
 
-    static void handOff(Process game) {
+    static void handOff(long gamePid) {
         Thread.ofVirtual().name("Battle.net window handoff").start(() -> {
-            if (!game.isAlive()) return;
+            if (ProcessHandle.of(gamePid).filter(ProcessHandle::isAlive).isEmpty()) return;
             try {
-                Process helper = new ProcessBuilder(command(game.pid()))
+                Process helper = new ProcessBuilder(command(gamePid))
                     .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                     .redirectError(ProcessBuilder.Redirect.DISCARD)
                     .start();

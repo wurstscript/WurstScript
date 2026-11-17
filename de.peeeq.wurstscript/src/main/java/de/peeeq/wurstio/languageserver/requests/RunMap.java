@@ -253,11 +253,11 @@ public class RunMap extends MapRequest {
         List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
         BattleNetSignIn.Renewal renewal = renewBattleNetSignIn(gui, gameExe.toPath(), detectedGameVersion, cmd);
-        Process game;
+        long game;
         try {
             // Inside: a canceled run throws from the progress notification too, and must release the lock.
             gui.sendProgress("running " + cmd);
-            game = new ProcessBuilder(cmd).start();
+            game = startGameProcess(cmd);
         } catch (IOException | RuntimeException e) {
             if (renewal != null) renewal.close();
             throw e;
@@ -266,6 +266,16 @@ public class RunMap extends MapRequest {
             renewal.releaseWhenSignedIn();
             BattleNetLaunchWindows.handOff(game);
         }
+    }
+
+    /**
+     * Starts the client and returns its pid. On Windows it starts in the user's own registry view, where the sign-in
+     * is renewed, whatever view Wurst has ({@link OutsideStart}); if WMI cannot start it, it starts from here.
+     */
+    private static long startGameProcess(List<String> cmd) throws IOException {
+        if (!Orient.isWindowsSystem()) return new ProcessBuilder(cmd).start().pid();
+        // The working directory Wurst would have given it, rather than WMI's (system32).
+        return OutsideStart.startOrHere(cmd, Path.of(System.getProperty("user.dir")), OutsideStart.Show.NORMAL);
     }
 
     /**

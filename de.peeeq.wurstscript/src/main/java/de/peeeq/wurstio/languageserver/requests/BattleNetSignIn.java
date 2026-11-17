@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.CompilationCancellation;
 import net.moonlightflower.wc3libs.port.Orient;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -24,9 +25,12 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,22 +44,30 @@ import java.util.regex.Pattern;
  *
  * <p>Just before the app starts the game it writes a one-time {@code WEB_TOKEN}
  * ({@code ...\Battle.net\Launch Options\W3}). Stored as {@code EDITOR_TOKEN}, that token signs the next {@code -editor}
- * client in. {@link #renew()} asks the app to start the game, closes that client before it spends the token, and
- * stores the token. The map is then launched directly, as without the app.
+ * client in. {@link #renew()} runs {@value #TOKEN_SCRIPT}, which asks the app to start the game, closes that client
+ * before it spends the token, and stores the token. The map is then launched directly, as without the app.
+ *
+ * <p>The app, the script and the map's client hand the sign-in to each other through {@code HKCU}, so all three must
+ * see the same registry. A process started from a packaged (MSIX) app, such as the Claude desktop app or an editor
+ * started from inside one, reads and writes {@code HKCU} through the package's private copy, and so does everything it
+ * starts. The script and the client therefore start through WMI, in the user's own registry view
+ * ({@link OutsideStart}), whatever view Wurst has. A Battle.net that was itself started from inside such an app writes
+ * its token where nothing else reads it; the script then sees the app start the game but no new token, and the user is
+ * told to start Battle.net from the Start menu.
  *
  * <p>The wc3-e2e-harness does the same (docs/BattleNetSignIn.md there). Both hold the same localhost port as a lock
  * from the renewal until the launched client has signed in.
  */
 @SuppressWarnings("StringConcatToTextBlock") // Error Prone 2.50 crashes on this source under javac 27.
 public final class BattleNetSignIn {
-    static final String LAUNCH_KEY = "HKCU\\Software\\Blizzard Entertainment\\Battle.net\\Launch Options\\W3";
     static final String GAME_KEY = "HKCU\\Software\\Blizzard Entertainment\\Warcraft III";
     private static final String LAUNCHER = "Battle.net.exe";
     private static final String GAME = "Warcraft III.exe";
     private static final long TIMEOUT_SECONDS = 90;
-    private static final long ASK_AGAIN_SECONDS = 25;
-    /** The app writes the token and then starts the game; wait this long for that game so it is closed. */
-    private static final long GAME_AFTER_TOKEN_SECONDS = 10;
+    /** How long past its own timeout the renewal script may take to start and to write its result. */
+    private static final long SCRIPT_EXIT_GRACE_SECONDS = 30;
+    /** How long the renewal script may take to exit, and close its output file, after writing its result. */
+    private static final long OUTPUT_RELEASE_SECONDS = 5;
     /** How long the lock waits for the launched client to sign in; a client that takes longer has its own problems. */
     static final long SIGN_IN_TIMEOUT_SECONDS = 120;
     /** How long a canceled renewal keeps closing the client it asked the app for, which may still be on its way. */
@@ -136,7 +148,8 @@ public final class BattleNetSignIn {
 
     /**
      * Stores a token from the app as {@code EDITOR_TOKEN}. Throws, with a message for the user, when the app cannot
-     * provide one: it is closed, signed out, updating, or running a client of its own.
+     * provide one: it is closed, signed out, updating, running a client of its own, or keeping its registry in a
+     * packaged app's private copy.
      *
      * @return the renewal, which holds the Battle.net lock; launch the map, then call
      *     {@link Renewal#releaseWhenSignedIn()}, or {@link Renewal#close()} if the launch fails
@@ -201,23 +214,25 @@ public final class BattleNetSignIn {
      */
     static final class Renewal implements AutoCloseable {
         private final ServerSocket _gate;
-        private final String _token;
+        private final @Nullable String _token;
 
-        private Renewal(ServerSocket gate, String token) {
+        /** @param token the renewed {@code EDITOR_TOKEN} as Wurst reads it; null when it could not be read */
+        private Renewal(ServerSocket gate, @Nullable String token) {
             _gate = gate;
             _token = token;
         }
 
         /**
          * Releases the lock once the client has replaced {@code EDITOR_TOKEN}, which it does as it signs in, or after
-         * {@value #SIGN_IN_TIMEOUT_SECONDS} seconds. Does not block.
+         * {@value #SIGN_IN_TIMEOUT_SECONDS} seconds. Does not block. Wurst may read a packaged app's private copy of the
+         * registry, where the client's new token never shows; the lock is then held until the timeout.
          */
         void releaseWhenSignedIn() {
             Thread waiter = new Thread(() -> {
                 long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SIGN_IN_TIMEOUT_SECONDS);
                 try {
-                    while (System.nanoTime() < deadline
-                        && readBinary(GAME_KEY, "EDITOR_TOKEN").filter(_token::equals).isPresent()) {
+                    while (System.nanoTime() < deadline && (_token == null
+                        || readBinary(GAME_KEY, "EDITOR_TOKEN").filter(_token::equals).isPresent())) {
                         Thread.sleep(500);
                     }
                 } catch (IOException | InterruptedException | RuntimeException ex) {
@@ -243,59 +258,175 @@ public final class BattleNetSignIn {
     /**
      * @param seen collects every client that is not this renewal's to close: those running before it, and those
      *     already handled
-     * @param asked set once the app has been asked for a client
+     * @param asked set once the app may have been asked for a client
+     * @return the renewed {@code EDITOR_TOKEN} as Wurst reads it, to see the client replace it; null if unreadable
      */
-    private String renewLocked(Set<Long> seen, boolean[] asked) throws IOException {
+    private @Nullable String renewLocked(Set<Long> seen, boolean[] asked) throws IOException {
         if (!isRunning()) throw new IOException("Battle.net is not running.");
         for (ProcessHandle game : games()) {
-            if (startedByLauncher(game)) {
-                throw new IOException("Close the Warcraft III client started from Battle.net, then run the map again.");
-            }
+            if (startedByLauncher(game)) throw new IOException(APP_GAME_RUNNING);
             seen.add(game.pid());
         }
-        Optional<String> before = readBinary(LAUNCH_KEY, "WEB_TOKEN");
+        Path script = scriptCopy(TOKEN_SCRIPT, tempDir());
         // Asked to start the game, the app creates a window in front, and shows it again as the map's client signs
         // in; the watcher hides it as it is created.
         watchLauncherWindow();
         long start = System.nanoTime();
-        long askedAt = Long.MIN_VALUE;
-        String token = null;
-        long tokenAt = 0;
-        int closed = 0;
-        while (System.nanoTime() - start < TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS)) {
-            checkCancellation();
-            if (token == null && (askedAt == Long.MIN_VALUE
-                || System.nanoTime() - askedAt >= TimeUnit.SECONDS.toNanos(ASK_AGAIN_SECONDS))) {
-                askedAt = System.nanoTime();
-                asked[0] = true;
-                // An app that is still starting ignores the command, so it is repeated while waiting.
-                startLauncher("--exec=launch W3");
-            }
-            for (ProcessHandle game : games()) {
-                if (!seen.add(game.pid()) || !startedByLauncher(game)) continue;
-                game.destroyForcibly();
-                closed++;
-            }
-            if (token == null) {
-                Optional<String> now = readBinary(LAUNCH_KEY, "WEB_TOKEN");
-                if (now.isPresent() && !now.equals(before)) {
-                    token = now.get();
-                    tokenAt = System.nanoTime();
-                }
-            }
-            if (token != null && (closed > 0
-                || System.nanoTime() - tokenAt >= TimeUnit.SECONDS.toNanos(GAME_AFTER_TOKEN_SECONDS))) break;
-            pause(50);
+        asked[0] = true;
+        TokenScriptResult result = runTokenScript(script);
+        String problem = problem(result);
+        if (problem != null) {
+            // The script found a client the app started after the check above, and asked for nothing. That client is
+            // the user's, so no late client is closed.
+            if ("app-game-running".equals(result.outcome())) asked[0] = false;
+            WLogger.info("The Battle.net sign-in renewal ended with: " + String.join(" | ", result.lines()));
+            throw new IOException(problem);
         }
-        if (token == null) {
-            throw new IOException("Battle.net did not start Warcraft III. Check that it is signed in and the game is ready to play.");
-        }
-        writeBinary(GAME_KEY, "EDITOR_TOKEN", token);
         WLogger.info("Renewed the Warcraft III sign-in from Battle.net in "
             + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + " ms");
-        return token;
+        try {
+            return readBinary(GAME_KEY, "EDITOR_TOKEN").orElse(null);
+        } catch (IOException ex) {
+            WLogger.warning("Could not read the renewed Warcraft III sign-in: " + ex.getMessage());
+            return null;
+        }
     }
 
+    static final String APP_GAME_RUNNING = "Close the Warcraft III client started from Battle.net, then run the map again.";
+
+    /** What {@link #TOKEN_SCRIPT} printed: its outcome, null until its {@code result} line, and every line. */
+    record TokenScriptResult(@Nullable String outcome, List<String> lines) {
+    }
+
+    private static final Pattern RESULT = Pattern.compile("result (\\S+)");
+
+    static TokenScriptResult parseTokenScriptOutput(String output) {
+        List<String> lines = output.lines().map(String::strip).filter(line -> !line.isEmpty()).toList();
+        String outcome = lines.stream().map(RESULT::matcher).filter(Matcher::matches)
+            .map(matcher -> matcher.group(1)).findFirst().orElse(null);
+        return new TokenScriptResult(outcome, lines);
+    }
+
+    /**
+     * The complete lines of a script's redirected output: Windows PowerShell writes UTF-16 with a byte order mark, and
+     * a line still being written could read as a different result.
+     */
+    static String completeLines(byte[] output) {
+        boolean utf16 = output.length >= 2 && (output[0] & 0xff) == 0xff && (output[1] & 0xff) == 0xfe;
+        String text = utf16 ? new String(output, 2, output.length - 2, StandardCharsets.UTF_16LE)
+            : new String(output, StandardCharsets.UTF_8);
+        return text.substring(0, text.lastIndexOf('\n') + 1);
+    }
+
+    /** The message for the user when the renewal did not succeed; null when it did. */
+    static @Nullable String problem(TokenScriptResult result) {
+        return switch (Objects.requireNonNullElse(result.outcome(), "")) {
+            case "refreshed" -> null;
+            case "no-token" -> "Battle.net did not start Warcraft III. Check that it is signed in and the game is ready to play.";
+            case "app-game-running" -> APP_GAME_RUNNING;
+            case "token-not-visible" -> "Battle.net started Warcraft III, but wrote its sign-in where other programs cannot"
+                + " read it, probably because Battle.net was started from a packaged app (such as the Claude desktop app)."
+                + " Quit Battle.net from its tray icon and start it from the Start menu.";
+            default -> {
+                List<String> lines = result.lines();
+                yield "The Battle.net sign-in renewal failed: " + (lines.isEmpty() ? "it printed nothing"
+                    : String.join(" | ", lines.subList(Math.max(0, lines.size() - 3), lines.size()))) + ".";
+            }
+        };
+    }
+
+    /** A PowerShell single-quoted string literal. PowerShell also reads the typographic single quotes as quotes. */
+    static String powerShellQuote(String text) {
+        return "'" + text.replaceAll("['\\u2018\\u2019\\u201A\\u201B]", "$0$0") + "'";
+    }
+
+    /**
+     * The command that runs {@code script} and redirects everything it prints to {@code output}. Started outside, the
+     * script's output cannot come back through a pipe, so it goes to a file.
+     */
+    static List<String> tokenScriptCommand(Path script, Path launcher, long timeoutSeconds, Path output) {
+        return List.of("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command",
+            "& " + powerShellQuote(script.toString()) + " -BattleNetExe " + powerShellQuote(launcher.toString())
+                + " -TimeoutSeconds " + timeoutSeconds + " *> " + powerShellQuote(output.toString()));
+    }
+
+    /**
+     * Runs {@link #TOKEN_SCRIPT} hidden in the user's own registry view, where the app writes {@code WEB_TOKEN} and the
+     * client reads {@code EDITOR_TOKEN}, whatever view Wurst has. Only if WMI cannot start it does it run from here.
+     */
+    private TokenScriptResult runTokenScript(Path script) throws IOException {
+        Path output = tempDir().resolve("wurst-battlenet-renewal-" + UUID.randomUUID() + ".log");
+        try {
+            long pid = OutsideStart.startOrHere(tokenScriptCommand(script, launcher, TIMEOUT_SECONDS, output), null,
+                OutsideStart.Show.HIDDEN);
+            @Nullable ProcessHandle handle = ProcessHandle.of(pid).orElse(null);
+            TokenScriptResult result = awaitTokenScript(handle, output, TIMEOUT_SECONDS + SCRIPT_EXIT_GRACE_SECONDS);
+            // The script ends right after its result line; let it close the output file before that is removed.
+            if (handle != null) {
+                try {
+                    handle.onExit().get(OUTPUT_RELEASE_SECONDS, TimeUnit.SECONDS);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException | TimeoutException ex) {
+                    // still running: the delete below falls back to deleteOnExit
+                }
+            }
+            return result;
+        } finally {
+            try {
+                Files.deleteIfExists(output);
+            } catch (IOException ex) {
+                output.toFile().deleteOnExit();
+            }
+        }
+    }
+
+    /**
+     * Waits for the script's result line, or for the script to end. Ends the script if it outlives
+     * {@code timeoutSeconds} or the run is canceled; a canceled renewal then closes the client the script may still
+     * have coming ({@link #closeLateGames}).
+     *
+     * @param script null when it has ended already
+     */
+    static TokenScriptResult awaitTokenScript(@Nullable ProcessHandle script, Path output, long timeoutSeconds) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
+        boolean done = false;
+        try {
+            while (true) {
+                // Read after the check, so a script that wrote its result and ended in between is not missed.
+                boolean running = script != null && script.isAlive();
+                TokenScriptResult result = parseTokenScriptOutput(completeLines(readOutput(output)));
+                if (result.outcome() != null || !running) {
+                    done = true;
+                    return result;
+                }
+                if (System.nanoTime() >= deadline) {
+                    List<String> lines = new ArrayList<>(result.lines());
+                    lines.add("the renewal script did not finish");
+                    return new TokenScriptResult(null, lines);
+                }
+                checkCancellation();
+                pause(250);
+            }
+        } finally {
+            if (!done && script != null) script.destroyForcibly();
+        }
+    }
+
+    private static byte[] readOutput(Path output) {
+        try {
+            return Files.readAllBytes(output);
+        } catch (IOException ex) {
+            return new byte[0]; // not created yet
+        }
+    }
+
+    private static Path tempDir() {
+        return Path.of(System.getProperty("java.io.tmpdir"));
+    }
+
+    /** A copy of the wc3-e2e-harness {@code node/src/runner/battlenet-token.ps1}; keep them equal. */
+    static final String TOKEN_SCRIPT = "battlenet-token.ps1";
     /** A copy of the wc3-e2e-harness {@code node/src/runner/battlenet-window.ps1}; keep them equal. */
     static final String WINDOW_SCRIPT = "battlenet-window.ps1";
     /** The watcher's limit without a client: every request the renewal may send, then a launch and a slow sign-in. */
@@ -303,22 +434,36 @@ public final class BattleNetSignIn {
     private static final long WINDOW_READY_SECONDS = 3;
 
     /**
-     * The command that runs {@link #WINDOW_SCRIPT} with {@code arguments}, from a copy in {@code dir} named by its
-     * content (a file, not -EncodedCommand: encoded, the script is close to Windows' 32,767-character command line
-     * limit). Null when the script cannot be provided.
+     * A copy of the resource {@code script} in {@code dir}, named by its content (a file, not -EncodedCommand: encoded,
+     * the window watcher is close to Windows' 32,767-character command line limit), so a Wurst update never runs an
+     * older copy.
+     */
+    static Path scriptCopy(String script, Path dir) throws IOException {
+        try (var in = BattleNetSignIn.class.getClassLoader().getResourceAsStream(script)) {
+            if (in == null) throw new IOException(script + " is missing from Wurst");
+            byte[] content = in.readAllBytes();
+            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content), 0, 6);
+            String name = script.substring(0, script.length() - ".ps1".length());
+            Path file = dir.resolve("wurst-" + name + "-" + hash + ".ps1");
+            if (!Files.isRegularFile(file) || !Arrays.equals(Files.readAllBytes(file), content)) Files.write(file, content);
+            return file;
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    /**
+     * The command that runs {@link #WINDOW_SCRIPT} with {@code arguments}, from a copy in {@code dir}
+     * ({@link #scriptCopy}). Null when the script cannot be provided.
      */
     static List<String> windowWatcherCommand(List<String> arguments, Path dir) {
-        try (var in = BattleNetSignIn.class.getClassLoader().getResourceAsStream(WINDOW_SCRIPT)) {
-            if (in == null) return null;
-            byte[] script = in.readAllBytes();
-            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(script), 0, 6);
-            Path file = dir.resolve("wurst-battlenet-window-" + hash + ".ps1");
-            if (!Files.isRegularFile(file) || !Arrays.equals(Files.readAllBytes(file), script)) Files.write(file, script);
+        try {
+            Path file = scriptCopy(WINDOW_SCRIPT, dir);
             List<String> command = new ArrayList<>(List.of("powershell.exe", "-NoProfile", "-NonInteractive",
                 "-ExecutionPolicy", "Bypass", "-File", file.toString()));
             command.addAll(arguments);
             return command;
-        } catch (IOException | NoSuchAlgorithmException ex) {
+        } catch (IOException ex) {
             WLogger.warning("Could not prepare the Battle.net window watcher: " + ex.getMessage());
             return null;
         }
@@ -393,29 +538,6 @@ public final class BattleNetSignIn {
 
     private static Optional<String> readBinary(String key, String value) throws IOException {
         return parseBinary(readCommand(new ProcessBuilder("reg.exe", "query", key, "/v", value)), value);
-    }
-
-    private static void writeBinary(String key, String value, String hex) throws IOException {
-        Process process = new ProcessBuilder("reg.exe", "add", key, "/v", value, "/t", "REG_BINARY", "/d", hex, "/f")
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
-        try {
-            if (!process.waitFor(8, TimeUnit.SECONDS) || process.exitValue() != 0) {
-                process.destroyForcibly();
-                throw new IOException("Could not store the Warcraft III sign-in.");
-            }
-        } catch (InterruptedException ex) {
-            process.destroyForcibly();
-            Thread.currentThread().interrupt();
-            throw new CancellationException();
-        }
-    }
-
-    private void startLauncher(String... args) throws IOException {
-        List<String> command = new ArrayList<>();
-        command.add(launcher.toString());
-        command.addAll(List.of(args));
-        new ProcessBuilder(command).redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.DISCARD).start();
     }
 
     // The Node harness takes the same localhost port while it renews the sign-in.
