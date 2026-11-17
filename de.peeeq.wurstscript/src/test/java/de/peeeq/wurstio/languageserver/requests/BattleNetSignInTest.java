@@ -11,8 +11,10 @@ import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -21,8 +23,40 @@ import java.util.concurrent.TimeUnit;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 
 public class BattleNetSignInTest {
+    @Test
+    public void aRenewalLockHeldElsewhereIsReportedAsBusy() throws Exception {
+        if (!Orient.isWindowsSystem()) throw new SkipException("Battle.net paths are Windows paths");
+        Path dir = Files.createTempDirectory("wurst-battlenet-lock");
+        Path config = dir.resolve("Battle.net.config");
+        try (ServerSocket holder = new ServerSocket()) {
+            holder.bind(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127, 0, 0, 1}), BattleNetSignIn.gatePort(config)));
+            AtomicBoolean waited = new AtomicBoolean();
+            expectThrows(BattleNetSignIn.LockBusyException.class,
+                () -> BattleNetSignIn.forTest(config, dir).renew(1, () -> waited.set(true)));
+            assertTrue(waited.get(), "the user is told why the run waits");
+        }
+    }
+
+    @Test
+    public void aBusyRenewalLockFailsTheRunInsteadOfLaunchingWithoutIt() {
+        // In "auto" an IOException means "launch on the stored token"; that launch could spend another client's token.
+        RequestFailedException failure = expectThrows(RequestFailedException.class, () -> RunMap.renewOrRefuse(
+            onWait -> { throw new BattleNetSignIn.LockBusyException("Another launch holds it."); }, () -> { }));
+        assertTrue(failure.getMessage().contains("Run the map again"), failure.getMessage());
+        // Any other renewal failure still reaches the caller's fallback.
+        expectThrows(java.io.IOException.class, () -> RunMap.renewOrRefuse(
+            onWait -> { throw new java.io.IOException("Battle.net is not running."); }, () -> { }));
+    }
+
+    @Test
+    public void theRenewalLockOutwaitsAnotherRenewalAndItsSignIn() {
+        assertTrue(BattleNetSignIn.GATE_WAIT_SECONDS > 90 + BattleNetSignIn.SIGN_IN_TIMEOUT_SECONDS,
+            BattleNetSignIn.GATE_WAIT_SECONDS + " s");
+    }
+
     @Test
     public void aCanceledRenewalKeepsTheLockWhileItWatchesForTheLateClient() throws Exception {
         ServerSocket gate = new ServerSocket();

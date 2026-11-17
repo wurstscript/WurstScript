@@ -58,11 +58,34 @@ public final class BattleNetSignIn {
     static final long SIGN_IN_TIMEOUT_SECONDS = 120;
     /** How long a canceled renewal keeps closing the client it asked the app for, which may still be on its way. */
     static final long LATE_GAME_SECONDS = 30;
+    /** Another holder renews (up to {@value #TIMEOUT_SECONDS} s) and waits for its client to sign in; outwait both. */
+    static final long GATE_WAIT_SECONDS = TIMEOUT_SECONDS + SIGN_IN_TIMEOUT_SECONDS + 30;
+
+    /**
+     * Another tool has held the renewal lock for longer than a renewal and a sign-in take. Not a reason to launch
+     * without it: that launch could spend the token the other tool's client has not read yet.
+     */
+    static final class LockBusyException extends IOException {
+        LockBusyException(String message) {
+            super(message);
+        }
+    }
+
+    /** What Run Map calls to renew; see {@link RunMap#renewOrRefuse}. */
+    @FunctionalInterface
+    interface Renewer {
+        Renewal renew(Runnable onWait) throws IOException;
+    }
     private static final Pattern REG_BINARY = Pattern.compile("^\\s*(\\S+)\\s+REG_BINARY\\s+([0-9A-Fa-f]*)\\s*$", Pattern.MULTILINE);
 
     private final Path config;
     private final Path gateDir;
     private final Path launcher;
+
+    /** A renewal for {@code config} whose launcher is never started; for tests that only touch the lock. */
+    static BattleNetSignIn forTest(Path config, Path gateDir) {
+        return new BattleNetSignIn(config, gateDir, Path.of("Battle.net.exe"));
+    }
 
     private BattleNetSignIn(Path config, Path gateDir, Path launcher) {
         this.config = config;
@@ -117,7 +140,16 @@ public final class BattleNetSignIn {
      *     {@link Renewal#releaseWhenSignedIn()}, or {@link Renewal#close()} if the launch fails
      */
     Renewal renew() throws IOException {
-        ServerSocket gate = acquireGate();
+        return renew(GATE_WAIT_SECONDS, () -> { });
+    }
+
+    /** @param onWait called once if another launch holds the lock and this one has to wait for it */
+    Renewal renew(Runnable onWait) throws IOException {
+        return renew(GATE_WAIT_SECONDS, onWait);
+    }
+
+    Renewal renew(long gateWaitSeconds, Runnable onWait) throws IOException {
+        ServerSocket gate = acquireGate(gateWaitSeconds, onWait);
         Set<Long> seen = new HashSet<>();
         boolean[] asked = {false};
         try {
@@ -324,9 +356,10 @@ public final class BattleNetSignIn {
         }
     }
 
-    private ServerSocket acquireGate() throws IOException {
+    private ServerSocket acquireGate(long waitSeconds, Runnable onWait) throws IOException {
         Files.createDirectories(gateDir);
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(waitSeconds);
+        boolean waiting = false;
         while (true) {
             ServerSocket socket = new ServerSocket();
             try {
@@ -335,7 +368,16 @@ public final class BattleNetSignIn {
                 return socket;
             } catch (BindException ex) {
                 socket.close();
-                if (System.nanoTime() >= deadline) throw new IOException("Another Warcraft III test is using Battle.net.", ex);
+                if (!waiting) {
+                    waiting = true;
+                    onWait.run();
+                }
+                if (System.nanoTime() >= deadline) {
+                    LockBusyException busy = new LockBusyException(
+                        "Another Warcraft III launch has held the Battle.net sign-in for over " + waitSeconds + " s.");
+                    busy.initCause(ex);
+                    throw busy;
+                }
                 pause(250);
             } catch (IOException ex) {
                 socket.close();
