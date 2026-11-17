@@ -10,7 +10,7 @@
 #
 # The app shows its window again as the map's client signs in, so the watcher ends $GameSeconds after that client
 # (one that started after this script and not from the app) appears, or at $Seconds if none does. Until that client
-# appears, a new crash reporter (BlizzardError.exe) can only belong to the renewal's closed client and is closed.
+# appears, a new crash reporter (BlizzardError.exe) of the renewal's closed client is closed; any other is left alone.
 #
 # Prints "ready" once it has noted the windows already open, so the caller can ask the app only then; with -Log also
 # one line per action. WurstSetup embeds a copy; keep it self-contained.
@@ -65,6 +65,8 @@ public static class BattleNetWindow {
   static HashSet<uint> appPids = new HashSet<uint>();
   static readonly HashSet<uint> notOurGame = new HashSet<uint>();
   static readonly HashSet<uint> oldReporters = new HashSet<uint>();
+  static readonly HashSet<uint> earlierGames = new HashSet<uint>();
+  static readonly HashSet<uint> renewalClients = new HashSet<uint>();
   static bool log;
   static WinEventProc callback;
 
@@ -150,7 +152,7 @@ public static class BattleNetWindow {
     log = logActions;
     var all = Processes();
     appPids = Pids(all, "Battle.net.exe");
-    foreach (uint pid in Pids(all, "Warcraft III.exe")) notOurGame.Add(pid);
+    foreach (uint pid in Pids(all, "Warcraft III.exe")) { notOurGame.Add(pid); earlierGames.Add(pid); }
     foreach (uint pid in Pids(all, "BlizzardError.exe")) oldReporters.Add(pid);
     IntPtr foreground = GetForegroundWindow();
     background = new HashSet<IntPtr>(Shown(appPids));
@@ -185,15 +187,25 @@ public static class BattleNetWindow {
           if (notOurGame.Contains(pid)) continue;
           PROCESSENTRY32 e; PROCESSENTRY32 parent;
           if (all.TryGetValue(pid, out e) && all.TryGetValue(e.th32ParentProcessID, out parent)
-              && string.Equals(parent.szExeFile, "Battle.net.exe", StringComparison.OrdinalIgnoreCase)) { notOurGame.Add(pid); continue; }
+              && string.Equals(parent.szExeFile, "Battle.net.exe", StringComparison.OrdinalIgnoreCase)) {
+            notOurGame.Add(pid);
+            renewalClients.Add(pid);
+            continue;
+          }
           ours.Add(pid);
         }
         if (ours.Count > 0 && gameSeenAt < 0) gameSeenAt = watch.Elapsed.TotalSeconds;
         if (gameSeenAt < 0) {
-          // Until the map's client runs, a new crash reporter can only be the renewal's closed client's.
+          // A new crash reporter for the renewal's closed client: its parent is that client, or (seen too briefly to be
+          // noted) a process already gone that was not one of the games running before. Any other reporter is left alone.
           foreach (uint pid in Pids(all, "BlizzardError.exe")) {
             if (oldReporters.Contains(pid)) continue;
             oldReporters.Add(pid);
+            PROCESSENTRY32 reporter;
+            if (!all.TryGetValue(pid, out reporter)) continue;
+            uint parentPid = reporter.th32ParentProcessID;
+            bool renewals = renewalClients.Contains(parentPid) || (!all.ContainsKey(parentPid) && !earlierGames.Contains(parentPid));
+            if (!renewals) continue;
             try { Process.GetProcessById((int)pid).Kill(); Note("closed crash reporter"); } catch (Exception) { }
           }
         }
