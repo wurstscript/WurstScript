@@ -229,42 +229,47 @@ public class RunMap extends MapRequest {
             .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
         List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
-        if (tryBattleNet(gui, gameExe.toPath(), Path.of(path), detectedGameVersion, cmd)) return;
+        renewBattleNetSignIn(gui, gameExe.toPath(), detectedGameVersion, cmd);
         gui.sendProgress("running " + cmd);
         Runtime.getRuntime().exec(cmd.toArray(new String[0]));
     }
 
-    private boolean tryBattleNet(WurstGui gui, Path executable, Path mapPath,
-                                 Optional<GameVersion> version, List<String> legacyCommand) {
-        LanguageClient client = langServer.getLanguageClient();
-        if (client == null || !Orient.isWindowsSystem() || "legacy".equals(langServer.getConfigProvider().getWc3LaunchMode())
-            || version.filter(v -> v.compareTo(new GameVersion("3.0")) >= 0).isEmpty()) return false;
-
+    /**
+     * An {@code -editor} launch signs in with a stored token that lapses, after which the game asks for a login.
+     * Renews it from the Battle.net app first ({@link BattleNetSignIn}). {@code wc3LaunchMode} "auto" (the default)
+     * renews when the app is open and otherwise launches on the stored token; "battlenet" asks the user to Retry,
+     * Use Legacy Launch or Cancel when it cannot renew; "legacy" never renews.
+     */
+    private void renewBattleNetSignIn(WurstGui gui, Path executable, Optional<GameVersion> version, List<String> command) {
+        String mode = langServer.getConfigProvider().getWc3LaunchMode();
+        if ("legacy".equals(mode) || !Orient.isWindowsSystem() || !command.contains("-editor")
+            || version.filter(v -> v.compareTo(new GameVersion("3.0")) >= 0).isEmpty()) return;
         try {
-            if (!BattleNetLaunch.isRegisteredGame(executable)) return false;
+            if (!BattleNetSignIn.isRegisteredGame(executable)) return;
         } catch (IOException e) {
             WLogger.warning("Could not check the Battle.net installation: " + e.getMessage());
-            return false;
+            return;
         }
 
-        List<String> gameArgs = legacyCommand.subList(1, legacyCommand.size() - 2);
+        boolean required = "battlenet".equals(mode);
         while (true) {
-            Optional<BattleNetLaunch> battleNet = BattleNetLaunch.find();
-            String problem = "Open Battle.net and sign in to start Warcraft III without an in-game login. "
-                + "Legacy launch may ask you to sign in again.";
-            if (battleNet.isPresent() && battleNet.get().isRunning()) {
+            Optional<BattleNetSignIn> battleNet = BattleNetSignIn.find();
+            String problem = "Open Battle.net and sign in so Warcraft III starts without an in-game login.";
+            if (battleNet.isPresent() && (required || battleNet.get().isRunning())) {
                 try {
-                    gui.sendProgress("Starting Warcraft III through Battle.net...");
-                    battleNet.get().launch(mapPath, gameArgs);
-                    return true;
+                    gui.sendProgress("Renewing the Warcraft III sign-in from Battle.net...");
+                    battleNet.get().renew();
+                    return;
                 } catch (IOException e) {
-                    WLogger.warning("Could not launch Warcraft III through Battle.net: " + e.getMessage());
-                    problem = e.getMessage() + " Legacy launch may ask you to sign in again.";
+                    WLogger.warning("Could not renew the Warcraft III sign-in from Battle.net: " + e.getMessage());
+                    problem = e.getMessage();
                 }
             }
-            switch (askBattleNet(client, problem)) {
+            LanguageClient client = langServer.getLanguageClient();
+            if (!required || client == null) return; // launch on the stored sign-in, which may ask for a login
+            switch (askBattleNet(client, problem + " Legacy launch may ask you to sign in.")) {
                 case "Retry" -> { }
-                case "Use Legacy Launch" -> { return false; }
+                case "Use Legacy Launch" -> { return; }
                 default -> throw new RequestFailedException(MessageType.Info, "Run canceled.");
             }
         }
