@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -109,11 +110,13 @@ public final class BattleNetLaunch {
             }
             if (!isRunning()) throw new IOException("Start Battle.net, sign in, and run the map again.");
             boolean restarted = configure(gameArgs, target);
+            checkCancellation();
             Files.copy(map, target, StandardCopyOption.REPLACE_EXISTING);
             boolean started = false;
             try {
                 int attempts = restarted ? 5 : 1;
                 for (int attempt = 0; attempt < attempts; attempt++) {
+                    checkCancellation();
                     start("--exec=launch W3");
                     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(restarted ? 7 : 20);
                     do {
@@ -148,15 +151,15 @@ public final class BattleNetLaunch {
         String wanted = launchArguments(asString(original), gameArgs, target);
         if (wanted.equals(asString(current))) return false;
 
-        stop();
-        JsonObject data = readJson(config);
-        original = originalArguments(currentArguments(data));
-        JsonObject saved = new JsonObject();
-        saved.add("original", original);
-        writeJson(backup, saved);
-        warcraftSettings(data).addProperty(ARGUMENTS, launchArguments(asString(original), gameArgs, target));
-        writeJson(config, data);
-        start();
+        editLauncherSettings(true, this::stop, () -> {
+            JsonObject data = readJson(config);
+            JsonElement savedArguments = originalArguments(currentArguments(data));
+            JsonObject saved = new JsonObject();
+            saved.add("original", savedArguments);
+            writeJson(backup, saved);
+            warcraftSettings(data).addProperty(ARGUMENTS, launchArguments(asString(savedArguments), gameArgs, target));
+            writeJson(config, data);
+        }, this::start);
         return true;
     }
 
@@ -172,16 +175,15 @@ public final class BattleNetLaunch {
     private boolean restoreSettings() throws IOException {
         if (!Files.isRegularFile(backup)) return false;
         if (isManaged(currentArguments(readJson(config)))) {
-            boolean running = isRunning();
-            stop();
-            JsonObject data = readJson(config);
-            if (isManaged(currentArguments(data))) {
-                JsonElement original = readJson(backup).get("original");
-                if (original == null || original.isJsonNull()) warcraftSettings(data).remove(ARGUMENTS);
-                else warcraftSettings(data).add(ARGUMENTS, original);
-                writeJson(config, data);
-            }
-            if (running) start();
+            editLauncherSettings(isRunning(), this::stop, () -> {
+                JsonObject data = readJson(config);
+                if (isManaged(currentArguments(data))) {
+                    JsonElement original = readJson(backup).get("original");
+                    if (original == null || original.isJsonNull()) warcraftSettings(data).remove(ARGUMENTS);
+                    else warcraftSettings(data).add(ARGUMENTS, original);
+                    writeJson(config, data);
+                }
+            }, this::start);
         }
         Files.delete(backup);
         for (String file : TARGETS) {
@@ -189,6 +191,36 @@ public final class BattleNetLaunch {
             if (Files.exists(target) && mapProcesses(target).isEmpty()) Files.delete(target);
         }
         return true;
+    }
+
+    static void editLauncherSettings(boolean wasRunning, CompilationCancellation.Action<IOException> stop,
+                                     CompilationCancellation.Action<IOException> edit,
+                                     CompilationCancellation.Action<IOException> start) throws IOException {
+        checkCancellation();
+        if (wasRunning) stop.run();
+        Throwable failure = null;
+        try {
+            checkCancellation();
+            edit.run();
+        } catch (IOException | RuntimeException | Error ex) {
+            failure = ex;
+            throw ex;
+        } finally {
+            if (wasRunning) {
+                try {
+                    start.run();
+                } catch (IOException ex) {
+                    if (failure == null) throw ex;
+                    failure.addSuppressed(ex);
+                    WLogger.warning("Could not reopen Battle.net: " + ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void checkCancellation() {
+        CompilationCancellation.check();
+        if (Thread.currentThread().isInterrupted()) throw new CancellationException("Map command canceled");
     }
 
     private JsonElement originalArguments(JsonElement current) throws IOException {
@@ -308,9 +340,19 @@ public final class BattleNetLaunch {
         if (!isRunning()) return;
         start("--exec=shutdown");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
-        while (isRunning()) {
-            if (System.nanoTime() >= deadline) throw new IOException("Battle.net did not shut down. Its settings were not edited.");
-            pause(500);
+        // Once shutdown is requested, wait for it to finish so the restart reaches a new instance.
+        boolean interrupted = false;
+        try {
+            while (isRunning()) {
+                if (System.nanoTime() >= deadline) throw new IOException("Battle.net did not shut down. Its settings were not edited.");
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ex) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            if (interrupted) Thread.currentThread().interrupt();
         }
     }
 
