@@ -8,6 +8,11 @@
 # the map's Warcraft III client to the front once that has a window: a client that started after this script and not
 # from the app, so never the user's own game or the renewal's short-lived one.
 #
+# The app's new window takes the foreground before it can be minimized, and minimizing it can leave no window in front,
+# so a fullscreen program the user was in stays deactivated (or minimizes itself). Whenever an app window takes the
+# foreground, it is minimized and, once the app has lost the foreground, it is handed back to the last window that had
+# it, unless Windows has already given it to another.
+#
 # The app shows its window again as the map's client signs in, so the watcher ends $GameSeconds after that client
 # (one that started after this script and not from the app) appears, or at $Seconds if none does. Until that client
 # appears, a new crash reporter (BlizzardError.exe) of the renewal's closed client is closed; any other is left alone.
@@ -55,7 +60,7 @@ public static class BattleNetWindow {
     th32ParentProcessID; public int pcPriClassBase; public uint dwFlags;
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szExeFile; }
 
-  const uint EVENT_CREATE = 0x8000, EVENT_SHOW = 0x8002, EVENT_LOCATION = 0x800B;
+  const uint EVENT_FOREGROUND = 0x0003, EVENT_CREATE = 0x8000, EVENT_SHOW = 0x8002, EVENT_LOCATION = 0x800B;
   const uint SWP_MOVE_ONLY = 0x0001 | 0x0004 | 0x0010; // NOSIZE | NOZORDER | NOACTIVATE
   const int OFF_SCREEN = -32000;
   static readonly Stopwatch watch = new Stopwatch();
@@ -68,7 +73,11 @@ public static class BattleNetWindow {
   static readonly HashSet<uint> earlierGames = new HashSet<uint>();
   static readonly HashSet<uint> renewalClients = new HashSet<uint>();
   static bool log;
-  static WinEventProc callback;
+  static WinEventProc callback, foregroundCallback;
+  // The last window in front that is neither the app's nor the renewal's client: where the foreground goes back to.
+  static IntPtr lastUser = IntPtr.Zero;
+  // Since when an app window took the foreground and it has not been handed back; negative when there is none.
+  static double handBackSince = -1;
 
   static void Note(string s) { if (log) Console.WriteLine("{0} {1:N2}", s, watch.Elapsed.TotalSeconds); }
 
@@ -105,7 +114,8 @@ public static class BattleNetWindow {
     return appPids.Contains(pid) && GetAncestor(h, 2) == h && GetWindow(h, 4) == IntPtr.Zero;
   }
 
-  // Minimizes without activating; the window holding the foreground is minimized normally, which hands it on.
+  // Minimizes without activating; the window holding the foreground is minimized normally, and the foreground is then
+  // handed back (see HandBack).
   static void Minimize(IntPtr h, string why) {
     bool foreground = GetForegroundWindow() == h;
     ShowWindow(h, foreground ? 6 : 7);
@@ -115,7 +125,39 @@ public static class BattleNetWindow {
       var p = new WINDOWPLACEMENT(); p.length = Marshal.SizeOf(p);
       if (GetWindowPlacement(h, ref p)) { p.normal = original; p.showCmd = 7; SetWindowPlacement(h, ref p); }
     }
-    Note("minimized " + why);
+    Note((foreground ? "minimized foreground " : "minimized ") + why);
+    if (foreground) handBackSince = watch.Elapsed.TotalSeconds;
+  }
+
+  // Called from the loop after an app window took the foreground. Windows sometimes hands the foreground on itself as
+  // that window is minimized, and sometimes leaves no window in front; and while the app still holds it, it refuses to
+  // let another process set it. So this waits for the app to lose it, then gives it back to the last window that had
+  // it (with none in front, any process may set it), restoring a fullscreen program that minimized itself. Returns
+  // true once there is nothing more to do.
+  static bool HandBack(double waited) {
+    IntPtr now = GetForegroundWindow();
+    uint nowPid = 0;
+    if (now != IntPtr.Zero) GetWindowThreadProcessId(now, out nowPid);
+    if (now != IntPtr.Zero && !appPids.Contains(nowPid)) { Note("another window is in front"); return true; }
+    IntPtr to = lastUser;
+    if (to == IntPtr.Zero || !IsWindow(to)) { Note("no window to hand the foreground back to"); return true; }
+    if (now != IntPtr.Zero && waited < 0.5) return false;
+    bool ok = SetForegroundWindow(to);
+    if (ok && IsIconic(to)) ShowWindow(to, 9);
+    if (ok || waited >= 1) {
+      Note((ok ? "handed back the foreground" : "could not hand back the foreground")
+        + (now == IntPtr.Zero ? " (none in front)" : " (app in front)"));
+      return true;
+    }
+    return false;
+  }
+
+  static void OnForeground(IntPtr hook, uint ev, IntPtr h, int idObject, int idChild, uint thread, uint time) {
+    if (h == IntPtr.Zero) return;
+    uint pid; GetWindowThreadProcessId(h, out pid);
+    if (renewalClients.Contains(pid)) return;
+    if (!appPids.Contains(pid)) { lastUser = h; return; }
+    if (IsIconic(h)) handBackSince = watch.Elapsed.TotalSeconds; else Minimize(h, "foreground window");
   }
 
   static void OnEvent(IntPtr hook, uint ev, IntPtr h, int idObject, int idChild, uint thread, uint time) {
@@ -157,12 +199,17 @@ public static class BattleNetWindow {
     IntPtr foreground = GetForegroundWindow();
     background = new HashSet<IntPtr>(Shown(appPids));
     background.Remove(foreground);
+    uint foregroundPid; GetWindowThreadProcessId(foreground, out foregroundPid);
+    if (!appPids.Contains(foregroundPid)) lastUser = foreground;
+    Note(lastUser == IntPtr.Zero ? "no window in front" : "noted the window in front");
   }
 
   public static void Run(int seconds, int gameSeconds, bool focusGame) {
     watch.Start();
     callback = OnEvent;
+    foregroundCallback = OnForeground;
     IntPtr hook = SetWinEventHook(EVENT_CREATE, EVENT_LOCATION, IntPtr.Zero, callback, 0, 0, 0);
+    IntPtr foregroundHook = SetWinEventHook(EVENT_FOREGROUND, EVENT_FOREGROUND, IntPtr.Zero, foregroundCallback, 0, 0, 0);
     bool focused = !focusGame;
     long lastScan = -1000;
     double gameSeenAt = -1;
@@ -172,6 +219,7 @@ public static class BattleNetWindow {
         MsgWaitForMultipleObjects(0, null, false, 25, 0x04FF);
         MSG m;
         while (PeekMessage(out m, IntPtr.Zero, 0, 0, 1)) { TranslateMessage(ref m); DispatchMessage(ref m); }
+        if (handBackSince >= 0 && HandBack(watch.Elapsed.TotalSeconds - handBackSince)) handBackSince = -1;
         if (watch.ElapsedMilliseconds - lastScan < 50) continue;
         lastScan = watch.ElapsedMilliseconds;
         var all = Processes();
@@ -220,6 +268,7 @@ public static class BattleNetWindow {
       }
     } finally {
       UnhookWinEvent(hook);
+      UnhookWinEvent(foregroundHook);
       // Windows the app created but never showed go back where it put them.
       foreach (var entry in moved) {
         if (!handled.Contains(entry.Key) && IsWindow(entry.Key)) {
