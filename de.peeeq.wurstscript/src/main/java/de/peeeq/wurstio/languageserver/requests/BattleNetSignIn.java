@@ -350,8 +350,22 @@ public final class BattleNetSignIn {
         } finally {
             if (watcher != null) watcher.stop();
         }
-        return new Renewal(gate, () -> token == null
-            || readBinary(GAME_KEY, "EDITOR_TOKEN").filter(token::equals).isEmpty(), () -> { }, 500);
+        return new Renewal(gate, tokenReplaced(token, () -> readBinary(GAME_KEY, "EDITOR_TOKEN")), () -> { }, 500);
+    }
+
+    /** Reads {@code EDITOR_TOKEN}; empty when it is not set. */
+    @FunctionalInterface
+    interface TokenRead {
+        Optional<String> read() throws IOException;
+    }
+
+    /**
+     * The fallback sign-in check: whether the client has replaced the renewed token. If the renewed token could not
+     * be read, the sign-in cannot be told, and the lock is held until the timeout rather than released at once.
+     */
+    static Renewal.SignedIn tokenReplaced(@Nullable String renewed, TokenRead current) {
+        if (renewed == null) return () -> false;
+        return () -> current.read().filter(renewed::equals).isEmpty();
     }
 
     /**

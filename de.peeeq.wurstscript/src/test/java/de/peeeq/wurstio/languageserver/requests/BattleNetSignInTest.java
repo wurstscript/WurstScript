@@ -188,6 +188,17 @@ public class BattleNetSignInTest {
     }
 
     @Test
+    public void theFallbackKeepsTheLockWhileTheRenewedTokenIsUnknownOrUnchanged() throws Exception {
+        assertFalse(BattleNetSignIn.tokenReplaced(null, Optional::empty).check(),
+            "an unreadable renewed token is no sign-in");
+        assertFalse(BattleNetSignIn.tokenReplaced(null, () -> Optional.of("new")).check(),
+            "an unreadable renewed token is no sign-in, whatever is read later");
+        assertFalse(BattleNetSignIn.tokenReplaced("renewed", () -> Optional.of("renewed")).check());
+        assertTrue(BattleNetSignIn.tokenReplaced("renewed", () -> Optional.of("new")).check());
+        assertTrue(BattleNetSignIn.tokenReplaced("renewed", Optional::empty).check(), "a spent token is a sign-in");
+    }
+
+    @Test
     public void aSignInWatcherThatEndedWithoutTheSignInIsNotTakenForOne() throws Exception {
         Path output = Files.createTempFile("wurst-signin", ".log");
         Files.write(output, utf16WithBom("ready\r\ntimeout\r\n"));
