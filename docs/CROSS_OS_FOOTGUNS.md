@@ -1,7 +1,7 @@
 # Cross-OS footguns
 
-PR CI intentionally runs Ubuntu only. Master runs compiler tests on Windows x64, Linux x64, macOS arm64 and
-macOS x64; the versioned release workflow also packages those hosts. Keep that inexpensive PR loop. Agents own
+PRs and untagged master pushes run CI on Ubuntu. The versioned release workflow tests and packages Windows x64,
+Linux x64, macOS arm64 and macOS x64. Keep routine CI inexpensive. Agents own
 portability in both production code and tests: inspect the affected host boundaries, construct a focused regression
 that exposes the assumption, run the relevant test class, and state any platform-specific validation still missing.
 One passing host is not a completed portability review.

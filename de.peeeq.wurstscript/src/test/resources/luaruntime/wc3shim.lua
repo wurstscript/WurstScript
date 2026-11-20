@@ -421,7 +421,7 @@ function GetUnitTypeId(u) return u.typeId end
 -- Null-handle defaults let Blizzard helpers evaluate their own conditions. Live unit state is not modeled.
 function GetUnitState(u, state)
     if u == nil then return 0 end
-    error("GetUnitState: live unit state is not modeled by the test runtime")
+    error("The native 'GetUnitState' is not implemented for live units in the test runtime")
 end
 function CreateDestructable(objectId, x, y, face, scale, variation)
     return { typeId = objectId, x = x, y = y, face = face, scale = scale, variation = variation }
