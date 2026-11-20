@@ -11,16 +11,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Master pushes exercise every supported host. Pull requests use one Linux job
-  # so that the normal feedback loop does not spend four runner-minutes on the
-  # same compiler test suite; the full host matrix still runs before release.
+  # The release workflow runs the full platform matrix for version tags.
   build:
-    name: Gradle build on ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || '["ubuntu-latest"]') }}
-    runs-on: ${{ matrix.os }}
+    name: Gradle build on ubuntu-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       checks: write
@@ -43,14 +37,12 @@ jobs:
       - name: Setup JDK 27
         uses: actions/setup-java@v4
         with:
-          # Temurin 27 has no macOS x64 build; Zulu keeps the Intel artifact supported.
-          distribution: ${{ matrix.os == 'macos-15-intel' && 'zulu' || 'temurin' }}
+          distribution: temurin
           java-version: '27'
           cache: 'gradle'
 
-      # Linux only: use a portable, pristine Temurin 27 for jlink
+      # Use a portable, pristine Temurin 27 for jlink.
       - name: (Linux) Install portable Temurin 27
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
@@ -62,7 +54,6 @@ jobs:
           echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
           echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
 
-      # Pin Gradle toolchain to the active JDK (portable on Linux, setup-java on Windows)
       - name: Pin Gradle toolchain
         shell: bash
         run: |
@@ -86,7 +77,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Prepare bundled Lua runtime (Linux)
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
@@ -101,26 +91,16 @@ jobs:
           # checkouts; keep them usable as a fallback for local/older images.
           chmod +x src/test/resources/lua53 src/test/resources/luac53
 
-      - name: Install Lua compiler (macOS)
-        if: runner.os == 'macOS'
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: '1'
-        shell: bash
-        run: brew install lua
-
       - name: Test release gate
-        if: runner.os == 'Linux'
         shell: bash
         run: python ../scripts/test-release.py
 
       - name: Check CI runtime limits
-        if: runner.os == 'Linux'
         timeout-minutes: 1
         shell: bash
         run: python ../scripts/test-ci-timeouts.py
 
       - name: Test compiler version metadata
-        if: runner.os == 'Linux'
         shell: bash
         run: python ../scripts/test-version-metadata.py
 
@@ -133,21 +113,15 @@ jobs:
         timeout-minutes: 22
         shell: bash
         run: |
-          # Master pushes also run every executing test on Lua (-PallBackends) where the Lua is 5.3, as
-          # the exemptions were established on: Linux installs lua5.3 and Windows uses the bundled lua.exe.
-          # macOS takes Homebrew's unpinned Lua.
-          ALL_BACKENDS=""
-          if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" != "macOS" ]]; then
-            ALL_BACKENDS="-PallBackends"
-          fi
-          if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" == "Linux" ]]; then
-            ./gradlew test jacocoTestReport $ALL_BACKENDS --no-daemon --stacktrace --quiet
+          # On master, run all executing tests on Lua 5.3 and collect coverage.
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            ./gradlew test jacocoTestReport -PallBackends --no-daemon --stacktrace --quiet
           else
-            ./gradlew test $ALL_BACKENDS --no-daemon --stacktrace --quiet
+            ./gradlew test --no-daemon --stacktrace --quiet
           fi
 
       - name: Upload coverage to Coveralls
-        if: github.event_name == 'push' && runner.os == 'Linux'
+        if: github.event_name == 'push'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -159,7 +133,7 @@ jobs:
         uses: mikepenz/action-junit-report@v4
         with:
           report_paths: de.peeeq.wurstscript/build/test-results/**/*.xml
-          check_name: Test Results (${{ matrix.os }})
+          check_name: Test Results (ubuntu-latest)
           fail_on_failure: false
 
       # luaOutputIsDeterministicForGenericOverrideSlots compiles one program twice and keeps both
@@ -170,7 +144,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: determinism-scripts-${{ matrix.os }}
+          name: determinism-scripts-ubuntu-latest
           path: |
             de.peeeq.wurstscript/test-output/determinism-first.lua
             de.peeeq.wurstscript/test-output/determinism-second.lua

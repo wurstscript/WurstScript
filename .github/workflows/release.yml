@@ -112,7 +112,13 @@ jobs:
         run: ./gradlew -p ../HelperScripts test --no-daemon --stacktrace --quiet
       - name: Test compiler and package runtime
         timeout-minutes: 27
-        run: ./gradlew test packageSlimCompilerDist --no-daemon --stacktrace
+        run: |
+          args=()
+          # Linux and Windows use Lua 5.3. macOS uses Homebrew's current Lua.
+          if [[ "$RUNNER_OS" != "macOS" ]]; then
+            args+=(-PallBackends)
+          fi
+          ./gradlew test packageSlimCompilerDist "${args[@]}" --no-daemon --stacktrace
       - name: Verify packaged compiler version
         run: |
           set -euo pipefail
