@@ -39,7 +39,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '27'
-          cache: 'gradle'
 
       # Use a portable, pristine Temurin 27 for jlink.
       - name: (Linux) Install portable Temurin 27
