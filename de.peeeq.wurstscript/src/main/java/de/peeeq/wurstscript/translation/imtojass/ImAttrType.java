@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
@@ -23,8 +24,25 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImFunctionCall e) {
-        ImType t = e.getFunc().getReturnType();
-        t = substituteType(t, e.getTypeArguments(), e.getFunc().getTypeVariables());
+        ImFunction function = e.getFunc();
+        ImType t = function.getReturnType();
+        // A direct instance call (such as an overloaded operator) carries its receiver as the first argument.
+        // Before generic elimination lifts class variables onto the function, its self parameter still uses them.
+        if (!function.getParameters().isEmpty()
+            && function.getParameters().get(0).getType() instanceof ImClassType self
+            && !self.getClassDef().getTypeVariables().isEmpty()
+            && !self.getTypeArguments().isEmpty()
+            && self.getTypeArguments().get(0).getType() instanceof ImTypeVarRef first
+            && first.getTypeVariable().equals(self.getClassDef().getTypeVariables().get(0))
+            && function.getTrace() instanceof FuncDef source && source.attrIsDynamicClassMember()
+            && !e.getArguments().isEmpty()
+            && e.getArguments().get(0).attrTyp() instanceof ImClassType receiver) {
+            ImClassType owner = asSuperclass(receiver, self.getClassDef());
+            if (owner != null && owner.getTypeArguments().size() == self.getClassDef().getTypeVariables().size()) {
+                t = substituteType(t, owner.getTypeArguments(), self.getClassDef().getTypeVariables());
+            }
+        }
+        t = substituteType(t, e.getTypeArguments(), function.getTypeVariables());
         if (e.getTuplesEliminated()) {
             if (t instanceof ImTupleType) {
                 ImTupleType tt = (ImTupleType) t;

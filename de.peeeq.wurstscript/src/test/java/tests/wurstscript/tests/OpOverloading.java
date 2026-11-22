@@ -233,6 +233,36 @@ public class OpOverloading extends WurstScriptTest {
     }
 
     @Test
+    public void genericIndexReadInConditionalArgument() {
+        test().testLua(true).luaOnly(false).stacktraces().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple Pair(real x, real y)",
+            "class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function op_index(int i) returns T",
+            "        return value",
+            "class PairBox extends Box<Pair>",
+            "    construct(Pair value)",
+            "        super(value)",
+            "function matches(Pair pair, real x, real y) returns boolean",
+            "    return pair.x == x and pair.y == y",
+            "function check(boolean readBox, Box<Pair> box, real x, real y) returns boolean",
+            "    return matches(readBox ? box[0] : Pair(4., 8.), x, y)",
+            "function checkInherited(boolean readBox, PairBox box, real x, real y) returns boolean",
+            "    return matches(readBox ? box[0] : Pair(4., 8.), x, y)",
+            "init",
+            "    let box = new Box<Pair>(Pair(1., 2.))",
+            "    let inherited = new PairBox(Pair(16., 32.))",
+            "    if check(true, box, 1., 2.) and check(false, box, 4., 8.)",
+            "        if checkInherited(true, inherited, 16., 32.) and checkInherited(false, inherited, 4., 8.)",
+            "            testSuccess()"
+        );
+    }
+
+    @Test
     public void testOverloading_indexWrite() {
         testAssertOkLines(true,
                 "package test",
